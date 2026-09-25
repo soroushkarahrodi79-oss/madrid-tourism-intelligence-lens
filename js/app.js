@@ -125,16 +125,6 @@ function heatStatsFor(which) {
 
 const STATUS_LABEL = { live: "live", snapshot: "SNAPSHOT SAMPLE", unavailable: "UNAVAILABLE" };
 
-// Worst-case status across a set of layers: unavailable > snapshot > live.
-// Used so a combined metric (e.g. "Tourism POIs" = museums + info) inherits
-// the least-trustworthy status of its contributing layers.
-function combinedStatus(names) {
-  const statuses = names.map((n) => layerStatus[n]).filter(Boolean);
-  if (statuses.includes("unavailable")) return "unavailable";
-  if (statuses.includes("snapshot")) return "snapshot";
-  return "live";
-}
-
 function renderLayerSourceNote() {
   const lines = Object.entries(layerStatus).map(([name, status]) => {
     const label = { museums: "Museums", info: "Tourist info", bikes: "BiciMAD", stays: "Hotels & stays" }[name];
@@ -162,16 +152,26 @@ function renderHeatMetric(h) {
 }
 
 function renderMix(s) {
-  [
-    ["Museum", s.museum],
-    ["Stay", s.stay],
-    ["Bike", s.bike],
-    ["Info", s.info],
-  ].forEach(([k, v]) => {
-    const pct = s.total ? Math.round((v / s.total) * 100) : 0;
-    document.getElementById("bar" + k).style.width = pct + "%";
-    document.getElementById("pct" + k).textContent = pct + "%";
+  const counts = { Museum: s.museum, Stay: s.stay, Bike: s.bike, Info: s.info };
+  const statuses = {
+    Museum: layerStatus.museums,
+    Stay: layerStatus.stays,
+    Bike: layerStatus.bikes,
+    Info: layerStatus.info,
+  };
+  const { rows, label } = categoryMixState(counts, statuses);
+  Object.entries(rows).forEach(([k, row]) => {
+    const bar = document.getElementById("bar" + k);
+    const pctEl = document.getElementById("pct" + k);
+    if (row.na) {
+      bar.style.width = "0%";
+      pctEl.textContent = "N/A";
+    } else {
+      bar.style.width = row.pct + "%";
+      pctEl.textContent = row.pct + "%";
+    }
   });
+  document.getElementById("mixLabel").textContent = label;
 }
 
 function renderNearest(s) {
@@ -191,10 +191,21 @@ function renderCompare() {
   const b = statsFor("B");
   const ha = heatStatsFor("A");
   const hb = heatStatsFor("B");
-  document.getElementById("cmpPoi").textContent = deltaOrDash(a.tourism, b.tourism) ?? "—";
-  document.getElementById("cmpStay").textContent = deltaOrDash(a.stay, b.stay) ?? "—";
-  document.getElementById("cmpMobility").textContent =
-    combinedStatus(["bikes"]) === "unavailable" ? "—" : deltaOrDash(a.bike, b.bike) ?? "—";
+  document.getElementById("cmpPoi").textContent = comparisonDelta(
+    combinedStatus(layerStatus, ["museums", "info"]),
+    a.tourism,
+    b.tourism
+  );
+  document.getElementById("cmpStay").textContent = comparisonDelta(
+    combinedStatus(layerStatus, ["stays"]),
+    a.stay,
+    b.stay
+  );
+  document.getElementById("cmpMobility").textContent = comparisonDelta(
+    combinedStatus(layerStatus, ["bikes"]),
+    a.bike,
+    b.bike
+  );
   document.getElementById("cmpHeat").textContent =
     ha.evidence === "MODEL-DERIVED" && hb.evidence === "MODEL-DERIVED"
       ? deltaOrDash(ha.mean, hb.mean, "°")
@@ -241,7 +252,7 @@ function refresh() {
     valueId: "tourismValue",
     footId: "tourismFoot",
     value: s.tourism,
-    status: combinedStatus(["museums", "info"]),
+    status: combinedStatus(layerStatus, ["museums", "info"]),
     liveFoot: "within lens",
     snapshotFoot: "sample count, not exhaustive",
     unavailableFoot: "source unavailable",
@@ -250,7 +261,7 @@ function refresh() {
     valueId: "stayValue",
     footId: "stayFoot",
     value: s.stay,
-    status: combinedStatus(["stays"]),
+    status: combinedStatus(layerStatus, ["stays"]),
     liveFoot: "within lens",
     snapshotFoot: "sample count, not exhaustive",
     unavailableFoot: "source unavailable",
@@ -259,7 +270,7 @@ function refresh() {
     valueId: "mobilityValue",
     footId: "mobilityFoot",
     value: s.bike,
-    status: combinedStatus(["bikes"]),
+    status: combinedStatus(layerStatus, ["bikes"]),
     liveFoot: "BiciMAD in lens",
     snapshotFoot: "sample count, not exhaustive",
     unavailableFoot: "BiciMAD source unavailable",
