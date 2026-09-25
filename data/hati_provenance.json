@@ -1,0 +1,45 @@
+{
+  "source_repository": "https://github.com/soroushkarahrodi79-oss/heat-adaptive-tourism-madrid",
+  "source_commit_sha": "f02f5f6b6c5645adde94ae658bccbf9829e727e2",
+  "source_files": [
+    "data/processed/pilot_assets.csv",
+    "data/processed/phase2_asset_thermal_exposure.csv"
+  ],
+  "study_date": "2023-08-21",
+  "extraction_date": "2026-09-25",
+  "fields_used": {
+    "from_pilot_assets_csv": [
+      "asset_id",
+      "name",
+      "category",
+      "latitude",
+      "longitude",
+      "indoor_outdoor",
+      "source",
+      "evidence_notes"
+    ],
+    "from_phase2_asset_thermal_exposure_csv": [
+      "asset_id",
+      "indoor_outdoor",
+      "timestamp",
+      "utci_mean_10m",
+      "utci_category"
+    ]
+  },
+  "filter_applied": "indoor_outdoor == 'outdoor' (indoor assets excluded: SOLWEIG models the outdoor microclimate only)",
+  "supported_timesteps": [
+    "12:00",
+    "15:00",
+    "18:00"
+  ],
+  "transformation": "No spatial or temporal interpolation. Values are copied verbatim from the utci_mean_10m column (mean UTCI over a 10 m buffer around each asset point, from SOLWEIG output) for the three modelled timestamps of the single pilot day.",
+  "utci_category_citation": "Bröde P. et al. (2012), International Journal of Biometeorology - official published UTCI thermal-stress category bands, reused as-is by HATI-Madrid (see its docs/PHASE2_UTCI_METHOD.md) and by this project. Not an invented threshold.",
+  "asset_count": 14,
+  "limitations": [
+    "UTCI values are model-derived (SOLWEIG physical microclimate model), not measured thermal comfort or physiological observation.",
+    "All values correspond to a single modelled pilot day, 21 August 2023, and do not represent real-time or current conditions.",
+    "Coverage is bounded to the 14 outdoor pilot assets in central Madrid (Paseo del Arte / Parque del Retiro area); it is not a city-wide surface.",
+    "Values must not be spatially interpolated across Madrid; only the sampled asset points themselves carry evidence.",
+    "HATI Layer B (post Gate-3B) is RESEARCH_FROZEN; HATI Layer A is RELEASE_LOCKED. This project reads this evidence read-only and does not modify, extend, or re-run the HATI pipeline."
+  ]
+}

@@ -1,0 +1,268 @@
+[
+  {
+    "id": "A14",
+    "name": "Puerta de Alcalá",
+    "category": "monument_outdoor",
+    "lat": 40.419987,
+    "lon": -3.688724,
+    "osm_source": "OpenStreetMap way/174805987 (ODbL, fetched 2026-08-17 via Overpass API)",
+    "evidence_notes": "Puerta de Alcalá. Free-standing neoclassical gate on a large open traffic roundabout/plaza; minimal overhead shade at the monument itself.",
+    "utci_mean_10m": {
+      "12:00": 36.8,
+      "15:00": 40.5,
+      "18:00": 42.7
+    },
+    "utci_category": {
+      "12:00": "Very strong heat stress",
+      "15:00": "Extreme heat stress",
+      "18:00": "Extreme heat stress"
+    }
+  },
+  {
+    "id": "A15",
+    "name": "Fuente de Cibeles",
+    "category": "monument_outdoor",
+    "lat": 40.419334,
+    "lon": -3.693088,
+    "osm_source": "OpenStreetMap relation/6345116 (ODbL, fetched 2026-08-17 via Overpass API)",
+    "evidence_notes": "Fuente de Cibeles, Plaza de Cibeles. Open monumental roundabout plaza, hard-paved, minimal tree cover immediately at the fountain.",
+    "utci_mean_10m": {
+      "12:00": 40.0,
+      "15:00": 44.4,
+      "18:00": 44.2
+    },
+    "utci_category": {
+      "12:00": "Extreme heat stress",
+      "15:00": "Extreme heat stress",
+      "18:00": "Extreme heat stress"
+    }
+  },
+  {
+    "id": "A16",
+    "name": "Fuente de Neptuno",
+    "category": "monument_outdoor",
+    "lat": 40.415255,
+    "lon": -3.694151,
+    "osm_source": "OpenStreetMap way/553098274 (ODbL, fetched 2026-08-17 via Overpass API)",
+    "evidence_notes": "Fuente de Neptuno, Plaza de Cánovas del Castillo. Open traffic-circle plaza between the Prado and Thyssen; minimal shade at the fountain itself.",
+    "utci_mean_10m": {
+      "12:00": 40.7,
+      "15:00": 45.0,
+      "18:00": 45.2
+    },
+    "utci_category": {
+      "12:00": "Extreme heat stress",
+      "15:00": "Extreme heat stress",
+      "18:00": "Extreme heat stress"
+    }
+  },
+  {
+    "id": "A17",
+    "name": "Estatua de Goya",
+    "category": "monument_outdoor",
+    "lat": 40.414983,
+    "lon": -3.692537,
+    "osm_source": "OpenStreetMap node/2045974223 (ODbL, fetched 2026-08-17 via Overpass API)",
+    "evidence_notes": "Estatua de Goya, Prado forecourt (Puerta de Goya entrance area). High-footfall queueing area on the Paseo del Prado sidewalk; sparse street-tree shade.",
+    "utci_mean_10m": {
+      "12:00": 33.9,
+      "15:00": 42.6,
+      "18:00": 43.9
+    },
+    "utci_category": {
+      "12:00": "Very strong heat stress",
+      "15:00": "Extreme heat stress",
+      "18:00": "Extreme heat stress"
+    }
+  },
+  {
+    "id": "A18",
+    "name": "Palacio de Cibeles - Ayuntamiento de Madrid",
+    "category": "monument_outdoor",
+    "lat": 40.418851,
+    "lon": -3.691903,
+    "osm_source": "OpenStreetMap node/8928518873 (ODbL, fetched 2026-08-17 via Overpass API)",
+    "evidence_notes": "Palacio de Cibeles (Ayuntamiento de Madrid). Landmark building with public viewpoint (mirador); surrounding plaza is open and hard-paved.",
+    "utci_mean_10m": {
+      "12:00": 39.1,
+      "15:00": 44.5,
+      "18:00": 43.0
+    },
+    "utci_category": {
+      "12:00": "Extreme heat stress",
+      "15:00": "Extreme heat stress",
+      "18:00": "Extreme heat stress"
+    }
+  },
+  {
+    "id": "A19",
+    "name": "Real Observatorio de Madrid",
+    "category": "monument_outdoor",
+    "lat": 40.408436,
+    "lon": -3.687266,
+    "osm_source": "OpenStreetMap way/29471311 (ODbL, fetched 2026-08-17 via Overpass API)",
+    "evidence_notes": "Real Observatorio de Madrid. Historic hilltop observatory building at the south edge of the study area; elevated, exposed site with limited surrounding canopy.",
+    "utci_mean_10m": {
+      "12:00": 33.6,
+      "15:00": 41.4,
+      "18:00": 41.7
+    },
+    "utci_category": {
+      "12:00": "Very strong heat stress",
+      "15:00": "Extreme heat stress",
+      "18:00": "Extreme heat stress"
+    }
+  },
+  {
+    "id": "A20",
+    "name": "Parque del Retiro",
+    "category": "park_general",
+    "lat": 40.414864,
+    "lon": -3.682713,
+    "osm_source": "OpenStreetMap relation/13616929 (ODbL, fetched 2026-08-17 via Overpass API)",
+    "evidence_notes": "Parque del Retiro. The study area's largest green space; asset point placed at the Estanque Grande (central lake) as the park's best-known tourist anchor.",
+    "utci_mean_10m": {
+      "12:00": 33.7,
+      "15:00": 38.6,
+      "18:00": 40.1
+    },
+    "utci_category": {
+      "12:00": "Very strong heat stress",
+      "15:00": "Extreme heat stress",
+      "18:00": "Extreme heat stress"
+    }
+  },
+  {
+    "id": "A21",
+    "name": "Real Jardín Botánico de Madrid",
+    "category": "garden_outdoor",
+    "lat": 40.411169,
+    "lon": -3.690753,
+    "osm_source": "OpenStreetMap way/15244804 (ODbL, fetched 2026-08-17 via Overpass API)",
+    "evidence_notes": "Real Jardín Botánico de Madrid. Densely planted, ticketed botanical garden immediately south of the Prado.",
+    "utci_mean_10m": {
+      "12:00": 32.4,
+      "15:00": 38.4,
+      "18:00": 39.9
+    },
+    "utci_category": {
+      "12:00": "Very strong heat stress",
+      "15:00": "Extreme heat stress",
+      "18:00": "Extreme heat stress"
+    }
+  },
+  {
+    "id": "A22",
+    "name": "Palacio de Cristal",
+    "category": "outdoor_pavilion_shaded",
+    "lat": 40.413592,
+    "lon": -3.682057,
+    "osm_source": "OpenStreetMap way/23596451 (ODbL, fetched 2026-08-17 via Overpass API)",
+    "evidence_notes": "Palacio de Cristal, Parque del Retiro. Glass exhibition pavilion beside a small lake, set within mature tree cover.",
+    "utci_mean_10m": {
+      "12:00": 36.8,
+      "15:00": 43.9,
+      "18:00": 42.9
+    },
+    "utci_category": {
+      "12:00": "Very strong heat stress",
+      "15:00": "Extreme heat stress",
+      "18:00": "Extreme heat stress"
+    }
+  },
+  {
+    "id": "A23",
+    "name": "Jardines de Cecilio Rodríguez",
+    "category": "garden_outdoor",
+    "lat": 40.413348,
+    "lon": -3.677973,
+    "osm_source": "OpenStreetMap relation/10005473 (ODbL, fetched 2026-08-17 via Overpass API)",
+    "evidence_notes": "Jardines de Cecilio Rodríguez, Parque del Retiro. Formal, densely-planted, well-shaded garden (cedars, fountains, peacocks), a well-documented cool micro-site within the park.",
+    "utci_mean_10m": {
+      "12:00": 39.4,
+      "15:00": 44.4,
+      "18:00": 41.9
+    },
+    "utci_category": {
+      "12:00": "Extreme heat stress",
+      "15:00": "Extreme heat stress",
+      "18:00": "Extreme heat stress"
+    }
+  },
+  {
+    "id": "A24",
+    "name": "La Rosaleda",
+    "category": "garden_outdoor",
+    "lat": 40.410788,
+    "lon": -3.680318,
+    "osm_source": "OpenStreetMap way/29471363 (ODbL, fetched 2026-08-17 via Overpass API)",
+    "evidence_notes": "La Rosaleda, Parque del Retiro. Rose garden; planted but lower-canopy than Cecilio Rodríguez (shrub-height roses rather than closed tree canopy).",
+    "utci_mean_10m": {
+      "12:00": 40.4,
+      "15:00": 45.0,
+      "18:00": 45.4
+    },
+    "utci_category": {
+      "12:00": "Extreme heat stress",
+      "15:00": "Extreme heat stress",
+      "18:00": "Extreme heat stress"
+    }
+  },
+  {
+    "id": "A25",
+    "name": "Jardín del Parterre",
+    "category": "garden_outdoor",
+    "lat": 40.415295,
+    "lon": -3.687406,
+    "osm_source": "OpenStreetMap relation/20827650 (ODbL, fetched 2026-08-17 via Overpass API)",
+    "evidence_notes": "Jardín del Parterre, Parque del Retiro. Formal historic garden near the Casón del Buen Retiro, mixed open lawn and mature trees.",
+    "utci_mean_10m": {
+      "12:00": 40.3,
+      "15:00": 45.0,
+      "18:00": 42.9
+    },
+    "utci_category": {
+      "12:00": "Extreme heat stress",
+      "15:00": "Extreme heat stress",
+      "18:00": "Extreme heat stress"
+    }
+  },
+  {
+    "id": "A26",
+    "name": "Monumento a Alfonso XII",
+    "category": "outdoor_attraction_mixed_shade",
+    "lat": 40.417314,
+    "lon": -3.683067,
+    "osm_source": "OpenStreetMap way/722360391 (ODbL, fetched 2026-08-17 via Overpass API)",
+    "evidence_notes": "Monumento a Alfonso XII / Estanque Grande colonnade. Iconic lake-front monument; monument steps are open and sun-exposed, lake-path edges have tree shade nearby.",
+    "utci_mean_10m": {
+      "12:00": 37.5,
+      "15:00": 42.1,
+      "18:00": 43.9
+    },
+    "utci_category": {
+      "12:00": "Very strong heat stress",
+      "15:00": "Extreme heat stress",
+      "18:00": "Extreme heat stress"
+    }
+  },
+  {
+    "id": "A27",
+    "name": "Jardines del Arquitecto Herrero Palacios",
+    "category": "garden_outdoor",
+    "lat": 40.415613,
+    "lon": -3.678634,
+    "osm_source": "OpenStreetMap relation/10005474 (ODbL, fetched 2026-08-17 via Overpass API)",
+    "evidence_notes": "Jardines del Arquitecto Herrero Palacios, Parque del Retiro. Planted garden area near Puerta de Alcalá / Casa de Fieras, mature tree cover.",
+    "utci_mean_10m": {
+      "12:00": 37.6,
+      "15:00": 43.5,
+      "18:00": 42.2
+    },
+    "utci_category": {
+      "12:00": "Very strong heat stress",
+      "15:00": "Extreme heat stress",
+      "18:00": "Extreme heat stress"
+    }
+  }
+]
