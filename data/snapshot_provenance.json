@@ -1,0 +1,35 @@
+{
+  "purpose": "Repository snapshot fallback for tourism/mobility layers, used when the live public APIs cannot be reached from the browser (CORS restrictions, rate limits, or downtime) or as the default source when no live fetch is attempted.",
+  "completeness_notice": "Every layer below is a SNAPSHOT SAMPLE: a small, manually curated set of records, not a complete inventory of the source dataset. A count derived from a snapshot layer represents 'records present in this sample', not 'total records that exist at this location'. The UI must label these layers as SNAPSHOT SAMPLE and must not phrase their counts as exhaustive.",
+  "layers": {
+    "museums": {
+      "live_source": "Madrid Open Data - Museos (https://datos.madrid.es/dataset/201132-0-museos)",
+      "snapshot_captured": "2026-09-25",
+      "snapshot_method": "Manually curated from the same open dataset's published records for the small set of major museums inside the study area (central Madrid / Paseo del Arte). Not a full city-wide scrape.",
+      "exhaustive": false,
+      "count": 4
+    },
+    "tourist_info": {
+      "live_source": "Madrid Open Data - Puntos de información turística (https://datos.madrid.es/dataset/201105-0-informacion-turismo)",
+      "snapshot_captured": "2026-09-25",
+      "snapshot_method": "Manually curated from the same open dataset's published records for the study area.",
+      "exhaustive": false,
+      "count": 2
+    },
+    "accommodation": {
+      "live_source": "OpenStreetMap via Overpass API (tourism=hotel|hostel|guest_house|apartment)",
+      "snapshot_captured": "2026-09-25",
+      "snapshot_method": "Manually curated from OpenStreetMap (ODbL) for well-known hotels in the study area.",
+      "exhaustive": false,
+      "count": 6
+    },
+    "bicimad": {
+      "live_source": "EMT Madrid - BiciMAD station geojson (https://datos.emtmadrid.es)",
+      "snapshot_captured": null,
+      "snapshot_method": "No fallback snapshot exists for this layer. An earlier draft included approximate, hand-placed station coordinates; these were removed because they could not be verified against the official EMT Madrid dataset and this project does not invent or approximate analytical geospatial points. If the live BiciMAD source cannot be reached, the application reports the layer as UNAVAILABLE rather than showing invented or approximate station locations.",
+      "exhaustive": false,
+      "count": 0
+    }
+  },
+  "note": "Snapshot layers exist to keep the spatial-lens interaction demonstrable when a live API is unavailable. The UI must label points sourced from a snapshot as 'SNAPSHOT SAMPLE' (never as if it were a live, exhaustive count) and must never present them with the same live-data badge as a successful live fetch. A layer with no reliable fallback (BiciMAD) must be shown as UNAVAILABLE, never approximated."
+}

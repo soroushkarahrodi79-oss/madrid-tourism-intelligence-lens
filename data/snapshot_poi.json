@@ -1,0 +1,20 @@
+{
+  "museum": [
+    {"id": "museum-prado", "name": "Museo Nacional del Prado", "lat": 40.41382, "lon": -3.69162},
+    {"id": "museum-reinasofia", "name": "Museo Reina Sofía", "lat": 40.408045, "lon": -3.694595},
+    {"id": "museum-thyssen", "name": "Museo Thyssen-Bornemisza", "lat": 40.416223, "lon": -3.6951},
+    {"id": "museum-naval", "name": "Museo Naval", "lat": 40.417518, "lon": -3.692389}
+  ],
+  "info": [
+    {"id": "info-plazamayor", "name": "Centro de Turismo Plaza Mayor", "lat": 40.415794, "lon": -3.707411},
+    {"id": "info-palacioreal", "name": "Punto de Información Palacio Real", "lat": 40.417001, "lon": -3.712166}
+  ],
+  "stay": [
+    {"id": "stay-ritz", "name": "Hotel Ritz Madrid", "lat": 40.4156, "lon": -3.6925},
+    {"id": "stay-palace", "name": "Hotel Palace", "lat": 40.415, "lon": -3.6966},
+    {"id": "stay-onlyyou", "name": "Only YOU Hotel Atocha", "lat": 40.4074, "lon": -3.69},
+    {"id": "stay-nhnacional", "name": "NH Madrid Nacional", "lat": 40.4095, "lon": -3.6931},
+    {"id": "stay-urban", "name": "Hotel Urban", "lat": 40.4164, "lon": -3.6987},
+    {"id": "stay-regina", "name": "Hotel Regina", "lat": 40.4183, "lon": -3.6997}
+  ]
+}

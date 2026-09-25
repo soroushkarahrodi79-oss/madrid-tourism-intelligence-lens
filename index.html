@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Madrid Tourism Intelligence Lens</title>
+<meta name="description" content="Move a spatial lens across central Madrid to explore how tourism POIs, mobility nodes and bounded HATI thermal evidence change locally.">
+<link rel="stylesheet" href="assets/leaflet/leaflet.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="map"></div>
+
+<header>
+  <div class="brand">
+    <div class="logo"></div>
+    <div><div class="brand-title">Madrid Tourism Intelligence Lens</div><div class="brand-sub">Tourism × Mobility × Urban Climate</div></div>
+  </div>
+  <div class="nav">
+    <button class="active">Explore</button>
+    <button id="navCompare">Compare</button>
+    <button id="navEvidence">Evidence</button>
+  </div>
+</header>
+
+<aside class="left">
+  <h3>Layers</h3>
+  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--museum);background:var(--museum)"></i>Museums</div><label class="switch"><input data-layer="museum" type="checkbox" checked><span></span></label></div>
+  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--stay);background:var(--stay)"></i>Hotels & stays</div><label class="switch"><input data-layer="stay" type="checkbox" checked><span></span></label></div>
+  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--bike);background:var(--bike)"></i>BiciMAD</div><label class="switch"><input data-layer="bike" type="checkbox" checked><span></span></label></div>
+  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--info);background:var(--info)"></i>Tourist info</div><label class="switch"><input data-layer="info" type="checkbox" checked><span></span></label></div>
+  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--heat);background:var(--heat)"></i>HATI UTCI samples</div><label class="switch"><input data-layer="heat" type="checkbox" checked><span></span></label></div>
+  <div id="layerSourceNote" class="layer-source-note"></div>
+  <div class="heat-scale"></div>
+  <div class="scale-labels"><span>32°C</span><span>38</span><span>46+</span></div>
+  <div class="evidence-note">
+    <b>Evidence ceiling</b><br>
+    HATI UTCI is <b>model-derived</b> (SOLWEIG), not measured comfort. Bounded to the locked 21 Aug 2023 Madrid pilot; no interpolation beyond the 14 sampled outdoor assets.
+  </div>
+</aside>
+
+<section class="panel">
+  <div class="status"><span id="liveBadge" class="live"><i></i><span>Loading spatial sources…</span></span><small>Central Madrid<br>v0.1</small></div>
+  <h1 class="title">Spatial exploration</h1>
+  <div class="subtitle">Move the lens to ask what is present — and what the evidence actually supports.</div>
+
+  <div class="lensbar">
+    <button id="lensAButton" class="lensbtn active a">Lens A · active</button>
+    <button id="lensBButton" class="lensbtn b">+ Enable Lens B</button>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--museum);color:var(--museum)"></i>Tourism POIs</div><div id="tourismValue" class="metric-value">—</div><div id="tourismFoot" class="metric-foot">within lens</div></div>
+    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--stay);color:var(--stay)"></i>Hotels & stays</div><div id="stayValue" class="metric-value">—</div><div id="stayFoot" class="metric-foot">within lens</div></div>
+    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--bike);color:var(--bike)"></i>Mobility nodes</div><div id="mobilityValue" class="metric-value">—</div><div id="mobilityFoot" class="metric-foot">BiciMAD in lens</div></div>
+    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--heat);color:var(--heat)"></i>Mean UTCI <span class="badge model">model</span></div><div id="heatValue" class="metric-value abstain">—</div><div id="heatFoot" class="metric-foot">HATI outdoor samples</div></div>
+  </div>
+
+  <div class="controlbox">
+    <div class="controltop"><span>Lens radius</span><b id="radiusText">900 m</b></div>
+    <input id="radiusSlider" type="range" min="250" max="1800" step="50" value="900">
+    <div class="row-controls">
+      <select id="timeSelect" aria-label="HATI model time">
+        <option value="12:00">HATI · 12:00</option>
+        <option value="15:00" selected>HATI · 15:00</option>
+        <option value="18:00">HATI · 18:00</option>
+      </select>
+      <button id="resetButton" class="smallbtn">Reset active lens</button>
+    </div>
+  </div>
+
+  <div class="mix">
+    <div class="card">
+      <div class="card-title">Category mix</div>
+      <div id="mixLabel" class="mix-label"></div>
+      <div class="mixrow"><span>Museums</span><div class="bar"><i id="barMuseum" style="background:var(--museum);width:0%"></i></div><b id="pctMuseum">0%</b></div>
+      <div class="mixrow"><span>Stays</span><div class="bar"><i id="barStay" style="background:var(--stay);width:0%"></i></div><b id="pctStay">0%</b></div>
+      <div class="mixrow"><span>Mobility</span><div class="bar"><i id="barBike" style="background:var(--bike);width:0%"></i></div><b id="pctBike">0%</b></div>
+      <div class="mixrow"><span>Info</span><div class="bar"><i id="barInfo" style="background:var(--info);width:0%"></i></div><b id="pctInfo">0%</b></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Nearest in active lens</div>
+      <ul id="nearestList" class="nearest"><li>Loading…</li></ul>
+    </div>
+  </div>
+
+  <div id="compareLine" class="compareline">
+    <h3>Lens A ↔ Lens B comparison</h3>
+    <div class="comparegrid">
+      <div>POIs<b id="cmpPoi">—</b></div>
+      <div>Stays<b id="cmpStay">—</b></div>
+      <div>Mobility<b id="cmpMobility">—</b></div>
+      <div>UTCI<b id="cmpHeat">—</b></div>
+      <div>Evidence<b id="cmpEvidence">—</b></div>
+    </div>
+  </div>
+
+  <div class="source">
+    Sources: Madrid Open Data (museums, tourist information), OpenStreetMap/Overpass (accommodation) — live-first, SNAPSHOT SAMPLE fallback (partial, not exhaustive) if unreachable. EMT Madrid (BiciMAD) — live-first, no fallback: shown as unavailable if unreachable. HATI-Madrid locked pilot evidence (21 Aug 2023; UTCI is model output, not field observation) — see <a href="docs/DATA_PROVENANCE.md">data provenance</a> and <a href="docs/CLAIMS_AND_LIMITATIONS.md">claims &amp; limitations</a>. Base map © OpenStreetMap/CARTO.
+  </div>
+</section>
+
+<script src="assets/leaflet/leaflet.js"></script>
+<script src="js/lens.js"></script>
+<script src="js/evidence.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
