@@ -85,7 +85,10 @@ function snapshotFor(snapshotPOI, type) {
 }
 
 // Loads every POI layer. Each result carries { points, layerStatus } where
-// layerStatus is one of "live" | "snapshot" per layer, for the UI to badge.
+// layerStatus is one of "live" | "snapshot" | "unavailable" per layer, for
+// the UI to badge. "unavailable" means the live fetch failed AND no curated
+// snapshot exists for that layer — the app never invents or approximates
+// points to fill the gap; it reports the layer as unavailable instead.
 async function loadAllLayers(snapshotPOI) {
   const layerStatus = {};
   const points = [];
@@ -98,8 +101,12 @@ async function loadAllLayers(snapshotPOI) {
       layerStatus[name] = "live";
     } catch (e) {
       const snap = snapshotFor(snapshotPOI, type);
-      points.push(...snap);
-      layerStatus[name] = "snapshot";
+      if (snap.length) {
+        points.push(...snap);
+        layerStatus[name] = "snapshot";
+      } else {
+        layerStatus[name] = "unavailable";
+      }
     }
   }
 
@@ -120,4 +127,8 @@ async function loadAllLayers(snapshotPOI) {
   ]);
 
   return { points, layerStatus };
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { loadAllLayers, snapshotFor };
 }

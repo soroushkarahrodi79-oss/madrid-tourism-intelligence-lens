@@ -16,9 +16,9 @@ research dataset.
 
 Static maps and dashboards force you to look at a whole city at once, or at
 one predefined zone. The lens lets you ask a **local, comparative** question
-— "what's actually here, in this exact 900 m radius, right now?" — and move
-that question around the map interactively, including comparing two places
-at once.
+— "what is represented within this exact spatial window, given the evidence
+currently loaded?" — and move that question around the map interactively,
+including comparing two places at once.
 
 ## 3. What can the user explore?
 
@@ -37,10 +37,16 @@ at once.
 - **BiciMAD** — EMT Madrid open data
 - **HATI-Madrid outdoor UTCI samples** — a bounded research evidence layer (see below)
 
-All four public-API layers are **live-first with a repository-snapshot
-fallback**: if a live source is unreachable from the browser, the app falls
-back to a small, clearly labelled static snapshot rather than showing
-nothing or silently guessing. See [`docs/DATA_PROVENANCE.md`](docs/DATA_PROVENANCE.md).
+Museums, tourist info and accommodation are **live-first with a repository
+snapshot fallback**: if a live source is unreachable from the browser, the
+app falls back to a small, explicitly labelled **SNAPSHOT SAMPLE** rather
+than showing nothing or silently guessing — and a snapshot count is always
+presented as "records in this sample," never as a complete inventory.
+BiciMAD has **no fallback**: its exact station coordinates cannot be
+reliably reproduced without the live EMT Madrid source, so if the live fetch
+fails the app reports that layer as **unavailable** rather than showing
+approximated or invented station locations. See
+[`docs/DATA_PROVENANCE.md`](docs/DATA_PROVENANCE.md).
 
 ## 5. What is HATI's role?
 
@@ -80,15 +86,21 @@ once; it is not done automatically by this PR.
 
 ## 9. What is the evidence status?
 
-- Tourism/mobility layers: live public data where reachable, repository
-  snapshot otherwise — labelled per layer in the UI.
+- Tourism/accommodation layers: live public data where reachable; a labelled
+  **SNAPSHOT SAMPLE** otherwise (partial by design, never presented as a
+  complete inventory). BiciMAD has no snapshot and shows **unavailable** if
+  the live source cannot be reached.
 - HATI thermal layer: locked, model-derived evidence from a single historical
   pilot day. Lenses with zero HATI samples inside them show **"No evidence"**,
   never a fabricated value.
 
 ## 10. What is next?
 
-- Expand the curated POI snapshot beyond the current small sample.
+- Build a reproducible, sufficiently complete AOI snapshot per POI layer
+  (ideally scripted like `scripts/extract_hati_evidence.py`) so counts stay
+  interpretable even when live APIs fail, and verify exact BiciMAD station
+  coordinates against the official EMT Madrid dataset before reintroducing
+  a BiciMAD fallback.
 - Add automated visual regression checks for the map UI.
 - Consider a second bounded evidence layer if/when HATI or another source
   publishes one with the same provenance rigor.
@@ -110,4 +122,23 @@ tests/                  Node built-in test runner, no framework
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+The MIT license in [LICENSE](LICENSE) covers **this repository's original
+code and documentation only**. It does not relicense any third-party data or
+software this project reads or bundles:
+
+- **Leaflet** (vendored in `assets/leaflet/`) keeps its own upstream license
+  — see `assets/leaflet/LICENSE`.
+- **OpenStreetMap-derived data** (accommodation layer, and the OSM references
+  cited in HATI's own asset records) remains subject to the
+  [ODbL](https://opendatacommons.org/licenses/odbl/) and its attribution
+  requirement.
+- **Madrid Open Data** (museums, tourist information) and **EMT Madrid open
+  data** (BiciMAD) remain subject to the reuse terms published by their
+  respective portals — see
+  [datos.madrid.es](https://datos.madrid.es/) and
+  [datos.emtmadrid.es](https://datos.emtmadrid.es/) directly; this project
+  does not restate or assume a specific license text for them.
+- **HATI-Madrid evidence** (`data/hati_assets.json`, `data/hati_provenance.json`)
+  remains subject to the source repository's own terms and governance
+  (`RELEASE_LOCKED` / `RESEARCH_FROZEN` layers) — see
+  [DATA_PROVENANCE.md](docs/DATA_PROVENANCE.md).

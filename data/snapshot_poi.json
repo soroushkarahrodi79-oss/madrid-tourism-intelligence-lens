@@ -16,13 +16,5 @@
     {"id": "stay-nhnacional", "name": "NH Madrid Nacional", "lat": 40.4095, "lon": -3.6931},
     {"id": "stay-urban", "name": "Hotel Urban", "lat": 40.4164, "lon": -3.6987},
     {"id": "stay-regina", "name": "Hotel Regina", "lat": 40.4183, "lon": -3.6997}
-  ],
-  "bike": [
-    {"id": "bike-atocha", "name": "BiciMAD · Estación Atocha (approx.)", "lat": 40.4066, "lon": -3.6906},
-    {"id": "bike-cibeles", "name": "BiciMAD · Estación Plaza de Cibeles (approx.)", "lat": 40.4193, "lon": -3.6931},
-    {"id": "bike-retiro", "name": "BiciMAD · Estación Puerta del Retiro (approx.)", "lat": 40.4172, "lon": -3.6826},
-    {"id": "bike-solmayor", "name": "BiciMAD · Estación Plaza Mayor (approx.)", "lat": 40.4155, "lon": -3.7073},
-    {"id": "bike-prado", "name": "BiciMAD · Estación Museo del Prado (approx.)", "lat": 40.4142, "lon": -3.6919},
-    {"id": "bike-neptuno", "name": "BiciMAD · Estación Neptuno (approx.)", "lat": 40.4148, "lon": -3.6938}
   ]
 }

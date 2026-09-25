@@ -71,7 +71,7 @@ function tooltipFor(p) {
       : "no data at this time";
     return `<b>${p.name}</b><br>HATI · ${HATI_STUDY_DATE} · model-derived<br>${badge}`;
   }
-  const src = p.provenance === "snapshot" ? "repository snapshot" : "live source";
+  const src = p.provenance === "snapshot" ? "snapshot sample (not exhaustive)" : "live source";
   return `<b>${p.name}</b><br>${LAYER_LABEL[p.type] || p.type} · ${src}`;
 }
 
@@ -123,11 +123,26 @@ function heatStatsFor(which) {
   return hatiStatsInLens(hatiAssets, timestep, centerOf(which), radius, haversineMeters);
 }
 
+const STATUS_LABEL = { live: "live", snapshot: "SNAPSHOT SAMPLE", unavailable: "UNAVAILABLE" };
+
+// Worst-case status across a set of layers: unavailable > snapshot > live.
+// Used so a combined metric (e.g. "Tourism POIs" = museums + info) inherits
+// the least-trustworthy status of its contributing layers.
+function combinedStatus(names) {
+  const statuses = names.map((n) => layerStatus[n]).filter(Boolean);
+  if (statuses.includes("unavailable")) return "unavailable";
+  if (statuses.includes("snapshot")) return "snapshot";
+  return "live";
+}
+
 function renderLayerSourceNote() {
   const lines = Object.entries(layerStatus).map(([name, status]) => {
     const label = { museums: "Museums", info: "Tourist info", bikes: "BiciMAD", stays: "Hotels & stays" }[name];
-    return `${label}: <b>${status === "live" ? "live" : "repository snapshot"}</b>`;
+    return `${label}: <b>${STATUS_LABEL[status]}</b>`;
   });
+  if (Object.values(layerStatus).some((s) => s === "snapshot")) {
+    lines.push("Snapshot counts are a partial sample, not a complete inventory.");
+  }
   document.getElementById("layerSourceNote").innerHTML = lines.join("<br>");
 }
 
@@ -178,7 +193,8 @@ function renderCompare() {
   const hb = heatStatsFor("B");
   document.getElementById("cmpPoi").textContent = deltaOrDash(a.tourism, b.tourism) ?? "—";
   document.getElementById("cmpStay").textContent = deltaOrDash(a.stay, b.stay) ?? "—";
-  document.getElementById("cmpMobility").textContent = deltaOrDash(a.bike, b.bike) ?? "—";
+  document.getElementById("cmpMobility").textContent =
+    combinedStatus(["bikes"]) === "unavailable" ? "—" : deltaOrDash(a.bike, b.bike) ?? "—";
   document.getElementById("cmpHeat").textContent =
     ha.evidence === "MODEL-DERIVED" && hb.evidence === "MODEL-DERIVED"
       ? deltaOrDash(ha.mean, hb.mean, "°")
@@ -201,12 +217,53 @@ function shadeMarkersOutsideActiveLens() {
   );
 }
 
+// Renders one of the count metrics (tourism POIs, stays, mobility), honoring
+// the "unavailable" and "snapshot" states so a partial or missing layer is
+// never presented as if it were a complete, verified count.
+function renderCountMetric({ valueId, footId, value, status, liveFoot, snapshotFoot, unavailableFoot }) {
+  const v = document.getElementById(valueId);
+  const f = document.getElementById(footId);
+  if (status === "unavailable") {
+    v.textContent = "No data";
+    v.className = "metric-value abstain";
+    f.textContent = unavailableFoot;
+  } else {
+    v.textContent = value;
+    v.className = "metric-value";
+    f.textContent = status === "snapshot" ? snapshotFoot : liveFoot;
+  }
+}
+
 function refresh() {
   Object.values(lenses).forEach((x) => x.circle.setRadius(radius).setLatLng(x.marker.getLatLng()));
   const s = statsFor(active);
-  document.getElementById("tourismValue").textContent = s.tourism;
-  document.getElementById("stayValue").textContent = s.stay;
-  document.getElementById("mobilityValue").textContent = s.bike;
+  renderCountMetric({
+    valueId: "tourismValue",
+    footId: "tourismFoot",
+    value: s.tourism,
+    status: combinedStatus(["museums", "info"]),
+    liveFoot: "within lens",
+    snapshotFoot: "sample count, not exhaustive",
+    unavailableFoot: "source unavailable",
+  });
+  renderCountMetric({
+    valueId: "stayValue",
+    footId: "stayFoot",
+    value: s.stay,
+    status: combinedStatus(["stays"]),
+    liveFoot: "within lens",
+    snapshotFoot: "sample count, not exhaustive",
+    unavailableFoot: "source unavailable",
+  });
+  renderCountMetric({
+    valueId: "mobilityValue",
+    footId: "mobilityFoot",
+    value: s.bike,
+    status: combinedStatus(["bikes"]),
+    liveFoot: "BiciMAD in lens",
+    snapshotFoot: "sample count, not exhaustive",
+    unavailableFoot: "BiciMAD source unavailable",
+  });
   renderHeatMetric(heatStatsFor(active));
   renderMix(s);
   renderNearest(s);
@@ -305,11 +362,14 @@ async function boot() {
   points.forEach(addMarker);
 
   const allLive = Object.values(status).every((s) => s === "live");
+  const anyUnavailable = Object.values(status).some((s) => s === "unavailable");
   const badge = document.getElementById("liveBadge");
   badge.className = allLive ? "live" : "live mixed";
   badge.querySelector("span").textContent = allLive
     ? `${points.length} live records + HATI evidence`
-    : `${points.length} records · some layers on repository snapshot`;
+    : `${points.length} records · some layers on a partial sample or unavailable${
+        anyUnavailable ? " (see layer panel)" : ""
+      }`;
   renderLayerSourceNote();
   refresh();
 }

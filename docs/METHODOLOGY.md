@@ -66,17 +66,29 @@ When Lens B is enabled, the app reports the same descriptive metrics for both
 lenses side by side, plus a signed delta (`B − A`) for POI counts and — only
 when **both** lenses have HATI evidence — a UTCI delta. There is no composite
 "winner," overall score, or ranking between the two lenses: a difference in
-POI count or UTCI is reported as a fact, not an evaluation.
+POI count or UTCI is reported as a fact, not an evaluation. If a layer is
+`UNAVAILABLE` (currently: BiciMAD when its live fetch fails), its comparison
+delta is shown as "—" rather than a computed difference, since both sides
+would otherwise show a meaningless "0 vs 0."
 
 ## Data resilience strategy
 
 Public APIs (Madrid Open Data, EMT Madrid, Overpass) can fail from a static
 GitHub Pages origin due to CORS, rate limits, or downtime. The app is
-**live-first with a repository-snapshot fallback** (Option C): it attempts a
-live fetch for each layer independently, and only falls back to a small,
-explicitly-labelled snapshot committed in `data/snapshot_poi.json` if that
-layer's live fetch fails or returns no data. The UI never presents a snapshot
-count as if it were live — see [DATA_PROVENANCE.md](DATA_PROVENANCE.md).
+**live-first with a repository-snapshot fallback** (Option C) for museums,
+tourist info and accommodation: it attempts a live fetch for each layer
+independently, and only falls back to a small, explicitly-labelled
+**SNAPSHOT SAMPLE** committed in `data/snapshot_poi.json` if that layer's
+live fetch fails or returns no data. A snapshot count is always presented as
+a sample count, never as if it were a complete, live-verified inventory —
+see [DATA_PROVENANCE.md](DATA_PROVENANCE.md).
+
+BiciMAD has no snapshot fallback: an earlier draft included hand-placed,
+approximate station coordinates, and these were removed because they could
+not be verified against the official EMT Madrid dataset — this project does
+not invent or approximate analytical geospatial points. If the live BiciMAD
+fetch fails, the layer is reported as **UNAVAILABLE** and the "Mobility
+nodes" metric shows "No data" rather than a numeric zero.
 
 HATI evidence is always loaded from the repository (`data/hati_assets.json`);
 it is locked historical evidence, not a live feed, so there is no "live"
