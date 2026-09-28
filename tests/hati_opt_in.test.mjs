@@ -7,7 +7,7 @@ const app = fs.readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
 
 test("HATI is off by default", () => {
   assert.match(html, /data-layer="heat" type="checkbox" aria-label="Toggle HATI thermal pilot" aria-checked="false"/);
-  assert.doesNotMatch(html, /data-layer="heat"[^>]*checked/);
+  assert.doesNotMatch(html, /data-layer="heat"[^>]*type="checkbox"\s+checked(?:\s|>)/);
   assert.match(app, /heat: L\.layerGroup\(\),/);
 });
 
