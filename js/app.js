@@ -23,9 +23,15 @@ const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
 
+// Keep lens boundaries above vector POIs but below draggable lens handles and cluster markers.
+map.createPane("lensPane");
+map.getPane("lensPane").style.zIndex = "460";
+map.getPane("lensPane").style.pointerEvents = "none";
+
 const cartoBasemapKey = window.RUNTIME_CONFIG?.CARTO_BASEMAP_KEY || "";
 let activeBasemap = null;
 let activeBasemapName = "light";
+let lensStyleController = null;
 
 function createOsmBasemap() {
   return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -96,6 +102,7 @@ function setBasemap(name) {
 
   activeBasemap = next;
   activeBasemapName = requested;
+  if (lensStyleController) lensStyleController(requested);
 
   let fellBack = false;
   next.on("tileerror", () => {
@@ -155,27 +162,62 @@ const lenses = {
     marker: L.marker(defaults.A, { draggable: true, icon: markerIcon("a"), zIndexOffset: 1000 }).addTo(map),
     circle: L.circle(defaults.A, {
       radius,
-      color: "#f7fbff",
-      weight: 1.8,
-      opacity: 0.95,
-      fillColor: "#fff",
-      fillOpacity: 0.055,
-      dashArray: "5 8",
+      pane: "lensPane",
+      className: "lens-boundary lens-boundary-a",
+      color: "#123b5f",
+      weight: 3,
+      opacity: 1,
+      fillColor: "#3da8ff",
+      fillOpacity: 0.1,
+      dashArray: "10 8",
     }).addTo(map),
   },
   B: {
     marker: L.marker(defaults.B, { draggable: true, icon: markerIcon("b"), zIndexOffset: 1000 }),
     circle: L.circle(defaults.B, {
       radius,
-      color: "#43d7ff",
-      weight: 1.8,
-      opacity: 0.95,
+      pane: "lensPane",
+      className: "lens-boundary lens-boundary-b",
+      color: "#00768f",
+      weight: 3,
+      opacity: 1,
       fillColor: "#43d7ff",
-      fillOpacity: 0.045,
-      dashArray: "5 8",
+      fillOpacity: 0.09,
+      dashArray: "10 8",
     }),
   },
 };
+
+const LENS_BASEMAP_STYLES = {
+  light: {
+    A: { color: "#123b5f", fillColor: "#3da8ff", fillOpacity: 0.10 },
+    B: { color: "#00768f", fillColor: "#43d7ff", fillOpacity: 0.09 },
+  },
+  satellite: {
+    A: { color: "#ffffff", fillColor: "#35a7ff", fillOpacity: 0.13 },
+    B: { color: "#64f0ff", fillColor: "#43d7ff", fillOpacity: 0.12 },
+  },
+  dark: {
+    A: { color: "#ffffff", fillColor: "#3da8ff", fillOpacity: 0.11 },
+    B: { color: "#64f0ff", fillColor: "#43d7ff", fillOpacity: 0.10 },
+  },
+};
+
+function applyLensBasemapStyle(name = activeBasemapName) {
+  const palette = LENS_BASEMAP_STYLES[name] || LENS_BASEMAP_STYLES.light;
+  for (const which of ["A", "B"]) {
+    const isActive = which === active;
+    lenses[which].circle.setStyle({
+      ...palette[which],
+      weight: isActive ? 3.4 : 2.7,
+      opacity: isActive ? 1 : 0.88,
+      dashArray: isActive ? "10 7" : "7 8",
+    });
+  }
+}
+
+lensStyleController = applyLensBasemapStyle;
+applyLensBasemapStyle(activeBasemapName);
 
 function tooltipFor(p) {
   if (p.type === "heat") {
@@ -686,6 +728,7 @@ function refresh() {
 
 function activateLens(which) {
   active = which;
+  applyLensBasemapStyle(activeBasemapName);
   document.getElementById("lensAButton").className = "lensbtn a" + (which === "A" ? " active" : "");
   document.getElementById("lensBButton").className = "lensbtn b" + (which === "B" ? " active" : "");
   document.getElementById("lensBButton").textContent = bEnabled

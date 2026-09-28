@@ -147,6 +147,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .comparegrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center;font-size:9px}
 .comparegrid div{padding:7px 4px;border-radius:8px;background:rgba(255,255,255,.025);color:#8fa2b7}.comparegrid b{display:block;color:white;font-size:12px;margin-top:3px}
 .source{font-size:8.2px;line-height:1.45;color:#687d94;margin-top:11px}.source a{color:#8db8dc;text-decoration:none}
+.lens-boundary{filter:drop-shadow(0 0 1.5px rgba(0,0,0,.9)) drop-shadow(0 0 2.5px rgba(255,255,255,.5));stroke-linecap:round;stroke-linejoin:round}
 .marker-center{width:18px;height:18px;border-radius:50%;border:2px solid currentColor;background:rgba(8,16,27,.75);box-shadow:0 0 0 5px color-mix(in srgb,currentColor 15%,transparent),0 3px 15px rgba(0,0,0,.5)}
 .marker-a{color:white}.marker-b{color:#43d7ff}
 .poi-cluster-icon{background:transparent!important;border:0!important}
