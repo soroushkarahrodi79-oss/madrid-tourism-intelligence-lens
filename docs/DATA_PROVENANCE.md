@@ -40,9 +40,10 @@ never presents an unavailable layer as a verified numeric zero.
 ## Base maps
 
 The UI offers three selectable basemaps: CARTO Positron (light, default),
-Esri World Imagery (satellite), and CARTO Dark Matter. CARTO basemaps retain
-OpenStreetMap/CARTO attribution; the imagery layer retains Esri/source
-attribution in the Leaflet attribution control.
+an Esri hybrid satellite view (World Imagery plus the World Transportation
+and World Boundaries and Places reference overlays), and CARTO Dark Matter.
+CARTO basemaps retain OpenStreetMap/CARTO attribution; the imagery/reference
+stack retains Esri/source attribution in the Leaflet attribution control.
 
 ## Licensing boundary
 
