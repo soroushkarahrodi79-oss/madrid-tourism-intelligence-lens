@@ -110,7 +110,12 @@ function tooltipFor(p) {
       : "no data at this time";
     return `<b>${p.name}</b><br>HATI · ${HATI_STUDY_DATE} · model-derived<br>${badge}`;
   }
-  const src = p.provenance === "snapshot" ? "snapshot sample (not exhaustive)" : "live source";
+  const src =
+    p.provenance === "live"
+      ? "live source"
+      : p.provenance === "published"
+        ? "deployment snapshot"
+        : "snapshot sample (not exhaustive)";
   return `<b>${p.name}</b><br>${LAYER_LABEL[p.type] || p.type} · ${src}`;
 }
 
@@ -162,15 +167,23 @@ function heatStatsFor(which) {
   return hatiStatsInLens(hatiAssets, timestep, centerOf(which), radius, haversineMeters);
 }
 
-const STATUS_LABEL = { live: "live", snapshot: "SNAPSHOT SAMPLE", unavailable: "UNAVAILABLE" };
+const STATUS_LABEL = {
+  live: "live",
+  published: "DEPLOYMENT SNAPSHOT",
+  snapshot: "SNAPSHOT SAMPLE",
+  unavailable: "UNAVAILABLE",
+};
 
 function renderLayerSourceNote() {
   const lines = Object.entries(layerStatus).map(([name, status]) => {
     const label = { museums: "Museums", info: "Tourist info", bikes: "BiciMAD", stays: "Hotels & stays" }[name];
     return `${label}: <b>${STATUS_LABEL[status]}</b>`;
   });
+  if (Object.values(layerStatus).some((s) => s === "published")) {
+    lines.push("Deployment snapshots are generated from the public sources during the latest site deploy.");
+  }
   if (Object.values(layerStatus).some((s) => s === "snapshot")) {
-    lines.push("Snapshot counts are a partial sample, not a complete inventory.");
+    lines.push("Curated fallback counts are a partial sample, not a complete inventory.");
   }
   document.getElementById("layerSourceNote").innerHTML = lines.join("<br>");
 }
@@ -270,7 +283,7 @@ function shadeMarkersOutsideActiveLens() {
 // Renders one of the count metrics (tourism POIs, stays, mobility), honoring
 // the "unavailable" and "snapshot" states so a partial or missing layer is
 // never presented as if it were a complete, verified count.
-function renderCountMetric({ valueId, footId, value, status, liveFoot, snapshotFoot, unavailableFoot }) {
+function renderCountMetric({ valueId, footId, value, status, liveFoot, publishedFoot, snapshotFoot, unavailableFoot }) {
   const v = document.getElementById(valueId);
   const f = document.getElementById(footId);
   if (status === "unavailable") {
@@ -280,7 +293,8 @@ function renderCountMetric({ valueId, footId, value, status, liveFoot, snapshotF
   } else {
     v.textContent = value;
     v.className = "metric-value";
-    f.textContent = status === "snapshot" ? snapshotFoot : liveFoot;
+    f.textContent =
+      status === "snapshot" ? snapshotFoot : status === "published" ? publishedFoot : liveFoot;
   }
 }
 
@@ -293,6 +307,7 @@ function refresh() {
     value: s.tourism,
     status: combinedStatus(layerStatus, ["museums", "info"]),
     liveFoot: "within lens",
+    publishedFoot: "deployment snapshot",
     snapshotFoot: "sample count, not exhaustive",
     unavailableFoot: "source unavailable",
   });
@@ -302,6 +317,7 @@ function refresh() {
     value: s.stay,
     status: combinedStatus(layerStatus, ["stays"]),
     liveFoot: "within lens",
+    publishedFoot: "deployment snapshot",
     snapshotFoot: "sample count, not exhaustive",
     unavailableFoot: "source unavailable",
   });
@@ -311,6 +327,7 @@ function refresh() {
     value: s.bike,
     status: combinedStatus(layerStatus, ["bikes"]),
     liveFoot: "BiciMAD in lens",
+    publishedFoot: "BiciMAD deployment snapshot",
     snapshotFoot: "sample count, not exhaustive",
     unavailableFoot: "BiciMAD source unavailable",
   });
@@ -399,14 +416,17 @@ document.getElementById("resetButton").onclick = () => {
 document.querySelectorAll("[data-layer]").forEach((x) => (x.onchange = () => setLayerVisible(x.dataset.layer, x.checked)));
 
 async function boot() {
-  const [snapshotPOI, hatiAssetsData] = await Promise.all([
+  const [snapshotPOI, runtimePOI, hatiAssetsData] = await Promise.all([
     fetch("data/snapshot_poi.json").then((r) => r.json()),
+    fetch("data/runtime_poi.json")
+      .then((r) => (r.ok ? r.json() : {}))
+      .catch(() => ({})),
     fetch("data/hati_assets.json").then((r) => r.json()),
   ]);
   hatiAssets = hatiAssetsData;
   hatiAssets.forEach((a) => addMarker(hatiPointFor(a, timestep)));
 
-  const { points, layerStatus: status } = await loadAllLayers(snapshotPOI);
+  const { points, layerStatus: status } = await loadAllLayers(snapshotPOI, runtimePOI);
   poiPoints = points;
   layerStatus = status;
   points.forEach(addMarker);
