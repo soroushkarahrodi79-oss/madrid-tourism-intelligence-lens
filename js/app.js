@@ -7,29 +7,47 @@ const LAYER_LABEL = { museum: "Museums", info: "Tourist info", stay: "Hotels & s
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
 
 const cartoBasemapKey = window.RUNTIME_CONFIG?.CARTO_BASEMAP_KEY || "";
-const cartoTileUrl =
-  "https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png" +
-  (cartoBasemapKey ? `?key=${encodeURIComponent(cartoBasemapKey)}` : "");
 
-const cartoBasemap = L.tileLayer(cartoTileUrl, {
-  maxZoom: 20,
-  attribution:
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-});
-
-let basemapFallbackActive = false;
-cartoBasemap.on("tileerror", () => {
-  if (basemapFallbackActive) return;
-  basemapFallbackActive = true;
-  map.removeLayer(cartoBasemap);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+function createOsmBasemap() {
+  return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  }).addTo(map);
-});
+  });
+}
 
-cartoBasemap.addTo(map);
+// Always start with a known-good map so the UI never opens onto a blank canvas.
+// CARTO replaces it only after at least one keyed tile has loaded successfully.
+const osmBasemap = createOsmBasemap().addTo(map);
+
+if (cartoBasemapKey) {
+  const cartoTileUrl =
+    "https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png" +
+    `?key=${encodeURIComponent(cartoBasemapKey)}`;
+
+  const cartoBasemap = L.tileLayer(cartoTileUrl, {
+    maxZoom: 20,
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  });
+
+  let cartoReady = false;
+  let basemapFallbackActive = false;
+
+  cartoBasemap.once("tileload", () => {
+    cartoReady = true;
+    if (map.hasLayer(osmBasemap)) map.removeLayer(osmBasemap);
+  });
+
+  cartoBasemap.on("tileerror", () => {
+    if (basemapFallbackActive || cartoReady) return;
+    basemapFallbackActive = true;
+    if (map.hasLayer(cartoBasemap)) map.removeLayer(cartoBasemap);
+    if (!map.hasLayer(osmBasemap)) osmBasemap.addTo(map);
+  });
+
+  cartoBasemap.addTo(map);
+}
 
 const groups = {
   museum: L.layerGroup().addTo(map),
