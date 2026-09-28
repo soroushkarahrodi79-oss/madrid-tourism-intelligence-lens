@@ -48,6 +48,51 @@ function deltaOrDash(a, b, suffix = "") {
   return `${rounded > 0 ? "+" : ""}${rounded}${suffix}`;
 }
 
+// Observed pedestrian activity is a separate evidence stream, not a POI count.
+// Each station carries an aggregated sum/count from Madrid's published
+// permanent pedestrian-counter records. The lens recombines those sufficient
+// statistics exactly for the stations that fall inside the lens.
+function pedestrianStatsInLens(stations, center, radiusM) {
+  const inside = (stations || [])
+    .map((station) => ({ ...station, d: haversineMeters(center, station) }))
+    .filter((station) => station.d <= radiusM);
+
+  if (!inside.length) {
+    return {
+      evidence: "NONE",
+      stationCount: 0,
+      observationCount: 0,
+      meanObserved: null,
+      dateMin: null,
+      dateMax: null,
+    };
+  }
+
+  let weightedSum = 0;
+  let observationCount = 0;
+  const datesMin = [];
+  const datesMax = [];
+  for (const station of inside) {
+    const n = Number(station.observationCount) || 0;
+    const mean = Number(station.meanObserved);
+    if (n > 0 && Number.isFinite(mean)) {
+      weightedSum += mean * n;
+      observationCount += n;
+    }
+    if (station.dateMin) datesMin.push(station.dateMin);
+    if (station.dateMax) datesMax.push(station.dateMax);
+  }
+
+  return {
+    evidence: observationCount > 0 ? "OBSERVED" : "NONE",
+    stationCount: inside.length,
+    observationCount,
+    meanObserved: observationCount > 0 ? weightedSum / observationCount : null,
+    dateMin: datesMin.length ? datesMin.sort()[0] : null,
+    dateMax: datesMax.length ? datesMax.sort().at(-1) : null,
+  };
+}
+
 // Worst-case status across a set of layers:
 // unavailable > snapshot (small curated sample) > published (deployment snapshot) > live.
 // Used so a combined metric inherits the least-current / least-complete status
@@ -104,6 +149,7 @@ if (typeof module !== "undefined" && module.exports) {
     haversineMeters,
     poiStatsInLens,
     deltaOrDash,
+    pedestrianStatsInLens,
     combinedStatus,
     comparisonDelta,
     categoryMixState,
