@@ -62,6 +62,10 @@ header{
 .switch input:checked+span{background:#1f5472}.switch input:checked+span:after{left:14px;background:#eaf8ff}
 .layer-source-note{margin-top:6px;font-size:8.3px;line-height:1.5;color:#6d8199}
 .layer-source-note b{color:#9bb0c6}
+.research-divider{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:11px 0 2px;padding-top:10px;border-top:1px solid rgba(255,255,255,.09)}
+.research-divider span{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#9aaec4}
+.research-divider small{font-size:7.5px;padding:3px 5px;border-radius:999px;border:1px solid rgba(255,176,74,.2);background:rgba(255,176,74,.06);color:#ffc570}
+.research-layer{border-bottom:0}
 .heat-scale{margin:12px 0 4px;height:5px;border-radius:6px;background:linear-gradient(90deg,#63d3b1,#ffc765,#ff875d,#ef4c58)}
 .scale-labels{display:flex;justify-content:space-between;font-size:8.5px;color:#76889e}
 .evidence-note{margin-top:12px;padding:9px;border:1px solid rgba(255,176,74,.18);border-radius:10px;background:rgba(255,176,74,.05);font-size:9px;line-height:1.4;color:#aebccd}
