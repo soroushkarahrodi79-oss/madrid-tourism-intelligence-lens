@@ -226,8 +226,10 @@ function addClusterMarker(type, cluster) {
   });
   m._cluster = cluster;
   m._p = { type, lat: cluster.lat, lon: cluster.lon };
+  const clusterLabel =
+    type === "stay" && stayKindFilter !== "all" ? stayFilterLabel() : LAYER_LABEL[type];
   m.bindTooltip(
-    `<b>${count} ${LAYER_LABEL[type]}</b><br>Grouped for readability · zoom in to reveal individual points`,
+    `<b>${count} ${clusterLabel}</b><br>Grouped for readability · zoom in to reveal individual points`,
     { direction: "top", offset: [0, -8] }
   );
   m.on("click", () => {
