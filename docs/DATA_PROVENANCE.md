@@ -78,3 +78,18 @@ documentation only. It does not relicense the third-party data or software
 listed above — see the [README's License section](../README.md#license) for
 the specific terms that continue to apply to Leaflet, Madrid Open Data, Madrid Destino / esmadrid.com, EMT Madrid open data, CRTM open data, and HATI-Madrid
 evidence.
+
+
+### Madrid accommodation taxonomy
+
+The Madrid Destino XML taxonomy is read from the source fields documented as
+`Tipo`, `Categoria` and `SubCategoria`. In the production feed these may
+appear as `<item name="...">` entries inside `<extradata>`.
+
+For filtering, the app uses **Categoria** as the accommodation family (for
+example `Hoteles`, `Hostales`, `Apartahoteles`, `Pensiones`,
+`Albergues`, `Residencias universitarias` or `Camping`). The generic
+`Tipo` value such as `Alojamientos` is preserved as source metadata, while
+`SubCategoria` is preserved for the source classification such as star/key
+level. Unknown source categories remain explicitly `Other / unclassified`;
+they are never inferred from the business name.
