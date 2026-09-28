@@ -37,13 +37,12 @@ including comparing two places at once.
 - **BiciMAD** — EMT Madrid open data
 - **HATI-Madrid outdoor UTCI samples** — a bounded research evidence layer (see below)
 
-All four operational POI layers are **live-first** in the browser. Because
-cross-origin browser requests can be blocked even when the public source is
-healthy, the GitHub Pages deployment also generates a **deployment snapshot**
-from the same public sources. The app uses that published snapshot when the
-browser cannot reach the source directly. A small curated repository sample
-remains only as a final fallback if both live access and deployment refresh
-fail. No coordinates are invented. See
+On GitHub Pages, operational POI layers are **deployment-snapshot first** so
+the map renders immediately and does not wait on cross-origin APIs. The latest
+successful public-source snapshot is generated during the Pages build. A small
+curated repository sample is the final packaged fallback where a deployment
+source is unavailable. Direct live requests are only attempted when no packaged
+data exists. No coordinates are invented. See
 [`docs/DATA_PROVENANCE.md`](docs/DATA_PROVENANCE.md).
 
 ## 5. What is HATI's role?
@@ -116,7 +115,7 @@ index.html            entry point
 css/app.css            styling
 js/lens.js             pure lens geometry + POI statistics (tested)
 js/evidence.js          pure HATI evidence statistics (tested)
-js/data.js              live-first + snapshot-fallback data loading
+js/data.js              deployment-snapshot-first + bounded live fallback loading
 js/app.js               Leaflet map + UI wiring
 data/                   HATI evidence extract + POI snapshot + provenance
 scripts/                HATI extraction script
