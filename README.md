@@ -27,13 +27,16 @@ including comparing two places at once.
 - Adjust the lens **radius** (250 m – 1.8 km).
 - Toggle each data layer on/off.
 - Opt into the bounded HATI research-evidence layer, then switch its modelled time-of-day (12:00 / 15:00 / 18:00).
+- Filter the official accommodation layer by accommodation type where the
+  Madrid Destino feed provides that classification.
 - Read descriptive counts, category mix, and the 5 nearest features inside
   the active lens.
 
 ## 4. Which datasets are used?
 
 - **Museums** and **tourist information** — Madrid Open Data
-- **Accommodation** — Madrid Destino / esmadrid.com official accommodation feed
+- **Accommodation** — Madrid Destino / esmadrid.com official accommodation feed,
+  including its published accommodation type/category fields when present
 - **BiciMAD** — EMT Madrid open data
 - **Metro & Cercanías stations** — CRTM open data (M4 and M5 station layers)
 - **HATI-Madrid outdoor UTCI samples** — a bounded research evidence layer (see below)
