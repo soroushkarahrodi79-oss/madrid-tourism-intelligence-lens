@@ -674,6 +674,134 @@ document.getElementById("resetButton").onclick = () => {
 document.querySelectorAll("[data-layer]").forEach((x) => (x.onchange = () => setLayerVisible(x.dataset.layer, x.checked)));
 syncHatiUi(false);
 
+const PANEL_SIZE_STORAGE_KEY = "madrid-tourism-intelligence-lens:analysis-panel-size:v1";
+const analysisPanel = document.querySelector(".panel");
+const panelResizeHandle = document.getElementById("panelResizeHandle");
+
+function panelResizeLimits() {
+  const compact = window.innerWidth <= 1100;
+  const minWidth = compact ? 340 : 390;
+  const reservedLeft = compact ? 250 : 276;
+  const maxWidth = Math.max(minWidth, Math.min(680, window.innerWidth - reservedLeft));
+  const minHeight = 360;
+  const top = analysisPanel.getBoundingClientRect().top;
+  const maxHeight = Math.max(minHeight, window.innerHeight - top - 18);
+  return { minWidth, maxWidth, minHeight, maxHeight };
+}
+
+function clampPanelSize(width, height) {
+  const limits = panelResizeLimits();
+  return {
+    width: Math.min(limits.maxWidth, Math.max(limits.minWidth, width)),
+    height: Math.min(limits.maxHeight, Math.max(limits.minHeight, height)),
+  };
+}
+
+function applyPanelSize(width, height, persist = false) {
+  if (window.innerWidth <= 850) {
+    analysisPanel.style.removeProperty("width");
+    analysisPanel.style.removeProperty("height");
+    return;
+  }
+  const next = clampPanelSize(width, height);
+  analysisPanel.style.width = `${Math.round(next.width)}px`;
+  analysisPanel.style.height = `${Math.round(next.height)}px`;
+  if (persist) {
+    try {
+      localStorage.setItem(PANEL_SIZE_STORAGE_KEY, JSON.stringify(next));
+    } catch (_) {
+      // Storage can be unavailable in privacy-restricted browser contexts.
+    }
+  }
+}
+
+function restorePanelSize() {
+  if (window.innerWidth <= 850) return;
+  try {
+    const saved = JSON.parse(localStorage.getItem(PANEL_SIZE_STORAGE_KEY) || "null");
+    if (Number.isFinite(saved?.width) && Number.isFinite(saved?.height)) {
+      applyPanelSize(saved.width, saved.height, false);
+    }
+  } catch (_) {
+    // Keep the CSS default size when stored state is unavailable or invalid.
+  }
+}
+
+function resetPanelSize() {
+  analysisPanel.style.removeProperty("width");
+  analysisPanel.style.removeProperty("height");
+  try {
+    localStorage.removeItem(PANEL_SIZE_STORAGE_KEY);
+  } catch (_) {
+    // The CSS default remains the reset state even without storage access.
+  }
+}
+
+let panelResizeState = null;
+panelResizeHandle.addEventListener("pointerdown", (event) => {
+  if (window.innerWidth <= 850) return;
+  event.preventDefault();
+  const rect = analysisPanel.getBoundingClientRect();
+  panelResizeState = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    width: rect.width,
+    height: rect.height,
+  };
+  panelResizeHandle.setPointerCapture(event.pointerId);
+  analysisPanel.classList.add("panel-resizing");
+});
+
+panelResizeHandle.addEventListener("pointermove", (event) => {
+  if (!panelResizeState || event.pointerId !== panelResizeState.pointerId) return;
+  const width = panelResizeState.width + (panelResizeState.startX - event.clientX);
+  const height = panelResizeState.height + (event.clientY - panelResizeState.startY);
+  applyPanelSize(width, height, false);
+});
+
+function finishPanelResize(event) {
+  if (!panelResizeState || event.pointerId !== panelResizeState.pointerId) return;
+  const rect = analysisPanel.getBoundingClientRect();
+  panelResizeState = null;
+  analysisPanel.classList.remove("panel-resizing");
+  applyPanelSize(rect.width, rect.height, true);
+}
+
+panelResizeHandle.addEventListener("pointerup", finishPanelResize);
+panelResizeHandle.addEventListener("pointercancel", finishPanelResize);
+panelResizeHandle.addEventListener("dblclick", resetPanelSize);
+panelResizeHandle.addEventListener("keydown", (event) => {
+  if (window.innerWidth <= 850) return;
+  const step = event.shiftKey ? 48 : 24;
+  const rect = analysisPanel.getBoundingClientRect();
+  let width = rect.width;
+  let height = rect.height;
+  if (event.key === "ArrowLeft") width += step;
+  else if (event.key === "ArrowRight") width -= step;
+  else if (event.key === "ArrowDown") height += step;
+  else if (event.key === "ArrowUp") height -= step;
+  else if (event.key === "Home") {
+    resetPanelSize();
+    return;
+  } else {
+    return;
+  }
+  event.preventDefault();
+  applyPanelSize(width, height, true);
+});
+
+window.addEventListener("resize", () => {
+  if (window.innerWidth <= 850) {
+    analysisPanel.style.removeProperty("width");
+    analysisPanel.style.removeProperty("height");
+    return;
+  }
+  const rect = analysisPanel.getBoundingClientRect();
+  applyPanelSize(rect.width, rect.height, false);
+});
+restorePanelSize();
+
 async function boot() {
   const [snapshotPOI, runtimePOI, hatiAssetsData, hatiProvenance] = await Promise.all([
     fetch("data/snapshot_poi.json").then((r) => r.json()),
