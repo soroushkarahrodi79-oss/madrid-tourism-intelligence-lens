@@ -126,9 +126,9 @@ def parse_accommodation_xml(xml_text: str) -> list[dict]:
                             "type": "stay",
                             "name": name,
                             "stayKind": normalize_stay_kind(family_label),
-                            "accommodationType": family_label or "Sin clasificar",
-                            "accommodationCategory": subcategory,
-                            "accommodationSourceType": source_type,
+                            "accommodationType": source_type,
+                            "accommodationCategory": category,
+                            "accommodationSubcategory": subcategory,
                             "lat": lat_v,
                             "lon": lon_v,
                         }
