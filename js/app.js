@@ -7,6 +7,7 @@ const LAYER_COLOR = {
   stay: "#3da8ff",
   bike: "#54e2b5",
   rail: "#ffd166",
+  pedestrian: "#ff7aa2",
   park: "#70dea4",
 };
 const LAYER_LABEL = {
@@ -15,6 +16,7 @@ const LAYER_LABEL = {
   stay: "Hotels & stays",
   bike: "BiciMAD",
   rail: "Metro & Cercanías",
+  pedestrian: "Observed pedestrian activity",
   park: "Principal parks",
 };
 const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
@@ -114,6 +116,8 @@ const groups = {
   stay: L.layerGroup().addTo(map),
   bike: L.layerGroup().addTo(map),
   rail: L.layerGroup().addTo(map),
+  // Observed pedestrian activity is opt-in and analytically separate from POI counts.
+  pedestrian: L.layerGroup(),
   // Context layer is opt-in and intentionally excluded from lens analytics.
   park: L.layerGroup(),
   // Research evidence is opt-in: populate HATI but keep it off the map until requested.
@@ -121,6 +125,9 @@ const groups = {
 };
 
 let poiPoints = [];
+let pedestrianStations = [];
+let pedestrianStatus = "unavailable";
+let pedestrianMeta = {};
 let parkPoints = [];
 let parkStatus = "unavailable";
 let hatiAssets = [];
@@ -193,6 +200,11 @@ function tooltipFor(p) {
     const subcategory = p.accommodationSubcategory ? ` · ${p.accommodationSubcategory}` : "";
     return `<b>${p.name}</b><br>${accommodationFamily}${subcategory}<br>${LAYER_LABEL[p.type]} · ${src}`;
   }
+  if (p.type === "pedestrian") {
+    const mean = Number.isFinite(Number(p.meanObserved)) ? Math.round(Number(p.meanObserved)).toLocaleString("en-GB") : "—";
+    const dates = p.dateMin && p.dateMax ? `${p.dateMin} → ${p.dateMax}` : "2024 published period";
+    return `<b>${p.name}</b><br>Mean observed: ${mean} pedestrians / published hourly record<br>${Number(p.observationCount || 0).toLocaleString("en-GB")} records · ${dates}<br>Madrid permanent counter · not tourism-specific`;
+  }
   if (p.type === "park") {
     return `<b>${p.name}</b><br>Principal municipal park / garden<br>Madrid Open Data · context only`;
   }
@@ -218,6 +230,28 @@ function addMarker(p) {
   m.bindTooltip(tooltipFor(p), { direction: "top", offset: [0, -4] });
   m.addTo(groups[p.type]);
   return m;
+}
+
+function addPedestrianActivityMarker(p) {
+  const color = LAYER_COLOR.pedestrian;
+  const m = L.circleMarker([p.lat, p.lon], {
+    radius: 4.4,
+    color,
+    fillColor: color,
+    weight: 1.2,
+    opacity: 0.92,
+    fillOpacity: 0.42,
+  });
+  // _p is used only for lens-focused visual shading; these records never enter poiPoints.
+  m._p = p;
+  m.bindTooltip(tooltipFor(p), { direction: "top", offset: [0, -4] });
+  m.addTo(groups.pedestrian);
+  return m;
+}
+
+function renderPedestrianActivity() {
+  groups.pedestrian.clearLayers();
+  pedestrianStations.forEach(addPedestrianActivityMarker);
 }
 
 function addParkContextMarker(p) {
