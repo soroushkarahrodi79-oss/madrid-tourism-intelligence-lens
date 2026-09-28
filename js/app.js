@@ -7,6 +7,7 @@ const LAYER_COLOR = {
   stay: "#3da8ff",
   bike: "#54e2b5",
   rail: "#ffd166",
+  park: "#70dea4",
 };
 const LAYER_LABEL = {
   museum: "Museums",
@@ -14,6 +15,7 @@ const LAYER_LABEL = {
   stay: "Hotels & stays",
   bike: "BiciMAD",
   rail: "Metro & Cercanías",
+  park: "Principal parks",
 };
 const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 
@@ -112,11 +114,15 @@ const groups = {
   stay: L.layerGroup().addTo(map),
   bike: L.layerGroup().addTo(map),
   rail: L.layerGroup().addTo(map),
+  // Context layer is opt-in and intentionally excluded from lens analytics.
+  park: L.layerGroup(),
   // Research evidence is opt-in: populate HATI but keep it off the map until requested.
   heat: L.layerGroup(),
 };
 
 let poiPoints = [];
+let parkPoints = [];
+let parkStatus = "unavailable";
 let hatiAssets = [];
 let hatiStudyArea = null;
 let layerStatus = {};
@@ -187,6 +193,9 @@ function tooltipFor(p) {
     const category = p.accommodationCategory ? ` · ${p.accommodationCategory}` : "";
     return `<b>${p.name}</b><br>${accommodationType}${category}<br>${LAYER_LABEL[p.type]} · ${src}`;
   }
+  if (p.type === "park") {
+    return `<b>${p.name}</b><br>Principal municipal park / garden<br>Madrid Open Data · context only`;
+  }
   return `<b>${p.name}</b><br>${LAYER_LABEL[p.type] || p.type} · ${src}`;
 }
 
@@ -209,6 +218,27 @@ function addMarker(p) {
   m.bindTooltip(tooltipFor(p), { direction: "top", offset: [0, -4] });
   m.addTo(groups[p.type]);
   return m;
+}
+
+function addParkContextMarker(p) {
+  const color = LAYER_COLOR.park;
+  const m = L.circleMarker([p.lat, p.lon], {
+    radius: 3.6,
+    color,
+    fillColor: color,
+    weight: 1,
+    opacity: 0.8,
+    fillOpacity: 0.22,
+  });
+  m._context = p;
+  m.bindTooltip(tooltipFor(p), { direction: "top", offset: [0, -4] });
+  m.addTo(groups.park);
+  return m;
+}
+
+function renderParkContext() {
+  groups.park.clearLayers();
+  parkPoints.forEach(addParkContextMarker);
 }
 
 function addClusterMarker(type, cluster) {
@@ -382,6 +412,8 @@ function renderLayerSourceNote() {
   if (Object.values(layerStatus).some((s) => s === "snapshot")) {
     lines.push("Curated fallback counts are a partial sample, not a complete inventory.");
   }
+  lines.push(`Principal parks (context): <b>${STATUS_LABEL[parkStatus]}</b>`);
+  lines.push("Park context is excluded from lens counts, category mix, nearest features and A/B comparisons.");
   lines.push("Hotels & stays and BiciMAD are visually grouped below zoom 16; lens counts still use every record.");
   document.getElementById("layerSourceNote").innerHTML = lines.join("<br>");
 }
@@ -659,6 +691,23 @@ async function boot() {
   const { points, layerStatus: status } = await loadAllLayers(snapshotPOI, runtimePOI);
   poiPoints = points;
   layerStatus = status;
+
+  parkPoints = (runtimePOI?.layers?.park || []).map((p) => ({
+    ...p,
+    type: "park",
+    provenance: "published",
+  }));
+  parkStatus = parkPoints.length ? "published" : "unavailable";
+  renderParkContext();
+
+  const parkToggle = document.querySelector('[data-layer="park"]');
+  if (parkToggle) {
+    parkToggle.disabled = parkStatus === "unavailable";
+    parkToggle.title =
+      parkStatus === "unavailable"
+        ? "Principal parks context unavailable in this deployment"
+        : "Show principal municipal parks and gardens as context";
+  }
 
   const stayFilter = document.getElementById("stayKindFilter");
   const stayKinds = new Map();
