@@ -114,6 +114,12 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .source{font-size:8.2px;line-height:1.45;color:#687d94;margin-top:11px}.source a{color:#8db8dc;text-decoration:none}
 .marker-center{width:18px;height:18px;border-radius:50%;border:2px solid currentColor;background:rgba(8,16,27,.75);box-shadow:0 0 0 5px color-mix(in srgb,currentColor 15%,transparent),0 3px 15px rgba(0,0,0,.5)}
 .marker-a{color:white}.marker-b{color:#43d7ff}
+.poi-cluster-icon{background:transparent!important;border:0!important}
+.poi-cluster{width:100%;height:100%;display:flex;align-items:center;justify-content:center;border:2px solid currentColor;border-radius:50%;background:rgba(8,16,27,.92);box-shadow:0 0 0 5px color-mix(in srgb,currentColor 14%,transparent),0 7px 20px rgba(0,0,0,.4);font-size:11px;font-weight:800;letter-spacing:-.02em;color:white;backdrop-filter:blur(6px);transition:transform .15s ease,box-shadow .15s ease}
+.poi-cluster:hover{transform:scale(1.06);box-shadow:0 0 0 7px color-mix(in srgb,currentColor 16%,transparent),0 9px 24px rgba(0,0,0,.44)}
+.poi-cluster span{line-height:1}
+.cluster-stay{color:var(--stay)}
+.cluster-bike{color:var(--bike)}
 .badge{display:inline-block;padding:2px 5px;border-radius:5px;font-size:7px;letter-spacing:.06em;text-transform:uppercase;margin-left:5px}
 .badge.model{background:rgba(255,176,74,.12);color:#ffc36d;border:1px solid rgba(255,176,74,.2)}
 .badge.snapshot{background:rgba(151,166,183,.14);color:#c2cedb;border:1px solid rgba(151,166,183,.24)}
