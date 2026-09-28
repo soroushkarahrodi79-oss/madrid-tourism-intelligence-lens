@@ -25,14 +25,18 @@ function poiStatsInLens(points, center, radiusM) {
   const info = count("info");
   const stay = count("stay");
   const bike = count("bike");
+  const rail = count("rail");
+  const mobility = bike + rail;
 
   return {
     museum,
     info,
     stay,
     bike,
+    rail,
+    mobility,
     tourism: museum + info,
-    total: museum + info + stay + bike,
+    total: museum + info + stay + mobility,
     nearest: [...inside].sort((a, b) => a.d - b.d).slice(0, 5),
   };
 }
