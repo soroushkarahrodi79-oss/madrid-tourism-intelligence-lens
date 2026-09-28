@@ -13,16 +13,16 @@ its origin, and how it reaches the application.
 - **UTCI stress categories:** official Bröde et al. (2012, *International Journal of Biometeorology*) bands, reused as-is from HATI's own `docs/PHASE2_UTCI_METHOD.md` — not invented for this project.
 - **Governance:** HATI's Layer A (release artefacts) is `RELEASE_LOCKED` and Layer B (post Gate-3B research) is `RESEARCH_FROZEN`. This project only reads published, locked evidence and does not extend or re-run the HATI pipeline.
 
-## Tourism & mobility POIs (`data/snapshot_poi.json` + live APIs)
+## Tourism & mobility POIs (`data/runtime_poi.json` + packaged fallback)
 
-The app is **live-first with a repository-snapshot fallback** (see [METHODOLOGY.md](METHODOLOGY.md#data-resilience-strategy) for why). Per layer:
+On GitHub Pages the app is **deployment-snapshot first** so markers render immediately without waiting on third-party browser requests. The deployment snapshot is rebuilt from the public sources during Pages deployment. Per layer:
 
 | Layer | Live source | Fallback |
 |---|---|---|
 | Museums | [Madrid Open Data — Museos](https://datos.madrid.es/dataset/201132-0-museos) | SNAPSHOT SAMPLE: 4 curated records, captured 2026-09-25 |
 | Tourist info | [Madrid Open Data — Información turística](https://datos.madrid.es/dataset/201105-0-informacion-turismo) | SNAPSHOT SAMPLE: 2 curated records |
-| Accommodation | [OpenStreetMap](https://www.openstreetmap.org/) via Overpass API (ODbL) | SNAPSHOT SAMPLE: 6 curated records |
-| BiciMAD | [EMT Madrid open data](https://datos.emtmadrid.es/) | **None.** An earlier draft included hand-placed, approximate station coordinates; these were removed because they could not be verified against the official dataset. If the live fetch fails, the layer is reported as **UNAVAILABLE** — never an approximated or invented station location. |
+| Accommodation | [Madrid Destino / esmadrid.com — Alojamientos de la ciudad de Madrid](https://datos.madrid.es/dataset/300032-0-turismo-alojamientos) (Spanish XML feed) | SNAPSHOT SAMPLE: 6 curated records if the deployment feed is unavailable |
+| BiciMAD | [EMT Madrid open data](https://datos.emtmadrid.es/) | Deployment snapshot generated from the official station GeoJSON; no hand-placed coordinates |
 
 A **SNAPSHOT SAMPLE** is a small, manually curated subset of the source
 dataset for the study area — **not a complete inventory**. A count derived
@@ -31,23 +31,22 @@ records that exist at this location." Full snapshot metadata (capture date,
 curation method, `exhaustive: false` per layer) is in
 [`data/snapshot_provenance.json`](../data/snapshot_provenance.json).
 
-Every point returned to the UI carries a `provenance: "live" | "snapshot"`
-field, and the left-hand layer panel shows, per layer, whether it is
-currently `live`, a `SNAPSHOT SAMPLE`, or `UNAVAILABLE` — the UI never blends
-a live count with a snapshot or unavailable count under a single unlabelled
-number, and a metric derived from an unavailable layer is shown as "No data"
-rather than a numeric zero (which would be indistinguishable from a verified
-zero).
+Every point returned to the UI carries an explicit provenance state. The
+left-hand layer panel distinguishes deployment snapshots, small curated
+fallback samples, live-only fallback results, and unavailable layers. The UI
+never presents an unavailable layer as a verified numeric zero.
 
-## Base map
+## Base maps
 
-© OpenStreetMap contributors, © CARTO (dark basemap tiles).
+The UI offers three selectable basemaps: CARTO Positron (light, default),
+Esri World Imagery (satellite), and CARTO Dark Matter. CARTO basemaps retain
+OpenStreetMap/CARTO attribution; the imagery layer retains Esri/source
+attribution in the Leaflet attribution control.
 
 ## Licensing boundary
 
 This repository's own MIT license (`LICENSE`) covers its original code and
 documentation only. It does not relicense the third-party data or software
 listed above — see the [README's License section](../README.md#license) for
-the specific terms that continue to apply to Leaflet, OpenStreetMap-derived
-data (ODbL), Madrid Open Data, EMT Madrid open data, and HATI-Madrid
+the specific terms that continue to apply to Leaflet, Madrid Open Data, Madrid Destino / esmadrid.com, EMT Madrid open data, and HATI-Madrid
 evidence.

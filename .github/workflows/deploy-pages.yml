@@ -26,7 +26,9 @@ jobs:
         with:
           node-version: "20"
       - name: Build deployment POI snapshot
-        run: node scripts/build_runtime_poi.mjs
+        run: |
+          node scripts/build_runtime_poi.mjs
+          python3 scripts/fill_stays_from_esmadrid.py
       - uses: actions/configure-pages@v5
       - name: Inject CARTO basemap key
         env:

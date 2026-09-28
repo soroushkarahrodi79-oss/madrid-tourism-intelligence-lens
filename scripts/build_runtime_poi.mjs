@@ -4,7 +4,6 @@ const SOURCES = {
   museums: "https://datos.madrid.es/dataset/201132-0-museos/resource/201132-2-museos-json/download/201132-2-museos-json.json",
   info: "https://datos.madrid.es/dataset/201105-0-informacion-turismo/resource/201105-0-informacion-turismo-json/download/201105-0-informacion-turismo-json.json",
   bikes: "https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11/resource/105ce5df-793f-4e0a-a88e-5d3b3f024a5d/download/bikestationbicimad_geojson.json",
-  overpass: "https://overpass.kumi.systems/api/interpreter",
 };
 
 function cleanText(v) {
@@ -49,23 +48,6 @@ function parseBiciMad(data) {
     .filter(Boolean);
 }
 
-function parseOverpassStays(data) {
-  return (data.elements || [])
-    .map((e, i) => {
-      const lat = Number(e.lat ?? e.center?.lat);
-      const lon = Number(e.lon ?? e.center?.lon);
-      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-      return {
-        id: `stay-published-${e.type}-${e.id || i}`,
-        type: "stay",
-        name: cleanText(e.tags?.name || e.tags?.brand || "Tourist accommodation"),
-        lat,
-        lon,
-      };
-    })
-    .filter(Boolean);
-}
-
 async function fetchJson(url, timeoutMs = 15000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -95,16 +77,10 @@ async function tryLayer(name, loader) {
   }
 }
 
-const staysQuery =
-  '[out:json][timeout:30];(nwr["tourism"~"hotel|hostel|guest_house|apartment"](40.385,-3.745,40.455,-3.645););out center tags;';
-
 const results = await Promise.all([
   tryLayer("museum", () => fetchJson(SOURCES.museums).then((d) => parseMadridOpenData(d, "museum"))),
   tryLayer("info", () => fetchJson(SOURCES.info).then((d) => parseMadridOpenData(d, "info"))),
   tryLayer("bike", () => fetchJson(SOURCES.bikes).then(parseBiciMad)),
-  tryLayer("stay", () =>
-    fetchJson(SOURCES.overpass + "?data=" + encodeURIComponent(staysQuery)).then(parseOverpassStays)
-  ),
 ]);
 
 const output = {

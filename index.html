@@ -6,7 +6,7 @@
 <title>Madrid Tourism Intelligence Lens</title>
 <meta name="description" content="Move a spatial lens across central Madrid to explore how tourism POIs, mobility nodes and bounded HATI thermal evidence change locally.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/app.css?v=20260928-7">
 </head>
 <body>
 <div id="map"></div>
@@ -25,6 +25,14 @@
 
 <aside class="left">
   <h3>Layers</h3>
+  <div class="basemap-control">
+    <label for="basemapSelect">Base map</label>
+    <select id="basemapSelect" aria-label="Base map">
+      <option value="light" selected>Light · CARTO Positron</option>
+      <option value="satellite">Satellite · Esri World Imagery</option>
+      <option value="dark">Dark · CARTO Dark Matter</option>
+    </select>
+  </div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--museum);background:var(--museum)"></i>Museums</div><label class="switch"><input data-layer="museum" type="checkbox" checked><span></span></label></div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--stay);background:var(--stay)"></i>Hotels & stays</div><label class="switch"><input data-layer="stay" type="checkbox" checked><span></span></label></div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--bike);background:var(--bike)"></i>BiciMAD</div><label class="switch"><input data-layer="bike" type="checkbox" checked><span></span></label></div>
@@ -96,7 +104,7 @@
   </div>
 
   <div class="source">
-    Sources: Madrid Open Data (museums, tourist information), EMT Madrid (BiciMAD), and OpenStreetMap/Overpass (accommodation) — GitHub Pages uses the latest deployment-time snapshot first so markers render immediately; a small curated repository sample is the final packaged fallback when a deployment source is unavailable. HATI-Madrid locked pilot evidence (21 Aug 2023; UTCI is model output, not field observation) — see <a href="docs/DATA_PROVENANCE.md">data provenance</a> and <a href="docs/CLAIMS_AND_LIMITATIONS.md">claims &amp; limitations</a>. Base map © OpenStreetMap/CARTO.
+    Sources: Madrid Open Data (museums, tourist information), EMT Madrid (BiciMAD), and Madrid Destino / esmadrid.com (hotels and other accommodation) — GitHub Pages uses the latest deployment-time snapshot first so markers render immediately; a small curated repository sample is the final packaged fallback when a deployment source is unavailable. HATI-Madrid locked pilot evidence (21 Aug 2023; UTCI is model output, not field observation) — see <a href="docs/DATA_PROVENANCE.md">data provenance</a> and <a href="docs/CLAIMS_AND_LIMITATIONS.md">claims &amp; limitations</a>. Base maps: OpenStreetMap/CARTO or Esri World Imagery, depending on selection.
   </div>
 </section>
 
@@ -105,6 +113,6 @@
 <script src="js/evidence.js"></script>
 <script src="js/data.js?v=20260928-6"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20260928-5"></script>
+<script src="js/app.js?v=20260928-7"></script>
 </body>
 </html>
