@@ -18,7 +18,7 @@ import sys
 import unicodedata
 import urllib.request
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 SOURCE_URL = (
@@ -211,7 +211,7 @@ def fetch_bytes(url: str, timeout: int = 60) -> bytes:
 def unavailable_payload(error: str) -> dict:
     return {
         "available": False,
-        "generatedAt": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "generatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "source": {
             "dataset": "Madrid Open Data — Aforos de peatones y bicicletas",
             "datasetUrl": DATASET_URL,
