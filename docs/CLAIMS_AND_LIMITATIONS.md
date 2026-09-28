@@ -18,6 +18,7 @@ establish, measure, or infer:
 - Tourist pressure or overtourism
 - Destination carrying capacity
 - Tourist behaviour or preferences
+- Tourist-specific footfall or visitor flow from the pedestrian counters
 - Safety outcomes of any kind
 - Tourism "quality," attractiveness, or competitiveness
 - Economic impact
@@ -31,11 +32,20 @@ establish, measure, or infer:
   its SNAPSHOT SAMPLE fallback, its count reflects only the records curated
   into that sample, not the true total number of museums, hotels, or tourist
   info points at that location
+- A continuous pedestrian-flow surface between permanent counters
+- Current/live pedestrian conditions — the activity layer is a historical
+  deployment snapshot of the latest published permanent-counter distribution
 - Complete green-space coverage — the optional Principal parks layer reflects
   the municipality's published list of principal/significant parks and gardens,
   not every green space in Madrid
 - Any inference that a mapped park is cooler, shadier, healthier, more
   biodiverse, more accessible, higher quality, or more attractive to tourists
+
+Observed pedestrian counts describe people passing fixed municipal counters.
+They do not identify tourists, trip purpose or destination demand. A lens with
+no counter returns **no sensor evidence** rather than an interpolated estimate.
+Lens A/B pedestrian differences compare only the published observations at
+counters that fall inside each lens.
 
 A mobility-node count is descriptive infrastructure presence, not service
 frequency, capacity, accessibility, travel time, or connectivity quality.
