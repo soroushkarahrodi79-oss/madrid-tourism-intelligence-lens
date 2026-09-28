@@ -1,8 +1,20 @@
 // App wiring: Leaflet map, lens markers, UI event handlers. Pure stats logic
 // lives in lens.js / evidence.js; this file only renders their output.
 
-const LAYER_COLOR = { museum: "#9d72ff", info: "#c79cff", stay: "#3da8ff", bike: "#54e2b5" };
-const LAYER_LABEL = { museum: "Museums", info: "Tourist info", stay: "Hotels & stays", bike: "BiciMAD" };
+const LAYER_COLOR = {
+  museum: "#9d72ff",
+  info: "#c79cff",
+  stay: "#3da8ff",
+  bike: "#54e2b5",
+  rail: "#ffd166",
+};
+const LAYER_LABEL = {
+  museum: "Museums",
+  info: "Tourist info",
+  stay: "Hotels & stays",
+  bike: "BiciMAD",
+  rail: "Metro & Cercanías",
+};
 const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
@@ -99,6 +111,7 @@ const groups = {
   info: L.layerGroup().addTo(map),
   stay: L.layerGroup().addTo(map),
   bike: L.layerGroup().addTo(map),
+  rail: L.layerGroup().addTo(map),
   // Research evidence is opt-in: populate HATI but keep it off the map until requested.
   heat: L.layerGroup(),
 };
@@ -163,6 +176,11 @@ function tooltipFor(p) {
       : p.provenance === "published"
         ? "deployment snapshot"
         : "snapshot sample (not exhaustive)";
+  if (p.type === "rail") {
+    const mode = p.mode === "cercanias" ? "Cercanías" : "Metro";
+    const lines = p.lines ? ` · ${p.lines}` : "";
+    return `<b>${p.name}</b><br>${mode}${lines}<br>CRTM · ${src}`;
+  }
   return `<b>${p.name}</b><br>${LAYER_LABEL[p.type] || p.type} · ${src}`;
 }
 
@@ -332,7 +350,13 @@ const STATUS_LABEL = {
 
 function renderLayerSourceNote() {
   const lines = Object.entries(layerStatus).map(([name, status]) => {
-    const label = { museums: "Museums", info: "Tourist info", bikes: "BiciMAD", stays: "Hotels & stays" }[name];
+    const label = {
+      museums: "Museums",
+      info: "Tourist info",
+      bikes: "BiciMAD",
+      rail: "Metro & Cercanías",
+      stays: "Hotels & stays",
+    }[name];
     return `${label}: <b>${STATUS_LABEL[status]}</b>`;
   });
   if (Object.values(layerStatus).some((s) => s === "published")) {
@@ -370,11 +394,11 @@ function renderHeatMetric(h) {
 }
 
 function renderMix(s) {
-  const counts = { Museum: s.museum, Stay: s.stay, Bike: s.bike, Info: s.info };
+  const counts = { Museum: s.museum, Stay: s.stay, Bike: s.mobility, Info: s.info };
   const statuses = {
     Museum: layerStatus.museums,
     Stay: layerStatus.stays,
-    Bike: layerStatus.bikes,
+    Bike: combinedStatus(layerStatus, ["bikes", "rail"]),
     Info: layerStatus.info,
   };
   const { rows, label } = categoryMixState(counts, statuses);
@@ -421,9 +445,9 @@ function renderCompare() {
     b.stay
   );
   document.getElementById("cmpMobility").textContent = comparisonDelta(
-    combinedStatus(layerStatus, ["bikes"]),
-    a.bike,
-    b.bike
+    combinedStatus(layerStatus, ["bikes", "rail"]),
+    a.mobility,
+    b.mobility
   );
   document.getElementById("cmpHeat").textContent =
     hatiOn && ha.evidence === "MODEL-DERIVED" && hb.evidence === "MODEL-DERIVED"
@@ -498,12 +522,12 @@ function refresh() {
   renderCountMetric({
     valueId: "mobilityValue",
     footId: "mobilityFoot",
-    value: s.bike,
-    status: combinedStatus(layerStatus, ["bikes"]),
-    liveFoot: "BiciMAD in lens",
-    publishedFoot: "BiciMAD deployment snapshot",
-    snapshotFoot: "sample count, not exhaustive",
-    unavailableFoot: "BiciMAD source unavailable",
+    value: s.mobility,
+    status: combinedStatus(layerStatus, ["bikes", "rail"]),
+    liveFoot: "BiciMAD + rail stations in lens",
+    publishedFoot: "BiciMAD + CRTM deployment snapshot",
+    snapshotFoot: "partial mobility sample, not exhaustive",
+    unavailableFoot: "some mobility sources unavailable",
   });
   renderHeatMetric(heatStatsFor(active));
   renderMix(s);
