@@ -117,3 +117,22 @@ test("categoryMixState: all-live layers produce no caveat label", () => {
   );
   assert.equal(label, "");
 });
+
+
+test("combinedStatus: published snapshot is between live and partial snapshot", () => {
+  assert.equal(combinedStatus({ a: "live", b: "published" }, ["a", "b"]), "published");
+  assert.equal(combinedStatus({ a: "published", b: "snapshot" }, ["a", "b"]), "snapshot");
+});
+
+test("comparisonDelta: deployment snapshot is explicitly labelled", () => {
+  assert.equal(comparisonDelta("published", 2, 5), "+3 deploy");
+});
+
+test("categoryMixState: deployment snapshots are marked as not real-time", () => {
+  const { label } = categoryMixState(
+    { Museum: 4, Stay: 2, Bike: 3, Info: 1 },
+    { Museum: "published", Stay: "live", Bike: "published", Info: "live" }
+  );
+  assert.match(label, /deployment snapshot/i);
+  assert.match(label, /not real-time/i);
+});
