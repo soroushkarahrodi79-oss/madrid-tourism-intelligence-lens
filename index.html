@@ -6,7 +6,7 @@
 <title>Madrid Tourism Intelligence Lens</title>
 <meta name="description" content="Move a spatial lens across central Madrid to explore how tourism POIs, mobility nodes and bounded HATI thermal evidence change locally.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20260928-16">
+<link rel="stylesheet" href="css/app.css?v=20260928-17">
 </head>
 <body>
 <div id="map"></div>
@@ -76,7 +76,8 @@
   </div>
 </aside>
 
-<section class="panel">
+<section class="panel" aria-label="Spatial analysis panel">
+  <button id="panelResizeHandle" class="panel-resize-handle" type="button" aria-label="Resize analysis panel" title="Drag to resize · double-click to reset"></button>
   <div class="status"><span id="liveBadge" class="live"><i></i><span>Loading spatial sources…</span></span><small>Central Madrid<br>v0.1</small></div>
   <h1 class="title">Spatial exploration</h1>
   <div class="subtitle">Move the lens to ask what is present — and what the evidence actually supports.</div>
@@ -144,6 +145,6 @@
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20260928-16"></script>
+<script src="js/app.js?v=20260928-17"></script>
 </body>
 </html>

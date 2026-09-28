@@ -41,5 +41,5 @@ test("filter disables unavailable types instead of fabricating classifications",
 
 test("accommodation filter helper and current app are cache-busted", () => {
   assert.match(html, /js\/accommodation\.js\?v=20260928-15/);
-  assert.match(html, /js\/app\.js\?v=20260928-16/);
+  assert.match(html, /js\/app\.js\?v=20260928-17/);
 });
