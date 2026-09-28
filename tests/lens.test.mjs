@@ -25,6 +25,7 @@ test("poiStatsInLens: deterministic across repeated calls", () => {
   const points = [
     { type: "museum", lat: 40.4149, lon: -3.69 },
     { type: "stay", lat: 40.4149, lon: -3.6905 },
+    { type: "rail", lat: 40.4148, lon: -3.6903 },
     { type: "bike", lat: 40.5, lon: -3.9 }, // far away, excluded
   ];
   const center = { lat: 40.4149, lon: -3.69 };
@@ -34,7 +35,9 @@ test("poiStatsInLens: deterministic across repeated calls", () => {
   assert.equal(s1.museum, 1);
   assert.equal(s1.stay, 1);
   assert.equal(s1.bike, 0);
-  assert.equal(s1.total, 2);
+  assert.equal(s1.rail, 1);
+  assert.equal(s1.mobility, 1);
+  assert.equal(s1.total, 3);
 });
 
 test("poiStatsInLens: empty lens returns zeroed counts, not undefined", () => {
@@ -135,4 +138,18 @@ test("categoryMixState: deployment snapshots are marked as not real-time", () =>
   );
   assert.match(label, /deployment snapshot/i);
   assert.match(label, /not real-time/i);
+});
+
+
+test("poiStatsInLens: mobility combines BiciMAD and rail station records", () => {
+  const center = { lat: 40.4149, lon: -3.69 };
+  const points = [
+    { type: "bike", lat: 40.4149, lon: -3.69 },
+    { type: "rail", lat: 40.4150, lon: -3.6901 },
+    { type: "rail", lat: 40.4151, lon: -3.6901 },
+  ];
+  const s = poiStatsInLens(points, center, 500);
+  assert.equal(s.bike, 1);
+  assert.equal(s.rail, 2);
+  assert.equal(s.mobility, 3);
 });
