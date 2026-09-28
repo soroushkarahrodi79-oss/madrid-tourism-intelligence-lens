@@ -11,11 +11,25 @@ const cartoTileUrl =
   "https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png" +
   (cartoBasemapKey ? `?key=${encodeURIComponent(cartoBasemapKey)}` : "");
 
-L.tileLayer(cartoTileUrl, {
+const cartoBasemap = L.tileLayer(cartoTileUrl, {
   maxZoom: 20,
   attribution:
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-}).addTo(map);
+});
+
+let basemapFallbackActive = false;
+cartoBasemap.on("tileerror", () => {
+  if (basemapFallbackActive) return;
+  basemapFallbackActive = true;
+  map.removeLayer(cartoBasemap);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  }).addTo(map);
+});
+
+cartoBasemap.addTo(map);
 
 const groups = {
   museum: L.layerGroup().addTo(map),
