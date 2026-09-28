@@ -2,7 +2,7 @@
   --bg:#08101a; --panel:rgba(8,16,27,.92); --panel2:rgba(13,24,39,.90);
   --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.18);
   --text:#f3f7ff; --muted:#8fa1b7; --a:#f7fbff; --b:#43d7ff;
-  --museum:#9d72ff; --info:#c79cff; --stay:#3da8ff; --bike:#54e2b5;
+  --museum:#9d72ff; --info:#c79cff; --stay:#3da8ff; --bike:#54e2b5; --rail:#ffd166;
   --heat:#ffb04a; --green:#70dea4;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-right:env(safe-area-inset-right,0px);
