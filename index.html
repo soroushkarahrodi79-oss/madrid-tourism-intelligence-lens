@@ -42,14 +42,16 @@
     <span>Research evidence</span>
     <small>bounded pilot</small>
   </div>
-  <div class="layer research-layer"><div class="layer-left"><i class="dot" style="color:var(--heat);background:var(--heat)"></i>HATI · thermal pilot</div><label class="switch"><input data-layer="heat" type="checkbox" checked><span></span></label></div>
+  <div class="layer research-layer"><div class="layer-left"><i class="dot" style="color:var(--heat);background:var(--heat)"></i>HATI · thermal pilot</div><label class="switch"><input data-layer="heat" type="checkbox" aria-label="Toggle HATI thermal pilot" aria-checked="false"><span></span></label></div>
 
   <div id="layerSourceNote" class="layer-source-note"></div>
-  <div class="heat-scale"></div>
-  <div class="scale-labels"><span>32°C</span><span>38</span><span>46+</span></div>
-  <div class="evidence-note">
-    <b>Evidence ceiling</b><br>
-    HATI UTCI is <b>model-derived</b> (SOLWEIG), not measured comfort. Bounded to the locked 21 Aug 2023 Madrid pilot; no interpolation beyond the 14 sampled outdoor assets.<br><br>The dashed orange rectangle marks the original ≈3.5 km² HATI study-area boundary. It is <b>not</b> a continuous heat surface.
+  <div id="hatiEvidenceDetails" hidden>
+    <div class="heat-scale"></div>
+    <div class="scale-labels"><span>32°C</span><span>38</span><span>46+</span></div>
+    <div class="evidence-note">
+      <b>Evidence ceiling</b><br>
+      HATI UTCI is <b>model-derived</b> (SOLWEIG), not measured comfort. Bounded to the locked 21 Aug 2023 Madrid pilot; no interpolation beyond the 14 sampled outdoor assets.<br><br>The dashed orange rectangle marks the original ≈3.5 km² HATI study-area boundary. It is <b>not</b> a continuous heat surface.
+    </div>
   </div>
 </aside>
 
@@ -120,6 +122,6 @@
 <script src="js/data.js?v=20260928-6"></script>
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20260928-11"></script>
+<script src="js/app.js?v=20260928-12"></script>
 </body>
 </html>
