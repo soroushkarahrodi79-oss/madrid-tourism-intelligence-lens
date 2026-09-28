@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+"""Add official Madrid accommodation points to data/runtime_poi.json.
+
+Source: Madrid Destino / esmadrid.com Spanish accommodation XML.
+No third-party packages are required.
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+import urllib.request
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+SOURCE_URL = "https://www.esmadrid.com/opendata/alojamientos_v1_es.xml"
+OUTPUT_PATH = Path("data/runtime_poi.json")
+
+
+def local_name(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1].lower()
+
+
+def first_text(node: ET.Element, names: set[str]) -> str | None:
+    for el in node.iter():
+        if local_name(el.tag) in names and el.text and el.text.strip():
+            return el.text.strip()
+    return None
+
+
+def parse_number(value: str | None) -> float | None:
+    if not value:
+        return None
+    try:
+        return float(value.replace(",", ".").strip())
+    except ValueError:
+        return None
+
+
+def normalize_madrid_coords(a: float | None, b: float | None) -> tuple[float, float] | None:
+    if a is None or b is None:
+        return None
+
+    # Most records are latitude/longitude. Also tolerate accidental reversal.
+    candidates = [(a, b), (b, a)]
+    for lat, lon in candidates:
+        if 39.0 <= lat <= 41.8 and -5.5 <= lon <= -2.0:
+            return lat, lon
+    return None
+
+
+def parse_accommodation_xml(xml_text: str) -> list[dict]:
+    root = ET.fromstring(xml_text)
+    parent = {child: parent for parent in root.iter() for child in parent}
+    latitude_nodes = [el for el in root.iter() if local_name(el.tag) == "latitude"]
+
+    points: list[dict] = []
+    seen: set[tuple[str, float, float]] = set()
+
+    for lat_el in latitude_nodes:
+        node = parent.get(lat_el)
+        while node is not None:
+            lat = parse_number(first_text(node, {"latitude"}))
+            lon = parse_number(first_text(node, {"longitude"}))
+            name = first_text(node, {"name", "title"})
+            coords = normalize_madrid_coords(lat, lon)
+
+            if coords and name:
+                stable_id = first_text(node, {"id"}) or str(len(points))
+                lat_v, lon_v = coords
+                key = (name.casefold(), round(lat_v, 6), round(lon_v, 6))
+                if key not in seen:
+                    seen.add(key)
+                    points.append(
+                        {
+                            "id": f"stay-published-{stable_id}",
+                            "type": "stay",
+                            "name": name,
+                            "lat": lat_v,
+                            "lon": lon_v,
+                        }
+                    )
+                break
+
+            node = parent.get(node)
+
+    return points
+
+
+def fetch_text(url: str, timeout: int = 25) -> str:
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/xml,text/xml,*/*",
+            "User-Agent": (
+                "madrid-tourism-intelligence-lens/1.0 "
+                "(+https://github.com/soroushkarahrodi79-oss/madrid-tourism-intelligence-lens)"
+            ),
+        },
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as response:
+        return response.read().decode("utf-8-sig")
+
+
+def main() -> int:
+    try:
+        payload = json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
+    except Exception as exc:
+        print(f"[runtime-poi] stay: cannot read {OUTPUT_PATH}: {exc}", file=sys.stderr)
+        return 1
+
+    try:
+        xml_text = fetch_text(SOURCE_URL)
+        points = parse_accommodation_xml(xml_text)
+        if not points:
+            raise RuntimeError("official accommodation XML produced zero geocoded records")
+    except Exception as exc:
+        print(f"[runtime-poi] stay unavailable: {exc}", file=sys.stderr)
+        payload.setdefault("status", {})["stay"] = {
+            "ok": False,
+            "count": 0,
+            "error": str(exc),
+            "source": "Madrid Destino / esmadrid.com",
+        }
+        payload.setdefault("sources", {})["stays"] = SOURCE_URL
+        OUTPUT_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        return 0
+
+    payload.setdefault("layers", {})["stay"] = points
+    payload.setdefault("status", {})["stay"] = {
+        "ok": True,
+        "count": len(points),
+        "error": None,
+        "source": "Madrid Destino / esmadrid.com",
+    }
+    payload.setdefault("sources", {})["stays"] = SOURCE_URL
+
+    OUTPUT_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"[runtime-poi] stay: {len(points)} points from Madrid Destino / esmadrid.com")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
