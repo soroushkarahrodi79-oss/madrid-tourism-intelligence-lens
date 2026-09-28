@@ -4,6 +4,7 @@ import {
   haversineMeters,
   poiStatsInLens,
   deltaOrDash,
+  pedestrianStatsInLens,
   combinedStatus,
   comparisonDelta,
   categoryMixState,
@@ -152,4 +153,58 @@ test("poiStatsInLens: mobility combines BiciMAD and rail station records", () =>
   assert.equal(s.bike, 1);
   assert.equal(s.rail, 2);
   assert.equal(s.mobility, 3);
+});
+
+
+test("pedestrianStatsInLens: recombines station aggregates using observation weights", () => {
+  const center = { lat: 40.4149, lon: -3.69 };
+  const stations = [
+    {
+      lat: 40.4149,
+      lon: -3.69,
+      meanObserved: 100,
+      observationCount: 10,
+      dateMin: "2024-01-01",
+      dateMax: "2024-01-31",
+    },
+    {
+      lat: 40.4150,
+      lon: -3.6901,
+      meanObserved: 300,
+      observationCount: 30,
+      dateMin: "2024-02-01",
+      dateMax: "2024-06-30",
+    },
+    {
+      lat: 40.50,
+      lon: -3.90,
+      meanObserved: 999,
+      observationCount: 1,
+      dateMin: "2024-01-01",
+      dateMax: "2024-01-01",
+    },
+  ];
+  const result = pedestrianStatsInLens(stations, center, 500);
+  assert.equal(result.evidence, "OBSERVED");
+  assert.equal(result.stationCount, 2);
+  assert.equal(result.observationCount, 40);
+  assert.equal(result.meanObserved, 250);
+  assert.equal(result.dateMin, "2024-01-01");
+  assert.equal(result.dateMax, "2024-06-30");
+});
+
+test("pedestrianStatsInLens: abstains when no permanent counter falls inside the lens", () => {
+  const result = pedestrianStatsInLens(
+    [{ lat: 40.50, lon: -3.90, meanObserved: 100, observationCount: 10 }],
+    { lat: 40.4149, lon: -3.69 },
+    500
+  );
+  assert.deepEqual(result, {
+    evidence: "NONE",
+    stationCount: 0,
+    observationCount: 0,
+    meanObserved: null,
+    dateMin: null,
+    dateMax: null,
+  });
 });
