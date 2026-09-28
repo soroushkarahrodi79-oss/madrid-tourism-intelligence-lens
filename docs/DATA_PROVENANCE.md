@@ -24,6 +24,7 @@ On GitHub Pages the app is **deployment-snapshot first** so markers render immed
 | Tourist info | [Madrid Open Data — Información turística](https://datos.madrid.es/dataset/201105-0-informacion-turismo) | SNAPSHOT SAMPLE: 2 curated records |
 | Accommodation | [Madrid Destino / esmadrid.com — Alojamientos de la ciudad de Madrid](https://datos.madrid.es/dataset/300032-0-turismo-alojamientos) (Spanish XML feed) | SNAPSHOT SAMPLE: 6 curated records if the deployment feed is unavailable |
 | BiciMAD | [EMT Madrid open data](https://datos.emtmadrid.es/) | Deployment snapshot generated from the official station GeoJSON; no hand-placed coordinates |
+| Metro & Cercanías | [CRTM Open Data](https://datos.crtm.es/) — M4 Estaciones (Metro) + M5 Estaciones (Cercanías) | Deployment snapshot generated from the official CRTM ArcGIS feature services; no hand-placed coordinates |
 
 A **SNAPSHOT SAMPLE** is a small, manually curated subset of the source
 dataset for the study area — **not a complete inventory**. A count derived
@@ -31,6 +32,12 @@ from a snapshot layer means "records present in this sample," not "total
 records that exist at this location." Full snapshot metadata (capture date,
 curation method, `exhaustive: false` per layer) is in
 [`data/snapshot_provenance.json`](../data/snapshot_provenance.json).
+
+For CRTM rail data, the deployment builder queries the official station feature
+layers only inside the app's central-Madrid envelope
+(40.385–40.455 N, -3.745–-3.645 E), requests WGS84 output, and preserves
+the station mode and line metadata where provided. Metro and Cercanías must
+both load successfully for the combined rail layer to be marked available.
 
 Every point returned to the UI carries an explicit provenance state. The
 left-hand layer panel distinguishes deployment snapshots, small curated
@@ -50,5 +57,5 @@ stack retains Esri/source attribution in the Leaflet attribution control.
 This repository's own MIT license (`LICENSE`) covers its original code and
 documentation only. It does not relicense the third-party data or software
 listed above — see the [README's License section](../README.md#license) for
-the specific terms that continue to apply to Leaflet, Madrid Open Data, Madrid Destino / esmadrid.com, EMT Madrid open data, and HATI-Madrid
+the specific terms that continue to apply to Leaflet, Madrid Open Data, Madrid Destino / esmadrid.com, EMT Madrid open data, CRTM open data, and HATI-Madrid
 evidence.

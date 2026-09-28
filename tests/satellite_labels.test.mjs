@@ -27,5 +27,5 @@ test("only imagery failure triggers the global satellite fallback", () => {
 });
 
 test("updated app script is cache-busted", () => {
-  assert.match(html, /js\/app\.js\?v=20260928-13/);
+  assert.match(html, /js\/app\.js\?v=20260928-14/);
 });

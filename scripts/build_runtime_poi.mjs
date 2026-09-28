@@ -4,7 +4,11 @@ const SOURCES = {
   museums: "https://datos.madrid.es/dataset/201132-0-museos/resource/201132-2-museos-json/download/201132-2-museos-json.json",
   info: "https://datos.madrid.es/dataset/201105-0-informacion-turismo/resource/201105-0-informacion-turismo-json/download/201105-0-informacion-turismo-json.json",
   bikes: "https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11/resource/105ce5df-793f-4e0a-a88e-5d3b3f024a5d/download/bikestationbicimad_geojson.json",
+  metroStations: "https://services5.arcgis.com/UxADft6QPcvFyDU1/arcgis/rest/services/M4_Red/FeatureServer/0/query",
+  cercaniasStations: "https://services5.arcgis.com/UxADft6QPcvFyDU1/arcgis/rest/services/M5_Red/FeatureServer/0/query",
 };
+
+const CENTRAL_MADRID_ENVELOPE = "-3.745,40.385,-3.645,40.455";
 
 function cleanText(v) {
   return String(v || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -48,6 +52,43 @@ function parseBiciMad(data) {
     .filter(Boolean);
 }
 
+function parseCrtmStations(data, mode) {
+  return (data.features || [])
+    .map((f, i) => {
+      const c = f.geometry?.coordinates || [];
+      const p = f.properties || {};
+      const lon = Number(c[0]);
+      const lat = Number(c[1]);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+      const stationId = p.IDESTACION || p.CODIGOESTACION || p.OBJECTID || i;
+      return {
+        id: `rail-published-${mode}-${stationId}`,
+        type: "rail",
+        mode,
+        name: cleanText(p.DENOMINACION || p.DENOMINACIONABREVIADA || `${mode} station`),
+        lines: cleanText(p.LINEAS || ""),
+        lat,
+        lon,
+      };
+    })
+    .filter(Boolean);
+}
+
+function crtmStationQuery(url) {
+  const params = new URLSearchParams({
+    where: "1=1",
+    outFields: "IDESTACION,CODIGOESTACION,DENOMINACION,DENOMINACIONABREVIADA,LINEAS",
+    returnGeometry: "true",
+    geometry: CENTRAL_MADRID_ENVELOPE,
+    geometryType: "esriGeometryEnvelope",
+    inSR: "4326",
+    spatialRel: "esriSpatialRelIntersects",
+    outSR: "4326",
+    f: "geojson",
+  });
+  return `${url}?${params.toString()}`;
+}
+
 async function fetchJson(url, timeoutMs = 15000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -81,6 +122,13 @@ const results = await Promise.all([
   tryLayer("museum", () => fetchJson(SOURCES.museums).then((d) => parseMadridOpenData(d, "museum"))),
   tryLayer("info", () => fetchJson(SOURCES.info).then((d) => parseMadridOpenData(d, "info"))),
   tryLayer("bike", () => fetchJson(SOURCES.bikes).then(parseBiciMad)),
+  tryLayer("rail", async () => {
+    const [metro, cercanias] = await Promise.all([
+      fetchJson(crtmStationQuery(SOURCES.metroStations)).then((d) => parseCrtmStations(d, "metro")),
+      fetchJson(crtmStationQuery(SOURCES.cercaniasStations)).then((d) => parseCrtmStations(d, "cercanias")),
+    ]);
+    return [...metro, ...cercanias];
+  }),
 ]);
 
 const output = {

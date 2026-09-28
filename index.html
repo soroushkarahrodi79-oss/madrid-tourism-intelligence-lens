@@ -6,7 +6,7 @@
 <title>Madrid Tourism Intelligence Lens</title>
 <meta name="description" content="Move a spatial lens across central Madrid to explore how tourism POIs, mobility nodes and bounded HATI thermal evidence change locally.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20260928-10">
+<link rel="stylesheet" href="css/app.css?v=20260928-14">
 </head>
 <body>
 <div id="map"></div>
@@ -36,6 +36,7 @@
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--museum);background:var(--museum)"></i>Museums</div><label class="switch"><input data-layer="museum" type="checkbox" checked><span></span></label></div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--stay);background:var(--stay)"></i>Hotels & stays</div><label class="switch"><input data-layer="stay" type="checkbox" checked><span></span></label></div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--bike);background:var(--bike)"></i>BiciMAD</div><label class="switch"><input data-layer="bike" type="checkbox" checked><span></span></label></div>
+  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--rail);background:var(--rail)"></i>Metro & Cercanías</div><label class="switch"><input data-layer="rail" type="checkbox" checked><span></span></label></div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--info);background:var(--info)"></i>Tourist info</div><label class="switch"><input data-layer="info" type="checkbox" checked><span></span></label></div>
 
   <div class="research-divider">
@@ -68,7 +69,7 @@
   <div class="metrics">
     <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--museum);color:var(--museum)"></i>Tourism POIs</div><div id="tourismValue" class="metric-value">—</div><div id="tourismFoot" class="metric-foot">within lens</div></div>
     <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--stay);color:var(--stay)"></i>Hotels & stays</div><div id="stayValue" class="metric-value">—</div><div id="stayFoot" class="metric-foot">within lens</div></div>
-    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--bike);color:var(--bike)"></i>Mobility nodes</div><div id="mobilityValue" class="metric-value">—</div><div id="mobilityFoot" class="metric-foot">BiciMAD in lens</div></div>
+    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--bike);color:var(--bike)"></i>Mobility nodes</div><div id="mobilityValue" class="metric-value">—</div><div id="mobilityFoot" class="metric-foot">BiciMAD + rail stations</div></div>
     <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--heat);color:var(--heat)"></i>Mean UTCI <span class="badge model">model</span></div><div id="heatValue" class="metric-value abstain">—</div><div id="heatFoot" class="metric-foot">HATI outdoor samples</div></div>
   </div>
 
@@ -112,16 +113,16 @@
   </div>
 
   <div class="source">
-    Sources: Madrid Open Data (museums, tourist information), EMT Madrid (BiciMAD), and Madrid Destino / esmadrid.com (hotels and other accommodation) — GitHub Pages uses the latest deployment-time snapshot first so markers render immediately; a small curated repository sample is the final packaged fallback when a deployment source is unavailable. HATI-Madrid locked pilot evidence (21 Aug 2023; UTCI is model output, not field observation) — see <a href="docs/DATA_PROVENANCE.md">data provenance</a> and <a href="docs/CLAIMS_AND_LIMITATIONS.md">claims &amp; limitations</a>. Base maps: OpenStreetMap/CARTO or Esri World Imagery, depending on selection.
+    Sources: Madrid Open Data (museums, tourist information), EMT Madrid (BiciMAD), CRTM (Metro and Cercanías stations), and Madrid Destino / esmadrid.com (hotels and other accommodation) — GitHub Pages uses the latest deployment-time snapshot first so markers render immediately; a small curated repository sample is the final packaged fallback when a deployment source is unavailable. HATI-Madrid locked pilot evidence (21 Aug 2023; UTCI is model output, not field observation) — see <a href="docs/DATA_PROVENANCE.md">data provenance</a> and <a href="docs/CLAIMS_AND_LIMITATIONS.md">claims &amp; limitations</a>. Base maps: OpenStreetMap/CARTO or Esri World Imagery, depending on selection.
   </div>
 </section>
 
 <script src="assets/leaflet/leaflet.js"></script>
-<script src="js/lens.js?v=20260928-5"></script>
+<script src="js/lens.js?v=20260928-14"></script>
 <script src="js/evidence.js"></script>
-<script src="js/data.js?v=20260928-6"></script>
+<script src="js/data.js?v=20260928-14"></script>
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20260928-13"></script>
+<script src="js/app.js?v=20260928-14"></script>
 </body>
 </html>

@@ -8,8 +8,8 @@ tourism POIs, mobility nodes, and bounded thermal evidence recalculate.
 
 A small, static, portfolio-grade geospatial web app. Move a circular "lens"
 over central Madrid; it recalculates local counts of museums, tourist
-information points, accommodation, and BiciMAD stations, and — where
-evidence exists — the mean UTCI (a thermal-stress index) from a bounded
+information points, accommodation, BiciMAD stations, and Metro/Cercanías
+stations, and — where evidence exists — the mean UTCI (a thermal-stress index) from a bounded
 research dataset.
 
 ## 2. What problem does the spatial lens solve?
@@ -35,6 +35,7 @@ including comparing two places at once.
 - **Museums** and **tourist information** — Madrid Open Data
 - **Accommodation** — Madrid Destino / esmadrid.com official accommodation feed
 - **BiciMAD** — EMT Madrid open data
+- **Metro & Cercanías stations** — CRTM open data (M4 and M5 station layers)
 - **HATI-Madrid outdoor UTCI samples** — a bounded research evidence layer (see below)
 
 On GitHub Pages, operational POI layers are **deployment-snapshot first** so
@@ -89,7 +90,7 @@ restrict it in the CARTO Basemaps dashboard to the GitHub Pages host
 
 ## 9. What is the evidence status?
 
-- Museums, tourist information, BiciMAD and accommodation: live public data
+- Museums, tourist information, BiciMAD, Metro/Cercanías and accommodation: live public data
   where the browser can reach it; otherwise a labelled deployment snapshot
   generated during the latest GitHub Pages build. The small curated sample is
   only the last-resort fallback.
@@ -136,11 +137,13 @@ software this project reads or bundles:
   subject to the [ODbL](https://opendatacommons.org/licenses/odbl/) and its
   attribution requirement.
 - **Madrid Open Data** (museums, tourist information), **Madrid Destino /
-  esmadrid.com** (accommodation), and **EMT Madrid open data** (BiciMAD)
+  esmadrid.com** (accommodation), **EMT Madrid open data** (BiciMAD), and
+  **CRTM open data** (Metro/Cercanías)
   remain subject to the reuse terms published by their respective portals —
   see [datos.madrid.es](https://datos.madrid.es/),
-  [esmadrid.com](https://www.esmadrid.com/), and
-  [datos.emtmadrid.es](https://datos.emtmadrid.es/) directly; this project
+  [esmadrid.com](https://www.esmadrid.com/),
+  [datos.emtmadrid.es](https://datos.emtmadrid.es/), and
+  [datos.crtm.es](https://datos.crtm.es/) directly; this project
   does not restate or assume a specific license text for them.
 - **HATI-Madrid evidence** (`data/hati_assets.json`, `data/hati_provenance.json`)
   remains subject to the source repository's own terms and governance
