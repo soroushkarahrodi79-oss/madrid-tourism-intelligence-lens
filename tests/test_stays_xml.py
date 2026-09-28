@@ -43,10 +43,10 @@ class AccommodationXmlParserTests(unittest.TestCase):
         self.assertEqual(points[0]["id"], "stay-published-76363")
         self.assertEqual(points[0]["name"], "Hotel Test Madrid")
         self.assertEqual(points[0]["stayKind"], "hotel")
-        self.assertEqual(points[0]["accommodationType"], "Hoteles")
-        self.assertEqual(points[0]["accommodationCategory"], "4 estrellas")
-        self.assertEqual(points[0]["accommodationSourceType"], "Alojamientos")
-        self.assertAlmostEqual(points[0]["lat"], 40.4155)
+        self.assertEqual(points[0]["accommodationType"], "Alojamientos")
+        self.assertEqual(points[0]["accommodationCategory"], "Hoteles")
+        self.assertEqual(points[0]["accommodationSubcategory"], "4 estrellas")
+                self.assertAlmostEqual(points[0]["lat"], 40.4155)
         self.assertAlmostEqual(points[0]["lon"], -3.6912)
 
     def test_decodes_html_entities_and_normalizes_aparthotels_before_hotels(self):
@@ -57,8 +57,9 @@ class AccommodationXmlParserTests(unittest.TestCase):
         points = MODULE.parse_accommodation_xml(xml)
         self.assertEqual(points[0]["name"], "Catalonia Plaza España")
         self.assertEqual(points[0]["stayKind"], "apartment")
-        self.assertEqual(points[0]["accommodationType"], "Apartahoteles")
-        self.assertEqual(points[0]["accommodationCategory"], "3 llaves")
+        self.assertEqual(points[0]["accommodationType"], "Alojamientos")
+        self.assertEqual(points[0]["accommodationCategory"], "Apartahoteles")
+        self.assertEqual(points[0]["accommodationSubcategory"], "3 llaves")
 
     def test_normalizes_supported_official_type_families(self):
         expected = {
@@ -94,8 +95,9 @@ class AccommodationXmlParserTests(unittest.TestCase):
         </service></root>"""
         points = MODULE.parse_accommodation_xml(xml)
         self.assertEqual(points[0]["stayKind"], "hostal")
-        self.assertEqual(points[0]["accommodationType"], "Hostales")
-        self.assertEqual(points[0]["accommodationCategory"], "2 estrellas")
+        self.assertEqual(points[0]["accommodationType"], "Alojamientos")
+        self.assertEqual(points[0]["accommodationCategory"], "Hostales")
+        self.assertEqual(points[0]["accommodationSubcategory"], "2 estrellas")
 
 
 if __name__ == "__main__":
