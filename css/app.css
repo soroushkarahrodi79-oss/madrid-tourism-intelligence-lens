@@ -88,7 +88,7 @@ header{
   backdrop-filter:blur(22px);box-shadow:0 18px 55px rgba(0,0,0,.38)
 }
 .panel-resize-handle{
-  position:absolute;z-index:3;left:5px;bottom:5px;width:22px;height:22px;padding:0;border:0;background:transparent;cursor:nesw-resize;opacity:.56
+  position:absolute;z-index:3;left:5px;bottom:5px;width:22px;height:22px;padding:0;border:0;background:transparent;cursor:nesw-resize;touch-action:none;opacity:.56
 }
 .panel-resize-handle:before,.panel-resize-handle:after{
   content:"";position:absolute;left:5px;bottom:5px;border-left:1px solid rgba(185,211,235,.8);border-bottom:1px solid rgba(185,211,235,.8);border-radius:0 0 0 3px
