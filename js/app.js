@@ -3,6 +3,7 @@
 
 const LAYER_COLOR = { museum: "#9d72ff", info: "#c79cff", stay: "#3da8ff", bike: "#54e2b5" };
 const LAYER_LABEL = { museum: "Museums", info: "Tourist info", stay: "Hotels & stays", bike: "BiciMAD" };
+const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
 
@@ -159,6 +160,64 @@ function addMarker(p) {
   return m;
 }
 
+function addClusterMarker(type, cluster) {
+  const count = cluster.count;
+  const size = count >= 100 ? 46 : count >= 30 ? 42 : 38;
+  const m = L.marker([cluster.lat, cluster.lon], {
+    bubblingMouseEvents: false,
+    keyboard: true,
+    icon: L.divIcon({
+      className: "poi-cluster-icon",
+      html: `<div class="poi-cluster cluster-${type}"><span>${count}</span></div>`,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+    }),
+  });
+  m._cluster = cluster;
+  m._p = { type, lat: cluster.lat, lon: cluster.lon };
+  m.bindTooltip(
+    `<b>${count} ${LAYER_LABEL[type]}</b><br>Grouped for readability · zoom in to reveal individual points`,
+    { direction: "top", offset: [0, -8] }
+  );
+  m.on("click", () => {
+    const nextZoom = Math.min(16, Math.max(map.getZoom() + 1, 15));
+    map.setView([cluster.lat, cluster.lon], nextZoom, { animate: true });
+  });
+  m.addTo(groups[type]);
+  return m;
+}
+
+function rebuildDenseLayer(type) {
+  const group = groups[type];
+  group.clearLayers();
+  const points = poiPoints.filter((p) => p.type === type);
+  const zoom = map.getZoom();
+
+  if (!shouldClusterDenseLayer(zoom)) {
+    points.forEach(addMarker);
+    return;
+  }
+
+  clusterPointsByPixelGrid(points, zoom).forEach((cluster) => {
+    if (cluster.count === 1) addMarker(cluster.points[0]);
+    else addClusterMarker(type, cluster);
+  });
+}
+
+function rebuildDenseLayers() {
+  DENSE_LAYER_TYPES.forEach(rebuildDenseLayer);
+  shadeMarkersOutsideActiveLens();
+}
+
+function renderPoiLayers() {
+  groups.museum.clearLayers();
+  groups.info.clearLayers();
+  poiPoints
+    .filter((p) => !DENSE_LAYER_TYPES.has(p.type))
+    .forEach(addMarker);
+  rebuildDenseLayers();
+}
+
 function rebuildHeatLayer() {
   groups.heat.clearLayers();
   hatiAssets.forEach((a) => addMarker(hatiPointFor(a, timestep)));
@@ -204,6 +263,7 @@ function renderLayerSourceNote() {
   if (Object.values(layerStatus).some((s) => s === "snapshot")) {
     lines.push("Curated fallback counts are a partial sample, not a complete inventory.");
   }
+  lines.push("Hotels & stays and BiciMAD are visually grouped below zoom 16; lens counts still use every record.");
   document.getElementById("layerSourceNote").innerHTML = lines.join("<br>");
 }
 
@@ -293,6 +353,13 @@ function shadeMarkersOutsideActiveLens() {
       if (!m._p) return;
       const d = haversineMeters(center, m._p);
       const inside = d <= radius;
+
+      if (m._cluster && typeof m.setOpacity === "function") {
+        m.setOpacity(inside ? 1 : 0.38);
+        return;
+      }
+
+      if (typeof m.setStyle !== "function") return;
       const base = m._p.type === "bike" ? 0.72 : 0.86;
       m.setStyle({ opacity: inside ? 1 : 0.2, fillOpacity: inside ? base : 0.1, weight: inside ? 1.25 : 0.7 });
     })
@@ -401,6 +468,7 @@ map.on("click", (e) => {
   lenses[active].marker.setLatLng(e.latlng);
   refresh();
 });
+map.on("zoomend", rebuildDenseLayers);
 
 document.getElementById("lensAButton").onclick = () => activateLens("A");
 document.getElementById("lensBButton").onclick = () => (bEnabled ? activateLens("B") : enableLensB());
@@ -449,7 +517,7 @@ async function boot() {
   const { points, layerStatus: status } = await loadAllLayers(snapshotPOI, runtimePOI);
   poiPoints = points;
   layerStatus = status;
-  points.forEach(addMarker);
+  renderPoiLayers();
 
   const allLive = Object.values(status).every((s) => s === "live");
   const anyUnavailable = Object.values(status).some((s) => s === "unavailable");
