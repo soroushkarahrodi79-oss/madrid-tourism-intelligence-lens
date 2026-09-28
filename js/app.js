@@ -8,13 +8,17 @@ const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.
 
 const cartoBasemapKey = window.RUNTIME_CONFIG?.CARTO_BASEMAP_KEY || "";
 
-function addOsmBasemap() {
+function createOsmBasemap() {
   return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  }).addTo(map);
+  });
 }
+
+// Always start with a known-good map so the UI never opens onto a blank canvas.
+// CARTO replaces it only after at least one keyed tile has loaded successfully.
+const osmBasemap = createOsmBasemap().addTo(map);
 
 if (cartoBasemapKey) {
   const cartoTileUrl =
@@ -27,17 +31,22 @@ if (cartoBasemapKey) {
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
   });
 
+  let cartoReady = false;
   let basemapFallbackActive = false;
+
+  cartoBasemap.once("tileload", () => {
+    cartoReady = true;
+    if (map.hasLayer(osmBasemap)) map.removeLayer(osmBasemap);
+  });
+
   cartoBasemap.on("tileerror", () => {
-    if (basemapFallbackActive) return;
+    if (basemapFallbackActive || cartoReady) return;
     basemapFallbackActive = true;
-    map.removeLayer(cartoBasemap);
-    addOsmBasemap();
+    if (map.hasLayer(cartoBasemap)) map.removeLayer(cartoBasemap);
+    if (!map.hasLayer(osmBasemap)) osmBasemap.addTo(map);
   });
 
   cartoBasemap.addTo(map);
-} else {
-  addOsmBasemap();
 }
 
 const groups = {
