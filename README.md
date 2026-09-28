@@ -26,7 +26,7 @@ including comparing two places at once.
 - Enable **Lens B** to compare two locations side by side.
 - Adjust the lens **radius** (250 m – 1.8 km).
 - Toggle each data layer on/off.
-- Switch the HATI evidence time-of-day (12:00 / 15:00 / 18:00).
+- Opt into the bounded HATI research-evidence layer, then switch its modelled time-of-day (12:00 / 15:00 / 18:00).
 - Read descriptive counts, category mix, and the 5 nearest features inside
   the active lens.
 
@@ -93,9 +93,10 @@ restrict it in the CARTO Basemaps dashboard to the GitHub Pages host
   where the browser can reach it; otherwise a labelled deployment snapshot
   generated during the latest GitHub Pages build. The small curated sample is
   only the last-resort fallback.
-- HATI thermal layer: locked, model-derived evidence from a single historical
-  pilot day. Lenses with zero HATI samples inside them show **"No evidence"**,
-  never a fabricated value.
+- HATI thermal layer: **off by default** and explicitly opt-in. When enabled,
+  it shows locked, model-derived evidence from a single historical pilot day.
+  Lenses with zero HATI samples inside them show **"No evidence"**, never a
+  fabricated value.
 
 ## 10. What is next?
 
