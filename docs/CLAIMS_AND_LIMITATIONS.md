@@ -37,6 +37,11 @@ frequency, capacity, accessibility, travel time, or connectivity quality.
 Metro and Cercanías station records may represent different modes at the same
 interchange and are not deduplicated into a single multimodal hub.
 
+Accommodation type filters are descriptive source classifications. They do
+not imply quality, price, legal status, availability, occupancy, or suitability.
+Records without source type metadata remain unclassified rather than being
+guessed from their names.
+
 A POI count is a count, not a quality or pressure indicator. A UTCI mean is
 the mean of the HATI samples that happen to fall inside a lens on 21 August
 2023 at a chosen hour — not a forecast, not a live reading, and not a
