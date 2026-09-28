@@ -805,7 +805,7 @@ restorePanelSize();
 async function boot() {
   const [snapshotPOI, runtimePOI, hatiAssetsData, hatiProvenance] = await Promise.all([
     fetch("data/snapshot_poi.json").then((r) => r.json()),
-    fetch("data/runtime_poi.json?v=20260928-16")
+    fetch("data/runtime_poi.json?v=20260928-18")
       .then((r) => (r.ok ? r.json() : {}))
       .catch(() => ({})),
     fetch("data/hati_assets.json").then((r) => r.json()),
