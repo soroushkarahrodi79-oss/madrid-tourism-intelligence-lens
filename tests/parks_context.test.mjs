@@ -36,6 +36,8 @@ test("park records stay outside analytical POI statistics", () => {
 });
 
 test("park markers are rendered as context without lens-shading identity", () => {
-  assert.match(app, /m\._context = p/);
-  assert.doesNotMatch(app, /m\._p = p;\n  m\.bindTooltip\(tooltipFor\(p\).*groups\.park/s);
+  const parkMarkerBlock = app.match(/function addParkContextMarker\(p\) \{[\s\S]*?\n\}/)?.[0] || "";
+  assert.match(parkMarkerBlock, /m\._context = p/);
+  assert.doesNotMatch(parkMarkerBlock, /m\._p = p/);
+  assert.match(parkMarkerBlock, /m\.addTo\(groups\.park\)/);
 });
