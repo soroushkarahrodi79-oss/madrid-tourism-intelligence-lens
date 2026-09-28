@@ -66,15 +66,22 @@ function parseOverpassStays(data) {
     .filter(Boolean);
 }
 
-async function fetchJson(url) {
-  const response = await fetch(url, {
-    headers: {
-      accept: "application/json",
-      "user-agent": "madrid-tourism-intelligence-lens/1.0 (+https://github.com/soroushkarahrodi79-oss/madrid-tourism-intelligence-lens)",
-    },
-  });
-  if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
-  return response.json();
+async function fetchJson(url, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        accept: "application/json",
+        "user-agent": "madrid-tourism-intelligence-lens/1.0 (+https://github.com/soroushkarahrodi79-oss/madrid-tourism-intelligence-lens)",
+      },
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+    return response.json();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function tryLayer(name, loader) {
