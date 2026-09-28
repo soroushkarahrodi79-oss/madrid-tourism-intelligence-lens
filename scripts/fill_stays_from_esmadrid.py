@@ -7,6 +7,7 @@ No third-party packages are required.
 
 from __future__ import annotations
 
+import html
 import json
 import sys
 import urllib.request
@@ -26,6 +27,34 @@ def first_text(node: ET.Element, names: set[str]) -> str | None:
         if local_name(el.tag) in names and el.text and el.text.strip():
             return el.text.strip()
     return None
+
+
+def clean_text(value: str | None) -> str:
+    if not value:
+        return ""
+    # Madrid Destino may expose HTML entities inside XML text nodes.
+    return html.unescape(value).strip()
+
+
+def normalize_stay_kind(value: str | None) -> str:
+    text = clean_text(value).casefold()
+    if not text:
+        return "other"
+    if "aparta" in text or "apartamento" in text:
+        return "apartment"
+    if "hostal" in text:
+        return "hostal"
+    if "hotel" in text:
+        return "hotel"
+    if "alberg" in text:
+        return "hostel"
+    if "pensi" in text or "huésped" in text or "huesped" in text:
+        return "guest"
+    if "residencia" in text:
+        return "residence"
+    if "camping" in text or "campamento" in text:
+        return "camping"
+    return "other"
 
 
 def parse_number(value: str | None) -> float | None:
@@ -62,7 +91,9 @@ def parse_accommodation_xml(xml_text: str) -> list[dict]:
         while node is not None:
             lat = parse_number(first_text(node, {"latitude"}))
             lon = parse_number(first_text(node, {"longitude"}))
-            name = first_text(node, {"name", "title"})
+            name = clean_text(first_text(node, {"name", "title"}))
+            accommodation_type = clean_text(first_text(node, {"tipo"}))
+            category = clean_text(first_text(node, {"categoria"}))
             coords = normalize_madrid_coords(lat, lon)
 
             if coords and name:
@@ -76,6 +107,9 @@ def parse_accommodation_xml(xml_text: str) -> list[dict]:
                             "id": f"stay-published-{stable_id}",
                             "type": "stay",
                             "name": name,
+                            "stayKind": normalize_stay_kind(accommodation_type),
+                            "accommodationType": accommodation_type or "Sin clasificar",
+                            "accommodationCategory": category,
                             "lat": lat_v,
                             "lon": lon_v,
                         }

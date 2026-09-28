@@ -26,6 +26,16 @@ On GitHub Pages the app is **deployment-snapshot first** so markers render immed
 | BiciMAD | [EMT Madrid open data](https://datos.emtmadrid.es/) | Deployment snapshot generated from the official station GeoJSON; no hand-placed coordinates |
 | Metro & Cercanías | [CRTM Open Data](https://datos.crtm.es/) — M4 Estaciones (Metro) + M5 Estaciones (Cercanías) | Deployment snapshot generated from the official CRTM ArcGIS feature services; no hand-placed coordinates |
 
+The Madrid Destino XML also publishes a categorisation block with accommodation
+`Tipo` and `Categoria` fields, documented in Madrid Destino's
+[XML structure specification](https://datos.madrid.es/FWProjects/egob/Catalogo/Turismo/ficheros/Estructura_DS_alojamientos.pdf). The deployment builder preserves these fields
+as source metadata and maps `Tipo` into a small UI-only family
+(`hotel`, `hostal`, `apartment`, `hostel`, `guest`, `residence`,
+`camping`, or `other`). This normalisation changes only filtering and labels;
+it does not reclassify the source record for analytical claims. If the official
+feed is unavailable and the app falls back to older curated records without
+type metadata, the type selector is disabled rather than guessing a class.
+
 A **SNAPSHOT SAMPLE** is a small, manually curated subset of the source
 dataset for the study area — **not a complete inventory**. A count derived
 from a snapshot layer means "records present in this sample," not "total

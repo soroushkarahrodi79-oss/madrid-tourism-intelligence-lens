@@ -6,7 +6,7 @@
 <title>Madrid Tourism Intelligence Lens</title>
 <meta name="description" content="Move a spatial lens across central Madrid to explore how tourism POIs, mobility nodes and bounded HATI thermal evidence change locally.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20260928-14">
+<link rel="stylesheet" href="css/app.css?v=20260928-15">
 </head>
 <body>
 <div id="map"></div>
@@ -35,6 +35,20 @@
   </div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--museum);background:var(--museum)"></i>Museums</div><label class="switch"><input data-layer="museum" type="checkbox" checked><span></span></label></div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--stay);background:var(--stay)"></i>Hotels & stays</div><label class="switch"><input data-layer="stay" type="checkbox" checked><span></span></label></div>
+  <div class="stay-filter">
+    <label for="stayKindFilter">Accommodation type</label>
+    <select id="stayKindFilter" aria-label="Accommodation type">
+      <option value="all" data-label="All accommodation" selected>All accommodation</option>
+      <option value="hotel" data-kind="hotel" data-label="Hotels">Hotels</option>
+      <option value="hostal" data-kind="hostal" data-label="Hostales">Hostales</option>
+      <option value="apartment" data-kind="apartment" data-label="Apartahotels / apartments">Apartahotels / apartments</option>
+      <option value="hostel" data-kind="hostel" data-label="Albergues">Albergues</option>
+      <option value="guest" data-kind="guest" data-label="Pensions / guest houses">Pensions / guest houses</option>
+      <option value="residence" data-kind="residence" data-label="Student residences">Student residences</option>
+      <option value="camping" data-kind="camping" data-label="Camping">Camping</option>
+      <option value="other" data-kind="other" data-label="Other / unclassified">Other / unclassified</option>
+    </select>
+  </div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--bike);background:var(--bike)"></i>BiciMAD</div><label class="switch"><input data-layer="bike" type="checkbox" checked><span></span></label></div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--rail);background:var(--rail)"></i>Metro & Cercanías</div><label class="switch"><input data-layer="rail" type="checkbox" checked><span></span></label></div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--info);background:var(--info)"></i>Tourist info</div><label class="switch"><input data-layer="info" type="checkbox" checked><span></span></label></div>
@@ -120,9 +134,10 @@
 <script src="assets/leaflet/leaflet.js"></script>
 <script src="js/lens.js?v=20260928-14"></script>
 <script src="js/evidence.js"></script>
-<script src="js/data.js?v=20260928-14"></script>
+<script src="js/data.js?v=20260928-15"></script>
 <script src="js/clustering.js?v=20260928-9"></script>
+<script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20260928-14"></script>
+<script src="js/app.js?v=20260928-15"></script>
 </body>
 </html>
