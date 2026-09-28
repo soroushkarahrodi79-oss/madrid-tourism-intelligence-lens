@@ -46,7 +46,7 @@ class AccommodationXmlParserTests(unittest.TestCase):
         self.assertEqual(points[0]["accommodationType"], "Alojamientos")
         self.assertEqual(points[0]["accommodationCategory"], "Hoteles")
         self.assertEqual(points[0]["accommodationSubcategory"], "4 estrellas")
-                self.assertAlmostEqual(points[0]["lat"], 40.4155)
+        self.assertAlmostEqual(points[0]["lat"], 40.4155)
         self.assertAlmostEqual(points[0]["lon"], -3.6912)
 
     def test_decodes_html_entities_and_normalizes_aparthotels_before_hotels(self):
