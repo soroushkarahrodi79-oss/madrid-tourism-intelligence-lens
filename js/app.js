@@ -910,7 +910,7 @@ async function boot() {
       .catch(() => ({})),
     fetch("data/hati_assets.json").then((r) => r.json()),
     fetch("data/hati_provenance.json?v=20260928-11").then((r) => r.json()),
-    fetch("data/pedestrian_activity.json?v=20260928-19")
+    fetch("data/pedestrian_activity.json?v=20260928-21", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : { available: false, stations: [] }))
       .catch(() => ({ available: false, stations: [] })),
   ]);
