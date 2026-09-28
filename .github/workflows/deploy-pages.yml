@@ -25,10 +25,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Build deployment POI snapshot
+      - name: Build deployment spatial snapshots
         run: |
           node scripts/build_runtime_poi.mjs
           python3 scripts/fill_stays_from_esmadrid.py
+          python3 scripts/build_pedestrian_activity.py
       - uses: actions/configure-pages@v5
       - name: Inject CARTO basemap key
         env:

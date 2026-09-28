@@ -7,6 +7,7 @@ const LAYER_COLOR = {
   stay: "#3da8ff",
   bike: "#54e2b5",
   rail: "#ffd166",
+  pedestrian: "#ff7aa2",
   park: "#70dea4",
 };
 const LAYER_LABEL = {
@@ -15,6 +16,7 @@ const LAYER_LABEL = {
   stay: "Hotels & stays",
   bike: "BiciMAD",
   rail: "Metro & Cercanías",
+  pedestrian: "Observed pedestrian activity",
   park: "Principal parks",
 };
 const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
@@ -114,6 +116,8 @@ const groups = {
   stay: L.layerGroup().addTo(map),
   bike: L.layerGroup().addTo(map),
   rail: L.layerGroup().addTo(map),
+  // Observed pedestrian activity is opt-in and analytically separate from POI counts.
+  pedestrian: L.layerGroup(),
   // Context layer is opt-in and intentionally excluded from lens analytics.
   park: L.layerGroup(),
   // Research evidence is opt-in: populate HATI but keep it off the map until requested.
@@ -121,6 +125,9 @@ const groups = {
 };
 
 let poiPoints = [];
+let pedestrianStations = [];
+let pedestrianStatus = "unavailable";
+let pedestrianMeta = {};
 let parkPoints = [];
 let parkStatus = "unavailable";
 let hatiAssets = [];
@@ -193,6 +200,11 @@ function tooltipFor(p) {
     const subcategory = p.accommodationSubcategory ? ` · ${p.accommodationSubcategory}` : "";
     return `<b>${p.name}</b><br>${accommodationFamily}${subcategory}<br>${LAYER_LABEL[p.type]} · ${src}`;
   }
+  if (p.type === "pedestrian") {
+    const mean = Number.isFinite(Number(p.meanObserved)) ? Math.round(Number(p.meanObserved)).toLocaleString("en-GB") : "—";
+    const dates = p.dateMin && p.dateMax ? `${p.dateMin} → ${p.dateMax}` : "2024 published period";
+    return `<b>${p.name}</b><br>Mean observed: ${mean} pedestrians / published hourly record<br>${Number(p.observationCount || 0).toLocaleString("en-GB")} records · ${dates}<br>Madrid permanent counter · not tourism-specific`;
+  }
   if (p.type === "park") {
     return `<b>${p.name}</b><br>Principal municipal park / garden<br>Madrid Open Data · context only`;
   }
@@ -218,6 +230,28 @@ function addMarker(p) {
   m.bindTooltip(tooltipFor(p), { direction: "top", offset: [0, -4] });
   m.addTo(groups[p.type]);
   return m;
+}
+
+function addPedestrianActivityMarker(p) {
+  const color = LAYER_COLOR.pedestrian;
+  const m = L.circleMarker([p.lat, p.lon], {
+    radius: 4.4,
+    color,
+    fillColor: color,
+    weight: 1.2,
+    opacity: 0.92,
+    fillOpacity: 0.42,
+  });
+  // _p is used only for lens-focused visual shading; these records never enter poiPoints.
+  m._p = p;
+  m.bindTooltip(tooltipFor(p), { direction: "top", offset: [0, -4] });
+  m.addTo(groups.pedestrian);
+  return m;
+}
+
+function renderPedestrianActivity() {
+  groups.pedestrian.clearLayers();
+  pedestrianStations.forEach(addPedestrianActivityMarker);
 }
 
 function addParkContextMarker(p) {
@@ -362,6 +396,20 @@ function syncHatiUi(on) {
   }
 }
 
+function isPedestrianVisible() {
+  return map.hasLayer(groups.pedestrian);
+}
+
+function syncPedestrianUi(on) {
+  const card = document.getElementById("pedestrianCard");
+  const toggle = document.querySelector('[data-layer="pedestrian"]');
+  if (card) card.hidden = !on;
+  if (toggle) {
+    toggle.checked = on;
+    toggle.setAttribute("aria-checked", String(on));
+  }
+}
+
 function setLayerVisible(name, on) {
   if (on) {
     if (!map.hasLayer(groups[name])) map.addLayer(groups[name]);
@@ -371,6 +419,10 @@ function setLayerVisible(name, on) {
 
   if (name === "heat") {
     syncHatiUi(on);
+    refresh();
+  }
+  if (name === "pedestrian") {
+    syncPedestrianUi(on);
     refresh();
   }
 }
@@ -386,6 +438,10 @@ function statsFor(which) {
 
 function heatStatsFor(which) {
   return hatiStatsInLens(hatiAssets, timestep, centerOf(which), radius, haversineMeters);
+}
+
+function pedestrianStatsFor(which) {
+  return pedestrianStatsInLens(pedestrianStations, centerOf(which), radius);
 }
 
 const STATUS_LABEL = {
@@ -412,6 +468,8 @@ function renderLayerSourceNote() {
   if (Object.values(layerStatus).some((s) => s === "snapshot")) {
     lines.push("Curated fallback counts are a partial sample, not a complete inventory.");
   }
+  lines.push(`Observed pedestrian activity: <b>${STATUS_LABEL[pedestrianStatus]}</b>`);
+  lines.push("Pedestrian counters are observed activity evidence, not tourist counts, and are excluded from POI/category-mix metrics.");
   lines.push(`Principal parks (context): <b>${STATUS_LABEL[parkStatus]}</b>`);
   lines.push("Park context is excluded from lens counts, category mix, nearest features and A/B comparisons.");
   lines.push("Hotels & stays and BiciMAD are visually grouped below zoom 16; lens counts still use every record.");
@@ -440,6 +498,37 @@ function renderHeatMetric(h) {
     hv.style.color = utciCategoryColor(h.mean);
     hf.textContent = `${h.count} HATI sample${h.count !== 1 ? "s" : ""} · ${timestep}`;
   }
+}
+
+function renderPedestrianMetric(p) {
+  const card = document.getElementById("pedestrianCard");
+  const value = document.getElementById("pedestrianValue");
+  const foot = document.getElementById("pedestrianFoot");
+  if (!card || !value || !foot || !isPedestrianVisible()) return;
+
+  if (pedestrianStatus === "unavailable") {
+    value.textContent = "No data";
+    value.className = "activity-card-value abstain";
+    foot.textContent = "deployment snapshot unavailable";
+    return;
+  }
+
+  if (p.evidence === "NONE") {
+    value.textContent = "No sensor evidence";
+    value.className = "activity-card-value abstain";
+    foot.textContent = "no permanent pedestrian counter in lens";
+    return;
+  }
+
+  value.textContent = `${Math.round(p.meanObserved).toLocaleString("en-GB")} ped/h`;
+  value.className = "activity-card-value";
+  const dateRange =
+    p.dateMin && p.dateMax
+      ? `${p.dateMin} → ${p.dateMax}`
+      : pedestrianMeta.source?.year
+        ? String(pedestrianMeta.source.year)
+        : "published period";
+  foot.textContent = `${p.stationCount} counter${p.stationCount !== 1 ? "s" : ""} · ${p.observationCount.toLocaleString("en-GB")} hourly records · ${dateRange}`;
 }
 
 function renderMix(s) {
@@ -481,8 +570,11 @@ function renderCompare() {
   const a = statsFor("A");
   const b = statsFor("B");
   const hatiOn = isHatiVisible();
+  const pedestrianOn = isPedestrianVisible();
   const ha = hatiOn ? heatStatsFor("A") : null;
   const hb = hatiOn ? heatStatsFor("B") : null;
+  const pa = pedestrianOn ? pedestrianStatsFor("A") : null;
+  const pb = pedestrianOn ? pedestrianStatsFor("B") : null;
   document.getElementById("cmpPoi").textContent = comparisonDelta(
     combinedStatus(layerStatus, ["museums", "info"]),
     a.tourism,
@@ -498,6 +590,12 @@ function renderCompare() {
     a.mobility,
     b.mobility
   );
+  document.getElementById("cmpPedestrian").textContent =
+    pedestrianOn && pa.evidence === "OBSERVED" && pb.evidence === "OBSERVED"
+      ? deltaOrDash(Math.round(pa.meanObserved), Math.round(pb.meanObserved), "/h")
+      : pedestrianOn
+        ? "—"
+        : "off";
   document.getElementById("cmpHeat").textContent =
     hatiOn && ha.evidence === "MODEL-DERIVED" && hb.evidence === "MODEL-DERIVED"
       ? deltaOrDash(ha.mean, hb.mean, "°")
@@ -579,6 +677,7 @@ function refresh() {
     unavailableFoot: "some mobility sources unavailable",
   });
   renderHeatMetric(heatStatsFor(active));
+  renderPedestrianMetric(pedestrianStatsFor(active));
   renderMix(s);
   renderNearest(s);
   renderCompare();
@@ -673,6 +772,7 @@ document.getElementById("resetButton").onclick = () => {
 };
 document.querySelectorAll("[data-layer]").forEach((x) => (x.onchange = () => setLayerVisible(x.dataset.layer, x.checked)));
 syncHatiUi(false);
+syncPedestrianUi(false);
 
 const PANEL_SIZE_STORAGE_KEY = "madrid-tourism-intelligence-lens:analysis-panel-size:v1";
 const analysisPanel = document.querySelector(".panel");
@@ -803,13 +903,16 @@ window.addEventListener("resize", () => {
 restorePanelSize();
 
 async function boot() {
-  const [snapshotPOI, runtimePOI, hatiAssetsData, hatiProvenance] = await Promise.all([
+  const [snapshotPOI, runtimePOI, hatiAssetsData, hatiProvenance, pedestrianData] = await Promise.all([
     fetch("data/snapshot_poi.json").then((r) => r.json()),
     fetch("data/runtime_poi.json?v=20260928-18")
       .then((r) => (r.ok ? r.json() : {}))
       .catch(() => ({})),
     fetch("data/hati_assets.json").then((r) => r.json()),
     fetch("data/hati_provenance.json?v=20260928-11").then((r) => r.json()),
+    fetch("data/pedestrian_activity.json?v=20260928-19")
+      .then((r) => (r.ok ? r.json() : { available: false, stations: [] }))
+      .catch(() => ({ available: false, stations: [] })),
   ]);
   hatiAssets = hatiAssetsData;
   hatiStudyArea = hatiProvenance.study_area || null;
@@ -819,6 +922,22 @@ async function boot() {
   const { points, layerStatus: status } = await loadAllLayers(snapshotPOI, runtimePOI);
   poiPoints = points;
   layerStatus = status;
+
+  pedestrianMeta = pedestrianData || {};
+  pedestrianStations = Array.isArray(pedestrianData?.stations)
+    ? pedestrianData.stations.map((p) => ({ ...p, type: "pedestrian", provenance: "published" }))
+    : [];
+  pedestrianStatus = pedestrianData?.available && pedestrianStations.length ? "published" : "unavailable";
+  renderPedestrianActivity();
+
+  const pedestrianToggle = document.querySelector('[data-layer="pedestrian"]');
+  if (pedestrianToggle) {
+    pedestrianToggle.disabled = pedestrianStatus === "unavailable";
+    pedestrianToggle.title =
+      pedestrianStatus === "unavailable"
+        ? "Observed pedestrian activity unavailable in this deployment"
+        : "Show Madrid permanent pedestrian counters and lens activity evidence";
+  }
 
   parkPoints = (runtimePOI?.layers?.park || []).map((p) => ({
     ...p,

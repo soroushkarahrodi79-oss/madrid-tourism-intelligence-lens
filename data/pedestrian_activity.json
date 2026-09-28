@@ -1,0 +1,23 @@
+{
+  "available": false,
+  "generatedAt": null,
+  "source": {
+    "dataset": "Madrid Open Data — Aforos de peatones y bicicletas",
+    "datasetUrl": "https://datos.madrid.es/dataset/300321-0-aforos-peatones-bicicletas",
+    "resourceUrl": "https://datos.madrid.es/dataset/300321-0-aforos-peatones-bicicletas/resource/300321-0-aforos-peatones-bicicletas-csv/download/300321-0-aforos-peatones-bicicletas-csv.csv",
+    "year": 2024
+  },
+  "scope": {
+    "latMin": 40.385,
+    "latMax": 40.455,
+    "lonMin": -3.745,
+    "lonMax": -3.645
+  },
+  "recordSemantics": "Published permanent pedestrian-counter observations by date and hour; not tourism-specific.",
+  "stations": [],
+  "stationCount": 0,
+  "observationCount": 0,
+  "dateMin": null,
+  "dateMax": null,
+  "error": "Deployment snapshot not built in this checkout."
+}

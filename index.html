@@ -6,7 +6,7 @@
 <title>Madrid Tourism Intelligence Lens</title>
 <meta name="description" content="Move a spatial lens across central Madrid to explore how tourism POIs, mobility nodes and bounded HATI thermal evidence change locally.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20260928-17">
+<link rel="stylesheet" href="css/app.css?v=20260928-19">
 </head>
 <body>
 <div id="map"></div>
@@ -52,6 +52,12 @@
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--bike);background:var(--bike)"></i>BiciMAD</div><label class="switch"><input data-layer="bike" type="checkbox" checked><span></span></label></div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--rail);background:var(--rail)"></i>Metro & Cercanías</div><label class="switch"><input data-layer="rail" type="checkbox" checked><span></span></label></div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--info);background:var(--info)"></i>Tourist info</div><label class="switch"><input data-layer="info" type="checkbox" checked><span></span></label></div>
+
+  <div class="activity-divider">
+    <span>Observed activity</span>
+    <small>not tourism-specific</small>
+  </div>
+  <div class="layer activity-layer"><div class="layer-left"><i class="dot" style="color:var(--activity);background:var(--activity)"></i>Pedestrian counters</div><label class="switch"><input data-layer="pedestrian" type="checkbox" aria-label="Toggle observed pedestrian activity" aria-checked="false"><span></span></label></div>
 
   <div class="context-divider">
     <span>Context</span>
@@ -107,6 +113,15 @@
     </div>
   </div>
 
+  <div id="pedestrianCard" class="activity-card" hidden>
+    <div>
+      <div class="activity-card-title"><i class="dot" style="background:var(--activity);color:var(--activity)"></i>Observed pedestrian activity <span class="badge observed">observed</span></div>
+      <div id="pedestrianValue" class="activity-card-value">—</div>
+      <div id="pedestrianFoot" class="activity-card-foot">Madrid permanent counters</div>
+    </div>
+    <div class="activity-card-note">Counts are observed pedestrians, not tourists. No interpolation between counters.</div>
+  </div>
+
   <div class="mix">
     <div class="card">
       <div class="card-title">Category mix</div>
@@ -128,23 +143,24 @@
       <div>POIs<b id="cmpPoi">—</b></div>
       <div>Stays<b id="cmpStay">—</b></div>
       <div>Mobility<b id="cmpMobility">—</b></div>
+      <div>Ped flow<b id="cmpPedestrian">—</b></div>
       <div>UTCI<b id="cmpHeat">—</b></div>
       <div>Evidence<b id="cmpEvidence">—</b></div>
     </div>
   </div>
 
   <div class="source">
-    Sources: Madrid Open Data (museums, tourist information), EMT Madrid (BiciMAD), CRTM (Metro and Cercanías stations), and Madrid Destino / esmadrid.com (hotels and other accommodation) — GitHub Pages uses the latest deployment-time snapshot first so markers render immediately; a small curated repository sample is the final packaged fallback when a deployment source is unavailable. HATI-Madrid locked pilot evidence (21 Aug 2023; UTCI is model output, not field observation) — see <a href="docs/DATA_PROVENANCE.md">data provenance</a> and <a href="docs/CLAIMS_AND_LIMITATIONS.md">claims &amp; limitations</a>. Base maps: OpenStreetMap/CARTO or Esri World Imagery, depending on selection.
+    Sources: Madrid Open Data (museums, tourist information, principal parks, permanent pedestrian counters), EMT Madrid (BiciMAD), CRTM (Metro and Cercanías stations), and Madrid Destino / esmadrid.com (hotels and other accommodation) — GitHub Pages uses the latest deployment-time snapshot first so markers render immediately; a small curated repository sample is the final packaged fallback when a deployment source is unavailable. HATI-Madrid locked pilot evidence (21 Aug 2023; UTCI is model output, not field observation) — see <a href="docs/DATA_PROVENANCE.md">data provenance</a> and <a href="docs/CLAIMS_AND_LIMITATIONS.md">claims &amp; limitations</a>. Base maps: OpenStreetMap/CARTO or Esri World Imagery, depending on selection.
   </div>
 </section>
 
 <script src="assets/leaflet/leaflet.js"></script>
-<script src="js/lens.js?v=20260928-14"></script>
+<script src="js/lens.js?v=20260928-19"></script>
 <script src="js/evidence.js"></script>
 <script src="js/data.js?v=20260928-15"></script>
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20260928-18"></script>
+<script src="js/app.js?v=20260928-19"></script>
 </body>
 </html>

@@ -2,14 +2,15 @@
 
 A spatial-lens web app for exploring **Tourism × Mobility × Urban Climate**
 in central Madrid: move a draggable lens across the map and watch local
-tourism POIs, mobility nodes, and bounded thermal evidence recalculate.
+tourism POIs, mobility nodes, observed pedestrian activity, and bounded thermal evidence recalculate.
 
 ## 1. What is this?
 
 A small, static, portfolio-grade geospatial web app. Move a circular "lens"
 over central Madrid; it recalculates local counts of museums, tourist
 information points, accommodation, BiciMAD stations, and Metro/Cercanías
-stations, and — where evidence exists — the mean UTCI (a thermal-stress index) from a bounded
+stations; it can also opt into observed pedestrian-counter evidence and — where
+HATI evidence exists — the mean UTCI (a thermal-stress index) from a bounded
 research dataset.
 
 ## 2. What problem does the spatial lens solve?
@@ -26,6 +27,9 @@ including comparing two places at once.
 - Enable **Lens B** to compare two locations side by side.
 - Adjust the lens **radius** (250 m – 1.8 km).
 - Toggle each operational data layer on/off.
+- Opt into **observed pedestrian activity** from Madrid's permanent counters;
+  the lens reports the mean published hourly count for counters inside the
+  lens, explicitly labelled as pedestrian rather than tourist activity.
 - Optionally show the official **Principal parks** context layer; it is map context only and never enters lens metrics.
 - Opt into the bounded HATI research-evidence layer, then switch its modelled time-of-day (12:00 / 15:00 / 18:00).
 - Filter the official accommodation layer by accommodation type where the
@@ -40,6 +44,7 @@ including comparing two places at once.
   including its published accommodation type/category fields when present
 - **BiciMAD** — EMT Madrid open data
 - **Metro & Cercanías stations** — CRTM open data (M4 and M5 station layers)
+- **Permanent pedestrian counters** — Madrid Open Data, observed activity evidence
 - **Principal municipal parks and gardens** — Madrid Open Data, context only
 - **HATI-Madrid outdoor UTCI samples** — a bounded research evidence layer (see below)
 
@@ -66,9 +71,9 @@ including the exact source commit, are in
 ## 6. What does the project NOT claim?
 
 It does not establish tourist pressure, overtourism, carrying capacity,
-tourist behaviour, safety outcomes, tourism quality, economic impact, causal
-heat effects, real-time conditions, city-wide HATI coverage, or a complete
-inventory of Madrid green space. Full list in
+tourist behaviour, tourist-specific footfall, safety outcomes, tourism quality,
+economic impact, causal heat effects, real-time conditions, city-wide HATI
+coverage, or a complete inventory of Madrid green space. Full list in
 [`docs/CLAIMS_AND_LIMITATIONS.md`](docs/CLAIMS_AND_LIMITATIONS.md).
 
 ## 7. How do I run it locally?
@@ -100,6 +105,10 @@ restrict it in the CARTO Basemaps dashboard to the GitHub Pages host
   where the browser can reach it; otherwise a labelled deployment snapshot
   generated during the latest GitHub Pages build. The small curated sample is
   only the last-resort fallback.
+- Observed pedestrian activity: **off by default** and explicitly opt-in. It is
+  a deployment snapshot aggregated from Madrid's latest published permanent
+  pedestrian-counter CSV (2024 published period); it is not real-time and is
+  not tourism-specific. No interpolation is performed between counters.
 - HATI thermal layer: **off by default** and explicitly opt-in. When enabled,
   it shows locked, model-derived evidence from a single historical pilot day.
   Lenses with zero HATI samples inside them show **"No evidence"**, never a
@@ -113,8 +122,9 @@ restrict it in the CARTO Basemaps dashboard to the GitHub Pages host
   coordinates against the official EMT Madrid dataset before reintroducing
   a BiciMAD fallback.
 - Add automated visual regression checks for the map UI.
-- Consider a second bounded evidence layer if/when HATI or another source
-  publishes one with the same provenance rigor.
+- Add a bounded temporal tourism-demand driver next (for example Madrid
+  Destino's official tourism agenda), only if it can preserve the same source,
+  date and interpretation discipline.
 
 ## Project structure
 
