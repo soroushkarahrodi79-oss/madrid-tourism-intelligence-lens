@@ -25,7 +25,8 @@ including comparing two places at once.
 - Move **Lens A** (always on) by dragging it or clicking the map.
 - Enable **Lens B** to compare two locations side by side.
 - Adjust the lens **radius** (250 m – 1.8 km).
-- Toggle each data layer on/off.
+- Toggle each operational data layer on/off.
+- Optionally show the official **Principal parks** context layer; it is map context only and never enters lens metrics.
 - Opt into the bounded HATI research-evidence layer, then switch its modelled time-of-day (12:00 / 15:00 / 18:00).
 - Filter the official accommodation layer by accommodation type where the
   Madrid Destino feed provides that classification.
@@ -39,6 +40,7 @@ including comparing two places at once.
   including its published accommodation type/category fields when present
 - **BiciMAD** — EMT Madrid open data
 - **Metro & Cercanías stations** — CRTM open data (M4 and M5 station layers)
+- **Principal municipal parks and gardens** — Madrid Open Data, context only
 - **HATI-Madrid outdoor UTCI samples** — a bounded research evidence layer (see below)
 
 On GitHub Pages, operational POI layers are **deployment-snapshot first** so
@@ -65,7 +67,8 @@ including the exact source commit, are in
 
 It does not establish tourist pressure, overtourism, carrying capacity,
 tourist behaviour, safety outcomes, tourism quality, economic impact, causal
-heat effects, real-time conditions, or city-wide HATI coverage. Full list in
+heat effects, real-time conditions, city-wide HATI coverage, or a complete
+inventory of Madrid green space. Full list in
 [`docs/CLAIMS_AND_LIMITATIONS.md`](docs/CLAIMS_AND_LIMITATIONS.md).
 
 ## 7. How do I run it locally?

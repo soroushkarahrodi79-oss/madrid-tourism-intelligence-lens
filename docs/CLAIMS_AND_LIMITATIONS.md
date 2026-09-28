@@ -31,6 +31,11 @@ establish, measure, or infer:
   its SNAPSHOT SAMPLE fallback, its count reflects only the records curated
   into that sample, not the true total number of museums, hotels, or tourist
   info points at that location
+- Complete green-space coverage — the optional Principal parks layer reflects
+  the municipality's published list of principal/significant parks and gardens,
+  not every green space in Madrid
+- Any inference that a mapped park is cooler, shadier, healthier, more
+  biodiverse, more accessible, higher quality, or more attractive to tourists
 
 A mobility-node count is descriptive infrastructure presence, not service
 frequency, capacity, accessibility, travel time, or connectivity quality.

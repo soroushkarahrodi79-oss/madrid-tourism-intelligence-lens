@@ -6,7 +6,7 @@
 <title>Madrid Tourism Intelligence Lens</title>
 <meta name="description" content="Move a spatial lens across central Madrid to explore how tourism POIs, mobility nodes and bounded HATI thermal evidence change locally.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20260928-15">
+<link rel="stylesheet" href="css/app.css?v=20260928-16">
 </head>
 <body>
 <div id="map"></div>
@@ -52,6 +52,12 @@
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--bike);background:var(--bike)"></i>BiciMAD</div><label class="switch"><input data-layer="bike" type="checkbox" checked><span></span></label></div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--rail);background:var(--rail)"></i>Metro & Cercanías</div><label class="switch"><input data-layer="rail" type="checkbox" checked><span></span></label></div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--info);background:var(--info)"></i>Tourist info</div><label class="switch"><input data-layer="info" type="checkbox" checked><span></span></label></div>
+
+  <div class="context-divider">
+    <span>Context</span>
+    <small>not in metrics</small>
+  </div>
+  <div class="layer context-layer"><div class="layer-left"><i class="dot" style="color:var(--park);background:var(--park)"></i>Principal parks</div><label class="switch"><input data-layer="park" type="checkbox" aria-label="Toggle principal municipal parks"><span></span></label></div>
 
   <div class="research-divider">
     <span>Research evidence</span>
@@ -138,6 +144,6 @@
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20260928-15"></script>
+<script src="js/app.js?v=20260928-16"></script>
 </body>
 </html>

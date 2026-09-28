@@ -6,6 +6,7 @@ const SOURCES = {
   bikes: "https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11/resource/105ce5df-793f-4e0a-a88e-5d3b3f024a5d/download/bikestationbicimad_geojson.json",
   metroStations: "https://services5.arcgis.com/UxADft6QPcvFyDU1/arcgis/rest/services/M4_Red/FeatureServer/0/query",
   cercaniasStations: "https://services5.arcgis.com/UxADft6QPcvFyDU1/arcgis/rest/services/M5_Red/FeatureServer/0/query",
+  parks: "https://datos.madrid.es/dataset/200761-0-parques-jardines/resource/200761-5-parques-jardines-json/download/200761-5-parques-jardines-json.json",
 };
 
 const CENTRAL_MADRID_ENVELOPE = "-3.745,40.385,-3.645,40.455";
@@ -31,6 +32,15 @@ function parseMadridOpenData(data, type) {
       };
     })
     .filter(Boolean);
+}
+
+function inCentralMadrid(point) {
+  return (
+    point.lat >= 40.385 &&
+    point.lat <= 40.455 &&
+    point.lon >= -3.745 &&
+    point.lon <= -3.645
+  );
 }
 
 function parseBiciMad(data) {
@@ -129,6 +139,11 @@ const results = await Promise.all([
     ]);
     return [...metro, ...cercanias];
   }),
+  tryLayer("park", () =>
+    fetchJson(SOURCES.parks)
+      .then((d) => parseMadridOpenData(d, "park"))
+      .then((points) => points.filter(inCentralMadrid))
+  ),
 ]);
 
 const output = {
