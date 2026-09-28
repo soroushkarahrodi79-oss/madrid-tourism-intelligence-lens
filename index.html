@@ -6,7 +6,7 @@
 <title>Madrid Tourism Intelligence Lens</title>
 <meta name="description" content="Move a spatial lens across central Madrid to explore how tourism POIs, mobility nodes and bounded HATI thermal evidence change locally.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20260928-9">
+<link rel="stylesheet" href="css/app.css?v=20260928-10">
 </head>
 <body>
 <div id="map"></div>
@@ -24,7 +24,7 @@
 </header>
 
 <aside class="left">
-  <h3>Layers</h3>
+  <h3>Operational layers</h3>
   <div class="basemap-control">
     <label for="basemapSelect">Base map</label>
     <select id="basemapSelect" aria-label="Base map">
@@ -37,7 +37,13 @@
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--stay);background:var(--stay)"></i>Hotels & stays</div><label class="switch"><input data-layer="stay" type="checkbox" checked><span></span></label></div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--bike);background:var(--bike)"></i>BiciMAD</div><label class="switch"><input data-layer="bike" type="checkbox" checked><span></span></label></div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--info);background:var(--info)"></i>Tourist info</div><label class="switch"><input data-layer="info" type="checkbox" checked><span></span></label></div>
-  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--heat);background:var(--heat)"></i>HATI UTCI samples</div><label class="switch"><input data-layer="heat" type="checkbox" checked><span></span></label></div>
+
+  <div class="research-divider">
+    <span>Research evidence</span>
+    <small>bounded pilot</small>
+  </div>
+  <div class="layer research-layer"><div class="layer-left"><i class="dot" style="color:var(--heat);background:var(--heat)"></i>HATI · thermal pilot</div><label class="switch"><input data-layer="heat" type="checkbox" checked><span></span></label></div>
+
   <div id="layerSourceNote" class="layer-source-note"></div>
   <div class="heat-scale"></div>
   <div class="scale-labels"><span>32°C</span><span>38</span><span>46+</span></div>
