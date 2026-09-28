@@ -44,13 +44,15 @@ function deltaOrDash(a, b, suffix = "") {
   return `${rounded > 0 ? "+" : ""}${rounded}${suffix}`;
 }
 
-// Worst-case status across a set of layers: unavailable > snapshot > live.
-// Used so a combined metric (e.g. "Tourism POIs" = museums + info) inherits
-// the least-trustworthy status of its contributing layers.
+// Worst-case status across a set of layers:
+// unavailable > snapshot (small curated sample) > published (deployment snapshot) > live.
+// Used so a combined metric inherits the least-current / least-complete status
+// of its contributing layers.
 function combinedStatus(statusMap, names) {
   const statuses = names.map((n) => statusMap[n]).filter(Boolean);
   if (statuses.includes("unavailable")) return "unavailable";
   if (statuses.includes("snapshot")) return "snapshot";
+  if (statuses.includes("published")) return "published";
   return "live";
 }
 
@@ -61,7 +63,9 @@ function comparisonDelta(status, a, b, suffix = "") {
   if (status === "unavailable") return "—";
   const d = deltaOrDash(a, b, suffix);
   if (d == null) return "—";
-  return status === "snapshot" ? `${d} sample` : d;
+  if (status === "snapshot") return `${d} sample`;
+  if (status === "published") return `${d} deploy`;
+  return d;
 }
 
 // Category-mix shares for the "Category mix" card. A category on an
@@ -79,10 +83,13 @@ function categoryMixState(counts, statuses) {
   }
 
   const anySnapshot = knownKeys.some((k) => statuses[k] === "snapshot");
+  const anyPublished = knownKeys.some((k) => statuses[k] === "published");
   const anyUnavailable = keys.some((k) => statuses[k] === "unavailable");
   let label = "";
   if (anySnapshot && anyUnavailable) label = "Sample mix · not exhaustive · some categories unavailable";
   else if (anySnapshot) label = "Sample mix · not exhaustive";
+  else if (anyPublished && anyUnavailable) label = "Deployment snapshot · some categories unavailable";
+  else if (anyPublished) label = "Deployment snapshot · not real-time";
   else if (anyUnavailable) label = "Some categories unavailable";
 
   return { rows, label };
