@@ -239,8 +239,7 @@ function addClusterMarker(type, cluster) {
 }
 
 function visiblePoiPoints() {
-  if (stayKindFilter === "all") return poiPoints;
-  return poiPoints.filter((p) => p.type !== "stay" || p.stayKind === stayKindFilter);
+  return filterPoiPointsByStayKind(poiPoints, stayKindFilter);
 }
 
 function stayFilterLabel() {
