@@ -189,9 +189,9 @@ function tooltipFor(p) {
     return `<b>${p.name}</b><br>${mode}${lines}<br>CRTM · ${src}`;
   }
   if (p.type === "stay") {
-    const accommodationType = p.accommodationType || "Accommodation";
-    const category = p.accommodationCategory ? ` · ${p.accommodationCategory}` : "";
-    return `<b>${p.name}</b><br>${accommodationType}${category}<br>${LAYER_LABEL[p.type]} · ${src}`;
+    const accommodationFamily = p.accommodationCategory || p.accommodationType || "Accommodation";
+    const subcategory = p.accommodationSubcategory ? ` · ${p.accommodationSubcategory}` : "";
+    return `<b>${p.name}</b><br>${accommodationFamily}${subcategory}<br>${LAYER_LABEL[p.type]} · ${src}`;
   }
   if (p.type === "park") {
     return `<b>${p.name}</b><br>Principal municipal park / garden<br>Madrid Open Data · context only`;
@@ -849,7 +849,7 @@ async function boot() {
   });
   stayFilter.disabled = stayKinds.size === 0;
   stayFilter.title = stayKinds.size
-    ? "Filter the official accommodation layer by Madrid Destino type"
+    ? "Filter the official accommodation layer by Madrid Destino category"
     : "Accommodation type metadata unavailable in the current fallback";
 
   renderPoiLayers();
