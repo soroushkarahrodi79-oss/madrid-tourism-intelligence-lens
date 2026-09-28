@@ -41,7 +41,7 @@ test("deployment builds a bounded pedestrian snapshot from Madrid Open Data", ()
 });
 
 test("current pedestrian snapshot and app/lens scripts are cache-busted", () => {
-  assert.match(html, /data\/pedestrian_activity\.json/);
+  assert.match(app, /data\/pedestrian_activity\.json\?v=20260928-19/);
   assert.match(html, /js\/lens\.js\?v=20260928-19/);
   assert.match(html, /js\/app\.js\?v=20260928-19/);
 });
