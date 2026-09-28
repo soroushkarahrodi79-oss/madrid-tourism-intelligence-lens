@@ -5,9 +5,16 @@ const LAYER_COLOR = { museum: "#9d72ff", info: "#c79cff", stay: "#3da8ff", bike:
 const LAYER_LABEL = { museum: "Museums", info: "Tourist info", stay: "Hotels & stays", bike: "BiciMAD" };
 
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+
+const cartoBasemapKey = window.RUNTIME_CONFIG?.CARTO_BASEMAP_KEY || "";
+const cartoTileUrl =
+  "https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png" +
+  (cartoBasemapKey ? `?key=${encodeURIComponent(cartoBasemapKey)}` : "");
+
+L.tileLayer(cartoTileUrl, {
   maxZoom: 20,
-  attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+  attribution:
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
 }).addTo(map);
 
 const groups = {

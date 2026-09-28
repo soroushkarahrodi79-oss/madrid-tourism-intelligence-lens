@@ -84,6 +84,12 @@ first be enabled in the repository settings** (Settings → Pages → Source:
 GitHub Actions) — this is an admin action the repository owner needs to take
 once; it is not done automatically by this PR.
 
+The CARTO basemap key is injected at deploy time from the repository secret
+`CARTO_BASEMAP_KEY`; the key is not committed to git. Because this is a
+browser-side static app, the deployed key is still visible to visitors, so
+restrict it in the CARTO Basemaps dashboard to the GitHub Pages host
+`soroushkarahrodi79-oss.github.io`.
+
 ## 9. What is the evidence status?
 
 - Tourism/accommodation layers: live public data where reachable; a labelled

@@ -1,0 +1,1 @@
+window.RUNTIME_CONFIG = { CARTO_BASEMAP_KEY: "" };
