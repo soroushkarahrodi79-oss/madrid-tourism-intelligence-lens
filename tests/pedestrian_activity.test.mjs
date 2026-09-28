@@ -11,7 +11,7 @@ test("observed pedestrian activity is opt-in and separate from operational POIs"
   assert.match(html, /<span>Observed activity<\/span>/);
   assert.match(html, /Pedestrian counters/);
   assert.match(html, /data-layer="pedestrian" type="checkbox"[^>]*aria-checked="false"/);
-  assert.doesNotMatch(html, /data-layer="pedestrian" type="checkbox"[^>]*checked/);
+  assert.doesNotMatch(html, /data-layer="pedestrian"[^>]*type="checkbox"\s+checked(?:\s|>)/);
   assert.match(app, /pedestrian: L\.layerGroup\(\),/);
   assert.match(app, /let poiPoints = \[\];\nlet pedestrianStations = \[\];/);
   assert.match(app, /return poiStatsInLens\(visiblePoiPoints\(\), centerOf\(which\), radius\)/);
