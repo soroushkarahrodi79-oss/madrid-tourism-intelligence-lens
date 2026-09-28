@@ -29,6 +29,7 @@ jobs:
         run: |
           node scripts/build_runtime_poi.mjs
           python3 scripts/fill_stays_from_esmadrid.py
+          python3 scripts/build_pedestrian_activity.py
       - uses: actions/configure-pages@v5
       - name: Inject CARTO basemap key
         env:
