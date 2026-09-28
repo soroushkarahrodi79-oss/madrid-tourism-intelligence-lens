@@ -418,7 +418,7 @@ document.querySelectorAll("[data-layer]").forEach((x) => (x.onchange = () => set
 async function boot() {
   const [snapshotPOI, runtimePOI, hatiAssetsData] = await Promise.all([
     fetch("data/snapshot_poi.json").then((r) => r.json()),
-    fetch("data/runtime_poi.json")
+    fetch("data/runtime_poi.json?v=20260928-5")
       .then((r) => (r.ok ? r.json() : {}))
       .catch(() => ({})),
     fetch("data/hati_assets.json").then((r) => r.json()),
