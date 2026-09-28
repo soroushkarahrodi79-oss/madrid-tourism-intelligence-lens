@@ -28,5 +28,28 @@ test("mobile form controls avoid iOS focus zoom", () => {
 });
 
 test("responsive stylesheet is cache-busted in the page", () => {
-  assert.match(html, /css\/app\.css\?v=20260928-16/);
+  assert.match(html, /css\/app\.css\?v=20260928-17/);
+});
+
+
+test("desktop analysis panel is substantially larger by default", () => {
+  assert.match(css, /width:min\(480px,calc\(100vw - 300px/);
+  assert.match(css, /height:min\(720px,calc\(100dvh - 108px/);
+  assert.match(css, /min-width:390px/);
+  assert.match(css, /min-height:360px/);
+});
+
+test("low-height laptop view no longer collapses the desktop panel to 44vh", () => {
+  assert.match(css, /@media\(max-height:700px\)\{[\s\S]*?\.left\{/);
+  assert.doesNotMatch(
+    css,
+    /@media\(max-height:700px\)\{[\s\S]*?\.panel\{max-height:44vh;max-height:44dvh\}[\s\S]*?\}/
+  );
+  assert.match(css, /@media\(max-width:850px\) and \(max-height:700px\)\{\s*\.panel\{max-height:44vh;max-height:44dvh\}/);
+});
+
+test("manual resize control is desktop-only and touch-safe", () => {
+  assert.match(html, /id="panelResizeHandle"/);
+  assert.match(css, /\.panel-resize-handle\{[\s\S]*?cursor:nesw-resize;touch-action:none/);
+  assert.match(css, /@media\(max-width:850px\)[\s\S]*?\.panel-resize-handle\{display:none\}/);
 });
