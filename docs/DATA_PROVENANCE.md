@@ -54,6 +54,15 @@ left-hand layer panel distinguishes deployment snapshots, small curated
 fallback samples, live-only fallback results, and unavailable layers. The UI
 never presents an unavailable layer as a verified numeric zero.
 
+## Context-only parks layer
+
+- **Dataset:** [Madrid Open Data — Principales parques y jardines municipales](https://datos.madrid.es/dataset/200761-0-parques-jardines)
+- **Deployment resource:** official JSON resource `200761-5-parques-jardines-json`.
+- **Scope used here:** records with official coordinates inside the app's central-Madrid envelope (40.385–40.455 N, -3.745–-3.645 E).
+- **Role:** cartographic context only. Park records are kept in a separate Leaflet group and are never passed to `poiStatsInLens`; they do not affect counts, category mix, nearest-feature lists, or Lens A/B comparison.
+- **Completeness ceiling:** the municipal dataset itself describes the principal/significant parks and gardens, not every green space, median, roundabout, traffic island, or small planted area in Madrid.
+- **Interpretation ceiling:** the presence of a park record is not used as a proxy for shade, cooling, thermal comfort, biodiversity, accessibility, quality, or tourist attractiveness.
+
 ## Base maps
 
 The UI offers three selectable basemaps: CARTO Positron (light, default),
