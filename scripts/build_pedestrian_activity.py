@@ -47,7 +47,7 @@ def parse_number(value: str | None) -> float | None:
     text = str(value).strip().replace(" ", "")
     if not text:
         return None
-    # Source CSVs are commonly semicolon-delimited and may use decimal commas.
+    # Counts may use a decimal comma in exported CSV variants.
     if text.count(",") == 1 and text.count(".") == 0:
         text = text.replace(",", ".")
     try:
@@ -57,11 +57,44 @@ def parse_number(value: str | None) -> float | None:
     return number if math.isfinite(number) else None
 
 
+def parse_coordinate(value: str | None) -> float | None:
+    """Parse Madrid's coordinate strings without inventing locations.
+
+    The 2024 pedestrian resource currently serialises coordinates such as
+    "40.417.386" and "-3.707.141". Those are the documented WGS84 values
+    40.417386 / -3.707141 with digit-group separators inserted after the
+    decimal point. Normal decimal-dot/comma forms are also accepted.
+    """
+    if value is None:
+        return None
+    text = str(value).strip().replace(" ", "").replace(",", ".")
+    if not text:
+        return None
+
+    sign = ""
+    if text[0] in "+-":
+        sign, text = text[0], text[1:]
+
+    parts = text.split(".")
+    if len(parts) > 2 and all(part.isdigit() for part in parts):
+        text = parts[0] + "." + "".join(parts[1:])
+
+    try:
+        number = float(sign + text)
+    except ValueError:
+        return None
+    return number if math.isfinite(number) else None
+
+
 def parse_date(value: str | None) -> datetime | None:
     text = str(value or "").strip()
+    if not text:
+        return None
+    # Production records may include the hour in the fecha field.
+    date_text = text.split()[0]
     for fmt in ("%d-%m-%Y", "%d/%m/%Y", "%Y-%m-%d"):
         try:
-            return datetime.strptime(text, fmt)
+            return datetime.strptime(date_text, fmt)
         except ValueError:
             pass
     return None
@@ -103,8 +136,8 @@ def parse_pedestrian_csv(text: str) -> dict:
     rejected_rows = 0
 
     for row in normalized_rows(text):
-        lat = parse_number(row_value(row, "latitude", "latitud"))
-        lon = parse_number(row_value(row, "longitude", "longitud"))
+        lat = parse_coordinate(row_value(row, "latitude", "latitud"))
+        lon = parse_coordinate(row_value(row, "longitude", "longitud"))
         pedestrians = parse_number(row_value(row, "peatones", "bicicletas/peatones", "bicicletas_peatones"))
 
         if lat is None or lon is None or pedestrians is None or pedestrians < 0:
