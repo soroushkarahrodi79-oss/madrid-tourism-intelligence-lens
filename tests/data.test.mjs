@@ -79,3 +79,35 @@ test("loadAllLayers: deployment snapshot is preferred over the small curated fal
     global.fetch = realFetch;
   }
 });
+
+
+test("loadAllLayers: packaged deployment/snapshot data returns immediately without calling third-party fetch", async () => {
+  const realFetch = global.fetch;
+  let fetchCalls = 0;
+  global.fetch = async () => {
+    fetchCalls += 1;
+    throw new Error("fetch should not be needed when packaged data exists");
+  };
+
+  const runtimePOI = {
+    layers: {
+      museum: [{ id: "pm1", name: "Published Museum", lat: 40.41, lon: -3.69 }],
+      info: [{ id: "pi1", name: "Published Info", lat: 40.41, lon: -3.69 }],
+      bike: [{ id: "pb1", name: "Published BiciMAD", lat: 40.41, lon: -3.69 }],
+    },
+  };
+
+  try {
+    const { points, layerStatus } = await loadAllLayers(snapshotPOI, runtimePOI);
+    assert.equal(fetchCalls, 0);
+    assert.equal(layerStatus.museums, "published");
+    assert.equal(layerStatus.info, "published");
+    assert.equal(layerStatus.bikes, "published");
+    assert.equal(layerStatus.stays, "snapshot");
+    assert.equal(points.some((p) => p.type === "museum"), true);
+    assert.equal(points.some((p) => p.type === "bike"), true);
+    assert.equal(points.some((p) => p.type === "stay"), true);
+  } finally {
+    global.fetch = realFetch;
+  }
+});
