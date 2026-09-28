@@ -903,13 +903,16 @@ window.addEventListener("resize", () => {
 restorePanelSize();
 
 async function boot() {
-  const [snapshotPOI, runtimePOI, hatiAssetsData, hatiProvenance] = await Promise.all([
+  const [snapshotPOI, runtimePOI, hatiAssetsData, hatiProvenance, pedestrianData] = await Promise.all([
     fetch("data/snapshot_poi.json").then((r) => r.json()),
     fetch("data/runtime_poi.json?v=20260928-18")
       .then((r) => (r.ok ? r.json() : {}))
       .catch(() => ({})),
     fetch("data/hati_assets.json").then((r) => r.json()),
     fetch("data/hati_provenance.json?v=20260928-11").then((r) => r.json()),
+    fetch("data/pedestrian_activity.json?v=20260928-19")
+      .then((r) => (r.ok ? r.json() : { available: false, stations: [] }))
+      .catch(() => ({ available: false, stations: [] })),
   ]);
   hatiAssets = hatiAssetsData;
   hatiStudyArea = hatiProvenance.study_area || null;
@@ -919,6 +922,22 @@ async function boot() {
   const { points, layerStatus: status } = await loadAllLayers(snapshotPOI, runtimePOI);
   poiPoints = points;
   layerStatus = status;
+
+  pedestrianMeta = pedestrianData || {};
+  pedestrianStations = Array.isArray(pedestrianData?.stations)
+    ? pedestrianData.stations.map((p) => ({ ...p, type: "pedestrian", provenance: "published" }))
+    : [];
+  pedestrianStatus = pedestrianData?.available && pedestrianStations.length ? "published" : "unavailable";
+  renderPedestrianActivity();
+
+  const pedestrianToggle = document.querySelector('[data-layer="pedestrian"]');
+  if (pedestrianToggle) {
+    pedestrianToggle.disabled = pedestrianStatus === "unavailable";
+    pedestrianToggle.title =
+      pedestrianStatus === "unavailable"
+        ? "Observed pedestrian activity unavailable in this deployment"
+        : "Show Madrid permanent pedestrian counters and lens activity evidence";
+  }
 
   parkPoints = (runtimePOI?.layers?.park || []).map((p) => ({
     ...p,
