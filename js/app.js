@@ -520,9 +520,9 @@ function refresh() {
     footId: "tourismFoot",
     value: s.tourism,
     status: combinedStatus(layerStatus, ["museums", "info"]),
-    liveFoot: `${stayFilterLabel()} · within lens`,
-    publishedFoot: `${stayFilterLabel()} · deployment snapshot`,
-    snapshotFoot: `${stayFilterLabel()} · sample, not exhaustive`,
+    liveFoot: "within lens",
+    publishedFoot: "deployment snapshot",
+    snapshotFoot: "sample count, not exhaustive",
     unavailableFoot: "source unavailable",
   });
   renderCountMetric({
@@ -530,9 +530,9 @@ function refresh() {
     footId: "stayFoot",
     value: s.stay,
     status: combinedStatus(layerStatus, ["stays"]),
-    liveFoot: "within lens",
-    publishedFoot: "deployment snapshot",
-    snapshotFoot: "sample count, not exhaustive",
+    liveFoot: `${stayFilterLabel()} · within lens`,
+    publishedFoot: `${stayFilterLabel()} · deployment snapshot`,
+    snapshotFoot: `${stayFilterLabel()} · sample, not exhaustive`,
     unavailableFoot: "source unavailable",
   });
   renderCountMetric({
