@@ -32,6 +32,11 @@ establish, measure, or infer:
   into that sample, not the true total number of museums, hotels, or tourist
   info points at that location
 
+A mobility-node count is descriptive infrastructure presence, not service
+frequency, capacity, accessibility, travel time, or connectivity quality.
+Metro and Cercanías station records may represent different modes at the same
+interchange and are not deduplicated into a single multimodal hub.
+
 A POI count is a count, not a quality or pressure indicator. A UTCI mean is
 the mean of the HATI samples that happen to fall inside a lens on 21 August
 2023 at a chosen hour — not a forecast, not a live reading, and not a
@@ -53,8 +58,8 @@ means six sample records happen to fall inside the lens.
 - **SNAPSHOT SAMPLE** — the live fetch failed (or was not attempted) and the
   layer is running on a small, manually curated fallback dataset committed
   in this repository. Its count is a sample count, not a complete inventory.
-- **UNAVAILABLE** — neither a live fetch nor a verified fallback exists for
-  this layer right now (currently: BiciMAD). The UI shows "No data" rather
+- **UNAVAILABLE** — neither a live fetch nor a verified packaged source exists
+  for a layer right now. The UI shows "No data" rather
   than a numeric zero, since a zero would be indistinguishable from a
   genuinely empty area.
 
