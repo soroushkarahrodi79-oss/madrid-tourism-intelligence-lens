@@ -433,13 +433,19 @@ async function boot() {
 
   const allLive = Object.values(status).every((s) => s === "live");
   const anyUnavailable = Object.values(status).some((s) => s === "unavailable");
+  const anyPublished = Object.values(status).some((s) => s === "published");
+  const anySample = Object.values(status).some((s) => s === "snapshot");
   const badge = document.getElementById("liveBadge");
   badge.className = allLive ? "live" : "live mixed";
   badge.querySelector("span").textContent = allLive
     ? `${points.length} live records + HATI evidence`
-    : `${points.length} records · some layers on a partial sample or unavailable${
-        anyUnavailable ? " (see layer panel)" : ""
-      }`;
+    : `${points.length} records · ${[
+        anyPublished ? "deployment snapshot" : "",
+        anySample ? "partial fallback" : "",
+        anyUnavailable ? "some unavailable" : "",
+      ]
+        .filter(Boolean)
+        .join(" · ")} (see layer panel)`;
   renderLayerSourceNote();
   refresh();
 }
