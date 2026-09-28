@@ -41,5 +41,19 @@
     "Coverage is bounded to the 14 outdoor pilot assets in central Madrid (Paseo del Arte / Parque del Retiro area); it is not a city-wide surface.",
     "Values must not be spatially interpolated across Madrid; only the sampled asset points themselves carry evidence.",
     "HATI Layer B (post Gate-3B) is RESEARCH_FROZEN; HATI Layer A is RELEASE_LOCKED. This project reads this evidence read-only and does not modify, extend, or re-run the HATI pipeline."
-  ]
+  ],
+  "study_area": {
+    "name": "HATI-Madrid Phase 1 pilot study area",
+    "description": "Prado - Retiro - Atocha bounded pilot",
+    "bounds": {
+      "lat_min": 40.404,
+      "lat_max": 40.421,
+      "lon_min": -3.696,
+      "lon_max": -3.6775
+    },
+    "approx_area_km2": 3.5,
+    "geometry_type": "rectangle",
+    "source_file": "src/define_study_area.py",
+    "interpretation": "Study-area boundary only. Thermal evidence remains point-bounded to the sampled HATI assets; no continuous thermal surface or interpolation is implied."
+  }
 }

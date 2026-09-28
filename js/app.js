@@ -79,6 +79,7 @@ const groups = {
 
 let poiPoints = [];
 let hatiAssets = [];
+let hatiStudyArea = null;
 let layerStatus = {};
 let radius = 900;
 let active = "A";
@@ -218,8 +219,34 @@ function renderPoiLayers() {
   rebuildDenseLayers();
 }
 
+function drawHatiStudyArea() {
+  if (!hatiStudyArea?.bounds) return;
+  const { lat_min, lat_max, lon_min, lon_max } = hatiStudyArea.bounds;
+  const area = L.rectangle(
+    [
+      [lat_min, lon_min],
+      [lat_max, lon_max],
+    ],
+    {
+      color: "#ffb04a",
+      weight: 1.4,
+      opacity: 0.72,
+      fillColor: "#ffb04a",
+      fillOpacity: 0.025,
+      dashArray: "7 7",
+      interactive: true,
+    }
+  );
+  area.bindTooltip(
+    "<b>HATI pilot study area</b><br>Prado–Retiro–Atocha · ≈3.5 km²<br>Boundary only — thermal evidence exists only at sampled points.",
+    { sticky: true, direction: "top" }
+  );
+  area.addTo(groups.heat);
+}
+
 function rebuildHeatLayer() {
   groups.heat.clearLayers();
+  drawHatiStudyArea();
   hatiAssets.forEach((a) => addMarker(hatiPointFor(a, timestep)));
   refresh();
 }
@@ -474,13 +501,16 @@ document.getElementById("lensAButton").onclick = () => activateLens("A");
 document.getElementById("lensBButton").onclick = () => (bEnabled ? activateLens("B") : enableLensB());
 document.getElementById("navCompare").onclick = () => (bEnabled ? disableLensB() : enableLensB());
 document.getElementById("navEvidence").onclick = () => {
-  map.fitBounds(
-    [
-      [40.406, -3.696],
-      [40.422, -3.676],
-    ],
-    { padding: [60, 60] }
-  );
+  const bounds = hatiStudyArea?.bounds
+    ? [
+        [hatiStudyArea.bounds.lat_min, hatiStudyArea.bounds.lon_min],
+        [hatiStudyArea.bounds.lat_max, hatiStudyArea.bounds.lon_max],
+      ]
+    : [
+        [40.404, -3.696],
+        [40.421, -3.6775],
+      ];
+  map.fitBounds(bounds, { padding: [60, 60] });
   activateLens("A");
   lenses.A.marker.setLatLng([40.4149, -3.687]);
   refresh();
@@ -504,14 +534,17 @@ document.getElementById("resetButton").onclick = () => {
 document.querySelectorAll("[data-layer]").forEach((x) => (x.onchange = () => setLayerVisible(x.dataset.layer, x.checked)));
 
 async function boot() {
-  const [snapshotPOI, runtimePOI, hatiAssetsData] = await Promise.all([
+  const [snapshotPOI, runtimePOI, hatiAssetsData, hatiProvenance] = await Promise.all([
     fetch("data/snapshot_poi.json").then((r) => r.json()),
     fetch("data/runtime_poi.json?v=20260928-5")
       .then((r) => (r.ok ? r.json() : {}))
       .catch(() => ({})),
     fetch("data/hati_assets.json").then((r) => r.json()),
+    fetch("data/hati_provenance.json?v=20260928-11").then((r) => r.json()),
   ]);
   hatiAssets = hatiAssetsData;
+  hatiStudyArea = hatiProvenance.study_area || null;
+  drawHatiStudyArea();
   hatiAssets.forEach((a) => addMarker(hatiPointFor(a, timestep)));
 
   const { points, layerStatus: status } = await loadAllLayers(snapshotPOI, runtimePOI);

@@ -24,7 +24,9 @@ establish, measure, or infer:
 - Causal effects of heat on tourism, health, or behaviour
 - Real-time or current thermal conditions
 - City-wide HATI coverage — the evidence layer is 14 points in one small
-  study area, not a Madrid-wide heat map
+  study area, not a Madrid-wide heat map. The dashed study-area rectangle in
+  the UI shows the original pilot boundary only; it does not imply continuous
+  thermal evidence inside that rectangle
 - An exhaustive inventory of any POI category — when a layer is running on
   its SNAPSHOT SAMPLE fallback, its count reflects only the records curated
   into that sample, not the true total number of museums, hotels, or tourist
