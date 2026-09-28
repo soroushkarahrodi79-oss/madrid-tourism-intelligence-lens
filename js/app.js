@@ -120,6 +120,7 @@ let poiPoints = [];
 let hatiAssets = [];
 let hatiStudyArea = null;
 let layerStatus = {};
+let stayKindFilter = "all";
 let radius = 900;
 let active = "A";
 let bEnabled = false;
@@ -181,6 +182,11 @@ function tooltipFor(p) {
     const lines = p.lines ? ` · ${p.lines}` : "";
     return `<b>${p.name}</b><br>${mode}${lines}<br>CRTM · ${src}`;
   }
+  if (p.type === "stay") {
+    const accommodationType = p.accommodationType || "Accommodation";
+    const category = p.accommodationCategory ? ` · ${p.accommodationCategory}` : "";
+    return `<b>${p.name}</b><br>${accommodationType}${category}<br>${LAYER_LABEL[p.type]} · ${src}`;
+  }
   return `<b>${p.name}</b><br>${LAYER_LABEL[p.type] || p.type} · ${src}`;
 }
 
@@ -232,10 +238,20 @@ function addClusterMarker(type, cluster) {
   return m;
 }
 
+function visiblePoiPoints() {
+  if (stayKindFilter === "all") return poiPoints;
+  return poiPoints.filter((p) => p.type !== "stay" || p.stayKind === stayKindFilter);
+}
+
+function stayFilterLabel() {
+  const select = document.getElementById("stayKindFilter");
+  return select?.selectedOptions?.[0]?.dataset?.label || "All accommodation";
+}
+
 function rebuildDenseLayer(type) {
   const group = groups[type];
   group.clearLayers();
-  const points = poiPoints.filter((p) => p.type === type);
+  const points = visiblePoiPoints().filter((p) => p.type === type);
   const zoom = map.getZoom();
 
   if (!shouldClusterDenseLayer(zoom)) {
@@ -257,7 +273,7 @@ function rebuildDenseLayers() {
 function renderPoiLayers() {
   groups.museum.clearLayers();
   groups.info.clearLayers();
-  poiPoints
+  visiblePoiPoints()
     .filter((p) => !DENSE_LAYER_TYPES.has(p.type))
     .forEach(addMarker);
   rebuildDenseLayers();
@@ -334,7 +350,7 @@ function centerOf(which) {
 }
 
 function statsFor(which) {
-  return poiStatsInLens(poiPoints, centerOf(which), radius);
+  return poiStatsInLens(visiblePoiPoints(), centerOf(which), radius);
 }
 
 function heatStatsFor(which) {
@@ -504,9 +520,9 @@ function refresh() {
     footId: "tourismFoot",
     value: s.tourism,
     status: combinedStatus(layerStatus, ["museums", "info"]),
-    liveFoot: "within lens",
-    publishedFoot: "deployment snapshot",
-    snapshotFoot: "sample count, not exhaustive",
+    liveFoot: `${stayFilterLabel()} · within lens`,
+    publishedFoot: `${stayFilterLabel()} · deployment snapshot`,
+    snapshotFoot: `${stayFilterLabel()} · sample, not exhaustive`,
     unavailableFoot: "source unavailable",
   });
   renderCountMetric({
@@ -608,6 +624,11 @@ document.getElementById("radiusSlider").oninput = (e) => {
   refresh();
 };
 document.getElementById("basemapSelect").onchange = (e) => setBasemap(e.target.value);
+document.getElementById("stayKindFilter").onchange = (e) => {
+  stayKindFilter = e.target.value;
+  rebuildDenseLayer("stay");
+  refresh();
+};
 document.getElementById("timeSelect").onchange = (e) => {
   timestep = e.target.value;
   rebuildHeatLayer();
@@ -623,7 +644,7 @@ syncHatiUi(false);
 async function boot() {
   const [snapshotPOI, runtimePOI, hatiAssetsData, hatiProvenance] = await Promise.all([
     fetch("data/snapshot_poi.json").then((r) => r.json()),
-    fetch("data/runtime_poi.json?v=20260928-5")
+    fetch("data/runtime_poi.json?v=20260928-15")
       .then((r) => (r.ok ? r.json() : {}))
       .catch(() => ({})),
     fetch("data/hati_assets.json").then((r) => r.json()),
@@ -637,6 +658,22 @@ async function boot() {
   const { points, layerStatus: status } = await loadAllLayers(snapshotPOI, runtimePOI);
   poiPoints = points;
   layerStatus = status;
+
+  const stayFilter = document.getElementById("stayKindFilter");
+  const stayKinds = new Map();
+  points
+    .filter((p) => p.type === "stay" && p.stayKind)
+    .forEach((p) => stayKinds.set(p.stayKind, (stayKinds.get(p.stayKind) || 0) + 1));
+  stayFilter.querySelectorAll("option[data-kind]").forEach((option) => {
+    const count = stayKinds.get(option.dataset.kind) || 0;
+    option.disabled = count === 0;
+    option.textContent = `${option.dataset.label} · ${count}`;
+  });
+  stayFilter.disabled = stayKinds.size === 0;
+  stayFilter.title = stayKinds.size
+    ? "Filter the official accommodation layer by Madrid Destino type"
+    : "Accommodation type metadata unavailable in the current fallback";
+
   renderPoiLayers();
 
   const allLive = Object.values(status).every((s) => s === "live");
