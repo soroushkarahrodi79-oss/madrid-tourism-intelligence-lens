@@ -33,7 +33,7 @@ including comparing two places at once.
 ## 4. Which datasets are used?
 
 - **Museums** and **tourist information** — Madrid Open Data
-- **Accommodation** — OpenStreetMap (via Overpass API)
+- **Accommodation** — Madrid Destino / esmadrid.com official accommodation feed
 - **BiciMAD** — EMT Madrid open data
 - **HATI-Madrid outdoor UTCI samples** — a bounded research evidence layer (see below)
 
@@ -131,14 +131,14 @@ software this project reads or bundles:
 
 - **Leaflet** (vendored in `assets/leaflet/`) keeps its own upstream license
   — see `assets/leaflet/LICENSE`.
-- **OpenStreetMap-derived data** (accommodation layer, and the OSM references
-  cited in HATI's own asset records) remains subject to the
-  [ODbL](https://opendatacommons.org/licenses/odbl/) and its attribution
-  requirement.
-- **Madrid Open Data** (museums, tourist information) and **EMT Madrid open
-  data** (BiciMAD) remain subject to the reuse terms published by their
-  respective portals — see
-  [datos.madrid.es](https://datos.madrid.es/) and
+- **OpenStreetMap-derived references** cited in HATI's own asset records remain
+  subject to the [ODbL](https://opendatacommons.org/licenses/odbl/) and its
+  attribution requirement.
+- **Madrid Open Data** (museums, tourist information), **Madrid Destino /
+  esmadrid.com** (accommodation), and **EMT Madrid open data** (BiciMAD)
+  remain subject to the reuse terms published by their respective portals —
+  see [datos.madrid.es](https://datos.madrid.es/),
+  [esmadrid.com](https://www.esmadrid.com/), and
   [datos.emtmadrid.es](https://datos.emtmadrid.es/) directly; this project
   does not restate or assume a specific license text for them.
 - **HATI-Madrid evidence** (`data/hati_assets.json`, `data/hati_provenance.json`)
