@@ -37,15 +37,13 @@ including comparing two places at once.
 - **BiciMAD** — EMT Madrid open data
 - **HATI-Madrid outdoor UTCI samples** — a bounded research evidence layer (see below)
 
-Museums, tourist info and accommodation are **live-first with a repository
-snapshot fallback**: if a live source is unreachable from the browser, the
-app falls back to a small, explicitly labelled **SNAPSHOT SAMPLE** rather
-than showing nothing or silently guessing — and a snapshot count is always
-presented as "records in this sample," never as a complete inventory.
-BiciMAD has **no fallback**: its exact station coordinates cannot be
-reliably reproduced without the live EMT Madrid source, so if the live fetch
-fails the app reports that layer as **unavailable** rather than showing
-approximated or invented station locations. See
+All four operational POI layers are **live-first** in the browser. Because
+cross-origin browser requests can be blocked even when the public source is
+healthy, the GitHub Pages deployment also generates a **deployment snapshot**
+from the same public sources. The app uses that published snapshot when the
+browser cannot reach the source directly. A small curated repository sample
+remains only as a final fallback if both live access and deployment refresh
+fail. No coordinates are invented. See
 [`docs/DATA_PROVENANCE.md`](docs/DATA_PROVENANCE.md).
 
 ## 5. What is HATI's role?
@@ -92,10 +90,10 @@ restrict it in the CARTO Basemaps dashboard to the GitHub Pages host
 
 ## 9. What is the evidence status?
 
-- Tourism/accommodation layers: live public data where reachable; a labelled
-  **SNAPSHOT SAMPLE** otherwise (partial by design, never presented as a
-  complete inventory). BiciMAD has no snapshot and shows **unavailable** if
-  the live source cannot be reached.
+- Museums, tourist information, BiciMAD and accommodation: live public data
+  where the browser can reach it; otherwise a labelled deployment snapshot
+  generated during the latest GitHub Pages build. The small curated sample is
+  only the last-resort fallback.
 - HATI thermal layer: locked, model-derived evidence from a single historical
   pilot day. Lenses with zero HATI samples inside them show **"No evidence"**,
   never a fabricated value.

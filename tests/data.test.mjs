@@ -53,3 +53,29 @@ test("loadAllLayers: an empty snapshot array for a defined layer (e.g. no touris
     global.fetch = realFetch;
   }
 });
+
+
+test("loadAllLayers: deployment snapshot is preferred over the small curated fallback when live fetch fails", async () => {
+  const realFetch = global.fetch;
+  global.fetch = async () => {
+    throw new Error("simulated network failure");
+  };
+  const runtimePOI = {
+    layers: {
+      museum: [
+        { id: "pm1", name: "Published Museum 1", lat: 40.41, lon: -3.69 },
+        { id: "pm2", name: "Published Museum 2", lat: 40.42, lon: -3.70 },
+      ],
+      bike: [{ id: "pb1", name: "Published BiciMAD", lat: 40.41, lon: -3.69 }],
+    },
+  };
+  try {
+    const { points, layerStatus } = await loadAllLayers(snapshotPOI, runtimePOI);
+    assert.equal(layerStatus.museums, "published");
+    assert.equal(layerStatus.bikes, "published");
+    assert.equal(points.filter((p) => p.type === "museum").length, 2);
+    assert.equal(points.find((p) => p.type === "bike").provenance, "published");
+  } finally {
+    global.fetch = realFetch;
+  }
+});

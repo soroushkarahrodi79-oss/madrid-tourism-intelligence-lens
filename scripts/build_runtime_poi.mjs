@@ -1,0 +1,124 @@
+import fs from "node:fs/promises";
+
+const SOURCES = {
+  museums: "https://datos.madrid.es/dataset/201132-0-museos/resource/201132-2-museos-json/download/201132-2-museos-json.json",
+  info: "https://datos.madrid.es/dataset/201105-0-informacion-turismo/resource/201105-0-informacion-turismo-json/download/201105-0-informacion-turismo-json.json",
+  bikes: "https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11/resource/105ce5df-793f-4e0a-a88e-5d3b3f024a5d/download/bikestationbicimad_geojson.json",
+  overpass: "https://overpass.kumi.systems/api/interpreter",
+};
+
+function cleanText(v) {
+  return String(v || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function parseMadridOpenData(data, type) {
+  const arr = data["@graph"] || data.graph || [];
+  return arr
+    .map((r, i) => {
+      const loc = r.location || {};
+      const lat = Number(loc.latitude ?? r.latitude);
+      const lon = Number(loc.longitude ?? r.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+      return {
+        id: `${type}-published-${r.id || i}`,
+        type,
+        name: cleanText(r.title || r.name || r.organization?.["organization-name"] || type),
+        lat,
+        lon,
+      };
+    })
+    .filter(Boolean);
+}
+
+function parseBiciMad(data) {
+  return (data.features || [])
+    .map((f, i) => {
+      const c = f.geometry?.coordinates || [];
+      const p = f.properties || {};
+      const lon = Number(c[0]);
+      const lat = Number(c[1]);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+      return {
+        id: `bike-published-${p.id || p.number || i}`,
+        type: "bike",
+        name: cleanText(p.name || p.address || `BiciMAD ${p.number || ""}`),
+        lat,
+        lon,
+      };
+    })
+    .filter(Boolean);
+}
+
+function parseOverpassStays(data) {
+  return (data.elements || [])
+    .map((e, i) => {
+      const lat = Number(e.lat ?? e.center?.lat);
+      const lon = Number(e.lon ?? e.center?.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+      return {
+        id: `stay-published-${e.type}-${e.id || i}`,
+        type: "stay",
+        name: cleanText(e.tags?.name || e.tags?.brand || "Tourist accommodation"),
+        lat,
+        lon,
+      };
+    })
+    .filter(Boolean);
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url, {
+    headers: {
+      accept: "application/json",
+      "user-agent": "madrid-tourism-intelligence-lens/1.0 (+https://github.com/soroushkarahrodi79-oss/madrid-tourism-intelligence-lens)",
+    },
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+  return response.json();
+}
+
+async function tryLayer(name, loader) {
+  try {
+    const points = await loader();
+    if (!points.length) throw new Error("empty response");
+    return { name, points, ok: true, error: null };
+  } catch (error) {
+    console.warn(`[runtime-poi] ${name} unavailable: ${error.message}`);
+    return { name, points: [], ok: false, error: error.message };
+  }
+}
+
+const staysQuery =
+  '[out:json][timeout:30];(nwr["tourism"~"hotel|hostel|guest_house|apartment"](40.385,-3.745,40.455,-3.645););out center tags;';
+
+const results = await Promise.all([
+  tryLayer("museum", () => fetchJson(SOURCES.museums).then((d) => parseMadridOpenData(d, "museum"))),
+  tryLayer("info", () => fetchJson(SOURCES.info).then((d) => parseMadridOpenData(d, "info"))),
+  tryLayer("bike", () => fetchJson(SOURCES.bikes).then(parseBiciMad)),
+  tryLayer("stay", () =>
+    fetchJson(SOURCES.overpass + "?data=" + encodeURIComponent(staysQuery)).then(parseOverpassStays)
+  ),
+]);
+
+const output = {
+  generatedAt: new Date().toISOString(),
+  sourceMode: "deployment-snapshot",
+  layers: Object.fromEntries(results.map((r) => [r.name, r.points])),
+  status: Object.fromEntries(
+    results.map((r) => [
+      r.name,
+      {
+        ok: r.ok,
+        count: r.points.length,
+        error: r.error,
+      },
+    ])
+  ),
+  sources: SOURCES,
+};
+
+await fs.writeFile("data/runtime_poi.json", JSON.stringify(output, null, 2) + "\n");
+
+for (const r of results) {
+  console.log(`[runtime-poi] ${r.name}: ${r.ok ? r.points.length + " points" : "unavailable"}`);
+}
