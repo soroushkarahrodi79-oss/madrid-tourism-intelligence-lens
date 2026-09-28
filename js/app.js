@@ -74,7 +74,8 @@ const groups = {
   info: L.layerGroup().addTo(map),
   stay: L.layerGroup().addTo(map),
   bike: L.layerGroup().addTo(map),
-  heat: L.layerGroup().addTo(map),
+  // Research evidence is opt-in: populate HATI but keep it off the map until requested.
+  heat: L.layerGroup(),
 };
 
 let poiPoints = [];
@@ -251,11 +252,36 @@ function rebuildHeatLayer() {
   refresh();
 }
 
+function isHatiVisible() {
+  return map.hasLayer(groups.heat);
+}
+
+function syncHatiUi(on) {
+  const details = document.getElementById("hatiEvidenceDetails");
+  const timeSelect = document.getElementById("timeSelect");
+  const toggle = document.querySelector('[data-layer="heat"]');
+
+  if (details) details.hidden = !on;
+  if (timeSelect) {
+    timeSelect.disabled = !on;
+    timeSelect.title = on ? "HATI model time" : "Enable HATI research evidence to change model time";
+  }
+  if (toggle) {
+    toggle.checked = on;
+    toggle.setAttribute("aria-checked", String(on));
+  }
+}
+
 function setLayerVisible(name, on) {
   if (on) {
     if (!map.hasLayer(groups[name])) map.addLayer(groups[name]);
   } else if (map.hasLayer(groups[name])) {
     map.removeLayer(groups[name]);
+  }
+
+  if (name === "heat") {
+    syncHatiUi(on);
+    refresh();
   }
 }
 
@@ -297,6 +323,15 @@ function renderLayerSourceNote() {
 function renderHeatMetric(h) {
   const hv = document.getElementById("heatValue");
   const hf = document.getElementById("heatFoot");
+  hv.style.color = "";
+
+  if (!isHatiVisible()) {
+    hv.textContent = "Off";
+    hv.className = "metric-value abstain";
+    hf.textContent = "enable HATI research evidence";
+    return;
+  }
+
   if (h.evidence === "NONE") {
     hv.textContent = "No evidence";
     hv.className = "metric-value abstain";
@@ -347,8 +382,9 @@ function renderCompare() {
   if (!bEnabled) return;
   const a = statsFor("A");
   const b = statsFor("B");
-  const ha = heatStatsFor("A");
-  const hb = heatStatsFor("B");
+  const hatiOn = isHatiVisible();
+  const ha = hatiOn ? heatStatsFor("A") : null;
+  const hb = hatiOn ? heatStatsFor("B") : null;
   document.getElementById("cmpPoi").textContent = comparisonDelta(
     combinedStatus(layerStatus, ["museums", "info"]),
     a.tourism,
@@ -365,12 +401,12 @@ function renderCompare() {
     b.bike
   );
   document.getElementById("cmpHeat").textContent =
-    ha.evidence === "MODEL-DERIVED" && hb.evidence === "MODEL-DERIVED"
+    hatiOn && ha.evidence === "MODEL-DERIVED" && hb.evidence === "MODEL-DERIVED"
       ? deltaOrDash(ha.mean, hb.mean, "°")
       : "—";
-  document.getElementById("cmpEvidence").textContent = `${ha.evidence === "NONE" ? "A: none" : "A: ok"} / ${
-    hb.evidence === "NONE" ? "B: none" : "B: ok"
-  }`;
+  document.getElementById("cmpEvidence").textContent = hatiOn
+    ? `${ha.evidence === "NONE" ? "A: none" : "A: ok"} / ${hb.evidence === "NONE" ? "B: none" : "B: ok"}`
+    : "HATI off";
 }
 
 function shadeMarkersOutsideActiveLens() {
@@ -501,6 +537,7 @@ document.getElementById("lensAButton").onclick = () => activateLens("A");
 document.getElementById("lensBButton").onclick = () => (bEnabled ? activateLens("B") : enableLensB());
 document.getElementById("navCompare").onclick = () => (bEnabled ? disableLensB() : enableLensB());
 document.getElementById("navEvidence").onclick = () => {
+  setLayerVisible("heat", true);
   const bounds = hatiStudyArea?.bounds
     ? [
         [hatiStudyArea.bounds.lat_min, hatiStudyArea.bounds.lon_min],
@@ -532,6 +569,7 @@ document.getElementById("resetButton").onclick = () => {
   refresh();
 };
 document.querySelectorAll("[data-layer]").forEach((x) => (x.onchange = () => setLayerVisible(x.dataset.layer, x.checked)));
+syncHatiUi(false);
 
 async function boot() {
   const [snapshotPOI, runtimePOI, hatiAssetsData, hatiProvenance] = await Promise.all([

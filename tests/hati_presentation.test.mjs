@@ -11,7 +11,6 @@ test("HATI is presented as research evidence, not an operational layer", () => {
   assert.doesNotMatch(html, />HATI UTCI samples</);
 });
 
-test("HATI behavior is unchanged in this presentation-only step", () => {
-  assert.match(html, /data-layer="heat" type="checkbox" checked/);
+test("HATI retains its bounded model-derived evidence warning", () => {
   assert.match(html, /HATI UTCI is <b>model-derived<\/b>/);
 });
