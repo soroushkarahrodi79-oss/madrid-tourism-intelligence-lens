@@ -27,7 +27,7 @@ jobs:
         env:
           CARTO_BASEMAP_KEY: ${{ secrets.CARTO_BASEMAP_KEY }}
         run: |
-          node -e 'const fs=require("fs"); const config={CARTO_BASEMAP_KEY:process.env.CARTO_BASEMAP_KEY||""}; fs.writeFileSync("js/runtime-config.js","window.RUNTIME_CONFIG = "+JSON.stringify(config)+";\\n");'
+          node -e 'const fs=require("fs"); const config={CARTO_BASEMAP_KEY:process.env.CARTO_BASEMAP_KEY||""}; fs.writeFileSync("js/runtime-config.js","window.RUNTIME_CONFIG = "+JSON.stringify(config)+";\n");'
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
