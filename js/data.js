@@ -7,8 +7,12 @@ const LIVE_SOURCES = {
   museums: "https://datos.madrid.es/dataset/201132-0-museos/resource/201132-2-museos-json/download/201132-2-museos-json.json",
   info: "https://datos.madrid.es/dataset/201105-0-informacion-turismo/resource/201105-0-informacion-turismo-json/download/201105-0-informacion-turismo-json.json",
   bikes: "https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11/resource/105ce5df-793f-4e0a-a88e-5d3b3f024a5d/download/bikestationbicimad_geojson.json",
+  metroStations: "https://services5.arcgis.com/UxADft6QPcvFyDU1/arcgis/rest/services/M4_Red/FeatureServer/0/query",
+  cercaniasStations: "https://services5.arcgis.com/UxADft6QPcvFyDU1/arcgis/rest/services/M5_Red/FeatureServer/0/query",
   overpass: "https://overpass.kumi.systems/api/interpreter",
 };
+
+const CENTRAL_MADRID_ENVELOPE = "-3.745,40.385,-3.645,40.455";
 
 function cleanText(v) {
   return String(v || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -55,6 +59,44 @@ function parseBiciMad(data) {
       };
     })
     .filter(Boolean);
+}
+
+function parseCrtmStations(data, mode, provenance = "live") {
+  return (data.features || [])
+    .map((f, i) => {
+      const c = f.geometry?.coordinates || [];
+      const p = f.properties || {};
+      const lon = Number(c[0]);
+      const lat = Number(c[1]);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+      const stationId = p.IDESTACION || p.CODIGOESTACION || p.OBJECTID || i;
+      return {
+        id: `rail-${provenance}-${mode}-${stationId}`,
+        type: "rail",
+        mode,
+        name: cleanText(p.DENOMINACION || p.DENOMINACIONABREVIADA || `${mode} station`),
+        lines: cleanText(p.LINEAS || ""),
+        lat,
+        lon,
+        provenance,
+      };
+    })
+    .filter(Boolean);
+}
+
+function crtmStationQuery(url) {
+  const params = new URLSearchParams({
+    where: "1=1",
+    outFields: "IDESTACION,CODIGOESTACION,DENOMINACION,DENOMINACIONABREVIADA,LINEAS",
+    returnGeometry: "true",
+    geometry: CENTRAL_MADRID_ENVELOPE,
+    geometryType: "esriGeometryEnvelope",
+    inSR: "4326",
+    spatialRel: "esriSpatialRelIntersects",
+    outSR: "4326",
+    f: "geojson",
+  });
+  return `${url}?${params.toString()}`;
 }
 
 function parseOverpassStays(d) {
@@ -139,6 +181,13 @@ async function loadAllLayers(snapshotPOI, runtimePOI = {}) {
       fetchJSON(LIVE_SOURCES.info).then((d) => parseMadridOpenData(d, "info"))
     ),
     loadLayer("bikes", "bike", () => fetchJSON(LIVE_SOURCES.bikes).then(parseBiciMad)),
+    loadLayer("rail", "rail", async () => {
+      const [metro, cercanias] = await Promise.all([
+        fetchJSON(crtmStationQuery(LIVE_SOURCES.metroStations)).then((d) => parseCrtmStations(d, "metro")),
+        fetchJSON(crtmStationQuery(LIVE_SOURCES.cercaniasStations)).then((d) => parseCrtmStations(d, "cercanias")),
+      ]);
+      return [...metro, ...cercanias];
+    }),
     loadLayer("stays", "stay", async () => {
       const q =
         '[out:json][timeout:20];(nwr["tourism"~"hotel|hostel|guest_house|apartment"](40.385,-3.745,40.455,-3.645););out center tags;';
@@ -151,5 +200,14 @@ async function loadAllLayers(snapshotPOI, runtimePOI = {}) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { loadAllLayers, snapshotFor, publishedFor, parseMadridOpenData, parseBiciMad, parseOverpassStays };
+  module.exports = {
+    loadAllLayers,
+    snapshotFor,
+    publishedFor,
+    parseMadridOpenData,
+    parseBiciMad,
+    parseCrtmStations,
+    crtmStationQuery,
+    parseOverpassStays,
+  };
 }
