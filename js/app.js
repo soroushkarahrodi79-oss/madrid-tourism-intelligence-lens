@@ -32,14 +32,39 @@ function createCartoBasemap(style) {
 }
 
 function createSatelliteBasemap() {
-  return L.tileLayer(
+  const imagery = L.tileLayer(
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     {
       maxZoom: 19,
+      zIndex: 200,
       attribution:
         'Tiles &copy; Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
     }
   );
+
+  const transportation = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",
+    {
+      maxZoom: 19,
+      zIndex: 300,
+    }
+  );
+
+  const labels = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+    {
+      maxZoom: 19,
+      zIndex: 310,
+    }
+  );
+
+  const hybrid = L.layerGroup([imagery, transportation, labels]);
+
+  // Only a failure of the imagery base should trigger the global OSM fallback.
+  // Reference overlays can fail independently without blanking the imagery.
+  imagery.on("tileerror", (event) => hybrid.fire("tileerror", event));
+
+  return hybrid;
 }
 
 function setBasemap(name) {
