@@ -40,11 +40,11 @@ test("desktop analysis panel is substantially larger by default", () => {
 });
 
 test("low-height laptop view no longer collapses the desktop panel to 44vh", () => {
-  assert.match(css, /@media\(max-height:700px\)\{[\s\S]*?\.left\{/);
-  assert.doesNotMatch(
-    css,
-    /@media\(max-height:700px\)\{[\s\S]*?\.panel\{max-height:44vh;max-height:44dvh\}[\s\S]*?\}/
-  );
+  const shortDesktopStart = css.indexOf("@media(max-height:700px){");
+  const compactShortStart = css.indexOf("@media(max-width:850px) and (max-height:700px){");
+  assert.ok(shortDesktopStart >= 0 && compactShortStart > shortDesktopStart);
+  const shortDesktopBlock = css.slice(shortDesktopStart, compactShortStart);
+  assert.doesNotMatch(shortDesktopBlock, /\.panel\{/);
   assert.match(css, /@media\(max-width:850px\) and \(max-height:700px\)\{\s*\.panel\{max-height:44vh;max-height:44dvh\}/);
 });
 
