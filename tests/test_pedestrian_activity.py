@@ -41,6 +41,21 @@ class PedestrianActivityBuilderTests(unittest.TestCase):
         self.assertAlmostEqual(station["lon"], -3.7035)
         self.assertEqual(station["meanObserved"], 450.0)
 
+    def test_parses_coordinate_and_date_shape_used_by_current_madrid_resource(self):
+        # Real 2024 CKAN rows currently expose coordinates like
+        # 40.417.386 / -3.707.141 and fecha with an attached hour.
+        csv_text = """fecha;hora;identificador;peatones;device_id;Numero_distrito;distrito;direccion;observaciones_direccion;latitude;longitude
+01/01/2024 0:00;0:00;PERM_PEA01_PM01;910;PERM_PEA01_PM01;1;Centro;Calle Arenal esquina San Martín;Calle peatonal;40.417.386;-3.707.141
+"""
+        parsed = MODULE.parse_pedestrian_csv(csv_text)
+        self.assertEqual(parsed["stationCount"], 1)
+        station = parsed["stations"][0]
+        self.assertAlmostEqual(station["lat"], 40.417386)
+        self.assertAlmostEqual(station["lon"], -3.707141)
+        self.assertEqual(station["dateMin"], "2024-01-01")
+        self.assertEqual(station["dateMax"], "2024-01-01")
+        self.assertEqual(station["meanObserved"], 910.0)
+
     def test_rejects_invalid_or_negative_counts_without_fabricating_values(self):
         csv_text = """fecha;hora;identificador;peatones;distrito;direccion;latitude;longitude
 01-01-2024;10:00;BAD1;-1;Centro;Test;40.416;-3.703
