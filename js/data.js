@@ -3,8 +3,8 @@
 // blends a successful live fetch with static fallback data silently.
 
 const LIVE_SOURCES = {
-  museums: "https://datos.madrid.es/dataset/201132-0-museos/resource/201132-2-museos-json/download/201132-0-museos.json",
-  info: "https://datos.madrid.es/dataset/201105-0-informacion-turismo/resource/201105-0-informacion-turismo-json/download/201105-0-informacion-turismo.json",
+  museums: "https://datos.madrid.es/dataset/201132-0-museos/resource/201132-2-museos-json/download/201132-2-museos-json.json",
+  info: "https://datos.madrid.es/dataset/201105-0-informacion-turismo/resource/201105-0-informacion-turismo-json/download/201105-0-informacion-turismo-json.json",
   bikes: "https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11/resource/105ce5df-793f-4e0a-a88e-5d3b3f024a5d/download/bikestationbicimad_geojson.json",
   overpass: "https://overpass.kumi.systems/api/interpreter",
 };
@@ -84,12 +84,16 @@ function snapshotFor(snapshotPOI, type) {
   return (snapshotPOI[type] || []).map((p) => ({ ...p, type, provenance: "snapshot" }));
 }
 
+function publishedFor(runtimePOI, type) {
+  return (runtimePOI?.layers?.[type] || []).map((p) => ({ ...p, type, provenance: "published" }));
+}
+
 // Loads every POI layer. Each result carries { points, layerStatus } where
 // layerStatus is one of "live" | "snapshot" | "unavailable" per layer, for
 // the UI to badge. "unavailable" means the live fetch failed AND no curated
 // snapshot exists for that layer — the app never invents or approximates
 // points to fill the gap; it reports the layer as unavailable instead.
-async function loadAllLayers(snapshotPOI) {
+async function loadAllLayers(snapshotPOI, runtimePOI = {}) {
   const layerStatus = {};
   const points = [];
 
@@ -100,6 +104,13 @@ async function loadAllLayers(snapshotPOI) {
       points.push(...live);
       layerStatus[name] = "live";
     } catch (e) {
+      const published = publishedFor(runtimePOI, type);
+      if (published.length) {
+        points.push(...published);
+        layerStatus[name] = "published";
+        return;
+      }
+
       const snap = snapshotFor(snapshotPOI, type);
       if (snap.length) {
         points.push(...snap);
@@ -130,5 +141,5 @@ async function loadAllLayers(snapshotPOI) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { loadAllLayers, snapshotFor };
+  module.exports = { loadAllLayers, snapshotFor, publishedFor, parseMadridOpenData, parseBiciMad, parseOverpassStays };
 }
