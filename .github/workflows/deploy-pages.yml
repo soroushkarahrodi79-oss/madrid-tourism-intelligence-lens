@@ -22,6 +22,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Build deployment POI snapshot
+        run: node scripts/build_runtime_poi.mjs
       - uses: actions/configure-pages@v5
       - name: Inject CARTO basemap key
         env:
