@@ -7,6 +7,8 @@ const LAYER_LABEL = { museum: "Museums", info: "Tourist info", stay: "Hotels & s
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
 
 const cartoBasemapKey = window.RUNTIME_CONFIG?.CARTO_BASEMAP_KEY || "";
+let activeBasemap = null;
+let activeBasemapName = "light";
 
 function createOsmBasemap() {
   return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -16,38 +18,55 @@ function createOsmBasemap() {
   });
 }
 
-// Always start with a known-good map so the UI never opens onto a blank canvas.
-// CARTO replaces it only after at least one keyed tile has loaded successfully.
-const osmBasemap = createOsmBasemap().addTo(map);
-
-if (cartoBasemapKey) {
-  const cartoTileUrl =
-    "https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png" +
+function createCartoBasemap(style) {
+  if (!cartoBasemapKey) return createOsmBasemap();
+  const url =
+    `https://basemaps.cartocdn.com/rastertiles/${style}/{z}/{x}/{y}{r}.png` +
     `?key=${encodeURIComponent(cartoBasemapKey)}`;
-
-  const cartoBasemap = L.tileLayer(cartoTileUrl, {
+  return L.tileLayer(url, {
     maxZoom: 20,
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
   });
-
-  let cartoReady = false;
-  let basemapFallbackActive = false;
-
-  cartoBasemap.once("tileload", () => {
-    cartoReady = true;
-    if (map.hasLayer(osmBasemap)) map.removeLayer(osmBasemap);
-  });
-
-  cartoBasemap.on("tileerror", () => {
-    if (basemapFallbackActive || cartoReady) return;
-    basemapFallbackActive = true;
-    if (map.hasLayer(cartoBasemap)) map.removeLayer(cartoBasemap);
-    if (!map.hasLayer(osmBasemap)) osmBasemap.addTo(map);
-  });
-
-  cartoBasemap.addTo(map);
 }
+
+function createSatelliteBasemap() {
+  return L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    {
+      maxZoom: 19,
+      attribution:
+        'Tiles &copy; Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+    }
+  );
+}
+
+function setBasemap(name) {
+  const requested = ["light", "satellite", "dark"].includes(name) ? name : "light";
+  if (activeBasemap && map.hasLayer(activeBasemap)) map.removeLayer(activeBasemap);
+
+  const next =
+    requested === "satellite"
+      ? createSatelliteBasemap()
+      : requested === "dark"
+        ? createCartoBasemap("dark_all")
+        : createCartoBasemap("light_all");
+
+  activeBasemap = next;
+  activeBasemapName = requested;
+
+  let fellBack = false;
+  next.on("tileerror", () => {
+    if (fellBack || activeBasemap !== next) return;
+    fellBack = true;
+    if (map.hasLayer(next)) map.removeLayer(next);
+    activeBasemap = createOsmBasemap().addTo(map);
+  });
+
+  next.addTo(map);
+}
+
+setBasemap("light");
 
 const groups = {
   museum: L.layerGroup().addTo(map),
@@ -404,6 +423,7 @@ document.getElementById("radiusSlider").oninput = (e) => {
     radius >= 1000 ? (radius / 1000).toFixed(2) + " km" : radius + " m";
   refresh();
 };
+document.getElementById("basemapSelect").onchange = (e) => setBasemap(e.target.value);
 document.getElementById("timeSelect").onchange = (e) => {
   timestep = e.target.value;
   rebuildHeatLayer();
