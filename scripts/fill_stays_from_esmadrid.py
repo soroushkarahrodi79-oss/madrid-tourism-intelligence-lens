@@ -11,6 +11,7 @@ import html
 import json
 import sys
 import urllib.request
+from collections import Counter
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -23,8 +24,14 @@ def local_name(tag: str) -> str:
 
 
 def first_text(node: ET.Element, names: set[str]) -> str | None:
+    """Read a field from either a direct XML tag or Madrid's <item name="…"> form."""
+    wanted = {name.casefold() for name in names}
     for el in node.iter():
-        if local_name(el.tag) in names and el.text and el.text.strip():
+        tag_name = local_name(el.tag)
+        item_name = str(el.attrib.get("name", "")).casefold()
+        matches_direct_tag = tag_name in wanted
+        matches_named_item = tag_name == "item" and item_name in wanted
+        if (matches_direct_tag or matches_named_item) and el.text and el.text.strip():
             return el.text.strip()
     return None
 
@@ -92,24 +99,36 @@ def parse_accommodation_xml(xml_text: str) -> list[dict]:
             lat = parse_number(first_text(node, {"latitude"}))
             lon = parse_number(first_text(node, {"longitude"}))
             name = clean_text(first_text(node, {"name", "title"}))
-            accommodation_type = clean_text(first_text(node, {"tipo"}))
+            source_type = clean_text(first_text(node, {"tipo"}))
             category = clean_text(first_text(node, {"categoria"}))
+            subcategory = clean_text(first_text(node, {"subcategoria"}))
             coords = normalize_madrid_coords(lat, lon)
 
             if coords and name:
-                stable_id = first_text(node, {"id"}) or str(len(points))
+                # The production Madrid feed identifies each <service> with an id
+                # attribute. Keep support for an <id> child for schema variants.
+                stable_id = node.attrib.get("id") or first_text(node, {"id"}) or str(len(points))
                 lat_v, lon_v = coords
                 key = (name.casefold(), round(lat_v, 6), round(lon_v, 6))
                 if key not in seen:
                     seen.add(key)
+
+                    # Madrid's current/historical production XML uses:
+                    #   Tipo = "Alojamientos" (generic group)
+                    #   Categoria = "Hoteles" / "Hostales" / "Pensiones" / ...
+                    #   SubCategoria = "4 estrellas" / "1 llave" / ...
+                    # Therefore the user-facing family must be derived from
+                    # Categoria first, not from the generic Tipo field.
+                    family_label = category or source_type
                     points.append(
                         {
                             "id": f"stay-published-{stable_id}",
                             "type": "stay",
                             "name": name,
-                            "stayKind": normalize_stay_kind(accommodation_type),
-                            "accommodationType": accommodation_type or "Sin clasificar",
-                            "accommodationCategory": category,
+                            "stayKind": normalize_stay_kind(family_label),
+                            "accommodationType": family_label or "Sin clasificar",
+                            "accommodationCategory": subcategory,
+                            "accommodationSourceType": source_type,
                             "lat": lat_v,
                             "lon": lon_v,
                         }
@@ -170,7 +189,10 @@ def main() -> int:
     payload.setdefault("sources", {})["stays"] = SOURCE_URL
 
     OUTPUT_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    kind_counts = Counter(point["stayKind"] for point in points)
+    summary = ", ".join(f"{kind}={count}" for kind, count in sorted(kind_counts.items()))
     print(f"[runtime-poi] stay: {len(points)} points from Madrid Destino / esmadrid.com")
+    print(f"[runtime-poi] stay classification: {summary}")
     return 0
 
 
