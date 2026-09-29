@@ -3,6 +3,102 @@
 This document lists every dataset used by Madrid Tourism Intelligence Lens,
 its origin, and how it reaches the application.
 
+## Build-time evidence validation
+
+A deployment is not published unless its evidence passes an explicit gate. The
+GitHub Pages workflow runs:
+
+```
+SOURCE → BUILD → VALIDATE → AUDIT MANIFEST → DEPLOY
+```
+
+**Where the rules live.** [`data/source_registry.json`](../data/source_registry.json)
+is the single machine-readable registry of the sources a deployment builds or
+ships. For each one it declares the authority, the builder, the evidence type,
+the expected spatial scope, what its period means, its interpretation ceiling,
+and whether it blocks deployment. It holds no map records.
+
+**What enforces them.** [`scripts/validate_deployment.mjs`](../scripts/validate_deployment.mjs)
+reads that registry plus the artifacts the builders produced, and checks that
+declared counts equal actual record counts, that layer and status names agree,
+that identifiers are present and unique, that coordinates are finite and inside
+the declared scope, and that each source's own integrity rules hold — that the
+combined rail layer still contains both Metro and Cercanías, that accommodation
+came from the authoritative Madrid Destino feed and still carries its published
+taxonomy, and that the pedestrian layer is internally coherent. It runs locally
+(`node scripts/validate_deployment.mjs`, after the builders) and in CI, and has
+no dependencies.
+
+**Which sources block a deployment.** The five layers that feed the lens's
+operational metrics — museums, tourist information, BiciMAD, Metro/Cercanías and
+official accommodation — block deployment, because a collapse in any of them
+makes a displayed number wrong while it still looks authoritative. The committed
+HATI evidence and the packaged fallback sample block too, since they can only
+change through a commit. Principal parks and the pedestrian counters do **not**
+block: parks are map context that is excluded from every metric in code, and
+pedestrian activity is opt-in, off by default, and already has a first-class
+unavailable state that shows "No data" rather than a number. Withholding the
+whole site because an optional evidence layer was unreachable would reduce
+availability without improving honesty. Their *internal coherence* is still
+enforced as a hard failure: an "unavailable" pedestrian layer that still carries
+station counts, observation totals or a date range fails the build, because that
+is fabricated evidence rather than a missing one.
+
+**Guardrails against silent collapse.** A non-empty response is not automatically
+valid evidence: a truncated download or an upstream schema change can produce
+parseable JSON that is analytically degraded. Each source therefore declares a
+`min_count` floor set far below the count observed at calibration, recorded
+alongside that baseline, the calibration date and a rationale. These are
+**engineering guardrails against an ingestion collapse — not tourism indicators,
+and not claims about how many museums, stations or hotels Madrid has.** Changing
+one is a visible diff that has to be justified in the pull request that changes
+it. There is no upper bound: a source that grows is not degraded.
+
+**What a failure does.** The validator exits non-zero, which fails the job before
+`actions/deploy-pages` runs. Nothing is published and GitHub Pages keeps serving
+the previous good deployment. The public site does not disappear; it simply does
+not advance to a degraded build.
+
+**What happens when the *build* fails.** The validation step carries
+`if: ${{ !cancelled() }}`, so it runs even after the build step failed —
+otherwise GitHub Actions would skip it and there would be no manifest explaining
+why the deployment stopped. The build step's outcome is passed in as
+`DEPLOYMENT_BUILD_OUTCOME`, and any outcome other than `success` is itself a
+validation error. That matters because a build can fail *after* writing
+complete-looking artifacts: the artifacts are never allowed to vouch for the
+build. `continue-on-error` is deliberately not used anywhere — it would mark a
+failed build successful. The publishing steps carry no condition at all, so once
+the job is failing they are skipped, and a failed build cannot become a
+deployable state.
+
+**The precise auditability guarantee.** A **data-build failure or an
+evidence-validation failure** produces `data/deployment_manifest.json` with
+`build_state: "fail"`, uploaded as the `deployment-evidence-audit` workflow
+artifact. This is not a claim that every conceivable workflow failure yields a
+manifest: a failure before the repository is checked out or before Node is
+available (runner or infrastructure failure), or a cancelled run, happens before
+the validator can execute and leaves no manifest. Those are visible in the
+workflow run itself rather than in an artifact.
+
+**The audit manifest.** It records, per layer: what was built, from which
+authority, by which builder, its provenance state, for what scope and period, how
+many records, whether the layer was available, its interpretation ceiling, and
+the validation verdict with any warnings. On a successful deployment it ships
+with the site and can be inspected at `<site>/data/deployment_manifest.json`. It
+contains no secrets — the CARTO key is injected in a later step, after the audit
+artifact has been collected.
+
+`provenance_state` distinguishes a `deployment_snapshot` (rebuilt from its
+authority during this deploy) from `committed_research_evidence` (HATI) and from
+the `packaged_sample` fallback, so no consumer of the manifest can mistake the
+curated fallback for current authoritative evidence.
+
+`generated_at` (when this build ran) and `source_period` (what the evidence
+describes) are deliberately separate fields. A source that publishes no period
+records `source_period: null` and `source_period_known: false` rather than being
+backfilled with the build timestamp. Only the pedestrian counters (whose records
+carry their own dates) and HATI (a fixed modelled pilot day) report a period.
+
 ## HATI-Madrid thermal evidence (`data/hati_assets.json`)
 
 - **Source repository:** [heat-adaptive-tourism-madrid](https://github.com/soroushkarahrodi79-oss/heat-adaptive-tourism-madrid) (read-only; this project never modifies it)
@@ -36,12 +132,45 @@ it does not reclassify the source record for analytical claims. If the official
 feed is unavailable and the app falls back to older curated records without
 type metadata, the type selector is disabled rather than guessing a class.
 
-A **SNAPSHOT SAMPLE** is a small, manually curated subset of the source
-dataset for the study area — **not a complete inventory**. A count derived
-from a snapshot layer means "records present in this sample," not "total
-records that exist at this location." Full snapshot metadata (capture date,
-curation method, `exhaustive: false` per layer) is in
-[`data/snapshot_provenance.json`](../data/snapshot_provenance.json).
+A **SNAPSHOT SAMPLE** is a small, manually curated subset for the study area —
+**not a complete inventory**. A count derived from a snapshot layer means
+"records present in this sample," not "total records that exist at this
+location." Full snapshot metadata (capture date, curation method,
+`exhaustive: false` per layer) is in
+[`data/snapshot_provenance.json`](../data/snapshot_provenance.json), which is the
+authoritative description of where each fallback record came from.
+
+The packaged fallback is **multi-source**, and its upstream sources are not the
+same set of authorities the deployment sources use. The museum and tourist
+information records were curated from Madrid Open Data, but the **accommodation
+records are OpenStreetMap-derived (ODbL, via Overpass), not Madrid Destino /
+esmadrid records.** So a fallback accommodation count is not official Madrid
+accommodation evidence, must not be read as the authoritative register, and must
+not be compared with a deployment-snapshot accommodation count. The deployment
+manifest marks this layer `provenance_state: "packaged_sample"` so it cannot be
+mistaken for current authoritative evidence. Retiring the OpenStreetMap-derived
+accommodation fallback is a separate, separately-reviewable behaviour change.
+
+### Accommodation feed coverage
+
+The accommodation feed is published as **"Alojamientos de la ciudad de Madrid"**,
+and its specification describes the content as accommodation of **"la ciudad de
+Madrid y alrededores"** — the city of Madrid and its surroundings. It is
+therefore neither a strictly municipal register nor a regional one.
+
+The validator checks its coordinates against
+`madrid_city_and_surroundings_feed_area`, which is an **integrity envelope only**
+(`is_coverage_contract: false`): deliberately loose enough that a record in the
+surroundings does not fail the build, while a null-island coordinate, a swapped
+lat/lon or a different country still does. Records falling outside the narrower
+`madrid_city_area` box are reported as a manifest warning — 4 of 613 on
+2026-09-29, the furthest at 40.711 N / −3.994 E — and are **not** filtered,
+because narrowing the layer would be an analytical semantics change rather than an
+integrity fix.
+
+This envelope must never be read as Comunidad de Madrid coverage. A future
+Comunidad de Madrid level will require its own authoritative regional datasets and
+must not inherit this feed as a proxy for them.
 
 For CRTM rail data, the deployment builder queries the official station feature
 layers only inside the app's central-Madrid envelope
