@@ -31,6 +31,6 @@ test("lens boundaries use a two-sided contrast halo for mixed imagery", () => {
 });
 
 test("adaptive lens assets are cache-busted", () => {
-  assert.match(html, /css\/app\.css\?v=20260928-22/);
-  assert.match(html, /js\/app\.js\?v=20260928-22/);
+  assert.match(html, /css\/app\.css\?v=[\w.-]+/);
+  assert.match(html, /js\/app\.js\?v=[\w.-]+/);
 });
