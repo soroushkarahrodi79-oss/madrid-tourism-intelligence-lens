@@ -13,7 +13,9 @@ test("observed pedestrian activity is opt-in and separate from operational POIs"
   assert.match(html, /data-layer="pedestrian" type="checkbox"[^>]*aria-checked="false"/);
   assert.doesNotMatch(html, /data-layer="pedestrian"[^>]*type="checkbox"\s+checked(?:\s|>)/);
   assert.match(app, /pedestrian: L\.layerGroup\(\),/);
-  assert.match(app, /let poiPoints = \[\];\nlet pedestrianStations = \[\];/);
+  // Separate state arrays are the contract; their adjacency in the file is not.
+  assert.match(app, /let poiPoints = \[\];/);
+  assert.match(app, /let pedestrianStations = \[\];/);
   assert.match(app, /return poiStatsInLens\(visiblePoiPoints\(\), centerOf\(which\), radius\)/);
   assert.match(app, /return pedestrianStatsInLens\(pedestrianStations, centerOf\(which\), radius\)/);
 });
