@@ -23,7 +23,21 @@ test("HATI metric abstains while research evidence is off", () => {
 });
 
 test("Evidence navigation explicitly enables HATI before framing the pilot", () => {
-  assert.match(app, /document\.getElementById\("navEvidence"\)\.onclick = \(\) => \{\n  setLayerVisible\("heat", true\);/);
+  // Assert the ordering contract rather than the handler's exact source layout:
+  // the layer must be switched on before the map frames the pilot study area.
+  const handler = app.match(
+    /document\.getElementById\("navEvidence"\)\.onclick = \(\) => \{([\s\S]*?)^\};/m
+  )?.[1];
+  assert.ok(handler, "navEvidence click handler not found");
+
+  const enablesHati = handler.indexOf('setLayerVisible("heat", true)');
+  const framesPilot = handler.indexOf("map.fitBounds(");
+  assert.ok(enablesHati >= 0, "handler must enable the HATI research layer");
+  assert.ok(framesPilot >= 0, "handler must frame the pilot study area");
+  assert.ok(
+    enablesHati < framesPilot,
+    "HATI must be enabled before the map frames the pilot study area"
+  );
 });
 
 test("HATI comparison does not compute a thermal delta while the layer is off", () => {

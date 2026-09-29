@@ -26,5 +26,17 @@ test("panel resizing is keyboard-accessible and resettable", () => {
 });
 
 test("mobile viewport ignores stored desktop panel dimensions", () => {
-  assert.match(app, /if \(window\.innerWidth <= 850\) \{\n    analysisPanel\.style\.removeProperty\("width"\);/);
+  // Assert the mobile guard's behaviour rather than its exact indentation:
+  // applyPanelSize clears both stored dimensions and returns before applying
+  // them, and restorePanelSize never applies a stored desktop size at all.
+  const applyBody = app.match(/function applyPanelSize\([^)]*\) \{([\s\S]*?)^\}/m)?.[1];
+  assert.ok(applyBody, "applyPanelSize not found");
+  assert.match(
+    applyBody,
+    /if \(window\.innerWidth <= 850\) \{[\s\S]*?removeProperty\("width"\)[\s\S]*?removeProperty\("height"\)[\s\S]*?return;/
+  );
+
+  const restoreBody = app.match(/function restorePanelSize\(\) \{([\s\S]*?)^\}/m)?.[1];
+  assert.ok(restoreBody, "restorePanelSize not found");
+  assert.match(restoreBody, /if \(window\.innerWidth <= 850\) return;/);
 });

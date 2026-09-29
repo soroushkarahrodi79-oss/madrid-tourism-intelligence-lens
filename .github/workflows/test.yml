@@ -7,7 +7,15 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Tests read application source from the working tree, so they must be
+    # verified on both line-ending environments, not just the Linux runner.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Report both platforms even when one fails, so a Windows-only failure
+      # never hides the Linux result (or the reverse).
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,4 +25,6 @@ jobs:
         with:
           python-version: "3.12"
       - run: node --test
+      # "python" (not "python3") is the interpreter name actions/setup-python
+      # puts on PATH on both runners; "python3" does not exist on Windows.
       - run: python -m unittest discover -s tests -p "test_*.py"

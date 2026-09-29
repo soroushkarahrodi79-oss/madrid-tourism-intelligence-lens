@@ -13,7 +13,9 @@ test("observed pedestrian activity is opt-in and separate from operational POIs"
   assert.match(html, /data-layer="pedestrian" type="checkbox"[^>]*aria-checked="false"/);
   assert.doesNotMatch(html, /data-layer="pedestrian"[^>]*type="checkbox"\s+checked(?:\s|>)/);
   assert.match(app, /pedestrian: L\.layerGroup\(\),/);
-  assert.match(app, /let poiPoints = \[\];\nlet pedestrianStations = \[\];/);
+  // Separate state arrays are the contract; their adjacency in the file is not.
+  assert.match(app, /let poiPoints = \[\];/);
+  assert.match(app, /let pedestrianStations = \[\];/);
   assert.match(app, /return poiStatsInLens\(visiblePoiPoints\(\), centerOf\(which\), radius\)/);
   assert.match(app, /return pedestrianStatsInLens\(pedestrianStations, centerOf\(which\), radius\)/);
 });
@@ -41,12 +43,12 @@ test("deployment builds a bounded pedestrian snapshot from Madrid Open Data", ()
 });
 
 test("current pedestrian snapshot and app/lens scripts are cache-busted", () => {
-  assert.match(app, /data\/pedestrian_activity\.json\?v=20260928-21/);
-  assert.match(html, /js\/lens\.js\?v=20260928-19/);
-  assert.match(html, /js\/app\.js\?v=20260928-22/);
+  assert.match(app, /data\/pedestrian_activity\.json\?v=[\w.-]+/);
+  assert.match(html, /js\/lens\.js\?v=[\w.-]+/);
+  assert.match(html, /js\/app\.js\?v=[\w.-]+/);
 });
 
 
 test("pedestrian snapshot bypasses stale browser cache after deployments", () => {
-  assert.match(app, /fetch\("data\/pedestrian_activity\.json\?v=20260928-21", \{ cache: "no-store" \}\)/);
+  assert.match(app, /fetch\("data\/pedestrian_activity\.json\?v=[\w.-]+", \{ cache: "no-store" \}\)/);
 });

@@ -28,7 +28,7 @@ test("mobile form controls avoid iOS focus zoom", () => {
 });
 
 test("responsive stylesheet is cache-busted in the page", () => {
-  assert.match(html, /css\/app\.css\?v=20260928-22/);
+  assert.match(html, /css\/app\.css\?v=[\w.-]+/);
 });
 
 

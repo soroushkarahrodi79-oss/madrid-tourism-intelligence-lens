@@ -1,0 +1,25 @@
+# Line-ending policy
+#
+# Several tests assert against the text of the source they read from the working
+# tree (index.html, js/app.js, the deploy workflow YAML, the Python builders).
+# Without an explicit policy, what those tests see depends on each developer's
+# core.autocrlf / core.eol setting, so the same commit can pass on CI and fail
+# on a Windows checkout.
+#
+#   text=auto  Git detects text vs binary per file and normalises text to LF on
+#              commit. Detection leaves the tracked PNGs byte-for-byte intact,
+#              so no explicit binary rules are needed.
+#   eol=lf     Pins the checkout side as well, which text=auto alone leaves to
+#              local configuration. Every platform then gets LF in the working
+#              tree, matching the "\n" the data builders already write.
+#
+# One deliberate consequence: assets/leaflet/leaflet.css and
+# assets/leaflet/LICENSE were committed with CRLF and are renormalised to LF by
+# this change. That is a line-ending-only rewrite (git diff --ignore-cr-at-eol
+# reports no change), it is inert for CSS and licence text, and it brings the
+# vendored copies into line with upstream Leaflet, which ships LF. Exempting
+# them with "-text" was rejected: it would instead have committed this
+# working tree's CRLF for leaflet.js, which the repository stores as LF.
+#
+# No file here requires CRLF: the repository has no .bat/.cmd/.ps1 scripts.
+* text=auto eol=lf
