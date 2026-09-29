@@ -415,6 +415,158 @@ function validateSnapshotFallback(source, artifact, scopes, errors) {
   };
 }
 
+// Canonical administrative geography (municipality, districts, barrios). This is
+// a committed reference artifact, not a fetched deployment snapshot, so the checks
+// here are the same structural contract the test suites enforce, restated at the
+// deployment gate for the audit manifest. Non-blocking for now: the application
+// does not yet consume the geography at runtime (see blocks_deployment_note in the
+// registry), so its problems are reported as warnings rather than withholding the
+// whole site. The Node and Python test suites are what fail a broken geography on
+// every push.
+function validateAdminGeography(source, geojson, meta, scopes, errors, warnings) {
+  const label = source.display_name;
+  const sink = source.blocks_deployment ? errors : warnings;
+
+  if (!geojson || typeof geojson !== "object" || !Array.isArray(geojson.features)) {
+    sink.push(`${label}: ${source.artifact} is missing or is not a GeoJSON FeatureCollection`);
+    return { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
+  }
+
+  const levelField = source.level_field ?? "geography_level";
+  const idField = source.id_field ?? "official_id";
+  const parentField = source.hierarchy_field ?? "parent_id";
+  const byLevel = { municipality: [], district: [], barrio: [] };
+  for (const feature of geojson.features) {
+    const level = feature?.properties?.[levelField];
+    if (byLevel[level]) byLevel[level].push(feature);
+  }
+
+  // Counts: exactly the official administrative division, from the registry.
+  const expected = source.expected_counts ?? {};
+  const countChecks = [
+    ["municipality", byLevel.municipality.length, expected.municipality],
+    ["districts", byLevel.district.length, expected.districts],
+    ["barrios", byLevel.barrio.length, expected.barrios],
+  ];
+  for (const [name, actual, want] of countChecks) {
+    if (typeof want === "number" && actual !== want) {
+      sink.push(
+        `${label}: expected ${want} ${name}, found ${actual}. A change to Madrid's administrative division ` +
+          `must not reach a deployment unnoticed.`
+      );
+    }
+  }
+
+  // Unique ids per level, and no missing id.
+  const districtIds = new Set();
+  for (const [level, feats] of Object.entries(byLevel)) {
+    const seen = new Set();
+    for (const f of feats) {
+      const id = f.properties?.[idField];
+      if (!isNonEmptyString(id)) {
+        sink.push(`${label}: a ${level} feature has no ${idField}`);
+        continue;
+      }
+      if (seen.has(id)) sink.push(`${label}: duplicate ${level} ${idField} "${id}"`);
+      seen.add(id);
+      if (level === "district") districtIds.add(id);
+    }
+  }
+
+  // Hierarchy: every barrio references a known district; the municipality is the
+  // districts' declared parent.
+  const muniId = byLevel.municipality[0]?.properties?.[idField] ?? null;
+  for (const b of byLevel.barrio) {
+    const parent = b.properties?.[parentField];
+    if (!districtIds.has(parent)) {
+      sink.push(`${label}: barrio ${b.properties?.[idField]} references unknown district "${parent}"`);
+    }
+  }
+  for (const d of byLevel.district) {
+    if (muniId && d.properties?.[parentField] !== muniId) {
+      sink.push(`${label}: district ${d.properties?.[idField]} does not declare the municipality as its parent`);
+    }
+  }
+
+  // Names, geometry validity and plausibility.
+  const box = scopes[source.expected_spatial_scope];
+  let outOfScope = 0;
+  let badGeometry = 0;
+  let emptyName = 0;
+  for (const f of geojson.features) {
+    const p = f.properties ?? {};
+    if (!isNonEmptyString(p.official_name)) emptyName += 1;
+    const g = f.geometry;
+    if (!g || (g.type !== "Polygon" && g.type !== "MultiPolygon") || !Array.isArray(g.coordinates)) {
+      badGeometry += 1;
+      continue;
+    }
+    if (box) {
+      for (const [lon, lat] of iterCoords(g)) {
+        if (!isFiniteNumber(lon) || !isFiniteNumber(lat) || !inScope({ lat, lon }, box)) {
+          outOfScope += 1;
+          break;
+        }
+      }
+    }
+  }
+  if (emptyName) sink.push(`${label}: ${emptyName} feature(s) have an empty official_name`);
+  if (badGeometry) sink.push(`${label}: ${badGeometry} feature(s) have missing or non-polygon geometry`);
+  if (outOfScope) {
+    sink.push(
+      `${label}: ${outOfScope} feature(s) have coordinates outside ${source.expected_spatial_scope}, ` +
+        `which would indicate a projection leak or swapped lat/lon`
+    );
+  }
+
+  // The municipality boundary is derived, and must stay flagged as such.
+  const muniProvenance = byLevel.municipality[0]?.properties?.geometry_provenance;
+  if (byLevel.municipality.length && muniProvenance !== "DERIVED_FROM_OFFICIAL_GEOMETRY") {
+    sink.push(
+      `${label}: the municipality geometry_provenance is "${muniProvenance}", but it is derived ` +
+        `from the district union and must be flagged DERIVED_FROM_OFFICIAL_GEOMETRY`
+    );
+  }
+
+  // Source vintage from the sidecar metadata, kept separate from the build time.
+  let sourcePeriod = null;
+  const datasets = meta?.source_vintage?.datasets;
+  if (datasets && typeof datasets === "object") {
+    const dates = Object.values(datasets)
+      .map((d) => d?.metadata_modified)
+      .filter((v) => ISO_DATE.test(String(v)));
+    if (dates.length) {
+      const vintage = dates.sort().at(-1);
+      sourcePeriod = { from: vintage, to: vintage, type: "administrative_geography_edition", provisional: false };
+    }
+  }
+  if (!meta || typeof meta !== "object") {
+    warnings.push(`${label}: ${source.meta_artifact} is missing, so the geography's provenance metadata is unavailable`);
+  }
+
+  return {
+    record_count: geojson.features.length,
+    state: "available",
+    source_period: sourcePeriod,
+    warnings: [
+      `${byLevel.district.length} districts, ${byLevel.barrio.length} barrios, ${byLevel.municipality.length} municipality (derived)`,
+    ],
+  };
+}
+
+// Yields [lon, lat] pairs from a Polygon/MultiPolygon geometry.
+function* iterCoords(geometry) {
+  const stack = [geometry.coordinates];
+  while (stack.length) {
+    const item = stack.pop();
+    if (item.length && typeof item[0] === "number") {
+      yield item;
+    } else {
+      for (const child of item) stack.push(child);
+    }
+  }
+}
+
 // ---------------------------------------------------------------- top level
 
 function validateRuntimePoiStructure(runtimePoi, registry, errors) {
@@ -499,6 +651,16 @@ export function validateDeployment({
       case "snapshot_fallback":
         result = validateSnapshotFallback(source, artifacts["snapshot_poi.json"], scopes, errors);
         break;
+      case "admin_geography":
+        result = validateAdminGeography(
+          source,
+          artifacts[source.artifact],
+          artifacts[source.meta_artifact],
+          scopes,
+          errors,
+          warnings
+        );
+        break;
       default:
         errors.push(`${source.display_name}: unknown shape "${source.shape}" in the source registry`);
         result = { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
@@ -574,6 +736,9 @@ const ARTIFACT_FILES = [
   "hati_assets.json",
   "hati_provenance.json",
   "snapshot_poi.json",
+  // Committed canonical administrative geography (not rebuilt at deploy).
+  "geography/madrid_admin.geojson",
+  "geography/madrid_admin.meta.json",
 ];
 
 export function readArtifacts(dataDir) {

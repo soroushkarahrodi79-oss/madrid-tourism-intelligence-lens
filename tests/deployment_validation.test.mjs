@@ -44,6 +44,93 @@ function poiRecords(prefix, count, extra = () => ({})) {
   }));
 }
 
+// A structurally complete synthetic geography: 1 municipality, 21 districts and
+// 131 barrios, each a tiny valid square inside madrid_city_area, so the healthy
+// build exercises the admin_geography validator with no warnings. The real
+// artifact is checked separately in "the committed artifacts satisfy the real
+// registry".
+function squareAt(i) {
+  const lon = LON + (i % 20) * 0.0005;
+  const lat = LAT + (Math.floor(i / 20) % 20) * 0.0005;
+  const d = 0.0002;
+  return {
+    type: "Polygon",
+    coordinates: [
+      [
+        [lon, lat],
+        [lon + d, lat],
+        [lon + d, lat + d],
+        [lon, lat + d],
+        [lon, lat],
+      ],
+    ],
+  };
+}
+
+function geographyFeatureCollection() {
+  const features = [
+    {
+      type: "Feature",
+      properties: {
+        geography_level: "municipality",
+        official_id: "28079",
+        official_name: "Madrid",
+        parent_id: null,
+        parent_name: null,
+        geometry_provenance: "DERIVED_FROM_OFFICIAL_GEOMETRY",
+      },
+      geometry: squareAt(0),
+    },
+  ];
+  const districtCodes = [];
+  for (let d = 1; d <= 21; d += 1) {
+    const code = String(d).padStart(2, "0");
+    districtCodes.push(code);
+    features.push({
+      type: "Feature",
+      properties: {
+        geography_level: "district",
+        official_id: code,
+        official_name: `District ${code}`,
+        parent_id: "28079",
+        parent_name: "Madrid",
+        geometry_provenance: "OFFICIAL_GEOMETRY",
+      },
+      geometry: squareAt(d),
+    });
+  }
+  for (let b = 0; b < 131; b += 1) {
+    const parent = districtCodes[b % districtCodes.length];
+    features.push({
+      type: "Feature",
+      properties: {
+        geography_level: "barrio",
+        official_id: `${parent}${String(b).padStart(3, "0")}`,
+        official_name: `Barrio ${b}`,
+        parent_id: parent,
+        parent_name: `District ${parent}`,
+        geometry_provenance: "OFFICIAL_GEOMETRY",
+      },
+      geometry: squareAt(b),
+    });
+  }
+  return { type: "FeatureCollection", name: "madrid_admin", features };
+}
+
+function geographyMeta() {
+  return {
+    contract_version: "1.0.0",
+    source_vintage: {
+      per_feature_edition_exposed: false,
+      datasets: {
+        district: { metadata_modified: "2026-07-27" },
+        barrio: { metadata_modified: "2026-07-27" },
+      },
+    },
+    retrieved_at: GENERATED_AT,
+  };
+}
+
 function healthyArtifacts() {
   const layers = {
     museum: poiRecords("museum", 3),
@@ -104,6 +191,8 @@ function healthyArtifacts() {
       museum: poiRecords("snap-museum", 2),
       info: poiRecords("snap-info", 2),
     },
+    "geography/madrid_admin.geojson": geographyFeatureCollection(),
+    "geography/madrid_admin.meta.json": geographyMeta(),
   };
 }
 
@@ -684,11 +773,15 @@ test("source registry is internally coherent", () => {
     assert.ok(source.source_period_semantics, `${source.id} needs source_period_semantics`);
     assert.equal(typeof source.blocks_deployment, "boolean", `${source.id} must declare blocks_deployment`);
     assert.ok(
-      ["operational", "context", "observed_evidence", "research_evidence", "packaged_fallback"].includes(source.role),
+      ["operational", "context", "observed_evidence", "research_evidence", "packaged_fallback", "reference"].includes(
+        source.role
+      ),
       `${source.id} has an unknown role`
     );
     assert.ok(
-      ["deployment_snapshot", "committed_research_evidence", "packaged_sample"].includes(source.provenance_state),
+      ["deployment_snapshot", "committed_research_evidence", "packaged_sample", "committed_reference_geography"].includes(
+        source.provenance_state
+      ),
       `${source.id} must declare a known provenance_state`
     );
     assert.equal(
@@ -701,14 +794,24 @@ test("source registry is internally coherent", () => {
       `${source.id} references undefined scope ${source.expected_spatial_scope}`
     );
 
-    const guard = source.integrity_guardrail;
-    assert.ok(guard, `${source.id} needs an integrity_guardrail`);
-    assert.ok(guard.rationale, `${source.id} guardrail needs a stated rationale`);
-    assert.ok(guard.calibrated_on, `${source.id} guardrail needs a calibration date`);
-    assert.ok(
-      guard.min_count <= guard.baseline_count,
-      `${source.id} guardrail floor ${guard.min_count} must not exceed its baseline ${guard.baseline_count}`
-    );
+    if (source.shape === "admin_geography") {
+      // The administrative geography has an exact-count contract, not a
+      // collapse floor: it must ship exactly the official number of districts
+      // and barrios, so a min_count guardrail would be the wrong instrument.
+      const counts = source.expected_counts;
+      assert.ok(counts, `${source.id} needs expected_counts`);
+      assert.equal(counts.districts, 21, `${source.id} must expect 21 districts`);
+      assert.equal(counts.barrios, 131, `${source.id} must expect 131 barrios`);
+    } else {
+      const guard = source.integrity_guardrail;
+      assert.ok(guard, `${source.id} needs an integrity_guardrail`);
+      assert.ok(guard.rationale, `${source.id} guardrail needs a stated rationale`);
+      assert.ok(guard.calibrated_on, `${source.id} guardrail needs a calibration date`);
+      assert.ok(
+        guard.min_count <= guard.baseline_count,
+        `${source.id} guardrail floor ${guard.min_count} must not exceed its baseline ${guard.baseline_count}`
+      );
+    }
   }
 
   for (const scope of Object.values(REAL_REGISTRY.spatial_scopes)) {
@@ -771,11 +874,20 @@ test("exactly the layers that feed operational lens metrics block deployment", (
   assert.deepEqual(blocking, ["bike", "hati", "info", "museum", "rail", "snapshot_fallback", "stay"]);
 
   const nonBlocking = REAL_REGISTRY.sources.filter((s) => !s.blocks_deployment).map((s) => s.id).sort();
-  assert.deepEqual(nonBlocking, ["park", "pedestrian"]);
+  assert.deepEqual(nonBlocking, ["geography", "park", "pedestrian"]);
 
   for (const id of ["park", "pedestrian"]) {
     assert.equal(REAL_REGISTRY.sources.find((s) => s.id === id).unavailable_is_allowed, true);
   }
+
+  // Geography is non-blocking for a different reason: the application does not
+  // yet consume it, so a build is not withheld over it, but it is committed and
+  // must always be present (never an allowed unavailable state). Its structural
+  // integrity is enforced by the test suites, and it must flip to blocking once
+  // a user-facing feature depends on it.
+  const geography = REAL_REGISTRY.sources.find((s) => s.id === "geography");
+  assert.equal(geography.unavailable_is_allowed, false);
+  assert.ok(geography.blocks_deployment_note, "geography must document why it does not block yet");
 });
 
 test("the committed evidence artifacts satisfy the real registry", () => {
@@ -789,7 +901,7 @@ test("the committed evidence artifacts satisfy the real registry", () => {
   };
   assert.deepEqual(
     committedRegistry.sources.map((s) => s.id).sort(),
-    ["hati", "snapshot_fallback"],
+    ["geography", "hati", "snapshot_fallback"],
     "the set of committed, non-rebuilt sources changed; update this test deliberately"
   );
 

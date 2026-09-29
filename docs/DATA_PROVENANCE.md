@@ -110,6 +110,61 @@ carry their own dates) and HATI (a fixed modelled pilot day) report a period.
 - **Study-area boundary:** copied from HATI source file `src/define_study_area.py` at the pinned commit: latitude 40.4040–40.4210, longitude -3.6960–-3.6775, a rectangular Prado–Retiro–Atocha pilot of ≈3.5 km². The UI renders this as a dashed boundary for orientation only. It is not a thermal surface; evidence remains limited to the 14 sampled points.
 - **Governance:** HATI's Layer A (release artefacts) is `RELEASE_LOCKED` and Layer B (post Gate-3B research) is `RESEARCH_FROZEN`. This project only reads published, locked evidence and does not extend or re-run the HATI pipeline.
 
+## Canonical administrative geography (`data/geography/madrid_admin.geojson`)
+
+The territorial backbone every future Madrid City dataset joins against
+(Padrón, accommodation, VUT, restaurants, housing, socioeconomic and
+environmental indicators). It is **reference geography, not an analytical
+metric**, and is kept clearly separate from the circular-Lens measurements.
+
+- **Authority:** Ayuntamiento de Madrid — IDEAM (Infraestructura de Datos
+  Espaciales del Ayuntamiento de Madrid), served through the official ArcGIS
+  map service `sigma.madrid.es/.../CARTOGRAFIA/LIMITES_ADMINISTRATIVOS/MapServer`
+  and catalogued on datos.madrid.es as *Distritos municipales de Madrid*
+  (dataset 300497) and *Barrios municipales de Madrid* (dataset 300496).
+  OSM, Google, hand-drawn or scraped boundaries are deliberately **not** used.
+- **Hierarchy:** municipality → 21 districts → 131 barrios (verified against the
+  authority on 2026-09-29). Official identifiers are preserved: districts use
+  `COD_DIS_TX` (zero-padded, `01`–`21`); barrios use the 3-digit `COD_BAR`,
+  prefixed by their parent district code. Names are never used as identifiers,
+  and no numeric ids are invented. Each barrio declares its parent district in
+  `parent_id`; the attribute hierarchy is cross-checked against geometry
+  (every barrio's interior point falls inside its parent district).
+- **CRS:** the source publishes EPSG:25830 (ETRS89 / UTM zone 30N); the builder
+  requests `outSR=4326`, so the map server reprojects to WGS84 (CRS84, lon/lat)
+  server-side. No client-side reprojection.
+- **Municipality boundary:** the service's *término municipal* layer is a
+  polyline, so there is no published municipality polygon. The municipality is
+  therefore **derived** as the topological union of the 21 official district
+  polygons (`shapely unary_union`) and flagged
+  `DERIVED_FROM_OFFICIAL_GEOMETRY`; the districts remain the authoritative
+  source geometry. The union is coherent (districts tile the municipality with
+  no overlaps or gaps) and validated in the build.
+- **Build method:** `scripts/build_madrid_geography.py`, deterministic and
+  re-runnable. Coordinates are rounded to 6 decimal places (~0.11 m) to keep
+  diffs stable — rounding only, no vertices removed, no simplification. Like the
+  HATI evidence it is **committed, not rebuilt at deploy time**: administrative
+  boundaries are not "live" and are never made to look fresh because the builder
+  ran.
+- **Vintage vs build time:** the source vintage is the authority's dataset
+  last-modified date (2026-07-27 at capture); the builder's retrieval time is
+  recorded separately as `retrieved_at`. They are never conflated, so a future
+  population join can state "population vintage X joined to geography vintage Y".
+- **Full machine-readable record:** [`data/geography/madrid_admin.meta.json`](../data/geography/madrid_admin.meta.json).
+- **Licence:** CC BY 4.0 (© Ayuntamiento de Madrid) — see the licensing boundary below.
+- **Point-in-polygon:** `js/geography.js` provides a pure, tested containment
+  layer (barrio/district for a coordinate, `null` outside Madrid). It is the
+  foundation for later joins and is **not yet wired into the Lens UI**.
+- **Deployment gate:** validated and reported in the audit manifest but
+  non-blocking for now, because the application does not yet consume it at
+  runtime; its structural integrity is enforced by the Node and Python test
+  suites on every push. This flips to blocking once a user-facing feature
+  depends on it.
+- **Interpretation ceiling:** administrative reference for spatial joins and
+  containment only — never a denominator on its own, and administrative-area
+  statistics must never be spatially distributed into a Lens or any sub-area.
+  This municipal geography is **not** Comunidad de Madrid geography.
+
 ## Tourism & mobility POIs (`data/runtime_poi.json` + packaged fallback)
 
 On GitHub Pages the app is **deployment-snapshot first** so markers render immediately without waiting on third-party browser requests. The deployment snapshot is rebuilt from the public sources during Pages deployment. Per layer:
@@ -219,7 +274,9 @@ This repository's own MIT license (`LICENSE`) covers its original code and
 documentation only. It does not relicense the third-party data or software
 listed above — see the [README's License section](../README.md#license) for
 the specific terms that continue to apply to Leaflet, Madrid Open Data, Madrid Destino / esmadrid.com, EMT Madrid open data, CRTM open data, and HATI-Madrid
-evidence.
+evidence. The canonical administrative geography is published by the Ayuntamiento
+de Madrid (IDEAM) under **CC BY 4.0** and its attribution (© Ayuntamiento de
+Madrid) is retained in `data/geography/madrid_admin.meta.json`.
 
 
 ### Madrid accommodation taxonomy

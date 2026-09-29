@@ -284,6 +284,37 @@
         "rationale": "Committed last-resort fallback (4 museums, 2 information points, 6 accommodation records). Checked for presence and coordinate sanity so the fallback path cannot silently become empty."
       },
       "interpretation_ceiling": "A deliberately small, non-exhaustive curated sample, never a complete inventory: a count from this layer means 'records present in this sample', not 'records that exist at this location'. It carries the separate SNAPSHOT SAMPLE evidence state in the UI and must never be presented as current authoritative Madrid evidence. In particular its accommodation records are OpenStreetMap-derived and are NOT official Madrid Destino accommodation evidence; they must not be read as the authoritative accommodation register, and no count from them may be compared with a deployment-snapshot accommodation count. Retiring this OpenStreetMap-derived accommodation fallback is a separate, separately-reviewable behaviour change."
+    },
+    {
+      "id": "geography",
+      "display_name": "Madrid administrative geography",
+      "authority": "Ayuntamiento de Madrid - IDEAM (Infraestructura de Datos Espaciales del Ayuntamiento de Madrid)",
+      "dataset_url": "https://datos.madrid.es/dataset/300496-0-barrios-madrid",
+      "artifact": "geography/madrid_admin.geojson",
+      "meta_artifact": "geography/madrid_admin.meta.json",
+      "shape": "admin_geography",
+      "builder": "scripts/build_madrid_geography.py",
+      "rebuilt_at_deploy": false,
+      "provenance_state": "committed_reference_geography",
+      "role": "reference",
+      "blocks_deployment": false,
+      "unavailable_is_allowed": false,
+      "evidence_type": "REFERENCE",
+      "expected_spatial_scope": "madrid_city_area",
+      "source_period_exposed_by_source": true,
+      "source_period_semantics": "The canonical geography is committed, not fetched at deploy time (rebuilt_at_deploy is false), so it changes only through a reviewed commit. Its source vintage is the authority's dataset last-modified date, recorded in geography/madrid_admin.meta.json under source_vintage; the builder's retrieval/build time is recorded separately as retrieved_at and is never presented as the geography vintage. Administrative boundaries are not 'live' and are never made to look fresh because the builder ran.",
+      "expected_counts": {
+        "municipality": 1,
+        "districts": 21,
+        "barrios": 131,
+        "note": "Verified against the authority on 2026-09-29: 21 districts and 131 barrios. A change to these counts is a deliberate change to Madrid's administrative division and must not reach a deployment unnoticed."
+      },
+      "hierarchy_field": "parent_id",
+      "level_field": "geography_level",
+      "id_field": "official_id",
+      "license": "CC BY 4.0",
+      "blocks_deployment_note": "Does not block deployment in this build because the application does not yet consume the geography at runtime; its structural integrity is enforced by the Node and Python test suites on every push. This must be switched to true once a user-facing feature depends on the artifact, so a broken geography cannot then be published.",
+      "interpretation_ceiling": "Administrative reference geography for spatial joins and containment only. It is a common join target for future datasets (Padron, accommodation, VUT, restaurants, housing, socioeconomic and environmental indicators), not an analytical metric and not a denominator on its own. The municipality polygon is DERIVED as the union of the 21 official district polygons and is flagged as such. Administrative-area statistics must never be spatially distributed into a circular Lens or any sub-area; a Lens may report the official barrio/district containing a point, kept clearly separate from circle-derived measurements. This municipal geography is not Comunidad de Madrid geography."
     }
   ]
 }

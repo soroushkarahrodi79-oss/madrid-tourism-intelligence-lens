@@ -1,0 +1,83 @@
+{
+  "contract_version": "1.0.0",
+  "title": "Canonical Madrid administrative geography (municipality, districts, barrios)",
+  "artifact": "madrid_admin.geojson",
+  "source": {
+    "authority": "Ayuntamiento de Madrid - IDEAM (Infraestructura de Datos Espaciales del Ayuntamiento de Madrid)",
+    "map_service": "https://sigma.madrid.es/hosted/rest/services/CARTOGRAFIA/LIMITES_ADMINISTRATIVOS/MapServer",
+    "service_layers": {
+      "district": 26,
+      "barrio": 25
+    },
+    "catalogue": {
+      "district": "https://datos.madrid.es/dataset/300497-0-distritos-municipales-madrid",
+      "barrio": "https://datos.madrid.es/dataset/300496-0-barrios-madrid"
+    },
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "attribution": "(c) Ayuntamiento de Madrid"
+  },
+  "coordinate_reference_system": {
+    "source": "EPSG:25830 (ETRS89 / UTM zone 30N)",
+    "output": "EPSG:4326 / CRS84 (WGS84, lon,lat)",
+    "reprojection": "server-side via ArcGIS outSR=4326; no client-side reprojection"
+  },
+  "coordinate_precision": {
+    "decimal_places": 6,
+    "note": "~0.11 m; rounding only. No vertices removed, no geometry simplification."
+  },
+  "identifier_scheme": {
+    "municipality": "INE municipal code (28079); geometry is derived, see municipality_geometry",
+    "district": "Official Ayuntamiento de Madrid district code COD_DIS_TX, zero-padded 2 digits (01-21)",
+    "barrio": "Official Ayuntamiento de Madrid barrio code COD_BAR, 3 digits, prefixed by the parent district code",
+    "primary_key_note": "Names are never used as identifiers; codes are source-derived, not invented."
+  },
+  "hierarchy": {
+    "model": "municipality -> district -> barrio",
+    "join": "barrio.parent_id == district.official_id ; district.parent_id == municipality.official_id",
+    "validated_by": [
+      "attribute codes",
+      "spatial containment of each barrio's interior point within its parent district"
+    ]
+  },
+  "municipality_geometry": {
+    "method": "DERIVED_FROM_OFFICIAL_GEOMETRY",
+    "how": "shapely unary_union of the 21 official district polygons. The service's TERMINO MUNICIPAL layer is a polyline, so no published municipality polygon exists to use directly.",
+    "ine_municipal_code": "28079",
+    "union_coherence": {
+      "sum_of_district_areas_deg2": 0.06417795065199988,
+      "union_area_deg2": 0.06417795065199977,
+      "relative_difference": 1.7299134879598407e-15,
+      "union_geometry_type": "Polygon",
+      "union_part_count": 1
+    }
+  },
+  "source_vintage": {
+    "per_feature_edition_exposed": false,
+    "datasets": {
+      "district": {
+        "dataset": "Distritos municipales de Madrid",
+        "metadata_modified": "2026-07-27",
+        "metadata_created": "2021-03-02",
+        "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+        "license_id": "cc-by"
+      },
+      "barrio": {
+        "dataset": "Barrios municipales de Madrid",
+        "metadata_modified": "2026-07-27",
+        "metadata_created": "2021-03-02",
+        "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+        "license_id": "cc-by"
+      }
+    },
+    "note": "This is the geography vintage the authority publishes (dataset last-modified). It is NOT the retrieval/build time below and must never be conflated with it, nor with a future population vintage: a Padron join must be able to state 'population vintage X joined to geography vintage Y' rather than assume they are equal."
+  },
+  "retrieved_at": "2026-09-29T13:34:16Z",
+  "builder": "scripts/build_madrid_geography.py",
+  "counts": {
+    "municipality": 1,
+    "districts": 21,
+    "barrios": 131
+  },
+  "interpretation_ceiling": "Administrative reference geography for spatial joins and containment only. Not an analytical metric and not a denominator on its own. Administrative-area statistics must never be spatially distributed into a circular Lens or any sub-area; a Lens may report the official barrio/district containing a point, kept separate from circle-derived measurements."
+}
