@@ -99,11 +99,13 @@ function outsideBox(lon, lat, box) {
 export function createGeographyIndex(featureCollection) {
   const features = (featureCollection && featureCollection.features) || [];
   const byLevel = { municipality: [], district: [], barrio: [] };
+  const byId = { municipality: new Map(), district: new Map(), barrio: new Map() };
 
   for (const feature of features) {
     const level = feature.properties && feature.properties.geography_level;
     if (!byLevel[level]) continue;
     byLevel[level].push({
+      feature,
       properties: feature.properties,
       geometry: feature.geometry,
       box: boundingBox(feature.geometry),
@@ -115,6 +117,9 @@ export function createGeographyIndex(featureCollection) {
     byLevel[level].sort((a, b) =>
       String(a.properties.official_id).localeCompare(String(b.properties.official_id))
     );
+    for (const entry of byLevel[level]) {
+      byId[level].set(String(entry.properties.official_id), entry);
+    }
   }
 
   const findAt = (level, lon, lat) => {
@@ -149,7 +154,8 @@ export function createGeographyIndex(featureCollection) {
       return findAt("municipality", lon, lat) !== null;
     },
 
-    // One call returning the full containment for a coordinate.
+    // One call returning the full containment for a coordinate. Each level is
+    // scanned independently; see resolve() for the hierarchy-coherent answer.
     locate(lon, lat) {
       const barrio = findAt("barrio", lon, lat);
       const district = findAt("district", lon, lat);
@@ -158,6 +164,62 @@ export function createGeographyIndex(featureCollection) {
         district,
         barrio,
       };
+    },
+
+    // Hierarchy-coherent containment for a coordinate.
+    //
+    // Unlike locate(), which scans every level independently, this resolves the
+    // barrio first and then reads the district from the barrio's own declared
+    // parent. That is the coherent answer, and the one a user-facing profile
+    // needs: the build validates with shapely covers() that every barrio
+    // geometry is contained by its declared parent district, and the
+    // municipality polygon is the union of those districts, so a point inside a
+    // barrio is necessarily inside that barrio's district and inside Madrid.
+    // Two independent ray-casting scans can resolve a point lying exactly on a
+    // shared boundary differently at each level, which could otherwise show a
+    // barrio next to a district it does not belong to.
+    //
+    // `hintBarrioId` is a pure performance hint, never a semantic one: the
+    // barrio matched at the previous position is tested first, which is almost
+    // always still the answer while a Lens is dragged across a few metres. A
+    // miss simply falls through to the ordinary scan, so the result is
+    // identical with or without a hint.
+    resolve(lon, lat, hintBarrioId = null) {
+      let barrio = null;
+
+      if (hintBarrioId != null) {
+        const hinted = byId.barrio.get(String(hintBarrioId));
+        if (hinted && !outsideBox(lon, lat, hinted.box) && pointInGeometry(lon, lat, hinted.geometry)) {
+          barrio = hinted.properties;
+        }
+      }
+      if (!barrio) barrio = findAt("barrio", lon, lat);
+
+      if (barrio) {
+        const parent = byId.district.get(String(barrio.parent_id));
+        return { inside_municipality: true, district: parent ? parent.properties : null, barrio };
+      }
+
+      // No barrio contains the point. A district or the municipality still
+      // might (a sliver on the outer edge), and that is reported honestly
+      // rather than guessing a barrio.
+      const district = findAt("district", lon, lat);
+      if (district) return { inside_municipality: true, district, barrio: null };
+
+      return { inside_municipality: findAt("municipality", lon, lat) !== null, district: null, barrio: null };
+    },
+
+    // The canonical GeoJSON features at one level, in official-id order. Used
+    // by the map to draw administrative reference boundaries; the features are
+    // the artifact's own objects and must not be mutated.
+    featuresByLevel(level) {
+      return (byLevel[level] || []).map((entry) => entry.feature);
+    },
+
+    // One canonical feature by level and official id, or null.
+    featureById(level, officialId) {
+      const entry = byId[level] && byId[level].get(String(officialId));
+      return entry ? entry.feature : null;
     },
   };
 }

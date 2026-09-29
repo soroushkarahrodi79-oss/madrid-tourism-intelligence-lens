@@ -820,7 +820,7 @@ test("the population layer carries a source-derived reference period and derived
 
   assert.equal(population.role, "reference");
   assert.equal(population.evidence_type, "ADMINISTRATIVE_REGISTER");
-  assert.equal(population.blocks_deployment, false);
+  assert.equal(population.blocks_deployment, true);
   assert.equal(population.state, "available");
 
   // The period is the source reference date, not the build clock.
@@ -835,17 +835,55 @@ test("the population layer carries a source-derived reference period and derived
   );
 });
 
-test("a population artifact whose totals disagree with the barrio sums is caught", () => {
+test("a population artifact whose totals disagree with the barrio sums blocks the deployment", () => {
   const artifacts = healthyArtifacts();
   // Corrupt the municipality total so it no longer equals the barrio sum.
   const pop = artifacts["population/madrid_population.json"];
   pop.records.find((r) => r.geography_level === "municipality").residents += 1;
   const result = run(artifacts);
-  // Non-blocking, so it surfaces as a warning rather than failing the build.
-  assert.ok(
-    result.warnings.some((w) => /municipality total .* does not equal the sum of the barrios/.test(w)),
-    "an inconsistent municipality total must be reported"
+  // Now that the Area Profile publishes resident figures, an incoherent
+  // denominator withholds the site instead of being noted in passing.
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /municipality total .* does not equal the sum of the barrios/);
+});
+
+test("a broken geography or population artifact cannot be published", () => {
+  // The decisive consequence of the contract change: the Area Profile is a
+  // user-facing feature, so its two reference artifacts are now publication
+  // gates rather than test-suite-only contracts.
+  const missingGeography = healthyArtifacts();
+  missingGeography["geography/madrid_admin.geojson"] = null;
+  const withoutGeography = run(missingGeography);
+  assert.equal(withoutGeography.ok, false);
+  assert.match(errorText(withoutGeography), /is missing or is not a GeoJSON FeatureCollection/);
+
+  const missingPopulation = healthyArtifacts();
+  missingPopulation["population/madrid_population.json"] = null;
+  const withoutPopulation = run(missingPopulation);
+  assert.equal(withoutPopulation.ok, false);
+  assert.match(errorText(withoutPopulation), /is missing or has no records array/);
+
+  // A barrio silently dropped from the geography is the quiet failure that
+  // would otherwise publish a Lens that cannot name where it is.
+  const truncated = healthyArtifacts();
+  const geography = truncated["geography/madrid_admin.geojson"];
+  const droppedBarrio = geography.features.find((f) => f.properties.geography_level === "barrio")
+    .properties.official_id;
+  geography.features = geography.features.filter(
+    (f) => f.properties.official_id !== droppedBarrio
   );
+  const withTruncatedGeography = run(truncated);
+  assert.equal(withTruncatedGeography.ok, false);
+  assert.match(errorText(withTruncatedGeography), /administrative division/);
+
+  // And a barrio left without a resident count must not be published either.
+  const gap = healthyArtifacts();
+  gap["population/madrid_population.json"].records = gap[
+    "population/madrid_population.json"
+  ].records.filter((r) => !(r.geography_level === "barrio" && r.official_id === droppedBarrio));
+  const withPopulationGap = run(gap);
+  assert.equal(withPopulationGap.ok, false);
+  assert.match(errorText(withPopulationGap), /has no population value|expected \d+ barrio/);
 });
 
 test("the manifest cannot present the packaged fallback as authoritative Madrid evidence", () => {
@@ -987,26 +1025,40 @@ test("the packaged fallback declares mixed provenance and points at its record",
   assert.match(provenance.layers.museums.live_source, /Madrid Open Data/);
 });
 
-test("exactly the layers that feed operational lens metrics block deployment", () => {
+test("exactly the layers a user-facing feature depends on block deployment", () => {
   const blocking = REAL_REGISTRY.sources.filter((s) => s.blocks_deployment).map((s) => s.id).sort();
-  assert.deepEqual(blocking, ["bike", "hati", "info", "museum", "rail", "snapshot_fallback", "stay"]);
+  assert.deepEqual(blocking, [
+    "bike",
+    "geography",
+    "hati",
+    "info",
+    "museum",
+    "population",
+    "rail",
+    "snapshot_fallback",
+    "stay",
+  ]);
 
   const nonBlocking = REAL_REGISTRY.sources.filter((s) => !s.blocks_deployment).map((s) => s.id).sort();
-  assert.deepEqual(nonBlocking, ["geography", "park", "pedestrian", "population"]);
+  assert.deepEqual(nonBlocking, ["park", "pedestrian"]);
 
   for (const id of ["park", "pedestrian"]) {
     assert.equal(REAL_REGISTRY.sources.find((s) => s.id === id).unavailable_is_allowed, true);
   }
 
-  // Geography and population are non-blocking for a different reason: no
-  // user-facing feature consumes them yet, so a build is not withheld over them,
-  // but they are committed and must always be present (never an allowed
-  // unavailable state). Their integrity is enforced by the test suites, and each
-  // must flip to blocking once a public feature depends on it.
+  // The geography and the population denominator became publication gates when
+  // the Area Profile started naming the official barrio of a Lens centre and
+  // reporting its registered residents. They are committed artifacts, so they
+  // must always be present (never an allowed unavailable state), and the
+  // registry has to record why the gate exists.
   for (const id of ["geography", "population"]) {
     const source = REAL_REGISTRY.sources.find((s) => s.id === id);
     assert.equal(source.unavailable_is_allowed, false, `${id} must not allow an unavailable state`);
-    assert.ok(source.blocks_deployment_note, `${id} must document why it does not block yet`);
+    assert.match(
+      source.blocks_deployment_note,
+      /BLOCKING since the Area Profile/,
+      `${id} must document why it blocks`
+    );
   }
 });
 

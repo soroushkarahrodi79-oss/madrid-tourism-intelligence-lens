@@ -169,13 +169,17 @@ metric**, and is kept clearly separate from the circular-Lens measurements.
 - **Full machine-readable record:** [`data/geography/madrid_admin.meta.json`](../data/geography/madrid_admin.meta.json).
 - **Licence:** CC BY 4.0 (© Ayuntamiento de Madrid) — see the licensing boundary below.
 - **Point-in-polygon:** `js/geography.js` provides a pure, tested containment
-  layer (barrio/district for a coordinate, `null` outside Madrid). It is the
-  foundation for later joins and is **not yet wired into the Lens UI**.
-- **Deployment gate:** validated and reported in the audit manifest but
-  non-blocking for now, because the application does not yet consume it at
-  runtime; its structural integrity is enforced by the Node and Python test
-  suites on every push. This flips to blocking once a user-facing feature
-  depends on it.
+  layer (barrio/district for a coordinate, `null` outside Madrid). `resolve()`
+  is the hierarchy-coherent lookup the interface uses: it matches the barrio and
+  then reads the district from that barrio's own declared parent, so a profile
+  can never pair a barrio with a district it does not belong to.
+- **Consumed by:** the **Area Profile** (see `docs/METHODOLOGY.md`). Each Lens
+  centre is resolved to its official barrio and district, and the containing
+  barrio is outlined on the map as administrative reference geometry.
+- **Deployment gate:** **blocking**. A broken or truncated geography would
+  publish confident wrong place names, so the site is withheld rather than
+  degraded. The Node and Python suites enforce the same structural contract on
+  every push.
 - **Interpretation ceiling:** administrative reference for spatial joins and
   containment only — never a denominator on its own, and administrative-area
   statistics must never be spatially distributed into a Lens or any sub-area.
@@ -224,10 +228,15 @@ composite score.
   population period, so an audit can state "population period `2026-01-01` joined
   to Madrid barrio geography **v3.4.1**".
 - **Evidence type / gate:** `ADMINISTRATIVE_REGISTER`, role `reference`,
-  committed (not rebuilt at deploy). **Non-blocking** for now because no
-  user-facing feature consumes it; a broken committed artifact still fails the
-  Node and Python suites on every push. This flips to blocking once Area Profile
-  or another public feature depends on it.
+  committed (not rebuilt at deploy). **Blocking**, because the Area Profile now
+  shows a barrio's registered residents with its reference date. The UI abstains
+  when a single figure is absent, but an artifact already broken at build time
+  must not reach the public site at all. A broken committed artifact still fails
+  the Node and Python suites on every push.
+- **Consumed by:** the **Area Profile**, joined by official barrio code to the
+  canonical geography. The interface calls it *registered residents* and labels
+  its evidence *official register*; the internal enum stays
+  `ADMINISTRATIVE_REGISTER`.
 - **Full machine-readable record:** [`data/population/madrid_population.meta.json`](../data/population/madrid_population.meta.json).
 - **Interpretation ceiling:** registered residents are **not** people physically
   present at a moment, daytime population, tourists, workers present, unique
