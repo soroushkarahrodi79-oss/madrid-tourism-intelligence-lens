@@ -1,0 +1,83 @@
+{
+  "contract_version": "1.0.0",
+  "title": "Canonical Madrid residential population denominator (barrio, with district and municipality totals)",
+  "artifact": "madrid_population.json",
+  "source": {
+    "authority": "Ayuntamiento de Madrid - Subdireccion General de Estadistica",
+    "dataset": "Poblacion por distrito y barrio a 1 de enero",
+    "dataset_id": "300557-0-poblacion-distrito-barrio",
+    "catalogue": "https://datos.madrid.es/dataset/300557-0-poblacion-distrito-barrio",
+    "csv": "https://datos.madrid.es/dataset/300557-0-poblacion-distrito-barrio/resource/300557-0-poblacion-distrito-barrio-csv/download/300557-0-poblacion-distrito-barrio-csv.csv",
+    "underlying_register": "Padron Municipal de habitantes",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "attribution": "(c) Ayuntamiento de Madrid",
+    "update_frequency": "annual"
+  },
+  "population_concept": "Persons registered in the municipal Padron (Padron Municipal de habitantes) for the reference date. num_personas is the source total per barrio.",
+  "source_period": {
+    "reference_date": "2026-01-01",
+    "label": "1 de enero de 2026",
+    "type": "padron_annual_reference_date",
+    "provisional": false,
+    "selection": "latest annual reference date whose barrio coverage exactly matches the canonical geography; a year with fewer barrios is treated as incomplete, not as the latest"
+  },
+  "dimensions": {
+    "available_in_source": [
+      "sex (num_personas_hombres / num_personas_mujeres)"
+    ],
+    "used": [
+      "num_personas (barrio total)"
+    ],
+    "aggregated_over": [],
+    "note": "The source has one row per (barrio, reference date) and publishes num_personas as the barrio total, verified to equal hombres + mujeres. No row-level aggregation over sex or age is performed, so there is no double-counting risk. Sex and age breakdowns are out of scope for this denominator."
+  },
+  "code_reconciliation": {
+    "method": "deterministic zero-padding of official source codes; no name-based or fuzzy matching",
+    "cod_distrito": "zfill(2) -> district official_id",
+    "cod_barrio": "zfill(3) -> barrio official_id",
+    "checked": "each normalised id must match a canonical barrio and its parent district exactly"
+  },
+  "geography_linkage": {
+    "geography_artifact": "data/geography/madrid_admin.geojson",
+    "barrio_geography_version": "v3.4.1",
+    "district_geography_version": "v3.2.1",
+    "join": "cod_barrio.zfill(3) == barrio.official_id ; cod_distrito.zfill(2) == district.official_id",
+    "note": "The geography versions are NOT the population period. A future audit can state 'population period 2026-01-01 joined to Madrid barrio geography v3.4.1'."
+  },
+  "derived_totals": {
+    "district": "DERIVED_FROM_BARRIO_POPULATION",
+    "municipality": "DERIVED_FROM_BARRIO_POPULATION",
+    "independent_source_total_available": false,
+    "note": "This dataset publishes only barrio rows for this period, so it carries no independent district or municipality total at the same semantics/period to cross-check against. District and municipality totals are therefore derived from the barrio populations and flagged DERIVED_FROM_BARRIO_POPULATION."
+  },
+  "totals": {
+    "municipality_residents": 3497277,
+    "districts": {
+      "01": 141800,
+      "02": 158550,
+      "03": 118863,
+      "04": 147256,
+      "05": 148093,
+      "06": 167776,
+      "07": 141522,
+      "08": 256037,
+      "09": 126257,
+      "10": 251139,
+      "11": 278090,
+      "12": 152937,
+      "13": 257924,
+      "14": 94405,
+      "15": 230334,
+      "16": 209178,
+      "17": 172551,
+      "18": 127566,
+      "19": 97860,
+      "20": 168526,
+      "21": 50613
+    }
+  },
+  "retrieved_at": "2026-09-29T14:11:37Z",
+  "builder": "scripts/build_madrid_population.py",
+  "interpretation_ceiling": "Registered residents for the Padron reference date. NOT people physically present at a given moment, NOT daytime population, NOT tourists, NOT workers present, NOT unique mobile-device users, NOT households and NOT housing units. It is a residential denominator only; this artifact defines no tourism indicator, ratio, density or composite score, and must never be spatially distributed into a circular Lens: a barrio population belongs to the whole barrio, never to the fraction of it overlapped by a Lens circle."
+}

@@ -1,0 +1,1087 @@
+{
+  "contract_version": "1.0.0",
+  "source_period": {
+    "reference_date": "2026-01-01",
+    "label": "1 de enero de 2026",
+    "type": "padron_annual_reference_date",
+    "provisional": false
+  },
+  "counts": {
+    "municipality": 1,
+    "districts": 21,
+    "barrios": 131
+  },
+  "records": [
+    {
+      "geography_level": "municipality",
+      "official_id": "28079",
+      "parent_id": null,
+      "residents": 3497277,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "01",
+      "parent_id": "28079",
+      "residents": 141800,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "02",
+      "parent_id": "28079",
+      "residents": 158550,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "03",
+      "parent_id": "28079",
+      "residents": 118863,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "04",
+      "parent_id": "28079",
+      "residents": 147256,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "05",
+      "parent_id": "28079",
+      "residents": 148093,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "06",
+      "parent_id": "28079",
+      "residents": 167776,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "07",
+      "parent_id": "28079",
+      "residents": 141522,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "08",
+      "parent_id": "28079",
+      "residents": 256037,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "09",
+      "parent_id": "28079",
+      "residents": 126257,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "10",
+      "parent_id": "28079",
+      "residents": 251139,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "11",
+      "parent_id": "28079",
+      "residents": 278090,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "12",
+      "parent_id": "28079",
+      "residents": 152937,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "13",
+      "parent_id": "28079",
+      "residents": 257924,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "14",
+      "parent_id": "28079",
+      "residents": 94405,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "15",
+      "parent_id": "28079",
+      "residents": 230334,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "16",
+      "parent_id": "28079",
+      "residents": 209178,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "17",
+      "parent_id": "28079",
+      "residents": 172551,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "18",
+      "parent_id": "28079",
+      "residents": 127566,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "19",
+      "parent_id": "28079",
+      "residents": 97860,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "20",
+      "parent_id": "28079",
+      "residents": 168526,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "21",
+      "parent_id": "28079",
+      "residents": 50613,
+      "residents_provenance": "DERIVED_FROM_BARRIO_POPULATION"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "011",
+      "parent_id": "01",
+      "residents": 23410,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "012",
+      "parent_id": "01",
+      "residents": 48085,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "013",
+      "parent_id": "01",
+      "residents": 10740,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "014",
+      "parent_id": "01",
+      "residents": 18140,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "015",
+      "parent_id": "01",
+      "residents": 33326,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "016",
+      "parent_id": "01",
+      "residents": 8099,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "021",
+      "parent_id": "02",
+      "residents": 24313,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "022",
+      "parent_id": "02",
+      "residents": 36069,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "023",
+      "parent_id": "02",
+      "residents": 20366,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "024",
+      "parent_id": "02",
+      "residents": 19916,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "025",
+      "parent_id": "02",
+      "residents": 29210,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "026",
+      "parent_id": "02",
+      "residents": 25737,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "027",
+      "parent_id": "02",
+      "residents": 2939,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "031",
+      "parent_id": "03",
+      "residents": 33838,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "032",
+      "parent_id": "03",
+      "residents": 18892,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "033",
+      "parent_id": "03",
+      "residents": 22692,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "034",
+      "parent_id": "03",
+      "residents": 21589,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "035",
+      "parent_id": "03",
+      "residents": 6774,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "036",
+      "parent_id": "03",
+      "residents": 15078,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "041",
+      "parent_id": "04",
+      "residents": 15223,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "042",
+      "parent_id": "04",
+      "residents": 29627,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "043",
+      "parent_id": "04",
+      "residents": 21462,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "044",
+      "parent_id": "04",
+      "residents": 43038,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "045",
+      "parent_id": "04",
+      "residents": 21108,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "046",
+      "parent_id": "04",
+      "residents": 16798,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "051",
+      "parent_id": "05",
+      "residents": 17366,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "052",
+      "parent_id": "05",
+      "residents": 36910,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "053",
+      "parent_id": "05",
+      "residents": 18807,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "054",
+      "parent_id": "05",
+      "residents": 32016,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "055",
+      "parent_id": "05",
+      "residents": 25402,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "056",
+      "parent_id": "05",
+      "residents": 17592,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "061",
+      "parent_id": "06",
+      "residents": 30751,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "062",
+      "parent_id": "06",
+      "residents": 35788,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "063",
+      "parent_id": "06",
+      "residents": 21189,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "064",
+      "parent_id": "06",
+      "residents": 24271,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "065",
+      "parent_id": "06",
+      "residents": 28641,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "066",
+      "parent_id": "06",
+      "residents": 27136,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "071",
+      "parent_id": "07",
+      "residents": 23670,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "072",
+      "parent_id": "07",
+      "residents": 24883,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "073",
+      "parent_id": "07",
+      "residents": 25114,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "074",
+      "parent_id": "07",
+      "residents": 19404,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "075",
+      "parent_id": "07",
+      "residents": 28065,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "076",
+      "parent_id": "07",
+      "residents": 20386,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "081",
+      "parent_id": "08",
+      "residents": 3472,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "082",
+      "parent_id": "08",
+      "residents": 3567,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "083",
+      "parent_id": "08",
+      "residents": 45120,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "084",
+      "parent_id": "08",
+      "residents": 46659,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "085",
+      "parent_id": "08",
+      "residents": 31835,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "086",
+      "parent_id": "08",
+      "residents": 67737,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "087",
+      "parent_id": "08",
+      "residents": 37918,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "088",
+      "parent_id": "08",
+      "residents": 19729,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "091",
+      "parent_id": "09",
+      "residents": 13530,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "092",
+      "parent_id": "09",
+      "residents": 24802,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "093",
+      "parent_id": "09",
+      "residents": 17077,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "094",
+      "parent_id": "09",
+      "residents": 31799,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "095",
+      "parent_id": "09",
+      "residents": 7705,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "096",
+      "parent_id": "09",
+      "residents": 3161,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "097",
+      "parent_id": "09",
+      "residents": 28183,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "101",
+      "parent_id": "10",
+      "residents": 18562,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "102",
+      "parent_id": "10",
+      "residents": 45854,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "103",
+      "parent_id": "10",
+      "residents": 38150,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "104",
+      "parent_id": "10",
+      "residents": 68548,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "105",
+      "parent_id": "10",
+      "residents": 20742,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "106",
+      "parent_id": "10",
+      "residents": 7057,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "107",
+      "parent_id": "10",
+      "residents": 52226,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "111",
+      "parent_id": "11",
+      "residents": 24009,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "112",
+      "parent_id": "11",
+      "residents": 35843,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "113",
+      "parent_id": "11",
+      "residents": 42556,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "114",
+      "parent_id": "11",
+      "residents": 50465,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "115",
+      "parent_id": "11",
+      "residents": 39269,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "116",
+      "parent_id": "11",
+      "residents": 52523,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "117",
+      "parent_id": "11",
+      "residents": 33425,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "121",
+      "parent_id": "12",
+      "residents": 23677,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "122",
+      "parent_id": "12",
+      "residents": 15036,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "123",
+      "parent_id": "12",
+      "residents": 24705,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "124",
+      "parent_id": "12",
+      "residents": 24801,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "125",
+      "parent_id": "12",
+      "residents": 28874,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "126",
+      "parent_id": "12",
+      "residents": 15528,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "127",
+      "parent_id": "12",
+      "residents": 20316,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "131",
+      "parent_id": "13",
+      "residents": 37773,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "132",
+      "parent_id": "13",
+      "residents": 51351,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "133",
+      "parent_id": "13",
+      "residents": 42052,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "134",
+      "parent_id": "13",
+      "residents": 44822,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "135",
+      "parent_id": "13",
+      "residents": 30348,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "136",
+      "parent_id": "13",
+      "residents": 51578,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "141",
+      "parent_id": "14",
+      "residents": 9111,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "142",
+      "parent_id": "14",
+      "residents": 6378,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "143",
+      "parent_id": "14",
+      "residents": 26140,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "144",
+      "parent_id": "14",
+      "residents": 17616,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "145",
+      "parent_id": "14",
+      "residents": 17957,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "146",
+      "parent_id": "14",
+      "residents": 17203,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "151",
+      "parent_id": "15",
+      "residents": 52396,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "152",
+      "parent_id": "15",
+      "residents": 65545,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "153",
+      "parent_id": "15",
+      "residents": 26752,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "154",
+      "parent_id": "15",
+      "residents": 22387,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "155",
+      "parent_id": "15",
+      "residents": 19141,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "156",
+      "parent_id": "15",
+      "residents": 13235,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "157",
+      "parent_id": "15",
+      "residents": 6812,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "158",
+      "parent_id": "15",
+      "residents": 1690,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "159",
+      "parent_id": "15",
+      "residents": 22376,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "161",
+      "parent_id": "16",
+      "residents": 7118,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "162",
+      "parent_id": "16",
+      "residents": 15368,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "163",
+      "parent_id": "16",
+      "residents": 40494,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "164",
+      "parent_id": "16",
+      "residents": 53458,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "165",
+      "parent_id": "16",
+      "residents": 15702,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "166",
+      "parent_id": "16",
+      "residents": 77038,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "171",
+      "parent_id": "17",
+      "residents": 51913,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "172",
+      "parent_id": "17",
+      "residents": 19732,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "173",
+      "parent_id": "17",
+      "residents": 23193,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "174",
+      "parent_id": "17",
+      "residents": 39454,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "175",
+      "parent_id": "17",
+      "residents": 38259,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "181",
+      "parent_id": "18",
+      "residents": 43518,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "182",
+      "parent_id": "18",
+      "residents": 23919,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "183",
+      "parent_id": "18",
+      "residents": 60129,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "191",
+      "parent_id": "19",
+      "residents": 37777,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "192",
+      "parent_id": "19",
+      "residents": 17260,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "193",
+      "parent_id": "19",
+      "residents": 17878,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "194",
+      "parent_id": "19",
+      "residents": 24945,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "201",
+      "parent_id": "20",
+      "residents": 30614,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "202",
+      "parent_id": "20",
+      "residents": 10272,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "203",
+      "parent_id": "20",
+      "residents": 10349,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "204",
+      "parent_id": "20",
+      "residents": 26309,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "205",
+      "parent_id": "20",
+      "residents": 30400,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "206",
+      "parent_id": "20",
+      "residents": 18584,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "207",
+      "parent_id": "20",
+      "residents": 30418,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "208",
+      "parent_id": "20",
+      "residents": 11580,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "211",
+      "parent_id": "21",
+      "residents": 20023,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "212",
+      "parent_id": "21",
+      "residents": 1928,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "213",
+      "parent_id": "21",
+      "residents": 8600,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "214",
+      "parent_id": "21",
+      "residents": 12401,
+      "residents_provenance": "SOURCE_REPORTED"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "215",
+      "parent_id": "21",
+      "residents": 7661,
+      "residents_provenance": "SOURCE_REPORTED"
+    }
+  ]
+}

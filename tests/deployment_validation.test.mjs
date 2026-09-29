@@ -132,6 +132,65 @@ function geographyMeta() {
   };
 }
 
+// A population artifact whose barrio ids and parents are taken from the geography
+// fixture, so the join universe lines up exactly. District and municipality
+// totals are derived from the barrio values.
+function populationArtifact() {
+  const geo = geographyFeatureCollection();
+  const barrios = geo.features.filter((f) => f.properties.geography_level === "barrio");
+  const districts = geo.features.filter((f) => f.properties.geography_level === "district");
+  const muni = geo.features.find((f) => f.properties.geography_level === "municipality");
+
+  const barrioRecords = barrios.map((b, i) => ({
+    geography_level: "barrio",
+    official_id: b.properties.official_id,
+    parent_id: b.properties.parent_id,
+    residents: 1000 + i,
+    residents_provenance: "SOURCE_REPORTED",
+  }));
+
+  const byDistrict = new Map();
+  let municipalityTotal = 0;
+  for (const b of barrioRecords) {
+    byDistrict.set(b.parent_id, (byDistrict.get(b.parent_id) ?? 0) + b.residents);
+    municipalityTotal += b.residents;
+  }
+
+  const records = [
+    {
+      geography_level: "municipality",
+      official_id: muni.properties.official_id,
+      parent_id: null,
+      residents: municipalityTotal,
+      residents_provenance: "DERIVED_FROM_BARRIO_POPULATION",
+    },
+    ...districts.map((d) => ({
+      geography_level: "district",
+      official_id: d.properties.official_id,
+      parent_id: d.properties.parent_id,
+      residents: byDistrict.get(d.properties.official_id) ?? 0,
+      residents_provenance: "DERIVED_FROM_BARRIO_POPULATION",
+    })),
+    ...barrioRecords,
+  ];
+
+  return {
+    contract_version: "1.0.0",
+    source_period: { reference_date: "2026-01-01", label: "1 de enero de 2026", type: "padron_annual_reference_date", provisional: false },
+    counts: { municipality: 1, districts: 21, barrios: 131 },
+    records,
+  };
+}
+
+function populationMeta() {
+  return {
+    contract_version: "1.0.0",
+    source_period: { reference_date: "2026-01-01", type: "padron_annual_reference_date" },
+    geography_linkage: { barrio_geography_version: "v3.4.1", district_geography_version: "v3.2.1" },
+    retrieved_at: GENERATED_AT,
+  };
+}
+
 function healthyArtifacts() {
   const layers = {
     museum: poiRecords("museum", 3),
@@ -194,6 +253,8 @@ function healthyArtifacts() {
     },
     "geography/madrid_admin.geojson": geographyFeatureCollection(),
     "geography/madrid_admin.meta.json": geographyMeta(),
+    "population/madrid_population.json": populationArtifact(),
+    "population/madrid_population.meta.json": populationMeta(),
   };
 }
 
@@ -753,6 +814,40 @@ test("the geography carries no fabricated source period; its published version i
   );
 });
 
+test("the population layer carries a source-derived reference period and derived totals", () => {
+  const result = run(healthyArtifacts());
+  const population = result.manifest.layers.find((l) => l.source_id === "population");
+
+  assert.equal(population.role, "reference");
+  assert.equal(population.evidence_type, "ADMINISTRATIVE_REGISTER");
+  assert.equal(population.blocks_deployment, false);
+  assert.equal(population.state, "available");
+
+  // The period is the source reference date, not the build clock.
+  assert.equal(population.source_period_known, true);
+  assert.equal(population.source_period.from, "2026-01-01");
+  assert.equal(population.source_period.type, "padron_annual_reference_date");
+
+  // The manifest states the geography version the population joins against.
+  assert.ok(
+    population.warnings.some((w) => /period 2026-01-01 joined to barrio geography v3\.4\.1/.test(w)),
+    "the manifest should record the population period and the geography version it joins"
+  );
+});
+
+test("a population artifact whose totals disagree with the barrio sums is caught", () => {
+  const artifacts = healthyArtifacts();
+  // Corrupt the municipality total so it no longer equals the barrio sum.
+  const pop = artifacts["population/madrid_population.json"];
+  pop.records.find((r) => r.geography_level === "municipality").residents += 1;
+  const result = run(artifacts);
+  // Non-blocking, so it surfaces as a warning rather than failing the build.
+  assert.ok(
+    result.warnings.some((w) => /municipality total .* does not equal the sum of the barrios/.test(w)),
+    "an inconsistent municipality total must be reported"
+  );
+});
+
 test("the manifest cannot present the packaged fallback as authoritative Madrid evidence", () => {
   const result = run(healthyArtifacts());
   const fallback = result.manifest.layers.find((l) => l.source_id === "snapshot_fallback");
@@ -797,9 +892,13 @@ test("source registry is internally coherent", () => {
       `${source.id} has an unknown role`
     );
     assert.ok(
-      ["deployment_snapshot", "committed_research_evidence", "packaged_sample", "committed_reference_geography"].includes(
-        source.provenance_state
-      ),
+      [
+        "deployment_snapshot",
+        "committed_research_evidence",
+        "packaged_sample",
+        "committed_reference_geography",
+        "committed_reference_evidence",
+      ].includes(source.provenance_state),
       `${source.id} must declare a known provenance_state`
     );
     assert.equal(
@@ -812,10 +911,11 @@ test("source registry is internally coherent", () => {
       `${source.id} references undefined scope ${source.expected_spatial_scope}`
     );
 
-    if (source.shape === "admin_geography") {
-      // The administrative geography has an exact-count contract, not a
-      // collapse floor: it must ship exactly the official number of districts
-      // and barrios, so a min_count guardrail would be the wrong instrument.
+    if (source.shape === "admin_geography" || source.shape === "admin_population") {
+      // The administrative geography and the population denominator have an
+      // exact-count contract, not a collapse floor: they cover exactly the
+      // official number of districts and barrios, so a min_count guardrail would
+      // be the wrong instrument.
       const counts = source.expected_counts;
       assert.ok(counts, `${source.id} needs expected_counts`);
       assert.equal(counts.districts, 21, `${source.id} must expect 21 districts`);
@@ -892,20 +992,22 @@ test("exactly the layers that feed operational lens metrics block deployment", (
   assert.deepEqual(blocking, ["bike", "hati", "info", "museum", "rail", "snapshot_fallback", "stay"]);
 
   const nonBlocking = REAL_REGISTRY.sources.filter((s) => !s.blocks_deployment).map((s) => s.id).sort();
-  assert.deepEqual(nonBlocking, ["geography", "park", "pedestrian"]);
+  assert.deepEqual(nonBlocking, ["geography", "park", "pedestrian", "population"]);
 
   for (const id of ["park", "pedestrian"]) {
     assert.equal(REAL_REGISTRY.sources.find((s) => s.id === id).unavailable_is_allowed, true);
   }
 
-  // Geography is non-blocking for a different reason: the application does not
-  // yet consume it, so a build is not withheld over it, but it is committed and
-  // must always be present (never an allowed unavailable state). Its structural
-  // integrity is enforced by the test suites, and it must flip to blocking once
-  // a user-facing feature depends on it.
-  const geography = REAL_REGISTRY.sources.find((s) => s.id === "geography");
-  assert.equal(geography.unavailable_is_allowed, false);
-  assert.ok(geography.blocks_deployment_note, "geography must document why it does not block yet");
+  // Geography and population are non-blocking for a different reason: no
+  // user-facing feature consumes them yet, so a build is not withheld over them,
+  // but they are committed and must always be present (never an allowed
+  // unavailable state). Their integrity is enforced by the test suites, and each
+  // must flip to blocking once a public feature depends on it.
+  for (const id of ["geography", "population"]) {
+    const source = REAL_REGISTRY.sources.find((s) => s.id === id);
+    assert.equal(source.unavailable_is_allowed, false, `${id} must not allow an unavailable state`);
+    assert.ok(source.blocks_deployment_note, `${id} must document why it does not block yet`);
+  }
 });
 
 test("the committed evidence artifacts satisfy the real registry", () => {
@@ -919,7 +1021,7 @@ test("the committed evidence artifacts satisfy the real registry", () => {
   };
   assert.deepEqual(
     committedRegistry.sources.map((s) => s.id).sort(),
-    ["geography", "hati", "snapshot_fallback"],
+    ["geography", "hati", "population", "snapshot_fallback"],
     "the set of committed, non-rebuilt sources changed; update this test deliberately"
   );
 
