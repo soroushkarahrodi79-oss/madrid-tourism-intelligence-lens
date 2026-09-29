@@ -1,0 +1,87 @@
+{
+  "contract_version": "1.0.0",
+  "title": "Canonical Madrid administrative geography (municipality, districts, barrios)",
+  "artifact": "madrid_admin.geojson",
+  "source": {
+    "authority": "Ayuntamiento de Madrid - IDEAM (Infraestructura de Datos Espaciales del Ayuntamiento de Madrid)",
+    "map_service": "https://sigma.madrid.es/hosted/rest/services/CARTOGRAFIA/LIMITES_ADMINISTRATIVOS/MapServer",
+    "service_layers": {
+      "district": 26,
+      "barrio": 25
+    },
+    "catalogue": {
+      "district": "https://datos.madrid.es/dataset/300497-0-distritos-municipales-madrid",
+      "barrio": "https://datos.madrid.es/dataset/300496-0-barrios-madrid"
+    },
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "attribution": "(c) Ayuntamiento de Madrid"
+  },
+  "coordinate_reference_system": {
+    "source": "EPSG:25830 (ETRS89 / UTM zone 30N)",
+    "output": "EPSG:4326 / CRS84 (WGS84, lon,lat)",
+    "reprojection": "server-side via ArcGIS outSR=4326; no client-side reprojection"
+  },
+  "coordinate_precision": {
+    "decimal_places": 7,
+    "note": "~1.1 cm; rounding only. No vertices removed, no geometry simplification. Every rounded feature is checked for real shapely validity at build time and the build fails rather than repairing the official geometry."
+  },
+  "identifier_scheme": {
+    "municipality": "INE municipal code (28079); geometry is derived, see municipality_geometry",
+    "district": "Official Ayuntamiento de Madrid district code COD_DIS_TX, zero-padded 2 digits (01-21)",
+    "barrio": "Official Ayuntamiento de Madrid barrio code COD_BAR, 3 digits, prefixed by the parent district code",
+    "primary_key_note": "Names are never used as identifiers; codes are source-derived, not invented."
+  },
+  "hierarchy": {
+    "model": "municipality -> district -> barrio",
+    "join": "barrio.parent_id == district.official_id ; district.parent_id == municipality.official_id",
+    "validated_by": [
+      "attribute codes",
+      "shapely covers(): every barrio geometry is contained by its declared parent district",
+      "spatial containment of each barrio's interior point within its parent district (test suites)"
+    ]
+  },
+  "municipality_geometry": {
+    "method": "DERIVED_FROM_OFFICIAL_GEOMETRY",
+    "how": "shapely unary_union of the 21 official district polygons. The service's TERMINO MUNICIPAL layer is a polyline, so no published municipality polygon exists to use directly.",
+    "ine_municipal_code": "28079",
+    "union_coherence": {
+      "sum_of_district_areas_deg2": 0.06417792797631498,
+      "union_area_deg2": 0.06417792797631483,
+      "relative_difference": 2.378631886375281e-15,
+      "union_geometry_type": "Polygon",
+      "union_part_count": 1
+    }
+  },
+  "source_version": {
+    "published_version_exposed": true,
+    "geometry_effective_date_exposed": false,
+    "datasets": {
+      "district": {
+        "dataset": "Distritos municipales de Madrid",
+        "published_version": "v3.2.1",
+        "catalog_metadata_modified": "2026-07-27",
+        "catalog_metadata_created": "2021-03-02",
+        "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+        "license_id": "cc-by"
+      },
+      "barrio": {
+        "dataset": "Barrios municipales de Madrid",
+        "published_version": "v3.4.1",
+        "catalog_metadata_modified": "2026-07-27",
+        "catalog_metadata_created": "2021-03-02",
+        "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+        "license_id": "cc-by"
+      }
+    },
+    "note": "published_version is the official dataset version stated in the Madrid Open Data description ('Versión de los datos'). catalog_metadata_modified is only the CKAN catalogue record's last-modified date, NOT the geometry's edition or effective date, and must not be presented as one. retrieved_at is the build time. No effective date of the geometry is published, so this geography carries no source_period; a future join should cite the published version, e.g. 'Padron period X joined to Madrid barrio geography v3.4.1', never a catalogue modification timestamp."
+  },
+  "retrieved_at": "2026-09-29T13:51:41Z",
+  "builder": "scripts/build_madrid_geography.py",
+  "counts": {
+    "municipality": 1,
+    "districts": 21,
+    "barrios": 131
+  },
+  "interpretation_ceiling": "Administrative reference geography for spatial joins and containment only. Not an analytical metric and not a denominator on its own. Administrative-area statistics must never be spatially distributed into a circular Lens or any sub-area; a Lens may report the official barrio/district containing a point, kept separate from circle-derived measurements."
+}
