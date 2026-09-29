@@ -112,35 +112,70 @@ def parse_int(value: str) -> int:
 
 
 def parse_year(fecha: str) -> str:
-    match = re.search(r"(\d{4})", fecha)
+    """Parse only the source contract's explicit 1-January reference date."""
+    match = re.fullmatch(
+        r"\s*1\s+de\s+enero\s+de\s+(\d{4})\s*",
+        fecha,
+        flags=re.IGNORECASE,
+    )
     if not match:
-        raise ValueError(f"no year in reference date {fecha!r}")
+        raise ValueError(
+            f"reference date {fecha!r} does not match the source contract '1 de enero de YYYY'"
+        )
     return match.group(1)
 
 
 def parse_population_csv(text: str) -> list[dict]:
-    """Parse the source CSV into raw rows, one per (barrio, reference year).
+    """Parse source rows and enforce the published population schema.
 
-    Returns dicts with source-native fields plus a normalised year. No geography
-    normalisation happens here; that is a separate, testable step.
+    Besides parsing the official total, this checks two source-contract facts
+    before any geography reconciliation happens:
+      - every row belongs to Madrid municipality (28079);
+      - num_personas equals num_personas_hombres + num_personas_mujeres.
+
+    That turns the metadata's statement about the sex split into an enforced
+    ingestion invariant rather than an undocumented manual observation.
     """
     reader = csv.DictReader(io.StringIO(text), delimiter=";")
-    required = {"fecha", "cod_municipio", "cod_distrito", "cod_barrio", "num_personas"}
+    required = {
+        "fecha",
+        "cod_municipio",
+        "cod_distrito",
+        "cod_barrio",
+        "num_personas",
+        "num_personas_hombres",
+        "num_personas_mujeres",
+    }
     missing = required - set(h.strip() for h in (reader.fieldnames or []))
     if missing:
         raise SystemExit(f"source CSV is missing expected columns: {sorted(missing)}")
 
     rows = []
-    for raw in reader:
+    for row_number, raw in enumerate(reader, start=2):
+        municipality = raw["cod_municipio"].strip()
+        if municipality != INE_MADRID_MUNICIPAL_CODE:
+            raise SystemExit(
+                f"row {row_number}: cod_municipio={municipality!r}; expected Madrid "
+                f"{INE_MADRID_MUNICIPAL_CODE!r}"
+            )
+
+        total = parse_int(raw["num_personas"])
+        men = parse_int(raw["num_personas_hombres"])
+        women = parse_int(raw["num_personas_mujeres"])
+        if total != men + women:
+            raise SystemExit(
+                f"row {row_number}: num_personas={total} but hombres+mujeres={men + women}"
+            )
+
         rows.append(
             {
                 "year": parse_year(raw["fecha"]),
                 "fecha": raw["fecha"].strip(),
-                "cod_municipio": raw["cod_municipio"].strip(),
+                "cod_municipio": municipality,
                 "cod_distrito": raw["cod_distrito"].strip(),
                 "cod_barrio": raw["cod_barrio"].strip(),
                 "barrio_name": (raw.get("barrio") or "").strip(),
-                "residents": parse_int(raw["num_personas"]),
+                "residents": total,
             }
         )
     return rows

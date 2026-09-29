@@ -595,8 +595,11 @@ function validatePopulation(source, population, meta, geography, errors, warning
       type: population.source_period?.type ?? "administrative_register_reference_date",
       provisional: population.source_period?.provisional === true,
     };
-    if (meta && ISO_DATE.test(String(reference)) && String(meta.retrieved_at ?? "").startsWith(reference)) {
-      sink.push(`${label}: retrieved_at must not equal the population reference date; the build time is not the period`);
+    const metaReference = meta?.source_period?.reference_date;
+    if (metaReference && metaReference !== reference) {
+      sink.push(
+        `${label}: data reference date ${reference} disagrees with metadata reference date ${metaReference}`
+      );
     }
   }
 

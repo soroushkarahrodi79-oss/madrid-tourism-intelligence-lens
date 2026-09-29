@@ -46,8 +46,10 @@ class BuilderLogicTests(unittest.TestCase):
 
     def test_parse_year(self):
         self.assertEqual(MODULE.parse_year("1 de enero de 2026"), "2026")
-        with self.assertRaises(ValueError):
-            MODULE.parse_year("sin fecha")
+        self.assertEqual(MODULE.parse_year(" 1 de enero de 2025 "), "2025")
+        for bad in ("sin fecha", "31 de diciembre de 2026", "2026-01-01"):
+            with self.assertRaises(ValueError):
+                MODULE.parse_year(bad)
 
     def test_parse_population_csv(self):
         rows = MODULE.parse_population_csv(SAMPLE_CSV)
@@ -61,6 +63,16 @@ class BuilderLogicTests(unittest.TestCase):
     def test_parse_population_csv_rejects_missing_columns(self):
         with self.assertRaises(SystemExit):
             MODULE.parse_population_csv("fecha;cod_barrio;num_personas\n2026;11;10\n")
+
+    def test_parse_population_csv_rejects_non_madrid_municipality(self):
+        bad = SAMPLE_CSV.replace(";28079;Madrid;", ";99999;Madrid;", 1)
+        with self.assertRaises(SystemExit):
+            MODULE.parse_population_csv(bad)
+
+    def test_parse_population_csv_checks_total_equals_sex_components(self):
+        bad = SAMPLE_CSV.replace(";23.410;11.320;12.090", ";23.411;11.320;12.090", 1)
+        with self.assertRaises(SystemExit):
+            MODULE.parse_population_csv(bad)
 
     def test_select_period_prefers_latest_complete(self):
         rows = MODULE.parse_population_csv(SAMPLE_CSV)
@@ -158,7 +170,7 @@ class CommittedArtifactTests(unittest.TestCase):
         ref = self.pop["source_period"]["reference_date"]
         self.assertRegex(ref, r"^\d{4}-01-01$")
         self.assertRegex(self.meta["retrieved_at"], r"^\d{4}-\d{2}-\d{2}T")
-        self.assertNotEqual(self.meta["retrieved_at"][:10], ref)
+        self.assertEqual(self.meta["source_period"]["reference_date"], ref)
 
     def test_values_valid(self):
         for r in self.pop["records"]:

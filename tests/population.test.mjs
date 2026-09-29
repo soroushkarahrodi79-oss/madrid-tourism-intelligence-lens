@@ -43,8 +43,9 @@ test("the population period is a source-derived reference date, not the build ti
   assert.match(POP.source_period.reference_date, /^\d{4}-01-01$/, "a 1-January reference date");
   assert.equal(POP.source_period.provisional, false);
   assert.match(META.retrieved_at, /^\d{4}-\d{2}-\d{2}T/, "retrieved_at is a timestamp");
-  assert.notEqual(META.retrieved_at.slice(0, 10), POP.source_period.reference_date, "build time is not the period");
   assert.equal(META.source_period.reference_date, POP.source_period.reference_date, "data and meta agree on the period");
+  // Separation is semantic: source period and retrieval time live in distinct
+  // fields/contracts. Their calendar dates need not be forced unequal.
 });
 
 // ---------------------------------------------------------------- values
