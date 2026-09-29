@@ -65,9 +65,11 @@ def _contains(feature, x, y):
 
 class BuilderNormalisationTests(unittest.TestCase):
     def test_round_ring_rounds_dedupes_and_closes(self):
+        # Inputs carry more decimals than COORD_DECIMALS (7), so the first two
+        # points collapse onto the same rounded coordinate and one is dropped.
         ring = [
-            [-3.7000001, 40.4000001],  # A -> [-3.7, 40.4]
-            [-3.7000002, 40.4000002],  # collapses onto A at 6 dp -> dropped
+            [-3.70000001, 40.40000001],  # A -> [-3.7, 40.4]
+            [-3.70000002, 40.40000002],  # collapses onto A at 7 dp -> dropped
             [-3.6990000, 40.4010000],  # B
             [-3.6980000, 40.4000000],  # C
             [-3.7000000, 40.4000000],  # closing point == A
@@ -128,6 +130,18 @@ class BuilderNormalisationTests(unittest.TestCase):
     def test_geometry_plausibility_rejects_null_island(self):
         self.assertTrue(MODULE._geometry_plausible(_square()))
         self.assertFalse(MODULE._geometry_plausible({"type": "Polygon", "coordinates": [[[0, 0], [0.001, 0], [0, 0.001], [0, 0]]]}))
+
+    def test_parse_published_version_is_deterministic_and_specific(self):
+        district_notes = "... aproximación de los límites a los ejes de viario. Versión de los datos v3.2.1.\r\n\r\n**Fuente:...**"
+        barrio_notes = "Versión de los datos v3.4.1."
+        self.assertEqual(MODULE.parse_published_version(district_notes), "v3.2.1")
+        self.assertEqual(MODULE.parse_published_version(barrio_notes), "v3.4.1")
+        # Case/accent tolerant and normalises the leading v.
+        self.assertEqual(MODULE.parse_published_version("VERSION DE LOS DATOS 4.0.2"), "v4.0.2")
+        # A version-looking token that is not the dataset version is not matched.
+        self.assertIsNone(MODULE.parse_published_version("built with library 1.2.3"))
+        self.assertIsNone(MODULE.parse_published_version(""))
+        self.assertIsNone(MODULE.parse_published_version(None))
 
 
 # --------------------------------------------------------------- committed artifact
@@ -201,12 +215,20 @@ class CommittedArtifactTests(unittest.TestCase):
             parent = by_id[b["properties"]["parent_id"]]
             self.assertTrue(_contains(parent, cx, cy), f"barrio {b['properties']['official_id']} centre outside its district")
 
-    def test_vintage_and_build_time_are_separate(self):
-        vintage = self.meta["source_vintage"]["datasets"]["barrio"]["metadata_modified"]
-        self.assertRegex(vintage, r"^\d{4}-\d{2}-\d{2}$")
+    def test_version_catalogue_date_and_build_time_are_separate(self):
+        self.assertNotIn("source_vintage", self.meta, "source_vintage was replaced by source_version")
+        sv = self.meta["source_version"]
+        self.assertTrue(sv["published_version_exposed"])
+        self.assertFalse(sv["geometry_effective_date_exposed"])
+
+        self.assertEqual(sv["datasets"]["district"]["published_version"], "v3.2.1")
+        self.assertEqual(sv["datasets"]["barrio"]["published_version"], "v3.4.1")
+
+        catalog_date = sv["datasets"]["barrio"]["catalog_metadata_modified"]
+        self.assertRegex(catalog_date, r"^\d{4}-\d{2}-\d{2}$")
         self.assertRegex(self.meta["retrieved_at"], r"^\d{4}-\d{2}-\d{2}T")
-        self.assertNotEqual(self.meta["retrieved_at"], vintage)
-        self.assertFalse(self.meta["source_vintage"]["per_feature_edition_exposed"])
+        self.assertNotEqual(self.meta["retrieved_at"], catalog_date)
+        self.assertNotEqual(sv["datasets"]["barrio"]["published_version"], catalog_date)
 
     def test_metadata_documents_provenance(self):
         self.assertEqual(self.meta["source"]["license"], "CC BY 4.0")

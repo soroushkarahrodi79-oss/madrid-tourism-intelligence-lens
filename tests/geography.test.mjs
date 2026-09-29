@@ -225,6 +225,51 @@ test("every barrio's interior point maps back to that barrio and its parent dist
   }
 });
 
+test("a point on a shared boundary is assigned deterministically to exactly one area", () => {
+  // Two districts sharing the edge x = 1. This documents and locks the actual
+  // assignment convention rather than relying on a claim about ray casting:
+  //   - the index sorts by official_id and returns the FIRST matching feature;
+  //   - the half-open ray-cast edge rule (`(yi > lat) !== (yj > lat)`) keeps a
+  //     boundary point from matching both polygons.
+  // The contract is purely that the SAME boundary coordinate always yields the
+  // SAME documented result. It is a technical assignment convention only, and
+  // makes no claim that a real-world boundary point belongs more strongly to
+  // either side.
+  const ring = (pts) => pts.concat([pts[0]]);
+  const fc = {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        properties: { geography_level: "district", official_id: "01", official_name: "West", parent_id: "28079" },
+        geometry: { type: "Polygon", coordinates: [ring([[0, 0], [1, 0], [1, 1], [0, 1]])] },
+      },
+      {
+        type: "Feature",
+        properties: { geography_level: "district", official_id: "02", official_name: "East", parent_id: "28079" },
+        geometry: { type: "Polygon", coordinates: [ring([[1, 0], [2, 0], [2, 1], [1, 1]])] },
+      },
+    ],
+  };
+  const index = createGeographyIndex(fc);
+
+  // A point exactly on the shared edge resolves to exactly one district, and the
+  // choice is stable across repeated calls.
+  const onBoundary = index.districtAt(1, 0.5);
+  const again = index.districtAt(1, 0.5);
+  assert.ok(onBoundary, "a boundary point must resolve to one district, never neither");
+  assert.equal(onBoundary.official_id, again.official_id, "the assignment must be deterministic");
+
+  // With this data and the half-open rule the shared edge belongs to the east
+  // polygon (its left edge counts; the west polygon's right edge does not). This
+  // asserts the concrete mechanism relied upon, not a general PIP guarantee.
+  assert.equal(onBoundary.official_id, "02");
+
+  // Interior points are unambiguous.
+  assert.equal(index.districtAt(0.5, 0.5).official_id, "01");
+  assert.equal(index.districtAt(1.5, 0.5).official_id, "02");
+});
+
 test("pointInRing and pointInGeometry agree on a simple square", () => {
   const square = [
     [0, 0],
@@ -255,17 +300,29 @@ test("pointInRing and pointInGeometry agree on a simple square", () => {
 
 // ---------------------------------------------------------------- provenance metadata
 
-test("source vintage and build time are recorded separately and not conflated", () => {
-  // Vintage is a date the authority publishes; retrieved_at is when the builder
-  // ran. They must be different fields so a future population join can state
-  // "population vintage X joined to geography vintage Y".
-  assert.ok(META.source_vintage, "meta must carry source_vintage");
-  assert.equal(META.source_vintage.per_feature_edition_exposed, false);
-  const modified = META.source_vintage.datasets.barrio.metadata_modified;
-  assert.match(modified, /^\d{4}-\d{2}-\d{2}$/, "vintage is a date");
+test("published version, catalogue date and build time are three separate concepts", () => {
+  // The corrected model: the authority publishes a dataset VERSION, not an
+  // effective date. The catalogue metadata-modified date is not a geometry
+  // vintage, and the build time is neither. All three are distinct fields so a
+  // future join can state "Padron period X joined to barrio geography v3.4.1".
+  const sv = META.source_version;
+  assert.ok(sv, "meta must carry source_version");
+  assert.equal(sv.published_version_exposed, true);
+  assert.equal(sv.geometry_effective_date_exposed, false);
+
+  assert.equal(sv.datasets.district.published_version, "v3.2.1");
+  assert.equal(sv.datasets.barrio.published_version, "v3.4.1");
+
+  const catalogDate = sv.datasets.barrio.catalog_metadata_modified;
+  assert.match(catalogDate, /^\d{4}-\d{2}-\d{2}$/, "catalogue date is a date");
   assert.match(META.retrieved_at, /^\d{4}-\d{2}-\d{2}T/, "retrieved_at is a timestamp");
-  assert.notEqual(META.retrieved_at, modified, "the build time is not the geography vintage");
-  assert.match(META.source_vintage.note, /NOT the retrieval\/build time/i);
+  assert.notEqual(META.retrieved_at, catalogDate, "the build time is not the catalogue date");
+  assert.notEqual(sv.datasets.barrio.published_version, catalogDate, "the version is not a date");
+
+  // The note must warn against reading the catalogue date as a geometry vintage.
+  assert.match(sv.note, /NOT the geometry's edition or effective date/i);
+  // The old, too-strong field must be gone.
+  assert.equal(META.source_vintage, undefined, "source_vintage was replaced by source_version");
 });
 
 test("the metadata documents the source, licence, CRS and derivation method", () => {

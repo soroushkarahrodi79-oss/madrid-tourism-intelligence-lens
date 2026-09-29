@@ -120,11 +120,12 @@ function geographyFeatureCollection() {
 function geographyMeta() {
   return {
     contract_version: "1.0.0",
-    source_vintage: {
-      per_feature_edition_exposed: false,
+    source_version: {
+      published_version_exposed: true,
+      geometry_effective_date_exposed: false,
       datasets: {
-        district: { metadata_modified: "2026-07-27" },
-        barrio: { metadata_modified: "2026-07-27" },
+        district: { published_version: "v3.2.1", catalog_metadata_modified: "2026-07-27" },
+        barrio: { published_version: "v3.4.1", catalog_metadata_modified: "2026-07-27" },
       },
     },
     retrieved_at: GENERATED_AT,
@@ -733,6 +734,23 @@ test("the manifest labels each layer's provenance state", () => {
   }
   assert.equal(stateOf("hati"), "committed_research_evidence");
   assert.equal(stateOf("snapshot_fallback"), "packaged_sample");
+});
+
+test("the geography carries no fabricated source period; its published version is surfaced", () => {
+  const result = run(healthyArtifacts());
+  const geography = result.manifest.layers.find((l) => l.source_id === "geography");
+
+  // A catalogue metadata-modified date must never be turned into a geometry
+  // vintage: the geography exposes no effective date, so it has no source period.
+  assert.equal(geography.source_period, null);
+  assert.equal(geography.source_period_known, false);
+  assert.doesNotMatch(JSON.stringify(result.manifest), /administrative_geography_edition/);
+
+  // The authoritative published dataset version is what identifies the edition.
+  assert.ok(
+    geography.warnings.some((w) => /published version:.*v3\.2\.1.*v3\.4\.1/.test(w)),
+    "the manifest should surface the published district/barrio versions"
+  );
 });
 
 test("the manifest cannot present the packaged fallback as authoritative Madrid evidence", () => {

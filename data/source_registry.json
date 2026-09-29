@@ -301,8 +301,8 @@
       "unavailable_is_allowed": false,
       "evidence_type": "REFERENCE",
       "expected_spatial_scope": "madrid_city_area",
-      "source_period_exposed_by_source": true,
-      "source_period_semantics": "The canonical geography is committed, not fetched at deploy time (rebuilt_at_deploy is false), so it changes only through a reviewed commit. Its source vintage is the authority's dataset last-modified date, recorded in geography/madrid_admin.meta.json under source_vintage; the builder's retrieval/build time is recorded separately as retrieved_at and is never presented as the geography vintage. Administrative boundaries are not 'live' and are never made to look fresh because the builder ran.",
+      "source_period_exposed_by_source": false,
+      "source_period_semantics": "No effective or edition date of the geometry is published, so this geography has no source period; source_period is null and source_period_known is false. What the authority does publish is a dataset version ('Versión de los datos'): district v3.2.1 and barrio v3.4.1 at capture, recorded in geography/madrid_admin.meta.json under source_version.datasets[*].published_version. The CKAN catalogue's metadata-modified date is recorded there too, as catalog_metadata_modified, and is ONLY the catalogue record's modification date - it is not the geometry's edition or vintage and must never be presented as one. The builder's retrieval/build time is recorded separately as retrieved_at. A future join should cite the published version (e.g. 'Padron period X joined to Madrid barrio geography v3.4.1'), never a catalogue timestamp. The geography is committed, not fetched at deploy time (rebuilt_at_deploy is false), and administrative boundaries are never made to look fresh because the builder ran.",
       "expected_counts": {
         "municipality": 1,
         "districts": 21,

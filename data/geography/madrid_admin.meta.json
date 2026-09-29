@@ -23,8 +23,8 @@
     "reprojection": "server-side via ArcGIS outSR=4326; no client-side reprojection"
   },
   "coordinate_precision": {
-    "decimal_places": 6,
-    "note": "~0.11 m; rounding only. No vertices removed, no geometry simplification."
+    "decimal_places": 7,
+    "note": "~1.1 cm; rounding only. No vertices removed, no geometry simplification. Every rounded feature is checked for real shapely validity at build time and the build fails rather than repairing the official geometry."
   },
   "identifier_scheme": {
     "municipality": "INE municipal code (28079); geometry is derived, see municipality_geometry",
@@ -37,7 +37,8 @@
     "join": "barrio.parent_id == district.official_id ; district.parent_id == municipality.official_id",
     "validated_by": [
       "attribute codes",
-      "spatial containment of each barrio's interior point within its parent district"
+      "shapely covers(): every barrio geometry is contained by its declared parent district",
+      "spatial containment of each barrio's interior point within its parent district (test suites)"
     ]
   },
   "municipality_geometry": {
@@ -45,34 +46,37 @@
     "how": "shapely unary_union of the 21 official district polygons. The service's TERMINO MUNICIPAL layer is a polyline, so no published municipality polygon exists to use directly.",
     "ine_municipal_code": "28079",
     "union_coherence": {
-      "sum_of_district_areas_deg2": 0.06417795065199988,
-      "union_area_deg2": 0.06417795065199977,
-      "relative_difference": 1.7299134879598407e-15,
+      "sum_of_district_areas_deg2": 0.06417792797631498,
+      "union_area_deg2": 0.06417792797631483,
+      "relative_difference": 2.378631886375281e-15,
       "union_geometry_type": "Polygon",
       "union_part_count": 1
     }
   },
-  "source_vintage": {
-    "per_feature_edition_exposed": false,
+  "source_version": {
+    "published_version_exposed": true,
+    "geometry_effective_date_exposed": false,
     "datasets": {
       "district": {
         "dataset": "Distritos municipales de Madrid",
-        "metadata_modified": "2026-07-27",
-        "metadata_created": "2021-03-02",
+        "published_version": "v3.2.1",
+        "catalog_metadata_modified": "2026-07-27",
+        "catalog_metadata_created": "2021-03-02",
         "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
         "license_id": "cc-by"
       },
       "barrio": {
         "dataset": "Barrios municipales de Madrid",
-        "metadata_modified": "2026-07-27",
-        "metadata_created": "2021-03-02",
+        "published_version": "v3.4.1",
+        "catalog_metadata_modified": "2026-07-27",
+        "catalog_metadata_created": "2021-03-02",
         "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
         "license_id": "cc-by"
       }
     },
-    "note": "This is the geography vintage the authority publishes (dataset last-modified). It is NOT the retrieval/build time below and must never be conflated with it, nor with a future population vintage: a Padron join must be able to state 'population vintage X joined to geography vintage Y' rather than assume they are equal."
+    "note": "published_version is the official dataset version stated in the Madrid Open Data description ('Versión de los datos'). catalog_metadata_modified is only the CKAN catalogue record's last-modified date, NOT the geometry's edition or effective date, and must not be presented as one. retrieved_at is the build time. No effective date of the geometry is published, so this geography carries no source_period; a future join should cite the published version, e.g. 'Padron period X joined to Madrid barrio geography v3.4.1', never a catalogue modification timestamp."
   },
-  "retrieved_at": "2026-09-29T13:34:16Z",
+  "retrieved_at": "2026-09-29T13:51:41Z",
   "builder": "scripts/build_madrid_geography.py",
   "counts": {
     "municipality": 1,

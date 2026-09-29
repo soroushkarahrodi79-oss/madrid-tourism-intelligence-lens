@@ -52,6 +52,7 @@ from __future__ import annotations
 import argparse
 import datetime as _dt
 import json
+import re
 import sys
 import urllib.parse
 import urllib.request
@@ -73,9 +74,19 @@ CKAN_BARRIOS = "https://datos.madrid.es/api/3/action/package_show?id=300496-0-ba
 # geometry itself is derived, not taken from INE.
 INE_MADRID_MUNICIPAL_CODE = "28079"
 
-# ~0.11 m at Madrid's latitude. Rounding only reduces coordinate precision and
+# ~1.1 cm at Madrid's latitude. Rounding only reduces coordinate precision and
 # noisy diffs; it removes no vertices and performs no geometry simplification.
-COORD_DECIMALS = 6
+#
+# 7, not 6: at 6 decimals the rounding collapsed a handful of near-coincident
+# vertices in the official geometry into ring self-intersections (district 08,
+# barrios 086 and 105 became invalid while their full-precision source was
+# valid). That is exactly the "precision policy needs review" signal the builder
+# is meant to surface, so the policy was moved to 7 decimals, at which every
+# official district and barrio stays valid and every barrio is still exactly
+# covered by its parent district. The builder now fails rather than silently
+# repairing if any rounded feature is invalid, so a future precision change that
+# reintroduced the problem could not pass unnoticed.
+COORD_DECIMALS = 7
 
 CONTRACT_VERSION = "1.0.0"
 
@@ -110,28 +121,52 @@ def fetch_layer_geojson(layer_id: int) -> dict:
     return data
 
 
-def fetch_dataset_vintage() -> dict:
-    """Read dataset-level edition metadata from the CKAN catalogue.
+# The official dataset version is stated in the Madrid Open Data description as
+# "Versión de los datos v3.4.1". This is deterministic: it captures that exact
+# phrase, so a version-looking token elsewhere in the notes cannot be mistaken
+# for it. Returns "v3.4.1" (with the leading v normalised) or None.
+VERSION_RE = re.compile(r"versi[oó]n\s+de\s+los\s+datos\s+v?\s*(\d+\.\d+(?:\.\d+)*)", re.IGNORECASE)
 
-    The service exposes no usable per-feature edition date (FCH_ALTA / FCH_BAJA
-    come back null), so the catalogue's last-modified date is the best geography
-    vintage the authority publishes. It is recorded as the *source* vintage and
-    is deliberately kept separate from the retrieval/build time.
+
+def parse_published_version(notes: str):
+    if not notes:
+        return None
+    match = VERSION_RE.search(notes)
+    return f"v{match.group(1)}" if match else None
+
+
+def fetch_dataset_metadata() -> dict:
+    """Read dataset-level version and catalogue metadata from CKAN.
+
+    Two distinct concepts are captured separately and never conflated:
+
+      - published_version: the official dataset version the authority states in
+        its description ("Versión de los datos"). This is the meaningful
+        geography-version identifier a future join should cite.
+      - catalog_metadata_modified: the CKAN catalogue record's last-modified
+        date. This is metadata about the catalogue entry, NOT the effective or
+        edition date of the geometry, and must not be presented as one.
+
+    The service exposes no effective date of the geometry itself (FCH_ALTA /
+    FCH_BAJA come back null), so the geography carries no source period; the
+    published version is what identifies the edition. The retrieval/build time is
+    recorded separately by the caller.
     """
-    vintage = {}
+    metadata = {}
     for level, url in (("district", CKAN_DISTRICTS), ("barrio", CKAN_BARRIOS)):
         try:
             result = json.loads(_get(url))["result"]
-            vintage[level] = {
+            metadata[level] = {
                 "dataset": result.get("title"),
-                "metadata_modified": _date_only(result.get("metadata_modified")),
-                "metadata_created": _date_only(result.get("metadata_created")),
+                "published_version": parse_published_version(result.get("notes", "")),
+                "catalog_metadata_modified": _date_only(result.get("metadata_modified")),
+                "catalog_metadata_created": _date_only(result.get("metadata_created")),
                 "license": result.get("license_title"),
                 "license_id": result.get("license_id"),
             }
-        except Exception as error:  # noqa: BLE001 - vintage is best-effort metadata
-            vintage[level] = {"error": f"could not read CKAN metadata: {error}"}
-    return vintage
+        except Exception as error:  # noqa: BLE001 - catalogue metadata is best-effort
+            metadata[level] = {"error": f"could not read CKAN metadata: {error}"}
+    return metadata
 
 
 def _date_only(value):
@@ -227,28 +262,86 @@ def build_barrios(raw: dict, district_names: dict[str, str]) -> list[dict]:
     return features
 
 
-def derive_municipality(district_features: list[dict]) -> tuple[dict, dict]:
-    """Union the official district polygons into the municipality boundary."""
+def _require_shapely():
     try:
         from shapely.geometry import mapping, shape
         from shapely.ops import unary_union
-        from shapely.validation import make_valid
+        from shapely.validation import explain_validity
     except ImportError as error:  # pragma: no cover - environment guard
         raise SystemExit(
-            "shapely is required to derive the municipality boundary "
+            "shapely is required to build and validate the geometry "
             "(pip install shapely)"
         ) from error
+    return mapping, shape, unary_union, explain_validity
 
-    geoms = []
-    for feat in district_features:
+
+def validate_source_geometry(features: list[dict], level: str) -> dict:
+    """Require every official feature's (rounded) geometry to be genuinely valid.
+
+    This is real geometry validity, not just a type/coordinate-range check. The
+    official geometry is never silently repaired: an invalid feature fails the
+    build, naming the level and official_id, so a bad regeneration (or a
+    coordinate-precision policy that corrupts a valid source feature) surfaces
+    rather than shipping an undocumented repaired geometry. Returns a map of
+    official_id -> shapely geometry for reuse by the coverage and union checks.
+    """
+    _mapping, shape, _union, explain = _require_shapely()
+    geoms = {}
+    for feat in features:
+        oid = feat["properties"]["official_id"]
         geom = shape(feat["geometry"])
+        if geom.is_empty:
+            raise SystemExit(f"{level} {oid}: geometry is empty")
+        if geom.geom_type not in ("Polygon", "MultiPolygon"):
+            raise SystemExit(f"{level} {oid}: geometry is {geom.geom_type}, not polygonal")
         if not geom.is_valid:
-            geom = make_valid(geom)
-        geoms.append(geom)
+            raise SystemExit(
+                f"{level} {oid}: geometry is not valid after {COORD_DECIMALS}-dp rounding "
+                f"({explain(geom)}). The official source geometry is not silently repaired; "
+                f"if rounding caused this, the coordinate-precision policy needs review."
+            )
+        geoms[oid] = geom
+    return geoms
 
+
+def enforce_barrio_coverage(barrios: list[dict], barrio_geoms: dict, district_geoms: dict) -> None:
+    """Require every barrio to be spatially covered by its declared parent district.
+
+    Attribute hierarchy stays authoritative; this is the geometry consistency
+    check. Exact `covers` is required (no analytical buffer): a barrio must never
+    be silently reassigned to another district on geometric grounds. A failure
+    quantifies the out-of-parent area so a reviewer can judge it rather than
+    having a tolerance introduced automatically.
+    """
+    for barrio in barrios:
+        oid = barrio["properties"]["official_id"]
+        parent = barrio["properties"]["parent_id"]
+        pgeom = district_geoms.get(parent)
+        if pgeom is None:
+            raise SystemExit(f"barrio {oid}: declared parent district {parent} has no geometry")
+        bgeom = barrio_geoms[oid]
+        if not pgeom.covers(bgeom):
+            outside = bgeom.difference(pgeom)
+            raise SystemExit(
+                f"barrio {oid}: geometry is not covered by declared parent district {parent} "
+                f"(out-of-parent area {outside.area:.3e} deg^2, "
+                f"{(outside.area / bgeom.area * 100) if bgeom.area else 0:.2e}% of the barrio). "
+                f"Investigate before adding any tolerance; do not reassign the barrio."
+            )
+
+
+def derive_municipality(district_geoms: dict) -> tuple[dict, dict]:
+    """Union the (already validated) official district polygons into the municipality."""
+    mapping, _shape, unary_union, explain = _require_shapely()
+
+    geoms = list(district_geoms.values())
     union = unary_union(geoms)
+    if union.is_empty:
+        raise SystemExit("district union is empty")
     if union.geom_type not in ("Polygon", "MultiPolygon"):
         raise SystemExit(f"district union produced unexpected geometry {union.geom_type!r}")
+    if not union.is_valid:
+        raise SystemExit(f"district union is not a valid geometry ({explain(union)})")
 
     sum_area = sum(g.area for g in geoms)
     union_area = union.area
@@ -263,6 +356,12 @@ def derive_municipality(district_features: list[dict]) -> tuple[dict, dict]:
         "union_part_count": len(union.geoms) if union.geom_type == "MultiPolygon" else 1,
     }
 
+    rounded = round_coords(json.loads(json.dumps(mapping(union))))
+    _mapping, shape, _union, explain = _require_shapely()
+    rounded_geom = shape(rounded)
+    if rounded_geom.is_empty or rounded_geom.geom_type not in ("Polygon", "MultiPolygon") or not rounded_geom.is_valid:
+        raise SystemExit(f"derived municipality geometry is invalid after rounding ({explain(rounded_geom)})")
+
     feature = {
         "type": "Feature",
         "properties": {
@@ -273,7 +372,7 @@ def derive_municipality(district_features: list[dict]) -> tuple[dict, dict]:
             "parent_name": None,
             "geometry_provenance": "DERIVED_FROM_OFFICIAL_GEOMETRY",
         },
-        "geometry": round_coords(json.loads(json.dumps(mapping(union)))),
+        "geometry": rounded,
     }
     return feature, coherence
 
@@ -360,14 +459,22 @@ def main(argv=None) -> int:
     print("[geography] fetching official district and barrio geometry ...")
     districts_raw = fetch_layer_geojson(DISTRICT_LAYER)
     barrios_raw = fetch_layer_geojson(BARRIO_LAYER)
-    vintage = fetch_dataset_vintage()
+    dataset_metadata = fetch_dataset_metadata()
 
     districts = build_districts(districts_raw)
     district_names = {f["properties"]["official_id"]: f["properties"]["official_name"] for f in districts}
     barrios = build_barrios(barrios_raw, district_names)
 
+    # Real shapely validity for every official feature (no silent repair), then
+    # the geometric hierarchy check, then the derived municipality. Any failure
+    # raises SystemExit naming the offending feature.
+    print("[geography] validating geometry with shapely ...")
+    district_geoms = validate_source_geometry(districts, "district")
+    barrio_geoms = validate_source_geometry(barrios, "barrio")
+    enforce_barrio_coverage(barrios, barrio_geoms, district_geoms)
+
     print("[geography] deriving municipality boundary from district union ...")
-    municipality, coherence = derive_municipality(districts)
+    municipality, coherence = derive_municipality(district_geoms)
 
     errors = validate(municipality, districts, barrios)
     if errors:
@@ -410,7 +517,11 @@ def main(argv=None) -> int:
         },
         "coordinate_precision": {
             "decimal_places": COORD_DECIMALS,
-            "note": "~0.11 m; rounding only. No vertices removed, no geometry simplification.",
+            "note": (
+                "~1.1 cm; rounding only. No vertices removed, no geometry simplification. "
+                "Every rounded feature is checked for real shapely validity at build time and "
+                "the build fails rather than repairing the official geometry."
+            ),
         },
         "identifier_scheme": {
             "municipality": "INE municipal code (28079); geometry is derived, see municipality_geometry",
@@ -421,7 +532,11 @@ def main(argv=None) -> int:
         "hierarchy": {
             "model": "municipality -> district -> barrio",
             "join": "barrio.parent_id == district.official_id ; district.parent_id == municipality.official_id",
-            "validated_by": ["attribute codes", "spatial containment of each barrio's interior point within its parent district"],
+            "validated_by": [
+                "attribute codes",
+                "shapely covers(): every barrio geometry is contained by its declared parent district",
+                "spatial containment of each barrio's interior point within its parent district (test suites)",
+            ],
         },
         "municipality_geometry": {
             "method": "DERIVED_FROM_OFFICIAL_GEOMETRY",
@@ -429,14 +544,24 @@ def main(argv=None) -> int:
             "ine_municipal_code": INE_MADRID_MUNICIPAL_CODE,
             "union_coherence": coherence,
         },
-        "source_vintage": {
-            "per_feature_edition_exposed": False,
-            "datasets": vintage,
+        # Three distinct concepts, never conflated (this is the corrected model):
+        #   published_version        - the authority's stated dataset version
+        #   catalog_metadata_modified - the CKAN record's last-modified date only
+        #   retrieved_at             - the build time (below)
+        # No effective/edition date of the geometry is published, so the geography
+        # has no source period; the published_version identifies the edition.
+        "source_version": {
+            "published_version_exposed": True,
+            "geometry_effective_date_exposed": False,
+            "datasets": dataset_metadata,
             "note": (
-                "This is the geography vintage the authority publishes (dataset last-modified). "
-                "It is NOT the retrieval/build time below and must never be conflated with it, nor "
-                "with a future population vintage: a Padron join must be able to state 'population "
-                "vintage X joined to geography vintage Y' rather than assume they are equal."
+                "published_version is the official dataset version stated in the Madrid Open Data "
+                "description ('Versión de los datos'). catalog_metadata_modified is only the CKAN "
+                "catalogue record's last-modified date, NOT the geometry's edition or effective date, "
+                "and must not be presented as one. retrieved_at is the build time. No effective date "
+                "of the geometry is published, so this geography carries no source_period; a future "
+                "join should cite the published version, e.g. 'Padron period X joined to Madrid "
+                "barrio geography v3.4.1', never a catalogue modification timestamp."
             ),
         },
         "retrieved_at": _dt.datetime.now(_dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),

@@ -133,23 +133,39 @@ metric**, and is kept clearly separate from the circular-Lens measurements.
 - **CRS:** the source publishes EPSG:25830 (ETRS89 / UTM zone 30N); the builder
   requests `outSR=4326`, so the map server reprojects to WGS84 (CRS84, lon/lat)
   server-side. No client-side reprojection.
+- **Geometry validity:** at build time every rounded district and barrio is
+  checked for real `shapely` validity (non-empty, polygonal, `is_valid`); the
+  build **fails** on any invalid feature rather than silently repairing the
+  official geometry. Every barrio is additionally required to be exactly
+  `covers()`-contained by its declared parent district (no tolerance). The
+  attribute hierarchy stays authoritative; geometry is the consistency check.
 - **Municipality boundary:** the service's *término municipal* layer is a
   polyline, so there is no published municipality polygon. The municipality is
   therefore **derived** as the topological union of the 21 official district
   polygons (`shapely unary_union`) and flagged
   `DERIVED_FROM_OFFICIAL_GEOMETRY`; the districts remain the authoritative
-  source geometry. The union is coherent (districts tile the municipality with
-  no overlaps or gaps) and validated in the build.
+  source geometry. The union is required to be valid and is coherent (districts
+  tile the municipality with no overlaps or gaps, relative area difference
+  ~1e-15).
 - **Build method:** `scripts/build_madrid_geography.py`, deterministic and
-  re-runnable. Coordinates are rounded to 6 decimal places (~0.11 m) to keep
-  diffs stable — rounding only, no vertices removed, no simplification. Like the
-  HATI evidence it is **committed, not rebuilt at deploy time**: administrative
-  boundaries are not "live" and are never made to look fresh because the builder
-  ran.
-- **Vintage vs build time:** the source vintage is the authority's dataset
-  last-modified date (2026-07-27 at capture); the builder's retrieval time is
-  recorded separately as `retrieved_at`. They are never conflated, so a future
-  population join can state "population vintage X joined to geography vintage Y".
+  re-runnable. Coordinates are rounded to **7 decimal places (~1.1 cm)** to keep
+  diffs stable — rounding only, no vertices removed, no simplification. (6 dp was
+  tried first but collapsed near-coincident vertices in three official features
+  into ring self-intersections; the builder caught it, and the precision policy
+  was moved to 7 dp at which every official feature stays valid — a documented
+  policy change, not a repair.) Like the HATI evidence it is **committed, not
+  rebuilt at deploy time**: administrative boundaries are not "live" and are
+  never made to look fresh because the builder ran.
+- **Version vs catalogue date vs build time (three separate concepts):** the
+  authority publishes a dataset **version** — *Distritos* **v3.2.1**, *Barrios*
+  **v3.4.1** (from the official "Versión de los datos" description) — recorded as
+  `source_version.datasets[*].published_version`. The CKAN catalogue's
+  metadata-modified date is recorded separately as `catalog_metadata_modified`
+  and is **not** the geometry's edition or effective date. The builder's
+  retrieval time is `retrieved_at`. No effective date of the geometry is
+  published, so the geography carries **no source period** (`source_period` is
+  null); a future join cites the version, e.g. "Padrón period X joined to Madrid
+  barrio geography **v3.4.1**", never a catalogue timestamp.
 - **Full machine-readable record:** [`data/geography/madrid_admin.meta.json`](../data/geography/madrid_admin.meta.json).
 - **Licence:** CC BY 4.0 (© Ayuntamiento de Madrid) — see the licensing boundary below.
 - **Point-in-polygon:** `js/geography.js` provides a pure, tested containment

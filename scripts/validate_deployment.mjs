@@ -528,29 +528,30 @@ function validateAdminGeography(source, geojson, meta, scopes, errors, warnings)
     );
   }
 
-  // Source vintage from the sidecar metadata, kept separate from the build time.
-  let sourcePeriod = null;
-  const datasets = meta?.source_vintage?.datasets;
-  if (datasets && typeof datasets === "object") {
-    const dates = Object.values(datasets)
-      .map((d) => d?.metadata_modified)
-      .filter((v) => ISO_DATE.test(String(v)));
-    if (dates.length) {
-      const vintage = dates.sort().at(-1);
-      sourcePeriod = { from: vintage, to: vintage, type: "administrative_geography_edition", provisional: false };
-    }
-  }
-  if (!meta || typeof meta !== "object") {
+  // The geometry has no published effective/edition date, so the geography
+  // carries NO source period. The catalogue's metadata-modified timestamp is not
+  // a geometry vintage and must never be turned into one. The authoritative
+  // published dataset version identifies the edition and is surfaced for the
+  // audit instead.
+  const sourcePeriod = null;
+  const layerInfo = [
+    `${byLevel.district.length} districts, ${byLevel.barrio.length} barrios, ${byLevel.municipality.length} municipality (derived)`,
+  ];
+  const versions = meta?.source_version?.datasets;
+  if (versions && typeof versions === "object") {
+    const parts = Object.entries(versions).map(([level, d]) => `${level} ${d?.published_version ?? "unknown"}`);
+    layerInfo.push(`published version: ${parts.join(", ")}`);
+  } else if (!meta || typeof meta !== "object") {
     warnings.push(`${label}: ${source.meta_artifact} is missing, so the geography's provenance metadata is unavailable`);
+  } else {
+    warnings.push(`${label}: ${source.meta_artifact} has no source_version.datasets, so the published dataset version is unknown`);
   }
 
   return {
     record_count: geojson.features.length,
     state: "available",
     source_period: sourcePeriod,
-    warnings: [
-      `${byLevel.district.length} districts, ${byLevel.barrio.length} barrios, ${byLevel.municipality.length} municipality (derived)`,
-    ],
+    warnings: layerInfo,
   };
 }
 
