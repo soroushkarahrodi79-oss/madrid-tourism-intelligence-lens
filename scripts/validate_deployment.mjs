@@ -568,6 +568,147 @@ function* iterCoords(geometry) {
   }
 }
 
+// Canonical residential population denominator (barrio, with derived district and
+// municipality totals). Committed reference evidence joined to the canonical
+// geography by official code. Non-blocking for now (nothing consumes it yet); the
+// test suites enforce its integrity on every push. The checks restate the
+// denominator contract at the deployment gate and cross-check it against the
+// committed geography so the manifest can be audited.
+function validatePopulation(source, population, meta, geography, errors, warnings) {
+  const label = source.display_name;
+  const sink = source.blocks_deployment ? errors : warnings;
+
+  if (!population || typeof population !== "object" || !Array.isArray(population.records)) {
+    sink.push(`${label}: ${source.artifact} is missing or has no records array`);
+    return { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
+  }
+
+  // Period must be source-derived, never the build clock.
+  const reference = population.source_period?.reference_date;
+  let sourcePeriod = null;
+  if (!ISO_DATE.test(String(reference))) {
+    sink.push(`${label}: source_period.reference_date is not an ISO date (${reference})`);
+  } else {
+    sourcePeriod = {
+      from: reference,
+      to: reference,
+      type: population.source_period?.type ?? "administrative_register_reference_date",
+      provisional: population.source_period?.provisional === true,
+    };
+    if (meta && ISO_DATE.test(String(reference)) && String(meta.retrieved_at ?? "").startsWith(reference)) {
+      sink.push(`${label}: retrieved_at must not equal the population reference date; the build time is not the period`);
+    }
+  }
+
+  const levelField = source.level_field ?? "geography_level";
+  const idField = source.id_field ?? "official_id";
+  const parentField = source.hierarchy_field ?? "parent_id";
+  const valueField = source.value_field ?? "residents";
+
+  const byLevel = { municipality: [], district: [], barrio: [] };
+  const seen = new Set();
+  for (const r of population.records) {
+    const level = r?.[levelField];
+    if (!byLevel[level]) {
+      sink.push(`${label}: record has unknown geography_level "${level}"`);
+      continue;
+    }
+    const key = `${level}:${r[idField]}`;
+    if (seen.has(key)) sink.push(`${label}: duplicate ${level} ${idField} "${r[idField]}" for the period`);
+    seen.add(key);
+    const value = r[valueField];
+    if (!Number.isInteger(value) || value < 0) {
+      sink.push(`${label}: ${level} ${r[idField]} has an invalid ${valueField} (${value}); must be a non-negative integer`);
+    }
+    byLevel[level].push(r);
+  }
+
+  // Counts against the expected join universe.
+  const expected = source.expected_counts ?? {};
+  for (const [name, actual, want] of [
+    ["municipality", byLevel.municipality.length, expected.municipality],
+    ["districts", byLevel.district.length, expected.districts],
+    ["barrios", byLevel.barrio.length, expected.barrios],
+  ]) {
+    if (typeof want === "number" && actual !== want) {
+      sink.push(`${label}: expected ${want} ${name} population record(s), found ${actual}`);
+    }
+  }
+
+  // Canonical join: cross-check against the committed geography.
+  const canonicalBarrios = new Map();
+  if (geography && Array.isArray(geography.features)) {
+    for (const f of geography.features) {
+      if (f.properties?.geography_level === "barrio") {
+        canonicalBarrios.set(f.properties.official_id, f.properties.parent_id);
+      }
+    }
+    const popBarrioIds = new Set(byLevel.barrio.map((b) => b[idField]));
+    for (const b of byLevel.barrio) {
+      const id = b[idField];
+      if (!canonicalBarrios.has(id)) {
+        sink.push(`${label}: barrio ${id} is not a canonical barrio`);
+      } else if (canonicalBarrios.get(id) !== b[parentField]) {
+        sink.push(
+          `${label}: barrio ${id} declares parent ${b[parentField]} but canonical geography says ${canonicalBarrios.get(id)}`
+        );
+      }
+    }
+    for (const id of canonicalBarrios.keys()) {
+      if (!popBarrioIds.has(id)) sink.push(`${label}: canonical barrio ${id} has no population value`);
+    }
+  } else {
+    warnings.push(`${label}: canonical geography artifact unavailable, so the barrio join could not be cross-checked`);
+  }
+
+  // Aggregation: district totals equal their barrio sums; municipality equals the
+  // 131-barrio sum. These are exact integer checks, never toleranced.
+  const barrioSumByDistrict = new Map();
+  let municipalityFromBarrios = 0;
+  for (const b of byLevel.barrio) {
+    const p = b[parentField];
+    barrioSumByDistrict.set(p, (barrioSumByDistrict.get(p) ?? 0) + (b[valueField] ?? 0));
+    municipalityFromBarrios += b[valueField] ?? 0;
+  }
+  for (const d of byLevel.district) {
+    const expectedTotal = barrioSumByDistrict.get(d[idField]) ?? 0;
+    if (d[valueField] !== expectedTotal) {
+      sink.push(
+        `${label}: district ${d[idField]} total ${d[valueField]} does not equal the sum of its barrios ${expectedTotal}`
+      );
+    }
+  }
+  const muni = byLevel.municipality[0];
+  if (muni && muni[valueField] !== municipalityFromBarrios) {
+    sink.push(
+      `${label}: municipality total ${muni[valueField]} does not equal the sum of the barrios ${municipalityFromBarrios}`
+    );
+  }
+
+  // Provenance flags: barrios source-reported, aggregates derived.
+  for (const b of byLevel.barrio) {
+    if (b.residents_provenance !== source.source_reported_value) {
+      sink.push(`${label}: barrio ${b[idField]} must be flagged ${source.source_reported_value}`);
+    }
+  }
+  for (const agg of [...byLevel.district, ...byLevel.municipality]) {
+    if (agg.residents_provenance !== source.derived_provenance_value) {
+      sink.push(`${label}: ${agg[levelField]} ${agg[idField]} total must be flagged ${source.derived_provenance_value}`);
+    }
+  }
+
+  const barrioVersion = meta?.geography_linkage?.barrio_geography_version;
+  return {
+    record_count: population.records.length,
+    state: "available",
+    source_period: sourcePeriod,
+    warnings: [
+      `${byLevel.barrio.length} barrios, ${byLevel.district.length} districts; municipality ${muni?.[valueField] ?? "?"} residents`,
+      `period ${reference ?? "?"} joined to barrio geography ${barrioVersion ?? "unknown"}`,
+    ],
+  };
+}
+
 // ---------------------------------------------------------------- top level
 
 function validateRuntimePoiStructure(runtimePoi, registry, errors) {
@@ -662,6 +803,16 @@ export function validateDeployment({
           warnings
         );
         break;
+      case "admin_population":
+        result = validatePopulation(
+          source,
+          artifacts[source.artifact],
+          artifacts[source.meta_artifact],
+          artifacts["geography/madrid_admin.geojson"],
+          errors,
+          warnings
+        );
+        break;
       default:
         errors.push(`${source.display_name}: unknown shape "${source.shape}" in the source registry`);
         result = { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
@@ -740,6 +891,9 @@ const ARTIFACT_FILES = [
   // Committed canonical administrative geography (not rebuilt at deploy).
   "geography/madrid_admin.geojson",
   "geography/madrid_admin.meta.json",
+  // Committed residential population denominator (not rebuilt at deploy).
+  "population/madrid_population.json",
+  "population/madrid_population.meta.json",
 ];
 
 export function readArtifacts(dataDir) {

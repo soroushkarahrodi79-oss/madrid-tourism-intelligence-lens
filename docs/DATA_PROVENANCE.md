@@ -181,6 +181,62 @@ metric**, and is kept clearly separate from the circular-Lens measurements.
   statistics must never be spatially distributed into a Lens or any sub-area.
   This municipal geography is **not** Comunidad de Madrid geography.
 
+## Residential population denominator (`data/population/madrid_population.json`)
+
+The authoritative, period-explicit resident-population denominator for every
+canonical barrio, with deterministic district and municipality totals. It is a
+**denominator only** — this layer defines no tourism indicator, ratio, density or
+composite score.
+
+- **Authority / source:** Ayuntamiento de Madrid — Subdirección General de
+  Estadística, dataset *"Población por distrito y barrio a 1 de enero"*
+  (datos.madrid.es dataset 300557), whose own description names the underlying
+  register as the *Padrón Municipal de habitantes*. CC BY 4.0. Chosen over the
+  monthly *Padrón municipal* (200076) because it has an explicit 1-January
+  reference date, is published at exactly district and barrio level, and exposes
+  `num_personas` as the barrio total (no sex/age aggregation, so no
+  double-counting risk).
+- **Population concept:** persons registered in the municipal Padrón for the
+  reference date.
+- **Reference period:** the source's own **1 January** date (e.g. `2026-01-01`),
+  recorded as `source_period.reference_date`. The builder selects the latest
+  annual reference date whose barrio coverage exactly matches the canonical
+  geography, so a partial year is treated as incomplete rather than "latest". The
+  period is source-derived and **never** the build time; the builder's retrieval
+  time is recorded separately as `retrieved_at` in the meta. Pass `--period YYYY`
+  to pin a historical year.
+- **Dimensions:** the source has one row per (barrio, reference date) and one
+  total column; no aggregation over sex or age is performed. Sex/age breakdowns
+  are out of scope for this denominator.
+- **Join to canonical geography:** by **official code only**, never by name and
+  never fuzzy. Source `cod_distrito`/`cod_barrio` are zero-padded (`1`→`01`,
+  `11`→`011`) to the canonical `official_id`s and then checked exactly against
+  the geography; a wrong mapping fails the build. All **131** canonical barrios
+  reconcile with no missing, extra, duplicate or parent mismatch.
+- **Aggregation:** district totals are the exact sums of their barrios and the
+  municipality total is the exact sum of the 131 barrios, both flagged
+  `DERIVED_FROM_BARRIO_POPULATION`; barrio counts are `SOURCE_REPORTED`. This
+  dataset publishes no independent district/municipality total at the same
+  period/semantics, so there is nothing to cross-check the derived totals against
+  and none is invented.
+- **Geography-version linkage:** the meta records the geography versions this
+  joins against (barrio **v3.4.1**, district **v3.2.1**), distinct from the
+  population period, so an audit can state "population period `2026-01-01` joined
+  to Madrid barrio geography **v3.4.1**".
+- **Evidence type / gate:** `ADMINISTRATIVE_REGISTER`, role `reference`,
+  committed (not rebuilt at deploy). **Non-blocking** for now because no
+  user-facing feature consumes it; a broken committed artifact still fails the
+  Node and Python suites on every push. This flips to blocking once Area Profile
+  or another public feature depends on it.
+- **Full machine-readable record:** [`data/population/madrid_population.meta.json`](../data/population/madrid_population.meta.json).
+- **Interpretation ceiling:** registered residents are **not** people physically
+  present at a moment, daytime population, tourists, workers present, unique
+  mobile-device users, households or housing units. A barrio population belongs to
+  the whole official barrio and must **never** be spatially distributed into a
+  circular Lens: a Lens may say "the centre is in barrio X, which has Y registered
+  residents for period Z", where Y stays a barrio statistic — never the population
+  "inside the circle". This is municipal population, not Comunidad de Madrid.
+
 ## Tourism & mobility POIs (`data/runtime_poi.json` + packaged fallback)
 
 On GitHub Pages the app is **deployment-snapshot first** so markers render immediately without waiting on third-party browser requests. The deployment snapshot is rebuilt from the public sources during Pages deployment. Per layer:
@@ -292,7 +348,10 @@ listed above — see the [README's License section](../README.md#license) for
 the specific terms that continue to apply to Leaflet, Madrid Open Data, Madrid Destino / esmadrid.com, EMT Madrid open data, CRTM open data, and HATI-Madrid
 evidence. The canonical administrative geography is published by the Ayuntamiento
 de Madrid (IDEAM) under **CC BY 4.0** and its attribution (© Ayuntamiento de
-Madrid) is retained in `data/geography/madrid_admin.meta.json`.
+Madrid) is retained in `data/geography/madrid_admin.meta.json`. The residential
+population denominator is published by the Ayuntamiento de Madrid (Subdirección
+General de Estadística) under **CC BY 4.0**, with attribution retained in
+`data/population/madrid_population.meta.json`.
 
 
 ### Madrid accommodation taxonomy

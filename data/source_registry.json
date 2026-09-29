@@ -315,6 +315,41 @@
       "license": "CC BY 4.0",
       "blocks_deployment_note": "Does not block deployment in this build because the application does not yet consume the geography at runtime; its structural integrity is enforced by the Node and Python test suites on every push. This must be switched to true once a user-facing feature depends on the artifact, so a broken geography cannot then be published.",
       "interpretation_ceiling": "Administrative reference geography for spatial joins and containment only. It is a common join target for future datasets (Padron, accommodation, VUT, restaurants, housing, socioeconomic and environmental indicators), not an analytical metric and not a denominator on its own. The municipality polygon is DERIVED as the union of the 21 official district polygons and is flagged as such. Administrative-area statistics must never be spatially distributed into a circular Lens or any sub-area; a Lens may report the official barrio/district containing a point, kept clearly separate from circle-derived measurements. This municipal geography is not Comunidad de Madrid geography."
+    },
+    {
+      "id": "population",
+      "display_name": "Madrid residential population (Padron)",
+      "authority": "Ayuntamiento de Madrid - Subdireccion General de Estadistica (Padron Municipal de habitantes)",
+      "dataset_url": "https://datos.madrid.es/dataset/300557-0-poblacion-distrito-barrio",
+      "artifact": "population/madrid_population.json",
+      "meta_artifact": "population/madrid_population.meta.json",
+      "shape": "admin_population",
+      "builder": "scripts/build_madrid_population.py",
+      "rebuilt_at_deploy": false,
+      "provenance_state": "committed_reference_evidence",
+      "role": "reference",
+      "blocks_deployment": false,
+      "unavailable_is_allowed": false,
+      "evidence_type": "ADMINISTRATIVE_REGISTER",
+      "expected_spatial_scope": "madrid_city_area",
+      "geography_dependency": "geography/madrid_admin.geojson",
+      "source_period_exposed_by_source": true,
+      "source_period_semantics": "The population period is the source reference date, published as '1 de enero de <year>' (a real Padron reference date), recorded in population/madrid_population.json under source_period.reference_date and echoed in the sidecar meta. It is source-derived and never taken from the build clock; the builder's retrieval/build time is recorded separately as retrieved_at in the meta. The selected period is the latest annual reference date whose barrio coverage exactly matches the canonical geography, so a year with partial coverage is treated as incomplete rather than as the latest. The geography version this joins against (barrio v3.4.1 / district v3.2.1) is recorded in the meta under geography_linkage and is distinct from the population period: an audit can state 'population period X joined to Madrid barrio geography v3.4.1'.",
+      "expected_counts": {
+        "municipality": 1,
+        "districts": 21,
+        "barrios": 131,
+        "note": "Every canonical barrio must have exactly one resident count for the selected period; district and municipality totals are derived from the barrios. A change to these counts is a change to the canonical join universe and must not reach a deployment unnoticed."
+      },
+      "hierarchy_field": "parent_id",
+      "level_field": "geography_level",
+      "id_field": "official_id",
+      "value_field": "residents",
+      "derived_provenance_value": "DERIVED_FROM_BARRIO_POPULATION",
+      "source_reported_value": "SOURCE_REPORTED",
+      "license": "CC BY 4.0",
+      "blocks_deployment_note": "Does not block deployment in this build because no user-facing feature consumes the population yet; a broken committed population artifact still fails the Node and Python test suites on every push. This must be switched to true once Area Profile or another public feature consumes it, so a broken denominator cannot then be published.",
+      "interpretation_ceiling": "Persons registered in the municipal Padron for the reference date. This is a residential denominator only: it is NOT people physically present at a given moment, NOT daytime population, NOT tourists, NOT workers present, NOT unique mobile-device users, NOT households and NOT housing units. This PR defines no tourism indicator, no accommodation-per-resident or hotels-per-1000 ratio, no tourism pressure and no composite score. A barrio population belongs to the whole official barrio and must never be spatially distributed into a circular Lens; a Lens may state 'the centre is in barrio X, which has Y registered residents for period Z', where Y remains a barrio statistic, not the population inside the circle. This municipal population is not Comunidad de Madrid population."
     }
   ]
 }
