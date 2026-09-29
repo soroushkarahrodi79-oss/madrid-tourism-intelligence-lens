@@ -3,6 +3,76 @@
 This document lists every dataset used by Madrid Tourism Intelligence Lens,
 its origin, and how it reaches the application.
 
+## Build-time evidence validation
+
+A deployment is not published unless its evidence passes an explicit gate. The
+GitHub Pages workflow runs:
+
+```
+SOURCE → BUILD → VALIDATE → AUDIT MANIFEST → DEPLOY
+```
+
+**Where the rules live.** [`data/source_registry.json`](../data/source_registry.json)
+is the single machine-readable registry of the sources a deployment builds or
+ships. For each one it declares the authority, the builder, the evidence type,
+the expected spatial scope, what its period means, its interpretation ceiling,
+and whether it blocks deployment. It holds no map records.
+
+**What enforces them.** [`scripts/validate_deployment.mjs`](../scripts/validate_deployment.mjs)
+reads that registry plus the artifacts the builders produced, and checks that
+declared counts equal actual record counts, that layer and status names agree,
+that identifiers are present and unique, that coordinates are finite and inside
+the declared scope, and that each source's own integrity rules hold — that the
+combined rail layer still contains both Metro and Cercanías, that accommodation
+came from the authoritative Madrid Destino feed and still carries its published
+taxonomy, and that the pedestrian layer is internally coherent. It runs locally
+(`node scripts/validate_deployment.mjs`, after the builders) and in CI, and has
+no dependencies.
+
+**Which sources block a deployment.** The five layers that feed the lens's
+operational metrics — museums, tourist information, BiciMAD, Metro/Cercanías and
+official accommodation — block deployment, because a collapse in any of them
+makes a displayed number wrong while it still looks authoritative. The committed
+HATI evidence and the packaged fallback sample block too, since they can only
+change through a commit. Principal parks and the pedestrian counters do **not**
+block: parks are map context that is excluded from every metric in code, and
+pedestrian activity is opt-in, off by default, and already has a first-class
+unavailable state that shows "No data" rather than a number. Withholding the
+whole site because an optional evidence layer was unreachable would reduce
+availability without improving honesty. Their *internal coherence* is still
+enforced as a hard failure: an "unavailable" pedestrian layer that still carries
+station counts, observation totals or a date range fails the build, because that
+is fabricated evidence rather than a missing one.
+
+**Guardrails against silent collapse.** A non-empty response is not automatically
+valid evidence: a truncated download or an upstream schema change can produce
+parseable JSON that is analytically degraded. Each source therefore declares a
+`min_count` floor set far below the count observed at calibration, recorded
+alongside that baseline, the calibration date and a rationale. These are
+**engineering guardrails against an ingestion collapse — not tourism indicators,
+and not claims about how many museums, stations or hotels Madrid has.** Changing
+one is a visible diff that has to be justified in the pull request that changes
+it. There is no upper bound: a source that grows is not degraded.
+
+**What a failure does.** The validator exits non-zero, which fails the job before
+`actions/deploy-pages` runs. Nothing is published and GitHub Pages keeps serving
+the previous good deployment. The public site does not disappear; it simply does
+not advance to a degraded build.
+
+**The audit manifest.** Every run writes `data/deployment_manifest.json`,
+including failed runs, and it ships with the site — so any deployment can be
+inspected at `<site>/data/deployment_manifest.json`. It records what was built,
+from which authority, by which builder, for what scope and period, how many
+records, whether the layer was available, and the validation verdict with any
+warnings. It is also uploaded as the `deployment-evidence-audit` workflow
+artifact. It contains no secrets.
+
+`generated_at` (when this build ran) and `source_period` (what the evidence
+describes) are deliberately separate fields. A source that publishes no period
+records `source_period: null` and `source_period_known: false` rather than being
+backfilled with the build timestamp. Only the pedestrian counters (whose records
+carry their own dates) and HATI (a fixed modelled pilot day) report a period.
+
 ## HATI-Madrid thermal evidence (`data/hati_assets.json`)
 
 - **Source repository:** [heat-adaptive-tourism-madrid](https://github.com/soroushkarahrodi79-oss/heat-adaptive-tourism-madrid) (read-only; this project never modifies it)

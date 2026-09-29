@@ -1,0 +1,19 @@
+# Deployment build artifacts.
+#
+# These are produced by the builders and the validator during the GitHub Pages
+# deploy, and are deliberately NOT committed: a checkout must never carry a
+# deployment snapshot, or a developer would be reading stale published evidence
+# while believing it is current. A local checkout therefore runs on the small
+# curated fallback in data/snapshot_poi.json, which the UI labels
+# "SNAPSHOT SAMPLE". See docs/DATA_PROVENANCE.md.
+#
+# data/pedestrian_activity.json is NOT listed here: its unavailable-state stub is
+# committed on purpose, so the repository ships an explicit "no evidence" state
+# rather than a missing file. Running the builder overwrites it locally; restore
+# it with `git checkout -- data/pedestrian_activity.json` before committing.
+data/runtime_poi.json
+data/deployment_manifest.json
+
+# Python bytecode from running the test suite or the builders.
+__pycache__/
+*.py[cod]

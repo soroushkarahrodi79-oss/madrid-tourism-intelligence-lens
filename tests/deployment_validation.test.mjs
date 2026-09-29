@@ -1,0 +1,662 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
+
+import { validateDeployment, readArtifacts } from "../scripts/validate_deployment.mjs";
+
+const REAL_REGISTRY = JSON.parse(
+  fs.readFileSync(new URL("../data/source_registry.json", import.meta.url), "utf8")
+);
+
+const GENERATED_AT = "2026-09-29T09:00:00.000Z";
+
+// A Madrid coordinate that sits inside every scope the registry declares, so
+// fixtures can share it and only the deliberate mutations move out of bounds.
+const LAT = 40.42;
+const LON = -3.7;
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+// The real registry, with collapse guardrails scaled down so fixtures can stay
+// small. Rule behaviour is what these tests exercise; the real thresholds are
+// asserted separately in "source registry is internally coherent".
+function testRegistry() {
+  const registry = clone(REAL_REGISTRY);
+  for (const source of registry.sources) {
+    if (source.integrity_guardrail) source.integrity_guardrail.min_count = 2;
+    if (source.required_modes) {
+      for (const rule of Object.values(source.required_modes.modes)) rule.min_count = 1;
+    }
+  }
+  return registry;
+}
+
+function poiRecords(prefix, count, extra = () => ({})) {
+  return Array.from({ length: count }, (_, i) => ({
+    id: `${prefix}-${i}`,
+    name: `${prefix} ${i}`,
+    lat: LAT,
+    lon: LON,
+    ...extra(i),
+  }));
+}
+
+function healthyArtifacts() {
+  const layers = {
+    museum: poiRecords("museum", 3),
+    info: poiRecords("info", 3),
+    bike: poiRecords("bike", 3),
+    rail: poiRecords("rail", 4, (i) => ({ mode: i < 3 ? "metro" : "cercanias" })),
+    stay: poiRecords("stay", 3, () => ({
+      stayKind: "hotel",
+      accommodationCategory: "Hoteles",
+    })),
+    park: poiRecords("park", 3),
+  };
+
+  const status = {};
+  for (const [id, records] of Object.entries(layers)) {
+    status[id] = { ok: true, count: records.length, error: null };
+  }
+  status.stay.source = "Madrid Destino / esmadrid.com";
+
+  return {
+    "runtime_poi.json": {
+      generatedAt: GENERATED_AT,
+      sourceMode: "deployment-snapshot",
+      layers,
+      status,
+      sources: {},
+    },
+    "pedestrian_activity.json": {
+      available: true,
+      generatedAt: GENERATED_AT,
+      source: {
+        dataset: "Madrid Open Data — Aforos de peatones y bicicletas",
+        datasetUrl: "https://datos.madrid.es/dataset/300321-0-aforos-peatones-bicicletas",
+        resourceUrl: "https://datos.madrid.es/dataset/300321-0-aforos-peatones-bicicletas/resource/x.csv",
+        year: 2024,
+      },
+      latestPublishedQuarterMayBeProvisional: true,
+      stations: poiRecords("pedestrian", 3, () => ({
+        observationCount: 100,
+        meanObserved: 500.5,
+        dateMin: "2024-01-01",
+        dateMax: "2024-06-30",
+      })),
+      stationCount: 3,
+      observationCount: 300,
+      dateMin: "2024-01-01",
+      dateMax: "2024-06-30",
+      error: null,
+    },
+    "hati_assets.json": poiRecords("heat", 3, () => ({
+      utci_mean_10m: { "12:00": 35.1, "15:00": 40.2, "18:00": 38.3 },
+    })),
+    "hati_provenance.json": {
+      source_commit_sha: "f02f5f6b6c5645adde94ae658bccbf9829e727e2",
+      study_date: "2023-08-21",
+    },
+    "snapshot_poi.json": {
+      museum: poiRecords("snap-museum", 2),
+      info: poiRecords("snap-info", 2),
+    },
+  };
+}
+
+function run(artifacts, registry = testRegistry()) {
+  return validateDeployment({ registry, artifacts, generatedAt: GENERATED_AT });
+}
+
+function errorText(result) {
+  return result.errors.join(" | ");
+}
+
+// ------------------------------------------------------------------ baseline
+
+test("a healthy deployment build passes and reports every layer available", () => {
+  const result = run(healthyArtifacts());
+  assert.equal(errorText(result), "");
+  assert.equal(result.ok, true);
+  assert.equal(result.manifest.build_state, "pass");
+  assert.equal(result.manifest.totals.layers_unavailable, 0);
+  assert.equal(result.manifest.totals.operational_layers_available, 5);
+});
+
+// ------------------------------------------------------------------ structure
+
+test("a missing critical layer fails the build", () => {
+  const artifacts = healthyArtifacts();
+  delete artifacts["runtime_poi.json"].layers.stay;
+  delete artifacts["runtime_poi.json"].status.stay;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /registry declares layer "stay" but the build did not emit it/);
+});
+
+test("a missing required top-level field fails the build", () => {
+  const artifacts = healthyArtifacts();
+  delete artifacts["runtime_poi.json"].sourceMode;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /required top-level field "sourceMode" is missing/);
+});
+
+test("layer and status names must agree", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["runtime_poi.json"].status.ghost = { ok: true, count: 0, error: null };
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /layer and status names disagree.*in status only: ghost/);
+});
+
+test("a declared count that disagrees with the actual records fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["runtime_poi.json"].status.museum.count = 99;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /declared count 99 does not equal the actual 3 record/);
+});
+
+test("a critical layer reported not ok fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["runtime_poi.json"].status.bike = { ok: false, count: 0, error: "HTTP 503" };
+  artifacts["runtime_poi.json"].layers.bike = [];
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /BiciMAD stations: build reported the layer as unavailable.*HTTP 503/);
+});
+
+test("a critical layer that is ok but empty fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["runtime_poi.json"].layers.museum = [];
+  artifacts["runtime_poi.json"].status.museum.count = 0;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /Museums: build reported ok but produced zero records/);
+});
+
+// ------------------------------------------------------------------ identifiers
+
+test("duplicate ids fail where ids must be unique", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["runtime_poi.json"].layers.museum[1].id = artifacts["runtime_poi.json"].layers.museum[0].id;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /Museums: 1 duplicate id\(s\)/);
+});
+
+test("an unusable id fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["runtime_poi.json"].layers.info[0].id = "";
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /Tourist information points: 1 record\(s\) have no usable id/);
+});
+
+// ------------------------------------------------------------------ coordinates
+
+test("a non-finite coordinate fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["runtime_poi.json"].layers.bike[0].lat = null;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /non-finite coordinate/);
+});
+
+test("a coordinate outside Madrid fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["runtime_poi.json"].layers.museum[0].lat = 41.39;
+  artifacts["runtime_poi.json"].layers.museum[0].lon = 2.17; // Barcelona
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /Museums: 1 record\(s\) fall outside the declared spatial scope/);
+});
+
+test("null-island coordinates fail the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["runtime_poi.json"].layers.rail[0].lat = 0;
+  artifacts["runtime_poi.json"].layers.rail[0].lon = 0;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /fall outside the declared spatial scope/);
+});
+
+test("swapped latitude and longitude fail the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["runtime_poi.json"].layers.stay[0].lat = LON;
+  artifacts["runtime_poi.json"].layers.stay[0].lon = LAT;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /fall outside the declared spatial scope/);
+});
+
+// ------------------------------------------------------------------ collapse guardrail
+
+test("a catastrophic count collapse fails an operational layer", () => {
+  const registry = testRegistry();
+  const bike = registry.sources.find((s) => s.id === "bike");
+  bike.integrity_guardrail.min_count = 250;
+  bike.integrity_guardrail.baseline_count = 631;
+
+  const artifacts = healthyArtifacts();
+  // A truncated response: parseable, non-empty, analytically collapsed.
+  artifacts["runtime_poi.json"].layers.bike = poiRecords("bike", 30);
+  artifacts["runtime_poi.json"].status.bike.count = 30;
+
+  const result = run(artifacts, registry);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /BiciMAD stations: 30 record\(s\) is below the integrity guardrail of 250/);
+  assert.match(errorText(result), /ingestion-collapse guardrail, not an analytical threshold/);
+});
+
+test("a count above the guardrail passes, so legitimate source change is tolerated", () => {
+  const registry = testRegistry();
+  const bike = registry.sources.find((s) => s.id === "bike");
+  bike.integrity_guardrail.min_count = 250;
+
+  const artifacts = healthyArtifacts();
+  // Well below the 631 baseline but comfortably above the floor.
+  artifacts["runtime_poi.json"].layers.bike = poiRecords("bike", 300);
+  artifacts["runtime_poi.json"].status.bike.count = 300;
+
+  const result = run(artifacts, registry);
+  assert.equal(errorText(result), "");
+  assert.equal(result.ok, true);
+});
+
+test("a collapse in an optional context layer warns but does not block deployment", () => {
+  const registry = testRegistry();
+  const park = registry.sources.find((s) => s.id === "park");
+  park.integrity_guardrail.min_count = 30;
+
+  const artifacts = healthyArtifacts();
+  artifacts["runtime_poi.json"].layers.park = poiRecords("park", 2);
+  artifacts["runtime_poi.json"].status.park.count = 2;
+
+  const result = run(artifacts, registry);
+  assert.equal(result.ok, true);
+  assert.equal(result.manifest.build_state, "pass");
+  assert.match(result.warnings.join(" | "), /below the integrity guardrail of 30/);
+});
+
+// ------------------------------------------------------------------ rail modes
+
+test("rail missing a required mode fails even when the combined count looks healthy", () => {
+  const artifacts = healthyArtifacts();
+  // Cercanias silently disappears; the combined layer still has records.
+  artifacts["runtime_poi.json"].layers.rail = poiRecords("rail", 10, () => ({ mode: "metro" }));
+  artifacts["runtime_poi.json"].status.rail.count = 10;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /required mode "cercanias" has 0 record\(s\)/);
+  assert.match(errorText(result), /can stay healthy while one mode silently disappears/);
+});
+
+test("the manifest records the rail mode split for audit", () => {
+  const result = run(healthyArtifacts());
+  const rail = result.manifest.layers.find((l) => l.source_id === "rail");
+  assert.match(rail.warnings.join(" "), /mode split: metro=3, cercanias=1/);
+});
+
+// ------------------------------------------------------------------ accommodation authority
+
+test("a non-authoritative accommodation source fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["runtime_poi.json"].status.stay.source = "OpenStreetMap via Overpass API";
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /does not identify an authoritative source/);
+  assert.match(errorText(result), /must not be published as the official accommodation deployment artifact/);
+});
+
+test("an accommodation artifact with no source attribution fails the build", () => {
+  const artifacts = healthyArtifacts();
+  delete artifacts["runtime_poi.json"].status.stay.source;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /does not identify an authoritative source/);
+});
+
+test("accommodation taxonomy disappearing fails the build", () => {
+  const artifacts = healthyArtifacts();
+  for (const record of artifacts["runtime_poi.json"].layers.stay) {
+    delete record.accommodationCategory;
+  }
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /record\(s\) carry accommodationCategory/);
+});
+
+test("accommodation collapsing to unclassified fails the build", () => {
+  const artifacts = healthyArtifacts();
+  for (const record of artifacts["runtime_poi.json"].layers.stay) {
+    record.stayKind = "other";
+  }
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /classified as "other".*above the .*guardrail/s);
+});
+
+// ------------------------------------------------------------------ pedestrian
+
+test("pedestrian available with zero observations fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["pedestrian_activity.json"].observationCount = 0;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /available but observationCount is 0/);
+});
+
+test("pedestrian stationCount disagreeing with the station list fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["pedestrian_activity.json"].stationCount = 99;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /declared stationCount 99 does not equal the actual 3 station/);
+});
+
+test("incoherent pedestrian date bounds fail the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["pedestrian_activity.json"].dateMin = "2024-12-31";
+  artifacts["pedestrian_activity.json"].dateMax = "2024-01-01";
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /incoherent date bounds/);
+});
+
+test("pedestrian losing its dataset identity fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["pedestrian_activity.json"].source.datasetUrl = "https://example.com/some-other-dataset";
+  artifacts["pedestrian_activity.json"].source.resourceUrl = "https://example.com/some-other-dataset.csv";
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /does not reference the municipal pedestrian-counter dataset/);
+});
+
+test("a pedestrian station shipped with no observations fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["pedestrian_activity.json"].stations[0].observationCount = 0;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /station\(s\) carry no observations but are shipped as evidence/);
+});
+
+test("an explicit pedestrian unavailable state is allowed and does not block deployment", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["pedestrian_activity.json"] = {
+    available: false,
+    generatedAt: null,
+    source: {
+      datasetUrl: "https://datos.madrid.es/dataset/300321-0-aforos-peatones-bicicletas",
+      resourceUrl: "https://datos.madrid.es/dataset/300321-0-aforos-peatones-bicicletas/resource/x.csv",
+    },
+    stations: [],
+    stationCount: 0,
+    observationCount: 0,
+    dateMin: null,
+    dateMax: null,
+    error: "source unreachable",
+  };
+
+  const result = run(artifacts);
+  assert.equal(result.ok, true);
+  assert.equal(result.manifest.build_state, "pass");
+
+  const pedestrian = result.manifest.layers.find((l) => l.source_id === "pedestrian");
+  assert.equal(pedestrian.state, "unavailable");
+  assert.equal(pedestrian.record_count, 0);
+  assert.equal(pedestrian.source_period, null);
+  assert.match(result.warnings.join(" | "), /unavailable in this build \(source unreachable\)/);
+});
+
+test("an unavailable pedestrian layer carrying numeric evidence fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["pedestrian_activity.json"].available = false;
+  artifacts["pedestrian_activity.json"].error = "source unreachable";
+  // stations, stationCount, observationCount and dates left populated.
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /An unavailable layer must not carry numeric evidence/);
+  assert.match(errorText(result), /marked unavailable but declares a date range; no period may be fabricated/);
+});
+
+test("an unavailable pedestrian layer must state a reason", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["pedestrian_activity.json"] = {
+    available: false,
+    stations: [],
+    stationCount: 0,
+    observationCount: 0,
+    dateMin: null,
+    dateMax: null,
+    error: "",
+  };
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /marked unavailable without stating a reason/);
+});
+
+test("a non-boolean pedestrian availability flag fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["pedestrian_activity.json"].available = "yes";
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /"available" must be an explicit boolean/);
+});
+
+// ------------------------------------------------------------------ committed evidence
+
+test("HATI evidence shrinking below its locked pilot size fails the build", () => {
+  const registry = testRegistry();
+  registry.sources.find((s) => s.id === "hati").integrity_guardrail.min_count = 14;
+
+  const artifacts = healthyArtifacts();
+  artifacts["hati_assets.json"] = poiRecords("heat", 3, () => ({ utci_mean_10m: { "15:00": 40 } }));
+
+  const result = run(artifacts, registry);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /below the locked pilot size of 14/);
+});
+
+test("HATI evidence without a pinned source commit fails the build", () => {
+  const artifacts = healthyArtifacts();
+  delete artifacts["hati_provenance.json"].source_commit_sha;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /no source_commit_sha, so the evidence is not traceable to a commit/);
+});
+
+test("an emptied packaged fallback fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["snapshot_poi.json"] = { museum: [], info: [] };
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /packaged last-resort fallback must not silently become empty/);
+});
+
+// ------------------------------------------------------------------ manifest contract
+
+test("generated_at and source_period stay separate concepts", () => {
+  const result = run(healthyArtifacts());
+
+  for (const layer of result.manifest.layers) {
+    if (layer.source_period) {
+      assert.notEqual(layer.source_period.from, result.manifest.generated_at);
+      assert.notEqual(layer.source_period.to, result.manifest.generated_at);
+    }
+  }
+
+  // Sources that publish no period must report null rather than a build clock.
+  for (const id of ["museum", "info", "bike", "rail", "stay", "park"]) {
+    const layer = result.manifest.layers.find((l) => l.source_id === id);
+    assert.equal(layer.source_period, null, `${id} must not claim a source period`);
+    assert.equal(layer.source_period_known, false);
+  }
+});
+
+test("pedestrian and HATI source periods come from the evidence, not the build", () => {
+  const result = run(healthyArtifacts());
+
+  const pedestrian = result.manifest.layers.find((l) => l.source_id === "pedestrian");
+  assert.deepEqual(pedestrian.source_period, {
+    from: "2024-01-01",
+    to: "2024-06-30",
+    type: "observed_record_range",
+    provisional: true,
+  });
+  assert.equal(pedestrian.source_period_known, true);
+
+  const hati = result.manifest.layers.find((l) => l.source_id === "hati");
+  assert.equal(hati.source_period.from, "2023-08-21");
+  assert.equal(hati.source_period.type, "modelled_pilot_day");
+  assert.equal(hati.evidence_type, "MODEL-DERIVED");
+});
+
+test("the manifest carries authority, builder and interpretation ceiling for every layer", () => {
+  const result = run(healthyArtifacts());
+
+  for (const layer of result.manifest.layers) {
+    assert.ok(layer.authority, `${layer.source_id} must record an authority`);
+    assert.ok(layer.builder, `${layer.source_id} must record a builder`);
+    assert.ok(layer.interpretation_ceiling, `${layer.source_id} must record an interpretation ceiling`);
+    assert.ok(["available", "unavailable"].includes(layer.state));
+  }
+});
+
+test("the manifest never carries a secret", () => {
+  const result = run(healthyArtifacts());
+  const serialised = JSON.stringify(result.manifest);
+  assert.doesNotMatch(serialised, /CARTO_BASEMAP_KEY/i);
+  assert.doesNotMatch(serialised, /\bsecret\b/i);
+  assert.doesNotMatch(serialised, /\btoken\b/i);
+  assert.doesNotMatch(serialised, /api[_-]?key/i);
+});
+
+test("a failed build still produces a manifest, so failures are auditable", () => {
+  const artifacts = healthyArtifacts();
+  delete artifacts["runtime_poi.json"].layers.museum;
+  delete artifacts["runtime_poi.json"].status.museum;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.equal(result.manifest.build_state, "fail");
+  assert.ok(result.manifest.validation.error_count > 0);
+  assert.equal(result.manifest.layers.length, REAL_REGISTRY.sources.length);
+});
+
+test("a missing runtime_poi.json reports how to build it instead of crashing", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["runtime_poi.json"] = null;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /Run the deployment builders first/);
+});
+
+// ------------------------------------------------------------------ real registry
+
+test("source registry is internally coherent", () => {
+  const ids = REAL_REGISTRY.sources.map((s) => s.id);
+  assert.equal(new Set(ids).size, ids.length, "source ids must be unique");
+
+  for (const source of REAL_REGISTRY.sources) {
+    assert.ok(source.display_name, `${source.id} needs a display_name`);
+    assert.ok(source.authority, `${source.id} needs an authority`);
+    assert.ok(source.artifact, `${source.id} needs an artifact`);
+    assert.ok(source.builder, `${source.id} needs a builder`);
+    assert.ok(source.interpretation_ceiling, `${source.id} needs an interpretation_ceiling`);
+    assert.ok(source.source_period_semantics, `${source.id} needs source_period_semantics`);
+    assert.equal(typeof source.blocks_deployment, "boolean", `${source.id} must declare blocks_deployment`);
+    assert.ok(
+      ["operational", "context", "observed_evidence", "research_evidence", "packaged_fallback"].includes(source.role),
+      `${source.id} has an unknown role`
+    );
+    assert.ok(
+      REAL_REGISTRY.spatial_scopes[source.expected_spatial_scope],
+      `${source.id} references undefined scope ${source.expected_spatial_scope}`
+    );
+
+    const guard = source.integrity_guardrail;
+    assert.ok(guard, `${source.id} needs an integrity_guardrail`);
+    assert.ok(guard.rationale, `${source.id} guardrail needs a stated rationale`);
+    assert.ok(guard.calibrated_on, `${source.id} guardrail needs a calibration date`);
+    assert.ok(
+      guard.min_count <= guard.baseline_count,
+      `${source.id} guardrail floor ${guard.min_count} must not exceed its baseline ${guard.baseline_count}`
+    );
+  }
+
+  for (const scope of Object.values(REAL_REGISTRY.spatial_scopes)) {
+    assert.ok(scope.lat_min < scope.lat_max && scope.lon_min < scope.lon_max);
+    assert.ok(scope.note, "each scope must explain what it is for");
+  }
+
+  assert.match(REAL_REGISTRY.guardrail_note, /not a tourism indicator/i);
+});
+
+test("exactly the layers that feed operational lens metrics block deployment", () => {
+  const blocking = REAL_REGISTRY.sources.filter((s) => s.blocks_deployment).map((s) => s.id).sort();
+  assert.deepEqual(blocking, ["bike", "hati", "info", "museum", "rail", "snapshot_fallback", "stay"]);
+
+  const nonBlocking = REAL_REGISTRY.sources.filter((s) => !s.blocks_deployment).map((s) => s.id).sort();
+  assert.deepEqual(nonBlocking, ["park", "pedestrian"]);
+
+  for (const id of ["park", "pedestrian"]) {
+    assert.equal(REAL_REGISTRY.sources.find((s) => s.id === id).unavailable_is_allowed, true);
+  }
+});
+
+test("the committed evidence artifacts satisfy the real registry", () => {
+  // Scoped to the sources that are committed rather than fetched at deploy time,
+  // because runtime_poi.json is a build artifact and is absent from a clean
+  // checkout. This runs the real registry's real thresholds against the real
+  // files, so a bad commit to HATI or the packaged fallback is caught here.
+  const committedRegistry = {
+    ...REAL_REGISTRY,
+    sources: REAL_REGISTRY.sources.filter((s) => s.rebuilt_at_deploy === false),
+  };
+  assert.deepEqual(
+    committedRegistry.sources.map((s) => s.id).sort(),
+    ["hati", "snapshot_fallback"],
+    "the set of committed, non-rebuilt sources changed; update this test deliberately"
+  );
+
+  const { errors } = validateDeployment({
+    registry: committedRegistry,
+    artifacts: readArtifacts(fileURLToPath(new URL("../data/", import.meta.url))),
+    generatedAt: GENERATED_AT,
+  });
+
+  assert.deepEqual(errors, [], `committed artifacts must validate: ${errors.join(" | ")}`);
+});

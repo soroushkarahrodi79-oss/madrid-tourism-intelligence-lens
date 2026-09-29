@@ -25,11 +25,41 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+
+      # SOURCE -> BUILD -> VALIDATE -> AUDIT MANIFEST -> DEPLOY.
+      # Each stage below is one link in that chain; the validate step is what
+      # stands between a degraded build and the public site.
       - name: Build deployment spatial snapshots
         run: |
           node scripts/build_runtime_poi.mjs
           python3 scripts/fill_stays_from_esmadrid.py
           python3 scripts/build_pedestrian_activity.py
+
+      # Writes data/deployment_manifest.json and exits non-zero when a source
+      # that blocks deployment is missing, incoherent or has collapsed. A
+      # non-zero exit fails the job before actions/deploy-pages runs, so GitHub
+      # Pages keeps serving the previous good deployment rather than publishing
+      # misleading evidence. The manifest ships with the site, so every
+      # deployment can be audited at <site>/data/deployment_manifest.json.
+      - name: Validate deployment evidence integrity
+        run: node scripts/validate_deployment.mjs
+
+      # Kept on `always()` so a failed validation is still auditable: the
+      # manifest naming the failure is exactly what is needed to diagnose it.
+      # Only compact generated artifacts are archived, never raw upstream
+      # downloads and never anything carrying a secret.
+      - name: Upload deployment evidence audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-evidence-audit
+          path: |
+            data/deployment_manifest.json
+            data/runtime_poi.json
+            data/pedestrian_activity.json
+          retention-days: 30
+          if-no-files-found: warn
+
       - uses: actions/configure-pages@v5
       - name: Inject CARTO basemap key
         env:

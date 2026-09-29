@@ -1,0 +1,277 @@
+{
+  "contract_version": "1.0.0",
+  "purpose": "Single machine-readable registry of the sources that a GitHub Pages deployment builds or ships. It drives scripts/validate_deployment.mjs and is the only place where deployment roles, expected spatial scope and integrity guardrails are declared. It deliberately contains no individual map records.",
+  "guardrail_note": "Every min_count in this file is an ENGINEERING guardrail against an ingestion collapse (a truncated download, a schema change, an upstream outage that still returns parseable JSON). It is not a tourism indicator, not a threshold with analytical meaning, and not a claim about how many museums, stations or hotels Madrid has. Each value is set far below the count actually observed at calibration so that legitimate source change passes and only an obvious collapse fails. baseline_count and calibrated_on are recorded so a reviewer can see the headroom; changing a min_count is a visible diff and must be justified in the pull request that changes it.",
+  "spatial_scopes": {
+    "madrid_city_area": {
+      "lat_min": 40.25,
+      "lat_max": 40.7,
+      "lon_min": -3.95,
+      "lon_max": -3.45,
+      "note": "Generous box around the municipality of Madrid. Deliberately loose: its job is to catch null-island coordinates, swapped lat/lon, projected coordinates leaking through unconverted, and a source returning a different city — not to assert an administrative boundary."
+    },
+    "central_madrid_area": {
+      "lat_min": 40.35,
+      "lat_max": 40.49,
+      "lon_min": -3.78,
+      "lon_max": -3.61,
+      "note": "Generous box around the app's central-Madrid envelope (40.385-40.455 N, -3.745 to -3.645 E). Looser than the envelope on purpose: the CRTM station query uses esriSpatialRelIntersects, so a station sitting on the boundary can be returned marginally outside it (observed: Plaza Eliptica at 40.38460, ~44 m outside). A strict envelope check would fail a healthy build."
+    },
+    "madrid_region": {
+      "lat_min": 39.8,
+      "lat_max": 41.2,
+      "lon_min": -4.6,
+      "lon_max": -3.0,
+      "note": "The Madrid Destino / esmadrid accommodation feed is regional, not strictly municipal: 4 of 613 records observed on 2026-09-29 fall outside the municipality (as far as 40.711 N and -3.994 E). This scope reflects what the feed actually publishes and matches the builder's own accepted window. Records outside madrid_city_area are reported as a manifest warning rather than a failure, because narrowing the accommodation layer would be an analytical semantics change, not an integrity fix."
+    }
+  },
+  "sources": [
+    {
+      "id": "museum",
+      "display_name": "Museums",
+      "authority": "Ayuntamiento de Madrid - Madrid Open Data",
+      "dataset_url": "https://datos.madrid.es/dataset/201132-0-museos",
+      "artifact": "runtime_poi.json",
+      "shape": "poi_layer",
+      "builder": "scripts/build_runtime_poi.mjs",
+      "rebuilt_at_deploy": true,
+      "role": "operational",
+      "blocks_deployment": true,
+      "evidence_type": "OBSERVED",
+      "expected_spatial_scope": "madrid_city_area",
+      "source_period_exposed_by_source": false,
+      "source_period_semantics": "State of the municipal register at the moment of retrieval. The resource publishes no period or edition field, so no source period is recorded for this layer.",
+      "unique_ids": true,
+      "integrity_guardrail": {
+        "min_count": 25,
+        "baseline_count": 68,
+        "calibrated_on": "2026-09-29",
+        "rationale": "~37% of the observed count. A municipal museum register cannot plausibly fall to a quarter of its size; below this, assume a truncated or changed response."
+      },
+      "interpretation_ceiling": "A count of register entries, not a measure of cultural provision, visitor numbers or attractiveness. Not an exhaustive inventory of cultural supply in Madrid."
+    },
+    {
+      "id": "info",
+      "display_name": "Tourist information points",
+      "authority": "Ayuntamiento de Madrid - Madrid Open Data",
+      "dataset_url": "https://datos.madrid.es/dataset/201105-0-informacion-turismo",
+      "artifact": "runtime_poi.json",
+      "shape": "poi_layer",
+      "builder": "scripts/build_runtime_poi.mjs",
+      "rebuilt_at_deploy": true,
+      "role": "operational",
+      "blocks_deployment": true,
+      "evidence_type": "OBSERVED",
+      "expected_spatial_scope": "madrid_city_area",
+      "source_period_exposed_by_source": false,
+      "source_period_semantics": "State of the municipal register at the moment of retrieval. No period field is published.",
+      "unique_ids": true,
+      "integrity_guardrail": {
+        "min_count": 4,
+        "baseline_count": 10,
+        "calibrated_on": "2026-09-29",
+        "rationale": "This layer is small, so a ratio is statistically meaningless; an absolute floor is used instead. Fewer than four official tourist information points city-wide would indicate a broken response rather than a municipal decision."
+      },
+      "interpretation_ceiling": "Presence of official information points. Not service hours, staffing, languages offered or quality."
+    },
+    {
+      "id": "bike",
+      "display_name": "BiciMAD stations",
+      "authority": "EMT Madrid open data",
+      "dataset_url": "https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11",
+      "artifact": "runtime_poi.json",
+      "shape": "poi_layer",
+      "builder": "scripts/build_runtime_poi.mjs",
+      "rebuilt_at_deploy": true,
+      "role": "operational",
+      "blocks_deployment": true,
+      "evidence_type": "OBSERVED",
+      "expected_spatial_scope": "madrid_city_area",
+      "source_period_exposed_by_source": false,
+      "source_period_semantics": "Station network as published at the moment of retrieval. The station GeoJSON carries no period field.",
+      "unique_ids": true,
+      "integrity_guardrail": {
+        "min_count": 250,
+        "baseline_count": 631,
+        "calibrated_on": "2026-09-29",
+        "rationale": "~40% of the observed count. Tolerates real network contraction and station rebuilds; catches a truncated feed."
+      },
+      "interpretation_ceiling": "Station presence only. Not dock capacity, bike availability, service level or accessibility."
+    },
+    {
+      "id": "rail",
+      "display_name": "Metro and Cercanias stations",
+      "authority": "Consorcio Regional de Transportes de Madrid (CRTM) open data",
+      "dataset_url": "https://datos.crtm.es/",
+      "artifact": "runtime_poi.json",
+      "shape": "poi_layer",
+      "builder": "scripts/build_runtime_poi.mjs",
+      "rebuilt_at_deploy": true,
+      "role": "operational",
+      "blocks_deployment": true,
+      "evidence_type": "OBSERVED",
+      "expected_spatial_scope": "central_madrid_area",
+      "source_period_exposed_by_source": false,
+      "source_period_semantics": "Station layers as served by the CRTM feature services at the moment of retrieval.",
+      "unique_ids": true,
+      "required_modes": {
+        "field": "mode",
+        "note": "This layer merges two independent feature services (M4 Metro, M5 Cercanias). A combined count can stay healthy while one mode silently disappears, so each mode is checked separately.",
+        "modes": {
+          "metro": {
+            "min_count": 50,
+            "baseline_count": 138,
+            "rationale": "~36% of the observed Metro count inside the query envelope."
+          },
+          "cercanias": {
+            "min_count": 3,
+            "baseline_count": 10,
+            "rationale": "Only a handful of Cercanias stations fall inside the central envelope, so an absolute floor is used. Zero Cercanias records means the M5 service failed."
+          }
+        }
+      },
+      "integrity_guardrail": {
+        "min_count": 60,
+        "baseline_count": 148,
+        "calibrated_on": "2026-09-29",
+        "rationale": "~40% of the observed combined count, in addition to the per-mode floors above."
+      },
+      "interpretation_ceiling": "Infrastructure presence. Not service frequency, capacity, step-free access or connectivity. Metro and Cercanias records at the same interchange are not deduplicated, and a station with several access points may appear more than once."
+    },
+    {
+      "id": "stay",
+      "display_name": "Official accommodation establishments",
+      "authority": "Madrid Destino / esmadrid.com",
+      "dataset_url": "https://www.esmadrid.com/opendata/alojamientos_v1_es.xml",
+      "artifact": "runtime_poi.json",
+      "shape": "poi_layer",
+      "builder": "scripts/fill_stays_from_esmadrid.py",
+      "rebuilt_at_deploy": true,
+      "role": "operational",
+      "blocks_deployment": true,
+      "evidence_type": "OBSERVED",
+      "expected_spatial_scope": "madrid_region",
+      "warn_outside_scope": "madrid_city_area",
+      "source_period_exposed_by_source": false,
+      "source_period_semantics": "Register state at the moment of retrieval. The XML feed publishes no edition date.",
+      "unique_ids": true,
+      "authoritative_builder": {
+        "status_field": "source",
+        "must_include_any": ["esmadrid", "Madrid Destino"],
+        "must_not_include_any": ["OpenStreetMap", "Overpass", "OSM"],
+        "note": "Guards the owner ruling that Madrid Destino / authoritative public evidence stays canonical for accommodation. A deployment artifact whose accommodation layer was produced by the browser's OpenStreetMap/Overpass path must not be published as an official deployment snapshot. This check inspects the artifact only; the browser-side runtime fallback in js/data.js is a separate behaviour change and is untouched here."
+      },
+      "taxonomy": {
+        "category_field": "accommodationCategory",
+        "min_present_ratio": 0.5,
+        "kind_field": "stayKind",
+        "unclassified_value": "other",
+        "max_unclassified_ratio": 0.5,
+        "note": "Observed on 2026-09-29: 610/613 records carried a source category and 3/613 fell to 'other'. These broad ratios catch the taxonomy block disappearing from the feed or a parser change that collapses every record to unclassified, without asserting a particular category distribution."
+      },
+      "integrity_guardrail": {
+        "min_count": 250,
+        "baseline_count": 613,
+        "calibrated_on": "2026-09-29",
+        "rationale": "~41% of the observed count. Tolerates real register churn; catches a truncated XML parse."
+      },
+      "interpretation_ceiling": "A count of registered establishments. NOT accommodation capacity, beds, places or rooms: a 300-room hotel and a 4-room pension each count as one. Says nothing about occupancy, price, legal status or unregistered supply."
+    },
+    {
+      "id": "park",
+      "display_name": "Principal municipal parks and gardens",
+      "authority": "Ayuntamiento de Madrid - Madrid Open Data",
+      "dataset_url": "https://datos.madrid.es/dataset/200761-0-parques-jardines",
+      "artifact": "runtime_poi.json",
+      "shape": "poi_layer",
+      "builder": "scripts/build_runtime_poi.mjs",
+      "rebuilt_at_deploy": true,
+      "role": "context",
+      "blocks_deployment": false,
+      "unavailable_is_allowed": true,
+      "evidence_type": "OBSERVED",
+      "expected_spatial_scope": "central_madrid_area",
+      "source_period_exposed_by_source": false,
+      "source_period_semantics": "State of the municipal register at the moment of retrieval.",
+      "unique_ids": true,
+      "integrity_guardrail": {
+        "min_count": 30,
+        "baseline_count": 86,
+        "calibrated_on": "2026-09-29",
+        "rationale": "~35% of the observed count. Reported as a warning, not a failure: this layer is cartographic context, is excluded from every lens metric in code, and the app already disables its toggle and reports it unavailable when absent."
+      },
+      "interpretation_ceiling": "Map context only. Never a numerator or denominator. Not shade, cooling, thermal comfort, biodiversity, accessibility, quality or attractiveness, and not a complete inventory of Madrid green space."
+    },
+    {
+      "id": "pedestrian",
+      "display_name": "Permanent pedestrian counters",
+      "authority": "Ayuntamiento de Madrid - Madrid Open Data",
+      "dataset_url": "https://datos.madrid.es/dataset/300321-0-aforos-peatones-bicicletas",
+      "artifact": "pedestrian_activity.json",
+      "shape": "pedestrian_activity",
+      "builder": "scripts/build_pedestrian_activity.py",
+      "rebuilt_at_deploy": true,
+      "role": "observed_evidence",
+      "blocks_deployment": false,
+      "unavailable_is_allowed": true,
+      "evidence_type": "OBSERVED",
+      "expected_spatial_scope": "central_madrid_area",
+      "source_period_exposed_by_source": true,
+      "source_period_semantics": "The published counter records carry their own dates, so this layer's source period is derived from the observed date bounds of the records themselves. It is never taken from the build timestamp. The latest published quarter may be provisional.",
+      "required_dataset_marker": "300321",
+      "integrity_guardrail": {
+        "min_count": 8,
+        "baseline_count": 24,
+        "calibrated_on": "2026-09-29",
+        "rationale": "~33% of the observed station count, reported as a warning. Volume change in an optional opt-in evidence layer does not justify withholding the whole site; internal incoherence does, and is checked separately as a hard failure."
+      },
+      "interpretation_ceiling": "Observed pedestrians passing fixed municipal counters during the published period. NOT tourists, tourist flow, visitor demand, crowding, carrying capacity or current conditions. No value exists between counters."
+    },
+    {
+      "id": "hati",
+      "display_name": "HATI-Madrid outdoor UTCI pilot evidence",
+      "authority": "HATI-Madrid research repository (read-only, pinned commit)",
+      "dataset_url": "https://github.com/soroushkarahrodi79-oss/heat-adaptive-tourism-madrid",
+      "artifact": "hati_assets.json",
+      "shape": "hati_evidence",
+      "builder": "scripts/extract_hati_evidence.py",
+      "rebuilt_at_deploy": false,
+      "role": "research_evidence",
+      "blocks_deployment": true,
+      "evidence_type": "MODEL-DERIVED",
+      "expected_spatial_scope": "central_madrid_area",
+      "source_period_exposed_by_source": true,
+      "source_period_semantics": "One modelled pilot day, 21 August 2023, at three modelled times of day. Fixed by the source; never derived from the build timestamp.",
+      "integrity_guardrail": {
+        "min_count": 14,
+        "baseline_count": 14,
+        "calibrated_on": "2026-09-29",
+        "rationale": "This artifact is committed and locked, not fetched at deploy time, so it can only change through a commit. The floor equals the baseline exactly: the bounded pilot is 14 outdoor assets and any change to that number is a deliberate evidence-boundary change that must not reach a deployment unnoticed."
+      },
+      "interpretation_ceiling": "Model-derived (SOLWEIG) UTCI at 14 sampled outdoor points on one historical day. Not measured comfort, not current conditions, not a city-wide surface, and never to be interpolated between sample points."
+    },
+    {
+      "id": "snapshot_fallback",
+      "display_name": "Curated packaged fallback sample",
+      "authority": "This repository (curated from the sources above)",
+      "dataset_url": null,
+      "artifact": "snapshot_poi.json",
+      "shape": "snapshot_fallback",
+      "builder": "manually curated",
+      "rebuilt_at_deploy": false,
+      "role": "packaged_fallback",
+      "blocks_deployment": true,
+      "evidence_type": "OBSERVED",
+      "expected_spatial_scope": "madrid_city_area",
+      "source_period_exposed_by_source": false,
+      "source_period_semantics": "Capture dates are recorded per layer in snapshot_provenance.json. This is a sample, not an edition of the source.",
+      "integrity_guardrail": {
+        "min_count": 10,
+        "baseline_count": 12,
+        "calibrated_on": "2026-09-29",
+        "rationale": "Committed last-resort fallback (4 museums, 2 information points, 6 accommodation records). Checked for presence and coordinate sanity so the fallback path cannot silently become empty."
+      },
+      "interpretation_ceiling": "A deliberately small curated sample, never a complete inventory. A count from this layer means 'records present in this sample'."
+    }
+  ]
+}
