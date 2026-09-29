@@ -107,8 +107,8 @@ function healthyArtifacts() {
   };
 }
 
-function run(artifacts, registry = testRegistry()) {
-  return validateDeployment({ registry, artifacts, generatedAt: GENERATED_AT });
+function run(artifacts, registry = testRegistry(), extra = {}) {
+  return validateDeployment({ registry, artifacts, generatedAt: GENERATED_AT, ...extra });
 }
 
 function errorText(result) {
@@ -584,6 +584,91 @@ test("a missing runtime_poi.json reports how to build it instead of crashing", (
   assert.match(errorText(result), /Run the deployment builders first/);
 });
 
+// ------------------------------------------------------------------ build-step outcome
+
+test("a failed build step blocks deployment even when the artifacts look healthy", () => {
+  // The decisive case: a build step can fail after writing complete-looking
+  // artifacts. The artifacts must not be allowed to vouch for the build.
+  const result = run(healthyArtifacts(), testRegistry(), { buildStepOutcome: "failure" });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.manifest.build_state, "fail");
+  assert.equal(result.manifest.build_step_outcome, "failure");
+  assert.match(errorText(result), /the data build step reported "failure"/);
+  assert.match(errorText(result), /must not be published from an incomplete or failed build/);
+});
+
+test("a failed build step still produces a manifest describing every layer", () => {
+  // What makes a build failure auditable: the manifest exists and is complete.
+  const artifacts = healthyArtifacts();
+  artifacts["runtime_poi.json"] = null;
+
+  const result = run(artifacts, testRegistry(), { buildStepOutcome: "failure" });
+
+  assert.equal(result.manifest.build_state, "fail");
+  assert.equal(result.manifest.build_step_outcome, "failure");
+  assert.equal(result.manifest.layers.length, REAL_REGISTRY.sources.length);
+  assert.ok(result.manifest.validation.error_count > 0);
+  // The committed evidence is still reported, so the manifest shows what survived.
+  assert.equal(result.manifest.layers.find((l) => l.source_id === "hati").state, "available");
+});
+
+test("a successful build step does not add an error of its own", () => {
+  const result = run(healthyArtifacts(), testRegistry(), { buildStepOutcome: "success" });
+  assert.equal(errorText(result), "");
+  assert.equal(result.manifest.build_step_outcome, "success");
+});
+
+test("a skipped or cancelled build step blocks deployment", () => {
+  for (const outcome of ["skipped", "cancelled"]) {
+    const result = run(healthyArtifacts(), testRegistry(), { buildStepOutcome: outcome });
+    assert.equal(result.ok, false, `outcome "${outcome}" must block`);
+    assert.match(errorText(result), new RegExp(`build step reported "${outcome}"`));
+  }
+});
+
+test("running outside the workflow records no build outcome and does not invent one", () => {
+  const result = run(healthyArtifacts());
+  assert.equal(result.manifest.build_step_outcome, null);
+  assert.equal(result.ok, true);
+});
+
+// ------------------------------------------------------------------ provenance state
+
+test("the manifest labels each layer's provenance state", () => {
+  const result = run(healthyArtifacts());
+  const stateOf = (id) => result.manifest.layers.find((l) => l.source_id === id).provenance_state;
+
+  for (const id of ["museum", "info", "bike", "rail", "stay", "park", "pedestrian"]) {
+    assert.equal(stateOf(id), "deployment_snapshot", `${id} is rebuilt at deploy time`);
+  }
+  assert.equal(stateOf("hati"), "committed_research_evidence");
+  assert.equal(stateOf("snapshot_fallback"), "packaged_sample");
+});
+
+test("the manifest cannot present the packaged fallback as authoritative Madrid evidence", () => {
+  const result = run(healthyArtifacts());
+  const fallback = result.manifest.layers.find((l) => l.source_id === "snapshot_fallback");
+
+  // Not a deployment snapshot, and not attributed to an official authority.
+  assert.equal(fallback.provenance_state, "packaged_sample");
+  assert.equal(fallback.rebuilt_at_deploy, false);
+  assert.match(fallback.authority, /^MIXED/);
+  assert.doesNotMatch(fallback.authority, /Madrid Destino \/ esmadrid\.com$/);
+
+  // It must say where its records really come from, and say it is a sample.
+  assert.equal(fallback.provenance_reference, "data/snapshot_provenance.json");
+  assert.match(fallback.authority, /OpenStreetMap/);
+  assert.match(fallback.interpretation_ceiling, /non-exhaustive/i);
+  assert.match(fallback.interpretation_ceiling, /SNAPSHOT SAMPLE/);
+  assert.match(fallback.interpretation_ceiling, /NOT official Madrid Destino accommodation evidence/);
+
+  // Only a mixed-provenance layer needs the pointer; the rest stay null.
+  const stay = result.manifest.layers.find((l) => l.source_id === "stay");
+  assert.equal(stay.provenance_reference, null);
+  assert.equal(stay.provenance_state, "deployment_snapshot");
+});
+
 // ------------------------------------------------------------------ real registry
 
 test("source registry is internally coherent", () => {
@@ -601,6 +686,15 @@ test("source registry is internally coherent", () => {
     assert.ok(
       ["operational", "context", "observed_evidence", "research_evidence", "packaged_fallback"].includes(source.role),
       `${source.id} has an unknown role`
+    );
+    assert.ok(
+      ["deployment_snapshot", "committed_research_evidence", "packaged_sample"].includes(source.provenance_state),
+      `${source.id} must declare a known provenance_state`
+    );
+    assert.equal(
+      source.provenance_state === "deployment_snapshot",
+      source.rebuilt_at_deploy === true,
+      `${source.id}: provenance_state and rebuilt_at_deploy disagree`
     );
     assert.ok(
       REAL_REGISTRY.spatial_scopes[source.expected_spatial_scope],
@@ -623,6 +717,53 @@ test("source registry is internally coherent", () => {
   }
 
   assert.match(REAL_REGISTRY.guardrail_note, /not a tourism indicator/i);
+});
+
+test("the accommodation scope is named and described as city-and-surroundings, not regional", () => {
+  const scopes = REAL_REGISTRY.spatial_scopes;
+
+  // The old name invited reading this feed as a Comunidad de Madrid contract.
+  assert.ok(!("madrid_region" in scopes), "no scope may be named madrid_region");
+
+  const stay = REAL_REGISTRY.sources.find((s) => s.id === "stay");
+  assert.equal(stay.expected_spatial_scope, "madrid_city_and_surroundings_feed_area");
+
+  const scope = scopes[stay.expected_spatial_scope];
+  assert.equal(scope.is_coverage_contract, false, "this box is an integrity envelope, not a coverage contract");
+  assert.match(scope.note, /INTEGRITY ENVELOPE ONLY/);
+  assert.match(scope.note, /la ciudad de Madrid y alrededores/);
+  assert.match(scope.not_a_regional_dataset, /never be read as Comunidad de Madrid coverage/);
+  assert.match(scope.not_a_regional_dataset, /must not inherit this feed as a proxy/);
+
+  // The outlying records stay reported rather than filtered.
+  assert.equal(stay.warn_outside_scope, "madrid_city_area");
+  assert.match(scope.note, /deliberately NOT filtered/);
+
+  // Nothing in the registry may call this source regional evidence.
+  const serialised = JSON.stringify(REAL_REGISTRY);
+  assert.doesNotMatch(serialised, /feed is regional/);
+  assert.match(stay.interpretation_ceiling, /neither a strictly municipal register nor a Comunidad de Madrid one/);
+});
+
+test("the packaged fallback declares mixed provenance and points at its record", () => {
+  const fallback = REAL_REGISTRY.sources.find((s) => s.id === "snapshot_fallback");
+
+  assert.match(fallback.display_name, /multi-source/i);
+  assert.match(fallback.authority, /^MIXED/);
+  assert.match(fallback.authority, /NOT the same set of authorities/);
+  assert.match(fallback.authority, /OpenStreetMap-derived/);
+  assert.equal(fallback.provenance_reference, "data/snapshot_provenance.json");
+  assert.equal(fallback.provenance_state, "packaged_sample");
+  assert.match(fallback.interpretation_ceiling, /non-exhaustive/i);
+  assert.match(fallback.interpretation_ceiling, /SNAPSHOT SAMPLE/);
+  assert.match(fallback.source_period_semantics, /no source period of its own/);
+
+  // The referenced file must actually carry the per-layer provenance claimed.
+  const provenance = JSON.parse(
+    fs.readFileSync(new URL("../data/snapshot_provenance.json", import.meta.url), "utf8")
+  );
+  assert.match(provenance.layers.accommodation.live_source, /OpenStreetMap/);
+  assert.match(provenance.layers.museums.live_source, /Madrid Open Data/);
 });
 
 test("exactly the layers that feed operational lens metrics block deployment", () => {

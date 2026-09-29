@@ -17,12 +17,14 @@
       "lon_max": -3.61,
       "note": "Generous box around the app's central-Madrid envelope (40.385-40.455 N, -3.745 to -3.645 E). Looser than the envelope on purpose: the CRTM station query uses esriSpatialRelIntersects, so a station sitting on the boundary can be returned marginally outside it (observed: Plaza Eliptica at 40.38460, ~44 m outside). A strict envelope check would fail a healthy build."
     },
-    "madrid_region": {
+    "madrid_city_and_surroundings_feed_area": {
       "lat_min": 39.8,
       "lat_max": 41.2,
       "lon_min": -4.6,
       "lon_max": -3.0,
-      "note": "The Madrid Destino / esmadrid accommodation feed is regional, not strictly municipal: 4 of 613 records observed on 2026-09-29 fall outside the municipality (as far as 40.711 N and -3.994 E). This scope reflects what the feed actually publishes and matches the builder's own accepted window. Records outside madrid_city_area are reported as a manifest warning rather than a failure, because narrowing the accommodation layer would be an analytical semantics change, not an integrity fix."
+      "is_coverage_contract": false,
+      "note": "INTEGRITY ENVELOPE ONLY for the Madrid Destino / esmadrid accommodation feed - not a statement of coverage. The dataset is published as 'Alojamientos de la ciudad de Madrid' and its specification describes the content as accommodation of 'la ciudad de Madrid y alrededores' (the city of Madrid and its surroundings). The box is deliberately loose so that a record in the surroundings does not fail the build, while a null-island coordinate, a swapped lat/lon or a different country still does. On 2026-09-29, 4 of 613 records fell outside the municipality, the furthest at 40.711 N / -3.994 E; those records are reported as a manifest warning against madrid_city_area and are deliberately NOT filtered here, because narrowing the layer would be an analytical semantics change rather than an integrity fix.",
+      "not_a_regional_dataset": "This envelope must never be read as Comunidad de Madrid coverage. This feed is a city-and-surroundings accommodation register, not a regional one. A future Comunidad de Madrid level requires its own authoritative regional datasets and must not inherit this feed as a proxy for them."
     }
   },
   "sources": [
@@ -35,6 +37,7 @@
       "shape": "poi_layer",
       "builder": "scripts/build_runtime_poi.mjs",
       "rebuilt_at_deploy": true,
+      "provenance_state": "deployment_snapshot",
       "role": "operational",
       "blocks_deployment": true,
       "evidence_type": "OBSERVED",
@@ -59,6 +62,7 @@
       "shape": "poi_layer",
       "builder": "scripts/build_runtime_poi.mjs",
       "rebuilt_at_deploy": true,
+      "provenance_state": "deployment_snapshot",
       "role": "operational",
       "blocks_deployment": true,
       "evidence_type": "OBSERVED",
@@ -83,6 +87,7 @@
       "shape": "poi_layer",
       "builder": "scripts/build_runtime_poi.mjs",
       "rebuilt_at_deploy": true,
+      "provenance_state": "deployment_snapshot",
       "role": "operational",
       "blocks_deployment": true,
       "evidence_type": "OBSERVED",
@@ -107,6 +112,7 @@
       "shape": "poi_layer",
       "builder": "scripts/build_runtime_poi.mjs",
       "rebuilt_at_deploy": true,
+      "provenance_state": "deployment_snapshot",
       "role": "operational",
       "blocks_deployment": true,
       "evidence_type": "OBSERVED",
@@ -147,10 +153,11 @@
       "shape": "poi_layer",
       "builder": "scripts/fill_stays_from_esmadrid.py",
       "rebuilt_at_deploy": true,
+      "provenance_state": "deployment_snapshot",
       "role": "operational",
       "blocks_deployment": true,
       "evidence_type": "OBSERVED",
-      "expected_spatial_scope": "madrid_region",
+      "expected_spatial_scope": "madrid_city_and_surroundings_feed_area",
       "warn_outside_scope": "madrid_city_area",
       "source_period_exposed_by_source": false,
       "source_period_semantics": "Register state at the moment of retrieval. The XML feed publishes no edition date.",
@@ -175,7 +182,7 @@
         "calibrated_on": "2026-09-29",
         "rationale": "~41% of the observed count. Tolerates real register churn; catches a truncated XML parse."
       },
-      "interpretation_ceiling": "A count of registered establishments. NOT accommodation capacity, beds, places or rooms: a 300-room hotel and a 4-room pension each count as one. Says nothing about occupancy, price, legal status or unregistered supply."
+      "interpretation_ceiling": "A count of registered establishments. NOT accommodation capacity, beds, places or rooms: a 300-room hotel and a 4-room pension each count as one. Says nothing about occupancy, price, legal status or unregistered supply. Published as 'Alojamientos de la ciudad de Madrid', covering the city of Madrid and its surroundings, so it is neither a strictly municipal register nor a Comunidad de Madrid one, and must not be used as a regional dataset."
     },
     {
       "id": "park",
@@ -186,6 +193,7 @@
       "shape": "poi_layer",
       "builder": "scripts/build_runtime_poi.mjs",
       "rebuilt_at_deploy": true,
+      "provenance_state": "deployment_snapshot",
       "role": "context",
       "blocks_deployment": false,
       "unavailable_is_allowed": true,
@@ -211,6 +219,7 @@
       "shape": "pedestrian_activity",
       "builder": "scripts/build_pedestrian_activity.py",
       "rebuilt_at_deploy": true,
+      "provenance_state": "deployment_snapshot",
       "role": "observed_evidence",
       "blocks_deployment": false,
       "unavailable_is_allowed": true,
@@ -236,6 +245,7 @@
       "shape": "hati_evidence",
       "builder": "scripts/extract_hati_evidence.py",
       "rebuilt_at_deploy": false,
+      "provenance_state": "committed_research_evidence",
       "role": "research_evidence",
       "blocks_deployment": true,
       "evidence_type": "MODEL-DERIVED",
@@ -252,26 +262,28 @@
     },
     {
       "id": "snapshot_fallback",
-      "display_name": "Curated packaged fallback sample",
-      "authority": "This repository (curated from the sources above)",
+      "display_name": "Curated multi-source packaged fallback sample",
+      "authority": "MIXED - curated in this repository from several different upstream sources, which are NOT the same set of authorities the deployment sources use. Per-layer provenance is recorded in data/snapshot_provenance.json and is the authoritative description of where each fallback record came from. Notably the accommodation records in this sample are OpenStreetMap-derived (ODbL, via Overpass), not Madrid Destino / esmadrid records.",
+      "provenance_reference": "data/snapshot_provenance.json",
       "dataset_url": null,
       "artifact": "snapshot_poi.json",
       "shape": "snapshot_fallback",
       "builder": "manually curated",
       "rebuilt_at_deploy": false,
+      "provenance_state": "packaged_sample",
       "role": "packaged_fallback",
       "blocks_deployment": true,
       "evidence_type": "OBSERVED",
       "expected_spatial_scope": "madrid_city_area",
       "source_period_exposed_by_source": false,
-      "source_period_semantics": "Capture dates are recorded per layer in snapshot_provenance.json. This is a sample, not an edition of the source.",
+      "source_period_semantics": "Capture dates are recorded per layer in data/snapshot_provenance.json. This is a sample, not an edition of any source, and it has no source period of its own.",
       "integrity_guardrail": {
         "min_count": 10,
         "baseline_count": 12,
         "calibrated_on": "2026-09-29",
         "rationale": "Committed last-resort fallback (4 museums, 2 information points, 6 accommodation records). Checked for presence and coordinate sanity so the fallback path cannot silently become empty."
       },
-      "interpretation_ceiling": "A deliberately small curated sample, never a complete inventory. A count from this layer means 'records present in this sample'."
+      "interpretation_ceiling": "A deliberately small, non-exhaustive curated sample, never a complete inventory: a count from this layer means 'records present in this sample', not 'records that exist at this location'. It carries the separate SNAPSHOT SAMPLE evidence state in the UI and must never be presented as current authoritative Madrid evidence. In particular its accommodation records are OpenStreetMap-derived and are NOT official Madrid Destino accommodation evidence; they must not be read as the authoritative accommodation register, and no count from them may be compared with a deployment-snapshot accommodation count. Retiring this OpenStreetMap-derived accommodation fallback is a separate, separately-reviewable behaviour change."
     }
   ]
 }

@@ -59,13 +59,39 @@ it. There is no upper bound: a source that grows is not degraded.
 the previous good deployment. The public site does not disappear; it simply does
 not advance to a degraded build.
 
-**The audit manifest.** Every run writes `data/deployment_manifest.json`,
-including failed runs, and it ships with the site — so any deployment can be
-inspected at `<site>/data/deployment_manifest.json`. It records what was built,
-from which authority, by which builder, for what scope and period, how many
-records, whether the layer was available, and the validation verdict with any
-warnings. It is also uploaded as the `deployment-evidence-audit` workflow
-artifact. It contains no secrets.
+**What happens when the *build* fails.** The validation step carries
+`if: ${{ !cancelled() }}`, so it runs even after the build step failed —
+otherwise GitHub Actions would skip it and there would be no manifest explaining
+why the deployment stopped. The build step's outcome is passed in as
+`DEPLOYMENT_BUILD_OUTCOME`, and any outcome other than `success` is itself a
+validation error. That matters because a build can fail *after* writing
+complete-looking artifacts: the artifacts are never allowed to vouch for the
+build. `continue-on-error` is deliberately not used anywhere — it would mark a
+failed build successful. The publishing steps carry no condition at all, so once
+the job is failing they are skipped, and a failed build cannot become a
+deployable state.
+
+**The precise auditability guarantee.** A **data-build failure or an
+evidence-validation failure** produces `data/deployment_manifest.json` with
+`build_state: "fail"`, uploaded as the `deployment-evidence-audit` workflow
+artifact. This is not a claim that every conceivable workflow failure yields a
+manifest: a failure before the repository is checked out or before Node is
+available (runner or infrastructure failure), or a cancelled run, happens before
+the validator can execute and leaves no manifest. Those are visible in the
+workflow run itself rather than in an artifact.
+
+**The audit manifest.** It records, per layer: what was built, from which
+authority, by which builder, its provenance state, for what scope and period, how
+many records, whether the layer was available, its interpretation ceiling, and
+the validation verdict with any warnings. On a successful deployment it ships
+with the site and can be inspected at `<site>/data/deployment_manifest.json`. It
+contains no secrets — the CARTO key is injected in a later step, after the audit
+artifact has been collected.
+
+`provenance_state` distinguishes a `deployment_snapshot` (rebuilt from its
+authority during this deploy) from `committed_research_evidence` (HATI) and from
+the `packaged_sample` fallback, so no consumer of the manifest can mistake the
+curated fallback for current authoritative evidence.
 
 `generated_at` (when this build ran) and `source_period` (what the evidence
 describes) are deliberately separate fields. A source that publishes no period
@@ -106,12 +132,45 @@ it does not reclassify the source record for analytical claims. If the official
 feed is unavailable and the app falls back to older curated records without
 type metadata, the type selector is disabled rather than guessing a class.
 
-A **SNAPSHOT SAMPLE** is a small, manually curated subset of the source
-dataset for the study area — **not a complete inventory**. A count derived
-from a snapshot layer means "records present in this sample," not "total
-records that exist at this location." Full snapshot metadata (capture date,
-curation method, `exhaustive: false` per layer) is in
-[`data/snapshot_provenance.json`](../data/snapshot_provenance.json).
+A **SNAPSHOT SAMPLE** is a small, manually curated subset for the study area —
+**not a complete inventory**. A count derived from a snapshot layer means
+"records present in this sample," not "total records that exist at this
+location." Full snapshot metadata (capture date, curation method,
+`exhaustive: false` per layer) is in
+[`data/snapshot_provenance.json`](../data/snapshot_provenance.json), which is the
+authoritative description of where each fallback record came from.
+
+The packaged fallback is **multi-source**, and its upstream sources are not the
+same set of authorities the deployment sources use. The museum and tourist
+information records were curated from Madrid Open Data, but the **accommodation
+records are OpenStreetMap-derived (ODbL, via Overpass), not Madrid Destino /
+esmadrid records.** So a fallback accommodation count is not official Madrid
+accommodation evidence, must not be read as the authoritative register, and must
+not be compared with a deployment-snapshot accommodation count. The deployment
+manifest marks this layer `provenance_state: "packaged_sample"` so it cannot be
+mistaken for current authoritative evidence. Retiring the OpenStreetMap-derived
+accommodation fallback is a separate, separately-reviewable behaviour change.
+
+### Accommodation feed coverage
+
+The accommodation feed is published as **"Alojamientos de la ciudad de Madrid"**,
+and its specification describes the content as accommodation of **"la ciudad de
+Madrid y alrededores"** — the city of Madrid and its surroundings. It is
+therefore neither a strictly municipal register nor a regional one.
+
+The validator checks its coordinates against
+`madrid_city_and_surroundings_feed_area`, which is an **integrity envelope only**
+(`is_coverage_contract: false`): deliberately loose enough that a record in the
+surroundings does not fail the build, while a null-island coordinate, a swapped
+lat/lon or a different country still does. Records falling outside the narrower
+`madrid_city_area` box are reported as a manifest warning — 4 of 613 on
+2026-09-29, the furthest at 40.711 N / −3.994 E — and are **not** filtered,
+because narrowing the layer would be an analytical semantics change rather than an
+integrity fix.
+
+This envelope must never be read as Comunidad de Madrid coverage. A future
+Comunidad de Madrid level will require its own authoritative regional datasets and
+must not inherit this feed as a proxy for them.
 
 For CRTM rail data, the deployment builder queries the official station feature
 layers only inside the app's central-Madrid envelope

@@ -30,6 +30,7 @@ jobs:
       # Each stage below is one link in that chain; the validate step is what
       # stands between a degraded build and the public site.
       - name: Build deployment spatial snapshots
+        id: build
         run: |
           node scripts/build_runtime_poi.mjs
           python3 scripts/fill_stays_from_esmadrid.py
@@ -39,17 +40,29 @@ jobs:
       # that blocks deployment is missing, incoherent or has collapsed. A
       # non-zero exit fails the job before actions/deploy-pages runs, so GitHub
       # Pages keeps serving the previous good deployment rather than publishing
-      # misleading evidence. The manifest ships with the site, so every
+      # misleading evidence. The manifest ships with the site, so a successful
       # deployment can be audited at <site>/data/deployment_manifest.json.
+      #
+      # `!cancelled()` is what makes a FAILED BUILD auditable too: without it,
+      # GitHub Actions would skip this step after the build step failed and no
+      # manifest would exist to explain why. It is deliberately not
+      # `continue-on-error`, which would mask the failure: the build step's own
+      # failure already marks the job failed, and DEPLOYMENT_BUILD_OUTCOME makes
+      # the validator fail as well, so a failed build can never become a
+      # deployable state. Cancellation is excluded because a cancelled run has
+      # nothing to audit.
       - name: Validate deployment evidence integrity
+        if: ${{ !cancelled() }}
+        env:
+          DEPLOYMENT_BUILD_OUTCOME: ${{ steps.build.outcome }}
         run: node scripts/validate_deployment.mjs
 
-      # Kept on `always()` so a failed validation is still auditable: the
-      # manifest naming the failure is exactly what is needed to diagnose it.
-      # Only compact generated artifacts are archived, never raw upstream
-      # downloads and never anything carrying a secret.
+      # Runs even when the build or the validation failed, which is when the
+      # manifest naming the failure is most useful. Only compact generated
+      # artifacts are archived, never raw upstream downloads and never anything
+      # carrying a secret (the CARTO key is injected in a later step).
       - name: Upload deployment evidence audit
-        if: always()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: deployment-evidence-audit

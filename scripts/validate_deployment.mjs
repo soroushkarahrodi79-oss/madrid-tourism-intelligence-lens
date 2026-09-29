@@ -230,15 +230,19 @@ function validatePoiLayer(source, runtimePoi, scopes, errors, warnings) {
     );
   }
 
-  // Scope observation that is reported, not enforced: the accommodation feed is
-  // regional. Narrowing it would be an analytical change, so this stays a warning.
+  // Scope observation that is reported, not enforced. The accommodation feed
+  // covers the city of Madrid and its surroundings, so a record outside the
+  // municipality is expected rather than wrong; filtering it would be an
+  // analytical change. This is NOT evidence of regional coverage.
   if (source.warn_outside_scope) {
     const narrower = scopes[source.warn_outside_scope];
     if (narrower) {
       const outside = records.filter((r) => isFiniteNumber(r.lat) && isFiniteNumber(r.lon) && !inScope(r, narrower));
       if (outside.length) {
         layerWarnings.push(
-          `${outside.length} record(s) fall outside ${source.warn_outside_scope}; this source is regional, not strictly municipal`
+          `${outside.length} record(s) fall outside ${source.warn_outside_scope}: this feed covers the city of Madrid ` +
+            `and its surroundings, so it is not a strictly municipal register and is not a regional one either. ` +
+            `Not filtered here.`
         );
       }
     }
@@ -449,10 +453,27 @@ function validateRuntimePoiStructure(runtimePoi, registry, errors) {
   }
 }
 
-export function validateDeployment({ registry, artifacts, generatedAt, commit = null, workflowRun = null }) {
+export function validateDeployment({
+  registry,
+  artifacts,
+  generatedAt,
+  commit = null,
+  workflowRun = null,
+  buildStepOutcome = null,
+}) {
   const errors = [];
   const warnings = [];
   const scopes = registry.spatial_scopes;
+
+  // The workflow runs this validator even when the build step failed, so that a
+  // failed build still leaves an audit manifest. A non-successful build can
+  // never be published, whatever the artifacts on disk happen to look like.
+  if (buildStepOutcome !== null && buildStepOutcome !== "success") {
+    errors.push(
+      `the data build step reported "${buildStepOutcome}": a deployment must not be published from an ` +
+        `incomplete or failed build, regardless of what the artifacts on disk contain`
+    );
+  }
 
   validateRuntimePoiStructure(artifacts["runtime_poi.json"], registry, errors);
 
@@ -491,6 +512,13 @@ export function validateDeployment({ registry, artifacts, generatedAt, commit = 
       builder: source.builder,
       artifact: source.artifact,
       rebuilt_at_deploy: source.rebuilt_at_deploy === true,
+      // Distinguishes a freshly built deployment snapshot from the committed
+      // packaged sample and from committed research evidence, so no consumer of
+      // this manifest can mistake the curated fallback for current authoritative
+      // evidence. provenance_reference points at the file that describes where a
+      // mixed-provenance layer's records actually came from.
+      provenance_state: source.provenance_state,
+      provenance_reference: source.provenance_reference ?? null,
       role: source.role,
       blocks_deployment: source.blocks_deployment === true,
       evidence_type: source.evidence_type,
@@ -515,6 +543,9 @@ export function validateDeployment({ registry, artifacts, generatedAt, commit = 
     generated_at: generatedAt,
     commit,
     workflow_run: workflowRun,
+    // The outcome of the data-build step, as reported by the workflow. null when
+    // the validator was run outside the workflow (for example locally).
+    build_step_outcome: buildStepOutcome,
     build_state: errors.length === 0 ? "pass" : "fail",
     validation: {
       error_count: errors.length,
@@ -596,6 +627,7 @@ function main(argv) {
     generatedAt: new Date().toISOString(),
     commit: currentCommit(),
     workflowRun: process.env.GITHUB_RUN_ID ?? null,
+    buildStepOutcome: process.env.DEPLOYMENT_BUILD_OUTCOME || null,
   });
 
   // The manifest is written even on failure: a failed build is exactly when the
