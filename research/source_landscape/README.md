@@ -3,33 +3,22 @@
 Research-only. Nothing here is imported by the application, nothing here is
 built at deploy time, and nothing here writes into `data/`.
 
-## Status — IN PROGRESS, blocked on network access
+## Status — Gate C0 COMPLETE
 
-Gate C0's central requirement is source *verification*: the official dataset
-page, the official metadata, the official schema, and a light probe of the
-actual machine-readable resource, in that order of preference. Web summaries
-are explicitly not acceptable evidence for it.
+The source landscape and catalogue exist. See
+[`docs/MADRID_TOURISM_INTELLIGENCE_SOURCE_LANDSCAPE.md`](../../docs/MADRID_TOURISM_INTELLIGENCE_SOURCE_LANDSCAPE.md).
 
-At the time of this commit that verification could not be performed. The
-session's egress policy permits GitHub and package registries only, and denied
-every upstream host the audit needs — including the four this repository's own
-production build already depends on (`datos.madrid.es`, `www.esmadrid.com`,
-`datos.emtmadrid.es`, `datos.crtm.es`). Deployment is unaffected: the Pages
-workflow builds on GitHub-hosted runners, which have their own network.
+**Result: 15 candidates across 7 families — 8 USE, 5 WATCH, 2 REJECT.**
 
-Consequently this package currently contains the **probe harness only**. The
-source landscape report and the machine-readable catalogue are deliberately
-absent rather than written from unverified recollection: issuing a `USE`
-recommendation — which asserts reproducible access to a trustworthy source —
-for a source whose endpoint has never once been contacted would be precisely
-the failure mode Gates A and B exist to prevent.
+## Two separate pieces of evidence — do not collapse them
 
-### Recorded evidence of the blocked run
+This gate rests on two findings, both preserved deliberately.
 
-`probe_report.json` is the machine-readable record of the audit **attempt**,
-not of an audit. On **2026-09-30T13:03:25Z**, all 14 targets returned
-`Tunnel connection failed: 403 Forbidden` — **0 of 14 ok**, across all seven
-families:
+### 1. The Claude Code environment probe was BLOCKED
+
+`probe_report.json` records the attempt, not an audit. On
+**2026-09-30T13:03:25Z** all 14 targets returned `403 Forbidden` from the
+session's egress proxy — **0 of 14 ok** — across all seven families:
 
 | family | reachable |
 |---|---|
@@ -41,17 +30,32 @@ families:
 | F — Inside Airbnb | no |
 | G — other (AEMET) | no |
 
-Network availability is **proven by successful responses, never inferred from
-settings**. The three control targets are what make that proof possible: each
-is a URL form already exercised successfully by a production builder or by the
-completed Gate B audit, so a failure on them isolates the environment from the
-source. All three failed, which attributes this run's outcome to the egress
-policy and to nothing about the sources themselves.
+All three **control** targets failed too — URL forms proven by this
+repository's own production builders and by Gate B's completed live audit. That
+is what makes the diagnosis unambiguous: the 0/14 result is evidence about
+**that environment's network policy**, never about a source. It must not be
+reinterpreted as a source failure, and the file must not be rewritten to
+suggest a probe succeeded. Two tests enforce both.
 
-Gate C0 resumes when a re-run returns successful responses from at least
-Dataestur, Madrid Open Data, Geoportal/Sigma, Comunidad de Madrid, IGN/CNIG and
-Inside Airbnb. Any family still blocked at that point is recorded as blocked
-rather than filled in from recollection.
+### 2. Official-source verification was completed independently
+
+The source verification the gate requires was **completed by the project
+maintainer on 30 September 2026, outside the restricted environment**, against
+current official public documentation and machine-readable metadata: the
+API-SEGITTUR OpenAPI 3.0.1 specification (API v2.0), Madrid Open Data dataset
+and resource pages, Geoportal Madrid / IDEAM metadata and methodology reports,
+CNIG/PNOA technical specifications, Comunidad de Madrid portal metadata, and
+Inside Airbnb's own data page and policy.
+
+Every `verified_at` in `source_catalog.json` refers to **that external
+verification**, and every record carries
+`verification_method: external_official_documentation` so the provenance is
+machine-readable. **No probe from the Claude Code environment succeeded on 30
+September 2026.**
+
+The probe harness stays in the repository: it remains the right instrument, and
+re-running it where egress is open would let a future gate promote candidates on
+first-party observation rather than relayed verification.
 
 ## What is here
 
@@ -62,7 +66,11 @@ rather than filled in from recollection.
   never persisted; credentialed URLs are refused before the request is made.
 * `probe_targets.json` — the target list. Each entry is a **hypothesis**
   carrying a `probe_question` and a `proven_url_form` flag.
-* `probe_report.json` — output of the most recent run.
+* `probe_report.json` — output of the most recent run (the blocked attempt).
+* `source_catalog.json` — the Gate C0 machine-readable source catalogue: one
+  record per candidate, each with exactly one recommendation, its
+  interpretation ceiling, and — for WATCH — its blocker and exact unblock
+  condition. No weighted score is published, and a test forbids one.
 
 ### What `proven_url_form` may claim
 

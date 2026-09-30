@@ -20,6 +20,9 @@ import unittest
 REPO = pathlib.Path(__file__).resolve().parent.parent
 LANDSCAPE_DIR = REPO / "research" / "source_landscape"
 TARGETS_PATH = LANDSCAPE_DIR / "probe_targets.json"
+CATALOG_PATH = LANDSCAPE_DIR / "source_catalog.json"
+REPORT_PATH = LANDSCAPE_DIR / "probe_report.json"
+LANDSCAPE_DOC = REPO / "docs" / "MADRID_TOURISM_INTELLIGENCE_SOURCE_LANDSCAPE.md"
 
 # The probe lives outside any package, so it is loaded by path rather than
 # imported. Loading it runs no network code: everything at module scope is
@@ -176,3 +179,144 @@ class ProbeHarnessHygiene(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CatalogContract(unittest.TestCase):
+    """Gate C0 catalogue semantics. These guard the rules the gate itself sets:
+    one recommendation per candidate, no recommendation without the evidence
+    that recommendation asserts, and no invented precision."""
+
+    RECOMMENDATIONS = {"USE", "WATCH", "REJECT"}
+    EFFORTS = {"LOW", "LOW_MEDIUM", "MEDIUM", "MEDIUM_HIGH", "HIGH"}
+
+    def setUp(self) -> None:
+        self.doc = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+        self.sources = self.doc["sources"]
+
+    def test_catalog_is_valid_json_with_sources(self) -> None:
+        self.assertIsInstance(self.sources, list)
+        self.assertGreater(len(self.sources), 0)
+
+    def test_source_ids_are_unique(self) -> None:
+        ids = [s["id"] for s in self.sources]
+        self.assertEqual(len(ids), len(set(ids)), "duplicate catalogue source id")
+
+    def test_every_source_has_exactly_one_valid_recommendation(self) -> None:
+        for source in self.sources:
+            self.assertIn(source["recommendation"], self.RECOMMENDATIONS,
+                          f"{source['id']} has an invalid recommendation")
+
+    def test_implementation_effort_uses_the_declared_enum(self) -> None:
+        for source in self.sources:
+            self.assertIn(source["implementation_effort"], self.EFFORTS,
+                          f"{source['id']} has an invalid implementation_effort")
+
+    def test_declared_enums_match_what_the_records_use(self) -> None:
+        # The catalogue publishes its own enums; they must not drift from use.
+        self.assertEqual(set(self.doc["enums"]["recommendation"]), self.RECOMMENDATIONS)
+        self.assertEqual(set(self.doc["enums"]["implementation_effort"]), self.EFFORTS)
+
+    def test_every_use_candidate_carries_the_evidence_use_asserts(self) -> None:
+        # USE asserts a clear decision question, usable geography and
+        # understandable period semantics. A USE without one of those is the
+        # failure mode Gates A and B exist to prevent.
+        for source in self.sources:
+            if source["recommendation"] != "USE":
+                continue
+            for field in ("candidate_question", "geography", "temporal_semantics",
+                          "access_method", "evidence_class", "placement",
+                          "interpretation_ceiling"):
+                self.assertTrue(str(source.get(field, "")).strip(),
+                                f"USE candidate {source['id']} is missing {field}")
+
+    def test_every_use_candidate_has_a_real_decision_question(self) -> None:
+        # Not "this dataset contains trees". The gate's decision-question test
+        # requires a use and a decision.
+        for source in self.sources:
+            if source["recommendation"] != "USE":
+                continue
+            question = source["candidate_question"].lower()
+            self.assertIn("in order to decide", question,
+                          f"USE candidate {source['id']} has no decision clause")
+
+    def test_every_watch_candidate_has_a_blocker_and_an_unblock_condition(self) -> None:
+        for source in self.sources:
+            if source["recommendation"] != "WATCH":
+                continue
+            self.assertTrue(str(source.get("blocker", "")).strip(),
+                            f"WATCH candidate {source['id']} has no blocker")
+            self.assertTrue(str(source.get("unblock_condition", "")).strip(),
+                            f"WATCH candidate {source['id']} has no unblock_condition")
+
+    def test_every_reject_candidate_has_a_reason(self) -> None:
+        for source in self.sources:
+            if source["recommendation"] != "REJECT":
+                continue
+            self.assertTrue(str(source.get("reject_reason", "")).strip(),
+                            f"REJECT candidate {source['id']} has no reject_reason")
+
+    def test_no_catalog_url_carries_a_credential(self) -> None:
+        for source in self.sources:
+            url = source.get("url") or ""
+            self.assertIsNone(CREDENTIAL_PATTERN.search(url),
+                              f"{source['id']} URL appears to carry a credential")
+
+    def test_no_weighted_score_is_published(self) -> None:
+        # The gate forbids a single composite source-quality score.
+        raw = CATALOG_PATH.read_text(encoding="utf-8").lower()
+        for banned in ('"score"', '"weight"', '"weighted_score"', '"rank"', '"total_score"'):
+            self.assertNotIn(banned, raw, f"catalogue publishes a {banned} field")
+
+    def test_every_record_states_how_it_was_verified(self) -> None:
+        # Provenance must be machine-readable, not only prose, so a later reader
+        # cannot mistake external verification for a successful in-environment probe.
+        for source in self.sources:
+            self.assertEqual(source.get("verification_method"),
+                             "external_official_documentation",
+                             f"{source['id']} does not state its verification method")
+            self.assertTrue(str(source.get("verified_at", "")).strip(),
+                            f"{source['id']} has no verified_at")
+
+
+class EvidenceProvenanceIsPreserved(unittest.TestCase):
+    """The blocked probe and the external verification are two separate facts.
+    Neither may be rewritten into the other."""
+
+    def test_probe_report_still_records_the_blocked_run(self) -> None:
+        report = json.loads(REPORT_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(report["targets_ok"], 0,
+                         "probe_report.json must keep recording that no probe succeeded")
+        self.assertGreater(report["targets_probed"], 0)
+        for result in report["results"]:
+            self.assertFalse(result.get("ok"), "a blocked probe was rewritten as successful")
+
+    def test_catalog_records_the_probe_as_blocked_not_successful(self) -> None:
+        doc = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+        probe_block = doc["evidence_provenance"]["claude_environment_probe"]
+        self.assertEqual(probe_block["status"], "BLOCKED_BY_EGRESS_POLICY")
+        verification = doc["evidence_provenance"]["official_source_verification"]
+        self.assertEqual(verification["status"], "COMPLETED_EXTERNALLY")
+
+    def test_landscape_report_keeps_both_facts(self) -> None:
+        text = LANDSCAPE_DOC.read_text(encoding="utf-8")
+        self.assertIn("0 of 14", text, "the report must state the blocked probe result")
+        self.assertIn("independently", text.lower(),
+                      "the report must state that verification was done independently")
+
+
+class LandscapeReportContract(unittest.TestCase):
+    def test_report_exists_and_records_the_audit_date(self) -> None:
+        text = LANDSCAPE_DOC.read_text(encoding="utf-8")
+        self.assertIn("30 September 2026", text)
+
+    def test_report_names_every_catalogued_candidate_ruling(self) -> None:
+        text = LANDSCAPE_DOC.read_text(encoding="utf-8")
+        for token in ("USE", "WATCH", "REJECT"):
+            self.assertIn(token, text)
+
+    def test_shortlist_is_bounded(self) -> None:
+        # The gate asks for roughly 5-10 recommended modules, not 50 datasets.
+        catalog = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+        use_count = sum(1 for s in catalog["sources"] if s["recommendation"] == "USE")
+        self.assertGreaterEqual(use_count, 5)
+        self.assertLessEqual(use_count, 10, "the USE shortlist has grown beyond the gate's bound")
