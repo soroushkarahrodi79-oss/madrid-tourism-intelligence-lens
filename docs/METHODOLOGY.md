@@ -58,13 +58,14 @@ identical with or without it.
 | Lens centre outside the municipality | *Outside Madrid City* — no area, **no zero** |
 | Barrio known, no population record | The place, and *residents: Unavailable* — **never 0** |
 | Inside Madrid, inside no barrio polygon | The district only, and residents unavailable |
-| Population artifact failed to load | The place, boundaries and highlight, and *residents: Unavailable* |
+| Population artifact failed to load | The place, boundaries and highlight, *residents: Unavailable*, raw licensed VUT counts, and the ratio abstaining |
+| Licensed-VUT artifact failed to load | The place and the resident figure in full; *licensed VUT: Unavailable* |
 | Canonical geography failed to load | *Administrative context unavailable*; the Lens keeps working |
 
-### The two artifacts fail independently
+### The three artifacts fail independently
 
-The browser tracks the geography and the population as **two runtime states**,
-because they are two different kinds of thing:
+The browser tracks the geography, the population and the licensed-VUT numerator
+as **three runtime states**, because they are three different kinds of thing:
 
 - The **canonical geography is a dependency.** Without it there is no barrio, no
   district, no containing-area highlight and no boundary layer, so the boundary
@@ -76,22 +77,34 @@ because they are two different kinds of thing:
   selector all stay exactly as they are; the figure alone abstains with
   *"Residential population unavailable for this administrative area."* — no
   zero, and no reference date, because there is no figure to date.
+- The **licensed-VUT numerator is a second value attached to the same resolved
+  barrio.** If only it fails, the place and the resident figure are untouched
+  and only the licensed-VUT block reads *unavailable*. If the **population**
+  fails instead, the raw licensed counts survive and only the **ratio** abstains
+  — one failed source never erases unrelated valid evidence.
 
 A payload that parses but carries no administrative division is treated as an
 unavailable geography, not as a valid one: resolving against it would report
 every coordinate as outside Madrid.
 
 This is **runtime degradation only**, and it deliberately does not soften the
-deployment contract. Both artifacts remain `blocks_deployment: true`: a browser
-may lose one on the wire, but a published build must never *ship* a broken one.
+deployment contract. All three artifacts are `blocks_deployment: true`: a
+browser may lose one on the wire, but a published build must never *ship* a
+broken one.
 Deployment integrity and graceful degradation are separate concerns and both are
 kept.
 
 ### Where the source disclosure comes from
 
-Every line behind *Source & interpretation* is read from the committed sidecar
+The disclosure is presented as **two named groups**, *Registered residents* and
+*Licensed VUT units*, because the numerator and the denominator are different
+sources with different universes and different temporal semantics; the headings
+are what stop a reader carrying the Padrón's reference date across to a source
+that declares none.
+
+Every line is read from the committed sidecar
 metadata — dataset, authority, reference date, the published geography versions,
-and the population artifact's own `interpretation_ceiling`, surfaced as its
+and the artifact's own `interpretation_ceiling`, surfaced as its
 opening sentences rather than restated in the application or dumped whole into
 the panel. Nothing in the disclosure is authored here, so it cannot drift from
 the artifacts; a field that cannot be read is left out, and a disclosure with no
@@ -101,7 +114,8 @@ readable metadata at all is not offered rather than filled in.
 
 The active Lens's profile is shown in full; the other Lens's area is one compact
 line beneath it. When **both centres fall in the same barrio**, that is stated in
-words — *"one statistic, not two observations"* — and the figure is printed once.
+words — *"A · B share the same administrative-area statistics, not two
+observations"* — and each figure is printed once.
 The barrio is also outlined and labelled **once** on the map, tagged `A·B`. Two
 outlines on one shape, or the same number twice, would imply two independent
 population observations.
@@ -120,16 +134,154 @@ off, so the default map stays clean. Stroke colours are chosen per basemap
 (light / satellite / dark) and the area carries a contrast halo, as the Lens
 does. Only the highlighted areas are labelled — never all 131 barrios.
 
-### What Area Profile does not do
+## Licensed VUT context — the first administrative supply indicator
 
-It introduces no indicator, no ratio, no density, no rank and no composite
-score. In particular it does **not** divide accommodation by residents: that
-requires numerator coverage and temporal comparability to be handled
-explicitly, and is deliberately out of scope here. A Gate A audit of exactly
-that division ruled **NO-GO** on the current accommodation source — a
-tourism-promotion catalogue, not an administrative register — and records what
-an authoritative indicator would need instead: see
-[ACCOMMODATION_NUMERATOR_AUDIT.md](ACCOMMODATION_NUMERATOR_AUDIT.md).
+The Area Profile carries a **second administrative figure for the same whole
+barrio**: the licensed tourist-dwelling (VUT) supply that the municipality has
+documented there.
+
+### The formula
+
+    licensed VUT units per 1,000 registered residents
+      = vut_units / registered_residents × 1000
+
+where, **for the whole official barrio and for nothing smaller**:
+
+| Term | Meaning | Source |
+|---|---|---|
+| `vut_units` | SUM of the source column `Nº VUT` — the number of tourist-dwelling units included in each granted activity licence | Agencia de Actividades, dataset 300694 |
+| `vut_licences` | COUNT of distinct `EXPEDIENTE_LU` — granted urban-planning activity licences | the same dataset |
+| `registered_residents` | persons registered in the Padrón Municipal | Subdirección General de Estadística |
+
+The ratio is **never shown on its own**. The interface always displays the unit
+count and the licence count beside it, so the figure can be read back to its
+components rather than taken as an index.
+
+### The two universes, and why they are not the same kind of fact
+
+- **Numerator universe.** Urban-planning activity licences **granted** in the
+  city of Madrid for *hospedaje* use in the tourist-dwelling typology. The
+  publisher names every other modality as excluded: tourist apartments, hostels,
+  guest houses, hotels, pensions and aparthotels. Evidence family
+  `ADMINISTRATIVE_LICENSE` — a set of **granted administrative acts**.
+- **Denominator universe.** Persons **registered** in the municipal population
+  register at a published reference date. Evidence family
+  `ADMINISTRATIVE_REGISTER` — an **enumerated universe**.
+
+Both are administrative; they are not the same kind of object, and the registry
+vocabulary was extended by exactly one family so neither inherits the other's
+interpretation ceiling. A licence is **not** a dwelling: in the committed
+extract one licence covers up to 48 units, so the two counts are always named
+separately and the primary user-facing quantity is **units**.
+
+### The period mismatch — the delicate part
+
+The two sides **do not share a period**, and the interface never implies that
+they do.
+
+| Side | What can honestly be stated |
+|---|---|
+| Registered residents | **Reference 1 Jan 2026** — a real Padrón reference date, published by the source |
+| Licensed VUT | **Source file state Sep 2026** — the HTTP `Last-Modified` header observed on the resource file when the builder fetched it |
+
+The HTTP header describes **the state of the file served**. It is *not* a
+publisher-declared publication, effective or reference date, and the source
+declares none of those at all. So the product says *"source file state"*, never
+*"reference"*; the compact card shows the month, and the disclosure spells out
+the exact provenance and states that the source declares no reference date.
+Four different dates exist around this artifact — the portal's catalogue
+metadata date, the HTTP header, the span of per-record licence grant dates
+(6 Mar 2019 → 2 Sep 2026) and the builder's clock — and they are never collapsed
+into one. A label of the form *"VUT & population — 2026"* is forbidden, and a
+test asserts it cannot appear.
+
+### Whole-barrio scope
+
+The counts belong to the **whole official barrio**, exactly as the resident
+figure does. Nothing is distributed into the Lens circle, weighted by overlap or
+combined with a circle measurement. The licensed-VUT row states
+*"whole official barrio"* in its own always-visible state line, because the
+full disclosure is collapsed away in the mobile drawer.
+
+### Zero, and the one exception to "missing is not zero"
+
+A barrio with no matched licence record is emitted as `0`, **scoped to this
+published extract**: the extract enumerates granted licence records across the
+whole municipality, so absence within it is an observation rather than a
+coverage gap. 25 of the 131 barrios carry such a zero. It is **not** an
+assertion that no tourist-dwelling activity has ever existed or exists today
+there.
+
+A **failure is never a zero.** A missing, unreachable or incoherent artifact
+makes the block read *unavailable*; a record whose two counts are not coherent
+non-negative integers is dropped, costing that barrio its figure rather than
+giving every barrio a false one.
+
+### Number formatting
+
+One decimal is enough for a figure whose city-wide value is 0.42, and an
+integer-valued ratio is not padded with `.0`. One case gets special handling:
+six barrios hold one to three licensed units among tens of thousands of
+residents, and rounding those to `0.0` would print a zero for an area that
+genuinely has licensed supply. Those display **`<0.1`**. A real zero displays
+`0`.
+
+### Independent failure of three sources
+
+| Geography | Population | Licensed VUT | Result |
+|---|---|---|---|
+| ✓ | ✓ | ✓ | full indicator: units, licences, ratio |
+| ✓ | ✓ | ✗ | place and residents stand; licensed VUT reads *unavailable* |
+| ✓ | ✗ | ✓ | units and licences stand; the **ratio abstains** and says the resident figure is missing |
+| ✗ | — | — | no administrative area can be resolved, so no barrio statistic of any kind |
+
+Outside the municipality there is **no licensed-VUT indicator**: no
+nearest-barrio fallback, no inferred value, and no district total standing in
+for a barrio — the artifact's district totals exist and are deliberately not
+used, because this is a whole-barrio statistic.
+
+### Lens A and Lens B for the licensed-VUT figure
+
+One barrio is one administrative area. When both Lens centres are in it, the
+interface says *"A · B share the same administrative-area statistics, not two
+observations"* rather than printing the same figures twice. In different
+barrios, each barrio's figures are stated as **two independent descriptive
+values** — no delta, no winner, no ranking, no percentage advantage.
+
+### What the licensed-VUT indicator does not do
+
+It is **descriptive administrative supply context**, and nothing else.
+
+- It does **not** establish that the dwellings are **currently operating**. The
+  source carries no revocation, expiry or cessation field and publishes no
+  retention policy, so nothing may call these *active*, *operating* or *current*
+  tourist dwellings, and the extract is not described as a cumulative stock.
+- It is **not** all VUT (regional responsible declarations and the Comunidad de
+  Madrid inventory are outside it), **not** all accommodation, **not** beds,
+  rooms or places, **not** platform listings, and **not** evidence about the
+  legality of any platform listing.
+- It is **not** tourism pressure, overtourism, saturation, carrying capacity,
+  tourism intensity, displacement, burden, impact or attractiveness.
+- The denominator is **registered residents, never homes or households**, so the
+  figure is **not** "a percentage of homes that are tourist apartments".
+- There is **no ranking, no classification band, no city percentile, no
+  hotspot, no red/amber/green scoring and no choropleth.** The block is styled
+  identically at every value; a barrio with more licensed units is not styled as
+  a problem.
+- There is **no global year or date selector.** Each source keeps its own period
+  or state.
+
+### What Area Profile still does not do
+
+It computes no density, no rank and no composite score, and it does **not**
+divide the Madrid Destino accommodation catalogue by residents. A Gate A audit
+of exactly that division ruled **NO-GO** on that source — a tourism-promotion
+catalogue, not an administrative register — and records what an authoritative
+indicator would need instead: see
+[ACCOMMODATION_NUMERATOR_AUDIT.md](ACCOMMODATION_NUMERATOR_AUDIT.md). The
+licensed-VUT numerator above is a *different* source, qualified separately at
+[Gate B](ACCOMMODATION_NUMERATOR_GATE_B.md); the stay layer is untouched and its
+count remains a catalogue count of the circle.
 
 ## Lens statistics
 

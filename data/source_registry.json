@@ -350,6 +350,56 @@
       "license": "CC BY 4.0",
       "blocks_deployment_note": "BLOCKING since the Area Profile feature: the application now reads the registered-resident figure of the barrio containing a Lens centre and shows it, with its reference date, in the interface. A deployment must not publish a resident count that is missing, mis-joined or detached from its period. The UI abstains rather than showing a zero when a figure is absent, but an artifact that is broken at build time must not reach the public site at all. The Node and Python test suites still enforce the same contract on every push.",
       "interpretation_ceiling": "Persons registered in the municipal Padron for the reference date. This is a residential denominator only: it is NOT people physically present at a given moment, NOT daytime population, NOT tourists, NOT workers present, NOT unique mobile-device users, NOT households and NOT housing units. This PR defines no tourism indicator, no accommodation-per-resident or hotels-per-1000 ratio, no tourism pressure and no composite score. A barrio population belongs to the whole official barrio and must never be spatially distributed into a circular Lens; a Lens may state 'the centre is in barrio X, which has Y registered residents for period Z', where Y remains a barrio statistic, not the population inside the circle. This municipal population is not Comunidad de Madrid population."
+    },
+    {
+      "id": "vut_licences",
+      "display_name": "Licensed tourist-dwelling units (VUT activity licences)",
+      "authority": "Ayuntamiento de Madrid - Agencia de Actividades, Subdireccion General de Actividades Economicas, Servicio de Licencias y Consultas",
+      "dataset_url": "https://datos.madrid.es/dataset/300694-0-viviendas-turisticas-geoportal",
+      "artifact": "accommodation/madrid_vut_licences.json",
+      "meta_artifact": "accommodation/madrid_vut_licences.meta.json",
+      "shape": "admin_licence_counts",
+      "builder": "scripts/build_vut_licence_numerator.py",
+      "rebuilt_at_deploy": false,
+      "provenance_state": "committed_administrative_snapshot",
+      "role": "administrative_context",
+      "blocks_deployment": true,
+      "unavailable_is_allowed": false,
+      "evidence_type": "ADMINISTRATIVE_LICENSE",
+      "expected_spatial_scope": "madrid_city_area",
+      "geography_dependency": "geography/madrid_admin.geojson",
+      "denominator_dependency": "population/madrid_population.json",
+      "source_period_exposed_by_source": false,
+      "source_period_semantics": "The source declares NO reference date and NO effective date, so this layer has no source period: source_period is null and source_period_known is false. Four different dates exist around this artifact and are never collapsed into one. (1) The HTTP Last-Modified header observed on the resource file when the builder fetched it (Mon, 07 Sep 2026 10:11:03 GMT), recorded in the artifact under source_state.xlsx_http_last_modified. It describes the state of the FILE SERVED and is NOT a publisher-declared publication, effective or reference date; it must never be presented as one, and the interface says 'source file state', never 'reference'. (2) The span of per-record licence grant dates present in the extract (2019-03-06 to 2026-09-02), which is a property of the records, not of the publication. (3) The portal catalogue's own metadata date. (4) The builder's retrieved_at clock. The residential denominator's reference date (1 January 2026) belongs to a DIFFERENT source with different temporal semantics and the two are never shown as one shared period.",
+      "level_field": "geography_level",
+      "id_field": "official_id",
+      "hierarchy_field": "parent_id",
+      "count_fields": {
+        "licences": "vut_licences",
+        "units": "vut_units",
+        "note": "COUNT of distinct EXPEDIENTE_LU and SUM of the source column 'N VUT' respectively. A licence is not a dwelling: in the audited extract one licence covered 48 units, so vut_units >= vut_licences must hold for every record and the two are never given each other's name. The user-facing primary quantity is vut_units."
+      },
+      "expected_counts": {
+        "municipality": 1,
+        "districts": 21,
+        "barrios": 131,
+        "note": "Every canonical barrio must carry exactly one pair of counts for this source snapshot; district and municipality totals are derived from the barrios. A change to these counts is a change to the canonical join universe and must not reach a deployment unnoticed."
+      },
+      "expected_source_totals": {
+        "licences": 1025,
+        "units": 1483,
+        "note": "The totals of THIS COMMITTED SNAPSHOT, pinned so an accidental or partial regeneration is a visible diff rather than a silent one. They are not eternal source truths: the upstream dataset is updated bimonthly, and a deliberate refresh re-runs scripts/build_vut_licence_numerator.py and updates these numbers in the same reviewed pull request as the artifact. The builder derives them from the source and never reads them from here."
+      },
+      "provenance_values": {
+        "barrio": "DERIVED_FROM_LICENCE_RECORDS",
+        "aggregate": "DERIVED_FROM_BARRIO_TOTALS"
+      },
+      "zero_is_a_real_zero": true,
+      "zero_semantics": "Scoped to this source extract only. The extract enumerates granted activity-licence records across the whole municipality, so a barrio with no matched record carries zero published granted licences and zero source-reported units rather than missing data. This is the one documented exception to this project's 'missing is not zero' rule. A zero is NOT an assertion that no tourist-dwelling activity has ever existed or exists today in that barrio, and a failure to load or validate this artifact must never be degraded into a zero: the interface abstains instead.",
+      "license": "CC BY 4.0",
+      "blocks_deployment_note": "BLOCKING since the Area Profile feature began showing licensed VUT context: the application reads the licensed-VUT figures of the barrio containing a Lens centre and displays them, with a descriptive per-1,000-registered-residents ratio, in the interface. A deployment must not publish an administrative indicator that is missing, mis-joined, numerically incoherent or detached from its provenance, because the failure mode is a confident wrong number - or a plausible-looking zero - rather than a visibly empty panel. The browser degrades gracefully when a runtime fetch fails and shows the licensed-VUT block as unavailable; that is a separate concern from this gate, which verifies the COMMITTED artifact at publication time. The Node and Python suites enforce the same contract on every push.",
+      "deployment_source_role": "COMMITTED ADMINISTRATIVE SNAPSHOT. This artifact is not rebuilt during the Pages deployment (rebuilt_at_deploy is false): deployment validation verifies the committed file, and a successful deployment therefore does NOT mean the upstream source was re-fetched at deploy time. Refreshing it requires explicitly re-running scripts/build_vut_licence_numerator.py and reviewing the diff, including the pinned expected_source_totals above. Nothing about this layer is live data.",
+      "interpretation_ceiling": "A count of urban-planning activity licences GRANTED for tourist-dwelling (vivienda de uso turistico) use in the city of Madrid, and of the tourist-dwelling units those licences include. The primary quantity is units; the licence count is supporting evidence and a licence is NOT a dwelling. It does NOT establish that the dwellings are currently operating: the source carries no revocation, expiry or cessation field and publishes no retention policy, so nothing may call these 'active', 'operating' or 'current' tourist dwellings, and the extract is not described as a cumulative stock. It is NOT all VUT (it excludes responsible declarations filed with the Comunidad de Madrid and the regional inventory), NOT all accommodation (the publisher names tourist apartments, hostels, guest houses, hotels, pensions and aparthotels as excluded), NOT beds, rooms or places, NOT platform listings and NOT evidence of the legality of any platform listing. It is NOT a measure of tourism pressure, overtourism, saturation, carrying capacity, tourism intensity, resident displacement, neighbourhood burden, impact or attractiveness, and it is never ranked, banded, scored or mapped as a heat surface. The per-1,000-registered-residents figure is a DESCRIPTIVE ratio of two administrative facts with two different periods, not a rate of anything and not a share of dwellings: the denominator is registered residents, never homes or households. Counts belong to the WHOLE OFFICIAL BARRIO and must never be spatially distributed into a circular Lens or any sub-area."
     }
   ]
 }

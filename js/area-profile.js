@@ -127,9 +127,12 @@ function residentsFor(populationIndex, barrio) {
  *
  * `located` is the result of geographyIndex.resolve(lon, lat), or null while
  * the canonical geography is still loading / after it failed to load (say so
- * with `state`). `populationIndex` is createPopulationIndex's output or null.
+ * with `state`). `populationIndex` is createPopulationIndex's output or null,
+ * and `vutIndex` is createVutIndex's output or null. The three sources fail
+ * independently: a place with no population figure is still a place, and a
+ * place with no licence figure still reports its residents.
  */
-export function buildAreaProfile({ lens, located, populationIndex, state = null } = {}) {
+export function buildAreaProfile({ lens, located, populationIndex, vutIndex = null, state = null } = {}) {
   const period = populationIndex ? populationIndex.period : { referenceDate: null, label: null };
 
   const base = {
@@ -153,6 +156,7 @@ export function buildAreaProfile({ lens, located, populationIndex, state = null 
       codes: null,
       note: "Reading the canonical Madrid administrative geography.",
       residents: { state: RESIDENTS_STATE.NOT_APPLICABLE, value: null, display: null, provenance: null },
+      vut: buildVutContext({ vutIndex, barrio: null, residents: null }),
       key: "loading",
     };
   }
@@ -166,6 +170,7 @@ export function buildAreaProfile({ lens, located, populationIndex, state = null 
       codes: null,
       note: "The canonical Madrid geography could not be loaded, so no official area is reported.",
       residents: { state: RESIDENTS_STATE.NOT_APPLICABLE, value: null, display: null, provenance: null },
+      vut: buildVutContext({ vutIndex, barrio: null, residents: null }),
       key: "unavailable",
     };
   }
@@ -179,6 +184,7 @@ export function buildAreaProfile({ lens, located, populationIndex, state = null 
       codes: null,
       note: "Outside the canonical Madrid City administrative geography.",
       residents: { state: RESIDENTS_STATE.NOT_APPLICABLE, value: null, display: null, provenance: null },
+      vut: buildVutContext({ vutIndex, barrio: null, residents: null }),
       key: "outside",
     };
   }
@@ -199,6 +205,7 @@ export function buildAreaProfile({ lens, located, populationIndex, state = null 
       codes: district ? `District ${district.official_id}` : null,
       note: "No official barrio contains this point, so no barrio statistic applies.",
       residents: { state: RESIDENTS_STATE.UNAVAILABLE, value: null, display: null, provenance: null },
+      vut: buildVutContext({ vutIndex, barrio: null, residents: null }),
       key: `district:${district ? district.official_id : "none"}`,
     };
   }
@@ -206,6 +213,9 @@ export function buildAreaProfile({ lens, located, populationIndex, state = null 
   const districtName = district ? district.official_name : barrio.parent_name;
   const districtId = district ? district.official_id : barrio.parent_id;
   const residents = residentsFor(populationIndex, barrio);
+  // The licence block reads the residents model that was just computed, so the
+  // ratio's denominator is exactly the figure shown above it in the interface.
+  const vut = buildVutContext({ vutIndex, barrio, residents });
 
   return {
     ...base,
@@ -222,7 +232,8 @@ export function buildAreaProfile({ lens, located, populationIndex, state = null 
         ? null
         : "Residential population unavailable for this administrative area.",
     residents,
-    key: `barrio:${barrio.official_id}:${residents.state}`,
+    vut,
+    key: `barrio:${barrio.official_id}:${residents.state}:${vut.state}:${vut.ratio.state}`,
   };
 }
 
@@ -345,6 +356,298 @@ export function buildProvenanceLines({ populationMeta, geographyMeta, period } =
   // sidecar and the documentation, not to a panel.
   const ceiling = firstSentences(populationMeta && populationMeta.interpretation_ceiling, 2);
   if (ceiling) lines.push(ceiling);
+
+  return lines;
+}
+
+// ------------------------------------------------------- licensed VUT context
+//
+// A SECOND, INDEPENDENT ADMINISTRATIVE FIGURE FOR THE SAME WHOLE BARRIO.
+//
+// The numerator is a count of granted urban-planning activity licences, and of
+// the tourist-dwelling units those licences contain. It is NOT a count of
+// dwellings in operation: the source carries no revocation, expiry or cessation
+// field, so nothing here may say "active", "operating" or "current". It is NOT
+// all tourist dwellings, NOT all accommodation, and NOT a measure of pressure,
+// saturation or capacity of any kind.
+//
+// The denominator is the same Padron figure the residents block already shows.
+// The two have DIFFERENT temporal semantics and are never given one shared
+// period: the Padron publishes a real reference date (1 January 2026), while
+// this source publishes no reference or effective date at all and can only be
+// described by the HTTP Last-Modified state of the resource file that was
+// fetched. Those are different kinds of fact and this module keeps them apart.
+//
+// Like everything above, the counts belong to the WHOLE OFFICIAL BARRIO and are
+// never distributed into, weighted by, or reported for the Lens circle.
+
+// A licence record is a different kind of administrative object from a
+// population register entry: a granted act, not an enumerated universe. The
+// registry vocabulary distinguishes the two so neither inherits the other's
+// interpretation ceiling.
+export const VUT_EVIDENCE_TYPE = "ADMINISTRATIVE_LICENSE";
+export const VUT_EVIDENCE_LABEL = "Administrative licence";
+
+export const VUT_STATE = {
+  AVAILABLE: "available",
+  // This official area exists but the committed artifact carries no usable
+  // record for it (absent, or present but incoherent). Never a zero.
+  UNAVAILABLE: "unavailable",
+  // There is no whole barrio to carry the figure at all: outside Madrid, no
+  // barrio contains the point, or the geography itself could not be read.
+  NOT_APPLICABLE: "not_applicable",
+};
+
+// The ratio abstains for two materially different reasons and the interface
+// says which, because "we have no licence data" and "we have no denominator"
+// are different facts about different sources.
+export const RATIO_STATE = {
+  AVAILABLE: "available",
+  NO_NUMERATOR: "no_numerator",
+  NO_DENOMINATOR: "no_denominator",
+};
+
+// What the ratio is, spelled out wherever it appears. Written once here so no
+// caller can shorten it into "VUT per resident" or a bare index number.
+export const RATIO_LABEL = "per 1,000 registered residents";
+
+export const VUT_UNITS_LABEL = "licensed VUT units";
+export const VUT_LICENCES_LABEL = "activity licences";
+
+// English count agreement. A product this careful about what a number means
+// must not print "1 activity licences", and the singular forms live here rather
+// than in the DOM layer so the wording has one owner. The RATIO always takes the
+// plural, because "per 1,000" is plural whatever the figure.
+const COUNTED_NOUNS = {
+  units: { one: "licensed VUT unit", many: VUT_UNITS_LABEL },
+  licences: { one: "activity licence", many: VUT_LICENCES_LABEL },
+};
+
+export function countedNoun(kind, count) {
+  const noun = COUNTED_NOUNS[kind];
+  if (!noun) return null;
+  return count === 1 ? noun.one : noun.many;
+}
+
+// The scope reminder carried on the licensed-VUT row itself. "Granted" is doing
+// load-bearing work: it is the one word that keeps the figure away from
+// "operating", and it stays visible at every viewport, including the ones where
+// the full disclosure is collapsed away.
+export const VUT_STATE_PREFIX = "Granted licences";
+
+// The limitation the compact card cannot carry, stated in the product's own
+// words exactly as SCOPE_CAVEAT is above. A test asserts the committed
+// sidecar's own currency caveat says the same thing, so the two cannot drift
+// apart, and this is deliberately NOT sliced out of that paragraph: the
+// sidecar's sentence is written for an auditor, this one for a reader.
+export const VUT_OPERATION_CAVEAT =
+  "Granted licences only. The source carries no revocation, expiry or cessation field, " +
+  "so this does not establish that the dwellings are currently operating.";
+
+/**
+ * Format an HTTP Last-Modified header as a file-state label.
+ *
+ * Deliberately NOT parsed with `new Date()`: this value describes the state of
+ * a file and is never turned into a date object that could then be formatted,
+ * compared or arithmetically combined with the Padron's real reference date.
+ * Returns an exact-day label and a compact one, both null for anything that is
+ * not an HTTP date, so an unparseable header is left out rather than guessed.
+ */
+export function formatSourceFileState(httpDate) {
+  const match = /^[A-Za-z]{3},\s+(\d{2})\s+([A-Za-z]{3})\s+(\d{4})\b/.exec(String(httpDate || "").trim());
+  if (!match) return null;
+  const [, day, month, year] = match;
+  if (!MONTHS.includes(month)) return null;
+  return { label: `${Number(day)} ${month} ${year}`, compact: `${month} ${year}` };
+}
+
+// Group separators for a licence or unit count, matching the resident figure's
+// convention so the two read as one numeric system.
+export function formatLicensedCount(value) {
+  if (!Number.isInteger(value) || value < 0) return null;
+  return value.toLocaleString("en-GB");
+}
+
+/**
+ * Format the descriptive ratio.
+ *
+ * One decimal is enough for a figure whose city-wide value is 0.42, and an
+ * integer-valued ratio is not padded with a pointless ".0". The `<0.1` case is
+ * the one that matters: six barrios hold one to three licensed units among tens
+ * of thousands of residents, and rounding those to "0.0" would print a zero for
+ * an area that genuinely has licensed units. A real zero prints "0"; a small
+ * non-zero value says it is small.
+ */
+export function formatVutRatio(value) {
+  if (!Number.isFinite(value) || value < 0) return null;
+  if (value === 0) return "0";
+  if (value < 0.05) return "<0.1";
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+/**
+ * licensed VUT units / registered residents x 1000, for one whole barrio.
+ *
+ * Abstains rather than producing a number whenever either side is absent, and
+ * abstains on a zero denominator instead of returning Infinity. A zero
+ * NUMERATOR is not an abstention: the committed artifact enumerates granted
+ * licence records across the whole municipality, so zero units in a barrio is
+ * a real published zero and 0 is the correct ratio.
+ */
+export function computeVutRatio(units, residents) {
+  const abstain = (state) => ({ state, value: null, display: null });
+  if (!Number.isFinite(units) || units < 0) return abstain(RATIO_STATE.NO_NUMERATOR);
+  if (!Number.isFinite(residents) || residents <= 0) return abstain(RATIO_STATE.NO_DENOMINATOR);
+  const value = (units / residents) * 1000;
+  if (!Number.isFinite(value)) return abstain(RATIO_STATE.NO_DENOMINATOR);
+  return { state: RATIO_STATE.AVAILABLE, value, display: formatVutRatio(value) };
+}
+
+/**
+ * Index the committed licensed-VUT artifact for code-based lookup.
+ *
+ * Returns null for an unusable artifact rather than an empty index, so a load
+ * failure or a malformed commit can never be read as "0 licensed units
+ * everywhere". A record whose two counts are not coherent non-negative
+ * integers, or whose units are fewer than its licences, is dropped rather than
+ * admitted: one bad row costs that barrio its figure, not every barrio theirs.
+ */
+export function createVutIndex(artifact) {
+  if (!artifact || !Array.isArray(artifact.records)) return null;
+
+  const barrio = new Map();
+  const district = new Map();
+  let municipality = null;
+
+  for (const record of artifact.records) {
+    if (!record || record.official_id == null) continue;
+    const { vut_units: units, vut_licences: licences } = record;
+    if (!Number.isInteger(units) || !Number.isInteger(licences)) continue;
+    if (units < 0 || licences < 0 || units < licences) continue;
+    const id = String(record.official_id);
+    if (record.geography_level === "barrio") barrio.set(id, record);
+    else if (record.geography_level === "district") district.set(id, record);
+    else if (record.geography_level === "municipality") municipality = record;
+  }
+
+  // No barrio record at all is an unusable artifact: the indicator is a
+  // barrio-level statistic and nothing else may stand in for it.
+  if (barrio.size === 0) return null;
+
+  const state = artifact.source_state || {};
+  const span = state.grant_date_span || null;
+  const file = formatSourceFileState(state.xlsx_http_last_modified);
+
+  return {
+    barrio,
+    district,
+    municipality,
+    counts: artifact.counts || null,
+    // Deliberately "sourceState", not "period": this source declares no
+    // reference or effective date, and the name of the field is the first place
+    // that could start pretending otherwise.
+    sourceState: {
+      fileLastModified: state.xlsx_http_last_modified || null,
+      fileStateLabel: file ? file.label : null,
+      fileStateCompact: file ? file.compact : null,
+      // Structural, not decorative: a consumer reading this model is told in
+      // the data itself that the file state is not a publisher-declared date.
+      publisherDeclaredReferenceDate: false,
+      grantDateSpan:
+        span && span.earliest_grant_date && span.latest_grant_date
+          ? {
+              earliest: span.earliest_grant_date,
+              latest: span.latest_grant_date,
+              earliestLabel: formatReferenceDate(span.earliest_grant_date),
+              latestLabel: formatReferenceDate(span.latest_grant_date),
+            }
+          : null,
+    },
+  };
+}
+
+/**
+ * Build the licensed-VUT block of the Area Profile for one whole barrio.
+ *
+ * `residents` is the residents model already computed for the same barrio, so
+ * the ratio's denominator is exactly the figure the interface displays above
+ * it — never a second, separately resolved population.
+ */
+export function buildVutContext({ vutIndex, barrio, residents } = {}) {
+  const base = {
+    evidenceType: VUT_EVIDENCE_TYPE,
+    evidenceLabel: VUT_EVIDENCE_LABEL,
+    scopeCaveat: SCOPE_CAVEAT,
+    sourceState: vutIndex ? vutIndex.sourceState : null,
+  };
+  const absent = (state) => ({
+    ...base,
+    state,
+    units: { value: null, display: null },
+    licences: { value: null, display: null },
+    ratio: { state: RATIO_STATE.NO_NUMERATOR, value: null, display: null },
+    valueProvenance: null,
+  });
+
+  if (!barrio) return absent(VUT_STATE.NOT_APPLICABLE);
+
+  const record = vutIndex && vutIndex.barrio.get(String(barrio.official_id));
+  // No nearest-barrio fallback, no district total standing in for a barrio, and
+  // no zero: an area the artifact does not usably cover has no figure.
+  if (!record) return absent(VUT_STATE.UNAVAILABLE);
+
+  const residentValue = residents && residents.state === RESIDENTS_STATE.AVAILABLE ? residents.value : null;
+
+  return {
+    ...base,
+    state: VUT_STATE.AVAILABLE,
+    units: { value: record.vut_units, display: formatLicensedCount(record.vut_units) },
+    licences: { value: record.vut_licences, display: formatLicensedCount(record.vut_licences) },
+    ratio: computeVutRatio(record.vut_units, residentValue),
+    valueProvenance: record.value_provenance || null,
+  };
+}
+
+/**
+ * The provenance lines for the licensed-VUT numerator.
+ *
+ * Read from the committed sidecar, like the residential disclosure above, so
+ * the panel cannot drift from the artifact. The period line is the one that
+ * carries the weight: it names the HTTP header as what it is and states that
+ * the source declares no reference date, because the compact card can only
+ * afford "source file state: Sep 2026".
+ */
+export function buildVutProvenanceLines({ vutMeta, sourceState } = {}) {
+  const lines = [];
+  const source = (vutMeta && vutMeta.source) || {};
+
+  if (source.dataset && source.authority) lines.push(`${source.dataset} · ${source.authority}`);
+  else if (source.dataset) lines.push(source.dataset);
+  else if (source.authority) lines.push(source.authority);
+
+  const unit = vutMeta && vutMeta.unit_of_analysis && vutMeta.unit_of_analysis.vut_units;
+  if (unit) lines.push(`${VUT_EVIDENCE_LABEL} · ${unit}`);
+  else lines.push(VUT_EVIDENCE_LABEL);
+
+  const fileState = sourceState && sourceState.fileStateLabel;
+  if (fileState) {
+    lines.push(
+      `Source state: HTTP Last-Modified observed on the resource file, ${fileState}. ` +
+        `The source declares no reference or effective date, so this is not one.`
+    );
+  }
+  const span = sourceState && sourceState.grantDateSpan;
+  if (span && span.earliestLabel && span.latestLabel) {
+    lines.push(`Licence grant dates in this extract span ${span.earliestLabel} to ${span.latestLabel}.`);
+  }
+
+  const ceiling = firstSentences(vutMeta && vutMeta.interpretation_ceiling, 2);
+  if (ceiling) lines.push(ceiling);
+
+  // Last, and never omitted: the source's own silence about revocation is the
+  // single most consequential thing a reader of this figure has to know.
+  lines.push(VUT_OPERATION_CAVEAT);
 
   return lines;
 }

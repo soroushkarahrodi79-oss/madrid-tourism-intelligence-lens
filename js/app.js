@@ -25,7 +25,7 @@ const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 // modules load identically however the page is served. They are ES modules
 // (shared with `node --test`), while the rest of the app is classic scripts.
 const MODULE_BASE = (document.currentScript && document.currentScript.src) || window.location.href;
-const AREA_ASSET_VERSION = "20260929-23";
+const AREA_ASSET_VERSION = "20260930-30";
 const moduleUrl = (name) => new URL(`${name}?v=${AREA_ASSET_VERSION}`, MODULE_BASE).href;
 
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
@@ -687,20 +687,31 @@ const areaModel = { profile: null, geography: null }; // loaded ES modules
 let AREA_STATE = null;
 let RESIDENTS_STATE = null;
 let AREA_COMPARISON = null;
+let VUT_STATE = null;
+let RATIO_STATE = null;
 let geographyIndex = null;
 let populationIndex = null;
+let vutIndex = null;
 let geographyMeta = null;
 let populationMeta = null;
-// Two independent runtime states, because the two artifacts fail independently
-// in a browser. The canonical geography is the DEPENDENCY for resolving a
-// place: without it there is no barrio, no district, no highlight and no
-// boundary layer. The population is only a VALUE attached to a barrio that has
-// already been resolved, so losing it must cost the resident figure and nothing
-// else. (This is runtime degradation only. Both artifacts remain
-// blocks_deployment: true — a build carrying a broken committed artifact is
-// still withheld rather than published in a degraded state.)
+let vutMeta = null;
+// Three independent runtime states, because the three artifacts fail
+// independently in a browser. The canonical geography is the DEPENDENCY for
+// resolving a place: without it there is no barrio, no district, no highlight
+// and no boundary layer. The population and the licensed-VUT numerator are only
+// VALUES attached to a barrio that has already been resolved, so losing either
+// must cost its own figure and nothing else. (This is runtime degradation only.
+// All three artifacts remain blocks_deployment: true — a build carrying a
+// broken committed artifact is still withheld rather than published in a
+// degraded state.)
 let geographyState = "loading"; // loading | ready | unavailable
 let populationState = "loading"; // loading | ready | unavailable
+// The licensed-VUT numerator is a third independent runtime state. Like the
+// population it is a VALUE attached to a barrio already resolved, so losing it
+// costs the licensed-VUT block and nothing else: the place and the resident
+// figure both stand. Losing the POPULATION costs the ratio but not the raw
+// licensed counts, which is why these are three states and not two.
+let vutState = "loading"; // loading | ready | unavailable
 let boundaryMode = "off";
 const areaProfiles = { A: null, B: null };
 const areaHint = { A: null, B: null };
@@ -863,13 +874,14 @@ function areaProfileFor(which) {
       lens: which,
       located: null,
       populationIndex,
+      vutIndex,
       state: geographyState === "unavailable" ? AREA_STATE.UNAVAILABLE : AREA_STATE.LOADING,
     });
   }
   const centre = centerOf(which);
   const located = geographyIndex.resolve(centre.lon, centre.lat, areaHint[which]);
   areaHint[which] = located.barrio ? located.barrio.official_id : null;
-  return model.buildAreaProfile({ lens: which, located, populationIndex });
+  return model.buildAreaProfile({ lens: which, located, populationIndex, vutIndex });
 }
 
 function setText(id, value) {
@@ -910,12 +922,104 @@ function renderAreaProfile(profile) {
   const period = profile.period && profile.period.label;
   setText("areaPeriod", residents.state === RESIDENTS_STATE.AVAILABLE && period ? `Reference ${period}` : "");
   setText("areaScopeNote", profile.note || profile.scopeCaveat);
+  renderVutContext(profile);
+}
+
+// The licensed-VUT block: a SECOND administrative figure for the SAME whole
+// barrio, kept visually subordinate to the place identity and to the resident
+// figure above it.
+//
+// Deliberately neutral at every value. There is no colour scale, no class
+// break, no band, no rank, no percentile and no warning affordance: a barrio
+// with many licensed units is not styled as a problem, because this figure
+// describes documented administrative supply and nothing else. The two periods
+// are never merged — the resident figure keeps its Padron reference date above,
+// and this block states its own source-file state, which is not a reference
+// date and does not pretend to be one.
+function renderVutContext(profile) {
+  const host = document.getElementById("areaVut");
+  if (!host) return;
+  const vut = profile.vut;
+  const labels = areaModel.profile;
+
+  // No whole barrio, no barrio statistic. Outside Madrid, a point inside no
+  // barrio, and an unreadable geography all land here: the block is absent
+  // rather than showing an empty figure, and nothing falls back to a district
+  // total or a neighbouring barrio.
+  if (!vut || vut.state === VUT_STATE.NOT_APPLICABLE) {
+    host.hidden = true;
+    host.dataset.state = VUT_STATE ? VUT_STATE.NOT_APPLICABLE : "not_applicable";
+    host.dataset.ratio = "not_applicable";
+    // Emptied, not merely hidden. A figure for the previous barrio left behind
+    // in the document is a wrong number waiting for a stylesheet change to
+    // reveal it, and this block sits inside the polite live region.
+    setText("areaVutValue", "—");
+    setText("areaVutUnit", "");
+    document.getElementById("areaVutSecondary").innerHTML = "";
+    setText("areaVutState", "");
+    return;
+  }
+  host.hidden = false;
+  host.dataset.state = vut.state;
+  host.dataset.ratio = vut.ratio.state;
+
+  const value = document.getElementById("areaVutValue");
+  const available = vut.state === VUT_STATE.AVAILABLE;
+  // Never a zero standing in for a failure: a zero here is only ever the
+  // artifact's own published zero for this barrio.
+  value.textContent = available ? vut.units.display : "Unavailable";
+  value.className = available ? "area-vut-value" : "area-vut-value abstain";
+  setText("areaVutUnit", available ? labels.countedNoun("units", vut.units.value) : "");
+
+  // Licence COUNT is supporting evidence, never the headline: one licence in
+  // this source covers up to 48 dwelling units, so the two figures are shown
+  // with their own names and never substituted for one another.
+  const secondary = document.getElementById("areaVutSecondary");
+  if (!available) {
+    secondary.innerHTML = "";
+  } else {
+    const parts = [`${vut.licences.display} ${labels.countedNoun("licences", vut.licences.value)}`];
+    if (vut.ratio.state === RATIO_STATE.AVAILABLE) {
+      // The screen-reader text names the quantity the ratio counts, which the
+      // compact visual figure leaves to the line above it.
+      parts.push(
+        `${vut.ratio.display}<span class="sr-only"> ${labels.VUT_UNITS_LABEL}</span> ${labels.RATIO_LABEL}`
+      );
+    } else if (vut.ratio.state === RATIO_STATE.NO_DENOMINATOR) {
+      parts.push("ratio unavailable without a resident figure");
+    }
+    secondary.innerHTML = parts.join(" · ");
+  }
+
+  setText("areaVutState", vutStateLine(vut, available, labels));
+}
+
+// The one line under the figure. It carries the word that keeps this indicator
+// honest at every viewport, including the narrow ones where the full source
+// disclosure is collapsed away: GRANTED. The file state is named as a file
+// state, and the scope as the whole official barrio.
+function vutStateLine(vut, available, labels) {
+  if (!available) {
+    if (vutState === "loading") return "Reading the licensed-VUT source.";
+    if (vutState === "unavailable") return "Licensed-VUT source unavailable in this session.";
+    return "Not covered by the committed licensed-VUT source.";
+  }
+  const fileState = vut.sourceState && vut.sourceState.fileStateCompact;
+  return [
+    labels.VUT_STATE_PREFIX,
+    fileState ? `source file state ${fileState}` : null,
+    "whole official barrio",
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 // The other lens's administrative area, as one compact line inside the profile
-// rather than a second full card. Two lens centres in ONE barrio share ONE
-// statistic, and that is said in words: showing the same figure twice would
-// imply two independent population observations.
+// rather than a second full card. Two lens centres in ONE barrio share ONE set
+// of administrative-area statistics, and that is said in words: showing the
+// same figures twice would imply two independent observations. Two centres in
+// DIFFERENT barrios get two descriptive values side by side — no delta, no
+// winner, no ranking and no percentage advantage between two places.
 function renderOtherLensArea(a, b) {
   const host = document.getElementById("areaOther");
   if (!host) return;
@@ -933,7 +1037,9 @@ function renderOtherLensArea(a, b) {
   const tag = `<span class="area-other-lens area-other-lens-${other.toLowerCase()}">Lens ${other}</span>`;
 
   if (comparison.state === AREA_COMPARISON.SAME_BARRIO) {
-    host.innerHTML = `${tag}<span class="area-other-body">is in the same barrio — one statistic, not two observations.</span>`;
+    host.innerHTML =
+      `${tag}<span class="area-other-body">is in the same barrio — A · B share the same ` +
+      `administrative-area statistics, not two observations.</span>`;
     return;
   }
 
@@ -943,25 +1049,62 @@ function renderOtherLensArea(a, b) {
       : otherProfile.residents.state === RESIDENTS_STATE.NOT_APPLICABLE
         ? "" // no official area to carry a residential figure at all
         : " · residents unavailable";
+  // The other barrio's licensed-VUT figure, as a plain descriptive value. It is
+  // deliberately the unit count and not the licence count, and it is never set
+  // against this lens's figure as a difference or a comparison verdict.
+  const otherVut = otherProfile.vut;
+  const vut =
+    otherVut && otherVut.state === VUT_STATE.AVAILABLE
+      ? ` · ${otherVut.units.display} ${areaModel.profile.countedNoun("units", otherVut.units.value)}`
+      : otherVut && otherVut.state === VUT_STATE.UNAVAILABLE
+        ? " · licensed VUT unavailable"
+        : "";
   const context = otherProfile.context ? ` · ${otherProfile.districtName}` : "";
   host.innerHTML =
-    `${tag}<span class="area-other-body"><b>${otherProfile.headline}</b>${context}${residents}</span>`;
+    `${tag}<span class="area-other-body"><b>${otherProfile.headline}</b>${context}${residents}${vut}</span>`;
 }
 
+// Progressive disclosure for both administrative figures. The two are shown as
+// two NAMED GROUPS rather than one list, because the whole point is that the
+// numerator and the denominator are different sources with different universes
+// and different temporal semantics: one publishes a real reference date, the
+// other publishes none at all. Collapsing them into a single block of lines is
+// exactly the conflation the group headings prevent.
 function renderAreaSourceDetails() {
   const host = document.getElementById("areaSourceDetails");
   const model = areaModel.profile;
   if (!host || !model) return;
-  const lines = model.buildProvenanceLines({
-    populationMeta,
-    geographyMeta,
-    period: populationIndex ? populationIndex.period : null,
-  });
-  host.innerHTML = lines.map((line) => `<span>${line}</span>`).join("");
+
+  const groups = [
+    {
+      title: "Registered residents",
+      lines: model.buildProvenanceLines({
+        populationMeta,
+        geographyMeta,
+        period: populationIndex ? populationIndex.period : null,
+      }),
+    },
+    {
+      title: "Licensed VUT units",
+      lines: model.buildVutProvenanceLines({
+        vutMeta,
+        sourceState: vutIndex ? vutIndex.sourceState : null,
+      }),
+    },
+  ].filter((group) => group.lines.length > 0);
+
+  host.innerHTML = groups
+    .map(
+      (group) =>
+        `<div class="area-source-group"><h2 class="area-source-group-title">${group.title}</h2>` +
+        group.lines.map((line) => `<span>${line}</span>`).join("") +
+        `</div>`
+    )
+    .join("");
   // The affordance only appears once there is provenance behind it, so it can
   // never open onto an empty box while the artifacts are still loading, or when
   // the sidecar metadata itself could not be read.
-  document.getElementById("areaSourceToggle").hidden = lines.length === 0;
+  document.getElementById("areaSourceToggle").hidden = groups.length === 0;
 }
 
 function updateAreaContext() {
@@ -1026,6 +1169,7 @@ async function loadAreaContext() {
     // Lens itself is untouched and keeps working.
     geographyState = "unavailable";
     populationState = "unavailable";
+    vutState = "unavailable";
     disableBoundaryControl();
     console.warn("area context modules unavailable", error);
     return;
@@ -1033,7 +1177,7 @@ async function loadAreaContext() {
 
   areaModel.profile = profileModule;
   areaModel.geography = geographyModule;
-  ({ AREA_STATE, RESIDENTS_STATE, AREA_COMPARISON } = profileModule);
+  ({ AREA_STATE, RESIDENTS_STATE, AREA_COMPARISON, VUT_STATE, RATIO_STATE } = profileModule);
   updateAreaContext();
 
   // Settled, not all-or-nothing. A failure of the population request must not
@@ -1041,11 +1185,17 @@ async function loadAreaContext() {
   // while the population is a value attached to a barrio already resolved.
   // Both are awaited together so the profile never flashes "unavailable" at a
   // request that is merely still in flight.
-  const [geojson, population, geoMeta, popMeta] = await Promise.allSettled([
+  // All five committed artifacts are fetched ONCE, here, and the indices built
+  // from them are reused for the rest of the session: moving a Lens performs a
+  // code lookup against an in-memory Map and never a fetch, and no
+  // administrative aggregate is ever recomputed in the browser.
+  const [geojson, population, vut, geoMeta, popMeta, vutMetaResult] = await Promise.allSettled([
     fetchAreaJson("data/geography/madrid_admin.geojson"),
     fetchAreaJson("data/population/madrid_population.json"),
+    fetchAreaJson("data/accommodation/madrid_vut_licences.json"),
     fetchAreaJson("data/geography/madrid_admin.meta.json"),
     fetchAreaJson("data/population/madrid_population.meta.json"),
+    fetchAreaJson("data/accommodation/madrid_vut_licences.meta.json"),
   ]);
 
   // A payload that parses but carries no administrative division is not a
@@ -1073,8 +1223,19 @@ async function loadAreaContext() {
     console.warn("residential population unavailable", population.reason);
   }
 
+  // createVutIndex returns null for an unusable artifact, so a failed request or
+  // a malformed commit leaves the licensed-VUT block explicitly unavailable. It
+  // never becomes an empty index reporting zero licensed units everywhere,
+  // which would be a confident wrong answer rather than a visible absence.
+  vutIndex = profileModule.createVutIndex(settledValue(vut));
+  vutState = vutIndex ? "ready" : "unavailable";
+  if (vutState === "unavailable") {
+    console.warn("licensed VUT context unavailable", vut.reason);
+  }
+
   geographyMeta = settledValue(geoMeta);
   populationMeta = settledValue(popMeta);
+  vutMeta = settledValue(vutMetaResult);
 
   if (geographyState === "ready") {
     renderAreaSourceDetails();

@@ -34,7 +34,10 @@ operational metrics — museums, tourist information, BiciMAD, Metro/Cercanías 
 the accommodation catalogue — block deployment, because a collapse in any of them
 makes a displayed number wrong while it still looks authoritative. The committed
 HATI evidence and the packaged fallback sample block too, since they can only
-change through a commit. Principal parks and the pedestrian counters do **not**
+change through a commit. So do the three committed administrative artifacts the
+Area Profile reads — the canonical geography, the residential denominator and the
+licensed-VUT numerator — because each is now displayed in the interface and each
+would fail as a confident wrong answer rather than a visibly empty panel. Principal parks and the pedestrian counters do **not**
 block: parks are map context that is excluded from every metric in code, and
 pedestrian activity is opt-in, off by default, and already has a first-class
 unavailable state that shows "No data" rather than a number. Withholding the
@@ -89,15 +92,28 @@ contains no secrets — the CARTO key is injected in a later step, after the aud
 artifact has been collected.
 
 `provenance_state` distinguishes a `deployment_snapshot` (rebuilt from its
-authority during this deploy) from `committed_research_evidence` (HATI) and from
-the `packaged_sample` fallback, so no consumer of the manifest can mistake the
-curated fallback for current authoritative evidence.
+authority during this deploy) from `committed_research_evidence` (HATI), from the
+`committed_reference_geography` and `committed_reference_evidence` the Area
+Profile joins against, from the `committed_administrative_snapshot` of licensed
+VUT, and from the `packaged_sample` fallback, so no consumer of the manifest can
+mistake the curated fallback for current authoritative evidence — or a committed
+snapshot for a live refetch.
 
 `generated_at` (when this build ran) and `source_period` (what the evidence
 describes) are deliberately separate fields. A source that publishes no period
 records `source_period: null` and `source_period_known: false` rather than being
-backfilled with the build timestamp. Only the pedestrian counters (whose records
-carry their own dates) and HATI (a fixed modelled pilot day) report a period.
+backfilled with the build timestamp. Only three layers report a period: the
+pedestrian counters (whose records carry their own dates), HATI (a fixed modelled
+pilot day) and the residential denominator (a real 1-January Padrón reference
+date).
+
+The licensed-VUT numerator deliberately reports **none**. Its publisher declares
+no reference and no effective date, so `source_period` stays `null`; the HTTP
+`Last-Modified` state of the resource file and the span of per-record licence
+grant dates are reported in that layer's audit lines, explicitly labelled as a
+file state rather than promoted into a period. A validator test asserts this,
+because an HTTP header quietly becoming a reference date is exactly the kind of
+drift the manifest exists to prevent.
 
 ## HATI-Madrid thermal evidence (`data/hati_assets.json`)
 
@@ -189,8 +205,10 @@ metric**, and is kept clearly separate from the circular-Lens measurements.
 
 The authoritative, period-explicit resident-population denominator for every
 canonical barrio, with deterministic district and municipality totals. It is a
-**denominator only** — this layer defines no tourism indicator, ratio, density or
-composite score.
+**denominator only**: it defines no indicator of its own, and the one ratio it
+participates in is the descriptive *licensed VUT units per 1,000 registered
+residents* figure documented in the next section. It is never a density and
+never a composite score.
 
 - **Authority / source:** Ayuntamiento de Madrid — Subdirección General de
   Estadística, dataset *"Población por distrito y barrio a 1 de enero"*
@@ -249,10 +267,16 @@ composite score.
 ## Licensed tourist-dwelling numerator (`data/accommodation/madrid_vut_licences.json`)
 
 A **numerator only**, admitted by the [Gate B source
-audit](ACCOMMODATION_NUMERATOR_GATE_B.md). It computes no ratio, no per-resident
-figure and no score, and **nothing in the application reads it**: it is not
-declared in `data/source_registry.json`, because that registry declares
-deployment roles and this artifact has none yet.
+audit](ACCOMMODATION_NUMERATOR_GATE_B.md). The artifact itself still carries **no
+population, no ratio, no rate and no score** — a test asserts those words appear
+nowhere in it — and the descriptive per-resident figure is computed in the
+application's view model at read time, from this numerator and the Padrón
+denominator, never written into either artifact.
+
+It is **consumed by the Area Profile** and is therefore declared in
+`data/source_registry.json` as `vut_licences`, role `administrative_context`,
+evidence family `ADMINISTRATIVE_LICENSE`, committed (not rebuilt at deploy) and
+**blocking**.
 
 - **Authority / source:** Ayuntamiento de Madrid — **Agencia de Actividades**
   (Subdirección General de Actividades Económicas, Servicio de Licencias y
@@ -296,6 +320,49 @@ deployment roles and this artifact has none yet.
   exists today in that barrio. This is the one place where the project's "missing
   is not zero" rule does not apply, and the scope and reason are recorded in the
   sidecar metadata.
+- **Evidence family:** `ADMINISTRATIVE_LICENSE`, deliberately **not**
+  `ADMINISTRATIVE_REGISTER`. Gate B recorded that the registry vocabulary did not
+  distinguish a *register* from a *licence*, and this PR extended it by exactly
+  one family rather than redesigning the taxonomy. The families now in use are:
+  `ADMINISTRATIVE_REGISTER` (an enumerated register-type universe, such as the
+  Padrón), `ADMINISTRATIVE_LICENSE` (records of granted administrative licences),
+  `OBSERVED` (observed, catalogue or platform-type evidence), `REFERENCE`
+  (reference material such as the administrative geography) and `MODEL-DERIVED`
+  (model output, such as the HATI UTCI pilot). The distinction is load-bearing: a
+  granted **act** is not an enumerated **universe**, and neither may inherit the
+  other's interpretation ceiling.
+- **Consumed by:** the **Area Profile**, joined by official barrio code to the
+  canonical geography and read alongside the Padrón denominator. The interface
+  calls the figures *licensed VUT units* and *activity licences*, labels the
+  evidence *administrative licence*, and shows the descriptive ratio only
+  together with both raw counts. The internal enum stays
+  `ADMINISTRATIVE_LICENSE` and never appears in the interface.
+- **Descriptive ratio:** `vut_units / registered_residents × 1000`, computed in
+  the pure view model (`js/area-profile.js`), abstaining when either side is
+  absent and when the denominator is zero. It is a descriptive comparison of two
+  administrative facts with **two different periods**, not a rate and not a share
+  of dwellings; see
+  [METHODOLOGY.md](METHODOLOGY.md#licensed-vut-context--the-first-administrative-supply-indicator).
+- **Deployment gate:** **blocking**, and `unavailable_is_allowed: false`. A
+  missing, malformed, mis-joined or numerically incoherent committed artifact
+  fails `scripts/validate_deployment.mjs` and the deployment is withheld, because
+  the failure mode here is a confident wrong number — or a plausible-looking
+  zero — rather than a visibly empty panel. The validator checks the 131-barrio
+  coverage against the canonical geography, both counts as non-negative integers,
+  `vut_units >= vut_licences` on every record, exact district and municipality
+  sums for **both** counts, the artifact's own headline totals, the totals pinned
+  in the registry for this snapshot, the derived provenance flags, the presence
+  of the not-a-reference-date disclaimer, the grant-date span, and that no
+  population or ratio field has crept onto a licence record. A **runtime** fetch
+  failure in the browser is a separate concern and degrades gracefully: the block
+  reads *unavailable* and the rest of the Area Profile is untouched.
+- **Committed administrative snapshot:** this artifact is **not rebuilt during
+  the Pages deployment**. Deployment validation verifies the *committed* file, so
+  a successful deployment does **not** mean the upstream source was re-fetched at
+  deploy time. Refreshing it requires explicitly re-running
+  `scripts/build_vut_licence_numerator.py`, reviewing the diff and updating the
+  pinned `expected_source_totals` in the same reviewed pull request. Nothing
+  about this layer is live data.
 - **Full machine-readable record:** [`data/accommodation/madrid_vut_licences.meta.json`](../data/accommodation/madrid_vut_licences.meta.json).
 - **Interpretation ceiling:** a count of **granted licences** and of the dwelling
   units they contain. It is **not** all accommodation, **not** all tourist
@@ -305,8 +372,12 @@ deployment roles and this artifact has none yet.
   regional inventory, **not** VUT responsible declarations, **not** platform
   listings, and **not** a measure of tourism pressure, overtourism, saturation,
   carrying capacity, intensity, displacement, burden, impact or attractiveness.
-  Counts belong to the whole official barrio and must never be spatially
-  distributed into a circular Lens.
+  It establishes nothing about the legality of any platform listing. The
+  per-1,000 figure's denominator is registered **residents**, never homes or
+  households, so it is never "a percentage of homes that are tourist
+  apartments"; and the figure is never ranked, banded, scored, given a percentile
+  or mapped as a choropleth. Counts belong to the whole official barrio and must
+  never be spatially distributed into a circular Lens.
 
 ## Tourism & mobility POIs (`data/runtime_poi.json` + packaged fallback)
 
@@ -422,7 +493,10 @@ de Madrid (IDEAM) under **CC BY 4.0** and its attribution (© Ayuntamiento de
 Madrid) is retained in `data/geography/madrid_admin.meta.json`. The residential
 population denominator is published by the Ayuntamiento de Madrid (Subdirección
 General de Estadística) under **CC BY 4.0**, with attribution retained in
-`data/population/madrid_population.meta.json`.
+`data/population/madrid_population.meta.json`. The licensed tourist-dwelling
+numerator is published by the Ayuntamiento de Madrid (Agencia de Actividades)
+under **CC BY 4.0**, with attribution retained in
+`data/accommodation/madrid_vut_licences.meta.json`.
 
 
 ### Madrid accommodation taxonomy

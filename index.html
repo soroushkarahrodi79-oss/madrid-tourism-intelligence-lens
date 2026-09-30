@@ -6,7 +6,7 @@
 <title>Madrid Tourism Intelligence Lens</title>
 <meta name="description" content="Move a spatial lens across central Madrid to explore how tourism POIs, mobility nodes and bounded HATI thermal evidence change locally.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20260929-23">
+<link rel="stylesheet" href="css/app.css?v=20260930-30">
 </head>
 <body>
 <div id="map"></div>
@@ -122,6 +122,26 @@
           <p id="areaScopeNote">Whole official barrio — not the Lens circle.</p>
         </div>
       </div>
+      <!-- Licensed VUT context: a SECOND administrative figure for the SAME
+           whole barrio. Granted activity licences and the tourist-dwelling
+           units those licences contain - never operating dwellings and never
+           all accommodation. It is descriptive administrative supply context
+           and nothing more; the ceiling is stated in full in
+           js/area-profile.js and in docs/CLAIMS_AND_LIMITATIONS.md. It sits
+           below the place identity and the resident figure on purpose: the
+           place is the lead, this is context attached to it. -->
+      <div id="areaVut" class="area-vut" hidden>
+        <div class="area-vut-head">
+          <span class="area-vut-title">Licensed VUT</span>
+          <span class="badge licence">Administrative licence</span>
+        </div>
+        <div class="area-vut-figure">
+          <span id="areaVutValue" class="area-vut-value">&mdash;</span>
+          <span id="areaVutUnit" class="area-vut-unit">licensed VUT units</span>
+        </div>
+        <div id="areaVutSecondary" class="area-vut-secondary"></div>
+        <div id="areaVutState" class="area-vut-state"></div>
+      </div>
       <!-- The other lens's area, compactly, so the A/B places are legible
            without scrolling and without a second full profile card. -->
       <div id="areaOther" class="area-other"></div>
@@ -199,6 +219,6 @@
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20260929-23"></script>
+<script src="js/app.js?v=20260930-30"></script>
 </body>
 </html>

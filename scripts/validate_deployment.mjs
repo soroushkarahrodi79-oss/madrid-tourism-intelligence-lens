@@ -714,6 +714,239 @@ function validatePopulation(source, population, meta, geography, errors, warning
   };
 }
 
+// Committed licensed tourist-dwelling (VUT) numerator: granted activity licences
+// and the dwelling units they contain, per canonical barrio, with derived
+// district and municipality totals. BLOCKING since the Area Profile began
+// showing licensed VUT context: the interface now displays these counts and a
+// descriptive per-1,000-registered-residents ratio derived from them.
+//
+// The failure mode this gate exists for is NOT an empty panel. It is a
+// PLAUSIBLE-LOOKING WRONG NUMBER: a partial regeneration that drops barrios, an
+// aggregate that no longer equals its parts, a licence count that has overtaken
+// the unit count, or an artifact whose records were silently zeroed. The browser
+// abstains when a runtime fetch fails, which is a different concern; a committed
+// artifact that is already broken must not be published at all.
+//
+// It also refuses to let this source acquire a source period. The publisher
+// declares no reference or effective date, so source_period stays null and the
+// file's HTTP Last-Modified state is reported as file state in the audit lines,
+// never promoted into a date the manifest could be read as endorsing.
+function validateLicenceCounts(source, artifact, meta, geography, errors, warnings) {
+  const label = source.display_name;
+  const sink = source.blocks_deployment ? errors : warnings;
+
+  if (!artifact || typeof artifact !== "object" || !Array.isArray(artifact.records)) {
+    sink.push(`${label}: ${source.artifact} is missing or has no records array`);
+    return { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
+  }
+
+  const levelField = source.level_field ?? "geography_level";
+  const idField = source.id_field ?? "official_id";
+  const parentField = source.hierarchy_field ?? "parent_id";
+  const licenceField = source.count_fields?.licences ?? "vut_licences";
+  const unitField = source.count_fields?.units ?? "vut_units";
+  const provenance = source.provenance_values ?? {};
+
+  // Field creep is a semantic risk here, not a tidiness one: a population, a
+  // ratio or a rate appearing on a licence record is exactly the conflation the
+  // whole feature is built to avoid.
+  const allowedKeys = new Set([levelField, idField, parentField, licenceField, unitField, "value_provenance"]);
+
+  const byLevel = { municipality: [], district: [], barrio: [] };
+  const seen = new Set();
+  for (const r of artifact.records) {
+    const level = r?.[levelField];
+    if (!byLevel[level]) {
+      sink.push(`${label}: record has unknown geography_level "${level}"`);
+      continue;
+    }
+    const key = `${level}:${r[idField]}`;
+    if (seen.has(key)) sink.push(`${label}: duplicate ${level} ${idField} "${r[idField]}"`);
+    seen.add(key);
+
+    for (const field of [licenceField, unitField]) {
+      const value = r[field];
+      if (!Number.isInteger(value) || value < 0) {
+        sink.push(
+          `${label}: ${level} ${r[idField]} has an invalid ${field} (${value}); must be a non-negative integer`
+        );
+      }
+    }
+    // One licence can contain many dwelling units, so units are never fewer
+    // than licences. The reverse would mean the two columns had been swapped or
+    // one of them mis-summed, which would silently rename the indicator.
+    if (
+      Number.isInteger(r[licenceField]) &&
+      Number.isInteger(r[unitField]) &&
+      r[unitField] < r[licenceField]
+    ) {
+      sink.push(
+        `${label}: ${level} ${r[idField]} reports ${r[unitField]} unit(s) for ${r[licenceField]} licence(s); ` +
+          `a licence contains one or more units, so units can never be fewer than licences`
+      );
+    }
+
+    const expectedProvenance = level === "barrio" ? provenance.barrio : provenance.aggregate;
+    if (expectedProvenance && r.value_provenance !== expectedProvenance) {
+      sink.push(`${label}: ${level} ${r[idField]} must be flagged ${expectedProvenance}`);
+    }
+
+    const unexpected = Object.keys(r).filter((k) => !allowedKeys.has(k));
+    if (unexpected.length) {
+      sink.push(`${label}: ${level} ${r[idField]} carries unexpected field(s): ${unexpected.join(", ")}`);
+    }
+
+    byLevel[level].push(r);
+  }
+
+  // Counts against the expected join universe.
+  const expected = source.expected_counts ?? {};
+  for (const [name, actual, want] of [
+    ["municipality", byLevel.municipality.length, expected.municipality],
+    ["districts", byLevel.district.length, expected.districts],
+    ["barrios", byLevel.barrio.length, expected.barrios],
+  ]) {
+    if (typeof want === "number" && actual !== want) {
+      sink.push(`${label}: expected ${want} ${name} licence record(s), found ${actual}`);
+    }
+  }
+
+  // Canonical join: every barrio in the artifact is a canonical barrio, every
+  // canonical barrio has a record, and the hierarchy agrees with the geography.
+  // A barrio missing here would show as "unavailable" in a product that is
+  // otherwise reporting figures confidently, so it blocks the build.
+  if (geography && Array.isArray(geography.features)) {
+    const canonical = new Map();
+    for (const f of geography.features) {
+      if (f.properties?.geography_level === "barrio") {
+        canonical.set(f.properties.official_id, f.properties.parent_id);
+      }
+    }
+    const present = new Set(byLevel.barrio.map((b) => b[idField]));
+    for (const b of byLevel.barrio) {
+      const id = b[idField];
+      if (!canonical.has(id)) sink.push(`${label}: barrio ${id} is not a canonical barrio`);
+      else if (canonical.get(id) !== b[parentField]) {
+        sink.push(
+          `${label}: barrio ${id} declares parent ${b[parentField]} but canonical geography says ${canonical.get(id)}`
+        );
+      }
+    }
+    for (const id of canonical.keys()) {
+      if (!present.has(id)) sink.push(`${label}: canonical barrio ${id} has no licensed-VUT record`);
+    }
+  } else {
+    warnings.push(`${label}: canonical geography artifact unavailable, so the barrio join could not be cross-checked`);
+  }
+
+  // Aggregation: exact integer sums for BOTH counts, never toleranced. The
+  // district and municipality rows are declared derived, so they must be.
+  const totals = {};
+  for (const field of [licenceField, unitField]) {
+    const byDistrict = new Map();
+    let municipalitySum = 0;
+    for (const b of byLevel.barrio) {
+      const parent = b[parentField];
+      byDistrict.set(parent, (byDistrict.get(parent) ?? 0) + (b[field] ?? 0));
+      municipalitySum += b[field] ?? 0;
+    }
+    for (const d of byLevel.district) {
+      const want = byDistrict.get(d[idField]) ?? 0;
+      if (d[field] !== want) {
+        sink.push(
+          `${label}: district ${d[idField]} ${field} total ${d[field]} does not equal the sum of its barrios ${want}`
+        );
+      }
+    }
+    const muni = byLevel.municipality[0];
+    if (muni && muni[field] !== municipalitySum) {
+      sink.push(
+        `${label}: municipality ${field} total ${muni[field]} does not equal the sum of the barrios ${municipalitySum}`
+      );
+    }
+    totals[field] = municipalitySum;
+  }
+
+  // The artifact's own headline counts must agree with its records, and with the
+  // totals pinned in the registry for THIS committed snapshot. The pin is what
+  // makes a partial or accidental regeneration a visible diff; a deliberate
+  // refresh updates both in one reviewed change.
+  const counts = artifact.counts ?? {};
+  if (counts.licences !== totals[licenceField]) {
+    sink.push(
+      `${label}: declared ${counts.licences} licence(s) but the records sum to ${totals[licenceField]}`
+    );
+  }
+  if (counts.vut_units !== totals[unitField]) {
+    sink.push(`${label}: declared ${counts.vut_units} unit(s) but the records sum to ${totals[unitField]}`);
+  }
+  const pinned = source.expected_source_totals ?? {};
+  if (typeof pinned.licences === "number" && totals[licenceField] !== pinned.licences) {
+    sink.push(
+      `${label}: this committed snapshot holds ${totals[licenceField]} licence(s) but the registry pins ` +
+        `${pinned.licences}. Refreshing the source is a deliberate change: re-run the builder and update ` +
+        `expected_source_totals in the same reviewed pull request.`
+    );
+  }
+  if (typeof pinned.units === "number" && totals[unitField] !== pinned.units) {
+    sink.push(
+      `${label}: this committed snapshot holds ${totals[unitField]} unit(s) but the registry pins ` +
+        `${pinned.units}. Refreshing the source is a deliberate change: re-run the builder and update ` +
+        `expected_source_totals in the same reviewed pull request.`
+    );
+  }
+
+  // Provenance and source state. The HTTP header is required to be PRESENT and
+  // required to be LABELLED as not a reference date: the disclaimer travelling
+  // with the data is what stops a future consumer treating it as one.
+  const state = artifact.source_state ?? {};
+  const fileState = state.xlsx_http_last_modified;
+  if (!isNonEmptyString(fileState)) {
+    sink.push(`${label}: source_state.xlsx_http_last_modified is missing, so the source file state is unknown`);
+  }
+  if (!isNonEmptyString(state.http_last_modified_is_not_a_reference_date)) {
+    sink.push(
+      `${label}: the artifact must carry source_state.http_last_modified_is_not_a_reference_date, ` +
+        `because an HTTP header must never be published as a publisher-declared reference date`
+    );
+  }
+  const span = state.grant_date_span ?? {};
+  const earliest = span.earliest_grant_date;
+  const latest = span.latest_grant_date;
+  if (!ISO_DATE.test(String(earliest)) || !ISO_DATE.test(String(latest))) {
+    sink.push(`${label}: the licence grant-date span is not a pair of ISO dates (${earliest} to ${latest})`);
+  } else if (earliest > latest) {
+    sink.push(`${label}: the licence grant-date span is incoherent (${earliest} is after ${latest})`);
+  }
+
+  if (!meta || typeof meta !== "object") {
+    warnings.push(`${label}: ${source.meta_artifact} is missing, so the numerator's provenance metadata is unavailable`);
+  } else if (meta.source_period?.reference_date_published_by_source !== false) {
+    sink.push(
+      `${label}: the sidecar must record reference_date_published_by_source as false; this source ` +
+        `declares no reference date and the project must not invent one`
+    );
+  }
+
+  const barrioGeographyVersion = meta?.geography_linkage?.barrio_geography_version;
+  return {
+    record_count: artifact.records.length,
+    // NULL, deliberately: the publisher declares no reference or effective date,
+    // so this layer has no period. The file state below is an audit line, not a
+    // period, and the manifest's source_period_known stays false.
+    source_period: null,
+    state: "available",
+    warnings: [
+      `${byLevel.barrio.length} barrios, ${byLevel.district.length} districts; ` +
+        `${totals[unitField]} licensed VUT units in ${totals[licenceField]} granted activity licences`,
+      `source file state (HTTP Last-Modified, not a reference date): ${fileState ?? "unknown"}`,
+      `licence grant dates span ${earliest ?? "?"} to ${latest ?? "?"}`,
+      `joined to barrio geography ${barrioGeographyVersion ?? "unknown"}; ` +
+        `the residential denominator keeps its own separate reference date`,
+    ],
+  };
+}
+
 // ---------------------------------------------------------------- top level
 
 function validateRuntimePoiStructure(runtimePoi, registry, errors) {
@@ -818,6 +1051,16 @@ export function validateDeployment({
           warnings
         );
         break;
+      case "admin_licence_counts":
+        result = validateLicenceCounts(
+          source,
+          artifacts[source.artifact],
+          artifacts[source.meta_artifact],
+          artifacts["geography/madrid_admin.geojson"],
+          errors,
+          warnings
+        );
+        break;
       default:
         errors.push(`${source.display_name}: unknown shape "${source.shape}" in the source registry`);
         result = { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
@@ -899,6 +1142,9 @@ const ARTIFACT_FILES = [
   // Committed residential population denominator (not rebuilt at deploy).
   "population/madrid_population.json",
   "population/madrid_population.meta.json",
+  // Committed licensed tourist-dwelling numerator (not rebuilt at deploy).
+  "accommodation/madrid_vut_licences.json",
+  "accommodation/madrid_vut_licences.meta.json",
 ];
 
 export function readArtifacts(dataDir) {

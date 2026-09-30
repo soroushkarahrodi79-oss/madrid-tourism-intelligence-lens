@@ -564,6 +564,14 @@ declares deployment roles, and this artifact has none: nothing builds it at depl
 time, nothing reads it, and no UI shows it. Registering it belongs to the PR that
 introduces the indicator, together with the evidence-family decision above.
 
+> **Superseded by the indicator PR, as planned.** The Area Profile now shows
+> licensed VUT context, so the artifact is declared in the registry as
+> `vut_licences`, evidence family `ADMINISTRATIVE_LICENSE`, and it blocks
+> deployment. The two paragraphs above record what *this* gate decided and are
+> left as written; see [`DATA_PROVENANCE.md`](DATA_PROVENANCE.md#licensed-tourist-dwelling-numerator-dataaccommodationmadrid_vut_licencesjson)
+> and [`METHODOLOGY.md`](METHODOLOGY.md#licensed-vut-context--the-first-administrative-supply-indicator)
+> for the current contract.
+
 ## Research package
 
 `research/accommodation_gate_b/` — `audit_gate_b.py` plus the three JSON reports
