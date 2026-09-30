@@ -31,7 +31,7 @@ no dependencies.
 
 **Which sources block a deployment.** The five layers that feed the lens's
 operational metrics — museums, tourist information, BiciMAD, Metro/Cercanías and
-official accommodation — block deployment, because a collapse in any of them
+the accommodation catalogue — block deployment, because a collapse in any of them
 makes a displayed number wrong while it still looks authoritative. The committed
 HATI evidence and the packaged fallback sample block too, since they can only
 change through a commit. Principal parks and the pedestrian counters do **not**

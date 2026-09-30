@@ -475,7 +475,7 @@ test("a non-authoritative accommodation source fails the build", () => {
   const result = run(artifacts);
   assert.equal(result.ok, false);
   assert.match(errorText(result), /does not identify an authoritative source/);
-  assert.match(errorText(result), /must not be published as the official accommodation deployment artifact/);
+  assert.match(errorText(result), /must not be published as the Madrid Destino accommodation deployment artifact/);
 });
 
 test("an accommodation artifact with no source attribution fails the build", () => {
