@@ -35,9 +35,10 @@ The `stay` layer is built by `scripts/fill_stays_from_esmadrid.py` from
   The registry already classifies the layer `evidence_type: OBSERVED`, **not**
   `ADMINISTRATIVE_REGISTER` (which is what the Padrón denominator is).
 - **Publication state / period:** the XML publishes **no edition or effective
-  date**. The honest consequence, already recorded in the registry: *"Register
-  state at the moment of retrieval."* There is no source period to align against
-  the Padrón's 1 January 2026 reference date.
+  date**. The honest consequence, already recorded in the registry: *"Catalogue
+  state at the moment of retrieval. The XML feed publishes no edition or
+  effective date."* There is no source period to align against the Padrón's
+  1 January 2026 reference date.
 - **Record semantics:** one XML `<service>` = one promoted **listing**, tagged
   `Tipo = "Alojamientos"`, `Categoria` (Hoteles / Hostales / Pensiones / …),
   `SubCategoria` (star/key rating — **not** capacity). Coordinates present; no
