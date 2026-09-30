@@ -65,6 +65,11 @@ REPORT_PATH = HERE / "probe_report.json"
 # A probe is a metadata read, not a download. 256 KiB is enough for an ESRI
 # service descriptor, an OGC API landing page, a WFS GetCapabilities head or a
 # CSV header row, and far too small to constitute ingestion of any of them.
+#
+# The cap is enforced on what is KEPT. One extra byte is read past it purely to
+# answer "was there more?" - see _bounded_read - and that byte is discarded. A
+# resource whose full length is exactly the cap is therefore reported complete,
+# not truncated.
 DEFAULT_MAX_BYTES = 256 * 1024
 BODY_PREFIX_CHARS = 600
 TIMEOUT_S = 45
@@ -86,6 +91,38 @@ def _utc_now() -> str:
     return _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _bounded_read(stream, max_bytes: int) -> tuple[bytes, bool]:
+    """Read at most max_bytes, and say positively whether more was available.
+
+    Reading exactly max_bytes cannot distinguish a truncated resource from a
+    complete one whose length happens to equal the cap. So one byte beyond the
+    cap is read and immediately discarded: its presence - and only its presence
+    - proves the resource was longer than the cap.
+
+        len(raw) <  max_bytes + 1  ->  complete (includes the exact-cap case)
+        len(raw) == max_bytes + 1  ->  truncated
+
+    The extra byte is never kept, never fingerprinted and never written, so the
+    cap on retained bytes is unchanged and this remains a metadata read.
+    """
+    raw = stream.read(max_bytes + 1)
+    return raw[:max_bytes], len(raw) > max_bytes
+
+
+def _parse_content_range_total(header: str | None) -> int | None:
+    """Total resource length from a `Content-Range: bytes 0-1023/4096` header.
+
+    A server honouring our Range request stops early by design, so the extra
+    byte above would never arrive even from a resource far larger than the cap.
+    When the server states the total, that statement is the stronger evidence
+    and is preferred over the read-ahead probe.
+    """
+    if not header:
+        return None
+    match = re.match(r"\s*bytes\s+\d+-\d+/(\d+)\s*$", header, re.IGNORECASE)
+    return int(match.group(1)) if match else None
+
+
 def _refuse_if_credentialed(url: str) -> str | None:
     """Return a refusal reason, or None when the URL is safe to request."""
     if CREDENTIAL_HINTS.search(url):
@@ -104,10 +141,12 @@ def _fetch(url: str, max_bytes: int) -> dict:
         url,
         headers={
             "User-Agent": USER_AGENT,
-            # Ask the server to stop early where it honours Range. Servers that
-            # ignore it are handled by the bounded read below, so correctness
-            # never depends on Range support.
-            "Range": f"bytes=0-{max_bytes - 1}",
+            # Ask the server to stop early where it honours Range. The range is
+            # inclusive and deliberately one byte PAST the cap, so a
+            # Range-honouring server can still reveal that more data exists.
+            # Servers that ignore Range are handled by the bounded read below,
+            # so correctness never depends on Range support.
+            "Range": f"bytes=0-{max_bytes}",
             "Accept": "*/*",
         },
         method="GET",
@@ -115,7 +154,7 @@ def _fetch(url: str, max_bytes: int) -> dict:
     context = ssl.create_default_context()
     started = time.monotonic()
     with urllib.request.urlopen(request, timeout=TIMEOUT_S, context=context) as response:
-        body = response.read(max_bytes)
+        body, read_overflowed = _bounded_read(response, max_bytes)
         elapsed_ms = round((time.monotonic() - started) * 1000)
         headers = response.headers
         declared = headers.get("Content-Length")
@@ -123,17 +162,26 @@ def _fetch(url: str, max_bytes: int) -> dict:
             declared_len = int(declared) if declared is not None else None
         except ValueError:
             declared_len = None
+        content_range = headers.get("Content-Range")
+        total = _parse_content_range_total(content_range)
+        # Positive detection, strongest evidence first: a server-stated total
+        # beats our read-ahead, which beats nothing. Never a bare length test.
+        truncated = total > max_bytes if total is not None else read_overflowed
         return {
             "ok": True,
             "http_status": response.status,
             "final_url": response.url,
             "content_type": headers.get("Content-Type"),
             "content_length_header": declared_len,
-            "content_range_header": headers.get("Content-Range"),
+            "content_range_header": content_range,
+            "resource_total_bytes": total,
             "last_modified": headers.get("Last-Modified"),
             "etag": headers.get("ETag"),
             "bytes_read": len(body),
-            "body_truncated": len(body) >= max_bytes,
+            "body_truncated": truncated,
+            "truncation_evidence": (
+                "server Content-Range total" if total is not None else "read-ahead byte"
+            ),
             "elapsed_ms": elapsed_ms,
             "_body": body,
         }

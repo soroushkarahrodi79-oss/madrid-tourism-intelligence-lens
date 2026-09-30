@@ -24,6 +24,35 @@ recommendation — which asserts reproducible access to a trustworthy source —
 for a source whose endpoint has never once been contacted would be precisely
 the failure mode Gates A and B exist to prevent.
 
+### Recorded evidence of the blocked run
+
+`probe_report.json` is the machine-readable record of the audit **attempt**,
+not of an audit. On **2026-09-30T13:03:25Z**, all 14 targets returned
+`Tunnel connection failed: 403 Forbidden` — **0 of 14 ok**, across all seven
+families:
+
+| family | reachable |
+|---|---|
+| A — Dataestur / INE | no |
+| B — Madrid Open Data | no |
+| C — Geoportal Madrid / Sigma | no |
+| D — IGN / CNIG / PNOA | no |
+| E — Comunidad de Madrid | no |
+| F — Inside Airbnb | no |
+| G — other (AEMET) | no |
+
+Network availability is **proven by successful responses, never inferred from
+settings**. The three control targets are what make that proof possible: each
+is a URL form already exercised successfully by a production builder or by the
+completed Gate B audit, so a failure on them isolates the environment from the
+source. All three failed, which attributes this run's outcome to the egress
+policy and to nothing about the sources themselves.
+
+Gate C0 resumes when a re-run returns successful responses from at least
+Dataestur, Madrid Open Data, Geoportal/Sigma, Comunidad de Madrid, IGN/CNIG and
+Inside Airbnb. Any family still blocked at that point is recorded as blocked
+rather than filled in from recollection.
+
 ## What is here
 
 * `probe_sources.py` — bounded feasibility probe. Records transport facts
@@ -32,9 +61,30 @@ the failure mode Gates A and B exist to prevent.
   writes `probe_report.json`. Every read is capped; raw upstream payloads are
   never persisted; credentialed URLs are refused before the request is made.
 * `probe_targets.json` — the target list. Each entry is a **hypothesis**
-  carrying a `probe_question` and a `proven_url_form` flag that says whether
-  the URL form is already proven in this repository's production builders or
-  is a candidate awaiting confirmation.
+  carrying a `probe_question` and a `proven_url_form` flag.
+* `probe_report.json` — output of the most recent run.
+
+### What `proven_url_form` may claim
+
+`true` only when **that exact URL form** has already been exercised
+successfully, by a production builder here or by a completed live probe, and
+`proven_by` must cite the evidence. A portal being reachable does not make one
+of its API actions proven, and a proven action on one path does not make a
+different path on the same host proven. A test enforces both halves.
+
+Three forms currently qualify:
+
+| target | evidence |
+|---|---|
+| `madrid_ckan_show_vut` | `scripts/build_madrid_geography.py` calls this `package_show` form |
+| `comunidad_ckan_show_control` | Gate B's completed live audit exercised this `package_show` form |
+| `geoportal_sigma_limites_control` | `scripts/build_madrid_geography.py` fetches this `MapServer` path |
+
+`package_search` is proven on **neither** portal and is carried as an untested
+hypothesis on both. It is the action that would make the audit systematic
+rather than a random walk through a web catalogue — which is exactly why it
+must be confirmed before it is relied upon, not assumed because the sibling
+action works.
 
 ## Run it
 
