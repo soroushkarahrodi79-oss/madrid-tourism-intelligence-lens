@@ -9,6 +9,9 @@
   sample points, for a single historical pilot day (21 August 2023), at three
   modelled times of day.
 - Compares two lenses' descriptive statistics side by side.
+- Names the **official barrio and district** containing the active lens's
+  centre, and reports that barrio's **registered residents** from the municipal
+  Padrón, with its reference date (1 January 2026).
 
 ## What this application does NOT claim or establish
 
@@ -40,6 +43,17 @@ establish, measure, or infer:
   not every green space in Madrid
 - Any inference that a mapped park is cooler, shadier, healthier, more
   biodiverse, more accessible, higher quality, or more attractive to tourists
+- The number of people inside a lens circle — the Area Profile's resident
+  figure describes the **whole official barrio** containing the lens centre,
+  never the part of it the circle happens to cover, and is never scaled,
+  weighted or interpolated into the circle
+- Any accommodation-per-resident, hotels-per-1,000-residents, tourism-density
+  or tourism-pressure figure — the application holds both an accommodation
+  layer and a resident denominator, and deliberately computes no ratio between
+  them
+- Daytime, present, working or visiting population — registered residents are
+  persons on the municipal register at the reference date, not people at a
+  place at a moment
 
 Observed pedestrian counts describe people passing fixed municipal counters.
 They do not identify tourists, trip purpose or destination demand. A lens with
@@ -64,6 +78,19 @@ verdict on whether a place is "safe" or "recommended" to visit. Likewise, a
 metric such as "Hotels & stays: 6" must never be read as "exactly six
 accommodations exist here" if that layer is on its snapshot fallback; it
 means six sample records happen to fall inside the lens.
+
+A barrio's registered-resident count and a lens's circle measurements have
+**different geometries** and are presented as separate sections for that reason.
+When two lenses fall in the same barrio they point at **one** administrative
+statistic, and the interface says so rather than repeating the figure. When no
+official area contains the centre, or no population record exists for an area,
+the interface abstains explicitly — it never shows `0`.
+
+Datasets keep their own periods and are never implied to be synchronised:
+administrative geography carries no effective date (only a published dataset
+version), registered residents are dated 1 January 2026, the HATI pilot is
+21 August 2023, and the pedestrian counters are a 2024 published period. The
+application has no global time control, because there is nothing to align.
 
 ## Evidence states shown in the UI
 

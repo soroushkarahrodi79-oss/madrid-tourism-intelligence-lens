@@ -36,6 +36,13 @@ including comparing two places at once.
   Madrid Destino feed provides that classification.
 - Read descriptive counts, category mix, and the 5 nearest features inside
   the active lens.
+- Read the **Area Profile**: the official barrio and district containing the
+  active lens's centre, and that barrio's registered residents with their
+  Padrón reference date. The barrio is a different geometry from the circle,
+  and the interface keeps the two apart — the resident figure describes the
+  whole barrio, never the part of it the circle covers.
+- Optionally overlay the full lattice of **district** or **barrio** outlines;
+  the containing barrio is always outlined, the lattice defaults to off.
 
 ## 4. Which datasets are used?
 
@@ -47,6 +54,10 @@ including comparing two places at once.
 - **Permanent pedestrian counters** — Madrid Open Data, observed activity evidence
 - **Principal municipal parks and gardens** — Madrid Open Data, context only
 - **HATI-Madrid outdoor UTCI samples** — a bounded research evidence layer (see below)
+- **Administrative geography** (21 districts, 131 barrios) — Ayuntamiento de
+  Madrid / IDEAM, the canonical join target for administrative context
+- **Registered residents per barrio** — Ayuntamiento de Madrid, Subdirección
+  General de Estadística (Padrón Municipal), reference date 1 January 2026
 
 On GitHub Pages, operational POI layers are **deployment-snapshot first** so
 the map renders immediately and does not wait on cross-origin APIs. The latest
@@ -122,6 +133,9 @@ restrict it in the CARTO Basemaps dashboard to the GitHub Pages host
   coordinates against the official EMT Madrid dataset before reintroducing
   a BiciMAD fallback.
 - Add automated visual regression checks for the map UI.
+- Decide, explicitly and separately, whether any accommodation-per-resident
+  measure can be stated honestly — it needs numerator coverage and temporal
+  comparability handled first, and is deliberately absent today.
 - Add a bounded temporal tourism-demand driver next (for example Madrid
   Destino's official tourism agenda), only if it can preserve the same source,
   date and interpretation discipline.
@@ -133,6 +147,8 @@ index.html            entry point
 css/app.css            styling
 js/lens.js             pure lens geometry + POI statistics (tested)
 js/evidence.js          pure HATI evidence statistics (tested)
+js/geography.js         pure administrative containment / point-in-polygon (tested)
+js/area-profile.js      pure Area Profile model: place, residents, states (tested)
 js/data.js              deployment-snapshot-first + bounded live fallback loading
 js/app.js               Leaflet map + UI wiring
 data/                   HATI evidence extract + POI snapshot + provenance

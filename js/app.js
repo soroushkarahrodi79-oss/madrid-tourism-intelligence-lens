@@ -21,7 +21,28 @@ const LAYER_LABEL = {
 };
 const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 
+// Dynamic import resolves against this script, so the administrative-context
+// modules load identically however the page is served. They are ES modules
+// (shared with `node --test`), while the rest of the app is classic scripts.
+const MODULE_BASE = (document.currentScript && document.currentScript.src) || window.location.href;
+const AREA_ASSET_VERSION = "20260929-23";
+const moduleUrl = (name) => new URL(`${name}?v=${AREA_ASSET_VERSION}`, MODULE_BASE).href;
+
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
+
+// Administrative reference geometry sits UNDER the POI markers: it is context
+// for reading the map, never a data layer competing with the evidence on it.
+map.createPane("adminPane");
+map.getPane("adminPane").style.zIndex = "350";
+map.getPane("adminPane").style.pointerEvents = "none";
+
+// The area containing a lens centre is the one administrative shape that has to
+// stay readable, so it sits just below the lens itself — visible over the POIs,
+// still subordinate to the circle.
+map.createPane("adminActivePane");
+map.getPane("adminActivePane").style.zIndex = "455";
+map.getPane("adminActivePane").style.pointerEvents = "none";
+map.getPane("adminActivePane").classList.add("admin-active-pane");
 
 // Keep lens boundaries above vector POIs but below draggable lens handles and cluster markers.
 map.createPane("lensPane");
@@ -32,6 +53,7 @@ const cartoBasemapKey = window.RUNTIME_CONFIG?.CARTO_BASEMAP_KEY || "";
 let activeBasemap = null;
 let activeBasemapName = "light";
 let lensStyleController = null;
+let adminStyleController = null;
 
 function createOsmBasemap() {
   return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -103,6 +125,7 @@ function setBasemap(name) {
   activeBasemap = next;
   activeBasemapName = requested;
   if (lensStyleController) lensStyleController(requested);
+  if (adminStyleController) adminStyleController(requested);
 
   let fellBack = false;
   next.on("tileerror", () => {
@@ -647,6 +670,421 @@ function renderCompare() {
     : "HATI off";
 }
 
+// ---------------------------------------------------------------- area profile
+//
+// THE LENS CIRCLE AND THE ADMINISTRATIVE AREA ARE DIFFERENT ANALYTICAL OBJECTS.
+//
+// Everything below reports WHERE a lens centre is in Madrid's official
+// administrative geography, and what the canonical Padron says about the whole
+// barrio that contains it. No population is ever distributed into the circle,
+// weighted by overlap, or combined with a lens count. The pure model lives in
+// js/area-profile.js; this section only loads the artifacts, renders the model
+// and draws the administrative reference geometry on the map.
+
+const areaModel = { profile: null, geography: null }; // loaded ES modules
+// The model's state vocabularies, bound once the module loads, so this file
+// never re-spells a state string the model owns.
+let AREA_STATE = null;
+let RESIDENTS_STATE = null;
+let AREA_COMPARISON = null;
+let geographyIndex = null;
+let populationIndex = null;
+let geographyMeta = null;
+let populationMeta = null;
+// Two independent runtime states, because the two artifacts fail independently
+// in a browser. The canonical geography is the DEPENDENCY for resolving a
+// place: without it there is no barrio, no district, no highlight and no
+// boundary layer. The population is only a VALUE attached to a barrio that has
+// already been resolved, so losing it must cost the resident figure and nothing
+// else. (This is runtime degradation only. Both artifacts remain
+// blocks_deployment: true — a build carrying a broken committed artifact is
+// still withheld rather than published in a degraded state.)
+let geographyState = "loading"; // loading | ready | unavailable
+let populationState = "loading"; // loading | ready | unavailable
+let boundaryMode = "off";
+const areaProfiles = { A: null, B: null };
+const areaHint = { A: null, B: null };
+const boundaryLayers = { district: null, barrio: null };
+const activeAreaLayers = { A: null, B: null };
+let lastAreaRenderKey = null;
+
+// Administrative geometry gets its own visual grammar, kept deliberately
+// different from the lens: solid reference outlines and a barely-there fill,
+// against the lens's dashed analytical circle, in neutral slate rather than the
+// lens's blue — analytical geometry is coloured, reference geometry is not.
+// Each basemap gets a stroke that survives it, because losing contrast on
+// satellite and light is exactly the failure the lens had to be fixed for; on
+// imagery legibility wins and the stroke goes white, where circle and outline
+// still read as two different objects.
+const ADMIN_BASEMAP_STYLES = {
+  light: { stroke: "#2c3a48", fill: "#4a6076", lattice: "#3a4a5a", latticeOpacity: 0.6 },
+  satellite: { stroke: "#ffffff", fill: "#ffffff", lattice: "#ffffff", latticeOpacity: 0.58 },
+  dark: { stroke: "#ccd6df", fill: "#9fb3c4", lattice: "#9aa9b6", latticeOpacity: 0.6 },
+};
+
+function adminPalette(name = activeBasemapName) {
+  return ADMIN_BASEMAP_STYLES[name] || ADMIN_BASEMAP_STYLES.light;
+}
+
+function activeAreaStyle(which, forceActive = false) {
+  const palette = adminPalette();
+  const isActive = forceActive || which === active;
+  return {
+    color: palette.stroke,
+    // Lens A keeps a solid administrative outline and Lens B a fine dotted one,
+    // so the two areas stay distinguishable without relying on colour alone.
+    dashArray: which === "A" ? null : "2 4",
+    weight: isActive ? 2.3 : 1.7,
+    opacity: isActive ? 0.95 : 0.66,
+    fillColor: palette.fill,
+    fillOpacity: isActive ? 0.075 : 0.045,
+    lineJoin: "round",
+  };
+}
+
+function latticeStyle() {
+  const palette = adminPalette();
+  return {
+    color: palette.lattice,
+    weight: boundaryMode === "district" ? 1.5 : 1.1,
+    opacity: palette.latticeOpacity,
+    fill: false,
+  };
+}
+
+function applyAdminBasemapStyle() {
+  for (const which of ["A", "B"]) {
+    const entry = activeAreaLayers[which];
+    if (entry) entry.layer.setStyle(activeAreaStyle(which, entry.forceActive));
+  }
+  for (const level of ["district", "barrio"]) {
+    if (boundaryLayers[level]) boundaryLayers[level].setStyle(latticeStyle());
+  }
+}
+
+adminStyleController = applyAdminBasemapStyle;
+
+// One canvas renderer per administrative pane, created once. Rebuilding Leaflet
+// layers on every lens move is what would make dragging expensive, so the
+// layers below are created once and only re-fed when the containing area
+// actually changes.
+let latticeRenderer = null;
+let activeAreaRenderer = null;
+
+function boundaryLayerFor(level) {
+  if (boundaryLayers[level]) return boundaryLayers[level];
+  if (!geographyIndex) return null;
+  if (!latticeRenderer) latticeRenderer = L.canvas({ pane: "adminPane", padding: 0.3 });
+  boundaryLayers[level] = L.geoJSON(
+    { type: "FeatureCollection", features: geographyIndex.featuresByLevel(level) },
+    { pane: "adminPane", renderer: latticeRenderer, interactive: false, style: latticeStyle }
+  );
+  return boundaryLayers[level];
+}
+
+function setBoundaryMode(mode) {
+  boundaryMode = ["off", "district", "barrio"].includes(mode) ? mode : "off";
+  for (const level of ["district", "barrio"]) {
+    const wanted = boundaryMode === level;
+    const layer = wanted ? boundaryLayerFor(level) : boundaryLayers[level];
+    if (!layer) continue;
+    if (wanted && !map.hasLayer(layer)) {
+      layer.setStyle(latticeStyle());
+      map.addLayer(layer);
+    } else if (!wanted && map.hasLayer(layer)) {
+      map.removeLayer(layer);
+    }
+  }
+}
+
+function clearActiveAreaLayer(which) {
+  const entry = activeAreaLayers[which];
+  if (!entry) return;
+  map.removeLayer(entry.layer);
+  if (entry.label) map.removeLayer(entry.label);
+  activeAreaLayers[which] = null;
+}
+
+// Redraws a lens's containing barrio only when that barrio actually changed.
+// Dragging inside one barrio touches no Leaflet layer at all.
+function renderActiveAreaFor(which, profile, { tag = which, forceActive = false } = {}) {
+  const shouldShow =
+    profile &&
+    profile.state === AREA_STATE.RESOLVED &&
+    (which === "A" || bEnabled) &&
+    geographyIndex;
+  const existing = activeAreaLayers[which];
+
+  if (!shouldShow) {
+    clearActiveAreaLayer(which);
+    return;
+  }
+  if (existing && existing.barrioId === profile.barrioId && existing.tag === tag) {
+    existing.forceActive = forceActive;
+    existing.layer.setStyle(activeAreaStyle(which, forceActive));
+    return;
+  }
+
+  clearActiveAreaLayer(which);
+  const feature = geographyIndex.featureById("barrio", profile.barrioId);
+  if (!feature) return;
+
+  if (!activeAreaRenderer) activeAreaRenderer = L.canvas({ pane: "adminActivePane", padding: 0.3 });
+  const layer = L.geoJSON(feature, {
+    pane: "adminActivePane",
+    renderer: activeAreaRenderer,
+    interactive: false,
+    style: () => activeAreaStyle(which, forceActive),
+  }).addTo(map);
+
+  // One label per highlighted area, never a sheet of 131 barrio names.
+  const label = L.tooltip({
+    permanent: true,
+    direction: "center",
+    className: `area-label area-label-${which.toLowerCase()}`,
+    interactive: false,
+    opacity: 1,
+  })
+    .setLatLng(layer.getBounds().getCenter())
+    .setContent(`<b>${tag}</b>${profile.headline}`)
+    .addTo(map);
+
+  activeAreaLayers[which] = { layer, label, barrioId: profile.barrioId, tag, forceActive };
+}
+
+function areaProfileFor(which) {
+  const { profile: model } = areaModel;
+  if (!model) return null;
+  // Only the geography gates the place. A resolved barrio with no population
+  // record is an ordinary, already-modelled state: the place stands, and the
+  // residents value abstains.
+  if (geographyState !== "ready") {
+    return model.buildAreaProfile({
+      lens: which,
+      located: null,
+      populationIndex,
+      state: geographyState === "unavailable" ? AREA_STATE.UNAVAILABLE : AREA_STATE.LOADING,
+    });
+  }
+  const centre = centerOf(which);
+  const located = geographyIndex.resolve(centre.lon, centre.lat, areaHint[which]);
+  areaHint[which] = located.barrio ? located.barrio.official_id : null;
+  return model.buildAreaProfile({ lens: which, located, populationIndex });
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value == null ? "" : value;
+}
+
+function renderAreaProfile(profile) {
+  const section = document.getElementById("areaProfile");
+  if (!section || !profile) return;
+
+  section.dataset.state = profile.state;
+  section.dataset.residents = profile.residents.state;
+  setText("areaHeadline", profile.headline);
+  setText("areaContext", profile.context);
+  setText("areaCodes", profile.codes);
+  document.querySelector(".area-identity").hidden = !profile.context && !profile.codes;
+  setText(
+    "areaScopeHint",
+    profile.state === AREA_STATE.RESOLVED
+      ? "official barrio"
+      : profile.state === AREA_STATE.DISTRICT_ONLY
+        ? "official district"
+        : ""
+  );
+
+  const value = document.getElementById("areaResidentsValue");
+  const residents = profile.residents;
+  if (residents.state === RESIDENTS_STATE.AVAILABLE) {
+    value.textContent = residents.display;
+    value.className = "area-value";
+  } else {
+    // Never a zero: an area with no published figure is not an empty area.
+    value.textContent = residents.state === RESIDENTS_STATE.UNAVAILABLE ? "Unavailable" : "—";
+    value.className = "area-value abstain";
+  }
+
+  const period = profile.period && profile.period.label;
+  setText("areaPeriod", residents.state === RESIDENTS_STATE.AVAILABLE && period ? `Reference ${period}` : "");
+  setText("areaScopeNote", profile.note || profile.scopeCaveat);
+}
+
+// The other lens's administrative area, as one compact line inside the profile
+// rather than a second full card. Two lens centres in ONE barrio share ONE
+// statistic, and that is said in words: showing the same figure twice would
+// imply two independent population observations.
+function renderOtherLensArea(a, b) {
+  const host = document.getElementById("areaOther");
+  if (!host) return;
+  const other = active === "A" ? "B" : "A";
+  const otherProfile = other === "A" ? a : b;
+  // With no administrative context at all, the headline above already says so;
+  // repeating it for the other lens would add a line and no information.
+  const unresolvable = [AREA_STATE.UNAVAILABLE, AREA_STATE.LOADING];
+  if (!bEnabled || !a || !b || !otherProfile || unresolvable.includes(otherProfile.state)) {
+    host.innerHTML = "";
+    return;
+  }
+
+  const comparison = areaModel.profile.compareAreaProfiles(a, b);
+  const tag = `<span class="area-other-lens area-other-lens-${other.toLowerCase()}">Lens ${other}</span>`;
+
+  if (comparison.state === AREA_COMPARISON.SAME_BARRIO) {
+    host.innerHTML = `${tag}<span class="area-other-body">is in the same barrio — one statistic, not two observations.</span>`;
+    return;
+  }
+
+  const residents =
+    otherProfile.residents.state === RESIDENTS_STATE.AVAILABLE
+      ? ` · ${otherProfile.residents.display} residents`
+      : otherProfile.residents.state === RESIDENTS_STATE.NOT_APPLICABLE
+        ? "" // no official area to carry a residential figure at all
+        : " · residents unavailable";
+  const context = otherProfile.context ? ` · ${otherProfile.districtName}` : "";
+  host.innerHTML =
+    `${tag}<span class="area-other-body"><b>${otherProfile.headline}</b>${context}${residents}</span>`;
+}
+
+function renderAreaSourceDetails() {
+  const host = document.getElementById("areaSourceDetails");
+  const model = areaModel.profile;
+  if (!host || !model) return;
+  const lines = model.buildProvenanceLines({
+    populationMeta,
+    geographyMeta,
+    period: populationIndex ? populationIndex.period : null,
+  });
+  host.innerHTML = lines.map((line) => `<span>${line}</span>`).join("");
+  // The affordance only appears once there is provenance behind it, so it can
+  // never open onto an empty box while the artifacts are still loading, or when
+  // the sidecar metadata itself could not be read.
+  document.getElementById("areaSourceToggle").hidden = lines.length === 0;
+}
+
+function updateAreaContext() {
+  if (!areaModel.profile) return;
+  areaProfiles.A = areaProfileFor("A");
+  areaProfiles.B = bEnabled ? areaProfileFor("B") : null;
+
+  const shown = areaProfiles[active] || areaProfiles.A;
+  const key = [
+    active,
+    bEnabled ? "b" : "a",
+    shown && shown.key,
+    areaProfiles.B && areaProfiles.B.key,
+    activeBasemapName,
+  ].join("|");
+
+  // One barrio containing both lens centres is ONE administrative shape: it is
+  // outlined and labelled once, for both, rather than drawn twice.
+  const sharedArea = Boolean(
+    areaProfiles.A &&
+      areaProfiles.B &&
+      areaProfiles.A.state === AREA_STATE.RESOLVED &&
+      areaProfiles.A.barrioId === areaProfiles.B.barrioId
+  );
+  renderActiveAreaFor("A", areaProfiles.A, sharedArea ? { tag: "A·B", forceActive: true } : {});
+  renderActiveAreaFor("B", sharedArea ? null : areaProfiles.B);
+
+  // Dragging within one barrio changes nothing here, so the panel is not
+  // rewritten on every pointer move.
+  if (key === lastAreaRenderKey) return;
+  lastAreaRenderKey = key;
+  renderAreaProfile(shown);
+  renderOtherLensArea(areaProfiles.A, areaProfiles.B);
+}
+
+function disableBoundaryControl() {
+  const select = document.getElementById("boundarySelect");
+  if (!select) return;
+  select.disabled = true;
+  select.title = "Administrative geography unavailable in this deployment";
+}
+
+function fetchAreaJson(url) {
+  return fetch(`${url}?v=${AREA_ASSET_VERSION}`).then((response) => {
+    if (!response.ok) throw new Error(`${url}: ${response.status}`);
+    return response.json();
+  });
+}
+
+const settledValue = (result) => (result.status === "fulfilled" ? result.value : null);
+
+async function loadAreaContext() {
+  let profileModule;
+  let geographyModule;
+  try {
+    [profileModule, geographyModule] = await Promise.all([
+      import(moduleUrl("area-profile.js")),
+      import(moduleUrl("geography.js")),
+    ]);
+  } catch (error) {
+    // Without the modules nothing administrative can be modelled at all. The
+    // Lens itself is untouched and keeps working.
+    geographyState = "unavailable";
+    populationState = "unavailable";
+    disableBoundaryControl();
+    console.warn("area context modules unavailable", error);
+    return;
+  }
+
+  areaModel.profile = profileModule;
+  areaModel.geography = geographyModule;
+  ({ AREA_STATE, RESIDENTS_STATE, AREA_COMPARISON } = profileModule);
+  updateAreaContext();
+
+  // Settled, not all-or-nothing. A failure of the population request must not
+  // cost the place: the geography is the dependency for resolving a barrio,
+  // while the population is a value attached to a barrio already resolved.
+  // Both are awaited together so the profile never flashes "unavailable" at a
+  // request that is merely still in flight.
+  const [geojson, population, geoMeta, popMeta] = await Promise.allSettled([
+    fetchAreaJson("data/geography/madrid_admin.geojson"),
+    fetchAreaJson("data/population/madrid_population.json"),
+    fetchAreaJson("data/geography/madrid_admin.meta.json"),
+    fetchAreaJson("data/population/madrid_population.meta.json"),
+  ]);
+
+  // A payload that parses but carries no administrative division is not a
+  // usable geography: resolving against it would report every coordinate as
+  // outside Madrid, which is worse than saying the geography is unavailable.
+  const index = geojson.status === "fulfilled" ? geographyModule.createGeographyIndex(geojson.value) : null;
+  const hasDivision = Boolean(index && index.counts.barrio && index.counts.district && index.counts.municipality);
+  if (hasDivision) {
+    geographyIndex = index;
+    geographyState = "ready";
+  } else {
+    geographyState = "unavailable";
+    disableBoundaryControl();
+    console.warn(
+      "administrative geography unavailable",
+      geojson.reason || "the artifact carries no administrative division"
+    );
+  }
+
+  // createPopulationIndex returns null for an unusable artifact, so an absent
+  // denominator stays absent: it never becomes an empty index reporting zero.
+  populationIndex = profileModule.createPopulationIndex(settledValue(population));
+  populationState = populationIndex ? "ready" : "unavailable";
+  if (populationState === "unavailable") {
+    console.warn("residential population unavailable", population.reason);
+  }
+
+  geographyMeta = settledValue(geoMeta);
+  populationMeta = settledValue(popMeta);
+
+  if (geographyState === "ready") {
+    renderAreaSourceDetails();
+    setBoundaryMode(document.getElementById("boundarySelect").value);
+  }
+
+  lastAreaRenderKey = null;
+  updateAreaContext();
+}
+
 function shadeMarkersOutsideActiveLens() {
   const center = centerOf(active);
   Object.values(groups).forEach((g) =>
@@ -723,6 +1161,7 @@ function refresh() {
   renderMix(s);
   renderNearest(s);
   renderCompare();
+  updateAreaContext();
   shadeMarkersOutsideActiveLens();
 }
 
@@ -792,13 +1231,29 @@ document.getElementById("navEvidence").onclick = () => {
   lenses.A.marker.setLatLng([40.4149, -3.687]);
   refresh();
 };
+function renderRadiusLabels() {
+  const text = radius >= 1000 ? (radius / 1000).toFixed(2) + " km" : radius + " m";
+  document.getElementById("radiusText").textContent = text;
+  // The lens section states its own geometry, so "within the lens" can never be
+  // read as the administrative area above it.
+  document.getElementById("lensScopeHint").textContent = `${text} circle`;
+}
+renderRadiusLabels();
+
 document.getElementById("radiusSlider").oninput = (e) => {
   radius = Number(e.target.value);
-  document.getElementById("radiusText").textContent =
-    radius >= 1000 ? (radius / 1000).toFixed(2) + " km" : radius + " m";
+  renderRadiusLabels();
   refresh();
 };
 document.getElementById("basemapSelect").onchange = (e) => setBasemap(e.target.value);
+document.getElementById("boundarySelect").onchange = (e) => setBoundaryMode(e.target.value);
+const areaSourceToggle = document.getElementById("areaSourceToggle");
+areaSourceToggle.onclick = () => {
+  const details = document.getElementById("areaSourceDetails");
+  const open = details.hidden;
+  details.hidden = !open;
+  areaSourceToggle.setAttribute("aria-expanded", String(open));
+};
 document.getElementById("stayKindFilter").onchange = (e) => {
   stayKindFilter = e.target.value;
   rebuildDenseLayer("stay");
@@ -1033,6 +1488,11 @@ async function boot() {
         .join(" · ")} (see layer panel)`;
   renderLayerSourceNote();
   refresh();
+
+  // Administrative context loads after the operational layers are on screen:
+  // the canonical geography is ~2.5 MB and must never delay the first paint of
+  // the map. It is parsed and indexed exactly once, then reused.
+  loadAreaContext();
 }
 
 boot();

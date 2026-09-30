@@ -418,11 +418,11 @@ function validateSnapshotFallback(source, artifact, scopes, errors) {
 // Canonical administrative geography (municipality, districts, barrios). This is
 // a committed reference artifact, not a fetched deployment snapshot, so the checks
 // here are the same structural contract the test suites enforce, restated at the
-// deployment gate for the audit manifest. Non-blocking for now: the application
-// does not yet consume the geography at runtime (see blocks_deployment_note in the
-// registry), so its problems are reported as warnings rather than withholding the
-// whole site. The Node and Python test suites are what fail a broken geography on
-// every push.
+// deployment gate for the audit manifest. BLOCKING since the Area Profile feature
+// began resolving Lens centres to official barrios and districts at runtime (see
+// blocks_deployment_note in the registry): a broken geography would publish
+// confident wrong place names, so the site is withheld rather than degraded. The
+// sink below follows the registry flag, so the severity is declared in one place.
 function validateAdminGeography(source, geojson, meta, scopes, errors, warnings) {
   const label = source.display_name;
   const sink = source.blocks_deployment ? errors : warnings;
@@ -570,10 +570,12 @@ function* iterCoords(geometry) {
 
 // Canonical residential population denominator (barrio, with derived district and
 // municipality totals). Committed reference evidence joined to the canonical
-// geography by official code. Non-blocking for now (nothing consumes it yet); the
-// test suites enforce its integrity on every push. The checks restate the
-// denominator contract at the deployment gate and cross-check it against the
-// committed geography so the manifest can be audited.
+// geography by official code. BLOCKING since the Area Profile feature began
+// showing a barrio's registered residents, with its reference date, in the
+// interface: the UI abstains when a single figure is absent, but an artifact that
+// is already broken at build time must not reach the public site. The checks
+// restate the denominator contract at the deployment gate and cross-check it
+// against the committed geography so the manifest can be audited.
 function validatePopulation(source, population, meta, geography, errors, warnings) {
   const label = source.display_name;
   const sink = source.blocks_deployment ? errors : warnings;

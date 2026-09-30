@@ -297,7 +297,7 @@
       "rebuilt_at_deploy": false,
       "provenance_state": "committed_reference_geography",
       "role": "reference",
-      "blocks_deployment": false,
+      "blocks_deployment": true,
       "unavailable_is_allowed": false,
       "evidence_type": "REFERENCE",
       "expected_spatial_scope": "madrid_city_area",
@@ -313,7 +313,7 @@
       "level_field": "geography_level",
       "id_field": "official_id",
       "license": "CC BY 4.0",
-      "blocks_deployment_note": "Does not block deployment in this build because the application does not yet consume the geography at runtime; its structural integrity is enforced by the Node and Python test suites on every push. This must be switched to true once a user-facing feature depends on the artifact, so a broken geography cannot then be published.",
+      "blocks_deployment_note": "BLOCKING since the Area Profile feature: the application now resolves each Lens centre to its official barrio and district at runtime and names that place in the interface, so this artifact is consumed by a user-facing feature. A deployment must not publish an Area Profile experience backed by a missing, truncated or incoherent administrative geography, because the failure mode is a confident wrong place name rather than a visibly empty panel. The Node and Python test suites still enforce the same structural contract on every push; this gate is the second line, at publication.",
       "interpretation_ceiling": "Administrative reference geography for spatial joins and containment only. It is a common join target for future datasets (Padron, accommodation, VUT, restaurants, housing, socioeconomic and environmental indicators), not an analytical metric and not a denominator on its own. The municipality polygon is DERIVED as the union of the 21 official district polygons and is flagged as such. Administrative-area statistics must never be spatially distributed into a circular Lens or any sub-area; a Lens may report the official barrio/district containing a point, kept clearly separate from circle-derived measurements. This municipal geography is not Comunidad de Madrid geography."
     },
     {
@@ -328,7 +328,7 @@
       "rebuilt_at_deploy": false,
       "provenance_state": "committed_reference_evidence",
       "role": "reference",
-      "blocks_deployment": false,
+      "blocks_deployment": true,
       "unavailable_is_allowed": false,
       "evidence_type": "ADMINISTRATIVE_REGISTER",
       "expected_spatial_scope": "madrid_city_area",
@@ -348,7 +348,7 @@
       "derived_provenance_value": "DERIVED_FROM_BARRIO_POPULATION",
       "source_reported_value": "SOURCE_REPORTED",
       "license": "CC BY 4.0",
-      "blocks_deployment_note": "Does not block deployment in this build because no user-facing feature consumes the population yet; a broken committed population artifact still fails the Node and Python test suites on every push. This must be switched to true once Area Profile or another public feature consumes it, so a broken denominator cannot then be published.",
+      "blocks_deployment_note": "BLOCKING since the Area Profile feature: the application now reads the registered-resident figure of the barrio containing a Lens centre and shows it, with its reference date, in the interface. A deployment must not publish a resident count that is missing, mis-joined or detached from its period. The UI abstains rather than showing a zero when a figure is absent, but an artifact that is broken at build time must not reach the public site at all. The Node and Python test suites still enforce the same contract on every push.",
       "interpretation_ceiling": "Persons registered in the municipal Padron for the reference date. This is a residential denominator only: it is NOT people physically present at a given moment, NOT daytime population, NOT tourists, NOT workers present, NOT unique mobile-device users, NOT households and NOT housing units. This PR defines no tourism indicator, no accommodation-per-resident or hotels-per-1000 ratio, no tourism pressure and no composite score. A barrio population belongs to the whole official barrio and must never be spatially distributed into a circular Lens; a Lens may state 'the centre is in barrio X, which has Y registered residents for period Z', where Y remains a barrio statistic, not the population inside the circle. This municipal population is not Comunidad de Madrid population."
     }
   ]
