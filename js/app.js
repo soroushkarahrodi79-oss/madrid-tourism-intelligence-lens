@@ -25,7 +25,7 @@ const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 // modules load identically however the page is served. They are ES modules
 // (shared with `node --test`), while the rest of the app is classic scripts.
 const MODULE_BASE = (document.currentScript && document.currentScript.src) || window.location.href;
-const AREA_ASSET_VERSION = "20260930-30";
+const AREA_ASSET_VERSION = "20260930-31";
 const moduleUrl = (name) => new URL(`${name}?v=${AREA_ASSET_VERSION}`, MODULE_BASE).href;
 
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
@@ -1246,6 +1246,216 @@ async function loadAreaContext() {
   updateAreaContext();
 }
 
+// ---------------------------------------------------------------------------
+// DESTINATION CONTEXT
+//
+// The citywide surface, and the only part of this panel that is NOT about the
+// Lens. It renders ONCE, from loadDestinationContext, and is never called from
+// refresh(), from updateAreaContext(), or from any lens/marker/radius handler.
+// That is the whole mechanism by which dragging a Lens cannot change these
+// numbers: there is no code path from a lens event to this renderer, and the
+// pure model in js/destination-context.js has no parameter that could carry a
+// position even if one were added by mistake.
+//
+// It also fails ON ITS OWN. Its module, artifact and sidecar are loaded in a
+// separate function from the area context, with their own state variable, so a
+// Destination Context failure costs the Destination Context block and nothing
+// else: the Area Profile, the resident figure, licensed VUT, the Lens metrics
+// and HATI all stand.
+const destinationModel = { module: null, index: null, meta: null };
+let destinationState = "loading"; // loading | ready | unavailable
+
+function renderDestinationContext() {
+  const section = document.getElementById("destinationContext");
+  const module = destinationModel.module;
+  if (!section || !module) return;
+
+  const model = module.buildDestinationContext({
+    index: destinationModel.index,
+    state:
+      destinationState === "ready"
+        ? module.DESTINATION_STATE.AVAILABLE
+        : destinationState === "loading"
+          ? module.DESTINATION_STATE.LOADING
+          : module.DESTINATION_STATE.UNAVAILABLE,
+  });
+
+  section.hidden = false;
+  section.dataset.state = model.state;
+
+  const available = model.state === module.DESTINATION_STATE.AVAILABLE;
+  // The card shows the short name and keeps "whole municipality" beside it in
+  // the section head; the accessible name carries the qualified form, and the
+  // full source geography (the publisher's own term plus the code) is stated in
+  // the source disclosure. Nothing is hidden, and the card stays uncluttered.
+  const place = document.getElementById("destinationPlace");
+  setText("destinationPlace", model.geography.municipalityName);
+  if (place) {
+    if (available && model.geography.label) place.setAttribute("aria-label", model.geography.label);
+    else place.removeAttribute("aria-label");
+  }
+  setText("destinationScopeHint", available ? "whole municipality" : "");
+  setText("destinationPeriod", available ? model.period.label : "—");
+
+  const provisional = document.getElementById("destinationProvisional");
+  if (provisional) provisional.hidden = !(available && model.period.provisional);
+
+  const metricsHost = document.getElementById("destinationMetrics");
+  if (metricsHost) {
+    metricsHost.innerHTML = available
+      ? model.metrics.map((metric) => destinationMetricMarkup(module, metric)).join("")
+      : "";
+  }
+
+  const composition = document.getElementById("destinationComposition");
+  if (composition) {
+    composition.innerHTML = available ? destinationCompositionMarkup(module, model.composition) : "";
+  }
+
+  setText("destinationState", destinationStateLine(module, model, available));
+  setText("destinationCeiling", model.hotelCaveat);
+  renderDestinationSourceDetails(model);
+}
+
+// One metric card: the figure, the exact count under it, the comparison, and a
+// sparkline. The comparison sentence comes from the model rather than being
+// composed here, so the wording cannot drift from the state that produced it.
+function destinationMetricMarkup(module, metric) {
+  const value = metric.value === null
+    ? `<div class="destination-metric-value abstain">Unavailable</div>`
+    : `<div class="destination-metric-value">${metric.display}</div>` +
+      `<div class="destination-metric-exact">${metric.exactDisplay} ${metric.unit}</div>`;
+
+  return (
+    `<div class="destination-metric" data-metric="${metric.key}">` +
+    `<div class="destination-metric-head">${metric.label}</div>` +
+    value +
+    `<div class="destination-metric-change">${module.comparisonSentence(metric.comparison)}</div>` +
+    destinationSparkline(module, metric) +
+    `</div>`
+  );
+}
+
+// A deliberately small inline SVG rather than a charting dependency: this is one
+// polyline in a vanilla app. It draws only PUBLISHED points and breaks the line
+// where the source published nothing, so the two months the publisher withheld
+// in 2020 are a visible gap rather than a straight line asserting demand that
+// was never measured. Neutral stroke, no fill, no axis, no colour semantics.
+function destinationSparkline(module, metric) {
+  const trend = metric.trend;
+  if (!trend || trend.points.length < 2) return "";
+  const values = trend.points.map((p) => p.value).filter((v) => Number.isFinite(v));
+  if (values.length < 2) return "";
+
+  const width = 100;
+  const height = 26;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const step = trend.points.length > 1 ? width / (trend.points.length - 1) : 0;
+
+  // Each contiguous run of published points becomes its own path.
+  const runs = [];
+  let current = [];
+  trend.points.forEach((point, i) => {
+    if (!Number.isFinite(point.value)) {
+      if (current.length) runs.push(current);
+      current = [];
+      return;
+    }
+    const x = i * step;
+    const y = height - 2 - ((point.value - min) / span) * (height - 4);
+    current.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+  });
+  if (current.length) runs.push(current);
+
+  const paths = runs
+    .filter((run) => run.length > 1)
+    .map((run) => `<polyline class="destination-spark-line" points="${run.join(" ")}"/>`)
+    .join("");
+  const lastRun = runs[runs.length - 1];
+  const lastPoint = lastRun && lastRun.length ? lastRun[lastRun.length - 1].split(",") : null;
+  const dot = lastPoint
+    ? `<circle class="destination-spark-dot" cx="${lastPoint[0]}" cy="${lastPoint[1]}" r="1.7"/>`
+    : "";
+
+  // The graphic is meaningless to a screen reader without this, so the shape is
+  // described in words rather than left as decoration.
+  const summary = module.trendSummary(trend, metric.label);
+  return (
+    `<svg class="destination-spark" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" ` +
+    `role="img" aria-label="${summary}">${paths}${dot}</svg>`
+  );
+}
+
+function destinationCompositionMarkup(module, composition) {
+  if (!composition || composition.state !== module.COMPARISON_STATE.AVAILABLE) return "";
+  // The source's own words. "Residents in Spain" is a place of residence, not a
+  // nationality and not a "domestic tourist", and the label never says otherwise.
+  return (
+    `<div>Travellers by residence · ` +
+    `Residents in Spain ${composition.spain.shareDisplay} · ` +
+    `Residents abroad ${composition.abroad.shareDisplay}</div>` +
+    `<div class="destination-compbar" role="img" aria-label="Of travellers in this month, ` +
+    `${composition.spain.shareDisplay} were residents in Spain (${composition.spain.display}) and ` +
+    `${composition.abroad.shareDisplay} were residents abroad (${composition.abroad.display}).">` +
+    `<i class="spain" style="width:${composition.spain.share}%"></i>` +
+    `<i class="abroad" style="width:${composition.abroad.share}%"></i>` +
+    `</div>`
+  );
+}
+
+function destinationStateLine(module, model, available) {
+  if (!available) {
+    if (destinationState === "loading") return "Reading the hotel-demand series.";
+    return "Destination context unavailable in this session.";
+  }
+  return [model.scopeCaveat, model.provisionalCaveat].filter(Boolean).join(" ");
+}
+
+function renderDestinationSourceDetails(model) {
+  const host = document.getElementById("destinationSourceDetails");
+  const toggle = document.getElementById("destinationSourceToggle");
+  const module = destinationModel.module;
+  if (!host || !toggle || !module) return;
+
+  const lines = destinationModel.meta
+    ? module.buildDestinationProvenanceLines({ meta: destinationModel.meta, model })
+    : [];
+  host.innerHTML = lines.map((line) => `<span>${line}</span>`).join("");
+  toggle.hidden = lines.length === 0;
+}
+
+async function loadDestinationContext() {
+  let module;
+  try {
+    module = await import(moduleUrl("destination-context.js"));
+  } catch (error) {
+    destinationState = "unavailable";
+    console.warn("destination context module unavailable", error);
+    return;
+  }
+  destinationModel.module = module;
+  renderDestinationContext();
+
+  const [series, meta] = await Promise.allSettled([
+    fetchAreaJson("data/destination/madrid_hotel_demand.json"),
+    fetchAreaJson("data/destination/madrid_hotel_demand.meta.json"),
+  ]);
+
+  // createDestinationIndex returns null for an unusable artifact, so a failed
+  // request or a malformed commit leaves the block explicitly unavailable. It
+  // never becomes an empty index reporting zero travellers, which would be a
+  // confident wrong answer rather than a visible absence.
+  destinationModel.index = module.createDestinationIndex(settledValue(series));
+  destinationState = destinationModel.index ? "ready" : "unavailable";
+  if (destinationState === "unavailable") {
+    console.warn("destination context unavailable", series.reason);
+  }
+  destinationModel.meta = settledValue(meta);
+  renderDestinationContext();
+}
+
 function shadeMarkersOutsideActiveLens() {
   const center = centerOf(active);
   Object.values(groups).forEach((g) =>
@@ -1414,6 +1624,13 @@ areaSourceToggle.onclick = () => {
   const open = details.hidden;
   details.hidden = !open;
   areaSourceToggle.setAttribute("aria-expanded", String(open));
+};
+const destinationSourceToggle = document.getElementById("destinationSourceToggle");
+destinationSourceToggle.onclick = () => {
+  const details = document.getElementById("destinationSourceDetails");
+  const open = details.hidden;
+  details.hidden = !open;
+  destinationSourceToggle.setAttribute("aria-expanded", String(open));
 };
 document.getElementById("stayKindFilter").onchange = (e) => {
   stayKindFilter = e.target.value;
@@ -1654,6 +1871,10 @@ async function boot() {
   // the canonical geography is ~2.5 MB and must never delay the first paint of
   // the map. It is parsed and indexed exactly once, then reused.
   loadAreaContext();
+  // Started separately and never awaited together with the area context: the two
+  // surfaces describe different things, from different publishers, and must fail
+  // independently of each other.
+  loadDestinationContext();
 }
 
 boot();

@@ -148,6 +148,69 @@ and parameters are *declared*, not inferred from a portal's behaviour.
 
 ### A1 · `EOH_PUNT_TUR_DL` — hotel occupancy by tourist point → **USE**
 
+> **↓ POST-GATE ADDENDUM — added by PR #32 on 2026-09-30, after this audit.**
+> Gate C0 did **not** resolve the questions below; it recorded them as open, and
+> the audit text that follows this block is left exactly as written on the audit
+> date. This block records only what the later implementation established. The
+> machine-readable equivalent is `implementation_resolution` on the
+> `dataestur_eoh_punt_tur` entry in
+> [`research/source_landscape/source_catalog.json`](../research/source_landscape/source_catalog.json).
+>
+> **The geography question is now settled: PASS.** INE's EOH methodology (2025
+> edition) §5.12 defines a *punto turístico* as a **municipality** — *"Municipio
+> donde la concentración de la oferta turística es significativa"* — and §5.13
+> defines a *zona turística* separately as a *"Conjunto de municipios"*, so the
+> two cannot be confused. INE's Tempus3 metadata for variable **103**
+> (`PUNTOS TURISTÍCOS`) under statistical operation **238** publishes the value
+> `Madrid` with `Codigo` **`28079`**, the official INE municipality code, which
+> matches the municipality carried by this project's canonical geography.
+>
+> **The metric question is also settled.** Average stay, the occupancy rates, ADR
+> and RevPAR *are* exposed for this tourist point — the Gate C0 caution against
+> assuming them was right to be cautious, but they exist. ADR and RevPAR arrive
+> from operation **180** (*Indicadores de Rentabilidad del Sector Hotelero*),
+> not from the EOH, and were rejected from V1 as profitability rather than
+> demand.
+>
+> **Retrieval route changed; the statistic did not.**
+> The Destination Context module built from this candidate reads the **same EOH
+> series** from **INE's Tempus3 API (statistical operation 238)** rather than
+> from Dataestur's XLSX redistribution. Two reasons, in order of weight:
+>
+> 1. **INE is the originating authority.** Dataestur redistributes the INE EOH,
+>    as this catalogue's own entry records. Reading INE directly means the
+>    publisher's per-observation **definitive/provisional** flag and its
+>    **statistical-confidentiality suppressions** survive into the artifact
+>    instead of being flattened by a redistribution step, and the tourist point
+>    arrives carrying its official **municipality code**.
+> 2. **The Dataestur API backend was down.** On 2026-09-30 every API-SEGITTUR
+>    endpoint returned `504 Gateway Time-out` after ~30.5 s — `EOH_PUNT_TUR_DL`,
+>    `EOH_CCAA_DL`, `EOH_PROV_DL`, and a no-parameter request alike — while a
+>    static file on the same host served in 0.7 s and `/API-SEGITTUR-v2/` 404'd
+>    in 0.6 s. Browser headers changed nothing. The gateway was alive; the
+>    backend behind it was not. Hard Gate 2 (inspect the actual payload before
+>    choosing any metric) could not be satisfied through that route, and no
+>    schema was going to be assumed.
+>
+> The OpenAPI facts recorded above were verified live before the outage:
+> the spec is served at
+> `https://www.dataestur.es/app/themes/mini-mandrake/apidata/openapi.json`,
+> declares **OpenAPI 3.0.1 / API-SEGITTUR v2.0**, 124 paths, a server base of
+> `/API-SEGITTUR-v2`, and `Madrid` in the `Punto turístico` enumeration with a
+> residence dimension of `Todos / Total / Residentes en el Extranjero /
+> Residentes en España`. Dataestur remains a valid alternative route to the same
+> statistic if the backend recovers.
+>
+> **What this catalogue could not have anticipated.** Operation **239**
+> (*Encuesta de Ocupación en Apartamentos Turísticos*) publishes series with
+> names **identical** to operation 238's through the same tourist-point
+> dimension, at roughly one fifteenth the value. Any future consumer of this
+> source must pin series codes and verify operation identity rather than match
+> on a name. See [`docs/DATA_PROVENANCE.md`](DATA_PROVENANCE.md) for the
+> implemented source contract.
+>
+> **↑ END ADDENDUM. The Gate C0 audit text resumes below, unchanged.**
+
 Hotel-accommodation occupancy by official *punto turístico*. **Madrid is
 explicitly present in the official tourist-point enumeration.** Available from
 **2012-01**, with date-range parameters and a residence dimension separating
@@ -581,19 +644,29 @@ roadmap below.
 
 ### NOW — the next 1–2 PRs
 
-#### Next PR · Madrid Destination Context v1
+#### Next PR · Madrid Destination Context v1 — **DONE**
 
-| | |
-|---|---|
-| **Working name** | Madrid Destination Context |
-| **Decision question** | How is hotel demand in Madrid changing through time? |
-| **Source** | Dataestur `EOH_PUNT_TUR_DL` (API-SEGITTUR, OpenAPI 3.0.1 / API v2.0) |
-| **Geography** | Madrid official tourist point — **municipality scale, never barrio** |
-| **Period** | Monthly series available from 2012-01 |
-| **UI placement** | **Destination Context** — not Area Profile, not a barrio map |
-| **Evidence type** | Official statistical series |
-| **Effort** | LOW_MEDIUM |
-| **Gate needed first** | None blocking. Metrics chosen only after inspecting the returned workbook schema |
+Delivered. What was planned, and what the implementation actually found:
+
+| | Planned at Gate C0 | As implemented |
+|---|---|---|
+| **Decision question** | How is hotel demand in Madrid changing through time? | unchanged |
+| **Source** | Dataestur `EOH_PUNT_TUR_DL` (API-SEGITTUR) | **INE Tempus3, operation 238** — the same EOH series from its originating authority (see A1) |
+| **Geography** | Madrid official tourist point — municipality scale, never barrio | **Confirmed: municipality 28079.** INE §5.12 defines a *punto turístico* as a municipality, and INE's own metadata publishes `Madrid` with `Codigo 28079` |
+| **Period** | monthly, from 2012-01 | **monthly, 2018-01 → 2026-08** (104 contiguous months) — the source-published *totals* begin 2018-01; the residence components reach back to 2005-01 |
+| **Metrics** | travellers, overnight stays, occupancy, residence, average stay | **travellers, overnight stays, residence composition.** Occupancy and average stay rejected from V1 as supply-side / redundant |
+| **UI placement** | Destination Context — not Area Profile, not a barrio map | unchanged; a panel surface with no map layer and no global time control |
+| **Evidence type** | Official statistical series | `OFFICIAL_STATISTICAL_SERIES`, added to the taxonomy |
+
+**What Gate C0 could not have known.** The tourist-point dimension serves three
+statistical operations, and two publish series with **identical names**:
+`EOT2743` (operation 238, hotels) and `EOT9411` (operation 239, tourist
+apartments) are both named *"Nacional. Viajeros. Madrid. Residentes en España."*
+and reported **320,715** and **21,334**. Selecting by name would have published
+the wrong survey under the right label. Series are pinned by code and verified by
+operation. Gate C0's open question about ADR/RevPAR also resolved: they **are**
+exposed, but through operation **180**, and are excluded as profitability rather
+than demand.
 
 **Start bounded. Do not implement every Dataestur endpoint.** Likely relevant
 concepts include travellers, overnight stays, occupancy, domestic/international

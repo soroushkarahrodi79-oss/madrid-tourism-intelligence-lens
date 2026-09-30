@@ -17,6 +17,11 @@
   Ayuntamiento's Agencia de Actividades documents there, with a descriptive
   **licensed VUT units per 1,000 registered residents** figure and both raw
   counts always shown beside it.
+- Reports, for the **whole municipality of Madrid** and separately from anything
+  about the Lens, the **hotel travellers** and **overnight stays** the official
+  INE hotel occupancy survey published for the latest available month, their
+  **residence composition**, a **same-month-previous-year** comparison, and a
+  24-month trend.
 
 ## What this application does NOT claim or establish
 
@@ -154,6 +159,57 @@ file, so a successful deployment does not mean the upstream source was
 re-fetched. Refreshing it requires re-running the builder and reviewing the
 diff. Nothing about this layer is live data.
 
+### Destination Context — hotel demand
+
+The Destination Context surface reports **hotel-sector demand in the
+municipality of Madrid** from the official INE *Encuesta de Ocupación Hotelera*.
+
+**It does not establish:**
+
+- **Total tourism demand.** The survey covers **hotel establishments only**. It
+  excludes tourist apartments, tourist dwellings (VUT), campsites, rural
+  accommodation, day visitors and everyone staying in unpaid or private
+  accommodation. Hotel demand is a **part** of tourism, never a proxy for it.
+- **How many people visited Madrid.** *Travellers* counts arrivals **per
+  establishment**: one person staying in two hotels is counted twice. It is not
+  a count of unique people.
+- **Anything about any barrio, district or Lens circle.** This is a single
+  citywide figure. The artifact carries no coordinates and no sub-municipal
+  identifier, so it cannot be distributed into a smaller area even by accident.
+  Dragging a Lens never changes it.
+- **Domestic versus international tourists.** The composition is the publisher's
+  own **place of residence** split (*Residentes en España* / *Residentes en el
+  extranjero*). Residence is not nationality, not trip purpose and not a
+  domestic/international tourist classification.
+- **Tourism pressure, overtourism, saturation, carrying capacity, intensity or
+  attractiveness.** The figures are never ranked, banded, scored or mapped.
+- **Why a figure changed.** The product reports the observation. It offers no
+  attribution to events, weather, prices, policy or anything else, and uses no
+  evaluative language — no *strong*, *weak*, *boom*, *crisis*, *success*,
+  *failure*, *surge* or *record*.
+- **Hotel profitability.** ADR and RevPAR exist in the publisher's catalogue but
+  come from a **different statistical operation** and are deliberately excluded.
+
+**What it does carry honestly:**
+
+- The **source geography is stated, not hidden.** The compact card shows
+  *Madrid* with *whole municipality* beside it; the source disclosure states the
+  publisher's own term (*punto turístico* `Madrid`) together with municipality
+  code **28079**. INE defines a *punto turístico* as a municipality and publishes
+  this one under that code.
+- **Provisional data is labelled.** The current statistical year is published
+  provisional and revised later, so a same-month-previous-year comparison
+  routinely compares a provisional figure with a definitive one. That is stated
+  rather than smoothed over.
+- **A withheld month stays withheld.** Where the publisher published nothing
+  (May and June 2020), the product shows nothing and the trend line breaks. It
+  is never rendered as a zero and never interpolated. April 2020 — a **real
+  published zero** — is kept distinct from those.
+
+The hotel-demand artifact is a **committed statistical snapshot**. It is not
+rebuilt when the site deploys, and the browser never calls the publisher's API
+at runtime. Refreshing it requires re-running the builder and reviewing the diff.
+
 ## Evidence states shown in the UI
 
 - **MODEL-DERIVED** — one or more HATI samples fall inside the active lens;
@@ -179,6 +235,15 @@ diff. Nothing about this layer is live data.
   The licensed-VUT figures carry this state (`ADMINISTRATIVE_LICENSE`). It is
   deliberately a different state from *Official register*: a granted act is not
   an enumerated universe, and neither inherits the other's ceiling.
+- **Official statistics** — a figure read from a **sample-based estimate**
+  produced by an official statistical operation, carrying the publisher's own
+  revision status (*definitive* or *provisional*) and its own statistical
+  confidentiality. The hotel-demand figures carry this state
+  (`OFFICIAL_STATISTICAL_SERIES`). It is deliberately distinct from the three
+  above: nobody is enumerated as in a register, nothing is a record of a granted
+  act, and it is an estimate rather than an observation — but it is also not
+  *model-derived*, because it comes from a statutory survey of real
+  establishments rather than a simulation.
 
 ## Relationship to HATI-Madrid
 

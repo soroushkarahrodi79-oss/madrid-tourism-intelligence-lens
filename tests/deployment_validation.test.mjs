@@ -38,6 +38,13 @@ function testRegistry() {
       source.expected_source_totals.licences = VUT_FIXTURE_TOTALS.licences;
       source.expected_source_totals.units = VUT_FIXTURE_TOTALS.units;
     }
+    // The series-length floor describes the real committed artifact, so it is
+    // re-aimed at the fixture's own short series here. The floor's behaviour is
+    // asserted on its own below, and the real number is asserted in
+    // "source registry is internally coherent".
+    if (source.expected_counts && source.expected_counts.months_minimum) {
+      source.expected_counts.months_minimum = 2;
+    }
   }
   return registry;
 }
@@ -312,6 +319,110 @@ function vutMeta() {
   };
 }
 
+// A small but structurally complete destination series: contiguous months, a
+// published residence split, one real zero and one suppressed month, so the
+// healthy build exercises the destination validator the way the real artifact
+// does. The real file is checked separately in "the committed evidence
+// artifacts satisfy the real registry".
+const DESTINATION_FIXTURE_MONTHS = 6;
+
+function destinationObservations() {
+  const records = [];
+  for (let i = 0; i < DESTINATION_FIXTURE_MONTHS; i += 1) {
+    const period = `2026-${String(i + 1).padStart(2, "0")}`;
+    // Month 3 is suppressed by the publisher; month 4 is a real published zero.
+    if (i === 2) {
+      records.push({
+        period,
+        year: 2026,
+        month: i + 1,
+        travellers: null,
+        overnight_stays: null,
+        travellers_residents_spain: null,
+        travellers_residents_abroad: null,
+        status: "definitive",
+        source_notes: ["Dato no disponible"],
+      });
+      continue;
+    }
+    const spain = i === 3 ? 0 : 400 + i;
+    const abroad = i === 3 ? 0 : 600 + i;
+    records.push({
+      period,
+      year: 2026,
+      month: i + 1,
+      travellers: spain + abroad,
+      overnight_stays: (spain + abroad) * 2,
+      travellers_residents_spain: spain,
+      travellers_residents_abroad: abroad,
+      status: i >= DESTINATION_FIXTURE_MONTHS - 2 ? "provisional" : "definitive",
+    });
+  }
+  return records;
+}
+
+function destinationArtifact() {
+  const observations = destinationObservations();
+  const last = observations[observations.length - 1];
+  return {
+    contract_version: "1.0.0",
+    geography: {
+      source_term: "Punto turistico",
+      source_value: "Madrid",
+      level: "municipality",
+      municipality_code: "28079",
+      municipality_name: "Madrid",
+      scope_note: "The whole municipality of Madrid. It describes no barrio and no Lens circle.",
+    },
+    source_period: {
+      granularity: "month",
+      earliest: observations[0].period,
+      latest: last.period,
+      latest_status: last.status,
+      count: observations.length,
+      semantics: "Each observation describes the calendar month named by its period.",
+    },
+    metrics: {
+      travellers: { series: "EOT42434", unit: "travellers", provenance: "SOURCE_REPORTED" },
+      overnight_stays: { series: "EOT42540", unit: "overnight stays", provenance: "SOURCE_REPORTED" },
+      travellers_residents_spain: { series: "EOT2743", unit: "travellers", provenance: "SOURCE_REPORTED" },
+      travellers_residents_abroad: { series: "EOT2744", unit: "travellers", provenance: "SOURCE_REPORTED" },
+    },
+    schema_fingerprint: "f".repeat(64),
+    observations,
+  };
+}
+
+// The minimum provenance a publishable Destination Context sidecar must carry.
+// Kept complete here so each regression test below can remove exactly one field
+// and assert that its absence alone blocks the deployment.
+function destinationMeta() {
+  return {
+    contract_version: "1.0.0",
+    source: {
+      authority: "Instituto Nacional de Estadistica (INE)",
+      survey: "Encuesta de Ocupacion Hotelera (EOH)",
+      statistical_operation: 238,
+      api: "Tempus3 JSON API",
+    },
+    geography: {
+      source_term: "Punto turistico",
+      source_value: "Madrid",
+      resolved_level: "municipality",
+      municipality_code: "28079",
+      hard_gate_1: "PASS",
+    },
+    survey_definitions: {
+      viajeros:
+        "Persons making one or more consecutive overnight stays in the same establishment. " +
+        "Counted per establishment stay, so this is not a count of unique people.",
+    },
+    schema_fingerprint: "f".repeat(64),
+    retrieved_at: GENERATED_AT,
+    interpretation_ceiling: "Hotel-sector demand only. NOT total tourism demand.",
+  };
+}
+
 function healthyArtifacts() {
   const layers = {
     museum: poiRecords("museum", 3),
@@ -378,6 +489,8 @@ function healthyArtifacts() {
     "population/madrid_population.meta.json": populationMeta(),
     "accommodation/madrid_vut_licences.json": vutArtifact(),
     "accommodation/madrid_vut_licences.meta.json": vutMeta(),
+    "destination/madrid_hotel_demand.json": destinationArtifact(),
+    "destination/madrid_hotel_demand.meta.json": destinationMeta(),
   };
 }
 
@@ -1323,6 +1436,200 @@ test("a sidecar without a usable geography linkage blocks the build", () => {
   }
 });
 
+// ------------------------------------------- destination context provenance
+//
+// The sidecar is a DEPLOYMENT CONTRACT, not documentation that happens to sit
+// beside the data. These figures are user-facing official statistics, so the
+// provenance that states what they measure - and what they do not mean - is part
+// of what makes publishing them defensible. Every failure below is an ERROR, not
+// a warning, and runtime graceful degradation is a separate concern asserted
+// elsewhere.
+
+const DEST_META = "destination/madrid_hotel_demand.meta.json";
+
+test("a missing destination sidecar blocks the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts[DEST_META] = null;
+  const result = run(artifacts);
+
+  assert.equal(result.ok, false, "a missing sidecar must not be publishable");
+  assert.match(errorText(result), /is missing or is not an object/);
+  assert.match(errorText(result), /what they measure - and what they do not mean - is required/);
+
+  // It is an ERROR, not a warning: the distinction is the whole point.
+  assert.ok(
+    !result.warnings.some((w) => /madrid_hotel_demand\.meta\.json/.test(w)),
+    "the missing sidecar must not be reported as a mere warning"
+  );
+});
+
+test("a malformed destination sidecar blocks the build", () => {
+  for (const malformed of ["", "not json", 42, [], true]) {
+    const artifacts = healthyArtifacts();
+    artifacts[DEST_META] = malformed;
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `a ${JSON.stringify(malformed)} sidecar must block the build`);
+    assert.match(errorText(result), /is missing or is not an object/);
+  }
+});
+
+test("a destination sidecar missing any required provenance field blocks the build", () => {
+  for (const [name, mutate, pattern] of [
+    ["source.authority", (m) => delete m.source.authority, /no usable source\.authority/],
+    ["source.survey", (m) => delete m.source.survey, /no usable source\.survey/],
+    ["source.api", (m) => delete m.source.api, /no usable source\.api/],
+    ["source (whole)", (m) => delete m.source, /no usable source\.authority/],
+    ["source.authority blank", (m) => (m.source.authority = "   "), /no usable source\.authority/],
+    [
+      "geography.source_term",
+      (m) => delete m.geography.source_term,
+      /no usable geography\.source_term/,
+    ],
+    [
+      "geography.source_value",
+      (m) => delete m.geography.source_value,
+      /no usable geography\.source_value/,
+    ],
+    [
+      "survey_definitions.viajeros",
+      (m) => delete m.survey_definitions.viajeros,
+      /no usable survey_definitions\.viajeros/,
+    ],
+    [
+      "survey_definitions (whole)",
+      (m) => delete m.survey_definitions,
+      /no usable survey_definitions\.viajeros/,
+    ],
+    [
+      "interpretation_ceiling",
+      (m) => delete m.interpretation_ceiling,
+      /no usable interpretation_ceiling/,
+    ],
+    ["retrieved_at", (m) => delete m.retrieved_at, /no usable retrieved_at/],
+    ["schema_fingerprint", (m) => delete m.schema_fingerprint, /no usable schema_fingerprint/],
+  ]) {
+    const artifacts = healthyArtifacts();
+    mutate(artifacts[DEST_META]);
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `a sidecar without ${name} must block the build`);
+    assert.match(errorText(result), pattern, `missing ${name} must be reported by name`);
+  }
+});
+
+test("a destination sidecar naming the wrong statistical operation blocks the build", () => {
+  // THE central guard. Operations 238 and 239 publish series with identical
+  // names through the same dimension, and the 239 values are roughly fifteen
+  // times smaller. Provenance that names a different survey than the pinned one
+  // means the artifact and its documentation disagree about which survey
+  // produced the numbers.
+  for (const wrong of [239, 180, "238", null, undefined]) {
+    const artifacts = healthyArtifacts();
+    artifacts[DEST_META].source.statistical_operation = wrong;
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `operation ${JSON.stringify(wrong)} must block the build`);
+    assert.match(errorText(result), /declares statistical operation/);
+    assert.match(errorText(result), /the registry pins 238/);
+  }
+
+  // And the reason is spelled out, so a reviewer meeting this failure for the
+  // first time learns what it is protecting against.
+  const artifacts = healthyArtifacts();
+  artifacts[DEST_META].source.statistical_operation = 239;
+  assert.match(errorText(run(artifacts)), /Operation 239 publishes identically named series/);
+});
+
+test("the registry must pin an expected operation id for the destination series", () => {
+  // Without the pin there is nothing to check the sidecar against, which would
+  // silently disable the survey-identity guard.
+  const registry = testRegistry();
+  const source = registry.sources.find((s) => s.id === "hotel_demand");
+  delete source.expected_operation_id;
+  const result = run(healthyArtifacts(), registry);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /declares no expected_operation_id/);
+
+  // The real registry carries it.
+  assert.equal(REAL_REGISTRY.sources.find((s) => s.id === "hotel_demand").expected_operation_id, 238);
+});
+
+test("a destination sidecar with the wrong geography blocks the build", () => {
+  for (const [name, mutate, pattern] of [
+    [
+      "a different municipality",
+      (m) => (m.geography.municipality_code = "08019"),
+      /records municipality "08019", but the registry declares 28079/,
+    ],
+    [
+      "no municipality code",
+      (m) => delete m.geography.municipality_code,
+      /records municipality undefined, but the registry declares 28079/,
+    ],
+    [
+      "a sub-municipal level",
+      (m) => (m.geography.resolved_level = "barrio"),
+      /records geography\.resolved_level "barrio", not "municipality"/,
+    ],
+    [
+      "no resolved level",
+      (m) => delete m.geography.resolved_level,
+      /not "municipality"/,
+    ],
+    [
+      "geography removed entirely",
+      (m) => delete m.geography,
+      /not "municipality"/,
+    ],
+  ]) {
+    const artifacts = healthyArtifacts();
+    mutate(artifacts[DEST_META]);
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `${name} must block the build`);
+    assert.match(errorText(result), pattern);
+  }
+});
+
+test("a destination sidecar whose geography gate has not passed blocks the build", () => {
+  for (const state of ["CONDITIONAL", "FAIL", "", undefined, "pass"]) {
+    const artifacts = healthyArtifacts();
+    artifacts[DEST_META].geography.hard_gate_1 = state;
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `hard_gate_1 ${JSON.stringify(state)} must block the build`);
+    assert.match(errorText(result), /records geography\.hard_gate_1 as/);
+    assert.match(errorText(result), /would put an unverified claim in front of the reader/);
+  }
+});
+
+test("a destination sidecar that does not describe the committed series blocks the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts[DEST_META].schema_fingerprint = "a".repeat(64);
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /schema fingerprints disagree/);
+  assert.match(errorText(result), /the provenance does not describe the committed series/);
+
+  // Reported once, not twice.
+  const matches = result.errors.filter((e) => /fingerprints disagree/.test(e));
+  assert.equal(matches.length, 1, "a fingerprint mismatch must be reported as a single failure");
+});
+
+test("a healthy destination sidecar publishes, and the real committed one passes", () => {
+  // The fixture, complete, is publishable.
+  assert.equal(run(healthyArtifacts()).ok, true);
+
+  // And so is the real committed sidecar, against the real registry: the gate
+  // above is only useful if it is satisfied by what this repository ships.
+  const committedRegistry = {
+    ...REAL_REGISTRY,
+    sources: REAL_REGISTRY.sources.filter((s) => s.id === "hotel_demand"),
+  };
+  const { errors } = validateDeployment({
+    registry: committedRegistry,
+    artifacts: readArtifacts(fileURLToPath(new URL("../data/", import.meta.url))),
+    generatedAt: GENERATED_AT,
+  });
+  assert.deepEqual(errors, [], `the committed destination sidecar must validate: ${errors.join(" | ")}`);
+});
+
 test("counts joined to a different barrio geography than the one shipped block the build", () => {
   // A numerator resolved against boundaries that have since moved is the
   // quiet mis-join this check exists to catch.
@@ -1451,6 +1758,12 @@ test("source registry is internally coherent", () => {
         // geography and the denominator) and from "context" (cartographic
         // context that is never a numerator).
         "administrative_context",
+        // A citywide official statistical series shown on its own surface.
+        // Distinct from "administrative_context" (an administrative fact about
+        // one official AREA the Lens is in) because it is a survey ESTIMATE for
+        // the whole municipality and is attached to no sub-municipal geography
+        // at all.
+        "destination_context",
       ].includes(source.role),
       `${source.id} has an unknown role`
     );
@@ -1462,6 +1775,7 @@ test("source registry is internally coherent", () => {
         "committed_reference_geography",
         "committed_reference_evidence",
         "committed_administrative_snapshot",
+        "committed_statistical_snapshot",
       ].includes(source.provenance_state),
       `${source.id} must declare a known provenance_state`
     );
@@ -1470,12 +1784,36 @@ test("source registry is internally coherent", () => {
       source.rebuilt_at_deploy === true,
       `${source.id}: provenance_state and rebuilt_at_deploy disagree`
     );
-    assert.ok(
-      REAL_REGISTRY.spatial_scopes[source.expected_spatial_scope],
-      `${source.id} references undefined scope ${source.expected_spatial_scope}`
-    );
+    // Every source that HAS a geometry must declare which envelope its records
+    // are expected to fall in. A source may declare null instead, but only by
+    // explaining why a spatial envelope would be meaningless for it - which is
+    // true of a citywide statistical series carrying no coordinates at all.
+    if (source.expected_spatial_scope === null) {
+      assert.ok(
+        source.spatial_scope_note,
+        `${source.id} declares no spatial scope and must explain why`
+      );
+    } else {
+      assert.ok(
+        REAL_REGISTRY.spatial_scopes[source.expected_spatial_scope],
+        `${source.id} references undefined scope ${source.expected_spatial_scope}`
+      );
+    }
 
-    if (["admin_geography", "admin_population", "admin_licence_counts"].includes(source.shape)) {
+    if (source.shape === "destination_demand_series") {
+      // A monthly series has neither an exact administrative-count contract nor
+      // a record-collapse floor: its integrity guardrail is a minimum series
+      // LENGTH, because the failure it guards against is a truncated download.
+      const counts = source.expected_counts;
+      assert.ok(counts, `${source.id} needs expected_counts`);
+      assert.ok(counts.months_minimum > 0, `${source.id} needs a months_minimum floor`);
+      assert.ok(
+        counts.months_minimum <= counts.baseline_months,
+        `${source.id} floor ${counts.months_minimum} must not exceed its baseline ${counts.baseline_months}`
+      );
+      assert.ok(counts.calibrated_on, `${source.id} guardrail needs a calibration date`);
+      assert.ok(counts.note, `${source.id} guardrail needs a stated rationale`);
+    } else if (["admin_geography", "admin_population", "admin_licence_counts"].includes(source.shape)) {
       // The administrative geography, the population denominator and the
       // licensed-VUT numerator have an exact-count contract, not a collapse
       // floor: they cover exactly the official number of districts and barrios,
@@ -1505,14 +1843,47 @@ test("source registry is internally coherent", () => {
 });
 
 test("the evidence vocabulary distinguishes a register from a licence", () => {
-  // The taxonomy is extended, not redesigned: one new family, added because a
-  // granted administrative ACT is not an enumerated administrative UNIVERSE and
-  // must not inherit the Padron's interpretation ceiling.
+  // The taxonomy is extended, not redesigned: each new family is added only
+  // because an existing one would MISLABEL the source.
+  //
+  //   ADMINISTRATIVE_REGISTER  an enumerated administrative universe (the Padron)
+  //   ADMINISTRATIVE_LICENSE   a granted administrative ACT, which is not a universe
+  //   OBSERVED                 located records observed in the world
+  //   MODEL-DERIVED            a model output, not a measurement
+  //   REFERENCE                join material: geography and identifiers
+  //   OFFICIAL_STATISTICAL_SERIES
+  //                            a SAMPLE-BASED ESTIMATE produced by an official
+  //                            statistical operation, carrying its own
+  //                            provisional/definitive revision status and its
+  //                            own statistical-confidentiality suppression. It
+  //                            is not a register: nobody is enumerated, and the
+  //                            publisher may withhold a value. It is not
+  //                            OBSERVED: it is an estimate, not a record. It is
+  //                            not MODEL-DERIVED: it comes from a statutory
+  //                            survey of real establishments, not a simulation.
   const families = new Set(REAL_REGISTRY.sources.map((s) => s.evidence_type));
   assert.deepEqual(
     [...families].sort(),
-    ["ADMINISTRATIVE_LICENSE", "ADMINISTRATIVE_REGISTER", "MODEL-DERIVED", "OBSERVED", "REFERENCE"]
+    [
+      "ADMINISTRATIVE_LICENSE",
+      "ADMINISTRATIVE_REGISTER",
+      "MODEL-DERIVED",
+      "OBSERVED",
+      "OFFICIAL_STATISTICAL_SERIES",
+      "REFERENCE",
+    ]
   );
+
+  const hotel = REAL_REGISTRY.sources.find((s) => s.id === "hotel_demand");
+  assert.equal(hotel.evidence_type, "OFFICIAL_STATISTICAL_SERIES");
+  // The two properties that make it a different family from everything above:
+  // a revision status per observation, and a publisher that may withhold.
+  assert.match(hotel.source_period_semantics, /Definitivo or Provisional/);
+  assert.match(hotel.zero_semantics, /NULL/);
+  assert.equal(hotel.rebuilt_at_deploy, false);
+  assert.equal(hotel.provenance_state, "committed_statistical_snapshot");
+  assert.match(hotel.deployment_source_role, /COMMITTED STATISTICAL SNAPSHOT/);
+  assert.match(hotel.deployment_source_role, /Nothing about this layer is live data/);
 
   const vut = REAL_REGISTRY.sources.find((s) => s.id === "vut_licences");
   const population = REAL_REGISTRY.sources.find((s) => s.id === "population");
@@ -1637,6 +2008,7 @@ test("exactly the layers a user-facing feature depends on block deployment", () 
     "bike",
     "geography",
     "hati",
+    "hotel_demand",
     "info",
     "museum",
     "population",
@@ -1673,6 +2045,18 @@ test("exactly the layers a user-facing feature depends on block deployment", () 
   const vut = REAL_REGISTRY.sources.find((s) => s.id === "vut_licences");
   assert.match(vut.blocks_deployment_note, /plausible-looking zero/);
   assert.match(vut.blocks_deployment_note, /degrades gracefully when a runtime fetch fails/);
+
+  // The destination series became a publication gate when the Destination
+  // Context surface began publishing citywide figures with a year-over-year
+  // comparison. Its runtime failure must be independent of every other surface.
+  const hotel = REAL_REGISTRY.sources.find((s) => s.id === "hotel_demand");
+  assert.equal(hotel.unavailable_is_allowed, false);
+  assert.match(hotel.blocks_deployment_note, /BLOCKING because the Destination Context surface/);
+  assert.match(hotel.blocks_deployment_note, /wrong statistical operation/);
+  assert.match(
+    hotel.blocks_deployment_note,
+    /leaving the Area Profile, the Lens metrics, VUT and HATI untouched/
+  );
 });
 
 test("the committed evidence artifacts satisfy the real registry", () => {
@@ -1686,7 +2070,7 @@ test("the committed evidence artifacts satisfy the real registry", () => {
   };
   assert.deepEqual(
     committedRegistry.sources.map((s) => s.id).sort(),
-    ["geography", "hati", "population", "snapshot_fallback", "vut_licences"],
+    ["geography", "hati", "hotel_demand", "population", "snapshot_fallback", "vut_licences"],
     "the set of committed, non-rebuilt sources changed; update this test deliberately"
   );
 

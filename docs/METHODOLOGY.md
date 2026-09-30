@@ -283,6 +283,116 @@ licensed-VUT numerator above is a *different* source, qualified separately at
 [Gate B](ACCOMMODATION_NUMERATOR_GATE_B.md); the stay layer is untouched and its
 count remains a catalogue count of the circle.
 
+## Destination Context — the city, over time
+
+This is the third analytical object in the panel, and the only one that is **not
+about the Lens at all**.
+
+| Surface | Question it answers | Geometry |
+|---|---|---|
+| Administrative area | Where is this Lens centre, and what does the register say about that **whole barrio**? | official barrio |
+| Within the Lens | What falls **inside the circle**? | the circle |
+| **Destination Context** | How is **hotel demand in the city** changing month by month? | the **whole municipality** |
+
+### It cannot react to the Lens
+
+This is structural, not a convention:
+
+- `js/destination-context.js` has **no parameter** through which a coordinate,
+  radius, barrio or lens could arrive. A test asserts the exported signatures
+  stay that way.
+- `renderDestinationContext()` is called **only** from its own loader. It is not
+  reachable from `refresh()`, `updateAreaContext()`, `renderAreaProfile()` or
+  `setBoundaryMode()`, and a test asserts each of those function bodies never
+  mentions it.
+
+Dragging either Lens anywhere in Madrid therefore cannot change a single figure
+on this surface.
+
+### It fails on its own
+
+The Destination Context module, artifact and sidecar load in their own function
+with their own state variable, separate from the area context's three. A failure
+costs **this block and nothing else**: the Area Profile, the resident figure,
+licensed VUT, the Lens metrics and HATI all stand, and the block says it is
+unavailable rather than showing a zero.
+
+### The comparison
+
+Tourism is seasonal, so the only comparison offered is **the same month one year
+earlier** — August against August, never August against July. There is no
+month-over-month fallback hiding behind that label: when the prior year is
+missing the model **abstains and says which side was missing**, because
+substituting a different comparison under the same words would make the sentence
+untrue.
+
+```
+change % = (current month − same month previous year) / same month previous year × 100
+```
+
+It abstains in four distinct, separately reported cases:
+
+| State | When |
+|---|---|
+| `NO_PRIOR_PERIOD` | the series does not reach back a year (e.g. 2018-01) |
+| `PRIOR_UNAVAILABLE` | the publisher withheld that month (e.g. May 2020) |
+| `CURRENT_UNAVAILABLE` | the publisher withheld the current month |
+| `PRIOR_IS_ZERO` | the prior year is a real zero (April 2020), so a percentage change is undefined |
+
+The last is not hypothetical: **April 2020 is a published zero**, and dividing by
+it would print an infinity. The product says *"No comparison: the source
+published zero for Apr 2020"* instead.
+
+A comparison also routinely puts a **provisional** figure against a
+**definitive** one, because the current statistical year is published provisional
+and revised later. The provisional status is shown, never hidden.
+
+### What the product is allowed to say
+
+Allowed, because each is directly computed from comparable published
+observations:
+
+> Madrid recorded 867,449 hotel travellers in August 2026.
+
+> Overnight stays were 5.3% higher than in the same month one year earlier.
+
+Not allowed, and asserted against by tests that scan the shipped page and
+scripts: *tourists in this barrio*, *tourists inside the Lens*, *visitor
+pressure*, *overtourism*, *tourism pressure*, *carrying capacity*, *tourism
+intensity*, *total tourism demand*, and every evaluative or causal word —
+*strong performance*, *weak demand*, *boom*, *crisis*, *success*, *failure*,
+*surge*, *slump*, *record-breaking*. The product reports the observation. It
+never explains **why** a figure moved, because it has no evidence that would
+support an attribution to events, weather, prices or policy.
+
+### Hotel demand is not tourism
+
+The survey covers **hotel establishments only**. It excludes tourist apartments,
+tourist dwellings (VUT), campsites, rural accommodation, day visitors and
+everyone staying in unpaid or private accommodation. And *travellers* counts
+**arrivals per establishment**, not unique people: one person staying in two
+hotels is counted twice. The sentence *"Hotel establishments only — not all
+tourism, not all accommodation."* is shown with the figures at every viewport,
+not hidden behind the collapsed disclosure.
+
+### The trend graphic
+
+A 24-month sparkline per metric, drawn as inline SVG rather than with a charting
+dependency — it is one polyline in a vanilla app. It plots **raw published
+points** with no smoothing, indexing or rebasing; it uses a neutral stroke with
+**no red/green performance semantics**; and it **breaks the line across a month
+the publisher withheld** rather than drawing through it, because a continuous
+line there would assert demand that was never measured. Each graphic carries an
+accessible summary naming the range, the endpoints and any gap.
+
+### Number formatting
+
+The compact headline abbreviates only where a full count would not fit
+(`1.7m` for overnight stays, `867k` for travellers); the exact count sits
+directly beneath it, and the accessible summary always uses exact figures, so
+the abbreviation hides nothing. Group separators follow the application's `en-GB`
+convention, as everywhere else in the product.
+
 ## Lens statistics
 
 For a lens (center, radius) and the set of points that fall within that

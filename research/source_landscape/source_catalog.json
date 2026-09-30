@@ -73,7 +73,18 @@
       "remaining_questions": "The exact geography the 'Madrid' tourist point represents must be confirmed against the source's own definition before publication, and stated in the UI. Whether average stay, ADR or RevPAR are actually exposed must be read off the returned workbook rather than assumed.",
       "verified_at": "2026-09-30",
       "verification_method": "external_official_documentation",
-      "notes": "Leading candidate for the next implementation PR."
+      "notes": "Leading candidate for the next implementation PR.",
+      "implementation_resolution": {
+        "resolved_by": "PR #32 (feat/dataestur-destination-context-v1)",
+        "resolved_on": "2026-09-30",
+        "status": "IMPLEMENTED_VIA_ORIGINATING_AUTHORITY",
+        "note": "Added AFTER this Gate C0 audit, which did not itself resolve these questions. The audit's own verified_at, remaining_questions and recommendation above are left exactly as recorded on the audit date; this block records only what the subsequent implementation established.",
+        "geography_question_resolved": "PASS. INE's Encuesta de Ocupacion Hotelera methodology (2025 edition) section 5.12 defines a punto turistico as a MUNICIPALITY - 'Municipio donde la concentracion de la oferta turistica es significativa' - and section 5.13 defines a zona turistica separately as a set of municipalities, so the two cannot be confused. INE's Tempus3 metadata for variable 103 (PUNTOS TURISTICOS) under statistical operation 238 publishes the value 'Madrid' with Codigo 28079, the official INE municipality code, which matches the municipality official_id carried by this project's canonical geography artifact. The tourist point is therefore the municipality of Madrid.",
+        "metric_question_resolved": "Average stay, the occupancy rates, ADR and RevPAR ARE exposed for this tourist point, so the Gate C0 caution against assuming them was warranted but they exist. ADR and RevPAR arrive from statistical operation 180 (Indicadores de Rentabilidad del Sector Hotelero), not from the EOH, and were rejected from V1 as profitability rather than demand. Average stay and the occupancy rates were rejected as a derived ratio and as supply-side capacity measures respectively.",
+        "production_route": "Direct INE Tempus3 (statistical operation 238), NOT the Dataestur redistribution audited here. INE is the originating authority for the EOH, so its per-observation definitive/provisional flag and its statistical-confidentiality suppressions survive into the artifact instead of being flattened by a redistribution step. The Dataestur API backend was additionally returning HTTP 504 on every endpoint during implementation, so the returned workbook could not be inspected through that route and no schema was assumed.",
+        "dataestur_status": "Dataestur / API-SEGITTUR remains the originally audited redistribution candidate and a valid alternative route to the same statistic. This entry is NOT withdrawn. Its OpenAPI facts were verified live before the outage: OpenAPI 3.0.1, API-SEGITTUR v2.0, 124 paths, server base /API-SEGITTUR-v2, and 'Madrid' present in the Punto turistico enumeration.",
+        "unresolved_by_this_implementation": "Nothing from this entry's remaining_questions is still open. The hotel/apartment boundary is a separate matter: statistical operation 239 (Encuesta de Ocupacion en Apartamentos Turisticos) publishes series with names IDENTICAL to operation 238's through the same tourist-point dimension, which this catalogue did not anticipate and which any future consumer of this source must guard against by pinning series codes and verifying operation identity."
+      }
     },
     {
       "id": "dataestur_turismo_interno_mun",

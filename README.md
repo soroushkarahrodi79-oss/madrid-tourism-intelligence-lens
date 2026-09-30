@@ -48,6 +48,13 @@ including comparing two places at once.
   both raw counts. These are licences **granted**, not dwellings in operation,
   and the figure is descriptive administrative supply context — never a
   pressure, saturation or capacity reading, and never ranked or scored.
+- Read the **Destination Context**: how hotel demand in the **whole city** is
+  changing month by month — hotel travellers and overnight stays for the latest
+  published month, their residence composition, a **same-month-previous-year**
+  comparison and a 24-month trend. This surface is deliberately **independent of
+  the Lens**: it describes the municipality of Madrid, and moving either Lens
+  cannot change a single figure on it. Hotel demand is **not** total tourism
+  demand.
 - Optionally overlay the full lattice of **district** or **barrio** outlines;
   the containing barrio is always outlined, the lattice defaults to off.
 
@@ -72,6 +79,13 @@ including comparing two places at once.
   1,483 tourist-dwelling units across the 131 barrios. The source declares no
   reference date, so the interface reports the resource file's observed state
   (September 2026) and never calls it a reference date
+- **Monthly hotel demand for the city of Madrid** — Instituto Nacional de
+  Estadística, *Encuesta de Ocupación Hotelera* (statistical operation 238), read
+  through INE's Tempus3 API. A committed statistical snapshot: 104 contiguous
+  months, **2018-01 to 2026-08**, of travellers and overnight stays with their
+  residence split. The source unit is the official **punto turístico** `Madrid`,
+  which INE defines as a municipality and publishes under municipality code
+  **28079** — the same code as the canonical geography
 
 On GitHub Pages, operational POI layers are **deployment-snapshot first** so
 the map renders immediately and does not wait on cross-origin APIs. The latest
@@ -98,7 +112,9 @@ including the exact source commit, are in
 It does not establish tourist pressure, overtourism, carrying capacity,
 tourist behaviour, tourist-specific footfall, safety outcomes, tourism quality,
 economic impact, causal heat effects, real-time conditions, city-wide HATI
-coverage, or a complete inventory of Madrid green space. Full list in
+coverage, or a complete inventory of Madrid green space. The hotel-demand series
+is **not** total tourism demand, **not** all accommodation and **not** a count of
+unique visitors, and nothing explains **why** a figure moved. Full list in
 [`docs/CLAIMS_AND_LIMITATIONS.md`](docs/CLAIMS_AND_LIMITATIONS.md).
 
 ## 7. How do I run it locally?
@@ -138,13 +154,22 @@ restrict it in the CARTO Basemaps dashboard to the GitHub Pages host
   it shows locked, model-derived evidence from a single historical pilot day.
   Lenses with zero HATI samples inside them show **"No evidence"**, never a
   fabricated value.
+- Destination Context (monthly hotel demand): a **committed statistical
+  snapshot** verified at the deployment gate. Each observation carries the
+  publisher's own **definitive/provisional** status, and months the publisher
+  withheld stay withheld — shown as unavailable, never as zero, and never
+  interpolated across. The browser never calls the publisher's API at runtime.
+  This surface fails **independently**: if it is unavailable, the Area Profile,
+  the Lens metrics, licensed VUT and HATI are untouched.
 - Administrative geography, registered residents and licensed VUT: **committed
   artifacts**, not rebuilt when the site deploys, each verified at the
   deployment gate. Each keeps its own period or state and they are never shown
   as one: the geography publishes only a dataset version, the residents a real
   1 January 2026 reference date, and the licensed-VUT source **no reference date
   at all** — for which the interface reports the resource file's observed state
-  rather than inventing one. There is no global time control.
+  rather than inventing one. The hotel-demand series is the only temporal
+  evidence, and it owns its own period: there is still **no global time
+  control**, and no other surface became time-aware.
 
 ## 10. What is next?
 
@@ -163,9 +188,11 @@ restrict it in the CARTO Basemaps dashboard to the GitHub Pages host
   figure should ever be mapped. It is deliberately a panel figure today: a
   choropleth would import normalisation choices, class breaks, legends and
   ranking implications that need their own explicit decision.
-- Add a bounded temporal tourism-demand driver next (for example Madrid
-  Destino's official tourism agenda), only if it can preserve the same source,
-  date and interpretation discipline.
+- Extend the temporal axis beyond hotels, only where a source can preserve the
+  same discipline. The Destination Context now answers "how is hotel demand
+  changing", which is deliberately narrower than "how is tourism changing";
+  closing that gap needs the tourist-apartment survey, the INE experimental VUT
+  series or an origin/destination source, each with its own gate.
 
 ## Project structure
 
@@ -176,10 +203,11 @@ js/lens.js             pure lens geometry + POI statistics (tested)
 js/evidence.js          pure HATI evidence statistics (tested)
 js/geography.js         pure administrative containment / point-in-polygon (tested)
 js/area-profile.js      pure Area Profile model: place, residents, licensed VUT, states (tested)
+js/destination-context.js  pure citywide hotel-demand model: period, YoY, trend, states (tested)
 js/data.js              deployment-snapshot-first + bounded live fallback loading
 js/app.js               Leaflet map + UI wiring
 data/                   HATI evidence extract + POI snapshot + provenance
-scripts/                HATI extraction script
+scripts/                source builders (geography, population, VUT, destination) + deployment validator
 docs/                   methodology, data provenance, claims & limitations
 tests/                  Node built-in test runner, no framework
 ```
@@ -197,8 +225,9 @@ software this project reads or bundles:
   attribution requirement.
 - **Madrid Open Data** (museums, tourist information, administrative geography,
   registered residents, licensed VUT activity licences), **Madrid Destino /
-  esmadrid.com** (accommodation), **EMT Madrid open data** (BiciMAD), and
-  **CRTM open data** (Metro/Cercanías)
+  esmadrid.com** (accommodation), **EMT Madrid open data** (BiciMAD),
+  **CRTM open data** (Metro/Cercanías), and **Instituto Nacional de Estadística**
+  (Encuesta de Ocupación Hotelera — monthly hotel demand)
   remain subject to the reuse terms published by their respective portals —
   see [datos.madrid.es](https://datos.madrid.es/),
   [esmadrid.com](https://www.esmadrid.com/),

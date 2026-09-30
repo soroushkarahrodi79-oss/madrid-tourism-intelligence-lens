@@ -379,6 +379,122 @@ evidence family `ADMINISTRATIVE_LICENSE`, committed (not rebuilt at deploy) and
   or mapped as a choropleth. Counts belong to the whole official barrio and must
   never be spatially distributed into a circular Lens.
 
+## Destination context: hotel demand (`data/destination/madrid_hotel_demand.json`)
+
+A **citywide monthly series**, and the first temporal evidence in this project.
+It is consumed by the **Destination Context** surface and is therefore declared
+in `data/source_registry.json` as `hotel_demand`, role `destination_context`,
+evidence family `OFFICIAL_STATISTICAL_SERIES`, committed (not rebuilt at deploy)
+and **blocking**.
+
+It describes **the whole municipality of Madrid** and is attached to no barrio,
+no district and no Lens circle. The artifact carries no coordinates and no
+sub-municipal identifier of any kind, so an allocation into a circle is
+impossible by construction rather than merely avoided by the interface.
+
+- **Authority / source:** Instituto Nacional de Estadística (INE), **Encuesta de
+  Ocupación Hotelera** (EOH), statistical operation **238**, read through INE's
+  Tempus3 JSON API. Dataestur / API-SEGITTUR redistributes the same EOH series
+  as XLSX through its `EOH_PUNT_TUR_DL` endpoint; this project reads INE — the
+  originating authority — directly, so the publisher's own provisional and
+  confidentiality flags survive into the artifact instead of being flattened by
+  a redistribution step. (That route was also chosen because the Dataestur API
+  backend was returning `504 Gateway Time-out` on every endpoint throughout the
+  implementation session; see
+  [the source landscape](MADRID_TOURISM_INTELLIGENCE_SOURCE_LANDSCAPE.md).)
+- **Source geography — the question this module was gated on.** The source unit
+  is the official INE ***punto turístico*** named `Madrid`. Two independent
+  pieces of official evidence establish what that is:
+  1. INE's EOH methodology (2025 edition), §5.12: *"PUNTO TURÍSTICO — Municipio
+     donde la concentración de la oferta turística es significativa."* A punto
+     turístico **is a municipality**. §5.13 separately defines a *zona turística*
+     as a *"Conjunto de municipios"*, so the two cannot be confused.
+  2. INE's own Tempus3 metadata for variable **103** (`PUNTOS TURISTÍCOS`) under
+     operation 238 publishes the value `Madrid` with `Codigo` **`28079`** — the
+     official INE municipality code.
+
+  `28079` is the same municipality code carried by
+  `data/geography/madrid_admin.geojson`, so this series describes exactly the
+  municipality the rest of the application already knows. The geography is
+  qualified at every level the reader can reach: the **compact card** shows
+  *Madrid* with *whole municipality* beside it in the section head, the
+  **accessible name** of that heading carries the qualified *Madrid · municipality
+  28079*, and the **source disclosure** states the exact source geography — the
+  publisher's own term *punto turístico*, its value `Madrid`, and the
+  municipality code. The card is never left saying a bare "Madrid" with nothing
+  to say which kind of place it means.
+- **The trap this builder exists to avoid.** The tourist-point dimension serves
+  **three** statistical operations, and two of them publish series with
+  **identical names**. `EOT2743` ("Nacional. Viajeros. Madrid. Residentes en
+  España.") belongs to operation **238** (hotels) and reported **320,715** for
+  its latest published month; `EOT9411`, with the **byte-identical name**,
+  belongs to operation **239** (*Encuesta de Ocupación en Apartamentos
+  Turísticos*) and reported **21,334**. Operation **180** (*Indicadores de
+  Rentabilidad del Sector Hotelero*) supplies ADR and RevPAR through the same
+  dimension. Series are therefore pinned by **code**, and each one's own
+  `FK_Operacion` is verified to be 238 before use. A series that changes
+  operation, unit or periodicity **fails the build**; it is never matched by name.
+- **Metrics (V1).** Three concepts, all source-published:
+  `travellers` (`EOT42434`), `overnight_stays` (`EOT42540`), and the travellers
+  **residence composition** (`EOT2743` residents in Spain / `EOT2744` residents
+  abroad). **Deliberately excluded:** average stay, the three occupancy-rate
+  variants, establishments / places / rooms / staff (supply side, not demand),
+  ADR and RevPAR (operation 180, profitability not demand), and every
+  operation-239 tourist-apartment series.
+- **Totals are published, never derived.** The headline totals are read from
+  source-published series and are **never** computed by adding the two residence
+  components. The published total and that sum disagree by ±1 in 32 of 105
+  traveller periods and 26 of 105 overnight-stay periods, because INE rounds each
+  estimate independently, so summing would publish a number the source does not
+  publish. The one place the components are added is the displayed composition,
+  whose denominator must total 100% — and that denominator is documented as the
+  sum of the components rather than as the published total.
+- **Period:** monthly, **2018-01 → 2026-08**, 104 contiguous observations. The
+  source-published totals run contiguously from 2018-01; one isolated earlier
+  observation (2007-01) exists upstream and is excluded as non-contiguous, and
+  the builder fails if that start moves.
+- **Four dates, never merged:** (1) the month an observation **describes**;
+  (2) whether that month is **Definitivo or Provisional**, which INE publishes
+  per observation and this project stores as `status`; (3) INE's **publication
+  calendar** — provisional results appear around day 23 of the following month
+  (methodology §9); (4) the builder's **`retrieved_at`** clock. The interface
+  shows the observation period prominently and keeps retrieval in the disclosure.
+- **Provisional data:** every month of the current statistical year is published
+  provisional and revised later. All eight 2026 months in this snapshot are
+  provisional. A same-month-previous-year comparison therefore routinely compares
+  a **provisional figure against a definitive one**, and the interface labels the
+  provisional headline as such.
+- **Suppression, and the one real zero.** INE marks a withheld observation with
+  `Secreto=true` and `Valor=null`, carrying a note. For Madrid, **2020-05** and
+  **2020-06** are null with the note *"Dato no disponible por cierre debido a
+  crisis COVID19"*. **2020-04 is a real published zero** — hotels were closed
+  under the state of alarm and the publisher issued an actual `0`. The two are
+  kept strictly distinct: a null is never rendered as a zero, never interpolated
+  and never averaged over, and the trend graphic **breaks its line** across a
+  suppressed month rather than drawing through it. (Statistical secrecy rule,
+  methodology §10: information may be given for strata where the number of
+  establishments open with movement is 4 or more.)
+- **What the figures mean, in the publisher's words.** *Viajeros entrados*
+  (§5.4): *"Todas aquellas personas que realizan una o más pernoctaciones
+  seguidas en el mismo alojamiento."* A traveller is counted **per establishment
+  stay**, so one person staying in two hotels is counted twice — this is **not a
+  count of unique people**. *Pernoctaciones* (§5.5): each night a traveller is
+  accommodated. The residence split is **place of residence** (*Residentes en
+  España* / *Residentes en el extranjero*), which is **not** nationality, **not**
+  trip type and **not** a domestic/international tourist classification.
+- **Interpretation ceiling.** Hotel-sector demand in the municipality of Madrid.
+  **Not** total tourism demand, **not** all accommodation, **not** all visitors:
+  it excludes tourist apartments, tourist dwellings (VUT), campsites, rural
+  accommodation, day visitors and everyone in unpaid or private accommodation.
+  **Not** tourism pressure, overtourism, saturation, carrying capacity, intensity
+  or attractiveness. It is never ranked, banded or scored, and it carries **no
+  explanation of why a figure changed** — the product reports the observation and
+  never attributes it to events, weather, prices or policy.
+- **Integrity:** the artifact carries a `schema_fingerprint` over the structural
+  contract (operation, tourist point, pinned series with their operations, units
+  and periodicities, and the observation field names). Drift is a failing diff
+  rather than a silent reinterpretation.
+
 ## Tourism & mobility POIs (`data/runtime_poi.json` + packaged fallback)
 
 On GitHub Pages the app is **deployment-snapshot first** so markers render immediately without waiting on third-party browser requests. The deployment snapshot is rebuilt from the public sources during Pages deployment. Per layer:
