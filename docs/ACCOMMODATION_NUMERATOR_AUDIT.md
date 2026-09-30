@@ -157,8 +157,11 @@ not choose between them.**
   dwellings per 1,000 registered residents"**. It **cannot** support
   "accommodation establishments per 1,000 residents" unless combined with other
   compatible authoritative universes under an explicitly designed methodology.
-- The Geoportal publishes an actual data date, so Gate B should examine its
-  **source-period semantics** rather than assume it is undated.
+- The Geoportal resource looked dated, so Gate B should examine its
+  **source-period semantics** rather than assume it is undated. *(Gate B did:
+  the source declares no reference or effective date. What exists is an HTTP
+  `Last-Modified` header on the resource file and a per-record licence grant
+  date — useful, but not a publisher-declared period.)*
 
 ### Candidate B — Comunidad de Madrid official accommodation inventory · `datos.comunidad.madrid`
 
@@ -188,4 +191,11 @@ denominator.
 - **Identity by source ID.** The builder deduplicates by name+coordinates; the
   unique `id` attribute is the authoritative key and should replace it when the
   layer is next touched.
-- **Gate B** on Candidate A and/or Candidate B, and any indicator that follows.
+- ~~**Gate B** on Candidate A and/or Candidate B~~ — **done**, see
+  [ACCOMMODATION_NUMERATOR_GATE_B.md](ACCOMMODATION_NUMERATOR_GATE_B.md):
+  **GO** for Candidate A (municipal licensed-VUT activity licences, reconciled
+  1025/1025 to canonical barrios), **MODIFY** for Candidate B (barrio
+  reconciliation solved at 99.45% against the official municipal address
+  register, but the source publishes no universe definition and no period).
+  Gate B builds a numerator-only artifact and still publishes no ratio.
+- Any indicator that follows from that numerator.

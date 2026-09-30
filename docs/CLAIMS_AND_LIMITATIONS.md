@@ -53,7 +53,13 @@ establish, measure, or infer:
   them. A Gate A audit examined adding exactly this and ruled NO-GO: the
   accommodation layer is a tourism-promotion catalogue, not an administrative
   register, and cannot carry a per-resident ratio
-  ([ACCOMMODATION_NUMERATOR_AUDIT.md](ACCOMMODATION_NUMERATOR_AUDIT.md))
+  ([ACCOMMODATION_NUMERATOR_AUDIT.md](ACCOMMODATION_NUMERATOR_AUDIT.md)).
+  A follow-up Gate B qualified an authoritative **numerator** — granted
+  municipal VUT activity licences — and built it as a standalone artifact, but
+  **still publishes no ratio**: nothing in the application reads that artifact,
+  and the numerator's source state and the Padrón's 1 January 2026 reference
+  date are different periods
+  ([ACCOMMODATION_NUMERATOR_GATE_B.md](ACCOMMODATION_NUMERATOR_GATE_B.md))
 - Daytime, present, working or visiting population — registered residents are
   persons on the municipal register at the reference date, not people at a
   place at a moment

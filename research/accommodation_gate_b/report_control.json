@@ -1,0 +1,173 @@
+{
+  "audit_started_at": "2026-09-30T10:14:50Z",
+  "audit_finished_at": "2026-09-30T10:15:04Z",
+  "note": "Counts are observations of one audit run against live official sources, not repository invariants and not integrity thresholds.",
+  "address_register": {
+    "dataset": "Callejero oficial del Ayuntamiento de Madrid (datos.madrid.es 213605)",
+    "resource": "direcciones vigentes",
+    "addresses": 214692,
+    "last_modified": "Mon, 28 Sep 2026 09:36:51 GMT",
+    "etag": "\"1790588211.4976518-34711400-2903512525\"",
+    "content_length": "34711400",
+    "sha256": "cbebc8e5c487c2e06aff3b4ca225295a5b213406c6b4fdb08e4bbd0a2830a67b",
+    "bytes": 34711400,
+    "url": "https://datos.madrid.es/dataset/213605-0-callejero-oficial-madrid/resource/213605-4-callejero-oficial-madrid-csv/download/direccionesvigentes_20260927.csv",
+    "catalogue_metadata_modified": "2026-09-28T00:00:00"
+  },
+  "control": {
+    "control": {
+      "dataset": "Número de establecimientos hoteleros por tipo de establecimiento. Municipios",
+      "catalogue": "https://datos.comunidad.madrid/dataset/establecimientos_hoteleros",
+      "authority": "Dirección General de Turismo y Hostelería. Consejería de Cultura, Turismo y Deporte.",
+      "http_last_modified": "Mon, 09 Mar 2026 09:54:39 GMT",
+      "latest_year_for_madrid": "2025",
+      "universe_composition": "Establecimientos hoteleros: Son aquellas instalaciones que destinadas al alojamiento turístico, ocupan la totalidad de un edificio o parte independizada del mismo constituyendo sus dependencias un todo homogéneo con entradas, ascensores y escaleras de uso exclusivo y reúnen los requisitos técnicos mínimos que reglamentariamente se establezcan.  \nIncluye: Hotel aparthotel + hoteles + hostales + cam",
+      "madrid_totals": {
+        "Hoteles de 1 estrella": 23,
+        "Hoteles de 2 estrellas": 35,
+        "Hoteles de 3 estrellas": 68,
+        "Hoteles de 4 estrellas": 166,
+        "Hoteles de 5 estrellas": 36,
+        "Hostales de 1 estrella": 105,
+        "Hostales de 2 estrellas": 139,
+        "Hostales de 3 estrellas": 64,
+        "Apartamentos turísticos de 1 llave": 121,
+        "Apartamentos turísticos de 2 llaves": 35,
+        "Campamentos de turismo de 1ª": 0,
+        "Campamentos de turismo de 2ª": 1,
+        "Campamentos de turismo de 3ª": 0,
+        "Total apartamentos turísticos con llaves": 193,
+        "Total campamentos de turismo": 1,
+        "Total hoteles con estrellas": 334,
+        "Total hostales con estrellas": 308,
+        "Apartamentos turísticos de 3 llaves": 30,
+        "Apartamentos turísticos de 4 llaves": 6,
+        "Hoteles-Apartamentos de 1 estrella": 14,
+        "Hoteles-Apartamentos de 3 estrellas": 3,
+        "Hoteles-Apartamentos de 4 estrellas": 4,
+        "Total hoteles-apartamentos con estrellas": 27,
+        "Total establecimientos hoteleros": 8486,
+        "Hoteles-Apartamentos de 2 estrellas": 6,
+        "Total pensiones": 482,
+        "Pensiones de 1 estrella": 136,
+        "Pensiones de 2 estrellas": 44,
+        "Pensiones de 3 estrellas": 11,
+        "Pensiones de casa de huéspedes": 291,
+        "Total casas rurales": 0,
+        "Hoteles rurales de 1 hoja": 0,
+        "Hoteles rurales de 2 hojas": 0,
+        "Hoteles rurales de 3 hojas": 0,
+        "Total hoteles rurales con hojas": 0,
+        "Apartamentos de turismo rural": 0,
+        "Total hoteles": 334,
+        "Hoteles de 5 estrellas Lujo": 6,
+        "Apartamentos turísticos sin categoría": 1,
+        "Total hosterías": 76,
+        "Viviendas de uso turístico": 7065
+      }
+    },
+    "reconciliation": {
+      "note": "Compared only because the control's stated composition matches Candidate B's taxonomy. The control is evidence, never a target: no Candidate B figure is adjusted towards it.",
+      "period_mismatch": "Candidate B is a current state dated 2026-09-28T05:11:06.026842 by the portal; the control's latest Madrid figure is the year 2025. The periods differ, so no difference here is fully reconciled.",
+      "by_type": {
+        "HOTEL": {
+          "candidate_b": 340,
+          "control": 334,
+          "difference": 6
+        },
+        "HOSTAL": {
+          "candidate_b": 312,
+          "control": 308,
+          "difference": 4
+        },
+        "APART-TURISTICO": {
+          "candidate_b": 213,
+          "control": 193,
+          "difference": 20
+        },
+        "HOTEL-APART.": {
+          "candidate_b": 27,
+          "control": 27,
+          "difference": 0
+        },
+        "HOSTERIAS": {
+          "candidate_b": 75,
+          "control": 76,
+          "difference": -1
+        },
+        "CAMPING": {
+          "candidate_b": 1,
+          "control": 1,
+          "difference": 0
+        },
+        "PENSION + CASA HUESPEDES": {
+          "candidate_b": 546,
+          "control": 482,
+          "difference": 64
+        }
+      },
+      "non_vut_total": {
+        "candidate_b": 1514,
+        "control": 1421,
+        "difference": 93,
+        "relative": 0.0654,
+        "classification": "plausibly compatible with temporal evolution; NOT fully reconciled, because the periods differ. The difference is small, positive and in the same direction as the control's own upward trend over the series, but this audit cannot show that time alone accounts for it."
+      },
+      "vut_total": {
+        "candidate_b": 4987,
+        "control": 7065,
+        "difference": -2078,
+        "relative": -0.2941,
+        "classification": "unexplained discrepancy - not closed by adding the declarations dataset"
+      },
+      "control_vut_series_madrid": {
+        "2008": null,
+        "2009": null,
+        "2010": null,
+        "2011": null,
+        "2012": null,
+        "2013": null,
+        "2014": null,
+        "2015": null,
+        "2016": null,
+        "2017": null,
+        "2018": null,
+        "2019": null,
+        "2020": null,
+        "2021": 12727,
+        "2022": 12916,
+        "2023": 12363,
+        "2024": 11523,
+        "2025": 7065
+      }
+    },
+    "declarations": {
+      "dataset": "Declaraciones responsables de actividad de viviendas de uso turístico de la Comunidad de Madrid presentadas",
+      "catalogue": "https://datos.comunidad.madrid/dataset/declaraciones_actividad_viviendas_uso_turistico",
+      "http_last_modified": "Fri, 11 Sep 2026 08:08:54 GMT",
+      "self_description": "En este conjunto de datos se recogen las viviendas de uso turístico que han presentado la Declaración responsable de inicio de actividad. Sin inscripción en el Registro de Empresas Turísticas de la Comunidad de Madrid. El Decreto 79/2014, de 10 de julio, del Consejo de Gobierno, por el que se regula",
+      "rows": 1156,
+      "madrid_rows": 1117,
+      "fields": [
+        "TipoAlojamiento",
+        "TipoVia",
+        "NombreVia",
+        "Numero",
+        "Portal",
+        "Bloque",
+        "Escalera",
+        "Planta",
+        "Puerta",
+        "Localidad"
+      ],
+      "identity_field_published": false,
+      "legal_universe": "VUT that filed a responsible declaration of commencement of activity WITHOUT inscription in the Registro de Empresas Turisticas. A different legal universe from both candidates; inspected for interpretation only and never merged.",
+      "effect_on_candidate_b": {
+        "candidate_b_vut_madrid": 4987,
+        "plus_declarations_madrid": 6104,
+        "control_vut_madrid": 7065,
+        "closes_the_gap": false
+      }
+    }
+  }
+}

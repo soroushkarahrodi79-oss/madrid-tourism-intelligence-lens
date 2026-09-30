@@ -1,0 +1,1255 @@
+{
+  "contract_version": "1.0.0",
+  "source_state": {
+    "xlsx_http_last_modified": "Mon, 07 Sep 2026 10:11:03 GMT",
+    "shp_http_last_modified": "Mon, 07 Sep 2026 10:09:10 GMT",
+    "http_last_modified_is_not_a_reference_date": "These are the HTTP Last-Modified headers observed on the resource files when this build fetched them. They describe the state of the file served, not a publisher-declared publication, effective or reference date. The source declares none.",
+    "grant_date_span": {
+      "records_with_grant_date": 1025,
+      "earliest_grant_date": "2019-03-06",
+      "latest_grant_date": "2026-09-02",
+      "by_year": {
+        "2019": 4,
+        "2020": 56,
+        "2021": 80,
+        "2022": 133,
+        "2023": 371,
+        "2024": 180,
+        "2025": 145,
+        "2026": 56
+      }
+    }
+  },
+  "counts": {
+    "licences": 1025,
+    "vut_units": 1483,
+    "barrios_with_at_least_one_licence": 106,
+    "barrios": 131
+  },
+  "records": [
+    {
+      "geography_level": "barrio",
+      "official_id": "011",
+      "parent_id": "01",
+      "vut_licences": 36,
+      "vut_units": 42,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "012",
+      "parent_id": "01",
+      "vut_licences": 69,
+      "vut_units": 80,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "013",
+      "parent_id": "01",
+      "vut_licences": 15,
+      "vut_units": 17,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "014",
+      "parent_id": "01",
+      "vut_licences": 8,
+      "vut_units": 13,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "015",
+      "parent_id": "01",
+      "vut_licences": 40,
+      "vut_units": 56,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "016",
+      "parent_id": "01",
+      "vut_licences": 8,
+      "vut_units": 14,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "021",
+      "parent_id": "02",
+      "vut_licences": 22,
+      "vut_units": 22,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "022",
+      "parent_id": "02",
+      "vut_licences": 16,
+      "vut_units": 20,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "023",
+      "parent_id": "02",
+      "vut_licences": 13,
+      "vut_units": 18,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "024",
+      "parent_id": "02",
+      "vut_licences": 11,
+      "vut_units": 23,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "025",
+      "parent_id": "02",
+      "vut_licences": 2,
+      "vut_units": 3,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "026",
+      "parent_id": "02",
+      "vut_licences": 21,
+      "vut_units": 35,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "027",
+      "parent_id": "02",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "031",
+      "parent_id": "03",
+      "vut_licences": 7,
+      "vut_units": 8,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "032",
+      "parent_id": "03",
+      "vut_licences": 5,
+      "vut_units": 5,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "033",
+      "parent_id": "03",
+      "vut_licences": 4,
+      "vut_units": 7,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "034",
+      "parent_id": "03",
+      "vut_licences": 5,
+      "vut_units": 8,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "035",
+      "parent_id": "03",
+      "vut_licences": 2,
+      "vut_units": 2,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "036",
+      "parent_id": "03",
+      "vut_licences": 10,
+      "vut_units": 10,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "041",
+      "parent_id": "04",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "042",
+      "parent_id": "04",
+      "vut_licences": 4,
+      "vut_units": 12,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "043",
+      "parent_id": "04",
+      "vut_licences": 14,
+      "vut_units": 16,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "044",
+      "parent_id": "04",
+      "vut_licences": 27,
+      "vut_units": 48,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "045",
+      "parent_id": "04",
+      "vut_licences": 3,
+      "vut_units": 3,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "046",
+      "parent_id": "04",
+      "vut_licences": 1,
+      "vut_units": 1,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "051",
+      "parent_id": "05",
+      "vut_licences": 2,
+      "vut_units": 2,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "052",
+      "parent_id": "05",
+      "vut_licences": 17,
+      "vut_units": 50,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "053",
+      "parent_id": "05",
+      "vut_licences": 11,
+      "vut_units": 31,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "054",
+      "parent_id": "05",
+      "vut_licences": 9,
+      "vut_units": 23,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "055",
+      "parent_id": "05",
+      "vut_licences": 1,
+      "vut_units": 1,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "056",
+      "parent_id": "05",
+      "vut_licences": 2,
+      "vut_units": 3,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "061",
+      "parent_id": "06",
+      "vut_licences": 17,
+      "vut_units": 20,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "062",
+      "parent_id": "06",
+      "vut_licences": 28,
+      "vut_units": 33,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "063",
+      "parent_id": "06",
+      "vut_licences": 8,
+      "vut_units": 11,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "064",
+      "parent_id": "06",
+      "vut_licences": 27,
+      "vut_units": 38,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "065",
+      "parent_id": "06",
+      "vut_licences": 26,
+      "vut_units": 39,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "066",
+      "parent_id": "06",
+      "vut_licences": 21,
+      "vut_units": 41,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "071",
+      "parent_id": "07",
+      "vut_licences": 12,
+      "vut_units": 20,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "072",
+      "parent_id": "07",
+      "vut_licences": 7,
+      "vut_units": 8,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "073",
+      "parent_id": "07",
+      "vut_licences": 16,
+      "vut_units": 19,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "074",
+      "parent_id": "07",
+      "vut_licences": 1,
+      "vut_units": 3,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "075",
+      "parent_id": "07",
+      "vut_licences": 4,
+      "vut_units": 5,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "076",
+      "parent_id": "07",
+      "vut_licences": 5,
+      "vut_units": 5,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "081",
+      "parent_id": "08",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "082",
+      "parent_id": "08",
+      "vut_licences": 1,
+      "vut_units": 4,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "083",
+      "parent_id": "08",
+      "vut_licences": 3,
+      "vut_units": 4,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "084",
+      "parent_id": "08",
+      "vut_licences": 11,
+      "vut_units": 14,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "085",
+      "parent_id": "08",
+      "vut_licences": 4,
+      "vut_units": 6,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "086",
+      "parent_id": "08",
+      "vut_licences": 21,
+      "vut_units": 24,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "087",
+      "parent_id": "08",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "088",
+      "parent_id": "08",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "091",
+      "parent_id": "09",
+      "vut_licences": 4,
+      "vut_units": 5,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "092",
+      "parent_id": "09",
+      "vut_licences": 11,
+      "vut_units": 12,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "093",
+      "parent_id": "09",
+      "vut_licences": 3,
+      "vut_units": 3,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "094",
+      "parent_id": "09",
+      "vut_licences": 4,
+      "vut_units": 4,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "095",
+      "parent_id": "09",
+      "vut_licences": 1,
+      "vut_units": 48,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "096",
+      "parent_id": "09",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "097",
+      "parent_id": "09",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "101",
+      "parent_id": "10",
+      "vut_licences": 4,
+      "vut_units": 14,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "102",
+      "parent_id": "10",
+      "vut_licences": 32,
+      "vut_units": 37,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "103",
+      "parent_id": "10",
+      "vut_licences": 10,
+      "vut_units": 11,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "104",
+      "parent_id": "10",
+      "vut_licences": 5,
+      "vut_units": 6,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "105",
+      "parent_id": "10",
+      "vut_licences": 1,
+      "vut_units": 1,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "106",
+      "parent_id": "10",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "107",
+      "parent_id": "10",
+      "vut_licences": 1,
+      "vut_units": 3,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "111",
+      "parent_id": "11",
+      "vut_licences": 17,
+      "vut_units": 18,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "112",
+      "parent_id": "11",
+      "vut_licences": 9,
+      "vut_units": 13,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "113",
+      "parent_id": "11",
+      "vut_licences": 12,
+      "vut_units": 12,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "114",
+      "parent_id": "11",
+      "vut_licences": 11,
+      "vut_units": 15,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "115",
+      "parent_id": "11",
+      "vut_licences": 5,
+      "vut_units": 6,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "116",
+      "parent_id": "11",
+      "vut_licences": 5,
+      "vut_units": 21,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "117",
+      "parent_id": "11",
+      "vut_licences": 3,
+      "vut_units": 3,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "121",
+      "parent_id": "12",
+      "vut_licences": 4,
+      "vut_units": 7,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "122",
+      "parent_id": "12",
+      "vut_licences": 1,
+      "vut_units": 1,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "123",
+      "parent_id": "12",
+      "vut_licences": 1,
+      "vut_units": 1,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "124",
+      "parent_id": "12",
+      "vut_licences": 7,
+      "vut_units": 8,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "125",
+      "parent_id": "12",
+      "vut_licences": 16,
+      "vut_units": 19,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "126",
+      "parent_id": "12",
+      "vut_licences": 5,
+      "vut_units": 6,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "127",
+      "parent_id": "12",
+      "vut_licences": 7,
+      "vut_units": 8,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "131",
+      "parent_id": "13",
+      "vut_licences": 4,
+      "vut_units": 6,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "132",
+      "parent_id": "13",
+      "vut_licences": 18,
+      "vut_units": 31,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "133",
+      "parent_id": "13",
+      "vut_licences": 8,
+      "vut_units": 10,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "134",
+      "parent_id": "13",
+      "vut_licences": 5,
+      "vut_units": 8,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "135",
+      "parent_id": "13",
+      "vut_licences": 6,
+      "vut_units": 7,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "136",
+      "parent_id": "13",
+      "vut_licences": 15,
+      "vut_units": 20,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "141",
+      "parent_id": "14",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "142",
+      "parent_id": "14",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "143",
+      "parent_id": "14",
+      "vut_licences": 6,
+      "vut_units": 10,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "144",
+      "parent_id": "14",
+      "vut_licences": 4,
+      "vut_units": 4,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "145",
+      "parent_id": "14",
+      "vut_licences": 1,
+      "vut_units": 1,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "146",
+      "parent_id": "14",
+      "vut_licences": 1,
+      "vut_units": 1,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "151",
+      "parent_id": "15",
+      "vut_licences": 35,
+      "vut_units": 44,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "152",
+      "parent_id": "15",
+      "vut_licences": 43,
+      "vut_units": 59,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "153",
+      "parent_id": "15",
+      "vut_licences": 9,
+      "vut_units": 9,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "154",
+      "parent_id": "15",
+      "vut_licences": 9,
+      "vut_units": 13,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "155",
+      "parent_id": "15",
+      "vut_licences": 6,
+      "vut_units": 6,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "156",
+      "parent_id": "15",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "157",
+      "parent_id": "15",
+      "vut_licences": 1,
+      "vut_units": 2,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "158",
+      "parent_id": "15",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "159",
+      "parent_id": "15",
+      "vut_licences": 2,
+      "vut_units": 2,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "161",
+      "parent_id": "16",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "162",
+      "parent_id": "16",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "163",
+      "parent_id": "16",
+      "vut_licences": 10,
+      "vut_units": 12,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "164",
+      "parent_id": "16",
+      "vut_licences": 8,
+      "vut_units": 11,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "165",
+      "parent_id": "16",
+      "vut_licences": 2,
+      "vut_units": 3,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "166",
+      "parent_id": "16",
+      "vut_licences": 2,
+      "vut_units": 2,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "171",
+      "parent_id": "17",
+      "vut_licences": 8,
+      "vut_units": 8,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "172",
+      "parent_id": "17",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "173",
+      "parent_id": "17",
+      "vut_licences": 1,
+      "vut_units": 2,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "174",
+      "parent_id": "17",
+      "vut_licences": 5,
+      "vut_units": 5,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "175",
+      "parent_id": "17",
+      "vut_licences": 2,
+      "vut_units": 2,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "181",
+      "parent_id": "18",
+      "vut_licences": 5,
+      "vut_units": 7,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "182",
+      "parent_id": "18",
+      "vut_licences": 1,
+      "vut_units": 2,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "183",
+      "parent_id": "18",
+      "vut_licences": 3,
+      "vut_units": 3,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "191",
+      "parent_id": "19",
+      "vut_licences": 7,
+      "vut_units": 8,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "192",
+      "parent_id": "19",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "193",
+      "parent_id": "19",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "194",
+      "parent_id": "19",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "201",
+      "parent_id": "20",
+      "vut_licences": 1,
+      "vut_units": 2,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "202",
+      "parent_id": "20",
+      "vut_licences": 1,
+      "vut_units": 1,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "203",
+      "parent_id": "20",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "204",
+      "parent_id": "20",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "205",
+      "parent_id": "20",
+      "vut_licences": 1,
+      "vut_units": 1,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "206",
+      "parent_id": "20",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "207",
+      "parent_id": "20",
+      "vut_licences": 8,
+      "vut_units": 14,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "208",
+      "parent_id": "20",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "211",
+      "parent_id": "21",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "212",
+      "parent_id": "21",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "213",
+      "parent_id": "21",
+      "vut_licences": 3,
+      "vut_units": 9,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "214",
+      "parent_id": "21",
+      "vut_licences": 8,
+      "vut_units": 9,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "barrio",
+      "official_id": "215",
+      "parent_id": "21",
+      "vut_licences": 0,
+      "vut_units": 0,
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "01",
+      "parent_id": "28079",
+      "vut_licences": 176,
+      "vut_units": 222,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "02",
+      "parent_id": "28079",
+      "vut_licences": 85,
+      "vut_units": 121,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "03",
+      "parent_id": "28079",
+      "vut_licences": 33,
+      "vut_units": 40,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "04",
+      "parent_id": "28079",
+      "vut_licences": 49,
+      "vut_units": 80,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "05",
+      "parent_id": "28079",
+      "vut_licences": 42,
+      "vut_units": 110,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "06",
+      "parent_id": "28079",
+      "vut_licences": 127,
+      "vut_units": 182,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "07",
+      "parent_id": "28079",
+      "vut_licences": 45,
+      "vut_units": 60,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "08",
+      "parent_id": "28079",
+      "vut_licences": 40,
+      "vut_units": 52,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "09",
+      "parent_id": "28079",
+      "vut_licences": 23,
+      "vut_units": 72,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "10",
+      "parent_id": "28079",
+      "vut_licences": 53,
+      "vut_units": 72,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "11",
+      "parent_id": "28079",
+      "vut_licences": 62,
+      "vut_units": 88,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "12",
+      "parent_id": "28079",
+      "vut_licences": 41,
+      "vut_units": 50,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "13",
+      "parent_id": "28079",
+      "vut_licences": 56,
+      "vut_units": 82,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "14",
+      "parent_id": "28079",
+      "vut_licences": 12,
+      "vut_units": 16,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "15",
+      "parent_id": "28079",
+      "vut_licences": 105,
+      "vut_units": 135,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "16",
+      "parent_id": "28079",
+      "vut_licences": 22,
+      "vut_units": 28,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "17",
+      "parent_id": "28079",
+      "vut_licences": 16,
+      "vut_units": 17,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "18",
+      "parent_id": "28079",
+      "vut_licences": 9,
+      "vut_units": 12,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "19",
+      "parent_id": "28079",
+      "vut_licences": 7,
+      "vut_units": 8,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "20",
+      "parent_id": "28079",
+      "vut_licences": 11,
+      "vut_units": 18,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "district",
+      "official_id": "21",
+      "parent_id": "28079",
+      "vut_licences": 11,
+      "vut_units": 18,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    },
+    {
+      "geography_level": "municipality",
+      "official_id": "28079",
+      "parent_id": null,
+      "vut_licences": 1025,
+      "vut_units": 1483,
+      "value_provenance": "DERIVED_FROM_BARRIO_TOTALS"
+    }
+  ]
+}

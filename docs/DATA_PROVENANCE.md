@@ -246,6 +246,68 @@ composite score.
   residents for period Z", where Y stays a barrio statistic — never the population
   "inside the circle". This is municipal population, not Comunidad de Madrid.
 
+## Licensed tourist-dwelling numerator (`data/accommodation/madrid_vut_licences.json`)
+
+A **numerator only**, admitted by the [Gate B source
+audit](ACCOMMODATION_NUMERATOR_GATE_B.md). It computes no ratio, no per-resident
+figure and no score, and **nothing in the application reads it**: it is not
+declared in `data/source_registry.json`, because that registry declares
+deployment roles and this artifact has none yet.
+
+- **Authority / source:** Ayuntamiento de Madrid — **Agencia de Actividades**
+  (Subdirección General de Actividades Económicas, Servicio de Licencias y
+  Consultas), dataset *"Viviendas de uso turístico con licencia"*
+  (datos.madrid.es dataset 300694), CC BY 4.0, updated bimonthly. The dataset
+  publishes its own structure document, which is what fixes the semantics below.
+- **Universe:** urban-planning **activity licences granted** in the city of
+  Madrid for hospedaje use in the tourist-dwelling (VUT) typology. The publisher
+  states that **no other hospedaje modality** is included — not tourist
+  apartments, hostels, guest houses, hotels, pensions or aparthotels. Every
+  record in the audited extract carries `DECRETO_LU = "Conceder"`.
+- **Unit of analysis:** one row is one granted licence (`EXPEDIENTE_LU`). The
+  source column `Nº VUT` is defined by the publisher as *"the number of
+  tourist-dwelling units included in each activity licence"*, so one licence can
+  contain many dwellings. The artifact therefore carries **two separate fields** —
+  `vut_licences` (COUNT) and `vut_units` (SUM) — which are different indicators
+  and must never be given each other's name. Observed: 1025 licences, 1483 units,
+  with a single licence covering 48 units.
+- **Geography:** the source's own PointZ geometry in EPSG:25830, reprojected to
+  EPSG:4326 and resolved by containment against the canonical geography
+  (barrio v3.4.1 / district v3.2.1). All 1025 records resolved to a barrio, agreed
+  independently by `shapely`, by the application's `createGeographyIndex`, and by
+  the official municipal address register (datos.madrid.es 213605) via `COD_NDP`.
+  The source `DISTRITO` column is free text (25 spellings for 21 districts) and is
+  never a join key; its one disagreement with the geometry is recorded, not
+  overwritten.
+- **Period:** the source publishes **no reference-date and no effective-date
+  field**. Four different dates are recorded separately and never collapsed: the
+  portal's catalogue metadata date; the **HTTP `Last-Modified` header observed on
+  the resource file** (7 Sep 2026), which describes the file served and is *not* a
+  publisher-declared publication or reference date; the span of per-record licence
+  grant dates (2019-03-06 → 2026-09-02); and the build clock, recorded as
+  `retrieved_at`, which is never presented as the source date. **None of these is
+  a reference date comparable to the Padrón's 1 January 2026**, and any future
+  indicator must show both periods rather than imply they coincide.
+- **Zero semantics:** a barrio with no matched source record is emitted as `0`,
+  not as missing — **scoped to this published extract and its Madrid-wide
+  coverage**. The extract enumerates granted activity-licence records across the
+  whole municipality, so absence within it is an observation, not a coverage gap.
+  It is **not** an assertion that no tourist-dwelling activity has ever existed or
+  exists today in that barrio. This is the one place where the project's "missing
+  is not zero" rule does not apply, and the scope and reason are recorded in the
+  sidecar metadata.
+- **Full machine-readable record:** [`data/accommodation/madrid_vut_licences.meta.json`](../data/accommodation/madrid_vut_licences.meta.json).
+- **Interpretation ceiling:** a count of **granted licences** and of the dwelling
+  units they contain. It is **not** all accommodation, **not** all tourist
+  dwellings in operation (the source carries no revocation, expiry or cessation
+  field and publishes no retention policy, so the extract is not described as a
+  cumulative stock), **not** beds, rooms or places, **not** the Comunidad de Madrid
+  regional inventory, **not** VUT responsible declarations, **not** platform
+  listings, and **not** a measure of tourism pressure, overtourism, saturation,
+  carrying capacity, intensity, displacement, burden, impact or attractiveness.
+  Counts belong to the whole official barrio and must never be spatially
+  distributed into a circular Lens.
+
 ## Tourism & mobility POIs (`data/runtime_poi.json` + packaged fallback)
 
 On GitHub Pages the app is **deployment-snapshot first** so markers render immediately without waiting on third-party browser requests. The deployment snapshot is rebuilt from the public sources during Pages deployment. Per layer:
