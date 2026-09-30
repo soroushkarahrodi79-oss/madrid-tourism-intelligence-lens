@@ -2,17 +2,31 @@
 //
 // THE CIRCLE AND THE ADMINISTRATIVE AREA ARE TWO DIFFERENT ANALYTICAL OBJECTS.
 //
-// The Lens circle measures what genuinely falls inside it. A barrio population
-// belongs to the WHOLE official barrio. This module never mixes the two: it
-// takes a coordinate's official containment plus the canonical Padron figures
-// and produces a view model that says "the Lens centre is in barrio X, and
-// barrio X has Y registered residents at reference date Z". There is no areal
-// interpolation, no share-of-barrio weighting, no population inside the circle,
-// and no indicator, ratio, density or composite score of any kind.
+// The Lens circle measures what genuinely falls inside it. An administrative
+// statistic belongs to the WHOLE official barrio. This module never mixes the
+// two: it takes a coordinate's official containment plus the canonical barrio
+// figures and produces a view model that says "the Lens centre is in barrio X;
+// barrio X has Y registered residents at reference date P, and N licensed VUT
+// units documented in a source extract whose own state is S". There is no areal
+// interpolation, no share-of-barrio weighting, and no population, licence or
+// unit count inside the circle.
 //
-// Everything here is pure: geography/population data in, a view model out. No
-// fetch, no DOM, no Leaflet, so it is unit-testable with plain `node --test`.
-// The browser wiring in js/app.js renders the models this file returns.
+// This module DOES compute one ratio: licensed VUT units per 1,000 registered
+// residents, defined in the licensed-VUT section at the foot of this file. It
+// is a descriptive comparison of two administrative facts about one whole
+// barrio, kept honest by three rules the rest of this file enforces — it
+// abstains rather than inventing a value when either side is missing, it is
+// always published alongside the raw counts it divides, and the two sides keep
+// their own separate periods. It is not a density, not a rate of anything and
+// not a share of dwellings, because its denominator is registered residents
+// rather than homes. It is not a tourism-pressure, saturation, carrying-capacity
+// or composite score. Nothing here ranks, bands or scores an area, and no figure
+// this module returns may be distributed into a Lens circle.
+//
+// Everything here is pure: geography, population and licence data in, a view
+// model out. No fetch, no DOM, no Leaflet, so it is unit-testable with plain
+// `node --test`. The browser wiring in js/app.js renders the models this file
+// returns.
 
 // Area resolution states. The area is one thing; whether a residential figure
 // exists for it is a separate axis (see RESIDENTS_STATE) so a missing

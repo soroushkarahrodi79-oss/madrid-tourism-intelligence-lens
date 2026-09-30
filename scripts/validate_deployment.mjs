@@ -714,6 +714,86 @@ function validatePopulation(source, population, meta, geography, errors, warning
   };
 }
 
+// The licensed-VUT sidecar's minimum provenance contract.
+//
+// The sidecar is not optional documentation. The user-facing disclosure reads
+// it to say what this figure counts, which authority published it, what a
+// "unit" is, and what the number does NOT mean. A deployment that shipped the
+// indicator without it would publish a figure the product cannot qualify, so a
+// missing, malformed or incomplete sidecar blocks deployment exactly as a
+// broken artifact does. This is the blocking sink, not a warning.
+//
+// Deliberately a SMALL contract: the PRESENCE and usability of the fields the
+// disclosure consumes, plus the two period flags that keep this source from
+// ever acquiring a reference date. No prose sentence is pattern-matched — that
+// would make editorial wording a deployment gate without making the number one
+// bit more trustworthy.
+const LICENCE_META_FIELDS = [
+  ["source.dataset", (m) => m.source?.dataset, "names the dataset the figure is read from"],
+  ["source.authority", (m) => m.source?.authority, "names the authority that publishes it"],
+  ["unit_of_analysis.vut_units", (m) => m.unit_of_analysis?.vut_units, "defines what one unit is"],
+  [
+    "universe.currency_caveat",
+    (m) => m.universe?.currency_caveat,
+    "records that the extract cannot establish current operation",
+  ],
+  ["interpretation_ceiling", (m) => m.interpretation_ceiling, "states what the figure is not"],
+];
+
+function validateLicenceMeta(source, meta, geographyMeta, sink) {
+  const label = source.display_name;
+  const file = source.meta_artifact;
+
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
+    sink.push(
+      `${label}: ${file} is missing or is not an object. This indicator is user-facing, so the ` +
+        `provenance that explains what it counts - and what it does not mean - is required to publish it.`
+    );
+    return null;
+  }
+
+  for (const [path, read, why] of LICENCE_META_FIELDS) {
+    if (!isNonEmptyString(read(meta))) {
+      sink.push(`${label}: ${file} has no usable ${path}, which ${why}`);
+    }
+  }
+
+  // The period flags are the load-bearing pair. This source declares neither a
+  // reference nor an effective date; a sidecar that claimed either would licence
+  // the interface to print one, which is the exact failure this project has
+  // guarded against since Gate B.
+  for (const flag of ["reference_date_published_by_source", "effective_date_published_by_source"]) {
+    if (meta.source_period?.[flag] !== false) {
+      sink.push(
+        `${label}: ${file} must record source_period.${flag} as false; this source declares no such ` +
+          `date and the project must not invent one`
+      );
+    }
+  }
+
+  // Geography linkage: which canonical barrio geography these counts were
+  // resolved against. Without it an audit cannot state what the join was; with a
+  // version that disagrees with the geography actually shipped, the counts may
+  // be attached to boundaries that have since moved.
+  const declared = meta.geography_linkage?.barrio_geography_version;
+  if (!isNonEmptyString(declared)) {
+    sink.push(
+      `${label}: ${file} has no usable geography_linkage.barrio_geography_version, so the barrio ` +
+        `geography these counts were resolved against cannot be established`
+    );
+    return null;
+  }
+  const canonical = geographyMeta?.source_version?.datasets?.barrio?.published_version;
+  if (isNonEmptyString(canonical) && canonical !== declared) {
+    sink.push(
+      `${label}: resolved against barrio geography ${declared}, but the committed geography ships ` +
+        `${canonical}. Re-run the builder against the current geography rather than publishing counts ` +
+        `joined to a different administrative division.`
+    );
+  }
+  return declared;
+}
+
 // Committed licensed tourist-dwelling (VUT) numerator: granted activity licences
 // and the dwelling units they contain, per canonical barrio, with derived
 // district and municipality totals. BLOCKING since the Area Profile began
@@ -731,7 +811,7 @@ function validatePopulation(source, population, meta, geography, errors, warning
 // declares no reference or effective date, so source_period stays null and the
 // file's HTTP Last-Modified state is reported as file state in the audit lines,
 // never promoted into a date the manifest could be read as endorsing.
-function validateLicenceCounts(source, artifact, meta, geography, errors, warnings) {
+function validateLicenceCounts(source, artifact, meta, geography, geographyMeta, errors, warnings) {
   const label = source.display_name;
   const sink = source.blocks_deployment ? errors : warnings;
 
@@ -919,16 +999,8 @@ function validateLicenceCounts(source, artifact, meta, geography, errors, warnin
     sink.push(`${label}: the licence grant-date span is incoherent (${earliest} is after ${latest})`);
   }
 
-  if (!meta || typeof meta !== "object") {
-    warnings.push(`${label}: ${source.meta_artifact} is missing, so the numerator's provenance metadata is unavailable`);
-  } else if (meta.source_period?.reference_date_published_by_source !== false) {
-    sink.push(
-      `${label}: the sidecar must record reference_date_published_by_source as false; this source ` +
-        `declares no reference date and the project must not invent one`
-    );
-  }
-
-  const barrioGeographyVersion = meta?.geography_linkage?.barrio_geography_version;
+  // BLOCKING, not a warning: see validateLicenceMeta above.
+  const barrioGeographyVersion = validateLicenceMeta(source, meta, geographyMeta, sink);
   return {
     record_count: artifact.records.length,
     // NULL, deliberately: the publisher declares no reference or effective date,
@@ -1057,6 +1129,7 @@ export function validateDeployment({
           artifacts[source.artifact],
           artifacts[source.meta_artifact],
           artifacts["geography/madrid_admin.geojson"],
+          artifacts["geography/madrid_admin.meta.json"],
           errors,
           warnings
         );

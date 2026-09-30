@@ -280,15 +280,34 @@ const VUT_FIXTURE_TOTALS = (() => {
   return { licences: artifact.counts.licences, units: artifact.counts.vut_units };
 })();
 
+// The sidecar's MINIMUM provenance contract, as a healthy build carries it.
+// Every field below is one the user-facing disclosure reads, so the fixture
+// states them rather than relying on the real file: the tests that follow strip
+// one field at a time to prove each is genuinely required to publish.
 function vutMeta() {
   return {
     contract_version: "1.0.0",
+    source: {
+      dataset: "Viviendas de uso turistico con licencia",
+      authority: "Ayuntamiento de Madrid - Agencia de Actividades",
+    },
+    unit_of_analysis: {
+      vut_units: "SUM of the source column 'N VUT': tourist-dwelling units included in each licence.",
+    },
+    universe: {
+      currency_caveat:
+        "The source carries no revocation, expiry or cessation field, so the extract cannot establish " +
+        "current operation and must never be called 'operating VUT'.",
+    },
     source_period: {
       reference_date_published_by_source: false,
       effective_date_published_by_source: false,
       xlsx_http_last_modified: "Mon, 07 Sep 2026 10:11:03 GMT",
     },
     geography_linkage: { barrio_geography_version: "v3.4.1", district_geography_version: "v3.2.1" },
+    interpretation_ceiling:
+      "A count of granted activity licences and the units they contain. NOT operating dwellings, NOT " +
+      "all accommodation, NOT a measure of tourism pressure.",
     retrieved_at: GENERATED_AT,
   };
 }
@@ -1182,12 +1201,180 @@ test("an artifact that drops the not-a-reference-date disclaimer blocks the buil
   assert.match(errorText(result), /must never be published as a publisher-declared reference date/);
 });
 
-test("a sidecar claiming a publisher-declared reference date blocks the build", () => {
+test("a sidecar claiming a publisher-declared reference or effective date blocks the build", () => {
+  // The load-bearing pair. A sidecar that claimed either date would licence the
+  // interface to print one for a source that declares neither.
+  for (const flag of ["reference_date_published_by_source", "effective_date_published_by_source"]) {
+    for (const claimed of [true, "2026-09-07", null, undefined]) {
+      const artifacts = healthyArtifacts();
+      artifacts["accommodation/madrid_vut_licences.meta.json"].source_period[flag] = claimed;
+      const result = run(artifacts);
+      assert.equal(result.ok, false, `${flag} = ${claimed} must block the build`);
+      assert.match(errorText(result), new RegExp(`must record source_period\\.${flag} as false`));
+      assert.match(errorText(result), /the project must not invent one/);
+    }
+  }
+});
+
+// ------------------------------- the licensed-VUT sidecar is a publication gate
+//
+// The sidecar carries the provenance the user-facing disclosure reads to say
+// what the figure counts and what it does not mean. Publishing the indicator
+// without it would put a number on screen that the product cannot qualify, so
+// it blocks deployment exactly as a broken artifact does. It is NOT a warning.
+
+test("a missing licensed-VUT sidecar blocks the build", () => {
   const artifacts = healthyArtifacts();
-  artifacts["accommodation/madrid_vut_licences.meta.json"].source_period.reference_date_published_by_source = true;
+  artifacts["accommodation/madrid_vut_licences.meta.json"] = null;
+  const result = run(artifacts);
+
+  assert.equal(result.ok, false, "a missing sidecar must not be publishable");
+  assert.match(errorText(result), /is missing or is not an object/);
+  assert.match(errorText(result), /what it counts - and what it does not mean - is required to publish it/);
+
+  // It is an ERROR, not a warning: the distinction is the whole point.
+  assert.ok(
+    !result.warnings.some((w) => /madrid_vut_licences\.meta\.json/.test(w)),
+    "the missing sidecar must not be reported as a mere warning"
+  );
+});
+
+test("a malformed licensed-VUT sidecar blocks the build", () => {
+  for (const malformed of ["", "not json", 42, [], true]) {
+    const artifacts = healthyArtifacts();
+    artifacts["accommodation/madrid_vut_licences.meta.json"] = malformed;
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `a ${JSON.stringify(malformed)} sidecar must block the build`);
+    assert.match(errorText(result), /is missing or is not an object/);
+  }
+});
+
+test("a sidecar missing the dataset or the authority blocks the build", () => {
+  for (const [path, mutate, pattern] of [
+    ["source.dataset", (m) => delete m.source.dataset, /no usable source\.dataset/],
+    ["source.authority", (m) => delete m.source.authority, /no usable source\.authority/],
+    ["source", (m) => delete m.source, /no usable source\.dataset/],
+    ["source.dataset (blank)", (m) => (m.source.dataset = "   "), /no usable source\.dataset/],
+  ]) {
+    const artifacts = healthyArtifacts();
+    mutate(artifacts["accommodation/madrid_vut_licences.meta.json"]);
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `${path} must be required`);
+    assert.match(errorText(result), pattern);
+  }
+  // And the reason is stated, not just the field name.
+  const artifacts = healthyArtifacts();
+  delete artifacts["accommodation/madrid_vut_licences.meta.json"].source.authority;
+  assert.match(errorText(run(artifacts)), /names the authority that publishes it/);
+});
+
+test("a sidecar missing the unit definition blocks the build", () => {
+  // Without it the disclosure cannot say what one "unit" is - and a licence is
+  // not a dwelling, which is the distinction this whole indicator turns on.
+  for (const mutate of [
+    (m) => delete m.unit_of_analysis.vut_units,
+    (m) => delete m.unit_of_analysis,
+    (m) => (m.unit_of_analysis.vut_units = ""),
+  ]) {
+    const artifacts = healthyArtifacts();
+    mutate(artifacts["accommodation/madrid_vut_licences.meta.json"]);
+    const result = run(artifacts);
+    assert.equal(result.ok, false);
+    assert.match(errorText(result), /no usable unit_of_analysis\.vut_units, which defines what one unit is/);
+  }
+});
+
+test("a sidecar missing the currency or operation caveat blocks the build", () => {
+  for (const mutate of [
+    (m) => delete m.universe.currency_caveat,
+    (m) => delete m.universe,
+    (m) => (m.universe.currency_caveat = "  "),
+  ]) {
+    const artifacts = healthyArtifacts();
+    mutate(artifacts["accommodation/madrid_vut_licences.meta.json"]);
+    const result = run(artifacts);
+    assert.equal(result.ok, false);
+    assert.match(
+      errorText(result),
+      /no usable universe\.currency_caveat, which records that the extract cannot establish current operation/
+    );
+  }
+});
+
+test("a sidecar missing the interpretation ceiling blocks the build", () => {
+  const artifacts = healthyArtifacts();
+  delete artifacts["accommodation/madrid_vut_licences.meta.json"].interpretation_ceiling;
   const result = run(artifacts);
   assert.equal(result.ok, false);
-  assert.match(errorText(result), /declares no reference date and the project must not invent one/);
+  assert.match(errorText(result), /no usable interpretation_ceiling, which states what the figure is not/);
+});
+
+test("a sidecar without a usable geography linkage blocks the build", () => {
+  for (const mutate of [
+    (m) => delete m.geography_linkage.barrio_geography_version,
+    (m) => delete m.geography_linkage,
+    (m) => (m.geography_linkage.barrio_geography_version = ""),
+  ]) {
+    const artifacts = healthyArtifacts();
+    mutate(artifacts["accommodation/madrid_vut_licences.meta.json"]);
+    const result = run(artifacts);
+    assert.equal(result.ok, false);
+    assert.match(errorText(result), /no usable geography_linkage\.barrio_geography_version/);
+  }
+});
+
+test("counts joined to a different barrio geography than the one shipped block the build", () => {
+  // A numerator resolved against boundaries that have since moved is the
+  // quiet mis-join this check exists to catch.
+  const artifacts = healthyArtifacts();
+  artifacts["accommodation/madrid_vut_licences.meta.json"].geography_linkage.barrio_geography_version = "v3.3.0";
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /resolved against barrio geography v3\.3\.0, but the committed geography ships v3\.4\.1/);
+  assert.match(errorText(result), /Re-run the builder against the current geography/);
+
+  // Agreement passes, and the audit line still reports the version.
+  const healthy = run(healthyArtifacts());
+  assert.deepEqual(healthy.errors, []);
+  const layer = healthy.manifest.layers.find((l) => l.source_id === "vut_licences");
+  assert.ok(layer.warnings.some((w) => /joined to barrio geography v3\.4\.1/.test(w)));
+});
+
+test("the sidecar gate does not weaken when only one field is wrong", () => {
+  // Each field is independently required: fixing one does not excuse another.
+  const artifacts = healthyArtifacts();
+  const meta = artifacts["accommodation/madrid_vut_licences.meta.json"];
+  delete meta.interpretation_ceiling;
+  delete meta.unit_of_analysis;
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /interpretation_ceiling/);
+  assert.match(errorText(result), /unit_of_analysis\.vut_units/);
+});
+
+test("the REAL committed licensed-VUT sidecar satisfies the gate", () => {
+  // Runs the real registry's real rules against the real committed files, so a
+  // future edit that strips required provenance fails here rather than on the
+  // deploy runner.
+  const committedRegistry = {
+    ...REAL_REGISTRY,
+    sources: REAL_REGISTRY.sources.filter((s) => s.id === "vut_licences" || s.id === "geography"),
+  };
+  const { errors, warnings, manifest } = validateDeployment({
+    registry: committedRegistry,
+    artifacts: readArtifacts(fileURLToPath(new URL("../data/", import.meta.url))),
+    generatedAt: GENERATED_AT,
+  });
+
+  assert.deepEqual(errors, [], `the committed sidecar must satisfy the gate: ${errors.join(" | ")}`);
+  assert.deepEqual(warnings, [], `and must do so without warnings: ${warnings.join(" | ")}`);
+
+  const layer = manifest.layers.find((l) => l.source_id === "vut_licences");
+  assert.equal(layer.state, "available");
+  // Still no invented period, and the real geography version is reported.
+  assert.equal(layer.source_period, null);
+  assert.equal(layer.source_period_known, false);
+  assert.ok(layer.warnings.some((w) => /joined to barrio geography v3\.4\.1/.test(w)));
 });
 
 test("an incoherent licence grant-date span blocks the build", () => {
