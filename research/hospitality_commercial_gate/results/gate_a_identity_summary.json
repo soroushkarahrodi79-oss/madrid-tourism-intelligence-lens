@@ -1,0 +1,1109 @@
+{
+  "audit_started_at": "2026-09-30T19:02:09Z",
+  "audit_finished_at": "2026-09-30T19:03:13Z",
+  "environment_note": "Counts are observations of one run against the fingerprinted resources recorded below, not repository invariants.",
+  "dataset": {
+    "id": "209548-0-censo-locales-historico",
+    "title": "Censo de locales, sus actividades y terrazas de hostelería y restauración. Histórico",
+    "catalogue": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico",
+    "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+    "catalogue_metadata_modified": "2026-09-28T15:40:59.584000",
+    "resource_resolution_method": "Exact match on the resource `description` field (family + month), which is unique per resource. Opaque numeric resource ids are recorded, not used to select."
+  },
+  "documentation": {
+    "structure_pdf": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-403-censo-locales-historico/download/estructura_ds_ficherocla.pdf",
+    "structure_pdf_version": "mar/2022 (as printed in the PDF)",
+    "documented_row_units": {
+      "locales": "cada registro corresponde a un local (one premises per row)",
+      "actividades": "cada registro corresponde a un local mas un codigo de actividad; un local con N epigrafes aparece N veces (one premises x activity per row)"
+    },
+    "documented_premises_identity": "id_local - 'Codigo numerico que identifica cada local'. Derived from id_ndp_edificio + secuencial_local_PC (puerta de calle) or agrupacion + planta + local (agrupado)."
+  },
+  "resources": {
+    "locales_2026_09": {
+      "description": "Locales. Septiembre 2026",
+      "resource_id": "209548-851-censo-locales-historico",
+      "format": "CSV",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-851-censo-locales-historico/download/209548_20260903_061630.csv",
+      "retrieved_at": "2026-09-30T19:02:13Z",
+      "http_last_modified": "Thu, 03 Sep 2026 06:18:05 GMT",
+      "etag": "\"1788416285.5382092-89266582-1714689183\"",
+      "content_type": "text/csv; charset=utf-8",
+      "bytes": 89266582,
+      "sha256": "2475e8bcff7dbf554d55e34f05f5a826afa593390add4e6913ca07cc932563b6"
+    },
+    "locales_2026_08": {
+      "description": "Locales. Agosto 2026",
+      "resource_id": "209548-839-censo-locales-historico",
+      "format": "CSV",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-839-censo-locales-historico/download/209548_20260928_154059.csv",
+      "retrieved_at": "2026-09-30T19:02:20Z",
+      "http_last_modified": "Mon, 28 Sep 2026 15:43:01 GMT",
+      "etag": "\"1790610181.9558673-89296127-1724388517\"",
+      "content_type": "text/csv; charset=utf-8",
+      "bytes": 89296127,
+      "sha256": "906a02b2a5a2412b15586af9139b92b8eb51406d460a87e52e844d00d7d34f8b"
+    },
+    "locales_2025_09": {
+      "description": "Locales. Septiembre 2025",
+      "resource_id": "209548-726-censo-locales-historico-csv",
+      "format": "CSV",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-726-censo-locales-historico-csv/download/209548-726-censo-locales-historico-csv.csv",
+      "retrieved_at": "2026-09-30T19:02:27Z",
+      "http_last_modified": "Mon, 16 Feb 2026 00:52:21 GMT",
+      "etag": "\"1771203141.865065-89900542-3154187801\"",
+      "content_type": "text/csv; charset=utf-8",
+      "bytes": 89900542,
+      "sha256": "a9b5571a86eb95312125cbcd6fd5e5e4e2c644872070adbb64b59dd333a77fdf"
+    },
+    "actividades_2026_09": {
+      "description": "Actividades. Septiembre 2026",
+      "resource_id": "209548-857-censo-locales-historico",
+      "format": "CSV",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-857-censo-locales-historico/download/209548_20260903_064406.csv",
+      "retrieved_at": "2026-09-30T19:02:51Z",
+      "http_last_modified": "Thu, 03 Sep 2026 06:45:58 GMT",
+      "etag": "\"1788417958.043807-124927121-1724519589\"",
+      "content_type": "text/csv; charset=utf-8",
+      "bytes": 124927121,
+      "sha256": "47185269efe699748d89fa1b37d6971708409a220637373f14464620803b943a"
+    },
+    "actividades_2026_08": {
+      "description": "Actividades. Agosto 2026",
+      "resource_id": "209548-845-censo-locales-historico",
+      "format": "CSV",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-845-censo-locales-historico/download/209548_20260928_152626.csv",
+      "retrieved_at": "2026-09-30T19:03:00Z",
+      "http_last_modified": "Mon, 28 Sep 2026 15:28:22 GMT",
+      "etag": "\"1790609302.621772-125004408-1719538850\"",
+      "content_type": "text/csv; charset=utf-8",
+      "bytes": 125004408,
+      "sha256": "ca31fbef1c0684b48cee422f78ea481d32bd7b4c3cd5409431ada49c6043af33"
+    },
+    "actividades_2025_09": {
+      "description": "Actividades. Septiembre 2025",
+      "resource_id": "209548-35-censo-locales-historico-csv",
+      "format": "CSV",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-35-censo-locales-historico-csv/download/209548-35-censo-locales-historico-csv.csv",
+      "retrieved_at": "2026-09-30T19:03:09Z",
+      "http_last_modified": "Sun, 15 Feb 2026 23:53:39 GMT",
+      "etag": "\"1771199619.085654-126043844-2863535586\"",
+      "content_type": "text/csv; charset=utf-8",
+      "bytes": 126043844,
+      "sha256": "cd7f23269570022adf0ae871c76855430bd0ceaf2cbc75f27d6a802ed4f00a68"
+    }
+  },
+  "schema": {
+    "locales_2026_09": {
+      "columns": [
+        "id_local",
+        "id_distrito_local",
+        "desc_distrito_local",
+        "id_barrio_local",
+        "desc_barrio_local",
+        "cod_barrio_local",
+        "id_seccion_censal_local",
+        "desc_seccion_censal_local",
+        "coordenada_x_local",
+        "coordenada_y_local",
+        "id_tipo_acceso_local",
+        "desc_tipo_acceso_local",
+        "id_situacion_local",
+        "desc_situacion_local",
+        "id_vial_edificio",
+        "clase_vial_edificio",
+        "desc_vial_edificio",
+        "id_ndp_edificio",
+        "id_clase_ndp_edificio",
+        "nom_edificio",
+        "num_edificio",
+        "cal_edificio",
+        "secuencial_local_PC",
+        "id_vial_acceso",
+        "clase_vial_acceso",
+        "desc_vial_acceso",
+        "id_ndp_acceso",
+        "id_clase_ndp_acceso",
+        "nom_acceso",
+        "num_acceso",
+        "cal_acceso",
+        "coordenada_x_agrupacion",
+        "coordenada_y_agrupacion",
+        "id_agrupacion",
+        "nombre_agrupacion",
+        "id_tipo_agrup",
+        "desc_tipo_agrup",
+        "id_planta_agrupado",
+        "id_local_agrupado",
+        "rotulo",
+        "cod_postal",
+        "hora_apertura1",
+        "hora_apertura2",
+        "hora_cierre1",
+        "hora_cierre2",
+        "fx_carga"
+      ],
+      "num_columns": 46,
+      "delimiter": ";",
+      "utf8_bom": true,
+      "header_fields_quoted": true
+    },
+    "locales_2026_08": {
+      "columns": [
+        "id_local",
+        "id_distrito_local",
+        "desc_distrito_local",
+        "id_barrio_local",
+        "desc_barrio_local",
+        "cod_barrio_local",
+        "id_seccion_censal_local",
+        "desc_seccion_censal_local",
+        "coordenada_x_local",
+        "coordenada_y_local",
+        "id_tipo_acceso_local",
+        "desc_tipo_acceso_local",
+        "id_situacion_local",
+        "desc_situacion_local",
+        "id_vial_edificio",
+        "clase_vial_edificio",
+        "desc_vial_edificio",
+        "id_ndp_edificio",
+        "id_clase_ndp_edificio",
+        "nom_edificio",
+        "num_edificio",
+        "cal_edificio",
+        "secuencial_local_PC",
+        "id_vial_acceso",
+        "clase_vial_acceso",
+        "desc_vial_acceso",
+        "id_ndp_acceso",
+        "id_clase_ndp_acceso",
+        "nom_acceso",
+        "num_acceso",
+        "cal_acceso",
+        "coordenada_x_agrupacion",
+        "coordenada_y_agrupacion",
+        "id_agrupacion",
+        "nombre_agrupacion",
+        "id_tipo_agrup",
+        "desc_tipo_agrup",
+        "id_planta_agrupado",
+        "id_local_agrupado",
+        "rotulo",
+        "cod_postal",
+        "hora_apertura1",
+        "hora_apertura2",
+        "hora_cierre1",
+        "hora_cierre2",
+        "fx_carga"
+      ],
+      "num_columns": 46,
+      "delimiter": ";",
+      "utf8_bom": true,
+      "header_fields_quoted": true
+    },
+    "locales_2025_09": {
+      "columns": [
+        "id_local",
+        "id_distrito_local",
+        "desc_distrito_local",
+        "id_barrio_local",
+        "desc_barrio_local",
+        "cod_barrio_local",
+        "id_seccion_censal_local",
+        "desc_seccion_censal_local",
+        "coordenada_x_local",
+        "coordenada_y_local",
+        "id_tipo_acceso_local",
+        "desc_tipo_acceso_local",
+        "id_situacion_local",
+        "desc_situacion_local",
+        "id_vial_edificio",
+        "clase_vial_edificio",
+        "desc_vial_edificio",
+        "id_ndp_edificio",
+        "id_clase_ndp_edificio",
+        "nom_edificio",
+        "num_edificio",
+        "cal_edificio",
+        "secuencial_local_PC",
+        "id_vial_acceso",
+        "clase_vial_acceso",
+        "desc_vial_acceso",
+        "id_ndp_acceso",
+        "id_clase_ndp_acceso",
+        "nom_acceso",
+        "num_acceso",
+        "cal_acceso",
+        "coordenada_x_agrupacion",
+        "coordenada_y_agrupacion",
+        "id_agrupacion",
+        "nombre_agrupacion",
+        "id_tipo_agrup",
+        "desc_tipo_agrup",
+        "id_planta_agrupado",
+        "id_local_agrupado",
+        "rotulo",
+        "cod_postal",
+        "hora_apertura1",
+        "hora_apertura2",
+        "hora_cierre1",
+        "hora_cierre2",
+        "fx_carga"
+      ],
+      "num_columns": 46,
+      "delimiter": ";",
+      "utf8_bom": true,
+      "header_fields_quoted": false
+    },
+    "actividades_2026_09": {
+      "columns": [
+        "id_local",
+        "id_distrito_local",
+        "desc_distrito_local",
+        "id_barrio_local",
+        "desc_barrio_local",
+        "cod_barrio_local",
+        "id_seccion_censal_local",
+        "desc_seccion_censal_local",
+        "coordenada_x_local",
+        "coordenada_y_local",
+        "id_tipo_acceso_local",
+        "desc_tipo_acceso_local",
+        "id_situacion_local",
+        "desc_situacion_local",
+        "id_vial_edificio",
+        "clase_vial_edificio",
+        "desc_vial_edificio",
+        "id_ndp_edificio",
+        "id_clase_ndp_edificio",
+        "nom_edificio",
+        "num_edificio",
+        "cal_edificio",
+        "secuencial_local_PC",
+        "id_vial_acceso",
+        "clase_vial_acceso",
+        "desc_vial_acceso",
+        "id_ndp_acceso",
+        "id_clase_ndp_acceso",
+        "nom_acceso",
+        "num_acceso",
+        "cal_acceso",
+        "coordenada_x_agrupacion",
+        "coordenada_y_agrupacion",
+        "id_agrupacion",
+        "nombre_agrupacion",
+        "id_tipo_agrup",
+        "desc_tipo_agrup",
+        "id_planta_agrupado",
+        "id_local_agrupado",
+        "rotulo",
+        "id_seccion",
+        "desc_seccion",
+        "id_division",
+        "desc_division",
+        "id_epigrafe",
+        "desc_epigrafe",
+        "fx_carga"
+      ],
+      "num_columns": 47,
+      "delimiter": ";",
+      "utf8_bom": true,
+      "header_fields_quoted": true
+    },
+    "actividades_2026_08": {
+      "columns": [
+        "id_local",
+        "id_distrito_local",
+        "desc_distrito_local",
+        "id_barrio_local",
+        "desc_barrio_local",
+        "cod_barrio_local",
+        "id_seccion_censal_local",
+        "desc_seccion_censal_local",
+        "coordenada_x_local",
+        "coordenada_y_local",
+        "id_tipo_acceso_local",
+        "desc_tipo_acceso_local",
+        "id_situacion_local",
+        "desc_situacion_local",
+        "id_vial_edificio",
+        "clase_vial_edificio",
+        "desc_vial_edificio",
+        "id_ndp_edificio",
+        "id_clase_ndp_edificio",
+        "nom_edificio",
+        "num_edificio",
+        "cal_edificio",
+        "secuencial_local_PC",
+        "id_vial_acceso",
+        "clase_vial_acceso",
+        "desc_vial_acceso",
+        "id_ndp_acceso",
+        "id_clase_ndp_acceso",
+        "nom_acceso",
+        "num_acceso",
+        "cal_acceso",
+        "coordenada_x_agrupacion",
+        "coordenada_y_agrupacion",
+        "id_agrupacion",
+        "nombre_agrupacion",
+        "id_tipo_agrup",
+        "desc_tipo_agrup",
+        "id_planta_agrupado",
+        "id_local_agrupado",
+        "rotulo",
+        "id_seccion",
+        "desc_seccion",
+        "id_division",
+        "desc_division",
+        "id_epigrafe",
+        "desc_epigrafe",
+        "fx_carga"
+      ],
+      "num_columns": 47,
+      "delimiter": ";",
+      "utf8_bom": true,
+      "header_fields_quoted": true
+    },
+    "actividades_2025_09": {
+      "columns": [
+        "id_local",
+        "id_distrito_local",
+        "desc_distrito_local",
+        "id_barrio_local",
+        "desc_barrio_local",
+        "cod_barrio_local",
+        "id_seccion_censal_local",
+        "desc_seccion_censal_local",
+        "coordenada_x_local",
+        "coordenada_y_local",
+        "id_tipo_acceso_local",
+        "desc_tipo_acceso_local",
+        "id_situacion_local",
+        "desc_situacion_local",
+        "id_vial_edificio",
+        "clase_vial_edificio",
+        "desc_vial_edificio",
+        "id_ndp_edificio",
+        "id_clase_ndp_edificio",
+        "nom_edificio",
+        "num_edificio",
+        "cal_edificio",
+        "secuencial_local_PC",
+        "id_vial_acceso",
+        "clase_vial_acceso",
+        "desc_vial_acceso",
+        "id_ndp_acceso",
+        "id_clase_ndp_acceso",
+        "nom_acceso",
+        "num_acceso",
+        "cal_acceso",
+        "coordenada_x_agrupacion",
+        "coordenada_y_agrupacion",
+        "id_agrupacion",
+        "nombre_agrupacion",
+        "id_tipo_agrup",
+        "desc_tipo_agrup",
+        "id_planta_agrupado",
+        "id_local_agrupado",
+        "rotulo",
+        "id_seccion",
+        "desc_seccion",
+        "id_division",
+        "desc_division",
+        "id_epigrafe",
+        "desc_epigrafe",
+        "fx_carga"
+      ],
+      "num_columns": 47,
+      "delimiter": ";",
+      "utf8_bom": true,
+      "header_fields_quoted": false
+    }
+  },
+  "per_snapshot": {
+    "locales_2026_09": {
+      "num_columns": 46,
+      "rows": 203610,
+      "identity_id_local": {
+        "field": "id_local",
+        "total_rows": 203610,
+        "blank": 0,
+        "distinct": 203610,
+        "duplicate_ids": 0,
+        "duplicate_rows": 0,
+        "unique_within_snapshot": true
+      },
+      "tipo_acceso": {
+        "0": {
+          "rows": 14657,
+          "desc": "Agrupado"
+        },
+        "1": {
+          "rows": 134621,
+          "desc": "Puerta Calle"
+        },
+        "12": {
+          "rows": 2877,
+          "desc": "PC Asociado"
+        },
+        "3": {
+          "rows": 51455,
+          "desc": "Interior"
+        }
+      },
+      "situacion": {
+        "1": {
+          "rows": 139826,
+          "desc": "Abierto"
+        },
+        "4": {
+          "rows": 38783,
+          "desc": "Cerrado"
+        },
+        "5": {
+          "rows": 8460,
+          "desc": "Uso vivienda"
+        },
+        "8": {
+          "rows": 12427,
+          "desc": "Baja"
+        },
+        "9": {
+          "rows": 4114,
+          "desc": "Baja Reunificación"
+        }
+      },
+      "geography": {
+        "distinct_id_barrio_local": 131,
+        "distinct_id_distrito_local": 21,
+        "rows_blank_barrio": 1
+      },
+      "negative_controls": {
+        "name_rotulo": {
+          "blank_rows": 53244,
+          "distinct_nonblank": 94704,
+          "max_rows_sharing_one_value": 11454,
+          "values_shared_by_more_than_one_local": 8076,
+          "examples_most_shared": {
+            "S/R": 11454,
+            "ROTULO NO INFORMADO": 4848,
+            "VIVIENDAS TURISTICAS": 2878,
+            "RÓTULO NO INFORMADO": 1679,
+            "SR": 1576
+          }
+        },
+        "address_id_ndp_edificio": {
+          "distinct": 70565,
+          "addresses_with_more_than_one_local": 40588,
+          "max_locals_per_address": 264
+        },
+        "coordinates": {
+          "distinct_pairs": 137245,
+          "pairs_shared_by_more_than_one_local": 2540,
+          "max_locals_per_coordinate": 50808,
+          "most_shared_pair": {
+            "x": "0.0",
+            "y": "0.0",
+            "locals": 50808
+          }
+        }
+      },
+      "dialect_observed": {
+        "delimiter": ";",
+        "utf8_bom": true,
+        "header_fields_quoted": true
+      }
+    },
+    "locales_2026_08": {
+      "num_columns": 46,
+      "rows": 203680,
+      "identity_id_local": {
+        "field": "id_local",
+        "total_rows": 203680,
+        "blank": 0,
+        "distinct": 203680,
+        "duplicate_ids": 0,
+        "duplicate_rows": 0,
+        "unique_within_snapshot": true
+      },
+      "tipo_acceso": {
+        "0": {
+          "rows": 14662,
+          "desc": "Agrupado"
+        },
+        "1": {
+          "rows": 134640,
+          "desc": "Puerta Calle"
+        },
+        "12": {
+          "rows": 2880,
+          "desc": "PC Asociado"
+        },
+        "3": {
+          "rows": 51498,
+          "desc": "Interior"
+        }
+      },
+      "situacion": {
+        "1": {
+          "rows": 139803,
+          "desc": "Abierto"
+        },
+        "4": {
+          "rows": 38873,
+          "desc": "Cerrado"
+        },
+        "5": {
+          "rows": 8460,
+          "desc": "Uso vivienda"
+        },
+        "8": {
+          "rows": 12425,
+          "desc": "Baja"
+        },
+        "9": {
+          "rows": 4119,
+          "desc": "Baja Reunificación"
+        }
+      },
+      "geography": {
+        "distinct_id_barrio_local": 131,
+        "distinct_id_distrito_local": 21,
+        "rows_blank_barrio": 1
+      },
+      "negative_controls": {
+        "name_rotulo": {
+          "blank_rows": 53196,
+          "distinct_nonblank": 94639,
+          "max_rows_sharing_one_value": 11670,
+          "values_shared_by_more_than_one_local": 8083,
+          "examples_most_shared": {
+            "S/R": 11670,
+            "ROTULO NO INFORMADO": 4838,
+            "VIVIENDAS TURISTICAS": 2875,
+            "RÓTULO NO INFORMADO": 1675,
+            "SR": 1575
+          }
+        },
+        "address_id_ndp_edificio": {
+          "distinct": 70580,
+          "addresses_with_more_than_one_local": 40598,
+          "max_locals_per_address": 264
+        },
+        "coordinates": {
+          "distinct_pairs": 137261,
+          "pairs_shared_by_more_than_one_local": 2540,
+          "max_locals_per_coordinate": 50864,
+          "most_shared_pair": {
+            "x": "0.0",
+            "y": "0.0",
+            "locals": 50864
+          }
+        }
+      },
+      "dialect_observed": {
+        "delimiter": ";",
+        "utf8_bom": true,
+        "header_fields_quoted": true
+      }
+    },
+    "locales_2025_09": {
+      "num_columns": 46,
+      "rows": 202346,
+      "identity_id_local": {
+        "field": "id_local",
+        "total_rows": 202346,
+        "blank": 0,
+        "distinct": 202346,
+        "duplicate_ids": 0,
+        "duplicate_rows": 0,
+        "unique_within_snapshot": true
+      },
+      "tipo_acceso": {
+        "0": {
+          "rows": 14569,
+          "desc": "Agrupado"
+        },
+        "1": {
+          "rows": 134385,
+          "desc": "Puerta Calle"
+        },
+        "12": {
+          "rows": 2809,
+          "desc": "PC Asociado"
+        },
+        "3": {
+          "rows": 50583,
+          "desc": "Interior"
+        }
+      },
+      "situacion": {
+        "1": {
+          "rows": 139473,
+          "desc": "Abierto"
+        },
+        "4": {
+          "rows": 37957,
+          "desc": "Cerrado"
+        },
+        "5": {
+          "rows": 8398,
+          "desc": "Uso vivienda"
+        },
+        "8": {
+          "rows": 12496,
+          "desc": "Baja"
+        },
+        "9": {
+          "rows": 4022,
+          "desc": "Baja Reunificación"
+        }
+      },
+      "geography": {
+        "distinct_id_barrio_local": 131,
+        "distinct_id_distrito_local": 21,
+        "rows_blank_barrio": 1
+      },
+      "negative_controls": {
+        "name_rotulo": {
+          "blank_rows": 53884,
+          "distinct_nonblank": 95131,
+          "max_rows_sharing_one_value": 9062,
+          "values_shared_by_more_than_one_local": 8180,
+          "examples_most_shared": {
+            "S/R": 9062,
+            "ROTULO NO INFORMADO": 4970,
+            "VIVIENDAS TURISTICAS": 2557,
+            "RÓTULO NO INFORMADO": 1728,
+            "SR": 1585
+          }
+        },
+        "address_id_ndp_edificio": {
+          "distinct": 70305,
+          "addresses_with_more_than_one_local": 40389,
+          "max_locals_per_address": 262
+        },
+        "coordinates": {
+          "distinct_pairs": 137031,
+          "pairs_shared_by_more_than_one_local": 2560,
+          "max_locals_per_coordinate": 49723,
+          "most_shared_pair": {
+            "x": "0.0",
+            "y": "0.0",
+            "locals": 49723
+          }
+        }
+      },
+      "dialect_observed": {
+        "delimiter": ";",
+        "utf8_bom": true,
+        "header_fields_quoted": false
+      }
+    },
+    "actividades_2026_09": {
+      "num_columns": 47,
+      "rows": 225556,
+      "identity_id_local": {
+        "field": "id_local",
+        "total_rows": 225556,
+        "blank": 0,
+        "distinct": 203610,
+        "note": "Not a row identity in this file: one local repeats once per activity epigraph."
+      },
+      "identity_activity_pair": {
+        "field": "(id_local, id_epigrafe)",
+        "scope": "A within-snapshot activity key ONLY where id_epigrafe is populated.",
+        "total_rows": 225556,
+        "distinct": 225556,
+        "duplicate_pairs": 0,
+        "duplicate_rows": 0,
+        "blank_epigrafe_rows": 53242,
+        "distinct_classified_pairs": 172314,
+        "classified_unique_within_snapshot": true,
+        "blank_epigraph_semantics": "UNRESOLVED - deferred to Gate B. (id_local, '') is NOT treated as a known activity identity; these rows are neither reinterpreted, given a placeholder category, nor discarded."
+      },
+      "activities_per_local": {
+        "max": 14,
+        "locals_with_more_than_one_activity": 16126,
+        "distribution": {
+          "1": 187484,
+          "2": 12651,
+          "3": 2419,
+          "4": 536,
+          "5": 177,
+          "6": 135,
+          "7": 89,
+          "8": 59,
+          "9": 36,
+          "10": 18,
+          "11": 1,
+          "12": 2,
+          "13": 2,
+          "14": 1
+        }
+      },
+      "taxonomy_observed": {
+        "distinct_secciones_nonblank": 21,
+        "distinct_divisiones_nonblank": 86,
+        "distinct_epigrafes_nonblank": 453,
+        "rows_with_blank_seccion": 53242,
+        "note": "Taxonomy counts are recorded for observation only. The activity-code taxonomy is Gate B, not Gate A."
+      },
+      "referential_integrity": {
+        "orphan_activity_rows_whose_id_local_absent_from_locales": 0
+      },
+      "dialect_observed": {
+        "delimiter": ";",
+        "utf8_bom": true,
+        "header_fields_quoted": true
+      }
+    },
+    "actividades_2026_08": {
+      "num_columns": 47,
+      "rows": 225689,
+      "identity_id_local": {
+        "field": "id_local",
+        "total_rows": 225689,
+        "blank": 0,
+        "distinct": 203680,
+        "note": "Not a row identity in this file: one local repeats once per activity epigraph."
+      },
+      "identity_activity_pair": {
+        "field": "(id_local, id_epigrafe)",
+        "scope": "A within-snapshot activity key ONLY where id_epigrafe is populated.",
+        "total_rows": 225689,
+        "distinct": 225689,
+        "duplicate_pairs": 0,
+        "duplicate_rows": 0,
+        "blank_epigrafe_rows": 53194,
+        "distinct_classified_pairs": 172495,
+        "classified_unique_within_snapshot": true,
+        "blank_epigraph_semantics": "UNRESOLVED - deferred to Gate B. (id_local, '') is NOT treated as a known activity identity; these rows are neither reinterpreted, given a placeholder category, nor discarded."
+      },
+      "activities_per_local": {
+        "max": 14,
+        "locals_with_more_than_one_activity": 16163,
+        "distribution": {
+          "1": 187517,
+          "2": 12677,
+          "3": 2420,
+          "4": 542,
+          "5": 177,
+          "6": 139,
+          "7": 91,
+          "8": 58,
+          "9": 35,
+          "10": 18,
+          "11": 1,
+          "12": 2,
+          "13": 2,
+          "14": 1
+        }
+      },
+      "taxonomy_observed": {
+        "distinct_secciones_nonblank": 21,
+        "distinct_divisiones_nonblank": 86,
+        "distinct_epigrafes_nonblank": 453,
+        "rows_with_blank_seccion": 53194,
+        "note": "Taxonomy counts are recorded for observation only. The activity-code taxonomy is Gate B, not Gate A."
+      },
+      "referential_integrity": {
+        "orphan_activity_rows_whose_id_local_absent_from_locales": 0
+      },
+      "dialect_observed": {
+        "delimiter": ";",
+        "utf8_bom": true,
+        "header_fields_quoted": true
+      }
+    },
+    "actividades_2025_09": {
+      "num_columns": 47,
+      "rows": 223493,
+      "identity_id_local": {
+        "field": "id_local",
+        "total_rows": 223493,
+        "blank": 0,
+        "distinct": 202414,
+        "note": "Not a row identity in this file: one local repeats once per activity epigraph."
+      },
+      "identity_activity_pair": {
+        "field": "(id_local, id_epigrafe)",
+        "scope": "A within-snapshot activity key ONLY where id_epigrafe is populated.",
+        "total_rows": 223493,
+        "distinct": 223493,
+        "duplicate_pairs": 0,
+        "duplicate_rows": 0,
+        "blank_epigrafe_rows": 53828,
+        "distinct_classified_pairs": 169665,
+        "classified_unique_within_snapshot": true,
+        "blank_epigraph_semantics": "UNRESOLVED - deferred to Gate B. (id_local, '') is NOT treated as a known activity identity; these rows are neither reinterpreted, given a placeholder category, nor discarded."
+      },
+      "activities_per_local": {
+        "max": 15,
+        "locals_with_more_than_one_activity": 15566,
+        "distribution": {
+          "1": 186848,
+          "2": 12242,
+          "3": 2338,
+          "4": 491,
+          "5": 182,
+          "6": 119,
+          "7": 86,
+          "8": 50,
+          "9": 38,
+          "10": 14,
+          "11": 2,
+          "12": 1,
+          "13": 2,
+          "15": 1
+        }
+      },
+      "taxonomy_observed": {
+        "distinct_secciones_nonblank": 21,
+        "distinct_divisiones_nonblank": 86,
+        "distinct_epigrafes_nonblank": 453,
+        "rows_with_blank_seccion": 53828,
+        "note": "Taxonomy counts are recorded for observation only. The activity-code taxonomy is Gate B, not Gate A."
+      },
+      "referential_integrity": {
+        "orphan_activity_rows_whose_id_local_absent_from_locales": 71
+      },
+      "dialect_observed": {
+        "delimiter": ";",
+        "utf8_bom": true,
+        "header_fields_quoted": false
+      }
+    }
+  },
+  "persistence": {
+    "locales_aug_to_sep_2026": {
+      "premises_key": "id_local",
+      "aug2026_count": 203680,
+      "sep2026_count": 203610,
+      "intersection": 203610,
+      "aug2026_only_disappeared": 70,
+      "sep2026_only_appeared": 0,
+      "persistence_rate": 0.99966,
+      "persistent_locals_with_any_attribute_change": 688,
+      "attribute_change_breakdown": {
+        "rotulo": 623,
+        "id_situacion_local": 123,
+        "coordenada_x_local": 11,
+        "coordenada_y_local": 11,
+        "id_ndp_edificio": 3,
+        "num_edificio": 2
+      },
+      "situacion_transitions": {
+        "4->1": 80,
+        "1->4": 28,
+        "9->1": 5,
+        "1->8": 4,
+        "1->5": 2,
+        "8->1": 2,
+        "5->1": 1,
+        "5->4": 1
+      },
+      "change_examples": [
+        {
+          "id_local": "150002130",
+          "changed_fields": [
+            "rotulo"
+          ],
+          "aug2026": {
+            "id_barrio_local": "1505",
+            "id_situacion_local": "1",
+            "rotulo": "LENCERÍA - CORSETERÍA",
+            "id_ndp_edificio": "11111061",
+            "num_edificio": "000002",
+            "coordenada_x_local": "444675.58",
+            "coordenada_y_local": "4477142.48",
+            "id_tipo_acceso_local": "1"
+          },
+          "sep2026": {
+            "id_barrio_local": "1505",
+            "id_situacion_local": "1",
+            "rotulo": "AERONOVA CLIMMA",
+            "id_ndp_edificio": "11111061",
+            "num_edificio": "000002",
+            "coordenada_x_local": "444675.58",
+            "coordenada_y_local": "4477142.48",
+            "id_tipo_acceso_local": "1"
+          }
+        },
+        {
+          "id_local": "300016199",
+          "changed_fields": [
+            "rotulo"
+          ],
+          "aug2026": {
+            "id_barrio_local": "402",
+            "id_situacion_local": "1",
+            "rotulo": "S/R",
+            "id_ndp_edificio": "11014960",
+            "num_edificio": "000053",
+            "coordenada_x_local": "442470.90625",
+            "coordenada_y_local": "4475430.5",
+            "id_tipo_acceso_local": "3"
+          },
+          "sep2026": {
+            "id_barrio_local": "402",
+            "id_situacion_local": "1",
+            "rotulo": "DR GARCIA GUILARTE",
+            "id_ndp_edificio": "11014960",
+            "num_edificio": "000053",
+            "coordenada_x_local": "442470.90625",
+            "coordenada_y_local": "4475430.5",
+            "id_tipo_acceso_local": "3"
+          }
+        },
+        {
+          "id_local": "285025232",
+          "changed_fields": [
+            "rotulo"
+          ],
+          "aug2026": {
+            "id_barrio_local": "1104",
+            "id_situacion_local": "4",
+            "rotulo": "---",
+            "id_ndp_edificio": "11074937",
+            "num_edificio": "000008",
+            "coordenada_x_local": "436279.6",
+            "coordenada_y_local": "4470242.55",
+            "id_tipo_acceso_local": "1"
+          },
+          "sep2026": {
+            "id_barrio_local": "1104",
+            "id_situacion_local": "4",
+            "rotulo": "",
+            "id_ndp_edificio": "11074937",
+            "num_edificio": "000008",
+            "coordenada_x_local": "436279.6",
+            "coordenada_y_local": "4470242.55",
+            "id_tipo_acceso_local": "1"
+          }
+        },
+        {
+          "id_local": "280002075",
+          "changed_fields": [
+            "id_situacion_local",
+            "rotulo"
+          ],
+          "aug2026": {
+            "id_barrio_local": "402",
+            "id_situacion_local": "4",
+            "rotulo": "S/R",
+            "id_ndp_edificio": "11014746",
+            "num_edificio": "000012",
+            "coordenada_x_local": "442489.58",
+            "coordenada_y_local": "4474872.51",
+            "id_tipo_acceso_local": "1"
+          },
+          "sep2026": {
+            "id_barrio_local": "402",
+            "id_situacion_local": "1",
+            "rotulo": "PELUQUERIA REFLEJO AZUL",
+            "id_ndp_edificio": "11014746",
+            "num_edificio": "000012",
+            "coordenada_x_local": "442489.58",
+            "coordenada_y_local": "4474872.51",
+            "id_tipo_acceso_local": "1"
+          }
+        },
+        {
+          "id_local": "285001060",
+          "changed_fields": [
+            "rotulo"
+          ],
+          "aug2026": {
+            "id_barrio_local": "406",
+            "id_situacion_local": "1",
+            "rotulo": "ZEN ASIAN SUPPER CLUB - ZEN VELAZQUEZ -",
+            "id_ndp_edificio": "11020034",
+            "num_edificio": "000040",
+            "coordenada_x_local": "442077.59",
+            "coordenada_y_local": "4476525.51",
+            "id_tipo_acceso_local": "1"
+          },
+          "sep2026": {
+            "id_barrio_local": "406",
+            "id_situacion_local": "1",
+            "rotulo": "ZEN ASIAN SUPPER CLUB",
+            "id_ndp_edificio": "11020034",
+            "num_edificio": "000040",
+            "coordenada_x_local": "442077.59",
+            "coordenada_y_local": "4476525.51",
+            "id_tipo_acceso_local": "1"
+          }
+        },
+        {
+          "id_local": "270226754",
+          "changed_fields": [
+            "id_situacion_local"
+          ],
+          "aug2026": {
+            "id_barrio_local": "1801",
+            "id_situacion_local": "4",
+            "rotulo": "PASTELERIA VILLA AYA",
+            "id_ndp_edificio": "11130458",
+            "num_edificio": "000013",
+            "coordenada_x_local": "447189.53",
+            "coordenada_y_local": "4469845.43",
+            "id_tipo_acceso_local": "1"
+          },
+          "sep2026": {
+            "id_barrio_local": "1801",
+            "id_situacion_local": "1",
+            "rotulo": "PASTELERIA VILLA AYA",
+            "id_ndp_edificio": "11130458",
+            "num_edificio": "000013",
+            "coordenada_x_local": "447189.53",
+            "coordenada_y_local": "4469845.43",
+            "id_tipo_acceso_local": "1"
+          }
+        }
+      ],
+      "sample_disappeared_ids": [
+        "270585882",
+        "270585884",
+        "270585885",
+        "270585886",
+        "270585892",
+        "270585894",
+        "270585895",
+        "270585896"
+      ],
+      "sample_appeared_ids": [],
+      "direction_caveat": "Valid for identity-persistence testing. The appeared/disappeared DIRECTION must NOT be read as clean calendar-month churn: the published resource timing is inverted - the file labelled 'Agosto 2026' was served later (28 Sep) than the one labelled 'Septiembre 2026' (03 Sep), so Sep is a near-subset of Aug. The Sep 2025 -> Sep 2026 control is the representative directional delta."
+    },
+    "locales_sep2025_to_sep2026_control": {
+      "premises_key": "id_local",
+      "sep2025_count": 202346,
+      "sep2026_count": 203610,
+      "intersection": 202343,
+      "sep2025_only_disappeared": 3,
+      "sep2026_only_appeared": 1267,
+      "persistence_rate": 0.99999,
+      "note": "The 2025 file is unquoted; the 2026 file quotes every field. The key survives that formatting change - a line/string identity would not."
+    },
+    "actividades_aug_to_sep_2026": {
+      "activity_key": "(id_local, id_epigrafe)",
+      "aug2026_pairs": 225689,
+      "sep2026_pairs": 225556,
+      "pair_intersection": 224983,
+      "aug2026_only_pairs": 706,
+      "sep2026_only_pairs": 573,
+      "pair_persistence_rate": 0.99687,
+      "note": "Activities churn on premises that themselves persist: new pairs appear and old pairs leave while the premises id_local is stable.",
+      "direction_caveat": "Valid for identity-persistence testing. The appeared/disappeared DIRECTION must NOT be read as clean calendar-month churn: the published resource timing is inverted - the file labelled 'Agosto 2026' was served later (28 Sep) than the one labelled 'Septiembre 2026' (03 Sep), so Sep is a near-subset of Aug. The Sep 2025 -> Sep 2026 control is the representative directional delta."
+    }
+  },
+  "gate_a_ruling": {
+    "premises_identity": "GO",
+    "classified_activity_identity": "GO",
+    "blank_epigraph_activity_semantics": "UNRESOLVED",
+    "overall": "GO to Gate B",
+    "scope_limitation": "Premises identity (id_local) and classified activity identity ((id_local, id_epigrafe) where id_epigrafe is populated) are GO. The semantics of activity rows with a blank id_epigrafe are UNRESOLVED and are deferred to the Gate B taxonomy/semantics work; they are not reinterpreted, bucketed or discarded here."
+  }
+}
