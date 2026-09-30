@@ -58,7 +58,44 @@ identical with or without it.
 | Lens centre outside the municipality | *Outside Madrid City* — no area, **no zero** |
 | Barrio known, no population record | The place, and *residents: Unavailable* — **never 0** |
 | Inside Madrid, inside no barrio polygon | The district only, and residents unavailable |
+| Population artifact failed to load | The place, boundaries and highlight, and *residents: Unavailable* |
 | Canonical geography failed to load | *Administrative context unavailable*; the Lens keeps working |
+
+### The two artifacts fail independently
+
+The browser tracks the geography and the population as **two runtime states**,
+because they are two different kinds of thing:
+
+- The **canonical geography is a dependency.** Without it there is no barrio, no
+  district, no containing-area highlight and no boundary layer, so the boundary
+  selector is disabled and the profile says *administrative context
+  unavailable*. A population artifact cannot stand in: a resident count carries
+  no geometry, so no place is ever inferred from it.
+- The **population is a value attached to a barrio already resolved.** If only
+  it fails, the place, its official codes, the highlight and the boundary
+  selector all stay exactly as they are; the figure alone abstains with
+  *"Residential population unavailable for this administrative area."* — no
+  zero, and no reference date, because there is no figure to date.
+
+A payload that parses but carries no administrative division is treated as an
+unavailable geography, not as a valid one: resolving against it would report
+every coordinate as outside Madrid.
+
+This is **runtime degradation only**, and it deliberately does not soften the
+deployment contract. Both artifacts remain `blocks_deployment: true`: a browser
+may lose one on the wire, but a published build must never *ship* a broken one.
+Deployment integrity and graceful degradation are separate concerns and both are
+kept.
+
+### Where the source disclosure comes from
+
+Every line behind *Source & interpretation* is read from the committed sidecar
+metadata — dataset, authority, reference date, the published geography versions,
+and the population artifact's own `interpretation_ceiling`, surfaced as its
+opening sentences rather than restated in the application or dumped whole into
+the panel. Nothing in the disclosure is authored here, so it cannot drift from
+the artifacts; a field that cannot be read is left out, and a disclosure with no
+readable metadata at all is not offered rather than filled in.
 
 ### Lens A and Lens B
 

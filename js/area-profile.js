@@ -285,12 +285,30 @@ export function compareAreaProfiles(a, b) {
   };
 }
 
+// The opening `count` sentences of a metadata paragraph, so a long committed
+// field can be surfaced concisely without being rewritten or dumped whole.
+// Returns null when there is nothing usable, because an absent field is left
+// out of the disclosure rather than replaced with an invented sentence.
+function firstSentences(text, count) {
+  if (typeof text !== "string") return null;
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const matches = trimmed.match(/[^.]+\./g);
+  if (!matches) return trimmed;
+  return matches
+    .slice(0, count)
+    .map((sentence) => sentence.trim())
+    .join(" ");
+}
+
 /**
- * The provenance line shown behind the info affordance.
+ * The provenance lines shown behind the info affordance.
  *
- * Built from the committed sidecar metadata rather than hardcoded strings, so
- * it cannot drift from the artifacts. Whatever is genuinely unknown is simply
- * left out; nothing here is invented.
+ * Every line is read from the committed sidecar metadata — dataset, authority,
+ * period, geography versions and the artifact's own interpretation ceiling — so
+ * the disclosure cannot drift from the artifacts and contains no restatement of
+ * them. Whatever is genuinely unknown is simply left out, and a call with no
+ * metadata at all returns no lines rather than an invented one.
  */
 export function buildProvenanceLines({ populationMeta, geographyMeta, period } = {}) {
   const lines = [];
@@ -320,13 +338,13 @@ export function buildProvenanceLines({ populationMeta, geographyMeta, period } =
     lines.push(`Barrio geography ${barrioVersion} · district geography ${districtVersion}`);
   }
 
-  // The interpretation ceiling, in the reader's words. The lines above quote the
-  // artifacts verbatim, so this one deliberately avoids re-spelling a term that
-  // appears there in the source's own transliteration.
-  lines.push(
-    "Persons registered in the municipal population register for the reference date — " +
-      "not people present, not daytime population, not visitors."
-  );
+  // The interpretation ceiling, taken from the artifact's own words rather than
+  // restated here: the opening sentences say what the figure is and what it is
+  // not, which is exactly what a reader opening this disclosure needs. The rest
+  // of the paragraph (join mechanics, prohibited derivations) belongs to the
+  // sidecar and the documentation, not to a panel.
+  const ceiling = firstSentences(populationMeta && populationMeta.interpretation_ceiling, 2);
+  if (ceiling) lines.push(ceiling);
 
   return lines;
 }

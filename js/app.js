@@ -691,7 +691,16 @@ let geographyIndex = null;
 let populationIndex = null;
 let geographyMeta = null;
 let populationMeta = null;
-let areaContextState = "loading"; // loading | ready | unavailable
+// Two independent runtime states, because the two artifacts fail independently
+// in a browser. The canonical geography is the DEPENDENCY for resolving a
+// place: without it there is no barrio, no district, no highlight and no
+// boundary layer. The population is only a VALUE attached to a barrio that has
+// already been resolved, so losing it must cost the resident figure and nothing
+// else. (This is runtime degradation only. Both artifacts remain
+// blocks_deployment: true — a build carrying a broken committed artifact is
+// still withheld rather than published in a degraded state.)
+let geographyState = "loading"; // loading | ready | unavailable
+let populationState = "loading"; // loading | ready | unavailable
 let boundaryMode = "off";
 const areaProfiles = { A: null, B: null };
 const areaHint = { A: null, B: null };
@@ -846,12 +855,15 @@ function renderActiveAreaFor(which, profile, { tag = which, forceActive = false 
 function areaProfileFor(which) {
   const { profile: model } = areaModel;
   if (!model) return null;
-  if (areaContextState !== "ready") {
+  // Only the geography gates the place. A resolved barrio with no population
+  // record is an ordinary, already-modelled state: the place stands, and the
+  // residents value abstains.
+  if (geographyState !== "ready") {
     return model.buildAreaProfile({
       lens: which,
       located: null,
       populationIndex,
-      state: areaContextState === "unavailable" ? AREA_STATE.UNAVAILABLE : AREA_STATE.LOADING,
+      state: geographyState === "unavailable" ? AREA_STATE.UNAVAILABLE : AREA_STATE.LOADING,
     });
   }
   const centre = centerOf(which);
@@ -909,7 +921,10 @@ function renderOtherLensArea(a, b) {
   if (!host) return;
   const other = active === "A" ? "B" : "A";
   const otherProfile = other === "A" ? a : b;
-  if (!bEnabled || !a || !b || !otherProfile) {
+  // With no administrative context at all, the headline above already says so;
+  // repeating it for the other lens would add a line and no information.
+  const unresolvable = [AREA_STATE.UNAVAILABLE, AREA_STATE.LOADING];
+  if (!bEnabled || !a || !b || !otherProfile || unresolvable.includes(otherProfile.state)) {
     host.innerHTML = "";
     return;
   }
@@ -925,8 +940,8 @@ function renderOtherLensArea(a, b) {
   const residents =
     otherProfile.residents.state === RESIDENTS_STATE.AVAILABLE
       ? ` · ${otherProfile.residents.display} residents`
-      : otherProfile.state === AREA_STATE.OUTSIDE_MADRID
-        ? ""
+      : otherProfile.residents.state === RESIDENTS_STATE.NOT_APPLICABLE
+        ? "" // no official area to carry a residential figure at all
         : " · residents unavailable";
   const context = otherProfile.context ? ` · ${otherProfile.districtName}` : "";
   host.innerHTML =
@@ -944,8 +959,9 @@ function renderAreaSourceDetails() {
   });
   host.innerHTML = lines.map((line) => `<span>${line}</span>`).join("");
   // The affordance only appears once there is provenance behind it, so it can
-  // never open onto an empty box while the artifacts are still loading.
-  document.getElementById("areaSourceToggle").hidden = false;
+  // never open onto an empty box while the artifacts are still loading, or when
+  // the sidecar metadata itself could not be read.
+  document.getElementById("areaSourceToggle").hidden = lines.length === 0;
 }
 
 function updateAreaContext() {
@@ -981,53 +997,90 @@ function updateAreaContext() {
   renderOtherLensArea(areaProfiles.A, areaProfiles.B);
 }
 
+function disableBoundaryControl() {
+  const select = document.getElementById("boundarySelect");
+  if (!select) return;
+  select.disabled = true;
+  select.title = "Administrative geography unavailable in this deployment";
+}
+
+function fetchAreaJson(url) {
+  return fetch(`${url}?v=${AREA_ASSET_VERSION}`).then((response) => {
+    if (!response.ok) throw new Error(`${url}: ${response.status}`);
+    return response.json();
+  });
+}
+
+const settledValue = (result) => (result.status === "fulfilled" ? result.value : null);
+
 async function loadAreaContext() {
+  let profileModule;
+  let geographyModule;
   try {
-    const [profileModule, geographyModule] = await Promise.all([
+    [profileModule, geographyModule] = await Promise.all([
       import(moduleUrl("area-profile.js")),
       import(moduleUrl("geography.js")),
     ]);
-    areaModel.profile = profileModule;
-    areaModel.geography = geographyModule;
-    ({ AREA_STATE, RESIDENTS_STATE, AREA_COMPARISON } = profileModule);
-    updateAreaContext();
+  } catch (error) {
+    // Without the modules nothing administrative can be modelled at all. The
+    // Lens itself is untouched and keeps working.
+    geographyState = "unavailable";
+    populationState = "unavailable";
+    disableBoundaryControl();
+    console.warn("area context modules unavailable", error);
+    return;
+  }
 
-    const fetchJson = (url, required) =>
-      fetch(`${url}?v=${AREA_ASSET_VERSION}`)
-        .then((r) => {
-          if (!r.ok) throw new Error(`${url}: ${r.status}`);
-          return r.json();
-        })
-        .catch((error) => {
-          if (required) throw error;
-          return null;
-        });
+  areaModel.profile = profileModule;
+  areaModel.geography = geographyModule;
+  ({ AREA_STATE, RESIDENTS_STATE, AREA_COMPARISON } = profileModule);
+  updateAreaContext();
 
-    const [geojson, population, geoMeta, popMeta] = await Promise.all([
-      fetchJson("data/geography/madrid_admin.geojson", true),
-      fetchJson("data/population/madrid_population.json", true),
-      fetchJson("data/geography/madrid_admin.meta.json", false),
-      fetchJson("data/population/madrid_population.meta.json", false),
-    ]);
+  // Settled, not all-or-nothing. A failure of the population request must not
+  // cost the place: the geography is the dependency for resolving a barrio,
+  // while the population is a value attached to a barrio already resolved.
+  // Both are awaited together so the profile never flashes "unavailable" at a
+  // request that is merely still in flight.
+  const [geojson, population, geoMeta, popMeta] = await Promise.allSettled([
+    fetchAreaJson("data/geography/madrid_admin.geojson"),
+    fetchAreaJson("data/population/madrid_population.json"),
+    fetchAreaJson("data/geography/madrid_admin.meta.json"),
+    fetchAreaJson("data/population/madrid_population.meta.json"),
+  ]);
 
-    geographyIndex = geographyModule.createGeographyIndex(geojson);
-    populationIndex = profileModule.createPopulationIndex(population);
-    geographyMeta = geoMeta;
-    populationMeta = popMeta;
-    areaContextState = "ready";
+  // A payload that parses but carries no administrative division is not a
+  // usable geography: resolving against it would report every coordinate as
+  // outside Madrid, which is worse than saying the geography is unavailable.
+  const index = geojson.status === "fulfilled" ? geographyModule.createGeographyIndex(geojson.value) : null;
+  const hasDivision = Boolean(index && index.counts.barrio && index.counts.district && index.counts.municipality);
+  if (hasDivision) {
+    geographyIndex = index;
+    geographyState = "ready";
+  } else {
+    geographyState = "unavailable";
+    disableBoundaryControl();
+    console.warn(
+      "administrative geography unavailable",
+      geojson.reason || "the artifact carries no administrative division"
+    );
+  }
+
+  // createPopulationIndex returns null for an unusable artifact, so an absent
+  // denominator stays absent: it never becomes an empty index reporting zero.
+  populationIndex = profileModule.createPopulationIndex(settledValue(population));
+  populationState = populationIndex ? "ready" : "unavailable";
+  if (populationState === "unavailable") {
+    console.warn("residential population unavailable", population.reason);
+  }
+
+  geographyMeta = settledValue(geoMeta);
+  populationMeta = settledValue(popMeta);
+
+  if (geographyState === "ready") {
     renderAreaSourceDetails();
     setBoundaryMode(document.getElementById("boundarySelect").value);
-  } catch (error) {
-    // The Lens keeps working without administrative context; the profile says
-    // so explicitly rather than showing an empty or invented area.
-    areaContextState = "unavailable";
-    const select = document.getElementById("boundarySelect");
-    if (select) {
-      select.disabled = true;
-      select.title = "Administrative geography unavailable in this deployment";
-    }
-    console.warn("area context unavailable", error);
   }
+
   lastAreaRenderKey = null;
   updateAreaContext();
 }

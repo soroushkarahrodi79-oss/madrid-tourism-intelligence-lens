@@ -326,7 +326,7 @@ test("numbers and dates use one product convention", () => {
   assert.equal(formatReferenceDate(null), null);
 });
 
-test("provenance is read from the committed metadata, never hardcoded", () => {
+test("every provenance line is read from the committed metadata", () => {
   const lines = buildProvenanceLines({
     populationMeta: POPULATION_META,
     geographyMeta: GEO_META,
@@ -338,13 +338,44 @@ test("provenance is read from the committed metadata, never hardcoded", () => {
   assert.match(text, /Reference date 1 Jan 2026/);
   assert.match(text, /Barrio geography v3\.4\.1/);
   assert.match(text, /district geography v3\.2\.1/);
-  assert.match(text, /not people present/);
 
-  // Missing metadata is left out rather than invented.
-  const bare = buildProvenanceLines({}).join(" | ");
-  assert.doesNotMatch(bare, /v3\./);
-  assert.doesNotMatch(bare, /Reference date/);
-  assert.match(bare, /not people present/);
+  // The interpretation ceiling is the artifact's own, surfaced concisely rather
+  // than restated in this file or dumped whole into the panel.
+  const ceiling = lines[lines.length - 1];
+  assert.ok(POPULATION_META.interpretation_ceiling.startsWith(ceiling.split(". ")[0]));
+  assert.match(ceiling, /NOT people physically present/);
+  assert.match(ceiling, /NOT tourists/);
+  assert.ok(
+    ceiling.length < POPULATION_META.interpretation_ceiling.length / 2,
+    "the panel must not carry the whole metadata paragraph"
+  );
+
+  // Every value in the disclosure comes from a sidecar, not from this codebase:
+  // changing a sidecar changes the panel.
+  const edited = {
+    ...POPULATION_META,
+    source: { ...POPULATION_META.source, underlying_register: "Test register", authority: "Test authority" },
+    interpretation_ceiling: "A test ceiling. A second test sentence. A third that must not appear.",
+  };
+  const rewritten = buildProvenanceLines({
+    populationMeta: edited,
+    geographyMeta: { source_version: { datasets: { barrio: { published_version: "vX" }, district: { published_version: "vY" } } } },
+    period: { label: "9 Sep 9999" },
+  });
+  assert.deepEqual(rewritten, [
+    "Test register · Test authority",
+    "Reference date 9 Sep 9999",
+    "Barrio geography vX · district geography vY",
+    "A test ceiling. A second test sentence.",
+  ]);
+});
+
+test("absent metadata yields no provenance line rather than an invented one", () => {
+  assert.deepEqual(buildProvenanceLines({}), []);
+  assert.deepEqual(buildProvenanceLines(), []);
+
+  const geographyOnly = buildProvenanceLines({ geographyMeta: GEO_META });
+  assert.deepEqual(geographyOnly, ["Barrio geography v3.4.1 · district geography v3.2.1"]);
 });
 
 // -------------------------------------------------------- interface integration
@@ -434,12 +465,109 @@ test("the canonical artifacts are loaded once and reused, not refetched on drag"
   const geographyFetches = app.match(/data\/geography\/madrid_admin\.geojson/g) || [];
   assert.equal(geographyFetches.length, 1);
   assert.match(loaderBody, /data\/geography\/madrid_admin\.geojson/);
-  assert.match(loaderBody, /createGeographyIndex\(geojson\)/);
+  assert.match(loaderBody, /createGeographyIndex\(geojson\.value\)/);
 
   // Dragging inside one barrio must not rewrite the panel or rebuild a layer.
   assert.match(app, /if \(key === lastAreaRenderKey\) return;/);
   assert.match(app, /if \(existing && existing\.barrioId === profile\.barrioId && existing\.tag === tag\)/);
   assert.match(app, /areaHint\[which\]/);
+});
+
+// -------------------------------------------------- partial runtime failure
+//
+// The two canonical artifacts fail independently in a browser. The geography is
+// the DEPENDENCY for resolving a place; the population is only a VALUE attached
+// to a barrio already resolved. Losing the population must therefore cost the
+// resident figure and nothing else.
+
+test("the runtime tracks the geography and the population separately", () => {
+  assert.match(app, /let geographyState = "loading"/);
+  assert.match(app, /let populationState = "loading"/);
+  assert.doesNotMatch(app, /areaContextState/, "the single all-or-nothing state must be gone");
+
+  // Settled, so one rejected request cannot reject the other's result.
+  const loaderBody = app.match(/async function loadAreaContext\(\) \{([\s\S]*?)^\}/m)[1];
+  assert.match(loaderBody, /Promise\.allSettled\(\[/);
+  assert.doesNotMatch(loaderBody, /Promise\.all\(\[\s*fetchAreaJson/);
+
+  // Only the geography gates the place, and only the geography disables the
+  // boundary control.
+  assert.match(app, /if \(geographyState !== "ready"\) \{/);
+  assert.match(loaderBody, /geographyState = "unavailable";\s*\n\s*disableBoundaryControl\(\);/);
+  const populationBranch = loaderBody.match(/if \(populationState === "unavailable"\) \{([\s\S]*?)\n  \}/)[1];
+  assert.doesNotMatch(populationBranch, /disableBoundaryControl|geographyState/);
+});
+
+test("geography available + population unavailable keeps the place and abstains on residents", () => {
+  // Exactly the partial-failure case: the population request failed, so there
+  // is no population index at all, while the geography resolved normally.
+  const profile = buildAreaProfile({
+    lens: "A",
+    located: index.resolve(PRADO.lon, PRADO.lat),
+    populationIndex: null,
+  });
+
+  // The place survives in full.
+  assert.equal(profile.state, AREA_STATE.RESOLVED);
+  assert.equal(profile.headline, "Los Jerónimos");
+  assert.equal(profile.context, "Retiro · Madrid");
+  assert.equal(profile.codes, "Barrio 035 · District 03");
+  assert.equal(profile.barrioId, "035");
+  assert.equal(profile.districtId, "03");
+
+  // Only the figure abstains — never a zero, never a fabricated period, and
+  // never the generic "administrative context unavailable" headline.
+  assert.equal(profile.residents.state, RESIDENTS_STATE.UNAVAILABLE);
+  assert.equal(profile.residents.value, null);
+  assert.equal(profile.residents.display, null);
+  assert.notEqual(profile.residents.value, 0);
+  assert.equal(profile.period.referenceDate, null);
+  assert.equal(profile.period.label, null);
+  assert.match(profile.note, /Residential population unavailable for this administrative area\./);
+  assert.doesNotMatch(profile.headline, /unavailable/i);
+
+  // The containing barrio is still a real shape, so the highlight and the
+  // boundary layers still have something to draw.
+  assert.ok(index.featureById("barrio", profile.barrioId));
+  assert.equal(index.featuresByLevel("barrio").length, 131);
+
+  // And a resolved place with no figure must still render as a place: the
+  // highlight is drawn for the resolved state, which this profile has.
+  assert.match(app, /profile\.state === AREA_STATE\.RESOLVED &&/);
+});
+
+test("an unavailable geography never infers an area from the population alone", () => {
+  // The population index is perfectly healthy here; it must still produce no
+  // place, because a resident count carries no geometry of its own.
+  const profile = buildAreaProfile({
+    lens: "A",
+    located: null,
+    populationIndex: population,
+    state: AREA_STATE.UNAVAILABLE,
+  });
+
+  assert.equal(profile.state, AREA_STATE.UNAVAILABLE);
+  assert.equal(profile.barrioId, null);
+  assert.equal(profile.districtId, null);
+  assert.equal(profile.context, null);
+  assert.equal(profile.codes, null);
+  assert.equal(profile.residents.state, RESIDENTS_STATE.NOT_APPLICABLE);
+  assert.equal(profile.residents.value, null);
+
+  // No municipality-wide or district figure may stand in for a barrio's.
+  assert.notEqual(profile.residents.value, population.municipality.residents);
+});
+
+test("the two artifacts degrade at runtime without weakening the deployment gate", () => {
+  // Runtime graceful degradation and deployment integrity are separate
+  // concerns: a browser may lose one artifact, a published build may not ship
+  // a broken one.
+  const registry = readJson("../data/source_registry.json");
+  for (const id of ["geography", "population"]) {
+    const source = registry.sources.find((s) => s.id === id);
+    assert.equal(source.blocks_deployment, true, `${id} must still block deployment`);
+    assert.equal(source.unavailable_is_allowed, false);
+  }
 });
 
 test("the population is never interpolated into the lens", () => {
