@@ -1,0 +1,70 @@
+{
+  "audit_finished_at": "2026-09-30T21:32:10Z",
+  "primary_snapshot": "actividades_2026_09",
+  "resources_sha256": {
+    "actividades_2026_09": "47185269efe699748d89fa1b37d6971708409a220637373f14464620803b943a",
+    "actividades_2025_09": "cd7f23269570022adf0ae871c76855430bd0ceaf2cbc75f27d6a802ed4f00a68"
+  },
+  "observed_taxonomy": {
+    "distinct_sections": 21,
+    "distinct_divisions": 86,
+    "distinct_populated_epigraphs": 453,
+    "rows_total": 225556,
+    "rows_populated_epigraph": 172314,
+    "rows_blank_epigraph": 53242,
+    "epigraph_multi_parent_count": 0
+  },
+  "class_rollup": {
+    "CORE_HOSPITALITY": {
+      "distinct_epigraphs": 21,
+      "source_rows": 22762,
+      "distinct_locals": 21552
+    },
+    "ACCOMMODATION": {
+      "distinct_epigraphs": 9,
+      "source_rows": 8092,
+      "distinct_locals": 8007
+    },
+    "TOURISM_ADJACENT": {
+      "distinct_epigraphs": 1,
+      "source_rows": 837,
+      "distinct_locals": 837
+    },
+    "GENERIC_COMMERCIAL": {
+      "distinct_epigraphs": 158,
+      "source_rows": 53575,
+      "distinct_locals": 44433
+    },
+    "EXCLUDED": {
+      "distinct_epigraphs": 241,
+      "source_rows": 82768,
+      "distinct_locals": 77652
+    },
+    "AMBIGUOUS": {
+      "distinct_epigraphs": 23,
+      "source_rows": 4280,
+      "distinct_locals": 3997
+    }
+  },
+  "blank_epigraph": {
+    "label": "UNCLASSIFIED_SOURCE_ACTIVITY",
+    "rows": 53242,
+    "rows_with_entire_taxonomy_blank": 53242,
+    "locals_blank_only_no_populated": 53242
+  },
+  "drift_headline": {
+    "epigraphs_new": [],
+    "epigraphs_disappeared": [],
+    "same_code_changed_description": 0,
+    "same_code_changed_parent": 0
+  },
+  "gate_b_ruling": {
+    "core_hospitality_restoration": "GO",
+    "accommodation": "GO",
+    "tourism_adjacent_commercial_context": "GO (division 79 only); MODIFY to broaden",
+    "generic_commercial_context": "GO",
+    "blank_epigraph_semantics": "RESOLVED (empirically; source documentation silent) - labelled UNCLASSIFIED_SOURCE_ACTIVITY",
+    "overall": "GO to Gate C, with scoped sub-rulings above",
+    "scope_limitation": "GO admits a classification LAYER only. No indicator, count, ranking, score, denominator, map or 'pressure' claim is authorised. Accommodation here is census-activity evidence and must not be merged with licensed-VUT or Madrid Destino accommodation. The blank set must be carried explicitly, never silently dropped."
+  }
+}
