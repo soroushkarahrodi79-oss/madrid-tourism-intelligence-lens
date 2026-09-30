@@ -415,9 +415,14 @@ impossible by construction rather than merely avoided by the interface.
 
   `28079` is the same municipality code carried by
   `data/geography/madrid_admin.geojson`, so this series describes exactly the
-  municipality the rest of the application already knows. The interface states
-  the geography as *"Madrid · municipality 28079"* and keeps the publisher's own
-  term visible in the disclosure; it never shortens it to a bare "Madrid".
+  municipality the rest of the application already knows. The geography is
+  qualified at every level the reader can reach: the **compact card** shows
+  *Madrid* with *whole municipality* beside it in the section head, the
+  **accessible name** of that heading carries the qualified *Madrid · municipality
+  28079*, and the **source disclosure** states the exact source geography — the
+  publisher's own term *punto turístico*, its value `Madrid`, and the
+  municipality code. The card is never left saying a bare "Madrid" with nothing
+  to say which kind of place it means.
 - **The trap this builder exists to avoid.** The tourist-point dimension serves
   **three** statistical operations, and two of them publish series with
   **identical names**. `EOT2743` ("Nacional. Viajeros. Madrid. Residentes en

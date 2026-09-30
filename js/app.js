@@ -1284,7 +1284,16 @@ function renderDestinationContext() {
   section.dataset.state = model.state;
 
   const available = model.state === module.DESTINATION_STATE.AVAILABLE;
+  // The card shows the short name and keeps "whole municipality" beside it in
+  // the section head; the accessible name carries the qualified form, and the
+  // full source geography (the publisher's own term plus the code) is stated in
+  // the source disclosure. Nothing is hidden, and the card stays uncluttered.
+  const place = document.getElementById("destinationPlace");
   setText("destinationPlace", model.geography.municipalityName);
+  if (place) {
+    if (available && model.geography.label) place.setAttribute("aria-label", model.geography.label);
+    else place.removeAttribute("aria-label");
+  }
   setText("destinationScopeHint", available ? "whole municipality" : "");
   setText("destinationPeriod", available ? model.period.label : "—");
 

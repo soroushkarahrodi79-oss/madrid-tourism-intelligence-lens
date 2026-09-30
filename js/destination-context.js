@@ -432,8 +432,12 @@ export function buildDestinationContext({ index, state = DESTINATION_STATE.AVAIL
     geography: {
       municipalityCode: index.geography.municipalityCode,
       municipalityName: index.geography.municipalityName,
-      // Both the plain meaning and the publisher's own term. The label never
-      // says a bare "Madrid" without saying which Madrid it means.
+      // The FULLY QUALIFIED name, for places that can carry one without
+      // crowding the card: it becomes the accessible name of the place heading,
+      // so assistive technology hears which Madrid this is even though the
+      // visible card stays "Madrid" with "whole municipality" beside it. The
+      // exact source geography, including the publisher's own term, is stated
+      // in full in the source disclosure.
       label: `${index.geography.municipalityName} · municipality ${index.geography.municipalityCode}`,
       sourceTerm: index.geography.sourceTerm,
       sourceValue: index.geography.sourceValue,

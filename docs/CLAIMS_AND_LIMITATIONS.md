@@ -192,10 +192,11 @@ municipality of Madrid** from the official INE *Encuesta de Ocupación Hotelera*
 
 **What it does carry honestly:**
 
-- The **source geography is stated, not hidden**: *Madrid · municipality 28079*,
-  with the publisher's own term (*punto turístico*) in the disclosure. INE
-  defines a punto turístico as a municipality and publishes this one under
-  municipality code 28079.
+- The **source geography is stated, not hidden.** The compact card shows
+  *Madrid* with *whole municipality* beside it; the source disclosure states the
+  publisher's own term (*punto turístico* `Madrid`) together with municipality
+  code **28079**. INE defines a *punto turístico* as a municipality and publishes
+  this one under that code.
 - **Provisional data is labelled.** The current statistical year is published
   provisional and revised later, so a same-month-previous-year comparison
   routinely compares a provisional figure with a definitive one. That is stated

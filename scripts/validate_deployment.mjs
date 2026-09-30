@@ -1040,6 +1040,119 @@ function validateLicenceCounts(source, artifact, meta, geography, geographyMeta,
 //   3. A SUPPRESSED MONTH BECOMES A ZERO. The source publishes a real zero for
 //      2020-04 and explicit nulls for 2020-05 and 2020-06. Collapsing those into
 //      each other would either invent demand or invent its absence.
+// The minimum provenance the user-facing disclosure is built from. Each entry is
+// a field the interface actually reads or that an auditor needs to establish what
+// the number is; a missing one means the figure would publish without the context
+// that makes it honest.
+//
+// This is a SEMANTIC contract, not an editorial one. No prose sentence is
+// pattern-matched: that would make wording a deployment gate without making the
+// number one bit more trustworthy. Only presence, and the three identity values
+// that must be exact, are checked.
+const DESTINATION_META_FIELDS = [
+  ["source.authority", (m) => m.source?.authority, "names the authority that publishes the statistic"],
+  ["source.survey", (m) => m.source?.survey, "names the survey the figures come from"],
+  ["source.api", (m) => m.source?.api, "records how the figures were retrieved"],
+  ["geography.source_term", (m) => m.geography?.source_term, "names the publisher's own geographic unit"],
+  ["geography.source_value", (m) => m.geography?.source_value, "names which unit of that kind this is"],
+  [
+    "survey_definitions.viajeros",
+    (m) => m.survey_definitions?.viajeros,
+    "defines what a traveller is, which is what stops the figure being read as unique people",
+  ],
+  ["interpretation_ceiling", (m) => m.interpretation_ceiling, "states what the figure is not"],
+  ["retrieved_at", (m) => m.retrieved_at, "separates when this snapshot was taken from the period it describes"],
+  ["schema_fingerprint", (m) => m.schema_fingerprint, "is what makes source schema drift a visible failure"],
+];
+
+// Provenance gate for the Destination Context sidecar.
+//
+// BLOCKING, like the licensed-VUT provenance gate, and for the same reason: this
+// is a user-facing official statistic, so the disclosure that says what it
+// measures - and what it does not mean - is part of what makes publishing it
+// defensible. A figure whose provenance cannot be stated must not ship.
+//
+// The operation id gets its own exact check because operation identity is the
+// central protection against the operation-239 name collision: operations 238
+// and 239 publish series with IDENTICAL names through the same dimension, and
+// the 239 values are roughly fifteen times smaller. A sidecar claiming a
+// different operation than the registry pins means the artifact and its
+// provenance disagree about WHICH SURVEY produced the numbers.
+function validateDestinationMeta(source, artifact, meta, sink) {
+  const label = source.display_name;
+  const file = source.meta_artifact;
+
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
+    sink.push(
+      `${label}: ${file} is missing or is not an object. These figures are user-facing, so the ` +
+        `provenance that states what they measure - and what they do not mean - is required to ` +
+        `publish them.`
+    );
+    return;
+  }
+
+  for (const [path, read, why] of DESTINATION_META_FIELDS) {
+    if (!isNonEmptyString(read(meta))) {
+      sink.push(`${label}: ${file} has no usable ${path}, which ${why}`);
+    }
+  }
+
+  // Statistical operation: the survey-identity contract, checked against the
+  // registry's own pin rather than a literal repeated here.
+  const expectedOperation = source.expected_operation_id;
+  const declaredOperation = meta.source?.statistical_operation;
+  if (isFiniteNumber(expectedOperation)) {
+    if (declaredOperation !== expectedOperation) {
+      sink.push(
+        `${label}: ${file} declares statistical operation ${JSON.stringify(declaredOperation)}, but the ` +
+          `registry pins ${expectedOperation}. Operation 239 publishes identically named series for ` +
+          `tourist apartments; provenance that names a different survey than the pinned one must not ` +
+          `be published.`
+      );
+    }
+  } else {
+    sink.push(
+      `${label}: the registry declares no expected_operation_id, so the sidecar's statistical ` +
+        `operation cannot be verified against anything`
+    );
+  }
+
+  // Geography: the acceptance criterion the whole surface was gated on, checked
+  // in the provenance as well as in the artifact so the two cannot drift apart.
+  if (meta.geography?.resolved_level !== "municipality") {
+    sink.push(
+      `${label}: ${file} records geography.resolved_level ${JSON.stringify(meta.geography?.resolved_level)}, ` +
+        `not "municipality". This series must never be documented as a sub-municipal figure.`
+    );
+  }
+  const expectedCode = source.expected_municipality_code;
+  if (isNonEmptyString(expectedCode) && meta.geography?.municipality_code !== expectedCode) {
+    sink.push(
+      `${label}: ${file} records municipality ${JSON.stringify(meta.geography?.municipality_code)}, but the ` +
+        `registry declares ${expectedCode}`
+    );
+  }
+  if (meta.geography?.hard_gate_1 !== "PASS") {
+    sink.push(
+      `${label}: ${file} records geography.hard_gate_1 as ${JSON.stringify(meta.geography?.hard_gate_1)}. ` +
+        `The interface labels this figure as a municipality; publishing it without a settled geography ` +
+        `would put an unverified claim in front of the reader.`
+    );
+  }
+
+  // The fingerprint must tie the sidecar to the artifact it describes.
+  if (
+    isNonEmptyString(meta.schema_fingerprint) &&
+    isNonEmptyString(artifact?.schema_fingerprint) &&
+    meta.schema_fingerprint !== artifact.schema_fingerprint
+  ) {
+    sink.push(
+      `${label}: artifact and sidecar schema fingerprints disagree, so the provenance does not ` +
+        `describe the committed series`
+    );
+  }
+}
+
 function validateDestinationSeries(source, artifact, meta, errors, warnings) {
   const label = source.display_name;
   const sink = source.blocks_deployment ? errors : warnings;
@@ -1047,15 +1160,13 @@ function validateDestinationSeries(source, artifact, meta, errors, warnings) {
 
   if (!artifact || typeof artifact !== "object" || !Array.isArray(artifact.observations)) {
     sink.push(`${label}: ${source.artifact} is missing or has no observations array`);
+    // The provenance gate still runs: a build missing both the series and its
+    // documentation should report both, not just the first failure.
+    validateDestinationMeta(source, artifact, meta, sink);
     return { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
   }
-  if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
-    sink.push(
-      `${label}: ${source.meta_artifact} is missing or is not an object. These figures are ` +
-        `user-facing, so the provenance that states what they measure - and what they do not ` +
-        `mean - is required to publish them.`
-    );
-  }
+
+  validateDestinationMeta(source, artifact, meta, sink);
 
   // (2) Geography. The municipal equivalence is the acceptance criterion this
   // whole surface was gated on, so it is checked against the registry's own
@@ -1197,9 +1308,8 @@ function validateDestinationSeries(source, artifact, meta, errors, warnings) {
         `distinguished from a legitimate refresh`
     );
   }
-  if (meta && artifact.schema_fingerprint !== meta.schema_fingerprint) {
-    sink.push(`${label}: artifact and sidecar schema fingerprints disagree`);
-  }
+  // The artifact/sidecar fingerprint agreement is checked once, in the
+  // provenance gate above, so a mismatch is reported as one failure not two.
 
   if (suppressed > 0) {
     localWarnings.push(

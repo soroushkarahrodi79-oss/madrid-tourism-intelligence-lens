@@ -393,6 +393,9 @@ function destinationArtifact() {
   };
 }
 
+// The minimum provenance a publishable Destination Context sidecar must carry.
+// Kept complete here so each regression test below can remove exactly one field
+// and assert that its absence alone blocks the deployment.
 function destinationMeta() {
   return {
     contract_version: "1.0.0",
@@ -400,8 +403,20 @@ function destinationMeta() {
       authority: "Instituto Nacional de Estadistica (INE)",
       survey: "Encuesta de Ocupacion Hotelera (EOH)",
       statistical_operation: 238,
+      api: "Tempus3 JSON API",
     },
-    geography: { hard_gate_1: "PASS", municipality_code: "28079" },
+    geography: {
+      source_term: "Punto turistico",
+      source_value: "Madrid",
+      resolved_level: "municipality",
+      municipality_code: "28079",
+      hard_gate_1: "PASS",
+    },
+    survey_definitions: {
+      viajeros:
+        "Persons making one or more consecutive overnight stays in the same establishment. " +
+        "Counted per establishment stay, so this is not a count of unique people.",
+    },
     schema_fingerprint: "f".repeat(64),
     retrieved_at: GENERATED_AT,
     interpretation_ceiling: "Hotel-sector demand only. NOT total tourism demand.",
@@ -1419,6 +1434,200 @@ test("a sidecar without a usable geography linkage blocks the build", () => {
     assert.equal(result.ok, false);
     assert.match(errorText(result), /no usable geography_linkage\.barrio_geography_version/);
   }
+});
+
+// ------------------------------------------- destination context provenance
+//
+// The sidecar is a DEPLOYMENT CONTRACT, not documentation that happens to sit
+// beside the data. These figures are user-facing official statistics, so the
+// provenance that states what they measure - and what they do not mean - is part
+// of what makes publishing them defensible. Every failure below is an ERROR, not
+// a warning, and runtime graceful degradation is a separate concern asserted
+// elsewhere.
+
+const DEST_META = "destination/madrid_hotel_demand.meta.json";
+
+test("a missing destination sidecar blocks the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts[DEST_META] = null;
+  const result = run(artifacts);
+
+  assert.equal(result.ok, false, "a missing sidecar must not be publishable");
+  assert.match(errorText(result), /is missing or is not an object/);
+  assert.match(errorText(result), /what they measure - and what they do not mean - is required/);
+
+  // It is an ERROR, not a warning: the distinction is the whole point.
+  assert.ok(
+    !result.warnings.some((w) => /madrid_hotel_demand\.meta\.json/.test(w)),
+    "the missing sidecar must not be reported as a mere warning"
+  );
+});
+
+test("a malformed destination sidecar blocks the build", () => {
+  for (const malformed of ["", "not json", 42, [], true]) {
+    const artifacts = healthyArtifacts();
+    artifacts[DEST_META] = malformed;
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `a ${JSON.stringify(malformed)} sidecar must block the build`);
+    assert.match(errorText(result), /is missing or is not an object/);
+  }
+});
+
+test("a destination sidecar missing any required provenance field blocks the build", () => {
+  for (const [name, mutate, pattern] of [
+    ["source.authority", (m) => delete m.source.authority, /no usable source\.authority/],
+    ["source.survey", (m) => delete m.source.survey, /no usable source\.survey/],
+    ["source.api", (m) => delete m.source.api, /no usable source\.api/],
+    ["source (whole)", (m) => delete m.source, /no usable source\.authority/],
+    ["source.authority blank", (m) => (m.source.authority = "   "), /no usable source\.authority/],
+    [
+      "geography.source_term",
+      (m) => delete m.geography.source_term,
+      /no usable geography\.source_term/,
+    ],
+    [
+      "geography.source_value",
+      (m) => delete m.geography.source_value,
+      /no usable geography\.source_value/,
+    ],
+    [
+      "survey_definitions.viajeros",
+      (m) => delete m.survey_definitions.viajeros,
+      /no usable survey_definitions\.viajeros/,
+    ],
+    [
+      "survey_definitions (whole)",
+      (m) => delete m.survey_definitions,
+      /no usable survey_definitions\.viajeros/,
+    ],
+    [
+      "interpretation_ceiling",
+      (m) => delete m.interpretation_ceiling,
+      /no usable interpretation_ceiling/,
+    ],
+    ["retrieved_at", (m) => delete m.retrieved_at, /no usable retrieved_at/],
+    ["schema_fingerprint", (m) => delete m.schema_fingerprint, /no usable schema_fingerprint/],
+  ]) {
+    const artifacts = healthyArtifacts();
+    mutate(artifacts[DEST_META]);
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `a sidecar without ${name} must block the build`);
+    assert.match(errorText(result), pattern, `missing ${name} must be reported by name`);
+  }
+});
+
+test("a destination sidecar naming the wrong statistical operation blocks the build", () => {
+  // THE central guard. Operations 238 and 239 publish series with identical
+  // names through the same dimension, and the 239 values are roughly fifteen
+  // times smaller. Provenance that names a different survey than the pinned one
+  // means the artifact and its documentation disagree about which survey
+  // produced the numbers.
+  for (const wrong of [239, 180, "238", null, undefined]) {
+    const artifacts = healthyArtifacts();
+    artifacts[DEST_META].source.statistical_operation = wrong;
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `operation ${JSON.stringify(wrong)} must block the build`);
+    assert.match(errorText(result), /declares statistical operation/);
+    assert.match(errorText(result), /the registry pins 238/);
+  }
+
+  // And the reason is spelled out, so a reviewer meeting this failure for the
+  // first time learns what it is protecting against.
+  const artifacts = healthyArtifacts();
+  artifacts[DEST_META].source.statistical_operation = 239;
+  assert.match(errorText(run(artifacts)), /Operation 239 publishes identically named series/);
+});
+
+test("the registry must pin an expected operation id for the destination series", () => {
+  // Without the pin there is nothing to check the sidecar against, which would
+  // silently disable the survey-identity guard.
+  const registry = testRegistry();
+  const source = registry.sources.find((s) => s.id === "hotel_demand");
+  delete source.expected_operation_id;
+  const result = run(healthyArtifacts(), registry);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /declares no expected_operation_id/);
+
+  // The real registry carries it.
+  assert.equal(REAL_REGISTRY.sources.find((s) => s.id === "hotel_demand").expected_operation_id, 238);
+});
+
+test("a destination sidecar with the wrong geography blocks the build", () => {
+  for (const [name, mutate, pattern] of [
+    [
+      "a different municipality",
+      (m) => (m.geography.municipality_code = "08019"),
+      /records municipality "08019", but the registry declares 28079/,
+    ],
+    [
+      "no municipality code",
+      (m) => delete m.geography.municipality_code,
+      /records municipality undefined, but the registry declares 28079/,
+    ],
+    [
+      "a sub-municipal level",
+      (m) => (m.geography.resolved_level = "barrio"),
+      /records geography\.resolved_level "barrio", not "municipality"/,
+    ],
+    [
+      "no resolved level",
+      (m) => delete m.geography.resolved_level,
+      /not "municipality"/,
+    ],
+    [
+      "geography removed entirely",
+      (m) => delete m.geography,
+      /not "municipality"/,
+    ],
+  ]) {
+    const artifacts = healthyArtifacts();
+    mutate(artifacts[DEST_META]);
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `${name} must block the build`);
+    assert.match(errorText(result), pattern);
+  }
+});
+
+test("a destination sidecar whose geography gate has not passed blocks the build", () => {
+  for (const state of ["CONDITIONAL", "FAIL", "", undefined, "pass"]) {
+    const artifacts = healthyArtifacts();
+    artifacts[DEST_META].geography.hard_gate_1 = state;
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `hard_gate_1 ${JSON.stringify(state)} must block the build`);
+    assert.match(errorText(result), /records geography\.hard_gate_1 as/);
+    assert.match(errorText(result), /would put an unverified claim in front of the reader/);
+  }
+});
+
+test("a destination sidecar that does not describe the committed series blocks the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts[DEST_META].schema_fingerprint = "a".repeat(64);
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /schema fingerprints disagree/);
+  assert.match(errorText(result), /the provenance does not describe the committed series/);
+
+  // Reported once, not twice.
+  const matches = result.errors.filter((e) => /fingerprints disagree/.test(e));
+  assert.equal(matches.length, 1, "a fingerprint mismatch must be reported as a single failure");
+});
+
+test("a healthy destination sidecar publishes, and the real committed one passes", () => {
+  // The fixture, complete, is publishable.
+  assert.equal(run(healthyArtifacts()).ok, true);
+
+  // And so is the real committed sidecar, against the real registry: the gate
+  // above is only useful if it is satisfied by what this repository ships.
+  const committedRegistry = {
+    ...REAL_REGISTRY,
+    sources: REAL_REGISTRY.sources.filter((s) => s.id === "hotel_demand"),
+  };
+  const { errors } = validateDeployment({
+    registry: committedRegistry,
+    artifacts: readArtifacts(fileURLToPath(new URL("../data/", import.meta.url))),
+    generatedAt: GENERATED_AT,
+  });
+  assert.deepEqual(errors, [], `the committed destination sidecar must validate: ${errors.join(" | ")}`);
 });
 
 test("counts joined to a different barrio geography than the one shipped block the build", () => {

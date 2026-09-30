@@ -286,10 +286,28 @@ test("Hard Gate 1 evidence is recorded in the sidecar, quoting the publisher", (
   assert.match(evidence, /28079/);
 });
 
-test("the interface never says a bare Madrid without saying which Madrid", () => {
+test("the geography is qualified at every level the reader can reach", () => {
+  // Three levels, and each is asserted for what it ACTUALLY carries rather than
+  // for what would be convenient to claim:
+  //
+  //   compact card  the short name "Madrid", with "whole municipality" beside it
+  //                 in the section head - enough to say which kind of place this
+  //                 is, without crowding the figure
+  //   accessible    the fully qualified label, so assistive technology hears the
+  //   name          municipality code the visible card leaves to the disclosure
+  //   disclosure    the exact source geography: the publisher's own term, its
+  //                 value, and the municipality code
+  assert.equal(model.geography.municipalityName, "Madrid");
   assert.equal(model.geography.label, "Madrid · municipality 28079");
   assert.match(model.geography.sourceGeographyLine, /Punto turístico/);
   assert.match(model.geography.sourceGeographyLine, /municipality code 28079/);
+
+  // The compact card renders the short name and the scope hint; the qualified
+  // label is applied as the accessible name, not as visible text.
+  assert.match(appOut, /setText\("destinationPlace", model\.geography\.municipalityName\)/);
+  assert.match(appOut, /place\.setAttribute\("aria-label", model\.geography\.label\)/);
+  assert.match(appOut, /setText\("destinationScopeHint", available \? "whole municipality"/);
+
   // The registry's geography semantics must carry the municipal equivalence too,
   // because the deployment gate reads it.
   assert.equal(registryEntry.expected_municipality_code, "28079");
