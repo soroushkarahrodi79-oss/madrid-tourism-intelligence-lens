@@ -1,0 +1,1099 @@
+{
+  "contract_version": "1.0.0",
+  "geography": {
+    "source_term": "Punto turístico",
+    "source_value": "Madrid",
+    "level": "municipality",
+    "municipality_code": "28079",
+    "municipality_name": "Madrid",
+    "ine_variable_id": 103,
+    "ine_value_id": 2813,
+    "scope_note": "The whole municipality of Madrid. This is a citywide figure and describes no barrio, no district and no Lens circle."
+  },
+  "source_period": {
+    "granularity": "month",
+    "earliest": "2018-01",
+    "latest": "2026-08",
+    "latest_status": "provisional",
+    "count": 104,
+    "semantics": "Each observation describes the calendar month named by its period. That is not the publication date and not the retrieval date, which are recorded separately in the sidecar."
+  },
+  "metrics": {
+    "travellers": {
+      "series": "EOT42434",
+      "unit": "travellers",
+      "source_concept": "Viajeros",
+      "provenance": "SOURCE_REPORTED"
+    },
+    "overnight_stays": {
+      "series": "EOT42540",
+      "unit": "overnight stays",
+      "source_concept": "Pernoctaciones",
+      "provenance": "SOURCE_REPORTED"
+    },
+    "travellers_residents_spain": {
+      "series": "EOT2743",
+      "unit": "travellers",
+      "source_concept": "Viajeros · Residentes en España",
+      "provenance": "SOURCE_REPORTED"
+    },
+    "travellers_residents_abroad": {
+      "series": "EOT2744",
+      "unit": "travellers",
+      "source_concept": "Viajeros · Residentes en el extranjero",
+      "provenance": "SOURCE_REPORTED"
+    }
+  },
+  "schema_fingerprint": "96f2968b9bf7eaf2e73774f248f6aa87c51e1b23110f2e50e37f3900878022ae",
+  "observations": [
+    {
+      "period": "2018-01",
+      "year": 2018,
+      "month": 1,
+      "travellers": 686094,
+      "overnight_stays": 1443593,
+      "travellers_residents_spain": 385142,
+      "travellers_residents_abroad": 300952,
+      "status": "definitive"
+    },
+    {
+      "period": "2018-02",
+      "year": 2018,
+      "month": 2,
+      "travellers": 721248,
+      "overnight_stays": 1417038,
+      "travellers_residents_spain": 396133,
+      "travellers_residents_abroad": 325115,
+      "status": "definitive"
+    },
+    {
+      "period": "2018-03",
+      "year": 2018,
+      "month": 3,
+      "travellers": 815406,
+      "overnight_stays": 1623780,
+      "travellers_residents_spain": 405409,
+      "travellers_residents_abroad": 409997,
+      "status": "definitive"
+    },
+    {
+      "period": "2018-04",
+      "year": 2018,
+      "month": 4,
+      "travellers": 806276,
+      "overnight_stays": 1669622,
+      "travellers_residents_spain": 348611,
+      "travellers_residents_abroad": 457666,
+      "status": "definitive"
+    },
+    {
+      "period": "2018-05",
+      "year": 2018,
+      "month": 5,
+      "travellers": 864559,
+      "overnight_stays": 1768944,
+      "travellers_residents_spain": 382948,
+      "travellers_residents_abroad": 481611,
+      "status": "definitive"
+    },
+    {
+      "period": "2018-06",
+      "year": 2018,
+      "month": 6,
+      "travellers": 869251,
+      "overnight_stays": 1722848,
+      "travellers_residents_spain": 388003,
+      "travellers_residents_abroad": 481247,
+      "status": "definitive"
+    },
+    {
+      "period": "2018-07",
+      "year": 2018,
+      "month": 7,
+      "travellers": 853044,
+      "overnight_stays": 1695654,
+      "travellers_residents_spain": 349060,
+      "travellers_residents_abroad": 503985,
+      "status": "definitive"
+    },
+    {
+      "period": "2018-08",
+      "year": 2018,
+      "month": 8,
+      "travellers": 727483,
+      "overnight_stays": 1482031,
+      "travellers_residents_spain": 301427,
+      "travellers_residents_abroad": 426056,
+      "status": "definitive"
+    },
+    {
+      "period": "2018-09",
+      "year": 2018,
+      "month": 9,
+      "travellers": 862996,
+      "overnight_stays": 1742668,
+      "travellers_residents_spain": 367257,
+      "travellers_residents_abroad": 495740,
+      "status": "definitive"
+    },
+    {
+      "period": "2018-10",
+      "year": 2018,
+      "month": 10,
+      "travellers": 904262,
+      "overnight_stays": 1829916,
+      "travellers_residents_spain": 381007,
+      "travellers_residents_abroad": 523255,
+      "status": "definitive"
+    },
+    {
+      "period": "2018-11",
+      "year": 2018,
+      "month": 11,
+      "travellers": 823892,
+      "overnight_stays": 1678001,
+      "travellers_residents_spain": 418088,
+      "travellers_residents_abroad": 405805,
+      "status": "definitive"
+    },
+    {
+      "period": "2018-12",
+      "year": 2018,
+      "month": 12,
+      "travellers": 780842,
+      "overnight_stays": 1610785,
+      "travellers_residents_spain": 433655,
+      "travellers_residents_abroad": 347187,
+      "status": "definitive"
+    },
+    {
+      "period": "2019-01",
+      "year": 2019,
+      "month": 1,
+      "travellers": 699753,
+      "overnight_stays": 1462699,
+      "travellers_residents_spain": 375017,
+      "travellers_residents_abroad": 324735,
+      "status": "definitive"
+    },
+    {
+      "period": "2019-02",
+      "year": 2019,
+      "month": 2,
+      "travellers": 743042,
+      "overnight_stays": 1452961,
+      "travellers_residents_spain": 393522,
+      "travellers_residents_abroad": 349520,
+      "status": "definitive"
+    },
+    {
+      "period": "2019-03",
+      "year": 2019,
+      "month": 3,
+      "travellers": 853946,
+      "overnight_stays": 1780129,
+      "travellers_residents_spain": 408305,
+      "travellers_residents_abroad": 445641,
+      "status": "definitive"
+    },
+    {
+      "period": "2019-04",
+      "year": 2019,
+      "month": 4,
+      "travellers": 833936,
+      "overnight_stays": 1776420,
+      "travellers_residents_spain": 372467,
+      "travellers_residents_abroad": 461469,
+      "status": "definitive"
+    },
+    {
+      "period": "2019-05",
+      "year": 2019,
+      "month": 5,
+      "travellers": 922893,
+      "overnight_stays": 1902395,
+      "travellers_residents_spain": 381585,
+      "travellers_residents_abroad": 541308,
+      "status": "definitive"
+    },
+    {
+      "period": "2019-06",
+      "year": 2019,
+      "month": 6,
+      "travellers": 910953,
+      "overnight_stays": 1851036,
+      "travellers_residents_spain": 380280,
+      "travellers_residents_abroad": 530673,
+      "status": "definitive"
+    },
+    {
+      "period": "2019-07",
+      "year": 2019,
+      "month": 7,
+      "travellers": 882936,
+      "overnight_stays": 1860706,
+      "travellers_residents_spain": 343914,
+      "travellers_residents_abroad": 539022,
+      "status": "definitive"
+    },
+    {
+      "period": "2019-08",
+      "year": 2019,
+      "month": 8,
+      "travellers": 758699,
+      "overnight_stays": 1614172,
+      "travellers_residents_spain": 294656,
+      "travellers_residents_abroad": 464042,
+      "status": "definitive"
+    },
+    {
+      "period": "2019-09",
+      "year": 2019,
+      "month": 9,
+      "travellers": 830051,
+      "overnight_stays": 1835086,
+      "travellers_residents_spain": 324720,
+      "travellers_residents_abroad": 505331,
+      "status": "definitive"
+    },
+    {
+      "period": "2019-10",
+      "year": 2019,
+      "month": 10,
+      "travellers": 917246,
+      "overnight_stays": 1923676,
+      "travellers_residents_spain": 383711,
+      "travellers_residents_abroad": 533535,
+      "status": "definitive"
+    },
+    {
+      "period": "2019-11",
+      "year": 2019,
+      "month": 11,
+      "travellers": 834541,
+      "overnight_stays": 1737278,
+      "travellers_residents_spain": 400236,
+      "travellers_residents_abroad": 434305,
+      "status": "definitive"
+    },
+    {
+      "period": "2019-12",
+      "year": 2019,
+      "month": 12,
+      "travellers": 775200,
+      "overnight_stays": 1653728,
+      "travellers_residents_spain": 407351,
+      "travellers_residents_abroad": 367849,
+      "status": "definitive"
+    },
+    {
+      "period": "2020-01",
+      "year": 2020,
+      "month": 1,
+      "travellers": 740963,
+      "overnight_stays": 1563990,
+      "travellers_residents_spain": 386253,
+      "travellers_residents_abroad": 354710,
+      "status": "definitive"
+    },
+    {
+      "period": "2020-02",
+      "year": 2020,
+      "month": 2,
+      "travellers": 763170,
+      "overnight_stays": 1532688,
+      "travellers_residents_spain": 407235,
+      "travellers_residents_abroad": 355936,
+      "status": "definitive"
+    },
+    {
+      "period": "2020-03",
+      "year": 2020,
+      "month": 3,
+      "travellers": 265196,
+      "overnight_stays": 642958,
+      "travellers_residents_spain": 138649,
+      "travellers_residents_abroad": 126547,
+      "status": "definitive",
+      "source_notes": [
+        "Dato no disponible por cierre debido a crisis COVID19"
+      ]
+    },
+    {
+      "period": "2020-04",
+      "year": 2020,
+      "month": 4,
+      "travellers": 0,
+      "overnight_stays": 0,
+      "travellers_residents_spain": 0,
+      "travellers_residents_abroad": 0,
+      "status": "definitive"
+    },
+    {
+      "period": "2020-05",
+      "year": 2020,
+      "month": 5,
+      "travellers": null,
+      "overnight_stays": null,
+      "travellers_residents_spain": null,
+      "travellers_residents_abroad": null,
+      "status": "definitive",
+      "source_notes": [
+        "Dato no disponible por cierre debido a crisis COVID19"
+      ]
+    },
+    {
+      "period": "2020-06",
+      "year": 2020,
+      "month": 6,
+      "travellers": null,
+      "overnight_stays": null,
+      "travellers_residents_spain": null,
+      "travellers_residents_abroad": null,
+      "status": "definitive",
+      "source_notes": [
+        "Dato no disponible por cierre debido a crisis COVID19"
+      ]
+    },
+    {
+      "period": "2020-07",
+      "year": 2020,
+      "month": 7,
+      "travellers": 130643,
+      "overnight_stays": 315357,
+      "travellers_residents_spain": 93584,
+      "travellers_residents_abroad": 37060,
+      "status": "definitive"
+    },
+    {
+      "period": "2020-08",
+      "year": 2020,
+      "month": 8,
+      "travellers": 108629,
+      "overnight_stays": 278702,
+      "travellers_residents_spain": 71842,
+      "travellers_residents_abroad": 36788,
+      "status": "definitive"
+    },
+    {
+      "period": "2020-09",
+      "year": 2020,
+      "month": 9,
+      "travellers": 140686,
+      "overnight_stays": 305612,
+      "travellers_residents_spain": 104108,
+      "travellers_residents_abroad": 36578,
+      "status": "definitive"
+    },
+    {
+      "period": "2020-10",
+      "year": 2020,
+      "month": 10,
+      "travellers": 103747,
+      "overnight_stays": 242217,
+      "travellers_residents_spain": 73759,
+      "travellers_residents_abroad": 29988,
+      "status": "definitive"
+    },
+    {
+      "period": "2020-11",
+      "year": 2020,
+      "month": 11,
+      "travellers": 122895,
+      "overnight_stays": 255544,
+      "travellers_residents_spain": 91656,
+      "travellers_residents_abroad": 31239,
+      "status": "definitive"
+    },
+    {
+      "period": "2020-12",
+      "year": 2020,
+      "month": 12,
+      "travellers": 156357,
+      "overnight_stays": 315576,
+      "travellers_residents_spain": 116282,
+      "travellers_residents_abroad": 40076,
+      "status": "definitive"
+    },
+    {
+      "period": "2021-01",
+      "year": 2021,
+      "month": 1,
+      "travellers": 149231,
+      "overnight_stays": 285237,
+      "travellers_residents_spain": 108759,
+      "travellers_residents_abroad": 40472,
+      "status": "definitive"
+    },
+    {
+      "period": "2021-02",
+      "year": 2021,
+      "month": 2,
+      "travellers": 151310,
+      "overnight_stays": 305490,
+      "travellers_residents_spain": 115670,
+      "travellers_residents_abroad": 35640,
+      "status": "definitive"
+    },
+    {
+      "period": "2021-03",
+      "year": 2021,
+      "month": 3,
+      "travellers": 191886,
+      "overnight_stays": 395355,
+      "travellers_residents_spain": 139145,
+      "travellers_residents_abroad": 52741,
+      "status": "definitive"
+    },
+    {
+      "period": "2021-04",
+      "year": 2021,
+      "month": 4,
+      "travellers": 194658,
+      "overnight_stays": 382101,
+      "travellers_residents_spain": 142900,
+      "travellers_residents_abroad": 51758,
+      "status": "definitive"
+    },
+    {
+      "period": "2021-05",
+      "year": 2021,
+      "month": 5,
+      "travellers": 291347,
+      "overnight_stays": 590130,
+      "travellers_residents_spain": 208211,
+      "travellers_residents_abroad": 83136,
+      "status": "definitive"
+    },
+    {
+      "period": "2021-06",
+      "year": 2021,
+      "month": 6,
+      "travellers": 348745,
+      "overnight_stays": 702255,
+      "travellers_residents_spain": 244023,
+      "travellers_residents_abroad": 104722,
+      "status": "definitive"
+    },
+    {
+      "period": "2021-07",
+      "year": 2021,
+      "month": 7,
+      "travellers": 405459,
+      "overnight_stays": 852086,
+      "travellers_residents_spain": 240388,
+      "travellers_residents_abroad": 165071,
+      "status": "definitive"
+    },
+    {
+      "period": "2021-08",
+      "year": 2021,
+      "month": 8,
+      "travellers": 394208,
+      "overnight_stays": 841501,
+      "travellers_residents_spain": 221145,
+      "travellers_residents_abroad": 173063,
+      "status": "definitive"
+    },
+    {
+      "period": "2021-09",
+      "year": 2021,
+      "month": 9,
+      "travellers": 550162,
+      "overnight_stays": 1146659,
+      "travellers_residents_spain": 312814,
+      "travellers_residents_abroad": 237348,
+      "status": "definitive"
+    },
+    {
+      "period": "2021-10",
+      "year": 2021,
+      "month": 10,
+      "travellers": 693295,
+      "overnight_stays": 1489524,
+      "travellers_residents_spain": 398601,
+      "travellers_residents_abroad": 294695,
+      "status": "definitive"
+    },
+    {
+      "period": "2021-11",
+      "year": 2021,
+      "month": 11,
+      "travellers": 666669,
+      "overnight_stays": 1361892,
+      "travellers_residents_spain": 394352,
+      "travellers_residents_abroad": 272317,
+      "status": "definitive"
+    },
+    {
+      "period": "2021-12",
+      "year": 2021,
+      "month": 12,
+      "travellers": 613758,
+      "overnight_stays": 1311270,
+      "travellers_residents_spain": 387339,
+      "travellers_residents_abroad": 226419,
+      "status": "definitive"
+    },
+    {
+      "period": "2022-01",
+      "year": 2022,
+      "month": 1,
+      "travellers": 447702,
+      "overnight_stays": 967772,
+      "travellers_residents_spain": 283075,
+      "travellers_residents_abroad": 164627,
+      "status": "definitive"
+    },
+    {
+      "period": "2022-02",
+      "year": 2022,
+      "month": 2,
+      "travellers": 566843,
+      "overnight_stays": 1166797,
+      "travellers_residents_spain": 352696,
+      "travellers_residents_abroad": 214147,
+      "status": "definitive"
+    },
+    {
+      "period": "2022-03",
+      "year": 2022,
+      "month": 3,
+      "travellers": 674180,
+      "overnight_stays": 1420391,
+      "travellers_residents_spain": 379440,
+      "travellers_residents_abroad": 294740,
+      "status": "definitive"
+    },
+    {
+      "period": "2022-04",
+      "year": 2022,
+      "month": 4,
+      "travellers": 746430,
+      "overnight_stays": 1625050,
+      "travellers_residents_spain": 380023,
+      "travellers_residents_abroad": 366407,
+      "status": "definitive"
+    },
+    {
+      "period": "2022-05",
+      "year": 2022,
+      "month": 5,
+      "travellers": 806731,
+      "overnight_stays": 1683658,
+      "travellers_residents_spain": 381286,
+      "travellers_residents_abroad": 425445,
+      "status": "definitive"
+    },
+    {
+      "period": "2022-06",
+      "year": 2022,
+      "month": 6,
+      "travellers": 792449,
+      "overnight_stays": 1632906,
+      "travellers_residents_spain": 365812,
+      "travellers_residents_abroad": 426637,
+      "status": "definitive"
+    },
+    {
+      "period": "2022-07",
+      "year": 2022,
+      "month": 7,
+      "travellers": 756577,
+      "overnight_stays": 1563938,
+      "travellers_residents_spain": 310666,
+      "travellers_residents_abroad": 445911,
+      "status": "definitive"
+    },
+    {
+      "period": "2022-08",
+      "year": 2022,
+      "month": 8,
+      "travellers": 657007,
+      "overnight_stays": 1368057,
+      "travellers_residents_spain": 288875,
+      "travellers_residents_abroad": 368131,
+      "status": "definitive"
+    },
+    {
+      "period": "2022-09",
+      "year": 2022,
+      "month": 9,
+      "travellers": 817591,
+      "overnight_stays": 1670439,
+      "travellers_residents_spain": 360762,
+      "travellers_residents_abroad": 456829,
+      "status": "definitive"
+    },
+    {
+      "period": "2022-10",
+      "year": 2022,
+      "month": 10,
+      "travellers": 854350,
+      "overnight_stays": 1806509,
+      "travellers_residents_spain": 384065,
+      "travellers_residents_abroad": 470286,
+      "status": "definitive"
+    },
+    {
+      "period": "2022-11",
+      "year": 2022,
+      "month": 11,
+      "travellers": 797320,
+      "overnight_stays": 1576062,
+      "travellers_residents_spain": 422362,
+      "travellers_residents_abroad": 374959,
+      "status": "definitive"
+    },
+    {
+      "period": "2022-12",
+      "year": 2022,
+      "month": 12,
+      "travellers": 751503,
+      "overnight_stays": 1519418,
+      "travellers_residents_spain": 431859,
+      "travellers_residents_abroad": 319644,
+      "status": "definitive"
+    },
+    {
+      "period": "2023-01",
+      "year": 2023,
+      "month": 1,
+      "travellers": 706148,
+      "overnight_stays": 1423856,
+      "travellers_residents_spain": 385292,
+      "travellers_residents_abroad": 320855,
+      "status": "definitive"
+    },
+    {
+      "period": "2023-02",
+      "year": 2023,
+      "month": 2,
+      "travellers": 699289,
+      "overnight_stays": 1385552,
+      "travellers_residents_spain": 375683,
+      "travellers_residents_abroad": 323606,
+      "status": "definitive"
+    },
+    {
+      "period": "2023-03",
+      "year": 2023,
+      "month": 3,
+      "travellers": 827537,
+      "overnight_stays": 1640433,
+      "travellers_residents_spain": 403141,
+      "travellers_residents_abroad": 424397,
+      "status": "definitive"
+    },
+    {
+      "period": "2023-04",
+      "year": 2023,
+      "month": 4,
+      "travellers": 830804,
+      "overnight_stays": 1794654,
+      "travellers_residents_spain": 366904,
+      "travellers_residents_abroad": 463901,
+      "status": "definitive"
+    },
+    {
+      "period": "2023-05",
+      "year": 2023,
+      "month": 5,
+      "travellers": 867986,
+      "overnight_stays": 1787950,
+      "travellers_residents_spain": 372370,
+      "travellers_residents_abroad": 495615,
+      "status": "definitive"
+    },
+    {
+      "period": "2023-06",
+      "year": 2023,
+      "month": 6,
+      "travellers": 896737,
+      "overnight_stays": 1771523,
+      "travellers_residents_spain": 403202,
+      "travellers_residents_abroad": 493535,
+      "status": "definitive"
+    },
+    {
+      "period": "2023-07",
+      "year": 2023,
+      "month": 7,
+      "travellers": 871880,
+      "overnight_stays": 1739807,
+      "travellers_residents_spain": 368060,
+      "travellers_residents_abroad": 503820,
+      "status": "definitive"
+    },
+    {
+      "period": "2023-08",
+      "year": 2023,
+      "month": 8,
+      "travellers": 767519,
+      "overnight_stays": 1548637,
+      "travellers_residents_spain": 301822,
+      "travellers_residents_abroad": 465697,
+      "status": "definitive"
+    },
+    {
+      "period": "2023-09",
+      "year": 2023,
+      "month": 9,
+      "travellers": 895330,
+      "overnight_stays": 1807563,
+      "travellers_residents_spain": 370580,
+      "travellers_residents_abroad": 524750,
+      "status": "definitive"
+    },
+    {
+      "period": "2023-10",
+      "year": 2023,
+      "month": 10,
+      "travellers": 871210,
+      "overnight_stays": 1815148,
+      "travellers_residents_spain": 350389,
+      "travellers_residents_abroad": 520821,
+      "status": "definitive"
+    },
+    {
+      "period": "2023-11",
+      "year": 2023,
+      "month": 11,
+      "travellers": 839137,
+      "overnight_stays": 1663020,
+      "travellers_residents_spain": 410791,
+      "travellers_residents_abroad": 428346,
+      "status": "definitive"
+    },
+    {
+      "period": "2023-12",
+      "year": 2023,
+      "month": 12,
+      "travellers": 827319,
+      "overnight_stays": 1649012,
+      "travellers_residents_spain": 451057,
+      "travellers_residents_abroad": 376262,
+      "status": "definitive"
+    },
+    {
+      "period": "2024-01",
+      "year": 2024,
+      "month": 1,
+      "travellers": 712112,
+      "overnight_stays": 1444251,
+      "travellers_residents_spain": 353484,
+      "travellers_residents_abroad": 358628,
+      "status": "definitive"
+    },
+    {
+      "period": "2024-02",
+      "year": 2024,
+      "month": 2,
+      "travellers": 763408,
+      "overnight_stays": 1513755,
+      "travellers_residents_spain": 386756,
+      "travellers_residents_abroad": 376651,
+      "status": "definitive"
+    },
+    {
+      "period": "2024-03",
+      "year": 2024,
+      "month": 3,
+      "travellers": 864200,
+      "overnight_stays": 1774984,
+      "travellers_residents_spain": 409967,
+      "travellers_residents_abroad": 454232,
+      "status": "definitive"
+    },
+    {
+      "period": "2024-04",
+      "year": 2024,
+      "month": 4,
+      "travellers": 872567,
+      "overnight_stays": 1791111,
+      "travellers_residents_spain": 339888,
+      "travellers_residents_abroad": 532679,
+      "status": "definitive"
+    },
+    {
+      "period": "2024-05",
+      "year": 2024,
+      "month": 5,
+      "travellers": 951160,
+      "overnight_stays": 1934947,
+      "travellers_residents_spain": 384688,
+      "travellers_residents_abroad": 566472,
+      "status": "definitive"
+    },
+    {
+      "period": "2024-06",
+      "year": 2024,
+      "month": 6,
+      "travellers": 919133,
+      "overnight_stays": 1806089,
+      "travellers_residents_spain": 403223,
+      "travellers_residents_abroad": 515911,
+      "status": "definitive"
+    },
+    {
+      "period": "2024-07",
+      "year": 2024,
+      "month": 7,
+      "travellers": 931900,
+      "overnight_stays": 1819368,
+      "travellers_residents_spain": 403740,
+      "travellers_residents_abroad": 528159,
+      "status": "definitive"
+    },
+    {
+      "period": "2024-08",
+      "year": 2024,
+      "month": 8,
+      "travellers": 798455,
+      "overnight_stays": 1596161,
+      "travellers_residents_spain": 314054,
+      "travellers_residents_abroad": 484401,
+      "status": "definitive"
+    },
+    {
+      "period": "2024-09",
+      "year": 2024,
+      "month": 9,
+      "travellers": 903955,
+      "overnight_stays": 1823998,
+      "travellers_residents_spain": 353658,
+      "travellers_residents_abroad": 550297,
+      "status": "definitive"
+    },
+    {
+      "period": "2024-10",
+      "year": 2024,
+      "month": 10,
+      "travellers": 952403,
+      "overnight_stays": 1955791,
+      "travellers_residents_spain": 377822,
+      "travellers_residents_abroad": 574581,
+      "status": "definitive"
+    },
+    {
+      "period": "2024-11",
+      "year": 2024,
+      "month": 11,
+      "travellers": 877799,
+      "overnight_stays": 1761910,
+      "travellers_residents_spain": 415543,
+      "travellers_residents_abroad": 462256,
+      "status": "definitive"
+    },
+    {
+      "period": "2024-12",
+      "year": 2024,
+      "month": 12,
+      "travellers": 833731,
+      "overnight_stays": 1681153,
+      "travellers_residents_spain": 432908,
+      "travellers_residents_abroad": 400823,
+      "status": "definitive"
+    },
+    {
+      "period": "2025-01",
+      "year": 2025,
+      "month": 1,
+      "travellers": 733253,
+      "overnight_stays": 1516991,
+      "travellers_residents_spain": 349440,
+      "travellers_residents_abroad": 383813,
+      "status": "definitive"
+    },
+    {
+      "period": "2025-02",
+      "year": 2025,
+      "month": 2,
+      "travellers": 742153,
+      "overnight_stays": 1483339,
+      "travellers_residents_spain": 362691,
+      "travellers_residents_abroad": 379463,
+      "status": "definitive"
+    },
+    {
+      "period": "2025-03",
+      "year": 2025,
+      "month": 3,
+      "travellers": 839086,
+      "overnight_stays": 1729341,
+      "travellers_residents_spain": 366356,
+      "travellers_residents_abroad": 472731,
+      "status": "definitive"
+    },
+    {
+      "period": "2025-04",
+      "year": 2025,
+      "month": 4,
+      "travellers": 884080,
+      "overnight_stays": 1920705,
+      "travellers_residents_spain": 345670,
+      "travellers_residents_abroad": 538409,
+      "status": "definitive"
+    },
+    {
+      "period": "2025-05",
+      "year": 2025,
+      "month": 5,
+      "travellers": 924949,
+      "overnight_stays": 1966477,
+      "travellers_residents_spain": 348274,
+      "travellers_residents_abroad": 576675,
+      "status": "definitive"
+    },
+    {
+      "period": "2025-06",
+      "year": 2025,
+      "month": 6,
+      "travellers": 911520,
+      "overnight_stays": 1850564,
+      "travellers_residents_spain": 363158,
+      "travellers_residents_abroad": 548362,
+      "status": "definitive"
+    },
+    {
+      "period": "2025-07",
+      "year": 2025,
+      "month": 7,
+      "travellers": 920353,
+      "overnight_stays": 1815417,
+      "travellers_residents_spain": 349203,
+      "travellers_residents_abroad": 571150,
+      "status": "definitive"
+    },
+    {
+      "period": "2025-08",
+      "year": 2025,
+      "month": 8,
+      "travellers": 782248,
+      "overnight_stays": 1623049,
+      "travellers_residents_spain": 276412,
+      "travellers_residents_abroad": 505836,
+      "status": "definitive"
+    },
+    {
+      "period": "2025-09",
+      "year": 2025,
+      "month": 9,
+      "travellers": 876157,
+      "overnight_stays": 1811989,
+      "travellers_residents_spain": 329287,
+      "travellers_residents_abroad": 546870,
+      "status": "definitive"
+    },
+    {
+      "period": "2025-10",
+      "year": 2025,
+      "month": 10,
+      "travellers": 952373,
+      "overnight_stays": 2013484,
+      "travellers_residents_spain": 332170,
+      "travellers_residents_abroad": 620203,
+      "status": "definitive"
+    },
+    {
+      "period": "2025-11",
+      "year": 2025,
+      "month": 11,
+      "travellers": 877713,
+      "overnight_stays": 1821867,
+      "travellers_residents_spain": 387134,
+      "travellers_residents_abroad": 490580,
+      "status": "definitive"
+    },
+    {
+      "period": "2025-12",
+      "year": 2025,
+      "month": 12,
+      "travellers": 871865,
+      "overnight_stays": 1762468,
+      "travellers_residents_spain": 433024,
+      "travellers_residents_abroad": 438842,
+      "status": "definitive"
+    },
+    {
+      "period": "2026-01",
+      "year": 2026,
+      "month": 1,
+      "travellers": 750863,
+      "overnight_stays": 1601749,
+      "travellers_residents_spain": 338026,
+      "travellers_residents_abroad": 412837,
+      "status": "provisional"
+    },
+    {
+      "period": "2026-02",
+      "year": 2026,
+      "month": 2,
+      "travellers": 775645,
+      "overnight_stays": 1540205,
+      "travellers_residents_spain": 352632,
+      "travellers_residents_abroad": 423014,
+      "status": "provisional"
+    },
+    {
+      "period": "2026-03",
+      "year": 2026,
+      "month": 3,
+      "travellers": 844368,
+      "overnight_stays": 1738164,
+      "travellers_residents_spain": 356144,
+      "travellers_residents_abroad": 488224,
+      "status": "provisional"
+    },
+    {
+      "period": "2026-04",
+      "year": 2026,
+      "month": 4,
+      "travellers": 907676,
+      "overnight_stays": 1938888,
+      "travellers_residents_spain": 338204,
+      "travellers_residents_abroad": 569473,
+      "status": "provisional"
+    },
+    {
+      "period": "2026-05",
+      "year": 2026,
+      "month": 5,
+      "travellers": 963865,
+      "overnight_stays": 1968434,
+      "travellers_residents_spain": 356685,
+      "travellers_residents_abroad": 607179,
+      "status": "provisional"
+    },
+    {
+      "period": "2026-06",
+      "year": 2026,
+      "month": 6,
+      "travellers": 946408,
+      "overnight_stays": 1871654,
+      "travellers_residents_spain": 404014,
+      "travellers_residents_abroad": 542394,
+      "status": "provisional"
+    },
+    {
+      "period": "2026-07",
+      "year": 2026,
+      "month": 7,
+      "travellers": 896552,
+      "overnight_stays": 1790426,
+      "travellers_residents_spain": 350094,
+      "travellers_residents_abroad": 546459,
+      "status": "provisional"
+    },
+    {
+      "period": "2026-08",
+      "year": 2026,
+      "month": 8,
+      "travellers": 867449,
+      "overnight_stays": 1708606,
+      "travellers_residents_spain": 320715,
+      "travellers_residents_abroad": 546734,
+      "status": "provisional"
+    }
+  ]
+}

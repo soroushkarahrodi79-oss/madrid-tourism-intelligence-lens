@@ -1021,6 +1021,205 @@ function validateLicenceCounts(source, artifact, meta, geography, geographyMeta,
 
 // ---------------------------------------------------------------- top level
 
+// Committed Destination Context series: monthly hotel demand for the municipality
+// of Madrid, from the official hotel occupancy survey. BLOCKING because these
+// figures are published to the reader with a year-over-year comparison.
+//
+// The failure mode this gate exists for is a CONFIDENT WRONG NUMBER UNDER A
+// CORRECT-LOOKING LABEL. Three specific ways that could happen, each checked
+// below:
+//
+//   1. The figures come from the WRONG STATISTICAL OPERATION. The publisher's
+//      tourist-point dimension also serves operation 239 (tourist apartments),
+//      whose series have IDENTICAL names and values roughly fifteen times
+//      smaller. The artifact must therefore carry the pinned operation-238
+//      series codes the registry declares.
+//   2. The GEOGRAPHY silently stops being the municipality. The whole module is
+//      gated on the tourist point being municipality 28079; if the artifact says
+//      anything else, the label in the interface becomes false.
+//   3. A SUPPRESSED MONTH BECOMES A ZERO. The source publishes a real zero for
+//      2020-04 and explicit nulls for 2020-05 and 2020-06. Collapsing those into
+//      each other would either invent demand or invent its absence.
+function validateDestinationSeries(source, artifact, meta, errors, warnings) {
+  const label = source.display_name;
+  const sink = source.blocks_deployment ? errors : warnings;
+  const localWarnings = [];
+
+  if (!artifact || typeof artifact !== "object" || !Array.isArray(artifact.observations)) {
+    sink.push(`${label}: ${source.artifact} is missing or has no observations array`);
+    return { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
+  }
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
+    sink.push(
+      `${label}: ${source.meta_artifact} is missing or is not an object. These figures are ` +
+        `user-facing, so the provenance that states what they measure - and what they do not ` +
+        `mean - is required to publish them.`
+    );
+  }
+
+  // (2) Geography. The municipal equivalence is the acceptance criterion this
+  // whole surface was gated on, so it is checked against the registry's own
+  // declared code rather than against a literal repeated here.
+  const expectedCode = source.expected_municipality_code;
+  const actualCode = artifact.geography?.municipality_code;
+  if (isNonEmptyString(expectedCode) && actualCode !== expectedCode) {
+    sink.push(
+      `${label}: artifact geography is municipality ${actualCode ?? "(absent)"}, but the registry ` +
+        `declares ${expectedCode}. The interface labels this figure as a municipality; publishing a ` +
+        `different geography under that label would make the label false.`
+    );
+  }
+  if (artifact.geography?.level !== "municipality") {
+    sink.push(
+      `${label}: artifact geography level is ${artifact.geography?.level ?? "(absent)"}, not ` +
+        `"municipality". This series must never be published as a sub-municipal figure.`
+    );
+  }
+
+  // (1) Provenance of the series themselves.
+  const declaredCodes = source.series_codes || {};
+  for (const [metric, code] of Object.entries(declaredCodes)) {
+    if (metric === "note") continue;
+    const actual = artifact.metrics?.[metric]?.series;
+    if (actual !== code) {
+      sink.push(
+        `${label}: metric "${metric}" is built from series ${actual ?? "(absent)"}, but the registry ` +
+          `pins ${code}. Statistical operation 239 publishes identically named series for tourist ` +
+          `apartments; a metric must not silently change which survey it reports.`
+      );
+    }
+  }
+  for (const [metric, definition] of Object.entries(artifact.metrics || {})) {
+    if (definition?.provenance !== "SOURCE_REPORTED") {
+      sink.push(
+        `${label}: metric "${metric}" declares provenance ${definition?.provenance ?? "(absent)"}. ` +
+          `Every published metric in this artifact is read from a source-published series; a derived ` +
+          `total would disagree with the publisher's own figure.`
+      );
+    }
+  }
+
+  // Observations: ordering, uniqueness, period form, numeric sanity.
+  const seen = new Set();
+  let previous = null;
+  let published = 0;
+  let suppressed = 0;
+
+  for (const observation of artifact.observations) {
+    const period = observation?.period;
+    if (typeof period !== "string" || !/^\d{4}-(0[1-9]|1[0-2])$/.test(period)) {
+      sink.push(`${label}: observation has an unparseable monthly period ${JSON.stringify(period)}`);
+      continue;
+    }
+    if (seen.has(period)) {
+      sink.push(`${label}: duplicate observation for ${period}`);
+      continue;
+    }
+    seen.add(period);
+    if (previous && period <= previous) {
+      sink.push(`${label}: observations are not in chronological order (${previous} then ${period})`);
+    }
+    previous = period;
+
+    if (observation.status !== "definitive" && observation.status !== "provisional") {
+      sink.push(
+        `${label}: ${period} carries status ${JSON.stringify(observation.status)}, which is neither ` +
+          `"definitive" nor "provisional"`
+      );
+    }
+
+    for (const metric of Object.keys(artifact.metrics || {})) {
+      const value = observation[metric];
+      if (value === null) {
+        // (3) A null is the publisher declining to publish. It must stay null.
+        suppressed += 1;
+        continue;
+      }
+      if (!isFiniteNumber(value)) {
+        sink.push(`${label}: ${period} has a non-numeric ${metric} (${JSON.stringify(value)})`);
+        continue;
+      }
+      if (value < 0) {
+        sink.push(`${label}: ${period} has a negative ${metric} (${value}), which these counts cannot be`);
+      }
+      published += 1;
+    }
+
+    // A composition that exceeds its own headline would mean the two are not the
+    // pair the interface presents them as.
+    const spain = observation.travellers_residents_spain;
+    const abroad = observation.travellers_residents_abroad;
+    const travellers = observation.travellers;
+    if (isFiniteNumber(spain) && isFiniteNumber(abroad) && isFiniteNumber(travellers)) {
+      // The publisher rounds each estimate independently, so the components sum
+      // to within +/-1 of the published total rather than exactly to it. A larger
+      // divergence means these are no longer the same month's figures.
+      if (Math.abs(spain + abroad - travellers) > 1) {
+        sink.push(
+          `${label}: ${period} residence components (${spain} + ${abroad}) diverge from the published ` +
+            `travellers total (${travellers}) by more than the publisher's rounding tolerance of 1`
+        );
+      }
+    }
+  }
+
+  const months = artifact.observations.length;
+  const guardrail = source.expected_counts || {};
+  if (isFiniteNumber(guardrail.months_minimum) && months < guardrail.months_minimum) {
+    sink.push(
+      `${label}: ${months} monthly observation(s), below the integrity floor of ` +
+        `${guardrail.months_minimum}. Assume a truncated or changed response rather than a shorter series.`
+    );
+  }
+
+  // The declared latest period must be the series' own last observation:
+  // the interface prints it as the headline period.
+  const declaredLatest = artifact.source_period?.latest;
+  const observedLatest = previous;
+  if (declaredLatest !== observedLatest) {
+    sink.push(
+      `${label}: source_period.latest is ${JSON.stringify(declaredLatest)} but the last observation is ` +
+        `${JSON.stringify(observedLatest)}. The interface prints this period as the period of the figure.`
+    );
+  }
+  const declaredStatus = artifact.source_period?.latest_status;
+  const observedStatus = artifact.observations[artifact.observations.length - 1]?.status;
+  if (declaredLatest === observedLatest && declaredStatus !== observedStatus) {
+    sink.push(
+      `${label}: source_period.latest_status is ${JSON.stringify(declaredStatus)} but ${observedLatest} ` +
+        `is ${JSON.stringify(observedStatus)}`
+    );
+  }
+
+  if (!isNonEmptyString(artifact.schema_fingerprint)) {
+    sink.push(
+      `${label}: the artifact carries no schema_fingerprint, so source schema drift could not be ` +
+        `distinguished from a legitimate refresh`
+    );
+  }
+  if (meta && artifact.schema_fingerprint !== meta.schema_fingerprint) {
+    sink.push(`${label}: artifact and sidecar schema fingerprints disagree`);
+  }
+
+  if (suppressed > 0) {
+    localWarnings.push(
+      `${suppressed} metric value(s) are published as null by the source and are shown as ` +
+        `unavailable rather than as zero`
+    );
+  }
+
+  return {
+    record_count: months,
+    state: months > 0 ? "available" : "unavailable",
+    // What the data DESCRIBE, never when we built. This source does expose a
+    // period, so unlike the licence layer it carries one.
+    source_period: isNonEmptyString(declaredLatest)
+      ? { latest_month: declaredLatest, status: declaredStatus ?? null, earliest_month: artifact.source_period?.earliest ?? null }
+      : null,
+    warnings: localWarnings,
+  };
+}
+
 function validateRuntimePoiStructure(runtimePoi, registry, errors) {
   // Only demanded when a registry source actually lives in this artifact, so a
   // registry scoped to committed evidence does not require a build artifact.
@@ -1134,6 +1333,15 @@ export function validateDeployment({
           warnings
         );
         break;
+      case "destination_demand_series":
+        result = validateDestinationSeries(
+          source,
+          artifacts[source.artifact],
+          artifacts[source.meta_artifact],
+          errors,
+          warnings
+        );
+        break;
       default:
         errors.push(`${source.display_name}: unknown shape "${source.shape}" in the source registry`);
         result = { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
@@ -1218,6 +1426,9 @@ const ARTIFACT_FILES = [
   // Committed licensed tourist-dwelling numerator (not rebuilt at deploy).
   "accommodation/madrid_vut_licences.json",
   "accommodation/madrid_vut_licences.meta.json",
+  // Committed city-level hotel-demand series (not rebuilt at deploy).
+  "destination/madrid_hotel_demand.json",
+  "destination/madrid_hotel_demand.meta.json",
 ];
 
 export function readArtifacts(dataDir) {

@@ -1,0 +1,111 @@
+{
+  "contract_version": "1.0.0",
+  "title": "Madrid hotel demand by month, official tourist point (municipality 28079)",
+  "artifact": "madrid_hotel_demand.json",
+  "source": {
+    "authority": "Instituto Nacional de Estadística (INE)",
+    "survey": "Encuesta de Ocupación Hotelera (EOH)",
+    "statistical_operation": 238,
+    "operation_name": "Encuesta de Ocupación Hotelera",
+    "api": "Tempus3 JSON API",
+    "api_root": "https://servicios.ine.es/wstempus/js/ES",
+    "endpoints": {
+      "series_metadata": "https://servicios.ine.es/wstempus/js/ES/SERIE/{COD}",
+      "series_data": "https://servicios.ine.es/wstempus/js/ES/DATOS_SERIE/{COD}?nult=600",
+      "tourist_point_values": "https://servicios.ine.es/wstempus/js/ES/VALORES_VARIABLEOPERACION/103/238"
+    },
+    "methodology": "https://www.ine.es/daco/daco42/ocuphotel/meto_eoh.pdf",
+    "redistributor_note": "Dataestur / API-SEGITTUR redistributes this same EOH series as XLSX through its EOH_PUNT_TUR_DL endpoint. This builder reads INE, the originating authority, directly, so the publisher's own provisional and confidentiality flags survive into the artifact instead of being flattened by a redistribution step.",
+    "license": "https://www.ine.es/aviso_legal",
+    "attribution": "Instituto Nacional de Estadística (INE)"
+  },
+  "geography": {
+    "source_term": "Punto turístico",
+    "source_value": "Madrid",
+    "resolved_level": "municipality",
+    "municipality_code": "28079",
+    "hard_gate_1": "PASS",
+    "evidence": [
+      "INE, Encuesta de Ocupación Hotelera, Metodología (edición 2025), section 5.12: \"PUNTO TURÍSTICO — Municipio donde la concentración de la oferta turística es significativa.\" A punto turístico is a municipality.",
+      "Section 5.13 defines \"ZONA TURÍSTICA\" separately as a \"Conjunto de municipios\", so a tourist point is not a multi-municipality aggregate.",
+      "INE Tempus3 metadata, variable 103 (PUNTOS TURISTÍCOS) under operation 238, publishes the value \"Madrid\" with Codigo \"28079\" — the official INE municipality code for Madrid.",
+      "data/geography/madrid_admin.geojson carries municipality official_id \"28079\", so the source geography is the same municipality the rest of the application uses."
+    ],
+    "ui_label_rule": "The interface names this geography as the municipality of Madrid AND keeps the publisher's own term visible. It is never shortened to a bare \"Madrid\" without saying which Madrid, and it is never attached to a barrio or a Lens circle."
+  },
+  "survey_definitions": {
+    "viajeros": "INE 5.4 VIAJEROS ENTRADOS: \"Todas aquellas personas que realizan una o más pernoctaciones seguidas en el mismo alojamiento.\" A traveller is counted per establishment stay, so one person staying in two hotels is counted twice. This is not a count of unique people and not a count of visitors to Madrid.",
+    "pernoctaciones": "INE 5.5 PERNOCTACIONES O PLAZAS OCUPADAS: \"cada noche que un viajero se aloja en el establecimiento.\"",
+    "residence": "INE classifies travellers by PLACE OF RESIDENCE: \"Residentes en España\" and \"Residentes en el extranjero\". This is residence, not nationality, and not a domestic/international tourist classification.",
+    "punto_turistico": "INE 5.12 PUNTO TURÍSTICO: \"Municipio donde la concentración de la oferta turística es significativa.\""
+  },
+  "series_pinned": {
+    "travellers": {
+      "cod": "EOT42434",
+      "verified_operation": 238,
+      "verified_unit": 213,
+      "source_name_observed": "Madrid. Viajero. Total categorías. Total. Dato."
+    },
+    "overnight_stays": {
+      "cod": "EOT42540",
+      "verified_operation": 238,
+      "verified_unit": 242,
+      "source_name_observed": "Madrid. Pernoctaciones. Total categorías. Total. Dato."
+    },
+    "travellers_residents_spain": {
+      "cod": "EOT2743",
+      "verified_operation": 238,
+      "verified_unit": 213,
+      "source_name_observed": "Nacional. Viajeros. Madrid. Residentes en España."
+    },
+    "travellers_residents_abroad": {
+      "cod": "EOT2744",
+      "verified_operation": 238,
+      "verified_unit": 213,
+      "source_name_observed": "Nacional. Viajeros. Madrid. Residentes en el extranjero."
+    }
+  },
+  "name_collision_hazard": {
+    "why_codes_not_names": "Querying the punto-turístico dimension returns series from operations 238 (Encuesta de Ocupación Hotelera), 239 (Encuesta de Ocupación en Apartamentos Turísticos) and 180 (Indicadores de Rentabilidad del Sector Hotelero). Operations 238 and 239 publish series with IDENTICAL names.",
+    "observed_example": "EOT2743 and EOT9411 are both named \"Nacional. Viajeros. Madrid. Residentes en España.\" but belong to operations 238 and 239 and reported 320,715 and 21,334 respectively for their latest published month.",
+    "guard": "Every series is pinned by code and its own FK_Operacion is verified to be 238 before use. A series that moves operation, changes unit or stops being monthly fails the build."
+  },
+  "totals_are_published_not_derived": {
+    "rule": "The travellers and overnight-stays totals are read from source-published series.",
+    "why": "The published total and the sum of its residence components disagree by ±1 in 32 of 105 traveller periods and 26 of 105 overnight-stay periods, because INE rounds each estimate independently. Summing the components would publish a number the source does not publish, so no total is ever derived by addition."
+  },
+  "temporal_contract": {
+    "observation_period": "the calendar month named by each observation's period field",
+    "publication_calendar": "INE publishes provisional results for a reference month around day 23 of the following month (methodology, section 9).",
+    "provisional_semantics": "Each observation carries the publisher's own FK_TipoDato, read back from INE's friendly form as \"Definitivo\" or \"Provisional\" and stored as status. Months of the current statistical year are published as provisional and are revised later. A same-month-previous-year comparison therefore routinely compares a provisional figure against a definitive one, and the interface says so.",
+    "series_start": "The source-published totals run contiguously from 2018-01. One isolated earlier observation (2007-01) exists upstream and is excluded as non-contiguous; the builder fails if the contiguous run's start moves.",
+    "four_dates_never_merged": [
+      "the month an observation describes",
+      "whether that month is definitive or provisional",
+      "INE's publication calendar",
+      "this builder's retrieved_at clock"
+    ]
+  },
+  "suppression_semantics": {
+    "rule": "Secreto=true observations carry Valor=null and keep their source note.",
+    "never_zero": "A suppressed or unavailable observation is null, never zero, and is never interpolated. Missing is not zero.",
+    "observed": "For Madrid, 2020-05 and 2020-06 are null with the source note \"Dato no disponible por cierre debido a crisis COVID19\".",
+    "statistical_secrecy_rule": "INE methodology section 10: information may be given for strata where the number of establishments open with movement is 4 or more."
+  },
+  "metrics_selected": {
+    "travellers": "EOT42434 · source-published total · unit Viajeros",
+    "overnight_stays": "EOT42540 · source-published total · unit Pernoctaciones",
+    "composition": "EOT2743 / EOT2744 · travellers by place of residence (Residentes en España / Residentes en el extranjero)"
+  },
+  "metrics_rejected_from_v1": {
+    "estancia_media": "a ratio of the two headline figures; adds a concept without adding a decision",
+    "grados_de_ocupacion": "three variants exist (por plazas, por habitaciones, fin de semana); all are supply-side capacity ratios rather than demand",
+    "establecimientos_plazas_habitaciones_personal": "supply-side counts; the evidence gap this module fills is temporal demand",
+    "adr_revpar": "operation 180 (Indicadores de Rentabilidad del Sector Hotelero), not the EOH, and hotel profitability rather than demand",
+    "tourist_apartment_series": "operation 239 (Encuesta de Ocupación en Apartamentos Turísticos) is a different survey with a different universe and must never be mixed into a hotel-demand figure"
+  },
+  "schema_fingerprint": "96f2968b9bf7eaf2e73774f248f6aa87c51e1b23110f2e50e37f3900878022ae",
+  "retrieved_at": "2026-09-30T14:04:49Z",
+  "builder": "scripts/build_destination_context.py",
+  "interpretation_ceiling": "Hotel-sector demand in the municipality of Madrid, as measured by the official INE hotel occupancy survey. It is NOT total tourism demand, NOT all accommodation, NOT all visitors to Madrid, and NOT a count of unique people: a traveller is counted once per establishment stay. It excludes tourist apartments, tourist dwellings (VUT), campsites, rural accommodation, day visitors and anyone staying in unpaid or private accommodation. It is NOT tourism pressure, overtourism, saturation, carrying capacity, tourism intensity or attractiveness, and it carries no explanation of why a figure changed. It describes the WHOLE MUNICIPALITY and must never be distributed into a barrio, a district or a Lens circle."
+}

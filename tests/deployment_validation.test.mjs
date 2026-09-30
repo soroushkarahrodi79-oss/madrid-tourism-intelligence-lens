@@ -38,6 +38,13 @@ function testRegistry() {
       source.expected_source_totals.licences = VUT_FIXTURE_TOTALS.licences;
       source.expected_source_totals.units = VUT_FIXTURE_TOTALS.units;
     }
+    // The series-length floor describes the real committed artifact, so it is
+    // re-aimed at the fixture's own short series here. The floor's behaviour is
+    // asserted on its own below, and the real number is asserted in
+    // "source registry is internally coherent".
+    if (source.expected_counts && source.expected_counts.months_minimum) {
+      source.expected_counts.months_minimum = 2;
+    }
   }
   return registry;
 }
@@ -312,6 +319,95 @@ function vutMeta() {
   };
 }
 
+// A small but structurally complete destination series: contiguous months, a
+// published residence split, one real zero and one suppressed month, so the
+// healthy build exercises the destination validator the way the real artifact
+// does. The real file is checked separately in "the committed evidence
+// artifacts satisfy the real registry".
+const DESTINATION_FIXTURE_MONTHS = 6;
+
+function destinationObservations() {
+  const records = [];
+  for (let i = 0; i < DESTINATION_FIXTURE_MONTHS; i += 1) {
+    const period = `2026-${String(i + 1).padStart(2, "0")}`;
+    // Month 3 is suppressed by the publisher; month 4 is a real published zero.
+    if (i === 2) {
+      records.push({
+        period,
+        year: 2026,
+        month: i + 1,
+        travellers: null,
+        overnight_stays: null,
+        travellers_residents_spain: null,
+        travellers_residents_abroad: null,
+        status: "definitive",
+        source_notes: ["Dato no disponible"],
+      });
+      continue;
+    }
+    const spain = i === 3 ? 0 : 400 + i;
+    const abroad = i === 3 ? 0 : 600 + i;
+    records.push({
+      period,
+      year: 2026,
+      month: i + 1,
+      travellers: spain + abroad,
+      overnight_stays: (spain + abroad) * 2,
+      travellers_residents_spain: spain,
+      travellers_residents_abroad: abroad,
+      status: i >= DESTINATION_FIXTURE_MONTHS - 2 ? "provisional" : "definitive",
+    });
+  }
+  return records;
+}
+
+function destinationArtifact() {
+  const observations = destinationObservations();
+  const last = observations[observations.length - 1];
+  return {
+    contract_version: "1.0.0",
+    geography: {
+      source_term: "Punto turistico",
+      source_value: "Madrid",
+      level: "municipality",
+      municipality_code: "28079",
+      municipality_name: "Madrid",
+      scope_note: "The whole municipality of Madrid. It describes no barrio and no Lens circle.",
+    },
+    source_period: {
+      granularity: "month",
+      earliest: observations[0].period,
+      latest: last.period,
+      latest_status: last.status,
+      count: observations.length,
+      semantics: "Each observation describes the calendar month named by its period.",
+    },
+    metrics: {
+      travellers: { series: "EOT42434", unit: "travellers", provenance: "SOURCE_REPORTED" },
+      overnight_stays: { series: "EOT42540", unit: "overnight stays", provenance: "SOURCE_REPORTED" },
+      travellers_residents_spain: { series: "EOT2743", unit: "travellers", provenance: "SOURCE_REPORTED" },
+      travellers_residents_abroad: { series: "EOT2744", unit: "travellers", provenance: "SOURCE_REPORTED" },
+    },
+    schema_fingerprint: "f".repeat(64),
+    observations,
+  };
+}
+
+function destinationMeta() {
+  return {
+    contract_version: "1.0.0",
+    source: {
+      authority: "Instituto Nacional de Estadistica (INE)",
+      survey: "Encuesta de Ocupacion Hotelera (EOH)",
+      statistical_operation: 238,
+    },
+    geography: { hard_gate_1: "PASS", municipality_code: "28079" },
+    schema_fingerprint: "f".repeat(64),
+    retrieved_at: GENERATED_AT,
+    interpretation_ceiling: "Hotel-sector demand only. NOT total tourism demand.",
+  };
+}
+
 function healthyArtifacts() {
   const layers = {
     museum: poiRecords("museum", 3),
@@ -378,6 +474,8 @@ function healthyArtifacts() {
     "population/madrid_population.meta.json": populationMeta(),
     "accommodation/madrid_vut_licences.json": vutArtifact(),
     "accommodation/madrid_vut_licences.meta.json": vutMeta(),
+    "destination/madrid_hotel_demand.json": destinationArtifact(),
+    "destination/madrid_hotel_demand.meta.json": destinationMeta(),
   };
 }
 
@@ -1451,6 +1549,12 @@ test("source registry is internally coherent", () => {
         // geography and the denominator) and from "context" (cartographic
         // context that is never a numerator).
         "administrative_context",
+        // A citywide official statistical series shown on its own surface.
+        // Distinct from "administrative_context" (an administrative fact about
+        // one official AREA the Lens is in) because it is a survey ESTIMATE for
+        // the whole municipality and is attached to no sub-municipal geography
+        // at all.
+        "destination_context",
       ].includes(source.role),
       `${source.id} has an unknown role`
     );
@@ -1462,6 +1566,7 @@ test("source registry is internally coherent", () => {
         "committed_reference_geography",
         "committed_reference_evidence",
         "committed_administrative_snapshot",
+        "committed_statistical_snapshot",
       ].includes(source.provenance_state),
       `${source.id} must declare a known provenance_state`
     );
@@ -1470,12 +1575,36 @@ test("source registry is internally coherent", () => {
       source.rebuilt_at_deploy === true,
       `${source.id}: provenance_state and rebuilt_at_deploy disagree`
     );
-    assert.ok(
-      REAL_REGISTRY.spatial_scopes[source.expected_spatial_scope],
-      `${source.id} references undefined scope ${source.expected_spatial_scope}`
-    );
+    // Every source that HAS a geometry must declare which envelope its records
+    // are expected to fall in. A source may declare null instead, but only by
+    // explaining why a spatial envelope would be meaningless for it - which is
+    // true of a citywide statistical series carrying no coordinates at all.
+    if (source.expected_spatial_scope === null) {
+      assert.ok(
+        source.spatial_scope_note,
+        `${source.id} declares no spatial scope and must explain why`
+      );
+    } else {
+      assert.ok(
+        REAL_REGISTRY.spatial_scopes[source.expected_spatial_scope],
+        `${source.id} references undefined scope ${source.expected_spatial_scope}`
+      );
+    }
 
-    if (["admin_geography", "admin_population", "admin_licence_counts"].includes(source.shape)) {
+    if (source.shape === "destination_demand_series") {
+      // A monthly series has neither an exact administrative-count contract nor
+      // a record-collapse floor: its integrity guardrail is a minimum series
+      // LENGTH, because the failure it guards against is a truncated download.
+      const counts = source.expected_counts;
+      assert.ok(counts, `${source.id} needs expected_counts`);
+      assert.ok(counts.months_minimum > 0, `${source.id} needs a months_minimum floor`);
+      assert.ok(
+        counts.months_minimum <= counts.baseline_months,
+        `${source.id} floor ${counts.months_minimum} must not exceed its baseline ${counts.baseline_months}`
+      );
+      assert.ok(counts.calibrated_on, `${source.id} guardrail needs a calibration date`);
+      assert.ok(counts.note, `${source.id} guardrail needs a stated rationale`);
+    } else if (["admin_geography", "admin_population", "admin_licence_counts"].includes(source.shape)) {
       // The administrative geography, the population denominator and the
       // licensed-VUT numerator have an exact-count contract, not a collapse
       // floor: they cover exactly the official number of districts and barrios,
@@ -1505,14 +1634,47 @@ test("source registry is internally coherent", () => {
 });
 
 test("the evidence vocabulary distinguishes a register from a licence", () => {
-  // The taxonomy is extended, not redesigned: one new family, added because a
-  // granted administrative ACT is not an enumerated administrative UNIVERSE and
-  // must not inherit the Padron's interpretation ceiling.
+  // The taxonomy is extended, not redesigned: each new family is added only
+  // because an existing one would MISLABEL the source.
+  //
+  //   ADMINISTRATIVE_REGISTER  an enumerated administrative universe (the Padron)
+  //   ADMINISTRATIVE_LICENSE   a granted administrative ACT, which is not a universe
+  //   OBSERVED                 located records observed in the world
+  //   MODEL-DERIVED            a model output, not a measurement
+  //   REFERENCE                join material: geography and identifiers
+  //   OFFICIAL_STATISTICAL_SERIES
+  //                            a SAMPLE-BASED ESTIMATE produced by an official
+  //                            statistical operation, carrying its own
+  //                            provisional/definitive revision status and its
+  //                            own statistical-confidentiality suppression. It
+  //                            is not a register: nobody is enumerated, and the
+  //                            publisher may withhold a value. It is not
+  //                            OBSERVED: it is an estimate, not a record. It is
+  //                            not MODEL-DERIVED: it comes from a statutory
+  //                            survey of real establishments, not a simulation.
   const families = new Set(REAL_REGISTRY.sources.map((s) => s.evidence_type));
   assert.deepEqual(
     [...families].sort(),
-    ["ADMINISTRATIVE_LICENSE", "ADMINISTRATIVE_REGISTER", "MODEL-DERIVED", "OBSERVED", "REFERENCE"]
+    [
+      "ADMINISTRATIVE_LICENSE",
+      "ADMINISTRATIVE_REGISTER",
+      "MODEL-DERIVED",
+      "OBSERVED",
+      "OFFICIAL_STATISTICAL_SERIES",
+      "REFERENCE",
+    ]
   );
+
+  const hotel = REAL_REGISTRY.sources.find((s) => s.id === "hotel_demand");
+  assert.equal(hotel.evidence_type, "OFFICIAL_STATISTICAL_SERIES");
+  // The two properties that make it a different family from everything above:
+  // a revision status per observation, and a publisher that may withhold.
+  assert.match(hotel.source_period_semantics, /Definitivo or Provisional/);
+  assert.match(hotel.zero_semantics, /NULL/);
+  assert.equal(hotel.rebuilt_at_deploy, false);
+  assert.equal(hotel.provenance_state, "committed_statistical_snapshot");
+  assert.match(hotel.deployment_source_role, /COMMITTED STATISTICAL SNAPSHOT/);
+  assert.match(hotel.deployment_source_role, /Nothing about this layer is live data/);
 
   const vut = REAL_REGISTRY.sources.find((s) => s.id === "vut_licences");
   const population = REAL_REGISTRY.sources.find((s) => s.id === "population");
@@ -1637,6 +1799,7 @@ test("exactly the layers a user-facing feature depends on block deployment", () 
     "bike",
     "geography",
     "hati",
+    "hotel_demand",
     "info",
     "museum",
     "population",
@@ -1673,6 +1836,18 @@ test("exactly the layers a user-facing feature depends on block deployment", () 
   const vut = REAL_REGISTRY.sources.find((s) => s.id === "vut_licences");
   assert.match(vut.blocks_deployment_note, /plausible-looking zero/);
   assert.match(vut.blocks_deployment_note, /degrades gracefully when a runtime fetch fails/);
+
+  // The destination series became a publication gate when the Destination
+  // Context surface began publishing citywide figures with a year-over-year
+  // comparison. Its runtime failure must be independent of every other surface.
+  const hotel = REAL_REGISTRY.sources.find((s) => s.id === "hotel_demand");
+  assert.equal(hotel.unavailable_is_allowed, false);
+  assert.match(hotel.blocks_deployment_note, /BLOCKING because the Destination Context surface/);
+  assert.match(hotel.blocks_deployment_note, /wrong statistical operation/);
+  assert.match(
+    hotel.blocks_deployment_note,
+    /leaving the Area Profile, the Lens metrics, VUT and HATI untouched/
+  );
 });
 
 test("the committed evidence artifacts satisfy the real registry", () => {
@@ -1686,7 +1861,7 @@ test("the committed evidence artifacts satisfy the real registry", () => {
   };
   assert.deepEqual(
     committedRegistry.sources.map((s) => s.id).sort(),
-    ["geography", "hati", "population", "snapshot_fallback", "vut_licences"],
+    ["geography", "hati", "hotel_demand", "population", "snapshot_fallback", "vut_licences"],
     "the set of committed, non-rebuilt sources changed; update this test deliberately"
   );
 
