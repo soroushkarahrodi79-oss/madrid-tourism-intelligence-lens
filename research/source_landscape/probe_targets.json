@@ -1,0 +1,137 @@
+{
+  "targets_contract_version": "1.1.0",
+  "purpose": "Gate C0 probe targets. Each entry is a HYPOTHESIS to be tested, not a verified fact: a target that 404s, returns a portal shell instead of data, or is refused by policy is a Gate C0 finding and is recorded as such by probe_sources.py.",
+  "proven_url_form_rule": "proven_url_form is true ONLY when THIS EXACT URL FORM has already been exercised successfully, either by a production builder in this repository or by a completed live Gate C0 probe, and `proven_by` must cite that evidence. A portal being reachable does not make one of its API actions proven, and a proven action on one path does not make a different path on the same host proven. Everything else is false until a live probe promotes it with evidence. Gate C0 may raise a flag to true only on the strength of a recorded successful response, never on the strength of a portal convention.",
+  "discovery_note": "Both Madrid portals expose CKAN Action APIs. `package_show` is proven on both (see the control targets). `package_search` is proven on NEITHER and is carried here as an untested hypothesis: it is the action that would make the audit systematic rather than a random walk through a web catalogue, which is exactly why it must be confirmed before it is relied upon.",
+  "targets": [
+    {
+      "id": "madrid_ckan_show_vut",
+      "family": "B",
+      "dataset": "Viviendas de uso turistico con licencia (already in Lens - CONTROL)",
+      "url": "https://datos.madrid.es/api/3/action/package_show?id=300694-0-viviendas-turisticas-geoportal",
+      "kind": "json",
+      "proven_url_form": true,
+      "proven_by": "production builder scripts/build_madrid_geography.py calls this exact package_show form against datos.madrid.es",
+      "probe_question": "CONTROL. Confirms the harness reproduces metadata for a source Gate B already verified, so a failure elsewhere can be attributed to that source rather than to the harness."
+    },
+    {
+      "id": "comunidad_ckan_show_control",
+      "family": "E",
+      "dataset": "Comunidad de Madrid CKAN package_show (CONTROL)",
+      "url": "https://datos.comunidad.madrid/api/3/action/package_show?id=alojamientos-turisticos",
+      "kind": "json",
+      "proven_url_form": true,
+      "proven_by": "research/accommodation_gate_b/audit_gate_b.py exercised this exact package_show form against datos.comunidad.madrid in the completed Gate B live audit",
+      "probe_question": "CONTROL for the Comunidad portal. The package_show ACTION is proven; the dataset id in this URL is not, so a 404 here means a wrong id, while a transport failure means the portal or the policy."
+    },
+    {
+      "id": "geoportal_sigma_limites_control",
+      "family": "C",
+      "dataset": "Geoportal Madrid / IDEAM administrative limits MapServer (CONTROL)",
+      "url": "https://sigma.madrid.es/hosted/rest/services/CARTOGRAFIA/LIMITES_ADMINISTRATIVOS/MapServer?f=pjson",
+      "kind": "esri",
+      "proven_url_form": true,
+      "proven_by": "production builder scripts/build_madrid_geography.py fetches this exact MapServer path; it is the source of the canonical barrio geography",
+      "probe_question": "CONTROL for the Sigma server. Proves the host answers before any unproven Sigma path is interpreted."
+    },
+    {
+      "id": "geoportal_sigma_rest_root",
+      "family": "C",
+      "dataset": "Geoportal Madrid / IDEAM ESRI REST services directory",
+      "url": "https://sigma.madrid.es/hosted/rest/services/?f=pjson",
+      "kind": "esri",
+      "proven_url_form": false,
+      "probe_question": "Does the ROOT directory listing enumerate service folders? The MapServer path below it is proven, but a server may serve a layer while refusing to list its catalogue. If it lists, which folders hold urban-heat-island, vegetation/green-strata and Callejero services?"
+    },
+    {
+      "id": "madrid_ckan_search_locales",
+      "family": "B",
+      "dataset": "datos.madrid.es CKAN search - censo de locales / actividades / terrazas",
+      "url": "https://datos.madrid.es/api/3/action/package_search?q=locales+terrazas&rows=25",
+      "kind": "json",
+      "proven_url_form": false,
+      "probe_question": "Is package_search available on this portal at all? If so, which datasets exist for premises, activities and terraces, with what ids, resource formats, update frequency and declared geography fields?"
+    },
+    {
+      "id": "madrid_ckan_search_arbolado",
+      "family": "B",
+      "dataset": "datos.madrid.es CKAN search - trees / green infrastructure",
+      "url": "https://datos.madrid.es/api/3/action/package_search?q=arbolado&rows=25",
+      "kind": "json",
+      "proven_url_form": false,
+      "probe_question": "Is there an official municipal tree inventory with coordinates, and at what completeness and update cadence?"
+    },
+    {
+      "id": "madrid_ckan_search_trafico",
+      "family": "B",
+      "dataset": "datos.madrid.es CKAN search - traffic and mobility intensity",
+      "url": "https://datos.madrid.es/api/3/action/package_search?q=tr%C3%A1fico+intensidad&rows=25",
+      "kind": "json",
+      "proven_url_form": false,
+      "probe_question": "What mobility evidence exists beyond the permanent pedestrian counters already in Lens, and would it extend rather than duplicate them?"
+    },
+    {
+      "id": "comunidad_ckan_search_turismo",
+      "family": "E",
+      "dataset": "datos.comunidad.madrid CKAN search - tourism establishments",
+      "url": "https://datos.comunidad.madrid/api/3/action/package_search?q=turismo&rows=25",
+      "kind": "json",
+      "proven_url_form": false,
+      "probe_question": "Is package_search available on the regional portal? If so, has NEW official documentation appeared that would materially resolve the Gate B Candidate B blockers (universe, unit of analysis, active/current semantics)? Absent that, Gate B stands unchanged."
+    },
+    {
+      "id": "dataestur_apidata_root",
+      "family": "A",
+      "dataset": "Dataestur API documentation index",
+      "url": "https://www.dataestur.es/apidata/",
+      "kind": "html",
+      "proven_url_form": false,
+      "probe_question": "Does this serve a machine-readable endpoint index, or a JavaScript shell requiring a browser? Are endpoint identifiers and an OpenAPI spec exposed?"
+    },
+    {
+      "id": "ine_wstempus_operaciones",
+      "family": "A",
+      "dataset": "INE Tempus3 JSON API - available statistical operations",
+      "url": "https://servicios.ine.es/wstempus/js/ES/OPERACIONES_DISPONIBLES",
+      "kind": "json",
+      "proven_url_form": false,
+      "probe_question": "Is the INE JSON API reachable without a key, and does it list the hotel-occupancy (EOH) and tourist-dwelling operations Gate C0 needs?"
+    },
+    {
+      "id": "ine_viviendas_turisticas_esri",
+      "family": "A",
+      "dataset": "INE experimental tourist-dwelling series (hosted ESRI FeatureServer)",
+      "url": "https://www.ine.es/servergis/rest/services/Hosted/Viviendas_tur%C3%ADsticas_2026M05/FeatureServer/1?f=pjson",
+      "kind": "esri",
+      "proven_url_form": false,
+      "probe_question": "What is the unit of analysis, the spatial granularity and the exact field list of the INE experimental VUT series? Does it reach municipality 28079, and is its geography municipal or a source-specific zone? This is a DIFFERENT universe from the municipal licensed VUT and must never be merged with it."
+    },
+    {
+      "id": "cnig_pnoa_wms_capabilities",
+      "family": "D",
+      "dataset": "IGN PNOA orthophotography WMS capabilities",
+      "url": "https://www.ign.es/wms-inspire/pnoa-ma?service=WMS&request=GetCapabilities",
+      "kind": "wms",
+      "proven_url_form": false,
+      "probe_question": "Which PNOA layers, CRS and time dimensions are advertised, and is there any bounded low-cost use, or is every candidate use LiDAR-scale preprocessing?"
+    },
+    {
+      "id": "insideairbnb_get_the_data",
+      "family": "F",
+      "dataset": "Inside Airbnb data and policy page",
+      "url": "https://insideairbnb.com/get-the-data/",
+      "kind": "html",
+      "proven_url_form": false,
+      "probe_question": "What are the current Madrid file set, snapshot date, stated data policy and republication terms, in the publisher's own words rather than a third-party summary? No raw microdata may be committed regardless of the answer."
+    },
+    {
+      "id": "aemet_opendata_root",
+      "family": "G",
+      "dataset": "AEMET OpenData API index",
+      "url": "https://opendata.aemet.es/dist/index.html",
+      "kind": "html",
+      "proven_url_form": false,
+      "probe_question": "Does AEMET require an API key (which Gate C0 forbids committing), and is any station-level Madrid series usable without one?"
+    }
+  ]
+}
