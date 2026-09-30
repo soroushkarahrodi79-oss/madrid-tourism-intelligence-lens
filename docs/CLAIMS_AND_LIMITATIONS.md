@@ -50,7 +50,10 @@ establish, measure, or infer:
 - Any accommodation-per-resident, hotels-per-1,000-residents, tourism-density
   or tourism-pressure figure — the application holds both an accommodation
   layer and a resident denominator, and deliberately computes no ratio between
-  them
+  them. A Gate A audit examined adding exactly this and ruled NO-GO: the
+  accommodation layer is a tourism-promotion catalogue, not an administrative
+  register, and cannot carry a per-resident ratio
+  ([ACCOMMODATION_NUMERATOR_AUDIT.md](ACCOMMODATION_NUMERATOR_AUDIT.md))
 - Daytime, present, working or visiting population — registered residents are
   persons on the municipal register at the reference date, not people at a
   place at a moment

@@ -125,7 +125,11 @@ does. Only the highlighted areas are labelled — never all 131 barrios.
 It introduces no indicator, no ratio, no density, no rank and no composite
 score. In particular it does **not** divide accommodation by residents: that
 requires numerator coverage and temporal comparability to be handled
-explicitly, and is deliberately out of scope here.
+explicitly, and is deliberately out of scope here. A Gate A audit of exactly
+that division ruled **NO-GO** on the current accommodation source — a
+tourism-promotion catalogue, not an administrative register — and records what
+an authoritative indicator would need instead: see
+[ACCOMMODATION_NUMERATOR_AUDIT.md](ACCOMMODATION_NUMERATOR_AUDIT.md).
 
 ## Lens statistics
 
