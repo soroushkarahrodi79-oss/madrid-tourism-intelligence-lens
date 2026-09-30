@@ -1,0 +1,188 @@
+{
+  "audit_started_at": "2026-09-30T09:52:52Z",
+  "audit_finished_at": "2026-09-30T09:53:10Z",
+  "note": "Counts are observations of one audit run against live official sources, not repository invariants and not integrity thresholds.",
+  "address_register": {
+    "dataset": "Callejero oficial del Ayuntamiento de Madrid (datos.madrid.es 213605)",
+    "resource": "direcciones vigentes",
+    "addresses": 214692,
+    "last_modified": "Mon, 28 Sep 2026 09:36:51 GMT",
+    "etag": "\"1790588211.4976518-34711400-2903512525\"",
+    "content_length": "34711400",
+    "sha256": "cbebc8e5c487c2e06aff3b4ca225295a5b213406c6b4fdb08e4bbd0a2830a67b",
+    "bytes": 34711400,
+    "url": "https://datos.madrid.es/dataset/213605-0-callejero-oficial-madrid/resource/213605-4-callejero-oficial-madrid-csv/download/direccionesvigentes_20260927.csv",
+    "catalogue_metadata_modified": "2026-09-28T00:00:00"
+  },
+  "candidate_b": {
+    "candidate": "B",
+    "dataset": {
+      "title": "Alojamientos turísticos de la Comunidad de Madrid",
+      "dataset_id": "alojamientos_turisticos",
+      "catalogue": "https://datos.comunidad.madrid/dataset/alojamientos_turisticos",
+      "publisher": "Comunidad de Madrid",
+      "responsible_unit": "Dirección General de Turismo y Hostelería",
+      "consejeria": "Cultura, Turismo y Deportes",
+      "license": "Creative Commons Attribution",
+      "update_frequency": "SEMANAL",
+      "geographic_coverage": "TODA la Comunidad de Madrid",
+      "temporal_coverage_declared": null,
+      "catalogue_metadata_modified": "2026-09-28T05:11:06.026842",
+      "self_description": "Alojamientos turísticos en sus diferentes modalidades y categorias de la Comunidad de Madrid",
+      "documentation_resource_published": false,
+      "universe_statement_published": false,
+      "universe_note": "The dataset states no legal universe, no active/inactive semantics and no reference period. That a registry is meant is inferred only from the sibling declarations dataset, which describes itself as VUT 'sin inscripcion en el Registro de Empresas Turisticas'. An inference is not a source contract."
+    },
+    "resources": {
+      "json": {
+        "url": "https://datos.comunidad.madrid/dataset/ef437c50-5b26-4843-92c3-d8eef5507fac/resource/20237d3a-718f-4179-9631-fc2f4a9fe566/download/alojamientos_turisticos.json",
+        "last_modified": "Mon, 28 Sep 2026 05:11:02 GMT",
+        "etag": "\"1790572262.54-4480686-337646792\"",
+        "content_length": "4480686",
+        "sha256": "879712ee9ef9fc43bf0596e0ff5eb96717fff577d3ff862d5f25096c1a02469f",
+        "bytes": 4480686
+      },
+      "csv": {
+        "url": "https://datos.comunidad.madrid/dataset/ef437c50-5b26-4843-92c3-d8eef5507fac/resource/260e80ac-2062-41f6-9f96-4902675b1078/download/alojamientos_turisticos.csv",
+        "last_modified": "Mon, 28 Sep 2026 05:11:07 GMT",
+        "etag": "\"1790572267.87-912353-332272686\"",
+        "content_length": "912353",
+        "sha256": "19687d661e6c1a15f2463b405583ac20a0904200cb4cf804c4b90658265fb8ed",
+        "bytes": 912353
+      }
+    },
+    "records": {
+      "json_rows": 8811,
+      "csv_rows": 8811,
+      "csv_json_agree": true,
+      "fields": [
+        "alojamiento_tipo",
+        "categoria",
+        "denominacion",
+        "via_tipo",
+        "via_nombre",
+        "numero",
+        "bloque",
+        "portal",
+        "escalera",
+        "planta",
+        "puerta",
+        "cdpostal",
+        "localidad",
+        "signatura"
+      ]
+    },
+    "madrid_selection": {
+      "rule": "localidad == 'Madrid' (exact equality)",
+      "madrid_records": 6501,
+      "distinct_localidad_values": 170,
+      "values_containing_madrid": {
+        "Humanes de Madrid": 7,
+        "Madrid": 6501,
+        "Rivas-Vaciamadrid": 26,
+        "Rozas de Madrid, Las": 24
+      },
+      "naive_substring_match_would_return": 6558,
+      "naive_substring_overcount": 57,
+      "municipality_code_field_published": false,
+      "note": "localidad is free text with no INE municipality code. Exact equality is correct on the observed values; a substring rule would wrongly absorb three other municipalities."
+    },
+    "identity": {
+      "key": "signatura",
+      "rows": 8811,
+      "unique": 8811,
+      "blank": 0,
+      "prefixes": {
+        "VT": 6365,
+        "HM": 1715,
+        "TR": 343,
+        "AM": 286,
+        "HH": 82,
+        "CM": 20
+      }
+    },
+    "taxonomy_madrid": {
+      "alojamiento_tipo": {
+        "'VIVIENDAS DE USO TU '": 4987,
+        "'CASA HUESPEDES'": 350,
+        "'HOTEL'": 340,
+        "'HOSTAL'": 312,
+        "'APART-TURISTICO'": 213,
+        "'PENSION'": 196,
+        "'HOSTERIAS'": 75,
+        "'HOTEL-APART.'": 27,
+        "'CAMPING'": 1
+      },
+      "categoria": {
+        "SIN CATEGORIA": 5063,
+        "CASA HUESPEDES": 350,
+        "4-HOTEL": 167,
+        "1-APART-TURISTICO": 138,
+        "2-HOSTAL": 136,
+        "1-PENSION": 136,
+        "1-HOSTAL": 112,
+        "3-HOTEL": 69,
+        "3-HOSTAL": 64,
+        "2-PENSION": 45,
+        "5-HOTEL": 37,
+        "2-APART-TURISTICO": 37,
+        "2-HOTEL": 34,
+        "3-APART-TURISTICO": 31,
+        "1-HOTEL": 25,
+        "3-PENSION": 15,
+        "1-HOTEL-APART.": 14,
+        "5 estrellas L": 8,
+        "2-HOTEL-APART.": 6,
+        "4-APART-TURISTICO": 6,
+        "4-HOTEL-APART.": 4,
+        "3-HOTEL-APART.": 3,
+        "3-CAMPING": 1
+      },
+      "truncation_note": "alojamiento_tipo is truncated to 20 characters: the VUT value is literally 'VIVIENDAS DE USO TU ' with a trailing space, so an equality filter on the full phrase returns nothing."
+    },
+    "unit_of_analysis": {
+      "documented": false,
+      "observed": "Mixed granularity. VT rows carry floor and door and describe individual dwellings; HM/AM rows describe whole establishments. One record is one registry entry, not uniformly one establishment."
+    },
+    "address_quality_madrid": {
+      "via_tipo": 6501,
+      "via_nombre": 6499,
+      "numero": 6496,
+      "bloque": 45,
+      "portal": 249,
+      "escalera": 691,
+      "planta": 5674,
+      "puerta": 5159,
+      "cdpostal": 6103
+    },
+    "duplicates_madrid": {
+      "identical_full_address_groups": 52,
+      "buildings_with_more_than_one_record": 876,
+      "blank_denominacion": 1260,
+      "note": "Address-based deduplication would be wrong: the puerta/escalera fields are truncated by the source, so distinct dwellings collapse onto an identical structured address while their denominacion still distinguishes them. Identity must come from signatura."
+    },
+    "barrio_reconciliation": {
+      "method": "Deterministic join to the official municipal address register (datos.madrid.es 213605, 'direcciones vigentes'), which publishes an official barrio code per address. No commercial geocoder and no fuzzy matching.",
+      "outcomes": {
+        "exact_portal": 6437,
+        "street_not_found_in_register": 28,
+        "portal_match_ignoring_via_class": 17,
+        "street_lies_in_one_barrio": 11,
+        "street_spans_several_barrios": 6,
+        "no_street_name": 2
+      },
+      "resolved_to_single_barrio": 6465,
+      "records": 6501,
+      "resolution_rate": 0.9945,
+      "barrios_represented": 119,
+      "unmapped_via_types": {}
+    },
+    "temporal": {
+      "reference_date_field_published": false,
+      "temporal_coverage_declared": null,
+      "resource_last_modified": "Mon, 28 Sep 2026 05:11:02 GMT",
+      "historical_snapshots_published": false,
+      "note": "No record carries a date. The file is overwritten weekly and no archive is published, so a past state cannot be reconstructed or re-verified."
+    }
+  }
+}

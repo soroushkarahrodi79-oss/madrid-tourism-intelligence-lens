@@ -188,4 +188,11 @@ denominator.
 - **Identity by source ID.** The builder deduplicates by name+coordinates; the
   unique `id` attribute is the authoritative key and should replace it when the
   layer is next touched.
-- **Gate B** on Candidate A and/or Candidate B, and any indicator that follows.
+- ~~**Gate B** on Candidate A and/or Candidate B~~ — **done**, see
+  [ACCOMMODATION_NUMERATOR_GATE_B.md](ACCOMMODATION_NUMERATOR_GATE_B.md):
+  **GO** for Candidate A (municipal licensed-VUT activity licences, reconciled
+  1025/1025 to canonical barrios), **MODIFY** for Candidate B (barrio
+  reconciliation solved at 99.45% against the official municipal address
+  register, but the source publishes no universe definition and no period).
+  Gate B builds a numerator-only artifact and still publishes no ratio.
+- Any indicator that follows from that numerator.

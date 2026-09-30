@@ -1,0 +1,222 @@
+{
+  "audit_started_at": "2026-09-30T09:52:52Z",
+  "audit_finished_at": "2026-09-30T09:53:10Z",
+  "note": "Counts are observations of one audit run against live official sources, not repository invariants and not integrity thresholds.",
+  "address_register": {
+    "dataset": "Callejero oficial del Ayuntamiento de Madrid (datos.madrid.es 213605)",
+    "resource": "direcciones vigentes",
+    "addresses": 214692,
+    "last_modified": "Mon, 28 Sep 2026 09:36:51 GMT",
+    "etag": "\"1790588211.4976518-34711400-2903512525\"",
+    "content_length": "34711400",
+    "sha256": "cbebc8e5c487c2e06aff3b4ca225295a5b213406c6b4fdb08e4bbd0a2830a67b",
+    "bytes": 34711400,
+    "url": "https://datos.madrid.es/dataset/213605-0-callejero-oficial-madrid/resource/213605-4-callejero-oficial-madrid-csv/download/direccionesvigentes_20260927.csv",
+    "catalogue_metadata_modified": "2026-09-28T00:00:00"
+  },
+  "candidate_a": {
+    "candidate": "A",
+    "dataset": {
+      "title": "Viviendas de uso turístico con licencia",
+      "dataset_id": "300694-0-viviendas-turisticas-geoportal",
+      "catalogue": "https://datos.madrid.es/dataset/300694-0-viviendas-turisticas-geoportal",
+      "publisher": "Ayuntamiento de Madrid",
+      "responsible_unit": "Agencia de Actividades - Subdireccion General de Actividades Economicas - Servicio de Licencias y Consultas (per the dataset's own structure document)",
+      "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+      "update_frequency": "https://publications.europa.eu/resource/authority/frequency/BIMONTHLY",
+      "catalogue_metadata_modified": "2026-07-24T00:00:00",
+      "documentation_resource_published": true
+    },
+    "resources": {
+      "xlsx": {
+        "url": "https://geoportal.madrid.es/fsdescargas/IDEAM_WBGEOPORTAL/VIVIENDA/VIVIENDAS_TURISTICAS/VIVIENDAS_USO_TURISTICO.xlsx",
+        "last_modified": "Mon, 07 Sep 2026 10:11:03 GMT",
+        "etag": "\"1979c-65ae1d5e8aabc\"",
+        "content_length": "104348",
+        "sha256": "96b1d2349ce282d3752a62186020aed1163ddd1b81a55f5ed5dd0bea03ed9045",
+        "bytes": 104348
+      },
+      "shp_zip": {
+        "url": "https://geoportal.madrid.es/fsdescargas/IDEAM_WBGEOPORTAL/VIVIENDA/VIVIENDAS_TURISTICAS/VIVIENDAS_USO_TURISTICO.zip",
+        "last_modified": "Mon, 07 Sep 2026 10:09:10 GMT",
+        "etag": "\"11c68-65ae1cf347741\"",
+        "content_length": "72808",
+        "sha256": "7463ab7af3169ef0e0f5a4689e4a19d3ebd3220378ca071c899b164f4dbc2a41",
+        "bytes": 72808
+      }
+    },
+    "schema": {
+      "xlsx_columns": [
+        "COD_NDP",
+        "DECRETO_LU",
+        "DISTRITO",
+        "DIRECCION",
+        "PLANTA",
+        "UNIDADES_VUT",
+        "EXPEDIENTE_LU",
+        "TIPO",
+        "RESOLUCION_LU",
+        "EXPEDIENTE_LF",
+        "DECRETO  LF",
+        "RESOLUCION_LF"
+      ],
+      "dbf_columns": [
+        "DECRETO_LU",
+        "DECRETO__L",
+        "DIRECCION",
+        "DISTRITO",
+        "EXPEDIENTE",
+        "EXPEDIEN_1",
+        "PLANTA",
+        "RESOLUCION",
+        "RESOLUCI_1",
+        "UNIDADES_V"
+      ],
+      "note": "The XLSX carries COD_NDP (official municipal address code) and TIPO, which the structure document does not list; the SHP carries the funcionamiento-licence fields. Header labels for the two trailing XLSX columns are transposed relative to their content."
+    },
+    "records": {
+      "xlsx_populated_rows": 1027,
+      "xlsx_licence_rows": 1025,
+      "xlsx_trailer_rows_dropped": 2,
+      "trailer_note": "The workbook ends with publisher COUNTIF/SUM formula rows over the data range. Counting populated rows, or summing the unit column over the sheet, would overstate the numerator.",
+      "dbf_records": 1025,
+      "shp_geometries": 1025,
+      "null_geometries": 0,
+      "xlsx_shp_expediente_sets_identical": true,
+      "row_order_matches_between_resources": 1,
+      "row_order_note": "The resources are published in different row orders, so they must be joined by EXPEDIENTE, not positionally."
+    },
+    "unit_of_analysis": {
+      "documented_row": "one granted urban-planning activity licence (expediente)",
+      "documented_n_vut": "numero de unidades de viviendas de uso turistico incluidas en cada licencia urbanistica de actividad",
+      "licences": 1025,
+      "vut_units": 1483,
+      "units_per_licence_distribution": {
+        "1": 830,
+        "2": 108,
+        "3": 47,
+        "4": 15,
+        "5": 11,
+        "6": 1,
+        "7": 3,
+        "8": 1,
+        "9": 2,
+        "10": 2,
+        "11": 2,
+        "17": 1,
+        "21": 1,
+        "48": 1
+      },
+      "max_units_in_one_licence": 48
+    },
+    "identity": {
+      "key": "EXPEDIENTE_LU",
+      "rows": 1025,
+      "unique": 1025,
+      "blank": 0,
+      "funcionamiento_expedientes_present": 878,
+      "funcionamiento_expedientes_unique": 854,
+      "funcionamiento_note": "One funcionamiento expediente can cover several activity licences, so it is not a record identity."
+    },
+    "duplicates": {
+      "unique_official_address_codes": 865,
+      "addresses_with_more_than_one_licence": 110,
+      "max_licences_at_one_address": 10,
+      "unique_coordinates": 865,
+      "interpretation": "Unique coordinates equal unique official address codes: geometry is published at address granularity, and several licences at one address are distinct licences, not duplicates."
+    },
+    "grant_decision": {
+      "Conceder": 1025
+    },
+    "temporal": {
+      "reference_date_field_published": false,
+      "resource_last_modified": "Mon, 07 Sep 2026 10:11:03 GMT",
+      "records_with_grant_date": 1025,
+      "earliest_grant_date": "2019-03-06",
+      "latest_grant_date": "2026-09-02",
+      "by_year": {
+        "2019": 4,
+        "2020": 56,
+        "2021": 80,
+        "2022": 133,
+        "2023": 371,
+        "2024": 180,
+        "2025": 145,
+        "2026": 56
+      }
+    },
+    "geography": {
+      "source_crs_declared": "EPSG:25830",
+      "records_with_geometry": 1025,
+      "inside_municipality": 1025,
+      "resolved_to_barrio": 1025,
+      "barrios_represented": 106,
+      "barrios_total": 131,
+      "district_label_disagreements": [
+        {
+          "expediente": "500/2020/00137",
+          "source_label": "Distrito de Centro",
+          "geometry_district": "21 Barajas",
+          "geometry_barrio": "214 Timón"
+        }
+      ],
+      "address_register_cross_check": {
+        "method": "COD_NDP looked up in the official municipal address register, which publishes its own DISTRITO/BARRIO codes derived from the address rather than from geometry.",
+        "unresolved_in_register": 0,
+        "barrio_disagreements": 0
+      }
+    },
+    "top_barrios_by_units": [
+      {
+        "barrio": "012",
+        "licences": 69,
+        "units": 80
+      },
+      {
+        "barrio": "152",
+        "licences": 43,
+        "units": 59
+      },
+      {
+        "barrio": "015",
+        "licences": 40,
+        "units": 56
+      },
+      {
+        "barrio": "052",
+        "licences": 17,
+        "units": 50
+      },
+      {
+        "barrio": "044",
+        "licences": 27,
+        "units": 48
+      },
+      {
+        "barrio": "095",
+        "licences": 1,
+        "units": 48
+      },
+      {
+        "barrio": "151",
+        "licences": 35,
+        "units": 44
+      },
+      {
+        "barrio": "011",
+        "licences": 36,
+        "units": 42
+      },
+      {
+        "barrio": "066",
+        "licences": 21,
+        "units": 41
+      },
+      {
+        "barrio": "065",
+        "licences": 26,
+        "units": 39
+      }
+    ]
+  }
+}
