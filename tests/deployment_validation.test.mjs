@@ -475,7 +475,7 @@ test("a non-authoritative accommodation source fails the build", () => {
   const result = run(artifacts);
   assert.equal(result.ok, false);
   assert.match(errorText(result), /does not identify an authoritative source/);
-  assert.match(errorText(result), /must not be published as the official accommodation deployment artifact/);
+  assert.match(errorText(result), /must not be published as the Madrid Destino accommodation deployment artifact/);
 });
 
 test("an accommodation artifact with no source attribution fails the build", () => {
@@ -1002,6 +1002,22 @@ test("the accommodation scope is named and described as city-and-surroundings, n
   const serialised = JSON.stringify(REAL_REGISTRY);
   assert.doesNotMatch(serialised, /feed is regional/);
   assert.match(stay.interpretation_ceiling, /neither a strictly municipal register nor a Comunidad de Madrid one/);
+});
+
+test("the accommodation catalogue is not presented as an official register", () => {
+  // Gate A (docs/ACCOMMODATION_NUMERATOR_AUDIT.md) established that this feed is
+  // a Madrid Destino tourism-promotion catalogue, not an administrative
+  // register. The deployed evidence contract must not overclaim it: no
+  // "Official …" name and no "registered establishments" ceiling.
+  const stay = REAL_REGISTRY.sources.find((s) => s.id === "stay");
+  assert.doesNotMatch(stay.display_name, /^Official/i);
+  assert.match(stay.display_name, /catalogue|listings/i);
+  assert.doesNotMatch(stay.interpretation_ceiling, /registered establishment/i);
+  assert.doesNotMatch(stay.interpretation_ceiling, /count of registered/i);
+  assert.match(stay.interpretation_ceiling, /not a complete administrative register/i);
+  // The Gate A correction relabels the presentation only; the evidence class is
+  // unchanged pending a separate evidence-taxonomy analysis.
+  assert.equal(stay.evidence_type, "OBSERVED");
 });
 
 test("the packaged fallback declares mixed provenance and points at its record", () => {

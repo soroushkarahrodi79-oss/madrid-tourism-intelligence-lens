@@ -32,8 +32,8 @@ including comparing two places at once.
   lens, explicitly labelled as pedestrian rather than tourist activity.
 - Optionally show the official **Principal parks** context layer; it is map context only and never enters lens metrics.
 - Opt into the bounded HATI research-evidence layer, then switch its modelled time-of-day (12:00 / 15:00 / 18:00).
-- Filter the official accommodation layer by accommodation type where the
-  Madrid Destino feed provides that classification.
+- Filter the accommodation layer by accommodation type where the
+  Madrid Destino catalogue provides that classification.
 - Read descriptive counts, category mix, and the 5 nearest features inside
   the active lens.
 - Read the **Area Profile**: the official barrio and district containing the
@@ -47,7 +47,8 @@ including comparing two places at once.
 ## 4. Which datasets are used?
 
 - **Museums** and **tourist information** — Madrid Open Data
-- **Accommodation** — Madrid Destino / esmadrid.com official accommodation feed,
+- **Accommodation** — Madrid Destino / esmadrid.com accommodation catalogue
+  (tourism listings, not an administrative register),
   including its published accommodation type/category fields when present
 - **BiciMAD** — EMT Madrid open data
 - **Metro & Cercanías stations** — CRTM open data (M4 and M5 station layers)

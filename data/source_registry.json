@@ -146,7 +146,7 @@
     },
     {
       "id": "stay",
-      "display_name": "Official accommodation establishments",
+      "display_name": "Accommodation listings (Madrid Destino tourism catalogue)",
       "authority": "Madrid Destino / esmadrid.com",
       "dataset_url": "https://www.esmadrid.com/opendata/alojamientos_v1_es.xml",
       "artifact": "runtime_poi.json",
@@ -160,13 +160,13 @@
       "expected_spatial_scope": "madrid_city_and_surroundings_feed_area",
       "warn_outside_scope": "madrid_city_area",
       "source_period_exposed_by_source": false,
-      "source_period_semantics": "Register state at the moment of retrieval. The XML feed publishes no edition date.",
+      "source_period_semantics": "Catalogue state at the moment of retrieval. The XML feed publishes no edition or effective date.",
       "unique_ids": true,
       "authoritative_builder": {
         "status_field": "source",
         "must_include_any": ["esmadrid", "Madrid Destino"],
         "must_not_include_any": ["OpenStreetMap", "Overpass", "OSM"],
-        "note": "Guards the owner ruling that Madrid Destino / authoritative public evidence stays canonical for accommodation. A deployment artifact whose accommodation layer was produced by the browser's OpenStreetMap/Overpass path must not be published as an official deployment snapshot. This check inspects the artifact only; the browser-side runtime fallback in js/data.js is a separate behaviour change and is untouched here."
+        "note": "Guards the owner ruling that the Madrid Destino / esMADRID published catalogue remains the canonical source for this operational accommodation layer. A deployment artifact whose accommodation layer was produced by the browser's OpenStreetMap/Overpass fallback must not be published as if it came from the Madrid Destino catalogue. This check inspects the artifact only; the browser-side runtime fallback in js/data.js is a separate behaviour change and is untouched here."
       },
       "taxonomy": {
         "category_field": "accommodationCategory",
@@ -180,9 +180,9 @@
         "min_count": 250,
         "baseline_count": 613,
         "calibrated_on": "2026-09-29",
-        "rationale": "~41% of the observed count. Tolerates real register churn; catches a truncated XML parse."
+        "rationale": "~41% of the observed count. Tolerates real catalogue churn; catches a truncated XML parse."
       },
-      "interpretation_ceiling": "A count of registered establishments. NOT accommodation capacity, beds, places or rooms: a 300-room hotel and a 4-room pension each count as one. Says nothing about occupancy, price, legal status or unregistered supply. Published as 'Alojamientos de la ciudad de Madrid', covering the city of Madrid and its surroundings, so it is neither a strictly municipal register nor a Comunidad de Madrid one, and must not be used as a regional dataset."
+      "interpretation_ceiling": "Accommodation listings curated and published by Madrid Destino / esMADRID, taken as a deployment snapshot of the published XML catalogue and counted one per listing. This is a tourism-promotion catalogue, NOT a complete administrative register of accommodation. It is NOT accommodation capacity, beds, places or rooms (a 300-room hotel and a 4-room pension each count as one); NOT occupancy, price or legal status; NOT the complete municipal accommodation stock and NOT regional stock. Its catalogue universe is heterogeneous and includes objects such as university residences and campsites. Published as 'Alojamientos de la ciudad de Madrid', covering the city of Madrid and its surroundings, so it is neither a strictly municipal register nor a Comunidad de Madrid one, and must not be used as a regional dataset. See docs/ACCOMMODATION_NUMERATOR_AUDIT.md (Gate A)."
     },
     {
       "id": "park",

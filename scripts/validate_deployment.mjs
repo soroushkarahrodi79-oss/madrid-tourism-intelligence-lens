@@ -198,7 +198,7 @@ function validatePoiLayer(source, runtimePoi, scopes, errors, warnings) {
       if (value.toLowerCase().includes(forbidden.toLowerCase())) {
         sink.push(
           `${label}: status.${source.id}.${rule.status_field} names "${forbidden}". A non-authoritative source must not ` +
-            `be published as the official accommodation deployment artifact.`
+            `be published as the Madrid Destino accommodation deployment artifact.`
         );
       }
     }
