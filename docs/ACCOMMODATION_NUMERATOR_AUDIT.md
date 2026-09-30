@@ -1,144 +1,190 @@
 # Accommodation numerator audit — Gate A
 
-**Verdict: NO-GO.** The current accommodation source cannot support a defensible
-barrio-level *accommodation-per-registered-resident* indicator. No such ratio is
-implemented. This document records why, what stays valid, and what an
-authoritative indicator would need.
+**Verdict: NO-GO for building an administrative accommodation-per-registered-resident
+indicator from the *current* Madrid Destino / esMADRID `stay` catalogue.**
+
+This is **not** a NO-GO for any accommodation-vs-resident indicator in Madrid.
+That question stays open, pending a feasibility gate on an authoritative source
+(see *Path forward*). No indicator, ratio, layer, ranking or score is
+implemented here.
 
 - **Question examined:** should the application add a first administrative
-  tourism-context indicator of the shape
-  *registered accommodation establishments per 1,000 registered residents*, at
-  barrio level, joining the accommodation layer to the Padrón denominator?
+  tourism-context indicator of the shape *accommodation establishments per 1,000
+  registered residents*, at barrio level, joining the accommodation layer to the
+  Padrón denominator?
 - **Base:** `main` @ `2c7f720` (after PR #27, Area Profile). Test + Deploy green.
-- **Date of audit:** 30 September 2026.
-- **Scope:** methodology only. This audit writes no indicator artifact, changes
-  no deployment gate, and leaves the accommodation (`stay`) layer exactly as it
-  is: an operational map layer.
+- **Gate A audit run:** 30 September 2026.
+- **Scope:** methodology, plus one evidence-contract correction (the `stay`
+  source label — see *Correction applied in this PR*). No indicator artifact, no
+  deployment-gate behaviour change, no UI change; the `stay` layer's data,
+  builder and analytical behaviour are untouched.
 
-This is the "numerator coverage and temporal comparability … handled
-explicitly" step that
-[`METHODOLOGY.md` → *What Area Profile does not do*](METHODOLOGY.md) deferred,
-and the evidence behind the standing "computes no ratio between them" line in
-[`CLAIMS_AND_LIMITATIONS.md`](CLAIMS_AND_LIMITATIONS.md).
+This is the "numerator coverage and temporal comparability … handled explicitly"
+step that [`METHODOLOGY.md` → *What Area Profile does not do*](METHODOLOGY.md)
+deferred, and the evidence behind the standing "computes no ratio between them"
+line in [`CLAIMS_AND_LIMITATIONS.md`](CLAIMS_AND_LIMITATIONS.md).
 
-## What the numerator actually is
+## What the numerator is
 
 The `stay` layer is built by `scripts/fill_stays_from_esmadrid.py` from
 `https://www.esmadrid.com/opendata/alojamientos_v1_es.xml`.
 
 - **Authority:** Madrid Destino / esMADRID — the Ayuntamiento's **tourism
   *promotion*** company, and esMADRID.com its promotional destination website.
-  The registry already classifies this layer `evidence_type: OBSERVED`, **not**
-  `ADMINISTRATIVE_REGISTER` (which is what the Padrón denominator is), and its
-  interpretation ceiling already states the feed is *"neither a strictly
-  municipal register nor a Comunidad de Madrid one."* It is a curated
-  promotional catalogue, not an accommodation register.
+  This is a curated promotional **catalogue**, not an accommodation register.
+  The registry already classifies the layer `evidence_type: OBSERVED`, **not**
+  `ADMINISTRATIVE_REGISTER` (which is what the Padrón denominator is).
 - **Publication state / period:** the XML publishes **no edition or effective
-  date**. The registry records the honest consequence: *"Register state at the
-  moment of retrieval."* There is no source period to align against the Padrón.
-- **Record semantics:** one XML `<service>` = one promoted establishment
-  listing, tagged `Tipo = "Alojamientos"`, `Categoria` (Hoteles / Hostales /
-  Pensiones / …), `SubCategoria` (star/key rating). Coordinates present; no
-  administrative geography (no barrio/district code) is published.
+  date**. The honest consequence, already recorded in the registry: *"Register
+  state at the moment of retrieval."* There is no source period to align against
+  the Padrón's 1 January 2026 reference date.
+- **Record semantics:** one XML `<service>` = one promoted **listing**, tagged
+  `Tipo = "Alojamientos"`, `Categoria` (Hoteles / Hostales / Pensiones / …),
+  `SubCategoria` (star/key rating — **not** capacity). Coordinates present; no
+  administrative geography (barrio/district code) is published.
+- **Self-definition:** the catalogue does **not** describe itself as the complete
+  administrative stock of Madrid accommodation, and its taxonomy does not include
+  the licensed tourist-dwelling (VUT) universe at all.
 
-## Evidence — the eight conditions
+## Gate A audit run — 30 September 2026
 
-Reconciliation and identity **pass**; authority, completeness, semantics and
-period **fail**. The failing rows are the disqualifying ones.
+These figures are **observations of one audit run against a deployment
+snapshot**, not repository invariants and not integrity thresholds.
+`data/runtime_poi.json` and `data/deployment_manifest.json` are **generated at
+deploy time and git-ignored** (built by `node scripts/build_runtime_poi.mjs` and
+`python3 scripts/fill_stays_from_esmadrid.py`, then validated and uploaded as
+deployment evidence); they are not committed source data.
 
-| # | Condition | Finding | Result |
-|---|-----------|---------|--------|
-| 1 | Numerator sufficiently authoritative | Tourism-**promotion** catalogue, `OBSERVED`, self-described as not a register | **FAIL** |
-| 2 | Belongs to Madrid municipality | 606 / 613 inside; 7 outside (excludable by canonical point-in-polygon) | pass (after filter) |
-| 3 | Geography reconcilable to canonical barrios | 606 / 606 in-municipality records join to a barrio; **0 ambiguous / unjoined** | **pass** |
-| 4 | Each record understood | Understood, but the universe is **heterogeneous** — includes 64 *Residencias universitarias* (student housing, not tourist lodging) and camping | **FAIL (mixed objects)** |
-| 5 | Duplicates do not invalidate counts | **613 / 613 unique source IDs**; a clean authoritative identity rule is available | **pass** |
-| 6 | Source period / publication state explicit | No edition date; undated snapshot | **FAIL** |
-| 7 | Numerator + denominator presentable without implying temporal identity | Possible only with both periods shown; the undated numerator cannot claim 1 Jan 2026 | conditional |
-| 8 | Nameable without implying tourism pressure | A descriptive name is possible | pass |
+**Methodology of the run:**
+Madrid Destino XML → deployment builder (`fill_stays_from_esmadrid.py`) →
+canonical Madrid geography (`data/geography/madrid_admin.geojson`) → municipality
+containment → barrio point-in-polygon reconciliation (`js/geography.js`,
+`createGeographyIndex`).
 
-### Empirical reconciliation (canonical point-in-polygon, `js/geography.js`)
+**Observed in that run** (source snapshot of 30 September 2026):
 
-Run against the committed `data/runtime_poi.json` (613 records) and
-`data/geography/madrid_admin.geojson` (1 municipality, 21 districts, 131
-barrios):
+| Observation | Value |
+|-------------|-------|
+| Generated listings in the snapshot | 613 |
+| Unique source IDs | 613 / 613 (clean identity available) |
+| Inside Madrid municipality (point-in-polygon) | 606 |
+| Outside municipality | 7 (identified, none reassigned) |
+| In-municipality listings resolving to a barrio | 606 / 606 (0 unresolved) |
+| Barrios represented | 74 / 131 (heavily concentrated in the tourist core) |
+| Category mix | Hoteles 302, Hostales 186, Residencias universitarias 64, Apartahoteles 28, Pensiones 12, Albergues 10, Casa de huéspedes 1, Camping 1, blank 2 |
 
-- **Inside municipality:** 606. **Outside (excluded):** 7 — e.g. *AC Coslada
-  Aeropuerto*, *Apartahotel TH Las Rozas*, *Hotel Las Gacelas*, and a
-  Toledo-province attraction at 39.94 N. None silently reassigned.
-- **Barrio join:** 606 / 606 joined, **0** inside-municipality-but-no-barrio.
-- **Coverage:** **74 of 131 barrios** carry ≥1 record; 57 carry none. Heavily
-  concentrated in the tourist core — **89** records in one Centro barrio.
-- **Category mix (in-municipality):** Hoteles 302, Hostales 186, Residencias
-  universitarias 64, Apartahoteles 28, Pensiones 12, Albergues 10, Casa de
-  huéspedes 1, Camping 1, unclassified 2. A tourist-lodging-only subset (drop
-  the 64 residences, 1 camping, 2 blank) would be ~539.
+The spatial reconciliation and the unique-ID identity are the reusable results:
+when an authoritative numerator arrives, the canonical join is proven to work.
 
-## Why NO-GO
+## Why NO-GO (this source)
+
+The disqualifiers are **direct and qualitative** — the source's nature, not a
+numeric completeness comparison:
 
 1. **Authority mismatch.** A per-registered-resident ratio is an
    administrative-flavoured measure. Dividing a **tourism-promotion catalogue**
    by an **administrative population register** pairs two incompatible kinds of
    evidence and lends the numerator an authority it does not have.
-2. **Non-representative coverage.** The feed lists ~606 establishments. Madrid's
-   actual accommodation supply is on the order of **~151,627 tourist places**
-   (municipal Tourism Intelligence System), and the feed omits the **entire
-   tourist-dwelling (VUT) segment (~30% of supply)** — of which the municipality
-   separately licenses ~1,000. A "per 1,000 residents" figure built on this
-   would understate supply wherever it is VUT-dominated and would largely track
-   Madrid Destino's *promotion* choices, not accommodation stock. Dividing it by
-   residents manufactures a precise-looking ratio from a non-representative
-   numerator — the pattern this project refuses ("a ratio is not useful merely
-   because two numbers can be divided").
-3. **No temporal contract.** The numerator is undated; the denominator is a real
+2. **No temporal contract.** The catalogue is undated; the denominator is a real
    Padrón reference date (1 Jan 2026). A ratio would imply a comparability the
    sources do not have.
-4. **Heterogeneous universe.** Counting hotels, student residences and campsites
-   as one "establishments" class mixes legally distinct objects.
+3. **Undefined / non-complete universe.** The catalogue does not define itself as
+   the complete administrative stock of accommodation, so a "per 1,000 residents"
+   figure built on it cannot claim known completeness.
+4. **Heterogeneous universe.** It mixes legally distinct objects — hotels and
+   hostales alongside **university residences** (student housing) and
+   **campsites** — and its taxonomy omits an entire legal accommodation category
+   (licensed tourist dwellings / VUT). Counting these as one "establishments"
+   class would be misleading.
 
-A NO-GO is a valid outcome. Scientific honesty here outranks shipping the PR
-number.
+A precise-looking ratio can always be produced by dividing two numbers; that is
+exactly what this project refuses when the numerator cannot bear it. A NO-GO is a
+valid outcome — scientific honesty outranks shipping the PR number.
+
+> **On numbers deliberately not used.** An earlier draft compared ~606 catalogue
+> listings with a city-wide accommodation-*places* figure (~151,627). That is not
+> like-for-like — listings/establishments versus places/capacity, where one
+> establishment carries many places — so it is **not** valid evidence of
+> completeness and has been removed. The often-cited ~151,627 places / ~29.9% VUT
+> figures are an **Exceltur 2022 estimate** (Atlas de Contribución Municipal del
+> Turismo), not current municipal Tourism Intelligence System data, and do not
+> describe the 2026 supply structure. The NO-GO does not rely on them.
 
 ## What remains valid
 
 - The **`stay` layer stays as an operational map layer** — descriptive POIs a
   Lens can tally inside its circle, exactly as today. Nothing about that use is
-  affected by this audit.
-- The **spatial machinery is proven**: canonical point-in-polygon joins the feed
-  to barrios cleanly (606/606, 0 ambiguous) and the source carries unique IDs.
-  When an authoritative numerator arrives, the join is ready.
+  affected.
+- The **spatial machinery is proven** (this run): canonical point-in-polygon
+  joins the catalogue to barrios cleanly and the source carries unique IDs.
 - The **abstention model in `js/area-profile.js`** (missing ≠ zero; whole-barrio
-  vs. circle kept separate; same-barrio A/B = one statistic) is the correct
-  home for any future barrio indicator.
+  vs. circle kept separate; same-barrio A/B = one statistic) is the correct home
+  for any future barrio indicator.
 
-## What an authoritative indicator would need next
+## Correction applied in this PR
 
-- **A register-grade numerator.** The strongest municipal candidate is
-  `datos.madrid.es` dataset **300694 — *Viviendas turísticas (geoportal)***: the
-  Ayuntamiento's licensed tourist-dwelling register (CC BY 4.0, geolocated), a
-  genuine `ADMINISTRATIVE_REGISTER` with a defined universe. It is narrower than
-  "all accommodation" (VUT only), so the indicator it supports must be named for
-  what it counts. A hotel/hostal register would come from the Comunidad de
-  Madrid's tourism registry (REAT) — **out of municipal scope and not pursued
-  here.**
-- **An explicit source period** on the numerator, shown separately from the
-  1 Jan 2026 denominator.
-- **A named, bounded universe** (e.g. "licensed tourist dwellings"), never a
-  blended "accommodation establishments" count across legally distinct objects.
-- Only then: reconcile → restrict to municipality → join to canonical barrios →
-  derive a transparent ratio that always exposes its numerator, denominator and
-  both periods, with abstention (not zero) on a missing/zero denominator and no
-  arbitrary minimum-denominator threshold.
+The deployed evidence contract previously overstated this source. Corrected in
+`data/source_registry.json` (and, by regeneration, the deploy manifest):
+
+- **Display name:** `Official accommodation establishments` →
+  `Accommodation listings (Madrid Destino tourism catalogue)`.
+- **Interpretation ceiling:** no longer opens "A count of registered
+  establishments"; now describes accommodation **listings** from a
+  tourism-promotion catalogue (deployment snapshot of the published XML), **not**
+  a complete administrative register, **not** capacity/beds/rooms, **not** legal
+  status, **not** complete municipal or regional stock.
+- `evidence_type` stays `OBSERVED` (a change to the evidence taxonomy would need
+  its own analysis). Data, builder and UI analytical behaviour are unchanged.
+
+## Path forward — two candidate tracks (decide at Gate B, not here)
+
+An authoritative indicator needs a register-grade numerator with a defined
+universe, an explicit source period, and deterministic reconciliation to
+canonical Madrid barrios. **Two current open-data candidates exist. This PR does
+not choose between them.**
+
+### Candidate A — municipal licensed VUT · `datos.madrid.es 300694`
+
+*Viviendas de uso turístico con licencia.*
+
+- Licensed VUT only — urban-planning **activity licences** granted in Madrid
+  City; responsible body **Agencia de Actividades**; update frequency
+  **bimonthly**; **CC BY 4.0**.
+- Explicitly **does not** include hotels, hostels, guest houses, pensions,
+  aparthotels, etc.
+- Could support an indicator named for what it counts, e.g. **"Licensed tourist
+  dwellings per 1,000 registered residents"**. It **cannot** support
+  "accommodation establishments per 1,000 residents" unless combined with other
+  compatible authoritative universes under an explicitly designed methodology.
+- The Geoportal publishes an actual data date, so Gate B should examine its
+  **source-period semantics** rather than assume it is undated.
+
+### Candidate B — Comunidad de Madrid official accommodation inventory · `datos.comunidad.madrid`
+
+*Alojamientos turísticos de la Comunidad de Madrid* — authority **Dirección
+General de Turismo y Hostelería**. Metadata observed during review: updated
+**28 September 2026**, **weekly**, CSV + JSON, fields including `alojamiento_tipo`,
+`categoria`, `denominacion`, address components, `cdpostal`, `localidad`,
+`signatura`.
+
+**A regional publisher does not put a dataset out of municipal scope.** A source
+with regional authority and regional coverage can still support a defensible
+**Madrid City** analytical subset when locality/municipality is explicit, the
+universe is well defined, Madrid City records can be selected deterministically
+(e.g. `localidad`), and the records reconcile to canonical Madrid barrios. So
+this is a **high-priority** candidate, not out of scope.
+
+It does **not** automatically solve the indicator. It needs its own feasibility
+**Gate B**: authoritative semantics; whether records are active administrative
+tourism establishments; the exact universe; whether VUT are included and under
+what legal status; the identity semantics of `signatura`; Madrid City filtering;
+address quality; deterministic geocoding / spatial reconciliation; source-period
+semantics; duplicates; completeness; and compatibility with the Padrón
+denominator.
 
 ## Deferred (not done here, on purpose)
 
-- **Relabel the `stay` source.** `display_name: "Official accommodation
-  establishments"` overstates authority given the promotional origin; a truer
-  label is e.g. *"Accommodation listings (Madrid Destino tourism catalogue)"*.
-  This edits a deployment-gated contract (`data/source_registry.json`, its
-  manifest and pinned tests) and belongs in its own reviewed change, not a
-  documentation PR.
 - **Identity by source ID.** The builder deduplicates by name+coordinates; the
   unique `id` attribute is the authoritative key and should replace it when the
   layer is next touched.
-- Any indicator built on the **VUT register (300694)**, per the section above.
+- **Gate B** on Candidate A and/or Candidate B, and any indicator that follows.
