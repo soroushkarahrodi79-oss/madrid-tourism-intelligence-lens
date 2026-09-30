@@ -1,8 +1,9 @@
 {
   "contract_version": "1.0.0",
   "source_state": {
-    "resource_last_modified": "Mon, 07 Sep 2026 10:11:03 GMT",
-    "shp_resource_last_modified": "Mon, 07 Sep 2026 10:09:10 GMT",
+    "xlsx_http_last_modified": "Mon, 07 Sep 2026 10:11:03 GMT",
+    "shp_http_last_modified": "Mon, 07 Sep 2026 10:09:10 GMT",
+    "http_last_modified_is_not_a_reference_date": "These are the HTTP Last-Modified headers observed on the resource files when this build fetched them. They describe the state of the file served, not a publisher-declared publication, effective or reference date. The source declares none.",
     "grant_date_span": {
       "records_with_grant_date": 1025,
       "earliest_grant_date": "2019-03-06",
@@ -32,7 +33,7 @@
       "parent_id": "01",
       "vut_licences": 36,
       "vut_units": 42,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -40,7 +41,7 @@
       "parent_id": "01",
       "vut_licences": 69,
       "vut_units": 80,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -48,7 +49,7 @@
       "parent_id": "01",
       "vut_licences": 15,
       "vut_units": 17,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -56,7 +57,7 @@
       "parent_id": "01",
       "vut_licences": 8,
       "vut_units": 13,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -64,7 +65,7 @@
       "parent_id": "01",
       "vut_licences": 40,
       "vut_units": 56,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -72,7 +73,7 @@
       "parent_id": "01",
       "vut_licences": 8,
       "vut_units": 14,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -80,7 +81,7 @@
       "parent_id": "02",
       "vut_licences": 22,
       "vut_units": 22,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -88,7 +89,7 @@
       "parent_id": "02",
       "vut_licences": 16,
       "vut_units": 20,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -96,7 +97,7 @@
       "parent_id": "02",
       "vut_licences": 13,
       "vut_units": 18,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -104,7 +105,7 @@
       "parent_id": "02",
       "vut_licences": 11,
       "vut_units": 23,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -112,7 +113,7 @@
       "parent_id": "02",
       "vut_licences": 2,
       "vut_units": 3,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -120,7 +121,7 @@
       "parent_id": "02",
       "vut_licences": 21,
       "vut_units": 35,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -128,7 +129,7 @@
       "parent_id": "02",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -136,7 +137,7 @@
       "parent_id": "03",
       "vut_licences": 7,
       "vut_units": 8,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -144,7 +145,7 @@
       "parent_id": "03",
       "vut_licences": 5,
       "vut_units": 5,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -152,7 +153,7 @@
       "parent_id": "03",
       "vut_licences": 4,
       "vut_units": 7,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -160,7 +161,7 @@
       "parent_id": "03",
       "vut_licences": 5,
       "vut_units": 8,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -168,7 +169,7 @@
       "parent_id": "03",
       "vut_licences": 2,
       "vut_units": 2,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -176,7 +177,7 @@
       "parent_id": "03",
       "vut_licences": 10,
       "vut_units": 10,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -184,7 +185,7 @@
       "parent_id": "04",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -192,7 +193,7 @@
       "parent_id": "04",
       "vut_licences": 4,
       "vut_units": 12,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -200,7 +201,7 @@
       "parent_id": "04",
       "vut_licences": 14,
       "vut_units": 16,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -208,7 +209,7 @@
       "parent_id": "04",
       "vut_licences": 27,
       "vut_units": 48,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -216,7 +217,7 @@
       "parent_id": "04",
       "vut_licences": 3,
       "vut_units": 3,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -224,7 +225,7 @@
       "parent_id": "04",
       "vut_licences": 1,
       "vut_units": 1,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -232,7 +233,7 @@
       "parent_id": "05",
       "vut_licences": 2,
       "vut_units": 2,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -240,7 +241,7 @@
       "parent_id": "05",
       "vut_licences": 17,
       "vut_units": 50,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -248,7 +249,7 @@
       "parent_id": "05",
       "vut_licences": 11,
       "vut_units": 31,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -256,7 +257,7 @@
       "parent_id": "05",
       "vut_licences": 9,
       "vut_units": 23,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -264,7 +265,7 @@
       "parent_id": "05",
       "vut_licences": 1,
       "vut_units": 1,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -272,7 +273,7 @@
       "parent_id": "05",
       "vut_licences": 2,
       "vut_units": 3,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -280,7 +281,7 @@
       "parent_id": "06",
       "vut_licences": 17,
       "vut_units": 20,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -288,7 +289,7 @@
       "parent_id": "06",
       "vut_licences": 28,
       "vut_units": 33,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -296,7 +297,7 @@
       "parent_id": "06",
       "vut_licences": 8,
       "vut_units": 11,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -304,7 +305,7 @@
       "parent_id": "06",
       "vut_licences": 27,
       "vut_units": 38,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -312,7 +313,7 @@
       "parent_id": "06",
       "vut_licences": 26,
       "vut_units": 39,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -320,7 +321,7 @@
       "parent_id": "06",
       "vut_licences": 21,
       "vut_units": 41,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -328,7 +329,7 @@
       "parent_id": "07",
       "vut_licences": 12,
       "vut_units": 20,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -336,7 +337,7 @@
       "parent_id": "07",
       "vut_licences": 7,
       "vut_units": 8,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -344,7 +345,7 @@
       "parent_id": "07",
       "vut_licences": 16,
       "vut_units": 19,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -352,7 +353,7 @@
       "parent_id": "07",
       "vut_licences": 1,
       "vut_units": 3,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -360,7 +361,7 @@
       "parent_id": "07",
       "vut_licences": 4,
       "vut_units": 5,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -368,7 +369,7 @@
       "parent_id": "07",
       "vut_licences": 5,
       "vut_units": 5,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -376,7 +377,7 @@
       "parent_id": "08",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -384,7 +385,7 @@
       "parent_id": "08",
       "vut_licences": 1,
       "vut_units": 4,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -392,7 +393,7 @@
       "parent_id": "08",
       "vut_licences": 3,
       "vut_units": 4,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -400,7 +401,7 @@
       "parent_id": "08",
       "vut_licences": 11,
       "vut_units": 14,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -408,7 +409,7 @@
       "parent_id": "08",
       "vut_licences": 4,
       "vut_units": 6,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -416,7 +417,7 @@
       "parent_id": "08",
       "vut_licences": 21,
       "vut_units": 24,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -424,7 +425,7 @@
       "parent_id": "08",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -432,7 +433,7 @@
       "parent_id": "08",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -440,7 +441,7 @@
       "parent_id": "09",
       "vut_licences": 4,
       "vut_units": 5,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -448,7 +449,7 @@
       "parent_id": "09",
       "vut_licences": 11,
       "vut_units": 12,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -456,7 +457,7 @@
       "parent_id": "09",
       "vut_licences": 3,
       "vut_units": 3,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -464,7 +465,7 @@
       "parent_id": "09",
       "vut_licences": 4,
       "vut_units": 4,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -472,7 +473,7 @@
       "parent_id": "09",
       "vut_licences": 1,
       "vut_units": 48,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -480,7 +481,7 @@
       "parent_id": "09",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -488,7 +489,7 @@
       "parent_id": "09",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -496,7 +497,7 @@
       "parent_id": "10",
       "vut_licences": 4,
       "vut_units": 14,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -504,7 +505,7 @@
       "parent_id": "10",
       "vut_licences": 32,
       "vut_units": 37,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -512,7 +513,7 @@
       "parent_id": "10",
       "vut_licences": 10,
       "vut_units": 11,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -520,7 +521,7 @@
       "parent_id": "10",
       "vut_licences": 5,
       "vut_units": 6,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -528,7 +529,7 @@
       "parent_id": "10",
       "vut_licences": 1,
       "vut_units": 1,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -536,7 +537,7 @@
       "parent_id": "10",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -544,7 +545,7 @@
       "parent_id": "10",
       "vut_licences": 1,
       "vut_units": 3,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -552,7 +553,7 @@
       "parent_id": "11",
       "vut_licences": 17,
       "vut_units": 18,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -560,7 +561,7 @@
       "parent_id": "11",
       "vut_licences": 9,
       "vut_units": 13,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -568,7 +569,7 @@
       "parent_id": "11",
       "vut_licences": 12,
       "vut_units": 12,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -576,7 +577,7 @@
       "parent_id": "11",
       "vut_licences": 11,
       "vut_units": 15,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -584,7 +585,7 @@
       "parent_id": "11",
       "vut_licences": 5,
       "vut_units": 6,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -592,7 +593,7 @@
       "parent_id": "11",
       "vut_licences": 5,
       "vut_units": 21,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -600,7 +601,7 @@
       "parent_id": "11",
       "vut_licences": 3,
       "vut_units": 3,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -608,7 +609,7 @@
       "parent_id": "12",
       "vut_licences": 4,
       "vut_units": 7,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -616,7 +617,7 @@
       "parent_id": "12",
       "vut_licences": 1,
       "vut_units": 1,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -624,7 +625,7 @@
       "parent_id": "12",
       "vut_licences": 1,
       "vut_units": 1,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -632,7 +633,7 @@
       "parent_id": "12",
       "vut_licences": 7,
       "vut_units": 8,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -640,7 +641,7 @@
       "parent_id": "12",
       "vut_licences": 16,
       "vut_units": 19,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -648,7 +649,7 @@
       "parent_id": "12",
       "vut_licences": 5,
       "vut_units": 6,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -656,7 +657,7 @@
       "parent_id": "12",
       "vut_licences": 7,
       "vut_units": 8,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -664,7 +665,7 @@
       "parent_id": "13",
       "vut_licences": 4,
       "vut_units": 6,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -672,7 +673,7 @@
       "parent_id": "13",
       "vut_licences": 18,
       "vut_units": 31,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -680,7 +681,7 @@
       "parent_id": "13",
       "vut_licences": 8,
       "vut_units": 10,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -688,7 +689,7 @@
       "parent_id": "13",
       "vut_licences": 5,
       "vut_units": 8,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -696,7 +697,7 @@
       "parent_id": "13",
       "vut_licences": 6,
       "vut_units": 7,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -704,7 +705,7 @@
       "parent_id": "13",
       "vut_licences": 15,
       "vut_units": 20,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -712,7 +713,7 @@
       "parent_id": "14",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -720,7 +721,7 @@
       "parent_id": "14",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -728,7 +729,7 @@
       "parent_id": "14",
       "vut_licences": 6,
       "vut_units": 10,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -736,7 +737,7 @@
       "parent_id": "14",
       "vut_licences": 4,
       "vut_units": 4,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -744,7 +745,7 @@
       "parent_id": "14",
       "vut_licences": 1,
       "vut_units": 1,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -752,7 +753,7 @@
       "parent_id": "14",
       "vut_licences": 1,
       "vut_units": 1,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -760,7 +761,7 @@
       "parent_id": "15",
       "vut_licences": 35,
       "vut_units": 44,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -768,7 +769,7 @@
       "parent_id": "15",
       "vut_licences": 43,
       "vut_units": 59,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -776,7 +777,7 @@
       "parent_id": "15",
       "vut_licences": 9,
       "vut_units": 9,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -784,7 +785,7 @@
       "parent_id": "15",
       "vut_licences": 9,
       "vut_units": 13,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -792,7 +793,7 @@
       "parent_id": "15",
       "vut_licences": 6,
       "vut_units": 6,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -800,7 +801,7 @@
       "parent_id": "15",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -808,7 +809,7 @@
       "parent_id": "15",
       "vut_licences": 1,
       "vut_units": 2,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -816,7 +817,7 @@
       "parent_id": "15",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -824,7 +825,7 @@
       "parent_id": "15",
       "vut_licences": 2,
       "vut_units": 2,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -832,7 +833,7 @@
       "parent_id": "16",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -840,7 +841,7 @@
       "parent_id": "16",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -848,7 +849,7 @@
       "parent_id": "16",
       "vut_licences": 10,
       "vut_units": 12,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -856,7 +857,7 @@
       "parent_id": "16",
       "vut_licences": 8,
       "vut_units": 11,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -864,7 +865,7 @@
       "parent_id": "16",
       "vut_licences": 2,
       "vut_units": 3,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -872,7 +873,7 @@
       "parent_id": "16",
       "vut_licences": 2,
       "vut_units": 2,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -880,7 +881,7 @@
       "parent_id": "17",
       "vut_licences": 8,
       "vut_units": 8,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -888,7 +889,7 @@
       "parent_id": "17",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -896,7 +897,7 @@
       "parent_id": "17",
       "vut_licences": 1,
       "vut_units": 2,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -904,7 +905,7 @@
       "parent_id": "17",
       "vut_licences": 5,
       "vut_units": 5,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -912,7 +913,7 @@
       "parent_id": "17",
       "vut_licences": 2,
       "vut_units": 2,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -920,7 +921,7 @@
       "parent_id": "18",
       "vut_licences": 5,
       "vut_units": 7,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -928,7 +929,7 @@
       "parent_id": "18",
       "vut_licences": 1,
       "vut_units": 2,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -936,7 +937,7 @@
       "parent_id": "18",
       "vut_licences": 3,
       "vut_units": 3,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -944,7 +945,7 @@
       "parent_id": "19",
       "vut_licences": 7,
       "vut_units": 8,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -952,7 +953,7 @@
       "parent_id": "19",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -960,7 +961,7 @@
       "parent_id": "19",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -968,7 +969,7 @@
       "parent_id": "19",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -976,7 +977,7 @@
       "parent_id": "20",
       "vut_licences": 1,
       "vut_units": 2,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -984,7 +985,7 @@
       "parent_id": "20",
       "vut_licences": 1,
       "vut_units": 1,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -992,7 +993,7 @@
       "parent_id": "20",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -1000,7 +1001,7 @@
       "parent_id": "20",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -1008,7 +1009,7 @@
       "parent_id": "20",
       "vut_licences": 1,
       "vut_units": 1,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -1016,7 +1017,7 @@
       "parent_id": "20",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -1024,7 +1025,7 @@
       "parent_id": "20",
       "vut_licences": 8,
       "vut_units": 14,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -1032,7 +1033,7 @@
       "parent_id": "20",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -1040,7 +1041,7 @@
       "parent_id": "21",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -1048,7 +1049,7 @@
       "parent_id": "21",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -1056,7 +1057,7 @@
       "parent_id": "21",
       "vut_licences": 3,
       "vut_units": 9,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -1064,7 +1065,7 @@
       "parent_id": "21",
       "vut_licences": 8,
       "vut_units": 9,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "barrio",
@@ -1072,7 +1073,7 @@
       "parent_id": "21",
       "vut_licences": 0,
       "vut_units": 0,
-      "value_provenance": "SOURCE_REPORTED"
+      "value_provenance": "DERIVED_FROM_LICENCE_RECORDS"
     },
     {
       "geography_level": "district",

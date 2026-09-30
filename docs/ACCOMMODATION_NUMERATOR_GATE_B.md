@@ -3,7 +3,8 @@
 **Verdict: GO for Candidate A** (Madrid City licensed tourist-dwelling activity
 licences) **— MODIFY for Candidate B** (Comunidad de Madrid tourism-accommodation
 inventory): its barrio geography problem is solved, but it publishes no universe
-definition and no period, so it is not admissible as a numerator yet.
+definition, no record-level period and no uniform unit of analysis, so it is
+not admissible as a numerator yet.
 
 This gate qualifies **sources**. It publishes **no indicator, no ratio, no
 per-resident figure, no ranking and no UI**. One numerator-only artifact is
@@ -32,7 +33,7 @@ layer, its data, its builder and its evidence contract are untouched by this PR.
 | Unit of analysis | Documented: one granted activity licence | Undocumented; observed to be mixed |
 | Madrid City selection | Municipal dataset; verified geometrically | `localidad == "Madrid"`, exact equality |
 | Barrio reconciliation | **1025/1025 (100%)** | **6465/6501 (99.45%)** |
-| Source period | Grant date per record + resource timestamp | **None published** |
+| Source period | No declared reference date; grant date per record + observed file state | Current dataset state dated by the portal; **no record-level period, no archive** |
 | **Decision** | **GO** | **MODIFY** |
 
 ---
@@ -50,13 +51,18 @@ layer, its data, its builder and its evidence contract are untouched by this PR.
 | Update frequency | Bimonthly |
 | Resources | XLSX, SHP (ZIP), **and a PDF structure document** |
 | Catalogue metadata modified | 2026-07-24 |
-| Data resource `Last-Modified` | **2026-09-07** |
+| HTTP `Last-Modified` observed on the XLSX resource | **7 Sep 2026** |
 
 The dataset ships its own **schema documentation** (`estructuradsviviendasusoturistico.pdf`,
 version June 2024). That document, not inference from field names, is what settles
-the unit of analysis below. The catalogue's metadata date (2026-07-24) and the
-resource's publication timestamp (2026-09-07) are **different things** and this
-gate keeps them apart.
+the unit of analysis below.
+
+**Four kinds of date exist here and this gate never collapses them into one:**
+the portal's catalogue metadata date (2026-07-24); the **HTTP `Last-Modified`
+header observed on the resource file** (7 Sep 2026), which is a fact about the
+file served and **not** a publisher-declared publication, effective or reference
+date; the **per-record grant dates** (`RESOLUCION`); and the builder's own
+retrieval clock. The source declares no reference or effective date at all.
 
 ## Universe
 
@@ -80,10 +86,15 @@ These universes must stay separate and are **not** interchangeable:
 - promotional listing (the `stay` layer, Gate A),
 - platform listing (not an official source at all).
 
-**Currency caveat.** The extract is cumulative and carries **no revocation,
-expiry or cessation field**. It therefore answers *"which licences have been
-granted"*, not *"which dwellings are operating today"*. Any wording built on it
-must say *licensed*, never *operating*.
+**Currency caveat.** The current published extract contains granted
+activity-licence records whose grant dates span **2019-03-06 to 2026-09-02**, and
+it carries **no revocation, expiry or cessation field**. The source publishes
+**no retention policy** describing how revoked, expired or ceased licences are
+kept or removed, so this gate does **not** call the extract a *cumulative stock*:
+that would assert something the publisher never documented. What can be said is
+narrower and still sufficient — the extract answers *"which licences appear as
+granted in this published extract"*, never *"which dwellings are operating
+today"*. Any wording built on it must say *licensed*, never *operating*.
 
 ## Unit of analysis — the decisive question
 
@@ -204,26 +215,30 @@ hidden.
 
 ## Temporal contract
 
-The source publishes **no reference-date field**, but unlike the Gate A catalogue
-it is not undated:
+The source publishes **no reference-date and no effective-date field**, but unlike
+the Gate A catalogue it is not wholly undated:
 
-| Signal | Value |
-|---|---|
-| Resource `Last-Modified` | **2026-09-07** |
-| Shapefile export stamp (embedded metadata) | 2026-09-07 12:06:16 |
-| Per-record grant dates (`RESOLUCION`) | **2019-03-06 → 2026-09-02** |
-| Grants by year | 2019: 4 · 2020: 56 · 2021: 80 · 2022: 133 · 2023: 371 · 2024: 180 · 2025: 145 · 2026: 56 |
+| Signal | Value | What it is |
+|---|---|---|
+| Catalogue metadata modified | 2026-07-24 | portal record's own modification date |
+| HTTP `Last-Modified` on the XLSX resource | **7 Sep 2026** | state of the file served — **not** a declared publication or reference date |
+| Shapefile export stamp (embedded metadata) | 2026-09-07 12:06:16 | the publisher's export run, corroborating the header |
+| Per-record grant dates (`RESOLUCION`) | **2019-03-06 → 2026-09-02** | when each licence was granted |
+| Grants by year | 2019: 4 · 2020: 56 · 2021: 80 · 2022: 133 · 2023: 371 · 2024: 180 · 2025: 145 · 2026: 56 | |
 
-That supports an honest statement — *"granted licences as published on
-2026-09-07, covering grants from March 2019 to September 2026"* — which is a real
-source state, not a retrieval timestamp dressed up as one. The build clock is
-recorded separately as `retrieved_at` and is never presented as the source date.
+That supports an honest statement — *"granted activity-licence records in the
+resource file whose HTTP `Last-Modified` was observed as 7 Sep 2026, with grant
+dates spanning March 2019 to September 2026"* — which cites a real observed file
+state rather than a retrieval timestamp dressed up as a publication date. The
+build clock is recorded separately as `retrieved_at` and is never presented as
+the source date.
 
 **The periods differ from the denominator and must be shown as differing.** The
-Padrón denominator is 1 January 2026; this numerator is a 2026-09-07 publication
-of a cumulative stock. A future indicator must display both, never imply they
-coincide. No 1 January 2026 snapshot can be reconstructed: the resource is
-overwritten in place and no archive is published.
+Padrón denominator has a real reference date, 1 January 2026; this numerator has
+no declared period at all, only an observed file state and a span of grant dates.
+A future indicator must display both and must not imply they coincide. No
+1 January 2026 snapshot can be reconstructed: the resource is overwritten in
+place and no archive is published.
 
 ## Candidate A decision
 
@@ -373,20 +388,28 @@ Until the publisher states the universe, the word *"registered"* cannot honestly
 be used in an indicator name, and neither can any claim that the entries are
 active.
 
-## Temporal contract — absent
+## Temporal contract — current state dated, longitudinal semantics missing
 
 | Signal | Value |
 |---|---|
-| Date field in the records | **none** |
+| Portal's declared **current dataset state** date (*Última actualización de los datos*) | **28 Sep 2026** |
+| Record-level effective / reference date | **none** |
 | Declared temporal coverage | **empty** |
-| Historical snapshots | **none published** |
-| Resource `Last-Modified` | 2026-09-28 |
+| Historical snapshots / archive | **none published** |
+| Previous states reconstructable | **no** |
+| HTTP `Last-Modified` observed on the JSON resource | 28 Sep 2026 |
 
-The file is **overwritten weekly with no archive**. A past state cannot be
-reconstructed or re-verified, and a future audit cannot reproduce today's
-figures. The only honest label is *"state of the file published on 2026-09-28"* —
-better than the Gate A catalogue's complete silence, but still not a source
-period, and not reproducible over time.
+**The current published dataset state is dated 28 Sep 2026 by the official
+portal**, so the state this audit observed *can* be cited honestly. What is
+missing is everything longitudinal: no record carries an effective or reference
+period, no temporal coverage is declared, and the file is **overwritten weekly
+with no archive**, so a past state cannot be reconstructed or re-verified and a
+future audit cannot reproduce today's figures.
+
+That is weaker than a real reference date — the portal's state date describes
+when the file was last refreshed, not the period the records describe — but it is
+materially better than the Gate A catalogue's complete silence. It is graded
+**CONDITIONAL**, not FAIL.
 
 ## External reconciliation — municipality control
 
@@ -416,10 +439,13 @@ into barrios.
 
 **Classification:**
 
-- **Non-VUT — explainable temporal difference.** +6.5% over roughly nine months,
-  positive, and in line with the control's own upward trend across the series
-  (hotels 324 → 334, pensiones 429 → 482 between 2024 and 2025). These categories
-  reconcile.
+- **Non-VUT — plausibly compatible with temporal evolution; not fully
+  reconciled.** +6.5% over roughly nine months, positive, and in the same
+  direction as the control's own upward trend across the series (hotels
+  324 → 334, pensiones 429 → 482 between 2024 and 2025). The two figures cover
+  **different periods by construction**, so this gate cannot show that time alone
+  accounts for the difference — only that the difference is small and consistent
+  with it. These categories are close; they are not reconciled.
 - **VUT — unexplained discrepancy.** Adding the 1117 Madrid records from the
   declarations dataset gives 6104, still 961 short. The control's own Madrid VUT
   series is volatile (12,727 in 2021 → 11,523 in 2024 → 7,065 in 2025), and a CM
@@ -445,15 +471,22 @@ to the control.
 
 **MODIFY.** Not admissible as a barrio numerator in its current published state.
 It is not a NO-GO: the geography problem — the one expected to be hardest — is
-solved at 99.45% deterministically, and the non-VUT categories reconcile against
-an independent official control.
+solved at 99.45% deterministically, the portal does date the current dataset
+state, and the non-VUT categories come close to an independent official control.
+
+**The decisive blockers are Unit (FAIL) and Universe (FAIL)**, with Madrid
+filtering CONDITIONAL. Period is CONDITIONAL rather than FAIL — the current state
+is dateable — but that does not lift the decision, because a numerator whose
+unit of analysis and legal universe are both undeclared cannot be named honestly
+however well it is dated or located.
 
 What would have to change, in order of importance:
 
 1. the publisher states the **legal universe** and whether entries are active;
-2. the publisher exposes a **reference date** or publishes archived snapshots;
-3. the publisher documents **what one record represents** per section, or the
+2. the publisher documents **what one record represents** per section, or the
    subset is restricted to one granularity (e.g. HM/AM establishments only);
+3. the publisher exposes a **record-level reference or effective date**, or
+   publishes archived snapshots so past states can be reconstructed;
 4. a **municipality code** is exposed, or `localidad` is confirmed stable.
 
 If (1) and (2) were satisfied, the defensible name would be
@@ -474,8 +507,8 @@ No score, no weighting. Each criterion is judged on evidence.
 | **Universe** — explicitly bounded | **PASS** — stated with exclusions named; all records `Conceder` | **FAIL** — not stated; registry status only inferred from a sibling dataset |
 | **Madrid filter** — deterministic selection | **PASS** — municipal dataset, 1025/1025 verified inside the municipality | **CONDITIONAL** — exact `localidad` match is correct today; no municipality code published |
 | **Geography** — reproducible to barrio | **PASS** — 1025/1025, agreed by three independent methods | **PASS** — 6465/6501 (99.45%) via the official address register, no geocoder |
-| **Period** — representable honestly | **PASS** — resource timestamp + per-record grant dates | **FAIL** — no date field, empty coverage, weekly overwrite, no archive |
-| **Completeness** — can state what is in and out | **PASS** — narrow and explicit; cumulative-stock caveat recorded | **CONDITIONAL** — non-VUT reconciles (+6.5%); VUT unexplained (−29.4%) |
+| **Period** — representable honestly | **PASS** — observed HTTP `Last-Modified` file state + per-record grant dates; no declared reference date, and none claimed | **CONDITIONAL** — the portal dates the current dataset state (28 Sep 2026), so that state can be cited; but no record-level effective period, empty declared coverage, weekly overwrite, no archive, no reconstructable past state |
+| **Completeness** — can state what is in and out | **PASS** — narrow and explicit; no retention policy published, so no stock claim is made | **CONDITIONAL** — non-VUT close but not reconciled (+6.5%, differing periods); VUT unexplained (−29.4%) |
 | **Deduplication** — source-based and reproducible | **PASS** — none needed; `EXPEDIENTE` is identity | **PASS** — `signatura` is identity; address-based dedup proven wrong |
 | **Indicator naming** — nameable without overstating | **PASS** — two exact names available | **CONDITIONAL** — "registered" and "establishments" both unsupported today |
 | **Decision** | **GO** | **MODIFY** |
@@ -517,10 +550,14 @@ Observed totals: **1025 licences, 1483 VUT units, 106 of 131 barrios covered.**
 It contains **no ratio, no population, no rate, no density and no score** — a
 test asserts those words do not appear anywhere in the artifact.
 
-**Zero is a real zero here**, and this is the one place where this project's
-"missing is not zero" rule does not apply: the source enumerates granted licences
-for the whole municipality, so a barrio with no record has no granted licence
-rather than absent data. The reason is recorded in the artifact metadata.
+**Zero is a real zero here — within this source extract and its source state.**
+This is the one place where this project's "missing is not zero" rule does not
+apply: the extract enumerates granted activity-licence records across the whole
+municipality, so a barrio with no matched source record receives **zero published
+granted-licence records and zero source-reported VUT units**, rather than absent
+data. It is **not** an assertion that no tourist-dwelling activity has ever
+existed, or exists today, in that barrio. The scope and the reason are both
+recorded in the artifact metadata.
 
 **It is deliberately not declared in `data/source_registry.json`.** That registry
 declares deployment roles, and this artifact has none: nothing builds it at deploy
@@ -557,12 +594,16 @@ source-derived period, and the absence of any ratio or population field).
 
 # Remaining uncertainty
 
-1. **Candidate A cannot say "operating."** No revocation or expiry field exists,
-   so licences granted in 2019 that have since ceased are indistinguishable from
-   live ones. The universe wording compensates; the data cannot.
+1. **Candidate A cannot say "operating," and cannot describe its own stock.**
+   No revocation or expiry field exists and no retention policy is published, so
+   licences granted in 2019 that have since ceased are indistinguishable from
+   live ones — and it is unknown whether such licences are removed from the
+   extract at all. The universe wording compensates by claiming only what the
+   extract contains; the data cannot settle it.
 2. **No reconstructable history for either source.** Both are overwritten in
-   place. A 1 January 2026 numerator matching the Padrón reference date cannot be
-   built, so any indicator must display two different periods.
+   place with no archive. A 1 January 2026 numerator matching the Padrón
+   reference date cannot be built, so any indicator must display two different
+   periods — and neither source declares a reference period of its own.
 3. **Candidate A has no external control.** The municipality control covers the
    regional inventory's categories, not municipal activity licences, so Candidate
    A's 1025/1483 is unreconciled against any independent total. Comparing it with

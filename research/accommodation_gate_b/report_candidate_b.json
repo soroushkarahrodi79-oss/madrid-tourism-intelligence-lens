@@ -1,6 +1,6 @@
 {
-  "audit_started_at": "2026-09-30T09:52:52Z",
-  "audit_finished_at": "2026-09-30T09:53:10Z",
+  "audit_started_at": "2026-09-30T10:14:50Z",
+  "audit_finished_at": "2026-09-30T10:15:04Z",
   "note": "Counts are observations of one audit run against live official sources, not repository invariants and not integrity thresholds.",
   "address_register": {
     "dataset": "Callejero oficial del Ayuntamiento de Madrid (datos.madrid.es 213605)",
@@ -178,11 +178,15 @@
       "unmapped_via_types": {}
     },
     "temporal": {
-      "reference_date_field_published": false,
+      "portal_declared_dataset_state_date": "2026-09-28T05:11:06.026842",
+      "portal_declared_dataset_state_note": "The official portal does date the CURRENT dataset state ('Última actualización de los datos'). The current state can therefore be cited honestly; what is missing is everything below.",
+      "record_level_reference_or_effective_date": false,
       "temporal_coverage_declared": null,
-      "resource_last_modified": "Mon, 28 Sep 2026 05:11:02 GMT",
       "historical_snapshots_published": false,
-      "note": "No record carries a date. The file is overwritten weekly and no archive is published, so a past state cannot be reconstructed or re-verified."
+      "previous_states_reconstructable": false,
+      "json_http_last_modified": "Mon, 28 Sep 2026 05:11:02 GMT",
+      "http_last_modified_is_not_a_reference_date": "The HTTP header describes the file served, not a publisher-declared reference or effective period. It is recorded separately from the portal's declared state date.",
+      "assessment": "CONDITIONAL, not absent. The current published dataset state is dated by the portal, so it can be cited honestly. But no record carries an effective or reference date, no temporal coverage is declared, and the file is overwritten weekly with no archive, so a past state cannot be reconstructed or re-verified and no longitudinal period semantics exist."
     }
   }
 }

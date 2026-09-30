@@ -1,6 +1,6 @@
 {
-  "audit_started_at": "2026-09-30T09:52:52Z",
-  "audit_finished_at": "2026-09-30T09:53:10Z",
+  "audit_started_at": "2026-09-30T10:14:50Z",
+  "audit_finished_at": "2026-09-30T10:15:04Z",
   "note": "Counts are observations of one audit run against live official sources, not repository invariants and not integrity thresholds.",
   "address_register": {
     "dataset": "Callejero oficial del Ayuntamiento de Madrid (datos.madrid.es 213605)",
@@ -19,7 +19,7 @@
       "dataset": "Número de establecimientos hoteleros por tipo de establecimiento. Municipios",
       "catalogue": "https://datos.comunidad.madrid/dataset/establecimientos_hoteleros",
       "authority": "Dirección General de Turismo y Hostelería. Consejería de Cultura, Turismo y Deporte.",
-      "resource_last_modified": "Mon, 09 Mar 2026 09:54:39 GMT",
+      "http_last_modified": "Mon, 09 Mar 2026 09:54:39 GMT",
       "latest_year_for_madrid": "2025",
       "universe_composition": "Establecimientos hoteleros: Son aquellas instalaciones que destinadas al alojamiento turístico, ocupan la totalidad de un edificio o parte independizada del mismo constituyendo sus dependencias un todo homogéneo con entradas, ascensores y escaleras de uso exclusivo y reúnen los requisitos técnicos mínimos que reglamentariamente se establezcan.  \nIncluye: Hotel aparthotel + hoteles + hostales + cam",
       "madrid_totals": {
@@ -68,7 +68,7 @@
     },
     "reconciliation": {
       "note": "Compared only because the control's stated composition matches Candidate B's taxonomy. The control is evidence, never a target: no Candidate B figure is adjusted towards it.",
-      "period_mismatch": "Candidate B is a live state (Mon, 28 Sep 2026 05:11:02 GMT); the control's latest Madrid figure is the year 2025.",
+      "period_mismatch": "Candidate B is a current state dated 2026-09-28T05:11:06.026842 by the portal; the control's latest Madrid figure is the year 2025. The periods differ, so no difference here is fully reconciled.",
       "by_type": {
         "HOTEL": {
           "candidate_b": 340,
@@ -111,7 +111,7 @@
         "control": 1421,
         "difference": 93,
         "relative": 0.0654,
-        "classification": "explainable temporal difference - small, positive, and in line with the control's own upward trend over the series"
+        "classification": "plausibly compatible with temporal evolution; NOT fully reconciled, because the periods differ. The difference is small, positive and in the same direction as the control's own upward trend over the series, but this audit cannot show that time alone accounts for it."
       },
       "vut_total": {
         "candidate_b": 4987,
@@ -144,7 +144,7 @@
     "declarations": {
       "dataset": "Declaraciones responsables de actividad de viviendas de uso turístico de la Comunidad de Madrid presentadas",
       "catalogue": "https://datos.comunidad.madrid/dataset/declaraciones_actividad_viviendas_uso_turistico",
-      "resource_last_modified": "Fri, 11 Sep 2026 08:08:54 GMT",
+      "http_last_modified": "Fri, 11 Sep 2026 08:08:54 GMT",
       "self_description": "En este conjunto de datos se recogen las viviendas de uso turístico que han presentado la Declaración responsable de inicio de actividad. Sin inscripción en el Registro de Empresas Turísticas de la Comunidad de Madrid. El Decreto 79/2014, de 10 de julio, del Consejo de Gobierno, por el que se regula",
       "rows": 1156,
       "madrid_rows": 1117,

@@ -62,12 +62,29 @@ reason is recorded in the sidecar metadata.
 
 Vintage rule
 ------------
-The source publishes no reference-date field. What it does publish is a per-record
-RESOLUCION (the date the licence was granted), and the resource file carries an
-HTTP Last-Modified timestamp. The artifact therefore records the resource
-publication timestamp as the source state, and the observed min/max grant dates
-as the stock's span. The build clock is recorded separately as retrieved_at and
-is never presented as the source date.
+The source publishes no reference-date field and no effective date. Four distinct
+dates exist and this builder never collapses them into one:
+
+  1. catalogue metadata dates published by the portal (not recorded here);
+  2. the HTTP Last-Modified header observed on each resource file, which is a
+     transport-level fact about the file served, NOT a publisher-declared
+     publication or reference date;
+  3. the per-record RESOLUCION, the date each licence was granted;
+  4. retrieved_at, this builder's own clock.
+
+The artifact records (2) as an observed resource-file state and (3) as the span
+of grant dates present in the current extract. The build clock is recorded
+separately and is never presented as the source date.
+
+What the extract does NOT establish
+-----------------------------------
+The source publishes no documented retention policy for revoked, expired or
+ceased licences, so this builder does not describe the extract as a cumulative
+stock, nor assert that every licence ever granted is still present. It states
+only what is verifiable: the current published extract contains granted
+activity-licence records whose grant dates span the observed range, and it
+carries no revocation, expiry or cessation field. The artifact therefore cannot
+establish current operation and must never be called "operating VUT".
 
 Dependencies
 ------------
@@ -110,6 +127,13 @@ SHP_ZIP_URL = (
 )
 SOURCE_CRS = "EPSG:25830"
 OUTPUT_CRS = "EPSG:4326"
+
+# Provenance vocabulary. Nothing in this artifact is SOURCE_REPORTED: the source
+# publishes licence records, never barrio figures. Barrio totals are derived by
+# this project from those records; district and municipality totals are derived
+# in turn from the already-aggregated barrio values.
+DERIVED_FROM_LICENCE_RECORDS = "DERIVED_FROM_LICENCE_RECORDS"
+DERIVED_FROM_BARRIO_TOTALS = "DERIVED_FROM_BARRIO_TOTALS"
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 GEOGRAPHY = REPO_ROOT / "data" / "geography" / "madrid_admin.geojson"
@@ -414,7 +438,10 @@ def build(out_dir: Path) -> None:
             "parent_id": props["parent_id"],
             "vut_licences": value["vut_licences"],
             "vut_units": value["vut_units"],
-            "value_provenance": "SOURCE_REPORTED",
+            # Barrio totals are NOT reported by the source. The source publishes
+            # individual licence records; this project derives the barrio figure
+            # by reprojecting the source geometry and aggregating by containment.
+            "value_provenance": DERIVED_FROM_LICENCE_RECORDS,
         })
         bucket = district_totals.setdefault(props["parent_id"], {"vut_licences": 0, "vut_units": 0})
         bucket["vut_licences"] += value["vut_licences"]
@@ -428,7 +455,7 @@ def build(out_dir: Path) -> None:
             "parent_id": props["parent_id"],
             "vut_licences": value["vut_licences"],
             "vut_units": value["vut_units"],
-            "value_provenance": "DERIVED_FROM_BARRIO_TOTALS",
+            "value_provenance": DERIVED_FROM_BARRIO_TOTALS,
         })
     records.append({
         "geography_level": "municipality",
@@ -436,7 +463,7 @@ def build(out_dir: Path) -> None:
         "parent_id": None,
         "vut_licences": sum(v["vut_licences"] for v in district_totals.values()),
         "vut_units": sum(v["vut_units"] for v in district_totals.values()),
-        "value_provenance": "DERIVED_FROM_BARRIO_TOTALS",
+        "value_provenance": DERIVED_FROM_BARRIO_TOTALS,
     })
 
     retrieved_at = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -445,8 +472,14 @@ def build(out_dir: Path) -> None:
     artifact = {
         "contract_version": "1.0.0",
         "source_state": {
-            "resource_last_modified": xlsx_http["last_modified"],
-            "shp_resource_last_modified": zip_http["last_modified"],
+            "xlsx_http_last_modified": xlsx_http["last_modified"],
+            "shp_http_last_modified": zip_http["last_modified"],
+            "http_last_modified_is_not_a_reference_date": (
+                "These are the HTTP Last-Modified headers observed on the resource files "
+                "when this build fetched them. They describe the state of the file served, "
+                "not a publisher-declared publication, effective or reference date. The "
+                "source declares none."
+            ),
             "grant_date_span": grant_dates,
         },
         "counts": {
@@ -486,7 +519,7 @@ def build(out_dir: Path) -> None:
                 "accommodation capacity, beds or places",
             ],
             "grant_decision": "Every record in the audited extract carries DECRETO_LU = 'Conceder'; the extract contains granted licences only.",
-            "currency_caveat": "The extract is cumulative and carries no revocation, expiry or cessation field, so it states which licences were granted, not which dwellings are currently operating.",
+            "currency_caveat": "The current published extract contains granted activity-licence records whose grant dates span the range recorded in source_period.grant_date_span. The source carries no revocation, expiry or cessation field and publishes no retention policy for licences that were later revoked or ceased, so the extract cannot establish current operation and must never be called 'operating VUT'. It is not described here as a cumulative stock, because the source does not document one.",
         },
         "unit_of_analysis": {
             "row": "One granted urban-planning activity licence (expediente).",
@@ -514,13 +547,16 @@ def build(out_dir: Path) -> None:
         },
         "zero_semantics": {
             "zero_is_a_real_zero": True,
-            "why": "The source enumerates granted licences for the whole municipality, so a barrio with no record has no granted licence rather than missing data. This is the exception to this project's 'missing is not zero' rule and applies only within this universe.",
+            "scope": "within this published source extract and its Madrid-wide coverage",
+            "why": "The extract enumerates granted activity-licence records across the whole municipality, so a barrio with no matched source record receives zero published granted-licence records and zero source-reported VUT units, rather than missing data. This is the exception to this project's 'missing is not zero' rule and it is scoped to this artifact's source universe and source state.",
+            "is_not": "A zero is NOT an assertion that no tourist-dwelling activity has ever existed or exists today in that barrio. It states only what this extract contains.",
         },
         "source_period": {
             "reference_date_published_by_source": False,
-            "resource_last_modified": xlsx_http["last_modified"],
+            "effective_date_published_by_source": False,
+            "xlsx_http_last_modified": xlsx_http["last_modified"],
             "grant_date_span": grant_dates,
-            "semantics": "The source publishes no reference-date field. The honest statement is the publication timestamp of the resource file, plus the span of per-record licence grant dates. The build clock (retrieved_at) is never presented as the source date.",
+            "semantics": "The source declares no reference or effective date. What can be stated honestly is (a) the HTTP Last-Modified header observed on the resource file, which describes the file served and is not a publisher-declared publication or reference date, and (b) the span of per-record licence grant dates present in the current extract. Portal metadata dates, the HTTP header, the per-record grant dates and this builder's retrieved_at clock are four different things and are never collapsed into one.",
         },
         "denominator_note": "This artifact carries no population, no ratio and no rate. The Padron denominator has its own reference date (1 January 2026) which differs from this source's state; any future indicator must show both periods rather than imply they coincide.",
         "retrieved_at": retrieved_at,

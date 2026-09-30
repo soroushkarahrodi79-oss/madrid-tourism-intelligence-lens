@@ -157,8 +157,11 @@ not choose between them.**
   dwellings per 1,000 registered residents"**. It **cannot** support
   "accommodation establishments per 1,000 residents" unless combined with other
   compatible authoritative universes under an explicitly designed methodology.
-- The Geoportal publishes an actual data date, so Gate B should examine its
-  **source-period semantics** rather than assume it is undated.
+- The Geoportal resource looked dated, so Gate B should examine its
+  **source-period semantics** rather than assume it is undated. *(Gate B did:
+  the source declares no reference or effective date. What exists is an HTTP
+  `Last-Modified` header on the resource file and a per-record licence grant
+  date — useful, but not a publisher-declared period.)*
 
 ### Candidate B — Comunidad de Madrid official accommodation inventory · `datos.comunidad.madrid`
 

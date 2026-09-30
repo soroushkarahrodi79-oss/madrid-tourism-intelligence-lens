@@ -278,6 +278,22 @@ class CommittedArtifactTests(unittest.TestCase):
         counts = self.artifact["counts"]
         self.assertGreater(counts["vut_units"], counts["licences"])
 
+    def test_barrio_totals_are_never_labelled_source_reported(self):
+        # Regression guard. The source publishes individual licence records, not
+        # barrio figures: every barrio total here is derived by this project
+        # through geometry reprojection and containment aggregation. Labelling
+        # them SOURCE_REPORTED would credit the publisher with a number it never
+        # published.
+        for record in self.barrios:
+            self.assertNotEqual(record["value_provenance"], "SOURCE_REPORTED")
+            self.assertEqual(record["value_provenance"], "DERIVED_FROM_LICENCE_RECORDS")
+        self.assertNotIn("SOURCE_REPORTED", json.dumps(self.artifact))
+
+    def test_every_record_declares_a_derived_provenance(self):
+        allowed = {"DERIVED_FROM_LICENCE_RECORDS", "DERIVED_FROM_BARRIO_TOTALS"}
+        for record in self.records:
+            self.assertIn(record["value_provenance"], allowed)
+
     def test_district_and_municipality_totals_are_exact_sums_of_barrios(self):
         for district in self.districts:
             children = [r for r in self.barrios if r["parent_id"] == district["official_id"]]
@@ -302,11 +318,35 @@ class CommittedArtifactTests(unittest.TestCase):
 
     def test_source_state_is_source_derived_not_the_build_clock(self):
         state = self.artifact["source_state"]
-        self.assertTrue(state["resource_last_modified"])
-        self.assertNotEqual(state["resource_last_modified"], self.meta["retrieved_at"])
-        self.assertFalse(self.meta["source_period"]["reference_date_published_by_source"])
+        self.assertTrue(state["xlsx_http_last_modified"])
+        self.assertNotEqual(state["xlsx_http_last_modified"], self.meta["retrieved_at"])
         span = state["grant_date_span"]
         self.assertLessEqual(span["earliest_grant_date"], span["latest_grant_date"])
+
+    def test_http_last_modified_is_never_called_a_reference_or_publication_date(self):
+        # The source declares no reference or effective date. The HTTP header is
+        # a fact about the file served and must not be promoted into one.
+        period = self.meta["source_period"]
+        self.assertFalse(period["reference_date_published_by_source"])
+        self.assertFalse(period["effective_date_published_by_source"])
+        self.assertIn("xlsx_http_last_modified", period)
+        self.assertNotIn("reference_date", period)
+        for blob in (json.dumps(self.artifact), json.dumps(self.meta)):
+            lowered = blob.lower()
+            self.assertNotIn("publication timestamp", lowered)
+            self.assertNotIn("resource published", lowered)
+        self.assertIn(
+            "http_last_modified_is_not_a_reference_date", self.artifact["source_state"]
+        )
+
+    def test_the_four_date_kinds_are_kept_distinct(self):
+        # HTTP header, per-record grant dates and the build clock are three
+        # different things; none may be reused as another's value.
+        header = self.artifact["source_state"]["xlsx_http_last_modified"]
+        span = self.artifact["source_state"]["grant_date_span"]
+        self.assertNotEqual(header, self.meta["retrieved_at"])
+        self.assertNotEqual(header, span["latest_grant_date"])
+        self.assertNotEqual(self.meta["retrieved_at"], span["latest_grant_date"])
 
     def test_artifact_publishes_no_ratio_and_no_population(self):
         blob = json.dumps(self.artifact).lower()
@@ -347,9 +387,25 @@ class CommittedArtifactTests(unittest.TestCase):
         self.assertEqual(linkage["outside_municipality"], [])
         self.assertEqual(linkage["barrio_geography_version"], "v3.4.1")
 
-    def test_meta_explains_why_zero_is_a_real_zero_here(self):
-        self.assertTrue(self.meta["zero_semantics"]["zero_is_a_real_zero"])
-        self.assertIn("why", self.meta["zero_semantics"])
+    def test_zero_semantics_are_scoped_to_the_published_source_extract(self):
+        zero = self.meta["zero_semantics"]
+        self.assertTrue(zero["zero_is_a_real_zero"])
+        # A zero is a statement about this extract, not about all VUT activity
+        # that has ever existed in a barrio.
+        self.assertIn("extract", zero["scope"].lower())
+        self.assertIn("extract", zero["why"].lower())
+        self.assertIn("is_not", zero)
+        self.assertIn("never", zero["is_not"].lower() + " never")
+
+    def test_currency_caveat_claims_no_undocumented_retention_policy(self):
+        # The source documents no retention policy for revoked or ceased
+        # licences, so the extract must not be described as a cumulative stock.
+        caveat = self.meta["universe"]["currency_caveat"].lower()
+        self.assertIn("no revocation", caveat)
+        self.assertIn("cannot establish current operation", caveat)
+        self.assertIn("not described here as a cumulative stock", caveat)
+        for blob in (json.dumps(self.artifact).lower(), json.dumps(self.meta).lower()):
+            self.assertNotIn("the extract is cumulative", blob)
 
     def test_interpretation_ceiling_refuses_the_forbidden_constructs(self):
         ceiling = self.meta["interpretation_ceiling"].lower()

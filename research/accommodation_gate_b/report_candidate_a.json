@@ -1,6 +1,6 @@
 {
-  "audit_started_at": "2026-09-30T09:52:52Z",
-  "audit_finished_at": "2026-09-30T09:53:10Z",
+  "audit_started_at": "2026-09-30T10:14:50Z",
+  "audit_finished_at": "2026-09-30T10:15:04Z",
   "note": "Counts are observations of one audit run against live official sources, not repository invariants and not integrity thresholds.",
   "address_register": {
     "dataset": "Callejero oficial del Ayuntamiento de Madrid (datos.madrid.es 213605)",
@@ -130,7 +130,12 @@
     },
     "temporal": {
       "reference_date_field_published": false,
-      "resource_last_modified": "Mon, 07 Sep 2026 10:11:03 GMT",
+      "effective_date_published": false,
+      "catalogue_metadata_modified": "2026-07-24T00:00:00",
+      "xlsx_http_last_modified": "Mon, 07 Sep 2026 10:11:03 GMT",
+      "http_last_modified_is_not_a_reference_date": "The HTTP header describes the file served, not a publisher-declared publication, effective or reference date. The source declares none.",
+      "retention_policy_published": false,
+      "retention_note": "The source publishes no policy for how revoked, expired or ceased licences are retained or removed, so the extract is not described as a cumulative stock. What is verifiable: the current published extract contains granted activity-licence records whose grant dates span the range below, and it carries no revocation, expiry or cessation field.",
       "records_with_grant_date": 1025,
       "earliest_grant_date": "2019-03-06",
       "latest_grant_date": "2026-09-02",

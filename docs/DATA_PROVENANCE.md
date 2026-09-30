@@ -279,21 +279,29 @@ deployment roles and this artifact has none yet.
   The source `DISTRITO` column is free text (25 spellings for 21 districts) and is
   never a join key; its one disagreement with the geometry is recorded, not
   overwritten.
-- **Period:** the source publishes no reference-date field. Recorded instead are
-  the resource's publication timestamp and the span of per-record licence grant
-  dates (2019-03-06 → 2026-09-02). The build clock is recorded separately as
-  `retrieved_at` and is never presented as the source date. **This is not the
-  Padrón's 1 January 2026 reference date**, and any future indicator must show
-  both periods rather than imply they coincide.
-- **Zero semantics:** a barrio with no licence is emitted as `0`, not as missing.
-  The source enumerates granted licences for the whole municipality, so absence is
-  an observation. This is the one place where the project's "missing is not zero"
-  rule does not apply, and the reason is recorded in the sidecar metadata.
+- **Period:** the source publishes **no reference-date and no effective-date
+  field**. Four different dates are recorded separately and never collapsed: the
+  portal's catalogue metadata date; the **HTTP `Last-Modified` header observed on
+  the resource file** (7 Sep 2026), which describes the file served and is *not* a
+  publisher-declared publication or reference date; the span of per-record licence
+  grant dates (2019-03-06 → 2026-09-02); and the build clock, recorded as
+  `retrieved_at`, which is never presented as the source date. **None of these is
+  a reference date comparable to the Padrón's 1 January 2026**, and any future
+  indicator must show both periods rather than imply they coincide.
+- **Zero semantics:** a barrio with no matched source record is emitted as `0`,
+  not as missing — **scoped to this published extract and its Madrid-wide
+  coverage**. The extract enumerates granted activity-licence records across the
+  whole municipality, so absence within it is an observation, not a coverage gap.
+  It is **not** an assertion that no tourist-dwelling activity has ever existed or
+  exists today in that barrio. This is the one place where the project's "missing
+  is not zero" rule does not apply, and the scope and reason are recorded in the
+  sidecar metadata.
 - **Full machine-readable record:** [`data/accommodation/madrid_vut_licences.meta.json`](../data/accommodation/madrid_vut_licences.meta.json).
 - **Interpretation ceiling:** a count of **granted licences** and of the dwelling
   units they contain. It is **not** all accommodation, **not** all tourist
-  dwellings in operation (the extract is cumulative and carries no revocation or
-  expiry field), **not** beds, rooms or places, **not** the Comunidad de Madrid
+  dwellings in operation (the source carries no revocation, expiry or cessation
+  field and publishes no retention policy, so the extract is not described as a
+  cumulative stock), **not** beds, rooms or places, **not** the Comunidad de Madrid
   regional inventory, **not** VUT responsible declarations, **not** platform
   listings, and **not** a measure of tourism pressure, overtourism, saturation,
   carrying capacity, intensity, displacement, burden, impact or attractiveness.

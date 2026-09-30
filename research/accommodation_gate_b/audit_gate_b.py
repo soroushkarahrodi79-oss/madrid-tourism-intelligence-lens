@@ -293,7 +293,12 @@ def audit_candidate_a(callejero: list[dict]) -> dict:
         "grant_decision": dict(collections.Counter(r.get("DECRETO_LU") for r in licences)),
         "temporal": {
             "reference_date_field_published": False,
-            "resource_last_modified": xlsx_http["last_modified"],
+            "effective_date_published": False,
+            "catalogue_metadata_modified": pkg.get("metadata_modified"),
+            "xlsx_http_last_modified": xlsx_http["last_modified"],
+            "http_last_modified_is_not_a_reference_date": "The HTTP header describes the file served, not a publisher-declared publication, effective or reference date. The source declares none.",
+            "retention_policy_published": False,
+            "retention_note": "The source publishes no policy for how revoked, expired or ceased licences are retained or removed, so the extract is not described as a cumulative stock. What is verifiable: the current published extract contains granted activity-licence records whose grant dates span the range below, and it carries no revocation, expiry or cessation field.",
             **summarise_grant_dates([r.get("RESOLUCION", "") for r in dbf]),
         },
         "geography": {
@@ -467,11 +472,15 @@ def audit_candidate_b(callejero: list[dict]) -> dict:
             "unmapped_via_types": dict(unmapped_via_types),
         },
         "temporal": {
-            "reference_date_field_published": False,
+            "portal_declared_dataset_state_date": pkg.get("metadata_modified"),
+            "portal_declared_dataset_state_note": "The official portal does date the CURRENT dataset state ('Última actualización de los datos'). The current state can therefore be cited honestly; what is missing is everything below.",
+            "record_level_reference_or_effective_date": False,
             "temporal_coverage_declared": extras.get("Cobertura temporal") or None,
-            "resource_last_modified": json_http["last_modified"],
             "historical_snapshots_published": False,
-            "note": "No record carries a date. The file is overwritten weekly and no archive is published, so a past state cannot be reconstructed or re-verified.",
+            "previous_states_reconstructable": False,
+            "json_http_last_modified": json_http["last_modified"],
+            "http_last_modified_is_not_a_reference_date": "The HTTP header describes the file served, not a publisher-declared reference or effective period. It is recorded separately from the portal's declared state date.",
+            "assessment": "CONDITIONAL, not absent. The current published dataset state is dated by the portal, so it can be cited honestly. But no record carries an effective or reference date, no temporal coverage is declared, and the file is overwritten weekly with no archive, so a past state cannot be reconstructed or re-verified and no longitudinal period semantics exist.",
         },
     }
 
@@ -522,20 +531,20 @@ def audit_control_and_declarations(candidate_b: dict) -> dict:
             "dataset": control_pkg.get("title"),
             "catalogue": f"https://datos.comunidad.madrid/dataset/{control_pkg.get('name')}",
             "authority": {e["key"]: e["value"] for e in control_pkg.get("extras", [])}.get("Fuente"),
-            "resource_last_modified": control_http["last_modified"],
+            "http_last_modified": control_http["last_modified"],
             "latest_year_for_madrid": latest,
             "universe_composition": control_pkg.get("notes", "")[:400],
             "madrid_totals": values,
         },
         "reconciliation": {
             "note": "Compared only because the control's stated composition matches Candidate B's taxonomy. The control is evidence, never a target: no Candidate B figure is adjusted towards it.",
-            "period_mismatch": f"Candidate B is a live state ({candidate_b['temporal']['resource_last_modified']}); the control's latest Madrid figure is the year {latest}.",
+            "period_mismatch": f"Candidate B is a current state dated {candidate_b['temporal']['portal_declared_dataset_state_date']} by the portal; the control's latest Madrid figure is the year {latest}. The periods differ, so no difference here is fully reconciled.",
             "by_type": comparison,
             "non_vut_total": {
                 "candidate_b": non_vut_observed, "control": non_vut_control,
                 "difference": non_vut_observed - non_vut_control,
                 "relative": round((non_vut_observed - non_vut_control) / non_vut_control, 4),
-                "classification": "explainable temporal difference - small, positive, and in line with the control's own upward trend over the series",
+                "classification": "plausibly compatible with temporal evolution; NOT fully reconciled, because the periods differ. The difference is small, positive and in the same direction as the control's own upward trend over the series, but this audit cannot show that time alone accounts for it.",
             },
             "vut_total": {
                 "candidate_b": vut_observed, "control": values["Viviendas de uso turístico"],
@@ -552,7 +561,7 @@ def audit_control_and_declarations(candidate_b: dict) -> dict:
         "declarations": {
             "dataset": decl_pkg.get("title"),
             "catalogue": f"https://datos.comunidad.madrid/dataset/{decl_pkg.get('name')}",
-            "resource_last_modified": decl_http["last_modified"],
+            "http_last_modified": decl_http["last_modified"],
             "self_description": (decl_pkg.get("notes") or "")[:300],
             "rows": len(decl),
             "madrid_rows": len(decl_madrid),

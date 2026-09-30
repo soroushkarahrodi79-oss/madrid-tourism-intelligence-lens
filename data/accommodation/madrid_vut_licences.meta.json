@@ -41,7 +41,7 @@
       "accommodation capacity, beds or places"
     ],
     "grant_decision": "Every record in the audited extract carries DECRETO_LU = 'Conceder'; the extract contains granted licences only.",
-    "currency_caveat": "The extract is cumulative and carries no revocation, expiry or cessation field, so it states which licences were granted, not which dwellings are currently operating."
+    "currency_caveat": "The current published extract contains granted activity-licence records whose grant dates span the range recorded in source_period.grant_date_span. The source carries no revocation, expiry or cessation field and publishes no retention policy for licences that were later revoked or ceased, so the extract cannot establish current operation and must never be called 'operating VUT'. It is not described here as a cumulative stock, because the source does not document one."
   },
   "unit_of_analysis": {
     "row": "One granted urban-planning activity licence (expediente).",
@@ -76,11 +76,14 @@
   },
   "zero_semantics": {
     "zero_is_a_real_zero": true,
-    "why": "The source enumerates granted licences for the whole municipality, so a barrio with no record has no granted licence rather than missing data. This is the exception to this project's 'missing is not zero' rule and applies only within this universe."
+    "scope": "within this published source extract and its Madrid-wide coverage",
+    "why": "The extract enumerates granted activity-licence records across the whole municipality, so a barrio with no matched source record receives zero published granted-licence records and zero source-reported VUT units, rather than missing data. This is the exception to this project's 'missing is not zero' rule and it is scoped to this artifact's source universe and source state.",
+    "is_not": "A zero is NOT an assertion that no tourist-dwelling activity has ever existed or exists today in that barrio. It states only what this extract contains."
   },
   "source_period": {
     "reference_date_published_by_source": false,
-    "resource_last_modified": "Mon, 07 Sep 2026 10:11:03 GMT",
+    "effective_date_published_by_source": false,
+    "xlsx_http_last_modified": "Mon, 07 Sep 2026 10:11:03 GMT",
     "grant_date_span": {
       "records_with_grant_date": 1025,
       "earliest_grant_date": "2019-03-06",
@@ -96,10 +99,10 @@
         "2026": 56
       }
     },
-    "semantics": "The source publishes no reference-date field. The honest statement is the publication timestamp of the resource file, plus the span of per-record licence grant dates. The build clock (retrieved_at) is never presented as the source date."
+    "semantics": "The source declares no reference or effective date. What can be stated honestly is (a) the HTTP Last-Modified header observed on the resource file, which describes the file served and is not a publisher-declared publication or reference date, and (b) the span of per-record licence grant dates present in the current extract. Portal metadata dates, the HTTP header, the per-record grant dates and this builder's retrieved_at clock are four different things and are never collapsed into one."
   },
   "denominator_note": "This artifact carries no population, no ratio and no rate. The Padron denominator has its own reference date (1 January 2026) which differs from this source's state; any future indicator must show both periods rather than imply they coincide.",
-  "retrieved_at": "2026-09-30T09:50:40Z",
+  "retrieved_at": "2026-09-30T10:13:04Z",
   "builder": "scripts/build_vut_licence_numerator.py",
   "interpretation_ceiling": "A count of granted urban-planning activity licences, and of the tourist-dwelling units those licences contain, for the city of Madrid. It is NOT all accommodation, NOT all tourist dwellings in operation, NOT beds, rooms or places, NOT a measure of tourism pressure, overtourism, saturation, carrying capacity, tourism intensity, resident displacement, neighbourhood burden, impact or attractiveness, and NOT a ratio of any kind. Counts belong to the whole official barrio and must never be spatially distributed into a circular Lens."
 }
