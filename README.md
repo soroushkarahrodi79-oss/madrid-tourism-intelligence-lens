@@ -41,6 +41,13 @@ including comparing two places at once.
   Padrón reference date. The barrio is a different geometry from the circle,
   and the interface keeps the two apart — the resident figure describes the
   whole barrio, never the part of it the circle covers.
+- Read the **licensed VUT context** for that same whole barrio: the licensed
+  tourist-dwelling **units** the Ayuntamiento's Agencia de Actividades
+  documents there, the **granted activity licences** they come from, and a
+  descriptive **per 1,000 registered residents** figure shown only alongside
+  both raw counts. These are licences **granted**, not dwellings in operation,
+  and the figure is descriptive administrative supply context — never a
+  pressure, saturation or capacity reading, and never ranked or scored.
 - Optionally overlay the full lattice of **district** or **barrio** outlines;
   the containing barrio is always outlined, the lattice defaults to off.
 
@@ -59,6 +66,12 @@ including comparing two places at once.
   Madrid / IDEAM, the canonical join target for administrative context
 - **Registered residents per barrio** — Ayuntamiento de Madrid, Subdirección
   General de Estadística (Padrón Municipal), reference date 1 January 2026
+- **Licensed tourist-dwelling (VUT) activity licences per barrio** —
+  Ayuntamiento de Madrid, Agencia de Actividades (dataset 300694). A committed
+  administrative snapshot of **granted** licences: 1,025 licences covering
+  1,483 tourist-dwelling units across the 131 barrios. The source declares no
+  reference date, so the interface reports the resource file's observed state
+  (September 2026) and never calls it a reference date
 
 On GitHub Pages, operational POI layers are **deployment-snapshot first** so
 the map renders immediately and does not wait on cross-origin APIs. The latest
@@ -125,6 +138,13 @@ restrict it in the CARTO Basemaps dashboard to the GitHub Pages host
   it shows locked, model-derived evidence from a single historical pilot day.
   Lenses with zero HATI samples inside them show **"No evidence"**, never a
   fabricated value.
+- Administrative geography, registered residents and licensed VUT: **committed
+  artifacts**, not rebuilt when the site deploys, each verified at the
+  deployment gate. Each keeps its own period or state and they are never shown
+  as one: the geography publishes only a dataset version, the residents a real
+  1 January 2026 reference date, and the licensed-VUT source **no reference date
+  at all** — for which the interface reports the resource file's observed state
+  rather than inventing one. There is no global time control.
 
 ## 10. What is next?
 
@@ -134,9 +154,15 @@ restrict it in the CARTO Basemaps dashboard to the GitHub Pages host
   coordinates against the official EMT Madrid dataset before reintroducing
   a BiciMAD fallback.
 - Add automated visual regression checks for the map UI.
-- Decide, explicitly and separately, whether any accommodation-per-resident
-  measure can be stated honestly — it needs numerator coverage and temporal
-  comparability handled first, and is deliberately absent today.
+- Decide, explicitly and separately, whether the **Madrid Destino accommodation
+  catalogue** can ever carry a per-resident measure. It still cannot: Gate A
+  ruled NO-GO on it, and the licensed-VUT figure that now exists uses a
+  different, separately qualified administrative source. A catalogue-based
+  ratio remains deliberately absent.
+- Decide, as its own design and methodology question, whether the licensed-VUT
+  figure should ever be mapped. It is deliberately a panel figure today: a
+  choropleth would import normalisation choices, class breaks, legends and
+  ranking implications that need their own explicit decision.
 - Add a bounded temporal tourism-demand driver next (for example Madrid
   Destino's official tourism agenda), only if it can preserve the same source,
   date and interpretation discipline.
@@ -149,7 +175,7 @@ css/app.css            styling
 js/lens.js             pure lens geometry + POI statistics (tested)
 js/evidence.js          pure HATI evidence statistics (tested)
 js/geography.js         pure administrative containment / point-in-polygon (tested)
-js/area-profile.js      pure Area Profile model: place, residents, states (tested)
+js/area-profile.js      pure Area Profile model: place, residents, licensed VUT, states (tested)
 js/data.js              deployment-snapshot-first + bounded live fallback loading
 js/app.js               Leaflet map + UI wiring
 data/                   HATI evidence extract + POI snapshot + provenance
@@ -169,7 +195,8 @@ software this project reads or bundles:
 - **OpenStreetMap-derived references** cited in HATI's own asset records remain
   subject to the [ODbL](https://opendatacommons.org/licenses/odbl/) and its
   attribution requirement.
-- **Madrid Open Data** (museums, tourist information), **Madrid Destino /
+- **Madrid Open Data** (museums, tourist information, administrative geography,
+  registered residents, licensed VUT activity licences), **Madrid Destino /
   esmadrid.com** (accommodation), **EMT Madrid open data** (BiciMAD), and
   **CRTM open data** (Metro/Cercanías)
   remain subject to the reuse terms published by their respective portals —

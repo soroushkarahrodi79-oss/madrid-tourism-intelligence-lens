@@ -12,6 +12,11 @@
 - Names the **official barrio and district** containing the active lens's
   centre, and reports that barrio's **registered residents** from the municipal
   Padrón, with its reference date (1 January 2026).
+- Reports, for that same **whole official barrio**, the **licensed
+  tourist-dwelling (VUT) units** and the **granted VUT activity licences** the
+  Ayuntamiento's Agencia de Actividades documents there, with a descriptive
+  **licensed VUT units per 1,000 registered residents** figure and both raw
+  counts always shown beside it.
 
 ## What this application does NOT claim or establish
 
@@ -48,18 +53,38 @@ establish, measure, or infer:
   never the part of it the circle happens to cover, and is never scaled,
   weighted or interpolated into the circle
 - Any accommodation-per-resident, hotels-per-1,000-residents, tourism-density
-  or tourism-pressure figure — the application holds both an accommodation
-  layer and a resident denominator, and deliberately computes no ratio between
-  them. A Gate A audit examined adding exactly this and ruled NO-GO: the
-  accommodation layer is a tourism-promotion catalogue, not an administrative
-  register, and cannot carry a per-resident ratio
-  ([ACCOMMODATION_NUMERATOR_AUDIT.md](ACCOMMODATION_NUMERATOR_AUDIT.md)).
-  A follow-up Gate B qualified an authoritative **numerator** — granted
-  municipal VUT activity licences — and built it as a standalone artifact, but
-  **still publishes no ratio**: nothing in the application reads that artifact,
-  and the numerator's source state and the Padrón's 1 January 2026 reference
-  date are different periods
-  ([ACCOMMODATION_NUMERATOR_GATE_B.md](ACCOMMODATION_NUMERATOR_GATE_B.md))
+  or tourism-pressure figure. The application holds a Madrid Destino
+  accommodation layer and a resident denominator and deliberately computes **no
+  ratio between them**: a Gate A audit examined exactly that division and ruled
+  NO-GO, because that layer is a tourism-promotion catalogue, not an
+  administrative register
+  ([ACCOMMODATION_NUMERATOR_AUDIT.md](ACCOMMODATION_NUMERATOR_AUDIT.md)). The
+  one per-resident figure the application does publish uses a **different,
+  separately qualified source** — granted municipal VUT activity licences,
+  admitted at Gate B
+  ([ACCOMMODATION_NUMERATOR_GATE_B.md](ACCOMMODATION_NUMERATOR_GATE_B.md)) — and
+  is bounded by everything in the section below
+- That the licensed VUT dwellings are **currently operating**. The source
+  records licences **granted**; it carries no revocation, expiry or cessation
+  field and publishes no retention policy, so nothing in the application says
+  *active*, *operating* or *current* tourist dwellings, and the extract is not
+  described as a cumulative stock
+- That the licensed VUT figures are **all** tourist dwellings or **all**
+  accommodation. Regional VUT responsible declarations, the Comunidad de Madrid
+  inventory and online platform listings are all outside the source, and the
+  publisher names tourist apartments, hostels, guest houses, hotels, pensions
+  and aparthotels as excluded modalities
+- The **legality** of any platform listing. The application makes no
+  correspondence between a licence record and any advertised accommodation
+- That a licence is a dwelling. One granted licence can contain many
+  tourist-dwelling units — up to 48 in the current extract — so the licence
+  count and the unit count are different figures and are never substituted for
+  one another
+- A **share of homes or households**. The per-1,000 denominator is registered
+  **residents**, so the figure is never "X% of homes are tourist apartments"
+- A **rank, band, percentile, hotspot, score or choropleth** of licensed VUT.
+  The figure is presented identically at every value: a barrio with more
+  licensed units is not styled, coloured or worded as a problem
 - Daytime, present, working or visiting population — registered residents are
   persons on the municipal register at the reference date, not people at a
   place at a moment
@@ -88,18 +113,46 @@ metric such as "Hotels & stays: 6" must never be read as "exactly six
 accommodations exist here" if that layer is on its snapshot fallback; it
 means six sample records happen to fall inside the lens.
 
-A barrio's registered-resident count and a lens's circle measurements have
-**different geometries** and are presented as separate sections for that reason.
-When two lenses fall in the same barrio they point at **one** administrative
-statistic, and the interface says so rather than repeating the figure. When no
-official area contains the centre, or no population record exists for an area,
-the interface abstains explicitly — it never shows `0`.
+A barrio's administrative statistics — its registered-resident count and its
+licensed VUT figures alike — and a lens's circle measurements have **different
+geometries**, and are presented as separate sections for that reason. When two
+lenses fall in the same barrio they point at **one** set of administrative
+statistics, and the interface says so rather than repeating the figures. When no
+official area contains the centre, when the centre is outside Madrid, or when a
+record is absent or incoherent, the interface abstains explicitly — it never
+shows `0`.
+
+One `0` in the interface is real, and it is scoped: a barrio for which the
+committed licensed-VUT extract reports no granted licence genuinely shows `0`,
+because that extract enumerates licence records across the whole municipality,
+so absence within it is an observation. This is the single documented exception
+to the project's "missing is not zero" rule, and it never applies to a load or
+validation **failure**, which reads *unavailable*. A barrio with a genuinely
+small non-zero figure displays `<0.1` rather than a rounded `0.0`, so a real
+figure is never printed as nothing.
 
 Datasets keep their own periods and are never implied to be synchronised:
 administrative geography carries no effective date (only a published dataset
 version), registered residents are dated 1 January 2026, the HATI pilot is
 21 August 2023, and the pedestrian counters are a 2024 published period. The
 application has no global time control, because there is nothing to align.
+
+The licensed-VUT numerator is the sharpest case. Its source declares **no
+reference date and no effective date at all**, so the application reports a
+**source file state** — the HTTP `Last-Modified` header observed on the resource
+file, September 2026 — and says in its disclosure that this describes the file
+served and is **not** a publisher-declared publication, effective or reference
+date. The per-1,000 figure therefore combines two sides with **different
+temporal semantics**, which the interface shows separately: *Reference 1 Jan
+2026* for the residents, *source file state Sep 2026* for the licences. A shared
+label such as "VUT & population — 2026" is forbidden, and so is presenting the
+HTTP header as a VUT reference date.
+
+The licensed-VUT artifact is a **committed administrative snapshot**. It is not
+rebuilt when the site deploys: deployment validation verifies the committed
+file, so a successful deployment does not mean the upstream source was
+re-fetched. Refreshing it requires re-running the builder and reviewing the
+diff. Nothing about this layer is live data.
 
 ## Evidence states shown in the UI
 
@@ -118,6 +171,14 @@ application has no global time control, because there is nothing to align.
   for a layer right now. The UI shows "No data" rather
   than a numeric zero, since a zero would be indistinguishable from a
   genuinely empty area.
+- **Official register** — a figure read from an administrative register that
+  enumerates a universe at a published reference date. The registered-resident
+  count carries this state (`ADMINISTRATIVE_REGISTER`).
+- **Administrative licence** — a figure read from records of administrative acts
+  that were **granted**, with no declared reference date and no revocation field.
+  The licensed-VUT figures carry this state (`ADMINISTRATIVE_LICENSE`). It is
+  deliberately a different state from *Official register*: a granted act is not
+  an enumerated universe, and neither inherits the other's ceiling.
 
 ## Relationship to HATI-Madrid
 

@@ -451,7 +451,8 @@ test("one barrio holding both lens centres is drawn and labelled once", () => {
 test("the other lens's area is one line in the profile, not a second card", () => {
   assert.match(html, /<div id="areaOther" class="area-other"><\/div>/);
   assert.match(app, /function renderOtherLensArea\(a, b\)/);
-  assert.match(app, /is in the same barrio — one statistic, not two observations\./);
+  assert.match(app, /is in the same barrio — A · B share the same/);
+  assert.match(app, /administrative-area statistics, not two observations\./);
   // The comparison grid stays what it always was: circle measurements.
   assert.match(html, /<small>circle measurements only<\/small>/);
   assert.doesNotMatch(html, /id="compareAreas"/);
@@ -580,15 +581,26 @@ test("the population is never interpolated into the lens", () => {
   assert.doesNotMatch(statsBody, /population|residents|barrio/i);
 });
 
-test("this feature adds no ratio, pressure or composite score", () => {
+test("the interface carries no pressure, density or composite score", () => {
+  // The Area Profile now shows ONE descriptive ratio — licensed VUT units per
+  // 1,000 registered residents — and it is named in full wherever it appears
+  // (asserted in tests/licensed_vut_context.test.mjs). Everything below stays
+  // forbidden: these are interpretations the sources cannot support, and no
+  // feature may reintroduce them.
   const forbidden = [
-    /per\s*1,?000\s*residents/i,
     /residents?\s*per\s*(km|hectare|hotel)/i,
     /tourism\s*pressure/i,
+    /tourist\s*pressure/i,
+    /accommodation\s*pressure/i,
+    /neighbourhood\s*pressure/i,
     /overtourism/i,
+    /saturation/i,
     /carrying\s*capacity/i,
     /tourism\s*(density|intensity)/i,
+    /intensity\s*score/i,
     /composite\s*score/i,
+    /displacement/i,
+    /hotspot/i,
     /accommodation[\s\S]{0,20}\/[\s\S]{0,20}residents/i,
   ];
   for (const source of [app, html, css]) {

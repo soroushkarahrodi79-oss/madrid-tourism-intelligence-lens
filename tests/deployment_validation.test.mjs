@@ -30,6 +30,14 @@ function testRegistry() {
     if (source.required_modes) {
       for (const rule of Object.values(source.required_modes.modes)) rule.min_count = 1;
     }
+    // The pinned committed-snapshot totals describe the real artifact, so they
+    // are re-aimed at the fixture's own totals here. The pin's behaviour is
+    // asserted on its own below, and the real numbers are asserted in
+    // "source registry is internally coherent".
+    if (source.expected_source_totals) {
+      source.expected_source_totals.licences = VUT_FIXTURE_TOTALS.licences;
+      source.expected_source_totals.units = VUT_FIXTURE_TOTALS.units;
+    }
   }
   return registry;
 }
@@ -191,6 +199,119 @@ function populationMeta() {
   };
 }
 
+// A licensed-VUT numerator whose barrio ids and parents come from the geography
+// fixture, carrying TWO independent counts per barrio with units never fewer
+// than licences, and derived district and municipality totals. Some barrios
+// carry a real published zero, which is valid for this source and must not be
+// confused with missing data.
+function vutArtifact() {
+  const geo = geographyFeatureCollection();
+  const barrios = geo.features.filter((f) => f.properties.geography_level === "barrio");
+  const districts = geo.features.filter((f) => f.properties.geography_level === "district");
+  const muni = geo.features.find((f) => f.properties.geography_level === "municipality");
+
+  const barrioRecords = barrios.map((b, i) => {
+    const licences = i % 4; // every fourth barrio is a genuine zero
+    return {
+      geography_level: "barrio",
+      official_id: b.properties.official_id,
+      parent_id: b.properties.parent_id,
+      vut_licences: licences,
+      vut_units: licences + (i % 3), // one licence may contain several units
+      value_provenance: "DERIVED_FROM_LICENCE_RECORDS",
+    };
+  });
+
+  const sum = (records, field) => records.reduce((total, r) => total + r[field], 0);
+  const byDistrict = new Map();
+  for (const b of barrioRecords) {
+    const bucket = byDistrict.get(b.parent_id) ?? [];
+    bucket.push(b);
+    byDistrict.set(b.parent_id, bucket);
+  }
+
+  const records = [
+    {
+      geography_level: "municipality",
+      official_id: muni.properties.official_id,
+      parent_id: null,
+      vut_licences: sum(barrioRecords, "vut_licences"),
+      vut_units: sum(barrioRecords, "vut_units"),
+      value_provenance: "DERIVED_FROM_BARRIO_TOTALS",
+    },
+    ...districts.map((d) => {
+      const bucket = byDistrict.get(d.properties.official_id) ?? [];
+      return {
+        geography_level: "district",
+        official_id: d.properties.official_id,
+        parent_id: d.properties.parent_id,
+        vut_licences: sum(bucket, "vut_licences"),
+        vut_units: sum(bucket, "vut_units"),
+        value_provenance: "DERIVED_FROM_BARRIO_TOTALS",
+      };
+    }),
+    ...barrioRecords,
+  ];
+
+  return {
+    contract_version: "1.0.0",
+    source_state: {
+      xlsx_http_last_modified: "Mon, 07 Sep 2026 10:11:03 GMT",
+      http_last_modified_is_not_a_reference_date:
+        "This is the HTTP Last-Modified header observed on the resource file, not a publisher-declared reference date.",
+      grant_date_span: { earliest_grant_date: "2019-03-06", latest_grant_date: "2026-09-02" },
+    },
+    counts: {
+      licences: sum(barrioRecords, "vut_licences"),
+      vut_units: sum(barrioRecords, "vut_units"),
+      barrios_with_at_least_one_licence: barrioRecords.filter((b) => b.vut_licences > 0).length,
+      barrios: barrioRecords.length,
+    },
+    records,
+  };
+}
+
+// The fixture's own totals. The real registry pins the REAL committed
+// snapshot's totals (1025 licences / 1483 units), which the fixtures cannot
+// reproduce, so testRegistry() re-aims the pin at these and the pin itself is
+// exercised by its own tests plus the real-artifact run at the end of the file.
+const VUT_FIXTURE_TOTALS = (() => {
+  const artifact = vutArtifact();
+  return { licences: artifact.counts.licences, units: artifact.counts.vut_units };
+})();
+
+// The sidecar's MINIMUM provenance contract, as a healthy build carries it.
+// Every field below is one the user-facing disclosure reads, so the fixture
+// states them rather than relying on the real file: the tests that follow strip
+// one field at a time to prove each is genuinely required to publish.
+function vutMeta() {
+  return {
+    contract_version: "1.0.0",
+    source: {
+      dataset: "Viviendas de uso turistico con licencia",
+      authority: "Ayuntamiento de Madrid - Agencia de Actividades",
+    },
+    unit_of_analysis: {
+      vut_units: "SUM of the source column 'N VUT': tourist-dwelling units included in each licence.",
+    },
+    universe: {
+      currency_caveat:
+        "The source carries no revocation, expiry or cessation field, so the extract cannot establish " +
+        "current operation and must never be called 'operating VUT'.",
+    },
+    source_period: {
+      reference_date_published_by_source: false,
+      effective_date_published_by_source: false,
+      xlsx_http_last_modified: "Mon, 07 Sep 2026 10:11:03 GMT",
+    },
+    geography_linkage: { barrio_geography_version: "v3.4.1", district_geography_version: "v3.2.1" },
+    interpretation_ceiling:
+      "A count of granted activity licences and the units they contain. NOT operating dwellings, NOT " +
+      "all accommodation, NOT a measure of tourism pressure.",
+    retrieved_at: GENERATED_AT,
+  };
+}
+
 function healthyArtifacts() {
   const layers = {
     museum: poiRecords("museum", 3),
@@ -255,6 +376,8 @@ function healthyArtifacts() {
     "geography/madrid_admin.meta.json": geographyMeta(),
     "population/madrid_population.json": populationArtifact(),
     "population/madrid_population.meta.json": populationMeta(),
+    "accommodation/madrid_vut_licences.json": vutArtifact(),
+    "accommodation/madrid_vut_licences.meta.json": vutMeta(),
   };
 }
 
@@ -886,6 +1009,398 @@ test("a broken geography or population artifact cannot be published", () => {
   assert.match(errorText(withPopulationGap), /has no population value|expected \d+ barrio/);
 });
 
+// ----------------------------------------- committed licensed-VUT numerator
+//
+// The gate exists because the failure mode is a PLAUSIBLE WRONG NUMBER, not an
+// empty panel: the interface reports these counts and a ratio derived from them.
+
+test("a missing or malformed licensed-VUT artifact cannot be published", () => {
+  for (const broken of [null, {}, { records: "not-an-array" }, { records: [] }]) {
+    const artifacts = healthyArtifacts();
+    artifacts["accommodation/madrid_vut_licences.json"] = broken;
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `a ${JSON.stringify(broken)} artifact must block the build`);
+  }
+
+  const missing = healthyArtifacts();
+  missing["accommodation/madrid_vut_licences.json"] = null;
+  const result = run(missing);
+  assert.match(errorText(result), /is missing or has no records array/);
+
+  // The layer is reported unavailable in the manifest rather than reported as a
+  // healthy layer holding zero licensed units.
+  const layer = result.manifest.layers.find((l) => l.source_id === "vut_licences");
+  assert.equal(layer.state, "unavailable");
+  assert.equal(layer.record_count, 0);
+});
+
+test("a barrio with no licensed-VUT record cannot be published as a gap", () => {
+  const artifacts = healthyArtifacts();
+  const vut = artifacts["accommodation/madrid_vut_licences.json"];
+  const dropped = vut.records.find((r) => r.geography_level === "barrio");
+  vut.records = vut.records.filter((r) => r !== dropped);
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /has no licensed-VUT record|expected \d+ barrios? licence record/);
+});
+
+test("a licensed-VUT record outside the canonical geography cannot be published", () => {
+  const artifacts = healthyArtifacts();
+  const vut = artifacts["accommodation/madrid_vut_licences.json"];
+  vut.records.find((r) => r.geography_level === "barrio").official_id = "999";
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /is not a canonical barrio/);
+});
+
+test("licence and unit counts must be coherent non-negative integers", () => {
+  for (const [field, value, pattern] of [
+    ["vut_units", -1, /invalid vut_units/],
+    ["vut_units", 2.5, /invalid vut_units/],
+    ["vut_units", "7", /invalid vut_units/],
+    ["vut_licences", null, /invalid vut_licences/],
+  ]) {
+    const artifacts = healthyArtifacts();
+    const vut = artifacts["accommodation/madrid_vut_licences.json"];
+    vut.records.find((r) => r.geography_level === "barrio")[field] = value;
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `${field}=${value} must block the build`);
+    assert.match(errorText(result), pattern);
+  }
+});
+
+test("more licences than units means the two columns were confused, and blocks", () => {
+  // One licence contains one or more dwelling units, so units below licences is
+  // structurally impossible and would silently rename the indicator.
+  const artifacts = healthyArtifacts();
+  const vut = artifacts["accommodation/madrid_vut_licences.json"];
+  const barrio = vut.records.find((r) => r.geography_level === "barrio" && r.vut_licences > 0);
+  barrio.vut_units = barrio.vut_licences - 1;
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /units can never be fewer than licences/);
+});
+
+test("licensed-VUT aggregates must be exact sums of the barrios, for both counts", () => {
+  for (const field of ["vut_licences", "vut_units"]) {
+    const districtBroken = healthyArtifacts();
+    const districtRecord = districtBroken["accommodation/madrid_vut_licences.json"].records.find(
+      (r) => r.geography_level === "district"
+    );
+    districtRecord[field] += 1;
+    const district = run(districtBroken);
+    assert.equal(district.ok, false);
+    assert.match(errorText(district), new RegExp(`district .* ${field} total`));
+
+    const muniBroken = healthyArtifacts();
+    const muniRecord = muniBroken["accommodation/madrid_vut_licences.json"].records.find(
+      (r) => r.geography_level === "municipality"
+    );
+    muniRecord[field] += 1;
+    const municipality = run(muniBroken);
+    assert.equal(municipality.ok, false);
+    assert.match(errorText(municipality), new RegExp(`municipality ${field} total`));
+  }
+});
+
+test("declared headline counts must agree with the licensed-VUT records", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["accommodation/madrid_vut_licences.json"].counts.vut_units += 10;
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /declared \d+ unit\(s\) but the records sum to/);
+});
+
+test("a silent change to the committed snapshot's totals blocks the build", () => {
+  // The pinned totals make a partial or accidental regeneration a visible
+  // failure. A DELIBERATE refresh updates the artifact and the pin together.
+  const artifacts = healthyArtifacts();
+  const vut = artifacts["accommodation/madrid_vut_licences.json"];
+  const barrio = vut.records.find((r) => r.geography_level === "barrio" && r.vut_licences > 0);
+  const delta = barrio.vut_licences;
+  barrio.vut_licences = 0;
+  barrio.vut_units -= delta;
+  // Re-derive the aggregates and the headline so ONLY the pin disagrees.
+  for (const field of ["vut_licences", "vut_units"]) {
+    const barrios = vut.records.filter((r) => r.geography_level === "barrio");
+    for (const district of vut.records.filter((r) => r.geography_level === "district")) {
+      district[field] = barrios
+        .filter((b) => b.parent_id === district.official_id)
+        .reduce((total, b) => total + b[field], 0);
+    }
+    const total = barrios.reduce((sum, b) => sum + b[field], 0);
+    vut.records.find((r) => r.geography_level === "municipality")[field] = total;
+    vut.counts[field === "vut_licences" ? "licences" : "vut_units"] = total;
+  }
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /but the registry pins/);
+  assert.match(errorText(result), /update expected_source_totals in the same reviewed pull request/);
+});
+
+test("licensed-VUT provenance flags must stay derived, never source-reported", () => {
+  const barrioFlag = healthyArtifacts();
+  barrioFlag["accommodation/madrid_vut_licences.json"].records.find(
+    (r) => r.geography_level === "barrio"
+  ).value_provenance = "SOURCE_REPORTED";
+  const barrio = run(barrioFlag);
+  assert.equal(barrio.ok, false);
+  assert.match(errorText(barrio), /must be flagged DERIVED_FROM_LICENCE_RECORDS/);
+
+  const aggregateFlag = healthyArtifacts();
+  aggregateFlag["accommodation/madrid_vut_licences.json"].records.find(
+    (r) => r.geography_level === "district"
+  ).value_provenance = "DERIVED_FROM_LICENCE_RECORDS";
+  const aggregate = run(aggregateFlag);
+  assert.equal(aggregate.ok, false);
+  assert.match(errorText(aggregate), /must be flagged DERIVED_FROM_BARRIO_TOTALS/);
+});
+
+test("a population or a ratio appearing on a licence record blocks the build", () => {
+  // Field creep here is a semantic failure, not untidiness: the numerator
+  // artifact must never carry a denominator or a derived rate.
+  for (const field of ["residents", "licensed_vut_per_1000_residents", "ratio"]) {
+    const artifacts = healthyArtifacts();
+    artifacts["accommodation/madrid_vut_licences.json"].records.find(
+      (r) => r.geography_level === "barrio"
+    )[field] = 1;
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `${field} must not be admitted onto a licence record`);
+    assert.match(errorText(result), new RegExp(`carries unexpected field\\(s\\): ${field}`));
+  }
+});
+
+test("the licensed-VUT layer never acquires a source period, and says why", () => {
+  const { manifest } = run(healthyArtifacts());
+  const layer = manifest.layers.find((l) => l.source_id === "vut_licences");
+
+  // The decisive assertion: the HTTP header is NOT promoted into a period.
+  assert.equal(layer.source_period, null);
+  assert.equal(layer.source_period_known, false);
+  assert.match(layer.source_period_semantics, /declares NO reference date and NO effective date/);
+
+  // It is reported as a file state, named as such, in the audit lines.
+  const audit = layer.warnings.join(" | ");
+  assert.match(audit, /source file state \(HTTP Last-Modified, not a reference date\)/);
+  assert.match(audit, /licence grant dates span 2019-03-06 to 2026-09-02/);
+  assert.match(audit, /the residential denominator keeps its own separate reference date/);
+
+  // The denominator still carries its own real reference date, separately.
+  const population = manifest.layers.find((l) => l.source_id === "population");
+  assert.equal(population.source_period.from, "2026-01-01");
+  assert.notEqual(population.source_period, layer.source_period);
+});
+
+test("an artifact that drops the not-a-reference-date disclaimer blocks the build", () => {
+  const artifacts = healthyArtifacts();
+  delete artifacts["accommodation/madrid_vut_licences.json"].source_state
+    .http_last_modified_is_not_a_reference_date;
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /must never be published as a publisher-declared reference date/);
+});
+
+test("a sidecar claiming a publisher-declared reference or effective date blocks the build", () => {
+  // The load-bearing pair. A sidecar that claimed either date would licence the
+  // interface to print one for a source that declares neither.
+  for (const flag of ["reference_date_published_by_source", "effective_date_published_by_source"]) {
+    for (const claimed of [true, "2026-09-07", null, undefined]) {
+      const artifacts = healthyArtifacts();
+      artifacts["accommodation/madrid_vut_licences.meta.json"].source_period[flag] = claimed;
+      const result = run(artifacts);
+      assert.equal(result.ok, false, `${flag} = ${claimed} must block the build`);
+      assert.match(errorText(result), new RegExp(`must record source_period\\.${flag} as false`));
+      assert.match(errorText(result), /the project must not invent one/);
+    }
+  }
+});
+
+// ------------------------------- the licensed-VUT sidecar is a publication gate
+//
+// The sidecar carries the provenance the user-facing disclosure reads to say
+// what the figure counts and what it does not mean. Publishing the indicator
+// without it would put a number on screen that the product cannot qualify, so
+// it blocks deployment exactly as a broken artifact does. It is NOT a warning.
+
+test("a missing licensed-VUT sidecar blocks the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["accommodation/madrid_vut_licences.meta.json"] = null;
+  const result = run(artifacts);
+
+  assert.equal(result.ok, false, "a missing sidecar must not be publishable");
+  assert.match(errorText(result), /is missing or is not an object/);
+  assert.match(errorText(result), /what it counts - and what it does not mean - is required to publish it/);
+
+  // It is an ERROR, not a warning: the distinction is the whole point.
+  assert.ok(
+    !result.warnings.some((w) => /madrid_vut_licences\.meta\.json/.test(w)),
+    "the missing sidecar must not be reported as a mere warning"
+  );
+});
+
+test("a malformed licensed-VUT sidecar blocks the build", () => {
+  for (const malformed of ["", "not json", 42, [], true]) {
+    const artifacts = healthyArtifacts();
+    artifacts["accommodation/madrid_vut_licences.meta.json"] = malformed;
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `a ${JSON.stringify(malformed)} sidecar must block the build`);
+    assert.match(errorText(result), /is missing or is not an object/);
+  }
+});
+
+test("a sidecar missing the dataset or the authority blocks the build", () => {
+  for (const [path, mutate, pattern] of [
+    ["source.dataset", (m) => delete m.source.dataset, /no usable source\.dataset/],
+    ["source.authority", (m) => delete m.source.authority, /no usable source\.authority/],
+    ["source", (m) => delete m.source, /no usable source\.dataset/],
+    ["source.dataset (blank)", (m) => (m.source.dataset = "   "), /no usable source\.dataset/],
+  ]) {
+    const artifacts = healthyArtifacts();
+    mutate(artifacts["accommodation/madrid_vut_licences.meta.json"]);
+    const result = run(artifacts);
+    assert.equal(result.ok, false, `${path} must be required`);
+    assert.match(errorText(result), pattern);
+  }
+  // And the reason is stated, not just the field name.
+  const artifacts = healthyArtifacts();
+  delete artifacts["accommodation/madrid_vut_licences.meta.json"].source.authority;
+  assert.match(errorText(run(artifacts)), /names the authority that publishes it/);
+});
+
+test("a sidecar missing the unit definition blocks the build", () => {
+  // Without it the disclosure cannot say what one "unit" is - and a licence is
+  // not a dwelling, which is the distinction this whole indicator turns on.
+  for (const mutate of [
+    (m) => delete m.unit_of_analysis.vut_units,
+    (m) => delete m.unit_of_analysis,
+    (m) => (m.unit_of_analysis.vut_units = ""),
+  ]) {
+    const artifacts = healthyArtifacts();
+    mutate(artifacts["accommodation/madrid_vut_licences.meta.json"]);
+    const result = run(artifacts);
+    assert.equal(result.ok, false);
+    assert.match(errorText(result), /no usable unit_of_analysis\.vut_units, which defines what one unit is/);
+  }
+});
+
+test("a sidecar missing the currency or operation caveat blocks the build", () => {
+  for (const mutate of [
+    (m) => delete m.universe.currency_caveat,
+    (m) => delete m.universe,
+    (m) => (m.universe.currency_caveat = "  "),
+  ]) {
+    const artifacts = healthyArtifacts();
+    mutate(artifacts["accommodation/madrid_vut_licences.meta.json"]);
+    const result = run(artifacts);
+    assert.equal(result.ok, false);
+    assert.match(
+      errorText(result),
+      /no usable universe\.currency_caveat, which records that the extract cannot establish current operation/
+    );
+  }
+});
+
+test("a sidecar missing the interpretation ceiling blocks the build", () => {
+  const artifacts = healthyArtifacts();
+  delete artifacts["accommodation/madrid_vut_licences.meta.json"].interpretation_ceiling;
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /no usable interpretation_ceiling, which states what the figure is not/);
+});
+
+test("a sidecar without a usable geography linkage blocks the build", () => {
+  for (const mutate of [
+    (m) => delete m.geography_linkage.barrio_geography_version,
+    (m) => delete m.geography_linkage,
+    (m) => (m.geography_linkage.barrio_geography_version = ""),
+  ]) {
+    const artifacts = healthyArtifacts();
+    mutate(artifacts["accommodation/madrid_vut_licences.meta.json"]);
+    const result = run(artifacts);
+    assert.equal(result.ok, false);
+    assert.match(errorText(result), /no usable geography_linkage\.barrio_geography_version/);
+  }
+});
+
+test("counts joined to a different barrio geography than the one shipped block the build", () => {
+  // A numerator resolved against boundaries that have since moved is the
+  // quiet mis-join this check exists to catch.
+  const artifacts = healthyArtifacts();
+  artifacts["accommodation/madrid_vut_licences.meta.json"].geography_linkage.barrio_geography_version = "v3.3.0";
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /resolved against barrio geography v3\.3\.0, but the committed geography ships v3\.4\.1/);
+  assert.match(errorText(result), /Re-run the builder against the current geography/);
+
+  // Agreement passes, and the audit line still reports the version.
+  const healthy = run(healthyArtifacts());
+  assert.deepEqual(healthy.errors, []);
+  const layer = healthy.manifest.layers.find((l) => l.source_id === "vut_licences");
+  assert.ok(layer.warnings.some((w) => /joined to barrio geography v3\.4\.1/.test(w)));
+});
+
+test("the sidecar gate does not weaken when only one field is wrong", () => {
+  // Each field is independently required: fixing one does not excuse another.
+  const artifacts = healthyArtifacts();
+  const meta = artifacts["accommodation/madrid_vut_licences.meta.json"];
+  delete meta.interpretation_ceiling;
+  delete meta.unit_of_analysis;
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /interpretation_ceiling/);
+  assert.match(errorText(result), /unit_of_analysis\.vut_units/);
+});
+
+test("the REAL committed licensed-VUT sidecar satisfies the gate", () => {
+  // Runs the real registry's real rules against the real committed files, so a
+  // future edit that strips required provenance fails here rather than on the
+  // deploy runner.
+  const committedRegistry = {
+    ...REAL_REGISTRY,
+    sources: REAL_REGISTRY.sources.filter((s) => s.id === "vut_licences" || s.id === "geography"),
+  };
+  const { errors, warnings, manifest } = validateDeployment({
+    registry: committedRegistry,
+    artifacts: readArtifacts(fileURLToPath(new URL("../data/", import.meta.url))),
+    generatedAt: GENERATED_AT,
+  });
+
+  assert.deepEqual(errors, [], `the committed sidecar must satisfy the gate: ${errors.join(" | ")}`);
+  assert.deepEqual(warnings, [], `and must do so without warnings: ${warnings.join(" | ")}`);
+
+  const layer = manifest.layers.find((l) => l.source_id === "vut_licences");
+  assert.equal(layer.state, "available");
+  // Still no invented period, and the real geography version is reported.
+  assert.equal(layer.source_period, null);
+  assert.equal(layer.source_period_known, false);
+  assert.ok(layer.warnings.some((w) => /joined to barrio geography v3\.4\.1/.test(w)));
+});
+
+test("an incoherent licence grant-date span blocks the build", () => {
+  const artifacts = healthyArtifacts();
+  const span = artifacts["accommodation/madrid_vut_licences.json"].source_state.grant_date_span;
+  span.earliest_grant_date = "2026-09-02";
+  span.latest_grant_date = "2019-03-06";
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /grant-date span is incoherent/);
+});
+
+test("a real published zero in the licensed-VUT artifact is valid and publishable", () => {
+  // The one documented exception to "missing is not zero", and it must not be
+  // mistaken for a broken artifact: the fixture deliberately contains zeros.
+  const artifacts = healthyArtifacts();
+  const vut = artifacts["accommodation/madrid_vut_licences.json"];
+  const zeros = vut.records.filter((r) => r.geography_level === "barrio" && r.vut_units === 0);
+  assert.ok(zeros.length > 0, "fixture precondition: some barrios carry a published zero");
+
+  const result = run(artifacts);
+  assert.deepEqual(result.errors, []);
+  const layer = result.manifest.layers.find((l) => l.source_id === "vut_licences");
+  assert.equal(layer.state, "available");
+});
+
 test("the manifest cannot present the packaged fallback as authoritative Madrid evidence", () => {
   const result = run(healthyArtifacts());
   const fallback = result.manifest.layers.find((l) => l.source_id === "snapshot_fallback");
@@ -924,9 +1439,19 @@ test("source registry is internally coherent", () => {
     assert.ok(source.source_period_semantics, `${source.id} needs source_period_semantics`);
     assert.equal(typeof source.blocks_deployment, "boolean", `${source.id} must declare blocks_deployment`);
     assert.ok(
-      ["operational", "context", "observed_evidence", "research_evidence", "packaged_fallback", "reference"].includes(
-        source.role
-      ),
+      [
+        "operational",
+        "context",
+        "observed_evidence",
+        "research_evidence",
+        "packaged_fallback",
+        "reference",
+        // A committed administrative indicator the interface reports for a whole
+        // official area. Distinct from "reference" (join material such as the
+        // geography and the denominator) and from "context" (cartographic
+        // context that is never a numerator).
+        "administrative_context",
+      ].includes(source.role),
       `${source.id} has an unknown role`
     );
     assert.ok(
@@ -936,6 +1461,7 @@ test("source registry is internally coherent", () => {
         "packaged_sample",
         "committed_reference_geography",
         "committed_reference_evidence",
+        "committed_administrative_snapshot",
       ].includes(source.provenance_state),
       `${source.id} must declare a known provenance_state`
     );
@@ -949,11 +1475,11 @@ test("source registry is internally coherent", () => {
       `${source.id} references undefined scope ${source.expected_spatial_scope}`
     );
 
-    if (source.shape === "admin_geography" || source.shape === "admin_population") {
-      // The administrative geography and the population denominator have an
-      // exact-count contract, not a collapse floor: they cover exactly the
-      // official number of districts and barrios, so a min_count guardrail would
-      // be the wrong instrument.
+    if (["admin_geography", "admin_population", "admin_licence_counts"].includes(source.shape)) {
+      // The administrative geography, the population denominator and the
+      // licensed-VUT numerator have an exact-count contract, not a collapse
+      // floor: they cover exactly the official number of districts and barrios,
+      // so a min_count guardrail would be the wrong instrument.
       const counts = source.expected_counts;
       assert.ok(counts, `${source.id} needs expected_counts`);
       assert.equal(counts.districts, 21, `${source.id} must expect 21 districts`);
@@ -976,6 +1502,70 @@ test("source registry is internally coherent", () => {
   }
 
   assert.match(REAL_REGISTRY.guardrail_note, /not a tourism indicator/i);
+});
+
+test("the evidence vocabulary distinguishes a register from a licence", () => {
+  // The taxonomy is extended, not redesigned: one new family, added because a
+  // granted administrative ACT is not an enumerated administrative UNIVERSE and
+  // must not inherit the Padron's interpretation ceiling.
+  const families = new Set(REAL_REGISTRY.sources.map((s) => s.evidence_type));
+  assert.deepEqual(
+    [...families].sort(),
+    ["ADMINISTRATIVE_LICENSE", "ADMINISTRATIVE_REGISTER", "MODEL-DERIVED", "OBSERVED", "REFERENCE"]
+  );
+
+  const vut = REAL_REGISTRY.sources.find((s) => s.id === "vut_licences");
+  const population = REAL_REGISTRY.sources.find((s) => s.id === "population");
+  assert.equal(vut.evidence_type, "ADMINISTRATIVE_LICENSE");
+  assert.equal(population.evidence_type, "ADMINISTRATIVE_REGISTER");
+  assert.notEqual(vut.evidence_type, population.evidence_type);
+
+  // The licence source is a committed snapshot, never presented as live data.
+  assert.equal(vut.rebuilt_at_deploy, false);
+  assert.equal(vut.provenance_state, "committed_administrative_snapshot");
+  assert.match(vut.deployment_source_role, /COMMITTED ADMINISTRATIVE SNAPSHOT/);
+  assert.match(vut.deployment_source_role, /does NOT mean the upstream source was re-fetched/);
+  assert.match(vut.deployment_source_role, /Nothing about this layer is live data/);
+});
+
+test("the licensed-VUT registry entry states its ceiling and refuses the forbidden readings", () => {
+  const vut = REAL_REGISTRY.sources.find((s) => s.id === "vut_licences");
+
+  // What it IS.
+  assert.match(vut.interpretation_ceiling, /GRANTED/);
+  assert.match(vut.interpretation_ceiling, /tourist-dwelling units those licences include/);
+  assert.match(vut.interpretation_ceiling, /a licence is NOT a dwelling/i);
+  assert.match(vut.interpretation_ceiling, /WHOLE OFFICIAL BARRIO/);
+  assert.match(vut.interpretation_ceiling, /never be spatially distributed into a circular/i);
+
+  // What it is NOT. Each of these is a claim the source cannot support.
+  for (const forbidden of [
+    /does NOT establish that the dwellings are currently operating/i,
+    /NOT all VUT/,
+    /NOT all accommodation/,
+    /NOT beds, rooms or places/,
+    /NOT platform listings/,
+    /legality of any platform listing/i,
+    /NOT a measure of tourism pressure/i,
+    /overtourism/i,
+    /saturation/i,
+    /carrying capacity/i,
+    /displacement/i,
+    /never ranked, banded, scored or mapped as a heat surface/i,
+    /the denominator is registered residents, never homes or households/i,
+  ]) {
+    assert.match(vut.interpretation_ceiling, forbidden, `the ceiling must state: ${forbidden}`);
+  }
+
+  // The period contract, which is the delicate part: no invented reference date.
+  assert.equal(vut.source_period_exposed_by_source, false);
+  assert.match(vut.source_period_semantics, /declares NO reference date and NO effective date/);
+  assert.match(vut.source_period_semantics, /NOT a publisher-declared publication, effective or reference date/);
+  assert.match(vut.source_period_semantics, /never shown as one shared period/);
+
+  // The zero is a real zero, and a failure is never degraded into one.
+  assert.equal(vut.zero_is_a_real_zero, true);
+  assert.match(vut.zero_semantics, /must never be degraded into a zero/);
 });
 
 test("the accommodation scope is named and described as city-and-surroundings, not regional", () => {
@@ -1053,6 +1643,7 @@ test("exactly the layers a user-facing feature depends on block deployment", () 
     "rail",
     "snapshot_fallback",
     "stay",
+    "vut_licences",
   ]);
 
   const nonBlocking = REAL_REGISTRY.sources.filter((s) => !s.blocks_deployment).map((s) => s.id).sort();
@@ -1067,7 +1658,7 @@ test("exactly the layers a user-facing feature depends on block deployment", () 
   // reporting its registered residents. They are committed artifacts, so they
   // must always be present (never an allowed unavailable state), and the
   // registry has to record why the gate exists.
-  for (const id of ["geography", "population"]) {
+  for (const id of ["geography", "population", "vut_licences"]) {
     const source = REAL_REGISTRY.sources.find((s) => s.id === id);
     assert.equal(source.unavailable_is_allowed, false, `${id} must not allow an unavailable state`);
     assert.match(
@@ -1076,6 +1667,12 @@ test("exactly the layers a user-facing feature depends on block deployment", () 
       `${id} must document why it blocks`
     );
   }
+
+  // Runtime graceful degradation and deployment integrity stay separate
+  // concerns, and the registry has to say so for the layer the UI now reads.
+  const vut = REAL_REGISTRY.sources.find((s) => s.id === "vut_licences");
+  assert.match(vut.blocks_deployment_note, /plausible-looking zero/);
+  assert.match(vut.blocks_deployment_note, /degrades gracefully when a runtime fetch fails/);
 });
 
 test("the committed evidence artifacts satisfy the real registry", () => {
@@ -1089,7 +1686,7 @@ test("the committed evidence artifacts satisfy the real registry", () => {
   };
   assert.deepEqual(
     committedRegistry.sources.map((s) => s.id).sort(),
-    ["geography", "hati", "population", "snapshot_fallback"],
+    ["geography", "hati", "population", "snapshot_fallback", "vut_licences"],
     "the set of committed, non-rebuilt sources changed; update this test deliberately"
   );
 
