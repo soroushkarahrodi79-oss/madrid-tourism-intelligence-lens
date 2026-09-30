@@ -25,7 +25,7 @@ const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 // modules load identically however the page is served. They are ES modules
 // (shared with `node --test`), while the rest of the app is classic scripts.
 const MODULE_BASE = (document.currentScript && document.currentScript.src) || window.location.href;
-const AREA_ASSET_VERSION = "20260930-30";
+const AREA_ASSET_VERSION = "20260930-31";
 const moduleUrl = (name) => new URL(`${name}?v=${AREA_ASSET_VERSION}`, MODULE_BASE).href;
 
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);

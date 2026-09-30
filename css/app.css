@@ -265,8 +265,13 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .destination-composition:empty{display:none}
 .destination-compbar{display:flex;height:5px;margin-top:5px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,.05)}
 .destination-compbar i{display:block;height:100%}
-.destination-compbar .spain{background:#7fa9cf}
-.destination-compbar .abroad{background:#4f7ea8}
+/* The two residence segments are separated by LIGHTNESS, not hue: ~4:1 between
+   them, so the boundary is legible without relying on colour vision and without
+   either share reading as the good or the bad one. The figures are also stated
+   in text directly above the bar and in its aria-label, so the bar never carries
+   information on its own. */
+.destination-compbar .spain{background:#cfe0f0}
+.destination-compbar .abroad{background:#3f6e96}
 .destination-state{margin:7px 0 0;font-size:8.4px;line-height:1.45;color:#8195ab}
 .destination-state:empty{display:none}
 .destination-ceiling{margin:5px 0 0;font-size:8.4px;line-height:1.45;color:#8195ab}
