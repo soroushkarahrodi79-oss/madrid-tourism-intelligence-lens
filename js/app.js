@@ -585,15 +585,9 @@ function renderPedestrianMetric(p) {
     return;
   }
 
-  value.textContent = `${Math.round(p.meanObserved).toLocaleString("en-GB")} ped/h`;
+  value.textContent = `${Math.round(p.meanObserved).toLocaleString("en-GB")} ${p.stationCount === 1 ? "ped/h" : "passages/hour"}`;
   value.className = "activity-card-value";
-  const dateRange =
-    p.dateMin && p.dateMax
-      ? `${p.dateMin} → ${p.dateMax}`
-      : pedestrianMeta.source?.year
-        ? String(pedestrianMeta.source.year)
-        : "published period";
-  foot.textContent = `${p.stationCount} counter${p.stationCount !== 1 ? "s" : ""} · ${p.observationCount.toLocaleString("en-GB")} hourly records · ${dateRange}`;
+  foot.textContent = `${p.stationCount} counter${p.stationCount !== 1 ? "s" : ""} in current lens · ${radius} m radius`;
 }
 
 function renderMix(s) {

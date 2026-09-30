@@ -20,11 +20,16 @@ test("observed pedestrian activity is opt-in and separate from operational POIs"
   assert.match(app, /return pedestrianStatsInLens\(pedestrianStations, centerOf\(which\), radius\)/);
 });
 
-test("pedestrian lens metric communicates observed evidence and abstains without a counter", () => {
+test("pedestrian KPI is directly below the active Lens control and communicates observed evidence", () => {
   assert.match(html, /id="pedestrianCard" class="activity-card" hidden/);
+  assert.match(html, /Pedestrian flow <span class="badge observed">observed<\/span>/);
+  assert.ok(html.indexOf('id="pedestrianCard"') < html.indexOf('id="areaProfile"'));
   assert.match(html, /Counts are observed pedestrians, not tourists/);
+  assert.match(app, /if \(card\) card\.hidden = !on;/);
+  assert.match(app, /renderPedestrianMetric\(pedestrianStatsFor\(active\)\);/);
   assert.match(app, /value\.textContent = "No sensor evidence"/);
-  assert.match(app, /pedestrians \/ published hourly record/);
+  assert.match(app, /p\.stationCount === 1 \? "ped\/h" : "passages\/hour"/);
+  assert.match(app, /in current lens · \$\{radius\} m radius/);
   assert.match(app, /pedestrianStatus === "unavailable"/);
 });
 

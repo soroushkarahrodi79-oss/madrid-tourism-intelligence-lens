@@ -102,6 +102,15 @@
     <button id="lensBButton" class="lensbtn b">+ Enable Lens B</button>
   </div>
 
+  <div id="pedestrianCard" class="activity-card" hidden>
+    <div>
+      <div class="activity-card-title"><i class="dot" style="background:var(--activity);color:var(--activity)"></i>Pedestrian flow <span class="badge observed">observed</span></div>
+      <div id="pedestrianValue" class="activity-card-value">—</div>
+      <div id="pedestrianFoot" class="activity-card-foot">Madrid permanent counters</div>
+    </div>
+    <div class="activity-card-note">Counts are observed pedestrians, not tourists. No interpolation between counters.</div>
+  </div>
+
   <!-- WHERE IS THIS LENS? Official administrative geography of the lens centre.
        Deliberately the first thing in the panel and visually separated from the
        lens metrics below: the barrio is a different analytical object from the
@@ -169,15 +178,6 @@
       </select>
       <button id="resetButton" class="smallbtn">Reset active lens</button>
     </div>
-  </div>
-
-  <div id="pedestrianCard" class="activity-card" hidden>
-    <div>
-      <div class="activity-card-title"><i class="dot" style="background:var(--activity);color:var(--activity)"></i>Observed pedestrian activity <span class="badge observed">observed</span></div>
-      <div id="pedestrianValue" class="activity-card-value">—</div>
-      <div id="pedestrianFoot" class="activity-card-foot">Madrid permanent counters</div>
-    </div>
-    <div class="activity-card-note">Counts are observed pedestrians, not tourists. No interpolation between counters.</div>
   </div>
 
   <div class="mix">
@@ -256,6 +256,6 @@
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20260930-31"></script>
+<script src="js/app.js?v=20260930-32"></script>
 </body>
 </html>
