@@ -1,7 +1,8 @@
-# Gate A/B/C/D research package — hospitality & commercial premises identity, taxonomy, status and temporal comparability
+# Gate A/B/C/D/E research package — hospitality & commercial premises identity, taxonomy, status, temporal comparability and geographic reconciliation
 
 Reproducible evidence behind the **Gate A — Unit & Identity**, **Gate B — Activity
-Taxonomy**, **Gate C — Status Semantics** and **Gate D — Temporal Comparability**
+Taxonomy**, **Gate C — Status Semantics**, **Gate D — Temporal Comparability** and
+**Gate E — Geographic Reconciliation**
 sections of
 [`docs/HOSPITALITY_COMMERCIAL_METHOD_GATE.md`](../../docs/HOSPITALITY_COMMERCIAL_METHOD_GATE.md).
 
@@ -9,20 +10,29 @@ Every count quoted in those sections is produced by the scripts here. None were
 typed by hand.
 
 ```
-python research/hospitality_commercial_gate/audit_identity.py   # Gate A
-python research/hospitality_commercial_gate/audit_taxonomy.py   # Gate B
-python research/hospitality_commercial_gate/audit_status.py     # Gate C
-python research/hospitality_commercial_gate/audit_temporal.py   # Gate D
+python research/hospitality_commercial_gate/audit_identity.py    # Gate A
+python research/hospitality_commercial_gate/audit_taxonomy.py    # Gate B
+python research/hospitality_commercial_gate/audit_status.py      # Gate C
+python research/hospitality_commercial_gate/audit_temporal.py    # Gate D
+python research/hospitality_commercial_gate/audit_geography.py   # Gate E
 ```
 
-Standard library only. Requires network access to `datos.madrid.es`.
-`audit_taxonomy.py` imports the Gate A helpers (catalogue resolution, streamed
-fingerprinting, dialect detection) from `audit_identity.py`; `audit_status.py`
-imports both the Gate A helpers and the Gate B classification (`classify`, the CNAE
-section/division class map) from `audit_taxonomy.py`; `audit_temporal.py` imports the
-Gate A source contract and the Gate B classification. So all four gates read the same
-upstream the same way and classify activities identically; later scripts do not
-re-run or modify earlier gates.
+Standard library for A–D; Gate E additionally uses **shapely**, **pyproj** and
+**geopandas** for point-in-polygon validation, CRS transformation and reading the
+official historical (1987) barrio shapefile. Requires network access to
+`datos.madrid.es` and `geoportal.madrid.es`. `audit_taxonomy.py` imports the Gate A helpers (catalogue
+resolution, streamed fingerprinting, dialect detection) from `audit_identity.py`;
+`audit_status.py` imports both the Gate A helpers and the Gate B classification
+(`classify`, the CNAE section/division class map) from `audit_taxonomy.py`;
+`audit_temporal.py` imports the Gate A source contract and the Gate B classification;
+`audit_geography.py` imports the Gate A source contract and the Gate D inventory /
+sentinel helpers. So all gates read the same upstream the same way; later scripts do
+not re-run or modify earlier gates.
+
+`audit_geography.py` honours an optional `GATE_E_CACHE` environment variable: set it
+to a directory to cache the downloaded sentinels (reused only when the file's MD5
+matches the catalogue-declared MD5, so cache use never weakens reproducibility). Unset,
+it downloads each sentinel to a temp file and deletes it.
 
 `audit_temporal.py` adds a `--rebuild-summary` flag that regenerates
 `gate_d_temporal_summary.json` (and its ruling blocks) **network-free** from the
@@ -110,6 +120,29 @@ ruling, the interpretation ceiling and the scoped Gate D ruling. Gate D uses sta
 network discipline: one catalogue call, a 64 KiB Range header scan of every
 Locales/Actividades resource, and full downloads of 10 sentinels only (≈769 MB) — the
 full history is never downloaded and no raw CSV is committed.
+
+`results/gate_e_geography_summary.json` — the Gate E report: the four separated
+geographic evidence layers, the authoritative CURRENT (IDEAM, district v3.2.1 / barrio
+v3.4.1, 131 barrios) **and** HISTORICAL (official 1987 restructuring, 128 barrios)
+geography provenance, the **documented 2017 administrative reorganisation** (Vicálvaro +
+barrio 171 rename, BOAM 8034) with the Censo implementation breakpoints, the entity-
+relationship classification (SAME/NAME_CHANGE/BOUNDARY_CHANGED/NEW/REPLACED/LEGACY), the
+current-era reconciliation (131/131 EXACT_CODE_MATCH), the current-era point-in-polygon,
+the evidence-backed 128→131 explanation (`DOCUMENTED_ADMINISTRATIVE_REORGANISATION_2017`),
+the boundary-history finding (three distinct dates), the population-geography **key**
+joinability (no denominator), the interpretation ceiling and the scoped Gate E ruling.
+`results/gate_e_geography_crosswalk.json` — the **era-aware** code/entity crosswalk (one
+row per era × source barrio; key = `{geography_era}:{code}`), **not** a per-premises
+export. `results/gate_e_geography_quality.json` — per-sentinel geographic quality and the
+point-in-polygon classification. `results/gate_e_geography_eras.json` — the geography eras
+(HISTORICAL_128 / TRANSITIONAL_129 / CURRENT_131), the breakpoints and the entity
+relationships. Gate E reconciles by `id_barrio_local` decoded under each file's width
+scheme (2014 `d*10+seq`, 2015+ `d*100+seq`) to the **era-appropriate** target geography
+(historical 1987 for pre-2017 snapshots, current for post-reorg), so numeric code equality
+across the 2017 break never establishes entity identity (historical `192 Ambroz` ≠ current
+`192 Valdebernardo`). It downloads the 1.1 MB official historical-divisions shapefile and
+nine Locales sentinels (one per schema era + the four 2017/2018 breakpoint snapshots); no
+raw CSV is committed. An optional MD5-verified `GATE_E_CACHE` directory speeds re-runs.
 
 ## Conventions
 

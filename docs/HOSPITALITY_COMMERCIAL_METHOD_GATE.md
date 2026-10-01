@@ -1,11 +1,11 @@
 # Hospitality & Commercial Context — methodology gate
 
 **This document is populated for Gate A — Unit & Identity, Gate B — Activity
-Taxonomy, Gate C — Status Semantics and Gate D — Temporal Comparability.** The
-geography reconciliation (E) and denominator (F) gates are deliberately left
-unwritten. Writing their conclusions now, before their evidence exists, is the error
-this gate discipline exists to prevent. (Gate B renumbers the later gates' evidence
-questions onto C–F; issue #33's original letters are preserved.)
+Taxonomy, Gate C — Status Semantics, Gate D — Temporal Comparability and Gate E —
+Geographic Reconciliation.** The denominator (F) gate is deliberately left unwritten.
+Writing its conclusions now, before its evidence exists, is the error this gate
+discipline exists to prevent. (Gate B renumbers the later gates' evidence questions
+onto C–F; issue #33's original letters are preserved.)
 
 Nothing here builds a UI, a map layer, an indicator, a score, a ranking or a
 denominator, and nothing here changes HATI, Destination Context, Area Profile,
@@ -1206,3 +1206,296 @@ the counts match in the current era, but this is to be *tested*, not assumed), d
 whether the 2014 barrio codes can be mapped at all, and treat a changed barrio code as a
 coding change rather than a boundary change unless independent evidence says otherwise.
 Gate D has deliberately performed **no** geometric reconciliation.
+
+---
+
+## Gate E — Geographic Reconciliation
+
+The reproducible evidence for this section is produced by
+[`audit_geography.py`](../research/hospitality_commercial_gate/audit_geography.py) and
+stored in
+[`results/gate_e_geography_summary.json`](../research/hospitality_commercial_gate/results/gate_e_geography_summary.json),
+[`results/gate_e_geography_crosswalk.json`](../research/hospitality_commercial_gate/results/gate_e_geography_crosswalk.json)
+(the **era-aware** code/entity crosswalk — one row per era × source barrio, **not** a
+per-premises export),
+[`results/gate_e_geography_quality.json`](../research/hospitality_commercial_gate/results/gate_e_geography_quality.json)
+and
+[`results/gate_e_geography_eras.json`](../research/hospitality_commercial_gate/results/gate_e_geography_eras.json).
+Every count below is produced by that script and stored in those files; none were typed
+by hand. The audit imports the Gate A source contract and the Gate D inventory/sentinel
+helpers, so Gate E reads the same upstream the same way as the earlier gates.
+
+### E.0 · Scope and the four evidence layers
+
+Gate E resolves one question: *can premises/activity census records be assigned,
+reproducibly, to Madrid's authoritative canonical district/barrio geography across time,
+and under exactly what rules is spatial aggregation defensible?* It is a
+methodology/research gate — **no** indicator, denominator, map layer, ranking, score,
+choropleth or per-resident metric, and **no** production/UI change. Four evidence layers
+are kept strictly separate and never silently merged: (1) **source-record** geography
+(`id_distrito_local`, `id_barrio_local`, `cod_barrio_local`, `desc_*`, coordinates); (2)
+**authoritative** Madrid geography — both **CURRENT** (131 barrios, v3.4.1) and official
+**HISTORICAL** (1987, 128 barrios); (3) **project canonical geometry**
+(`data/geography/madrid_admin.geojson`, current); (4) the **project reconciliation**
+crosswalk, which is era-aware.
+
+### E.0a · The documented 2017 administrative reorganisation (decisive context)
+
+Madrid's barrio geography **changed administratively in 2017**, and this governs the
+whole historical ruling. The official *"Barrios municipales de Madrid"* dataset (v3.4.1)
+states verbatim that it incorporates *"los cambios en la definición de los barrios del
+distrito de Vicálvaro que implica la creación de dos nuevos barrios y la modificación de
+los existentes"* and *"el cambio de denominación del barrio 17.1 San Ándres a Villaverde
+Alto, Casco Histórico de Villaverde, según el Pleno del Ayuntamiento de fecha 31-10-2017
+BOAM nº 8034"*, and that *"La delimitación inicial corresponde a reestructuración
+territorial de 1987."* The same dataset publishes a **"Divisiones administrativas
+históricas"** resource (`300496-5-barrios-madrid`) carrying the **1987** geometry — the
+128-barrio system in force until 2017. Gate E uses that official historical geometry
+rather than reconstructing boundaries by assumption.
+
+Consequently the earlier draft findings — *128→131 CAUSE UNRESOLVED*, *no boundary change
+evidenced*, *2015+ barrio GO (normalise only)*, and treating old code `192 Ambroz` as
+equivalent to current `192 Valdebernardo` — are **not defensible and are corrected here.**
+
+### E.1 · Source geography fields
+
+`id_barrio_local` is the only barrio key populated in every era and is the PRIMARY
+source-native key; its **width scheme changes** (2014 `district*10+seq`; 2015+
+`district*100+seq`), so each file is decoded under its own scheme and the raw string is
+never compared across eras. `cod_barrio_local` (bare within-district seq) is **blank
+before 2022-10**, so it is only a cross-check. `desc_distrito_local`/`desc_barrio_local`
+(names) and UTM coordinates are present in every era; `cod_postal` from 2022-10.
+
+### E.2 · Authoritative canonical geography (current) and E.3 · project geometry
+
+`data/geography/madrid_admin.geojson` is built from **Ayuntamiento de Madrid — IDEAM**;
+district dataset **v3.2.1**, barrio **v3.4.1** (CC BY 4.0); CRS **EPSG:25830**→**4326**;
+**21 districts, 131 barrios**; barrio id = 3-digit code (2-digit district + 1-digit
+sequence). Names are never identifiers; codes are. Provenance is established, and the
+project geometry is the authoritative current geometry. Gate E does not modify it.
+
+### E.3a · Authoritative HISTORICAL geography (1987)
+
+Established authoritatively from the official *Divisiones administrativas históricas*
+resource (`300496-5-barrios-madrid`, `…/Divisiones_Historicas.zip` → `SHAPES_1987/
+Barrios_1987.shp`): **128 barrios**, 21 districts, CRS **EPSG:25830**, attributes
+`CODBARRIO`/`NOMBARRIO`/`CODDISTRIT`/`NOMDISTRIT`. Barrio 171 is *"San Andrés"* (the
+pre-2017 name); district 19 (Vicálvaro) has only barrios 191 and **192 "Ambroz"**;
+district 18 has 181 and 182 (no 183). This is used — not reconstructed — as the
+HISTORICAL_128 reference.
+
+### E.4 · Current-era reconciliation (Sep 2026)
+
+131 distinct source barrios / 21 districts → **all 131 EXACT_CODE_MATCH** to the CURRENT
+canonical geography, **0** hierarchy conflicts, **0** many-to-one. The current-era
+reconciliation remains **GO**.
+
+### E.5 · Hierarchy integrity
+
+Every reconciled source barrio maps to exactly one canonical barrio within its era; the
+decoded district equals the source `id_distrito_local`; each canonical barrio's parent is
+its 2-digit prefix; no multi-district barrio; no orphan in the current era. Point-in-
+polygon corroborates nesting.
+
+### E.6 · Name / code normalization
+
+Code+district is authoritative; names are a cross-check. Cosmetic differences (accents,
+articles, spacing, abbreviations) are handled deterministically; **fuzzy matching is not
+used** as a reconciliation method. Crucially, a changed *name label* is **not** assumed
+cosmetic — it is checked against the entity classification (E.11): `171 San Andrés →
+Villaverde Alto…` is a documented rename over a stable entity (99.5% same territory), and
+the source still records *"SAN ANDRES"* for code 171 even in Sep 2026 (the source name
+label lags the official rename, while the code/entity is stable).
+
+### E.7 · Coordinate validation (current era only)
+
+Source coordinates are **empirically EPSG:25830** (labelled empirical; not documented by
+the structure PDF), transformed to EPSG:4326 and tested against each premises' CURRENT
+code-assigned barrio polygon. Two **distinct** rates are reported and must never be
+conflated:
+
+- **Coordinate availability** (a coverage rate): **152,818 / 203,688 ≈ 75.03 %** of
+  premises carry a usable coordinate; **50,870 / 203,688 ≈ 24.97 %** carry the `(0,0)`
+  missing sentinel and have *no* usable point coordinate (0 numerically invalid).
+- **Point-in-polygon agreement** (a correctness rate, **conditional on a usable
+  coordinate**): **99.978 %** of the 152,818 usable points fall inside their assigned
+  barrio (incl. a 25 m boundary-edge tolerance, which is explicit and used only to
+  *classify* — **no point is snapped**). This 99.978 % is **not** a universe-wide figure
+  and must never be read as a coordinate-availability number (i.e. it is false to say
+  "99.978 % lack coordinates").
+
+Because ~24.97 % of premises have no usable coordinate, coordinate validation is a strong
+corroboration of the code reconciliation, **not** a universe-wide spatial validation —
+hence the **MODIFY** ruling; code-based reconciliation remains GO. **Historical
+point-in-polygon is NOT performed here**: pre-2017 records must be validated against the
+1987 historical polygons (now available), never against current polygons.
+
+### E.8 · Geographic quality
+
+Current era: 203,687/203,688 rows carry a barrio (1 blank, reported); 131/131
+EXACT_CODE_MATCH; 0 conflicts. No hidden exclusions; row and distinct-`id_local` counts
+are equal (Gate A).
+
+### E.9 · Geography eras and the Censo implementation breakpoints
+
+The Censo *source* did not adopt the 2017 geography in one step. Gate E determines the
+geography era **from the observed source barrio set** (presence of 183/193/194 and the
+name of code 192), not the calendar, and localises the breakpoints to single months:
+
+| Geography era | Observed window | Barrios | Marker |
+|---|---|---:|---|
+| **HISTORICAL_128** | … → **Aug 2017** | 128 | matches the 1987 geometry |
+| **TRANSITIONAL_129** | **Sep 2017** → **Jun 2018** | 129 | `183 Ensanche de Vallecas` added; Vicálvaro still `192 Ambroz` |
+| **CURRENT_131** | **Jul 2018** → … | 131 | Vicálvaro reorg implemented: `192 Valdebernardo`, `193 Valderrivas`, `194 El Cañaveral` |
+
+So the Censo implemented `183 Ensanche de Vallecas` at **Sep 2017** (last 128 = Aug 2017)
+and the Vicálvaro reorganisation at **Jul 2018** (last 129 = Jun 2018). Each change has
+three distinct dates, kept separate (E.12): `183 Ensanche de Vallecas` — legal decision
+**31 May 2017**, BOAM nº 7927 **15 Jun 2017**, Censo **Sep 2017**; Vicálvaro reorg — legal
+decision **31 Oct 2017**, BOAM nº 8034 **17 Nov 2017**, Censo **Jul 2018**. The Censo
+implementation dates are observed data facts, **not** legal effective dates. Per-era
+reconciliation: HISTORICAL snapshots 128/128, TRANSITIONAL 129/129, CURRENT 131/131 (plus,
+in Jun/Jul 2018 only, one explicit source-null barrio *"VALOR NULO EN ORIGEN"* kept visible
+as `GEOGRAPHY_MISSING`, never coerced).
+
+### E.10 · 2014 and historical reconciliation
+
+2014 uses the `district*10+seq` scheme, Latin-1 encoding, blank `cod_barrio_local`; it is
+decoded under its own scheme and reconciled to the **HISTORICAL 1987** geography,
+corroborated by the district field and name. 2014/2015/Aug-2017 reconcile 128/128 to the
+historical set. 2014 barrio reconciliation is therefore defensible **within the historical
+128-barrio geography**, and is **not** 1:1 to the current 131-barrio geography.
+
+### E.11 · The 128 → 131 question — DOCUMENTED, and the code-reuse trap
+
+The cause is **`DOCUMENTED_ADMINISTRATIVE_REORGANISATION_2017`**, not unresolved and not a
+coverage gap. Comparing the official 1987 geometry to current v3.4.1 (geometry overlap,
+both EPSG:25830) classifies every barrio code's entity relationship: **110 SAME_ENTITY,
+10 NAME_CHANGE_ONLY, 7 BOUNDARY_CHANGED, 3 NEW_ENTITY, 1 REPLACED, 1 LEGACY_ENTITY.** The
+three new current codes are `183 Ensanche de Vallecas` (99.6 % carved from old 181),
+`193 Valderrivas` (100 % from old 191) and `194 El Cañaveral` (99.8 % from old 191). The
+creation of `183 Ensanche de Vallecas` has an authoritative legal instrument — *Acuerdo de
+31 de mayo de 2017 del Pleno del Ayuntamiento de Madrid* (creación del barrio y
+modificación del Reglamento Orgánico de los Distritos), **BOAM nº 7927, 15/06/2017** — so
+it is no longer an open item.
+
+**The critical finding: numeric barrio-code equality across 2017 does NOT establish entity
+identity.** Current `192 "Valdebernardo"` is **99.9 % carved from historical 191**, while
+historical `192 "Ambroz"` was **absorbed into current 191** and is a **LEGACY_ENTITY** (no
+current barrio is predominantly derived from it). Old `192 Ambroz` is therefore **not**
+current `192 Valdebernardo`. The project canonical entity key is accordingly **era-aware**
+(E.13).
+
+### E.12 · Boundary-history finding (three distinct dates, not collapsed)
+
+Madrid has **documented** barrio-level administrative boundary/entity changes in 2017. For
+each change, three dates are kept strictly separate:
+
+| Change | Legal decision | BOAM publication | Censo first observed |
+|---|---|---|---|
+| `183 Ensanche de Vallecas` | 31 May 2017 | nº 7927, 15 Jun 2017 | Sep 2017 |
+| Vicálvaro reorg (191/192/193/194) + 171 rename | 31 Oct 2017 | nº 8034, 17 Nov 2017 | Jul 2018 |
+
+The Censo source-implementation date is an **observed data fact, not a legal effective
+date**, and the three date types are never collapsed. The **current geometry effective
+period** is a fourth, separate concept (v3.4.1 — no published effective date; see the
+geography meta). Official historical polygons (1987) are available, so pre-change records
+can use the historical geography; current geometry represents current/recent snapshots.
+
+### E.13 · Era-aware canonical key
+
+The canonical entity key is **`{geography_era}:{barrio_code}`**. The era prefix is
+mandatory: `HISTORICAL_128:192` (Ambroz) is a different entity from `CURRENT_131:192`
+(Valdebernardo). For current work the current 3-digit official code remains valid; for
+longitudinal work a bare code is insufficient and the era-aware key (or the explicit
+crosswalk entity relationship) must be used. Names are never a primary key.
+
+### E.14 · Reconciliation statuses
+
+Fixed vocabulary: `EXACT_CODE_MATCH`, `NORMALIZED_NAME_MATCH`, `AMBIGUOUS`, `UNMATCHED`,
+`GEOMETRY_CONFLICT`, `GEOGRAPHY_MISSING` (plus reserved `EXACT_NAME_AND_DISTRICT_MATCH`,
+`LEGACY_CODE_MAPPED`). Unresolved/ambiguous/missing records are retained with an evidence
+note and never silently coerced.
+
+### E.15 · Unresolved-geography handling
+
+Unresolved geography remains visible and is excluded only from analyses that require a
+resolved unit. The explicit source-null barrio in Jun/Jul 2018 is kept as
+`GEOGRAPHY_MISSING`, not bucketed into a real barrio and not deleted.
+
+### E.16 · Geographic tiers
+
+- **GEO A — direct.** CURRENT_131 era (≥ Jul 2018): source code maps exactly to current
+  canonical geography.
+- **GEO B — normalized.** Within HISTORICAL_128 (2015–Aug 2017) and TRANSITIONAL_129
+  (Sep 2017–Jun 2018): source code maps exactly to the era-appropriate geography after
+  presentation-level normalisation.
+- **GEO C — legacy/segmented.** 2014 (`d*10+seq`, Latin-1) within historical geometry;
+  and ALL cross-2017 barrio comparison (requires the explicit entity crosswalk —
+  REPLACED/NEW/LEGACY cannot be bridged by code equality).
+- **GEO D — NO-GO.** Treating a barrio code as one homogeneous entity across the 2017
+  break; historical point-in-polygon against current polygons.
+
+### E.17 · Earliest defensible windows
+
+| Capability | Earliest / window | Mode |
+|---|---|---|
+| District-level aggregation | **Sep 2014** | direct (21 districts stable) |
+| HISTORICAL_128 barrio comparison | Mar 2014 … **Aug 2017** | within 1987 geometry |
+| TRANSITIONAL_129 barrio comparison | Sep 2017 … Jun 2018 | segment |
+| CURRENT_131 barrio comparison | **Jul 2018** → | first proven post-reorg snapshot |
+| Cross-2017 barrio comparison | — | **MODIFY/segmented**; requires the entity crosswalk |
+| Point-in-polygon (current) | 2024-10+ | current polygons only |
+
+### E.18 · Interpretation ceiling
+
+Supports: counts/shares of administratively documented premises by canonical barrio/
+district **within a geography era**; activity-class distribution by district; geography of
+source-included premises. Does **not** support tourism pressure, overtourism, saturation,
+commercial health, displacement, gentrification, resident burden, any per-resident metric
+(Gate F), or **cross-2017 barrio trend without explicit harmonisation**.
+
+### E.18a · Population geography joinability
+
+**KEY compatibility only — no denominator.** The population asset joins **1:1** by
+`official_id`/`parent_id` to the **CURRENT** canonical geography (131 barrios, 21
+districts, 0 parent mismatches). A historical join would require the historical barrio
+set. No residents value is joined and no per-resident indicator is constructed (Gate F).
+
+### E.19 · Gate E ruling — **GO to Gate F, with scoped sub-rulings**
+
+| Question | Ruling |
+|---|---|
+| **Current district reconciliation** | **GO** (21/21, 0 conflicts) |
+| **Current barrio reconciliation** | **GO** (131/131 EXACT_CODE_MATCH to current, 0 conflicts) |
+| **2015+ district compatibility** | **GO** |
+| **2015+ barrio compatibility** | **MODIFY** — segmented across the documented 2017 geography break; cross-2017 barrio comparison needs explicit harmonisation (code 192 reused; 183/193/194 new; Ambroz legacy) |
+| **2014 district compatibility** | **GO** |
+| **2014 barrio compatibility** | **MODIFY** — defensible within the historical 128-barrio (1987) geography; not 1:1 to current 131 |
+| **Coordinate validation** | **MODIFY** — 99.978 % point-in-assigned-barrio agreement *among the usable-coordinate subset* (conditional), while 50,870/203,688 (~24.97 %) have no usable point coordinate; availability and agreement are distinct rates; corroboration only; historical PiP not performed against current polygons |
+| **Project current canonical geography** | **GO** (official IDEAM provenance, v3.2.1 / v3.4.1) |
+| **Population geography joinability** | **GO** for the current canonical geography only (1:1 keys; **no denominator**) |
+| **Overall Gate E** | **GO to Gate F** — the 2017 break and the historical segmentation are now explicit and reproducible, with official historical geometry and an era-aware crosswalk |
+
+Mixed sub-rulings are the intended outcome. The spatial-assignment within each geography
+era is GO; the cross-2017 barrio comparison is explicitly segmented (MODIFY), the 2014
+barrio work is defensible only within the historical geometry (MODIFY), and coordinates
+corroborate but do not validate the whole universe (MODIFY). **A shorter defensible
+spatial series, segmented at a documented administrative break, is preferred over a false
+continuity.**
+
+**What GO does not authorise.** No indicator, count, denominator, choropleth, ranking,
+score, per-resident metric or tourism-pressure/saturation reading, and no cross-2017
+barrio trend without harmonisation.
+
+### Recommendation for Gate F (denominator)
+
+Gate F may rely on a 1:1 **current** canonical key shared by premises geography and the
+Padrón population asset. It must: (1) choose the numerator universe (apply the Gate C
+exclusions; decide `UNCLASSIFIED_SOURCE_ACTIVITY` / `Interior` handling); (2) restrict any
+barrio-level per-resident indicator to the **CURRENT_131 era (≥ Jul 2018)** unless it
+harmonises across the 2017 break via the era-aware entity crosswalk; (3) align the
+premises snapshot with the Padrón reference period (geometry carries a version, not an
+effective date); (4) carry forward the Gate D count-comparability blocks (2022→2025
+expansion; accommodation discontinuity); and (5) never read a per-resident ratio as
+tourism pressure, saturation or resident burden.
