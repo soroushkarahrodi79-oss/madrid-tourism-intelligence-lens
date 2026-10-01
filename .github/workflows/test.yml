@@ -28,10 +28,3 @@ jobs:
       # "python" (not "python3") is the interpreter name actions/setup-python
       # puts on PATH on both runners; "python3" does not exist on Windows.
       - run: python -m unittest discover -s tests -p "test_*.py"
-      # Temporary PR probe: reproduce the deployment-only network path on GitHub's
-      # Ubuntu runner. This step will be removed after the source route is proven.
-      - name: Probe pedestrian deployment source
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          python scripts/build_pedestrian_activity.py
-          python -c "import json; d=json.load(open('data/pedestrian_activity.json', encoding='utf-8')); assert d['available']; print(d['stationCount'], d['observationCount'], d['source'].get('retrievalRoute'))"
