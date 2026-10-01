@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Build a bounded deployment snapshot of Madrid permanent pedestrian counters.
 
-Source: Madrid Open Data dataset 300321, latest published pedestrian CSV (2024).
+Source: Madrid Open Data dataset 300321, 2024 permanent pedestrian resource.
 The source reports pedestrian counts at fixed stations by date and hour.
-This script aggregates raw rows to station-level summaries so the static app
-never needs to ship or fetch the large CSV in the browser.
+The builder reads the official CKAN DataStore API first and retains the direct
+CSV download as a fallback. It aggregates raw rows to station-level summaries
+so the static app never needs to ship or fetch the large source in the browser.
 """
 
 from __future__ import annotations
