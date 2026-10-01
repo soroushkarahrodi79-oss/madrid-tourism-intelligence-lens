@@ -31,6 +31,9 @@ including comparing two places at once.
   the lens reports the mean published hourly count for counters inside the
   lens, explicitly labelled as pedestrian rather than tourist activity.
 - Optionally show the official **Principal parks** context layer; it is map context only and never enters lens metrics.
+- Opt into **Hospitality & Commercial Context** as one administrative
+  choropleth over the 131 official barrios, and switch among the five exact
+  Gate F indicators. It remains separate from the Lens circle and A/B compare.
 - Opt into the bounded HATI research-evidence layer, then switch its modelled time-of-day (12:00 / 15:00 / 18:00).
 - Filter the accommodation layer by accommodation type where the
   Madrid Destino catalogue provides that classification.
@@ -73,6 +76,14 @@ including comparing two places at once.
   Madrid / IDEAM, the canonical join target for administrative context
 - **Registered residents per barrio** — Ayuntamiento de Madrid, Subdirección
   General de Estadística (Padrón Municipal), reference date 1 January 2026
+- **Hospitality & Commercial Context** — Ayuntamiento de Madrid, *Censo de
+  Locales*, pinned Locales and Actividades snapshots for September 2026. The
+  production sidecar contains only municipality/district/barrio aggregates for
+  the four Gate F production candidates and the one conditional per-resident
+  candidate. These are administratively documented premises, not verified
+  operating businesses; the conditional indicator keeps the separate 1 January
+  2026 Padrón date visible and is not a tourism-pressure measure. Full contract:
+  [`docs/HOSPITALITY_COMMERCIAL_METHOD_GATE.md`](docs/HOSPITALITY_COMMERCIAL_METHOD_GATE.md).
 - **Licensed tourist-dwelling (VUT) activity licences per barrio** —
   Ayuntamiento de Madrid, Agencia de Actividades (dataset 300694). A committed
   administrative snapshot of **granted** licences: 1,025 licences covering

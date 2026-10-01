@@ -460,7 +460,7 @@ test("the other lens's area is one line in the profile, not a second card", () =
 
 test("the canonical artifacts are loaded once and reused, not refetched on drag", () => {
   assert.match(app, /async function loadAreaContext\(\)/);
-  assert.match(app, /loadAreaContext\(\);/);
+  assert.match(app, /loadAreaContext\(\)(?:\.finally\(loadHospitalityContext\))?;/);
   // The only fetches of the canonical artifacts happen inside the loader.
   const loaderBody = app.match(/async function loadAreaContext\(\) \{([\s\S]*?)^\}/m)[1];
   const geographyFetches = app.match(/data\/geography\/madrid_admin\.geojson/g) || [];

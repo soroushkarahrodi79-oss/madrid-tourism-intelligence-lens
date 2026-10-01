@@ -415,6 +415,91 @@ function validateSnapshotFallback(source, artifact, scopes, errors) {
   };
 }
 
+function validateHospitalityContext(source, artifact, geography, errors, warnings) {
+  const label = source.display_name;
+  const sink = source.blocks_deployment ? errors : warnings;
+  if (!artifact || artifact.contract_version !== source.contract_version) {
+    sink.push(`${label}: missing artifact or unsupported contract version`);
+    return { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
+  }
+  const meta = artifact.metadata;
+  const expectedIndicators = source.selectable_indicator_ids;
+  if (JSON.stringify(meta?.selectable_indicator_ids) !== JSON.stringify(expectedIndicators)) {
+    sink.push(`${label}: selectable indicators differ from the exact Gate F allowlist`);
+  }
+  if (meta?.default_indicator_id !== "core_hospitality_premises_count") {
+    sink.push(`${label}: default indicator is not the approved core-hospitality count`);
+  }
+  if (
+    meta?.premises_sha256 !== source.expected_fingerprints?.premises ||
+    meta?.activities_sha256 !== source.expected_fingerprints?.activities
+  ) {
+    sink.push(`${label}: Locales/Actividades fingerprints do not match the approved Gate F snapshot`);
+  }
+  if (
+    meta?.premises_nominal_period !== "2026-09" ||
+    meta?.activities_nominal_period !== "2026-09" ||
+    meta?.population_reference_date !== "2026-01-01" ||
+    meta?.geography_version?.era !== "CURRENT_131"
+  ) {
+    sink.push(`${label}: period or CURRENT_131 metadata is invalid`);
+  }
+  const conditional = meta?.conditional_indicator;
+  if (
+    conditional?.indicator_id !== "core_hospitality_premises_per_1000_residents" ||
+    conditional?.premises_period !== "Sep 2026" ||
+    conditional?.population_date !== "2026-01-01" ||
+    !String(conditional?.denominator_type ?? "").toLowerCase().includes("registered residents") ||
+    !isNonEmptyString(conditional?.interpretation_ceiling)
+  ) {
+    sink.push(`${label}: conditional per-resident metadata is incomplete`);
+  }
+
+  const collections = [
+    ["municipality", artifact.municipality, /^28079$/, 1],
+    ["district", artifact.districts, /^\d{2}$/, 21],
+    ["barrio", artifact.barrios, /^\d{3}(?:\d{2})?$/, 131],
+  ];
+  for (const [level, collection, idPattern, expectedCount] of collections) {
+    const entries = collection && typeof collection === "object" ? Object.entries(collection) : [];
+    if (entries.length !== expectedCount) sink.push(`${label}: expected ${expectedCount} ${level} record(s), found ${entries.length}`);
+    for (const [id, record] of entries) {
+      if (!idPattern.test(id)) sink.push(`${label}: malformed ${level} official id ${id}`);
+      const keys = Object.keys(record?.indicators ?? {});
+      if (JSON.stringify(keys) !== JSON.stringify(expectedIndicators)) {
+        sink.push(`${label}: ${level} ${id} has missing or unapproved indicators`);
+        continue;
+      }
+      if (keys.some((key) => !isFiniteNumber(record.indicators[key]) || record.indicators[key] < 0)) {
+        sink.push(`${label}: ${level} ${id} has a non-finite or negative indicator`);
+      }
+    }
+  }
+  const geoBarrioIds = new Set(
+    (geography?.features ?? [])
+      .filter((feature) => feature?.properties?.geography_level === "barrio")
+      .map((feature) => String(feature.properties.official_id))
+  );
+  if (
+    geoBarrioIds.size !== 131 ||
+    Object.keys(artifact.barrios ?? {}).some((id) => !geoBarrioIds.has(id))
+  ) {
+    sink.push(`${label}: barrio keys do not join 1:1 to canonical geography`);
+  }
+  const totals = artifact.municipality?.["28079"]?.indicators;
+  for (const [indicator, expected] of Object.entries(source.expected_municipality_values ?? {})) {
+    if (totals?.[indicator] !== expected) {
+      sink.push(`${label}: municipality ${indicator} is ${totals?.[indicator]}, expected ${expected}`);
+    }
+  }
+  return {
+    record_count: collections.reduce((sum, [, collection]) => sum + Object.keys(collection ?? {}).length, 0),
+    state: sink.some((message) => message.startsWith(`${label}:`)) ? "unavailable" : "available",
+    source_period: { from: "2026-09", to: "2026-09", type: "nominal_month", provisional: false },
+    warnings: ["Administrative-area context only; one unresolved barrio assignment is preserved in higher-level totals."],
+  };
+}
+
 // Canonical administrative geography (municipality, districts, barrios). This is
 // a committed reference artifact, not a fetched deployment snapshot, so the checks
 // here are the same structural contract the test suites enforce, restated at the
@@ -1452,6 +1537,15 @@ export function validateDeployment({
           warnings
         );
         break;
+      case "admin_hospitality_context":
+        result = validateHospitalityContext(
+          source,
+          artifacts[source.artifact],
+          artifacts["geography/madrid_admin.geojson"],
+          errors,
+          warnings
+        );
+        break;
       default:
         errors.push(`${source.display_name}: unknown shape "${source.shape}" in the source registry`);
         result = { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
@@ -1539,6 +1633,8 @@ const ARTIFACT_FILES = [
   // Committed city-level hotel-demand series (not rebuilt at deploy).
   "destination/madrid_hotel_demand.json",
   "destination/madrid_hotel_demand.meta.json",
+  // Committed Gate F Hospitality & Commercial aggregate (not rebuilt at deploy).
+  "hospitality-commercial-context.json",
 ];
 
 export function readArtifacts(dataDir) {

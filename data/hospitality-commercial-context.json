@@ -1,0 +1,1768 @@
+{
+  "contract_version": "1.0.0",
+  "metadata": {
+    "generated_at": "2026-10-01T15:34:41Z",
+    "premises_nominal_period": "2026-09",
+    "premises_sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+    "activities_nominal_period": "2026-09",
+    "activities_sha256": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2",
+    "geography_version": {
+      "era": "CURRENT_131",
+      "district": "v3.2.1",
+      "barrio": "v3.4.1"
+    },
+    "population_reference_date": "2026-01-01",
+    "population_denominator_type": "registered residents / Padron Municipal reference-date stock",
+    "population_artifact_sha256": "e6bc8a209927d2acdfd1f0489638d7996b8fed809624093436beafd78cfa8e08",
+    "source_exclusion_rule": "exclude if situacion in {8,9} OR access == 12; Interior (access 3) remains included",
+    "indicator_registry_version": "1.0.0",
+    "indicator_registry_sha256": "9aaa2cb403c2a5823067ffda1b55bc3604f49fe9ec209cf9c21858b9cd7e400f",
+    "selectable_indicator_ids": [
+      "source_included_premises_count",
+      "core_hospitality_premises_count",
+      "accommodation_class_premises_count",
+      "core_hospitality_membership_share_of_populated_taxonomy_premises",
+      "core_hospitality_premises_per_1000_residents"
+    ],
+    "default_indicator_id": "core_hospitality_premises_count",
+    "interpretation_ceiling": [
+      "active or operating businesses",
+      "tourism pressure",
+      "resident burden",
+      "tourism stress",
+      "carrying capacity",
+      "saturation",
+      "overtourism",
+      "visitor demand",
+      "commercial vitality",
+      "accommodation capacity",
+      "tourist beds",
+      "tourist intensity"
+    ],
+    "temporal_use_rule": "Current snapshot only. No approved current indicator automatically supports a trend; current population must never be applied to HISTORICAL_128 records.",
+    "source": {
+      "authority": "Ayuntamiento de Madrid",
+      "dataset": "Censo de Locales"
+    },
+    "conditional_indicator": {
+      "indicator_id": "core_hospitality_premises_per_1000_residents",
+      "premises_period": "Sep 2026",
+      "population_date": "2026-01-01",
+      "denominator_type": "registered residents / Padron Municipal reference-date stock",
+      "interpretation_ceiling": "Not tourism pressure, resident burden, visitor intensity, demand, capacity, saturation, overtourism or verified operating-business density.",
+      "implementation_conditions": [
+        "Premises reference period must be displayed as Sep 2026.",
+        "Resident denominator reference date must be displayed separately as 01 Jan 2026.",
+        "Denominator must be identified as registered residents / Padron reference-date stock.",
+        "Dual dates must be displayed separately; no shared '2026' wording may imply simultaneity.",
+        "Interpretation is residential-context administrative density only.",
+        "Must not be presented as tourism pressure, resident burden, saturation or overtourism.",
+        "Must not be presented as verified operating-business density."
+      ]
+    },
+    "unresolved_geography": {
+      "barrio": {
+        "source_included_premises_count": 1,
+        "core_hospitality_premises_count": 1,
+        "accommodation_class_premises_count": 0,
+        "populated_taxonomy_premises_denominator": 1
+      },
+      "rule": "Preserved in municipality and district totals when assigned there; excluded only from barrio aggregation and never coerced to zero."
+    },
+    "validation": {
+      "approved_citywide_controls_verified": true,
+      "source_exclusion_union_verified": true,
+      "population_current_131_join_verified": true,
+      "gate_f_control_evidence_sha256": "49f65b946860f4f8bc3b97b7372989e2d586e1be2ac180df4b01c78f3e7b1456"
+    }
+  },
+  "municipality": {
+    "28079": {
+      "official_name": "Madrid",
+      "parent_id": null,
+      "indicators": {
+        "source_included_premises_count": 184279,
+        "core_hospitality_premises_count": 19532,
+        "accommodation_class_premises_count": 7919,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.744573,
+        "core_hospitality_premises_per_1000_residents": 5.584916
+      }
+    }
+  },
+  "districts": {
+    "01": {
+      "official_name": "Centro",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 21607,
+        "core_hospitality_premises_count": 3079,
+        "accommodation_class_premises_count": 4392,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 16.676596,
+        "core_hospitality_premises_per_1000_residents": 21.713681
+      }
+    },
+    "02": {
+      "official_name": "Arganzuela",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 6946,
+        "core_hospitality_premises_count": 916,
+        "accommodation_class_premises_count": 316,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.221004,
+        "core_hospitality_premises_per_1000_residents": 5.777357
+      }
+    },
+    "03": {
+      "official_name": "Retiro",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 5723,
+        "core_hospitality_premises_count": 578,
+        "accommodation_class_premises_count": 214,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.681487,
+        "core_hospitality_premises_per_1000_residents": 4.862741
+      }
+    },
+    "04": {
+      "official_name": "Salamanca",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 14478,
+        "core_hospitality_premises_count": 1385,
+        "accommodation_class_premises_count": 416,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.065836,
+        "core_hospitality_premises_per_1000_residents": 9.405389
+      }
+    },
+    "05": {
+      "official_name": "Chamartín",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 10180,
+        "core_hospitality_premises_count": 1029,
+        "accommodation_class_premises_count": 190,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.0014,
+        "core_hospitality_premises_per_1000_residents": 6.948337
+      }
+    },
+    "06": {
+      "official_name": "Tetuán",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 12712,
+        "core_hospitality_premises_count": 1114,
+        "accommodation_class_premises_count": 349,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.738672,
+        "core_hospitality_premises_per_1000_residents": 6.639805
+      }
+    },
+    "07": {
+      "official_name": "Chamberí",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 11436,
+        "core_hospitality_premises_count": 1475,
+        "accommodation_class_premises_count": 371,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.031081,
+        "core_hospitality_premises_per_1000_residents": 10.422408
+      }
+    },
+    "08": {
+      "official_name": "Fuencarral - El Pardo",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 8732,
+        "core_hospitality_premises_count": 1010,
+        "accommodation_class_premises_count": 104,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.245283,
+        "core_hospitality_premises_per_1000_residents": 3.944742
+      }
+    },
+    "09": {
+      "official_name": "Moncloa - Aravaca",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 5888,
+        "core_hospitality_premises_count": 729,
+        "accommodation_class_premises_count": 271,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.065096,
+        "core_hospitality_premises_per_1000_residents": 5.773937
+      }
+    },
+    "10": {
+      "official_name": "Latina",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 9766,
+        "core_hospitality_premises_count": 959,
+        "accommodation_class_premises_count": 113,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.384281,
+        "core_hospitality_premises_per_1000_residents": 3.818602
+      }
+    },
+    "11": {
+      "official_name": "Carabanchel",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 12928,
+        "core_hospitality_premises_count": 1217,
+        "accommodation_class_premises_count": 190,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.596246,
+        "core_hospitality_premises_per_1000_residents": 4.376281
+      }
+    },
+    "12": {
+      "official_name": "Usera",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 5947,
+        "core_hospitality_premises_count": 652,
+        "accommodation_class_premises_count": 120,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.661782,
+        "core_hospitality_premises_per_1000_residents": 4.263193
+      }
+    },
+    "13": {
+      "official_name": "Puente de Vallecas",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 10996,
+        "core_hospitality_premises_count": 820,
+        "accommodation_class_premises_count": 179,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.91341,
+        "core_hospitality_premises_per_1000_residents": 3.179231
+      }
+    },
+    "14": {
+      "official_name": "Moratalaz",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 2598,
+        "core_hospitality_premises_count": 274,
+        "accommodation_class_premises_count": 36,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.912347,
+        "core_hospitality_premises_per_1000_residents": 2.902389
+      }
+    },
+    "15": {
+      "official_name": "Ciudad Lineal",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 12134,
+        "core_hospitality_premises_count": 1077,
+        "accommodation_class_premises_count": 230,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.385005,
+        "core_hospitality_premises_per_1000_residents": 4.675819
+      }
+    },
+    "16": {
+      "official_name": "Hortaleza",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 7079,
+        "core_hospitality_premises_count": 663,
+        "accommodation_class_premises_count": 166,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.040913,
+        "core_hospitality_premises_per_1000_residents": 3.169549
+      }
+    },
+    "17": {
+      "official_name": "Villaverde",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 7322,
+        "core_hospitality_premises_count": 593,
+        "accommodation_class_premises_count": 48,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.955645,
+        "core_hospitality_premises_per_1000_residents": 3.436665
+      }
+    },
+    "18": {
+      "official_name": "Villa de Vallecas",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 5354,
+        "core_hospitality_premises_count": 448,
+        "accommodation_class_premises_count": 34,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.205603,
+        "core_hospitality_premises_per_1000_residents": 3.511908
+      }
+    },
+    "19": {
+      "official_name": "Vicálvaro",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 2337,
+        "core_hospitality_premises_count": 246,
+        "accommodation_class_premises_count": 17,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.727679,
+        "core_hospitality_premises_per_1000_residents": 2.513795
+      }
+    },
+    "20": {
+      "official_name": "San Blas - Canillejas",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 7387,
+        "core_hospitality_premises_count": 857,
+        "accommodation_class_premises_count": 101,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.914578,
+        "core_hospitality_premises_per_1000_residents": 5.085269
+      }
+    },
+    "21": {
+      "official_name": "Barajas",
+      "parent_id": "28079",
+      "indicators": {
+        "source_included_premises_count": 2728,
+        "core_hospitality_premises_count": 410,
+        "accommodation_class_premises_count": 62,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 19.348749,
+        "core_hospitality_premises_per_1000_residents": 8.100686
+      }
+    }
+  },
+  "barrios": {
+    "011": {
+      "official_name": "Palacio",
+      "parent_id": "01",
+      "indicators": {
+        "source_included_premises_count": 3228,
+        "core_hospitality_premises_count": 578,
+        "accommodation_class_premises_count": 625,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 21.24219,
+        "core_hospitality_premises_per_1000_residents": 24.690303
+      }
+    },
+    "012": {
+      "official_name": "Embajadores",
+      "parent_id": "01",
+      "indicators": {
+        "source_included_premises_count": 5018,
+        "core_hospitality_premises_count": 508,
+        "accommodation_class_premises_count": 1239,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.919287,
+        "core_hospitality_premises_per_1000_residents": 10.564625
+      }
+    },
+    "013": {
+      "official_name": "Cortes",
+      "parent_id": "01",
+      "indicators": {
+        "source_included_premises_count": 2335,
+        "core_hospitality_premises_count": 423,
+        "accommodation_class_premises_count": 658,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 20.694716,
+        "core_hospitality_premises_per_1000_residents": 39.385475
+      }
+    },
+    "014": {
+      "official_name": "Justicia",
+      "parent_id": "01",
+      "indicators": {
+        "source_included_premises_count": 3193,
+        "core_hospitality_premises_count": 496,
+        "accommodation_class_premises_count": 323,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 17.557522,
+        "core_hospitality_premises_per_1000_residents": 27.342889
+      }
+    },
+    "015": {
+      "official_name": "Universidad",
+      "parent_id": "01",
+      "indicators": {
+        "source_included_premises_count": 4199,
+        "core_hospitality_premises_count": 616,
+        "accommodation_class_premises_count": 759,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 17.007178,
+        "core_hospitality_premises_per_1000_residents": 18.484066
+      }
+    },
+    "016": {
+      "official_name": "Sol",
+      "parent_id": "01",
+      "indicators": {
+        "source_included_premises_count": 3634,
+        "core_hospitality_premises_count": 458,
+        "accommodation_class_premises_count": 788,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.32285,
+        "core_hospitality_premises_per_1000_residents": 56.550191
+      }
+    },
+    "021": {
+      "official_name": "Imperial",
+      "parent_id": "02",
+      "indicators": {
+        "source_included_premises_count": 932,
+        "core_hospitality_premises_count": 122,
+        "accommodation_class_premises_count": 54,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.969325,
+        "core_hospitality_premises_per_1000_residents": 5.017892
+      }
+    },
+    "022": {
+      "official_name": "Acacias",
+      "parent_id": "02",
+      "indicators": {
+        "source_included_premises_count": 1375,
+        "core_hospitality_premises_count": 177,
+        "accommodation_class_premises_count": 37,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.652318,
+        "core_hospitality_premises_per_1000_residents": 4.907261
+      }
+    },
+    "023": {
+      "official_name": "Chopera",
+      "parent_id": "02",
+      "indicators": {
+        "source_included_premises_count": 907,
+        "core_hospitality_premises_count": 111,
+        "accommodation_class_premises_count": 41,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.760638,
+        "core_hospitality_premises_per_1000_residents": 5.45026
+      }
+    },
+    "024": {
+      "official_name": "Legazpi",
+      "parent_id": "02",
+      "indicators": {
+        "source_included_premises_count": 694,
+        "core_hospitality_premises_count": 93,
+        "accommodation_class_premises_count": 22,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.762712,
+        "core_hospitality_premises_per_1000_residents": 4.669612
+      }
+    },
+    "025": {
+      "official_name": "Delicias",
+      "parent_id": "02",
+      "indicators": {
+        "source_included_premises_count": 1017,
+        "core_hospitality_premises_count": 152,
+        "accommodation_class_premises_count": 42,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 17.331813,
+        "core_hospitality_premises_per_1000_residents": 5.203697
+      }
+    },
+    "026": {
+      "official_name": "Palos de la Frontera",
+      "parent_id": "02",
+      "indicators": {
+        "source_included_premises_count": 1679,
+        "core_hospitality_premises_count": 211,
+        "accommodation_class_premises_count": 120,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.180108,
+        "core_hospitality_premises_per_1000_residents": 8.198314
+      }
+    },
+    "027": {
+      "official_name": "Atocha",
+      "parent_id": "02",
+      "indicators": {
+        "source_included_premises_count": 342,
+        "core_hospitality_premises_count": 50,
+        "accommodation_class_premises_count": 0,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 17.361111,
+        "core_hospitality_premises_per_1000_residents": 17.012589
+      }
+    },
+    "031": {
+      "official_name": "Pacífico",
+      "parent_id": "03",
+      "indicators": {
+        "source_included_premises_count": 1662,
+        "core_hospitality_premises_count": 148,
+        "accommodation_class_premises_count": 58,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 10.123119,
+        "core_hospitality_premises_per_1000_residents": 4.373781
+      }
+    },
+    "032": {
+      "official_name": "Adelfas",
+      "parent_id": "03",
+      "indicators": {
+        "source_included_premises_count": 554,
+        "core_hospitality_premises_count": 52,
+        "accommodation_class_premises_count": 20,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.06383,
+        "core_hospitality_premises_per_1000_residents": 2.752488
+      }
+    },
+    "033": {
+      "official_name": "Estrella",
+      "parent_id": "03",
+      "indicators": {
+        "source_included_premises_count": 587,
+        "core_hospitality_premises_count": 33,
+        "accommodation_class_premises_count": 20,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 6.496063,
+        "core_hospitality_premises_per_1000_residents": 1.454257
+      }
+    },
+    "034": {
+      "official_name": "Ibiza",
+      "parent_id": "03",
+      "indicators": {
+        "source_included_premises_count": 1463,
+        "core_hospitality_premises_count": 213,
+        "accommodation_class_premises_count": 46,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 16.837945,
+        "core_hospitality_premises_per_1000_residents": 9.866136
+      }
+    },
+    "035": {
+      "official_name": "Los Jerónimos",
+      "parent_id": "03",
+      "indicators": {
+        "source_included_premises_count": 765,
+        "core_hospitality_premises_count": 73,
+        "accommodation_class_premises_count": 52,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.282844,
+        "core_hospitality_premises_per_1000_residents": 10.776498
+      }
+    },
+    "036": {
+      "official_name": "Niño Jesús",
+      "parent_id": "03",
+      "indicators": {
+        "source_included_premises_count": 692,
+        "core_hospitality_premises_count": 59,
+        "accommodation_class_premises_count": 18,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 9.899329,
+        "core_hospitality_premises_per_1000_residents": 3.912986
+      }
+    },
+    "041": {
+      "official_name": "Recoletos",
+      "parent_id": "04",
+      "indicators": {
+        "source_included_premises_count": 3859,
+        "core_hospitality_premises_count": 315,
+        "accommodation_class_premises_count": 88,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 9.28382,
+        "core_hospitality_premises_per_1000_residents": 20.692373
+      }
+    },
+    "042": {
+      "official_name": "Goya",
+      "parent_id": "04",
+      "indicators": {
+        "source_included_premises_count": 2675,
+        "core_hospitality_premises_count": 318,
+        "accommodation_class_premises_count": 127,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.299875,
+        "core_hospitality_premises_per_1000_residents": 10.733453
+      }
+    },
+    "043": {
+      "official_name": "Fuente del Berro",
+      "parent_id": "04",
+      "indicators": {
+        "source_included_premises_count": 1206,
+        "core_hospitality_premises_count": 105,
+        "accommodation_class_premises_count": 38,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 10.606061,
+        "core_hospitality_premises_per_1000_residents": 4.892368
+      }
+    },
+    "044": {
+      "official_name": "Guindalera",
+      "parent_id": "04",
+      "indicators": {
+        "source_included_premises_count": 2374,
+        "core_hospitality_premises_count": 197,
+        "accommodation_class_premises_count": 75,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 10.076726,
+        "core_hospitality_premises_per_1000_residents": 4.57735
+      }
+    },
+    "045": {
+      "official_name": "Lista",
+      "parent_id": "04",
+      "indicators": {
+        "source_included_premises_count": 1713,
+        "core_hospitality_premises_count": 212,
+        "accommodation_class_premises_count": 52,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.011897,
+        "core_hospitality_premises_per_1000_residents": 10.043585
+      }
+    },
+    "046": {
+      "official_name": "Castellana",
+      "parent_id": "04",
+      "indicators": {
+        "source_included_premises_count": 2651,
+        "core_hospitality_premises_count": 238,
+        "accommodation_class_premises_count": 36,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 10.466139,
+        "core_hospitality_premises_per_1000_residents": 14.168353
+      }
+    },
+    "051": {
+      "official_name": "El Viso",
+      "parent_id": "05",
+      "indicators": {
+        "source_included_premises_count": 1775,
+        "core_hospitality_premises_count": 160,
+        "accommodation_class_premises_count": 14,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 10.526316,
+        "core_hospitality_premises_per_1000_residents": 9.213406
+      }
+    },
+    "052": {
+      "official_name": "Prosperidad",
+      "parent_id": "05",
+      "indicators": {
+        "source_included_premises_count": 2060,
+        "core_hospitality_premises_count": 211,
+        "accommodation_class_premises_count": 65,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.296037,
+        "core_hospitality_premises_per_1000_residents": 5.716608
+      }
+    },
+    "053": {
+      "official_name": "Ciudad Jardín",
+      "parent_id": "05",
+      "indicators": {
+        "source_included_premises_count": 1472,
+        "core_hospitality_premises_count": 163,
+        "accommodation_class_premises_count": 29,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.967383,
+        "core_hospitality_premises_per_1000_residents": 8.666986
+      }
+    },
+    "054": {
+      "official_name": "Hispanoamérica",
+      "parent_id": "05",
+      "indicators": {
+        "source_included_premises_count": 2138,
+        "core_hospitality_premises_count": 242,
+        "accommodation_class_premises_count": 31,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.2024,
+        "core_hospitality_premises_per_1000_residents": 7.558721
+      }
+    },
+    "055": {
+      "official_name": "Nueva España",
+      "parent_id": "05",
+      "indicators": {
+        "source_included_premises_count": 1466,
+        "core_hospitality_premises_count": 152,
+        "accommodation_class_premises_count": 21,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.101911,
+        "core_hospitality_premises_per_1000_residents": 5.983781
+      }
+    },
+    "056": {
+      "official_name": "Castilla",
+      "parent_id": "05",
+      "indicators": {
+        "source_included_premises_count": 1269,
+        "core_hospitality_premises_count": 101,
+        "accommodation_class_premises_count": 30,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 10.181452,
+        "core_hospitality_premises_per_1000_residents": 5.741246
+      }
+    },
+    "061": {
+      "official_name": "Bellas Vistas",
+      "parent_id": "06",
+      "indicators": {
+        "source_included_premises_count": 1728,
+        "core_hospitality_premises_count": 152,
+        "accommodation_class_premises_count": 53,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.101911,
+        "core_hospitality_premises_per_1000_residents": 4.942929
+      }
+    },
+    "062": {
+      "official_name": "Cuatro Caminos",
+      "parent_id": "06",
+      "indicators": {
+        "source_included_premises_count": 3837,
+        "core_hospitality_premises_count": 378,
+        "accommodation_class_premises_count": 93,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.552567,
+        "core_hospitality_premises_per_1000_residents": 10.5622
+      }
+    },
+    "063": {
+      "official_name": "Castillejos",
+      "parent_id": "06",
+      "indicators": {
+        "source_included_premises_count": 2248,
+        "core_hospitality_premises_count": 249,
+        "accommodation_class_premises_count": 49,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.351206,
+        "core_hospitality_premises_per_1000_residents": 11.75138
+      }
+    },
+    "064": {
+      "official_name": "Almenara",
+      "parent_id": "06",
+      "indicators": {
+        "source_included_premises_count": 1660,
+        "core_hospitality_premises_count": 111,
+        "accommodation_class_premises_count": 52,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 10.25878,
+        "core_hospitality_premises_per_1000_residents": 4.573359
+      }
+    },
+    "065": {
+      "official_name": "Valdeacederas",
+      "parent_id": "06",
+      "indicators": {
+        "source_included_premises_count": 1750,
+        "core_hospitality_premises_count": 107,
+        "accommodation_class_premises_count": 53,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 10.449219,
+        "core_hospitality_premises_per_1000_residents": 3.735903
+      }
+    },
+    "066": {
+      "official_name": "Berruguete",
+      "parent_id": "06",
+      "indicators": {
+        "source_included_premises_count": 1489,
+        "core_hospitality_premises_count": 117,
+        "accommodation_class_premises_count": 49,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.806256,
+        "core_hospitality_premises_per_1000_residents": 4.311616
+      }
+    },
+    "071": {
+      "official_name": "Gaztambide",
+      "parent_id": "07",
+      "indicators": {
+        "source_included_premises_count": 1850,
+        "core_hospitality_premises_count": 241,
+        "accommodation_class_premises_count": 51,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.439784,
+        "core_hospitality_premises_per_1000_residents": 10.181665
+      }
+    },
+    "072": {
+      "official_name": "Arapiles",
+      "parent_id": "07",
+      "indicators": {
+        "source_included_premises_count": 1719,
+        "core_hospitality_premises_count": 224,
+        "accommodation_class_premises_count": 68,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.374056,
+        "core_hospitality_premises_per_1000_residents": 9.00213
+      }
+    },
+    "073": {
+      "official_name": "Trafalgar",
+      "parent_id": "07",
+      "indicators": {
+        "source_included_premises_count": 2307,
+        "core_hospitality_premises_count": 322,
+        "accommodation_class_premises_count": 102,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 16.378433,
+        "core_hospitality_premises_per_1000_residents": 12.821534
+      }
+    },
+    "074": {
+      "official_name": "Almagro",
+      "parent_id": "07",
+      "indicators": {
+        "source_included_premises_count": 2379,
+        "core_hospitality_premises_count": 266,
+        "accommodation_class_premises_count": 48,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.313313,
+        "core_hospitality_premises_per_1000_residents": 13.708514
+      }
+    },
+    "075": {
+      "official_name": "Ríos Rosas",
+      "parent_id": "07",
+      "indicators": {
+        "source_included_premises_count": 1981,
+        "core_hospitality_premises_count": 287,
+        "accommodation_class_premises_count": 62,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 16.695753,
+        "core_hospitality_premises_per_1000_residents": 10.22626
+      }
+    },
+    "076": {
+      "official_name": "Vallehermoso",
+      "parent_id": "07",
+      "indicators": {
+        "source_included_premises_count": 1200,
+        "core_hospitality_premises_count": 135,
+        "accommodation_class_premises_count": 40,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.446215,
+        "core_hospitality_premises_per_1000_residents": 6.622192
+      }
+    },
+    "081": {
+      "official_name": "El Pardo",
+      "parent_id": "08",
+      "indicators": {
+        "source_included_premises_count": 187,
+        "core_hospitality_premises_count": 39,
+        "accommodation_class_premises_count": 1,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 31.451613,
+        "core_hospitality_premises_per_1000_residents": 11.232719
+      }
+    },
+    "082": {
+      "official_name": "Fuentelarreina",
+      "parent_id": "08",
+      "indicators": {
+        "source_included_premises_count": 32,
+        "core_hospitality_premises_count": 3,
+        "accommodation_class_premises_count": 3,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.5,
+        "core_hospitality_premises_per_1000_residents": 0.841043
+      }
+    },
+    "083": {
+      "official_name": "Peñagrande",
+      "parent_id": "08",
+      "indicators": {
+        "source_included_premises_count": 1101,
+        "core_hospitality_premises_count": 113,
+        "accommodation_class_premises_count": 13,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.363239,
+        "core_hospitality_premises_per_1000_residents": 2.504433
+      }
+    },
+    "084": {
+      "official_name": "Pilar",
+      "parent_id": "08",
+      "indicators": {
+        "source_included_premises_count": 2320,
+        "core_hospitality_premises_count": 243,
+        "accommodation_class_premises_count": 23,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.013841,
+        "core_hospitality_premises_per_1000_residents": 5.207998
+      }
+    },
+    "085": {
+      "official_name": "La Paz",
+      "parent_id": "08",
+      "indicators": {
+        "source_included_premises_count": 939,
+        "core_hospitality_premises_count": 131,
+        "accommodation_class_premises_count": 8,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.466352,
+        "core_hospitality_premises_per_1000_residents": 4.114968
+      }
+    },
+    "086": {
+      "official_name": "Valverde",
+      "parent_id": "08",
+      "indicators": {
+        "source_included_premises_count": 3071,
+        "core_hospitality_premises_count": 291,
+        "accommodation_class_premises_count": 50,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.299754,
+        "core_hospitality_premises_per_1000_residents": 4.296027
+      }
+    },
+    "087": {
+      "official_name": "Mirasierra",
+      "parent_id": "08",
+      "indicators": {
+        "source_included_premises_count": 529,
+        "core_hospitality_premises_count": 83,
+        "accommodation_class_premises_count": 3,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 18.161926,
+        "core_hospitality_premises_per_1000_residents": 2.188934
+      }
+    },
+    "088": {
+      "official_name": "El Goloso",
+      "parent_id": "08",
+      "indicators": {
+        "source_included_premises_count": 553,
+        "core_hospitality_premises_count": 107,
+        "accommodation_class_premises_count": 3,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 21.836735,
+        "core_hospitality_premises_per_1000_residents": 5.423488
+      }
+    },
+    "091": {
+      "official_name": "Casa de Campo",
+      "parent_id": "09",
+      "indicators": {
+        "source_included_premises_count": 738,
+        "core_hospitality_premises_count": 123,
+        "accommodation_class_premises_count": 18,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 19.188768,
+        "core_hospitality_premises_per_1000_residents": 9.090909
+      }
+    },
+    "092": {
+      "official_name": "Argüelles",
+      "parent_id": "09",
+      "indicators": {
+        "source_included_premises_count": 2041,
+        "core_hospitality_premises_count": 267,
+        "accommodation_class_premises_count": 149,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.836299,
+        "core_hospitality_premises_per_1000_residents": 10.765261
+      }
+    },
+    "093": {
+      "official_name": "Ciudad Universitaria",
+      "parent_id": "09",
+      "indicators": {
+        "source_included_premises_count": 936,
+        "core_hospitality_premises_count": 113,
+        "accommodation_class_premises_count": 74,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.694408,
+        "core_hospitality_premises_per_1000_residents": 6.617087
+      }
+    },
+    "094": {
+      "official_name": "Valdezarza",
+      "parent_id": "09",
+      "indicators": {
+        "source_included_premises_count": 922,
+        "core_hospitality_premises_count": 68,
+        "accommodation_class_premises_count": 13,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 10.897436,
+        "core_hospitality_premises_per_1000_residents": 2.138432
+      }
+    },
+    "095": {
+      "official_name": "Valdemarín",
+      "parent_id": "09",
+      "indicators": {
+        "source_included_premises_count": 159,
+        "core_hospitality_premises_count": 45,
+        "accommodation_class_premises_count": 4,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 29.220779,
+        "core_hospitality_premises_per_1000_residents": 5.840363
+      }
+    },
+    "096": {
+      "official_name": "El Plantío",
+      "parent_id": "09",
+      "indicators": {
+        "source_included_premises_count": 378,
+        "core_hospitality_premises_count": 38,
+        "accommodation_class_premises_count": 5,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.078717,
+        "core_hospitality_premises_per_1000_residents": 12.021512
+      }
+    },
+    "097": {
+      "official_name": "Aravaca",
+      "parent_id": "09",
+      "indicators": {
+        "source_included_premises_count": 714,
+        "core_hospitality_premises_count": 75,
+        "accommodation_class_premises_count": 8,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.057878,
+        "core_hospitality_premises_per_1000_residents": 2.661179
+      }
+    },
+    "101": {
+      "official_name": "Los Cármenes",
+      "parent_id": "10",
+      "indicators": {
+        "source_included_premises_count": 680,
+        "core_hospitality_premises_count": 66,
+        "accommodation_class_premises_count": 7,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 18.282548,
+        "core_hospitality_premises_per_1000_residents": 3.555651
+      }
+    },
+    "102": {
+      "official_name": "Puerta del Ángel",
+      "parent_id": "10",
+      "indicators": {
+        "source_included_premises_count": 2808,
+        "core_hospitality_premises_count": 223,
+        "accommodation_class_premises_count": 62,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.086854,
+        "core_hospitality_premises_per_1000_residents": 4.863262
+      }
+    },
+    "103": {
+      "official_name": "Lucero",
+      "parent_id": "10",
+      "indicators": {
+        "source_included_premises_count": 1378,
+        "core_hospitality_premises_count": 132,
+        "accommodation_class_premises_count": 25,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.347826,
+        "core_hospitality_premises_per_1000_residents": 3.460026
+      }
+    },
+    "104": {
+      "official_name": "Aluche",
+      "parent_id": "10",
+      "indicators": {
+        "source_included_premises_count": 2547,
+        "core_hospitality_premises_count": 289,
+        "accommodation_class_premises_count": 12,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.218536,
+        "core_hospitality_premises_per_1000_residents": 4.216024
+      }
+    },
+    "105": {
+      "official_name": "Campamento",
+      "parent_id": "10",
+      "indicators": {
+        "source_included_premises_count": 688,
+        "core_hospitality_premises_count": 61,
+        "accommodation_class_premises_count": 3,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.769752,
+        "core_hospitality_premises_per_1000_residents": 2.940893
+      }
+    },
+    "106": {
+      "official_name": "Cuatro Vientos",
+      "parent_id": "10",
+      "indicators": {
+        "source_included_premises_count": 189,
+        "core_hospitality_premises_count": 17,
+        "accommodation_class_premises_count": 0,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.724138,
+        "core_hospitality_premises_per_1000_residents": 2.408956
+      }
+    },
+    "107": {
+      "official_name": "Águilas",
+      "parent_id": "10",
+      "indicators": {
+        "source_included_premises_count": 1476,
+        "core_hospitality_premises_count": 171,
+        "accommodation_class_premises_count": 4,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.309623,
+        "core_hospitality_premises_per_1000_residents": 3.274231
+      }
+    },
+    "111": {
+      "official_name": "Comillas",
+      "parent_id": "11",
+      "indicators": {
+        "source_included_premises_count": 1325,
+        "core_hospitality_premises_count": 113,
+        "accommodation_class_premises_count": 30,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.282609,
+        "core_hospitality_premises_per_1000_residents": 4.706568
+      }
+    },
+    "112": {
+      "official_name": "Opañel",
+      "parent_id": "11",
+      "indicators": {
+        "source_included_premises_count": 1877,
+        "core_hospitality_premises_count": 159,
+        "accommodation_class_premises_count": 39,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.397849,
+        "core_hospitality_premises_per_1000_residents": 4.436013
+      }
+    },
+    "113": {
+      "official_name": "San Isidro",
+      "parent_id": "11",
+      "indicators": {
+        "source_included_premises_count": 2122,
+        "core_hospitality_premises_count": 166,
+        "accommodation_class_premises_count": 28,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.83836,
+        "core_hospitality_premises_per_1000_residents": 3.900743
+      }
+    },
+    "114": {
+      "official_name": "Vista Alegre",
+      "parent_id": "11",
+      "indicators": {
+        "source_included_premises_count": 3074,
+        "core_hospitality_premises_count": 308,
+        "accommodation_class_premises_count": 41,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.14791,
+        "core_hospitality_premises_per_1000_residents": 6.10324
+      }
+    },
+    "115": {
+      "official_name": "Puerta Bonita",
+      "parent_id": "11",
+      "indicators": {
+        "source_included_premises_count": 1434,
+        "core_hospitality_premises_count": 120,
+        "accommodation_class_premises_count": 21,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.671595,
+        "core_hospitality_premises_per_1000_residents": 3.055846
+      }
+    },
+    "116": {
+      "official_name": "Buenavista",
+      "parent_id": "11",
+      "indicators": {
+        "source_included_premises_count": 2165,
+        "core_hospitality_premises_count": 234,
+        "accommodation_class_premises_count": 13,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.506958,
+        "core_hospitality_premises_per_1000_residents": 4.455191
+      }
+    },
+    "117": {
+      "official_name": "Abrantes",
+      "parent_id": "11",
+      "indicators": {
+        "source_included_premises_count": 931,
+        "core_hospitality_premises_count": 117,
+        "accommodation_class_premises_count": 18,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 16.478873,
+        "core_hospitality_premises_per_1000_residents": 3.500374
+      }
+    },
+    "121": {
+      "official_name": "Orcasitas",
+      "parent_id": "12",
+      "indicators": {
+        "source_included_premises_count": 383,
+        "core_hospitality_premises_count": 55,
+        "accommodation_class_premises_count": 11,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 17.405063,
+        "core_hospitality_premises_per_1000_residents": 2.322929
+      }
+    },
+    "122": {
+      "official_name": "Orcasur",
+      "parent_id": "12",
+      "indicators": {
+        "source_included_premises_count": 399,
+        "core_hospitality_premises_count": 38,
+        "accommodation_class_premises_count": 3,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.523132,
+        "core_hospitality_premises_per_1000_residents": 2.527268
+      }
+    },
+    "123": {
+      "official_name": "San Fermín",
+      "parent_id": "12",
+      "indicators": {
+        "source_included_premises_count": 596,
+        "core_hospitality_premises_count": 63,
+        "accommodation_class_premises_count": 6,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 16.112532,
+        "core_hospitality_premises_per_1000_residents": 2.550091
+      }
+    },
+    "124": {
+      "official_name": "Almendrales",
+      "parent_id": "12",
+      "indicators": {
+        "source_included_premises_count": 1180,
+        "core_hospitality_premises_count": 132,
+        "accommodation_class_premises_count": 31,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.903614,
+        "core_hospitality_premises_per_1000_residents": 5.322366
+      }
+    },
+    "125": {
+      "official_name": "Moscardó",
+      "parent_id": "12",
+      "indicators": {
+        "source_included_premises_count": 1553,
+        "core_hospitality_premises_count": 198,
+        "accommodation_class_premises_count": 44,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 16.624685,
+        "core_hospitality_premises_per_1000_residents": 6.85738
+      }
+    },
+    "126": {
+      "official_name": "Zofío",
+      "parent_id": "12",
+      "indicators": {
+        "source_included_premises_count": 638,
+        "core_hospitality_premises_count": 45,
+        "accommodation_class_premises_count": 9,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.396694,
+        "core_hospitality_premises_per_1000_residents": 2.897991
+      }
+    },
+    "127": {
+      "official_name": "Pradolongo",
+      "parent_id": "12",
+      "indicators": {
+        "source_included_premises_count": 1198,
+        "core_hospitality_premises_count": 121,
+        "accommodation_class_premises_count": 16,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.297092,
+        "core_hospitality_premises_per_1000_residents": 5.955897
+      }
+    },
+    "131": {
+      "official_name": "Entrevías",
+      "parent_id": "13",
+      "indicators": {
+        "source_included_premises_count": 1348,
+        "core_hospitality_premises_count": 115,
+        "accommodation_class_premises_count": 8,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.915694,
+        "core_hospitality_premises_per_1000_residents": 3.044503
+      }
+    },
+    "132": {
+      "official_name": "San Diego",
+      "parent_id": "13",
+      "indicators": {
+        "source_included_premises_count": 2870,
+        "core_hospitality_premises_count": 204,
+        "accommodation_class_premises_count": 83,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.227298,
+        "core_hospitality_premises_per_1000_residents": 3.972659
+      }
+    },
+    "133": {
+      "official_name": "Palomeras Bajas",
+      "parent_id": "13",
+      "indicators": {
+        "source_included_premises_count": 1305,
+        "core_hospitality_premises_count": 114,
+        "accommodation_class_premises_count": 16,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.491124,
+        "core_hospitality_premises_per_1000_residents": 2.710929
+      }
+    },
+    "134": {
+      "official_name": "Palomeras Sureste",
+      "parent_id": "13",
+      "indicators": {
+        "source_included_premises_count": 1827,
+        "core_hospitality_premises_count": 102,
+        "accommodation_class_premises_count": 11,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 9.488372,
+        "core_hospitality_premises_per_1000_residents": 2.275668
+      }
+    },
+    "135": {
+      "official_name": "Portazgo",
+      "parent_id": "13",
+      "indicators": {
+        "source_included_premises_count": 1382,
+        "core_hospitality_premises_count": 105,
+        "accommodation_class_premises_count": 13,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.731844,
+        "core_hospitality_premises_per_1000_residents": 3.459866
+      }
+    },
+    "136": {
+      "official_name": "Numancia",
+      "parent_id": "13",
+      "indicators": {
+        "source_included_premises_count": 2264,
+        "core_hospitality_premises_count": 180,
+        "accommodation_class_premises_count": 48,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.162162,
+        "core_hospitality_premises_per_1000_residents": 3.48986
+      }
+    },
+    "141": {
+      "official_name": "Pavones",
+      "parent_id": "14",
+      "indicators": {
+        "source_included_premises_count": 244,
+        "core_hospitality_premises_count": 24,
+        "accommodation_class_premises_count": 1,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.117647,
+        "core_hospitality_premises_per_1000_residents": 2.634178
+      }
+    },
+    "142": {
+      "official_name": "Horcajo",
+      "parent_id": "14",
+      "indicators": {
+        "source_included_premises_count": 124,
+        "core_hospitality_premises_count": 11,
+        "accommodation_class_premises_count": 0,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 10.891089,
+        "core_hospitality_premises_per_1000_residents": 1.724679
+      }
+    },
+    "143": {
+      "official_name": "Marroquina",
+      "parent_id": "14",
+      "indicators": {
+        "source_included_premises_count": 987,
+        "core_hospitality_premises_count": 115,
+        "accommodation_class_premises_count": 14,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.127764,
+        "core_hospitality_premises_per_1000_residents": 4.399388
+      }
+    },
+    "144": {
+      "official_name": "Media Legua",
+      "parent_id": "14",
+      "indicators": {
+        "source_included_premises_count": 495,
+        "core_hospitality_premises_count": 53,
+        "accommodation_class_premises_count": 13,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.417722,
+        "core_hospitality_premises_per_1000_residents": 3.008629
+      }
+    },
+    "145": {
+      "official_name": "Fontarrón",
+      "parent_id": "14",
+      "indicators": {
+        "source_included_premises_count": 361,
+        "core_hospitality_premises_count": 38,
+        "accommodation_class_premises_count": 6,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.063492,
+        "core_hospitality_premises_per_1000_residents": 2.116166
+      }
+    },
+    "146": {
+      "official_name": "Vinateros",
+      "parent_id": "14",
+      "indicators": {
+        "source_included_premises_count": 387,
+        "core_hospitality_premises_count": 33,
+        "accommodation_class_premises_count": 2,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 10.091743,
+        "core_hospitality_premises_per_1000_residents": 1.91827
+      }
+    },
+    "151": {
+      "official_name": "Ventas",
+      "parent_id": "15",
+      "indicators": {
+        "source_included_premises_count": 2673,
+        "core_hospitality_premises_count": 196,
+        "accommodation_class_premises_count": 55,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.495601,
+        "core_hospitality_premises_per_1000_residents": 3.740744
+      }
+    },
+    "152": {
+      "official_name": "Pueblo Nuevo",
+      "parent_id": "15",
+      "indicators": {
+        "source_included_premises_count": 3446,
+        "core_hospitality_premises_count": 288,
+        "accommodation_class_premises_count": 70,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.349914,
+        "core_hospitality_premises_per_1000_residents": 4.393928
+      }
+    },
+    "153": {
+      "official_name": "Quintana",
+      "parent_id": "15",
+      "indicators": {
+        "source_included_premises_count": 1808,
+        "core_hospitality_premises_count": 164,
+        "accommodation_class_premises_count": 23,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.683681,
+        "core_hospitality_premises_per_1000_residents": 6.130383
+      }
+    },
+    "154": {
+      "official_name": "La Concepción",
+      "parent_id": "15",
+      "indicators": {
+        "source_included_premises_count": 1450,
+        "core_hospitality_premises_count": 156,
+        "accommodation_class_premises_count": 41,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.552239,
+        "core_hospitality_premises_per_1000_residents": 6.96833
+      }
+    },
+    "155": {
+      "official_name": "San Pascual",
+      "parent_id": "15",
+      "indicators": {
+        "source_included_premises_count": 938,
+        "core_hospitality_premises_count": 88,
+        "accommodation_class_premises_count": 15,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.843876,
+        "core_hospitality_premises_per_1000_residents": 4.597461
+      }
+    },
+    "156": {
+      "official_name": "San Juan Bautista",
+      "parent_id": "15",
+      "indicators": {
+        "source_included_premises_count": 616,
+        "core_hospitality_premises_count": 73,
+        "accommodation_class_premises_count": 4,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.594041,
+        "core_hospitality_premises_per_1000_residents": 5.515678
+      }
+    },
+    "157": {
+      "official_name": "Colina",
+      "parent_id": "15",
+      "indicators": {
+        "source_included_premises_count": 411,
+        "core_hospitality_premises_count": 31,
+        "accommodation_class_premises_count": 8,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 9.538462,
+        "core_hospitality_premises_per_1000_residents": 4.550793
+      }
+    },
+    "158": {
+      "official_name": "Atalaya",
+      "parent_id": "15",
+      "indicators": {
+        "source_included_premises_count": 66,
+        "core_hospitality_premises_count": 5,
+        "accommodation_class_premises_count": 2,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 9.433962,
+        "core_hospitality_premises_per_1000_residents": 2.95858
+      }
+    },
+    "159": {
+      "official_name": "Costillares",
+      "parent_id": "15",
+      "indicators": {
+        "source_included_premises_count": 726,
+        "core_hospitality_premises_count": 76,
+        "accommodation_class_premises_count": 12,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.949686,
+        "core_hospitality_premises_per_1000_residents": 3.396496
+      }
+    },
+    "161": {
+      "official_name": "Palomas",
+      "parent_id": "16",
+      "indicators": {
+        "source_included_premises_count": 130,
+        "core_hospitality_premises_count": 24,
+        "accommodation_class_premises_count": 5,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 20.512821,
+        "core_hospitality_premises_per_1000_residents": 3.371734
+      }
+    },
+    "162": {
+      "official_name": "Piovera",
+      "parent_id": "16",
+      "indicators": {
+        "source_included_premises_count": 346,
+        "core_hospitality_premises_count": 49,
+        "accommodation_class_premises_count": 11,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 16.171617,
+        "core_hospitality_premises_per_1000_residents": 3.188444
+      }
+    },
+    "163": {
+      "official_name": "Canillas",
+      "parent_id": "16",
+      "indicators": {
+        "source_included_premises_count": 1964,
+        "core_hospitality_premises_count": 167,
+        "accommodation_class_premises_count": 43,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.988514,
+        "core_hospitality_premises_per_1000_residents": 4.124068
+      }
+    },
+    "164": {
+      "official_name": "Pinar del Rey",
+      "parent_id": "16",
+      "indicators": {
+        "source_included_premises_count": 2481,
+        "core_hospitality_premises_count": 180,
+        "accommodation_class_premises_count": 68,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.7724,
+        "core_hospitality_premises_per_1000_residents": 3.367129
+      }
+    },
+    "165": {
+      "official_name": "Apóstol Santiago",
+      "parent_id": "16",
+      "indicators": {
+        "source_included_premises_count": 335,
+        "core_hospitality_premises_count": 38,
+        "accommodation_class_premises_count": 3,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 17.511521,
+        "core_hospitality_premises_per_1000_residents": 2.420074
+      }
+    },
+    "166": {
+      "official_name": "Valdefuentes",
+      "parent_id": "16",
+      "indicators": {
+        "source_included_premises_count": 1823,
+        "core_hospitality_premises_count": 205,
+        "accommodation_class_premises_count": 36,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.442623,
+        "core_hospitality_premises_per_1000_residents": 2.661024
+      }
+    },
+    "171": {
+      "official_name": "Villaverde Alto - Casco Histórico de Villaverde",
+      "parent_id": "17",
+      "indicators": {
+        "source_included_premises_count": 4258,
+        "core_hospitality_premises_count": 227,
+        "accommodation_class_premises_count": 24,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 8.311974,
+        "core_hospitality_premises_per_1000_residents": 4.3727
+      }
+    },
+    "172": {
+      "official_name": "San Cristóbal",
+      "parent_id": "17",
+      "indicators": {
+        "source_included_premises_count": 357,
+        "core_hospitality_premises_count": 53,
+        "accommodation_class_premises_count": 1,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 21.370968,
+        "core_hospitality_premises_per_1000_residents": 2.685992
+      }
+    },
+    "173": {
+      "official_name": "Butarque",
+      "parent_id": "17",
+      "indicators": {
+        "source_included_premises_count": 374,
+        "core_hospitality_premises_count": 56,
+        "accommodation_class_premises_count": 3,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 18.729097,
+        "core_hospitality_premises_per_1000_residents": 2.414522
+      }
+    },
+    "174": {
+      "official_name": "Los Rosales",
+      "parent_id": "17",
+      "indicators": {
+        "source_included_premises_count": 1415,
+        "core_hospitality_premises_count": 143,
+        "accommodation_class_premises_count": 14,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.426106,
+        "core_hospitality_premises_per_1000_residents": 3.624474
+      }
+    },
+    "175": {
+      "official_name": "Ángeles",
+      "parent_id": "17",
+      "indicators": {
+        "source_included_premises_count": 918,
+        "core_hospitality_premises_count": 114,
+        "accommodation_class_premises_count": 6,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.099338,
+        "core_hospitality_premises_per_1000_residents": 2.979691
+      }
+    },
+    "181": {
+      "official_name": "Casco Histórico de Vallecas",
+      "parent_id": "18",
+      "indicators": {
+        "source_included_premises_count": 3912,
+        "core_hospitality_premises_count": 224,
+        "accommodation_class_premises_count": 23,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 8.077894,
+        "core_hospitality_premises_per_1000_residents": 5.147295
+      }
+    },
+    "182": {
+      "official_name": "Santa Eugenia",
+      "parent_id": "18",
+      "indicators": {
+        "source_included_premises_count": 561,
+        "core_hospitality_premises_count": 69,
+        "accommodation_class_premises_count": 3,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.198238,
+        "core_hospitality_premises_per_1000_residents": 2.884736
+      }
+    },
+    "183": {
+      "official_name": "Ensanche de Vallecas",
+      "parent_id": "18",
+      "indicators": {
+        "source_included_premises_count": 881,
+        "core_hospitality_premises_count": 155,
+        "accommodation_class_premises_count": 8,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 20.103761,
+        "core_hospitality_premises_per_1000_residents": 2.577791
+      }
+    },
+    "191": {
+      "official_name": "Casco Histórico de Vicálvaro",
+      "parent_id": "19",
+      "indicators": {
+        "source_included_premises_count": 1652,
+        "core_hospitality_premises_count": 139,
+        "accommodation_class_premises_count": 11,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 11.900685,
+        "core_hospitality_premises_per_1000_residents": 3.679488
+      }
+    },
+    "192": {
+      "official_name": "Valdebernardo",
+      "parent_id": "19",
+      "indicators": {
+        "source_included_premises_count": 317,
+        "core_hospitality_premises_count": 48,
+        "accommodation_class_premises_count": 2,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 17.204301,
+        "core_hospitality_premises_per_1000_residents": 2.780997
+      }
+    },
+    "193": {
+      "official_name": "Valderrivas",
+      "parent_id": "19",
+      "indicators": {
+        "source_included_premises_count": 77,
+        "core_hospitality_premises_count": 15,
+        "accommodation_class_premises_count": 0,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 20.547945,
+        "core_hospitality_premises_per_1000_residents": 0.83902
+      }
+    },
+    "194": {
+      "official_name": "El Cañaveral",
+      "parent_id": "19",
+      "indicators": {
+        "source_included_premises_count": 291,
+        "core_hospitality_premises_count": 44,
+        "accommodation_class_premises_count": 4,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 16.176471,
+        "core_hospitality_premises_per_1000_residents": 1.763881
+      }
+    },
+    "201": {
+      "official_name": "Simancas",
+      "parent_id": "20",
+      "indicators": {
+        "source_included_premises_count": 2593,
+        "core_hospitality_premises_count": 218,
+        "accommodation_class_premises_count": 32,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.457143,
+        "core_hospitality_premises_per_1000_residents": 7.120925
+      }
+    },
+    "202": {
+      "official_name": "Hellín",
+      "parent_id": "20",
+      "indicators": {
+        "source_included_premises_count": 106,
+        "core_hospitality_premises_count": 10,
+        "accommodation_class_premises_count": 5,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.658228,
+        "core_hospitality_premises_per_1000_residents": 0.97352
+      }
+    },
+    "203": {
+      "official_name": "Amposta",
+      "parent_id": "20",
+      "indicators": {
+        "source_included_premises_count": 427,
+        "core_hospitality_premises_count": 44,
+        "accommodation_class_premises_count": 2,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 17.52988,
+        "core_hospitality_premises_per_1000_residents": 4.251619
+      }
+    },
+    "204": {
+      "official_name": "Arcos",
+      "parent_id": "20",
+      "indicators": {
+        "source_included_premises_count": 381,
+        "core_hospitality_premises_count": 62,
+        "accommodation_class_premises_count": 3,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 18.397626,
+        "core_hospitality_premises_per_1000_residents": 2.356608
+      }
+    },
+    "205": {
+      "official_name": "Rosas",
+      "parent_id": "20",
+      "indicators": {
+        "source_included_premises_count": 1010,
+        "core_hospitality_premises_count": 224,
+        "accommodation_class_premises_count": 7,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 26.890756,
+        "core_hospitality_premises_per_1000_residents": 7.368421
+      }
+    },
+    "206": {
+      "official_name": "Rejas",
+      "parent_id": "20",
+      "indicators": {
+        "source_included_premises_count": 1035,
+        "core_hospitality_premises_count": 106,
+        "accommodation_class_premises_count": 31,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 12.426729,
+        "core_hospitality_premises_per_1000_residents": 5.703831
+      }
+    },
+    "207": {
+      "official_name": "Canillejas",
+      "parent_id": "20",
+      "indicators": {
+        "source_included_premises_count": 1456,
+        "core_hospitality_premises_count": 143,
+        "accommodation_class_premises_count": 17,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 14.3,
+        "core_hospitality_premises_per_1000_residents": 4.701164
+      }
+    },
+    "208": {
+      "official_name": "El Salvador",
+      "parent_id": "20",
+      "indicators": {
+        "source_included_premises_count": 379,
+        "core_hospitality_premises_count": 50,
+        "accommodation_class_premises_count": 4,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 17.730496,
+        "core_hospitality_premises_per_1000_residents": 4.317789
+      }
+    },
+    "211": {
+      "official_name": "Alameda de Osuna",
+      "parent_id": "21",
+      "indicators": {
+        "source_included_premises_count": 495,
+        "core_hospitality_premises_count": 60,
+        "accommodation_class_premises_count": 6,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 15.384615,
+        "core_hospitality_premises_per_1000_residents": 2.996554
+      }
+    },
+    "212": {
+      "official_name": "Aeropuerto",
+      "parent_id": "21",
+      "indicators": {
+        "source_included_premises_count": 851,
+        "core_hospitality_premises_count": 123,
+        "accommodation_class_premises_count": 4,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 19.339623,
+        "core_hospitality_premises_per_1000_residents": 63.79668
+      }
+    },
+    "213": {
+      "official_name": "Casco Histórico de Barajas",
+      "parent_id": "21",
+      "indicators": {
+        "source_included_premises_count": 545,
+        "core_hospitality_premises_count": 72,
+        "accommodation_class_premises_count": 27,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 18.604651,
+        "core_hospitality_premises_per_1000_residents": 8.372093
+      }
+    },
+    "214": {
+      "official_name": "Timón",
+      "parent_id": "21",
+      "indicators": {
+        "source_included_premises_count": 394,
+        "core_hospitality_premises_count": 55,
+        "accommodation_class_premises_count": 21,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 16.666667,
+        "core_hospitality_premises_per_1000_residents": 4.435126
+      }
+    },
+    "215": {
+      "official_name": "Corralejos",
+      "parent_id": "21",
+      "indicators": {
+        "source_included_premises_count": 443,
+        "core_hospitality_premises_count": 100,
+        "accommodation_class_premises_count": 4,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 26.595745,
+        "core_hospitality_premises_per_1000_residents": 13.053126
+      }
+    }
+  }
+}

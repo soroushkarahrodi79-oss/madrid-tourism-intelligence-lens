@@ -25,7 +25,7 @@ const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 // modules load identically however the page is served. They are ES modules
 // (shared with `node --test`), while the rest of the app is classic scripts.
 const MODULE_BASE = (document.currentScript && document.currentScript.src) || window.location.href;
-const AREA_ASSET_VERSION = "20260930-31";
+const AREA_ASSET_VERSION = "20261001-35";
 const moduleUrl = (name) => new URL(`${name}?v=${AREA_ASSET_VERSION}`, MODULE_BASE).href;
 
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
@@ -35,6 +35,11 @@ const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.
 map.createPane("adminPane");
 map.getPane("adminPane").style.zIndex = "350";
 map.getPane("adminPane").style.pointerEvents = "none";
+
+// The thematic administrative fill sits above reference outlines but below the
+// active-area and Lens panes. It is the only interactive polygon surface.
+map.createPane("hospitalityPane");
+map.getPane("hospitalityPane").style.zIndex = "365";
 
 // The area containing a lens centre is the one administrative shape that has to
 // stay readable, so it sits just below the lens itself — visible over the POIs,
@@ -54,6 +59,7 @@ let activeBasemap = null;
 let activeBasemapName = "light";
 let lensStyleController = null;
 let adminStyleController = null;
+let hospitalityStyleController = null;
 
 function createOsmBasemap() {
   return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -126,6 +132,7 @@ function setBasemap(name) {
   activeBasemapName = requested;
   if (lensStyleController) lensStyleController(requested);
   if (adminStyleController) adminStyleController(requested);
+  if (hospitalityStyleController) hospitalityStyleController(requested);
 
   let fellBack = false;
   next.on("tileerror", () => {
@@ -476,6 +483,10 @@ function syncPedestrianUi(on) {
 }
 
 function setLayerVisible(name, on) {
+  if (name === "hospitality") {
+    setHospitalityVisible(on);
+    return;
+  }
   if (on) {
     if (!map.hasLayer(groups[name])) map.addLayer(groups[name]);
   } else if (map.hasLayer(groups[name])) {
@@ -1240,6 +1251,277 @@ async function loadAreaContext() {
   updateAreaContext();
 }
 
+// ------------------------------------------------ Hospitality & Commercial
+// One administrative choropleth, one selected metric and one compact context
+// card. This surface never receives a Lens coordinate or radius and never
+// participates in A/B calculations; only canonical official IDs reach it.
+const hospitalityModel = { module: null, i18n: null, index: null };
+let hospitalityState = "loading"; // loading | ready | unavailable
+let hospitalityVisible = false;
+let hospitalityLayer = null;
+let hospitalityRenderer = null;
+let hospitalityMetric = "core_hospitality_premises_count";
+let hospitalitySelectedBarrio = null;
+
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+function hospitalityT(key) {
+  return hospitalityModel.i18n ? hospitalityModel.i18n.t(key) : key;
+}
+
+function hospitalityRecord() {
+  if (!hospitalityModel.index) return null;
+  if (hospitalitySelectedBarrio) {
+    return hospitalityModel.index.barrio.get(hospitalitySelectedBarrio) || null;
+  }
+  return hospitalityModel.index.municipality.get("28079") || null;
+}
+
+function hospitalityPalette(name = activeBasemapName) {
+  return {
+    light: { stroke: "#4e3761", selected: "#15101a", opacity: 0.34 },
+    satellite: { stroke: "#ffffff", selected: "#ffffff", opacity: 0.43 },
+    dark: { stroke: "#ead8f5", selected: "#ffffff", opacity: 0.38 },
+  }[name] || { stroke: "#4e3761", selected: "#15101a", opacity: 0.34 };
+}
+
+function hospitalityFeatureStyle(feature) {
+  const module = hospitalityModel.module;
+  const row = hospitalityModel.index?.barrio.get(String(feature?.properties?.official_id));
+  const value = row?.indicators?.[hospitalityMetric];
+  const domain = hospitalityModel.index ? module.metricDomain(hospitalityModel.index, hospitalityMetric) : null;
+  const normalized = module?.normalizedMetricValue(value, domain);
+  const palette = hospitalityPalette();
+  const selected = String(feature?.properties?.official_id) === hospitalitySelectedBarrio;
+  return {
+    color: selected ? palette.selected : palette.stroke,
+    weight: selected ? 2.6 : 0.8,
+    opacity: selected ? 1 : 0.72,
+    fillColor: normalized == null ? "#8794a2" : `hsl(276 78% ${80 - normalized * 38}%)`,
+    fillOpacity: normalized == null ? 0.18 : palette.opacity,
+    lineJoin: "round",
+    className: selected ? "hospitality-barrio-selected" : "",
+  };
+}
+
+function hospitalityTooltip(feature) {
+  const module = hospitalityModel.module;
+  const id = String(feature?.properties?.official_id || "");
+  const row = hospitalityModel.index?.barrio.get(id);
+  if (!row || !module) return hospitalityT("unavailable");
+  const value = module.formatMetricValue(
+    hospitalityMetric,
+    row.indicators[hospitalityMetric],
+    hospitalityModel.i18n.language
+  );
+  const unit = hospitalityT(module.metricUnitKey(hospitalityMetric));
+  return (
+    `<b>${escapeHtml(row.official_name)}</b><br>` +
+    `${escapeHtml(hospitalityT(hospitalityMetric))}<br>` +
+    `<strong>${escapeHtml(value)}</strong> ${escapeHtml(unit)}<br>` +
+    `${escapeHtml(hospitalityT("premisesReference"))} · ${escapeHtml(hospitalityT("hoverHint"))}`
+  );
+}
+
+function rebuildHospitalityLayer() {
+  if (hospitalityLayer && map.hasLayer(hospitalityLayer)) map.removeLayer(hospitalityLayer);
+  hospitalityLayer = null;
+  if (!hospitalityVisible || hospitalityState !== "ready" || !geographyIndex) return;
+  if (!hospitalityRenderer) hospitalityRenderer = L.canvas({ pane: "hospitalityPane", padding: 0.3 });
+  hospitalityLayer = L.geoJSON(
+    { type: "FeatureCollection", features: geographyIndex.featuresByLevel("barrio") },
+    {
+      pane: "hospitalityPane",
+      renderer: hospitalityRenderer,
+      style: hospitalityFeatureStyle,
+      onEachFeature(feature, layer) {
+        layer.bindTooltip(() => hospitalityTooltip(feature), { sticky: true, direction: "top" });
+        layer.on({
+          mouseover() {
+            layer.setStyle({ weight: 2, opacity: 1 });
+          },
+          mouseout() {
+            layer.setStyle(hospitalityFeatureStyle(feature));
+          },
+          click(event) {
+            L.DomEvent.stopPropagation(event);
+            hospitalitySelectedBarrio = String(feature.properties.official_id);
+            applyHospitalityStyles();
+            renderHospitalityContext();
+          },
+        });
+      },
+    }
+  ).addTo(map);
+}
+
+function applyHospitalityStyles() {
+  if (hospitalityLayer) hospitalityLayer.setStyle(hospitalityFeatureStyle);
+  renderHospitalityScale();
+}
+
+hospitalityStyleController = applyHospitalityStyles;
+
+function renderHospitalityScale() {
+  const scale = document.getElementById("hospitalityScale");
+  if (!scale || !hospitalityModel.index || !hospitalityModel.module) return;
+  const domain = hospitalityModel.module.metricDomain(hospitalityModel.index, hospitalityMetric);
+  const language = hospitalityModel.i18n.language;
+  scale.dataset.min = hospitalityModel.module.formatMetricValue(hospitalityMetric, domain?.min, language) || "—";
+  scale.dataset.max = hospitalityModel.module.formatMetricValue(hospitalityMetric, domain?.max, language) || "—";
+  scale.setAttribute(
+    "aria-label",
+    `${hospitalityT(hospitalityMetric)}: ${scale.dataset.min} – ${scale.dataset.max}`
+  );
+}
+
+function applyHospitalityCopy() {
+  const module = hospitalityModel.module;
+  if (!module || !hospitalityModel.i18n) return;
+  document.documentElement.lang = hospitalityModel.i18n.language;
+  setText("hospitalityLanguageLabel", hospitalityT("languageLabel"));
+  setText("hospitalityLayerName", hospitalityT("layerName"));
+  setText("hospitalityMetricLabel", hospitalityT("metricLabel"));
+  setText("hospitalityContextHeading", hospitalityT("contextHeading"));
+  setText("hospitalityContextScope", hospitalityT("contextScope"));
+  setText("hospitalityAreaLabel", hospitalityT("area"));
+  setText("hospitalitySelectedMetricLabel", hospitalityT("metricLabel"));
+  setText("hospitalityReferenceLabel", hospitalityT("reference"));
+  setText("hospitalitySourceLabel", hospitalityT("source"));
+  setText("hospitalityPopulationLabel", hospitalityT("population"));
+  setText("hospitalitySelectorHint", hospitalityT("selectorHint"));
+  setText("hospitalityMethodologyLink", hospitalityT("methodologyLink"));
+  const toggle = document.getElementById("hospitalityToggle");
+  toggle.setAttribute("aria-label", hospitalityT("layerToggle"));
+  const select = document.getElementById("hospitalityMetricSelect");
+  for (const option of select.options) option.textContent = hospitalityT(option.value);
+  setText("hospitalityMetricSelectValue", hospitalityT(hospitalityMetric));
+  rebuildHospitalityLayer();
+  renderHospitalityContext();
+}
+
+function renderHospitalityContext() {
+  const host = document.getElementById("hospitalityContext");
+  if (!host) return;
+  host.hidden = !hospitalityVisible;
+  if (!hospitalityVisible) return;
+
+  const module = hospitalityModel.module;
+  const state = document.getElementById("hospitalityState");
+  if (hospitalityState !== "ready" || !module || !hospitalityModel.index) {
+    setText("hospitalityAreaName", hospitalityT("municipality"));
+    setText("hospitalitySelectedMetric", hospitalityT(hospitalityMetric));
+    setText("hospitalityValue", "—");
+    setText("hospitalityUnit", "");
+    setText("hospitalityInterpretation", "");
+    setText("hospitalityReference", "");
+    setText("hospitalitySource", "");
+    state.textContent = hospitalityT("unavailable");
+    return;
+  }
+
+  const record = hospitalityRecord();
+  const value = record?.indicators?.[hospitalityMetric];
+  const conditional = hospitalityMetric === module.CONDITIONAL_INDICATOR_ID;
+  const conditionalMetadata = hospitalityModel.index.artifact.metadata.conditional_indicator;
+  const conditionalReady =
+    !conditional ||
+    (conditionalMetadata?.premises_period === "Sep 2026" &&
+      conditionalMetadata?.population_date === "2026-01-01" &&
+      conditionalMetadata?.denominator_type &&
+      conditionalMetadata?.interpretation_ceiling);
+
+  setText(
+    "hospitalityAreaName",
+    hospitalitySelectedBarrio ? record?.official_name : hospitalityT("municipality")
+  );
+  setText("hospitalitySelectedMetric", hospitalityT(hospitalityMetric));
+  setText(
+    "hospitalityValue",
+    conditionalReady
+      ? module.formatMetricValue(hospitalityMetric, value, hospitalityModel.i18n.language)
+      : "—"
+  );
+  setText("hospitalityUnit", conditionalReady ? hospitalityT(module.metricUnitKey(hospitalityMetric)) : "");
+  setText("hospitalityReference", hospitalityT("premisesReference"));
+  setText("hospitalitySource", hospitalityT("sourceLabel"));
+  setText("hospitalityInterpretation", hospitalityT(module.interpretationKey(hospitalityMetric)));
+  const populationRow = document.getElementById("hospitalityPopulationRow");
+  const dualDate = document.getElementById("hospitalityDualDate");
+  populationRow.hidden = !conditional;
+  dualDate.hidden = !conditional;
+  setText("hospitalityPopulation", conditional ? hospitalityT("populationReference") : "");
+  setText("hospitalityDualDate", conditional ? hospitalityT("dualDate") : "");
+  state.textContent = conditionalReady
+    ? hospitalitySelectedBarrio
+      ? ""
+      : hospitalityT("municipalityHint")
+    : hospitalityT("unavailable");
+  document.getElementById("hospitalityClearSelection").hidden = !hospitalitySelectedBarrio;
+}
+
+function syncHospitalityUi(on) {
+  hospitalityVisible = Boolean(on);
+  const toggle = document.getElementById("hospitalityToggle");
+  const controls = document.getElementById("hospitalityControls");
+  toggle.checked = hospitalityVisible;
+  toggle.setAttribute("aria-checked", String(hospitalityVisible));
+  controls.hidden = !hospitalityVisible;
+  rebuildHospitalityLayer();
+  renderHospitalityContext();
+}
+
+function setHospitalityVisible(on) {
+  syncHospitalityUi(on);
+}
+
+async function loadHospitalityContext() {
+  try {
+    const [module, i18nModule, artifact] = await Promise.all([
+      import(moduleUrl("hospitality-context.js")),
+      import(moduleUrl("i18n.js")),
+      fetchAreaJson("data/hospitality-commercial-context.json"),
+    ]);
+    hospitalityModel.module = module;
+    hospitalityModel.i18n = i18nModule.createI18n(
+      module.HOSPITALITY_DICTIONARIES,
+      document.documentElement.lang
+    );
+    hospitalityMetric = module.DEFAULT_INDICATOR_ID;
+    hospitalityModel.index = module.createHospitalityIndex(artifact);
+    hospitalityState = hospitalityModel.index && geographyState === "ready" ? "ready" : "unavailable";
+
+    const select = document.getElementById("hospitalityMetricSelect");
+    select.replaceChildren(
+      ...module.APPROVED_INDICATOR_IDS.map((id) => {
+        const option = document.createElement("option");
+        option.value = id;
+        option.textContent = hospitalityT(id);
+        option.selected = id === hospitalityMetric;
+        return option;
+      })
+    );
+    select.disabled = hospitalityState !== "ready";
+    document.getElementById("languageSelect").value = hospitalityModel.i18n.language;
+    applyHospitalityCopy();
+    renderHospitalityScale();
+    if (hospitalityState !== "ready") {
+      console.warn("hospitality context unavailable: artifact or canonical geography failed validation");
+    }
+  } catch (error) {
+    hospitalityState = "unavailable";
+    document.getElementById("hospitalityMetricSelect").disabled = true;
+    console.warn("hospitality context unavailable", error);
+    renderHospitalityContext();
+  }
+}
+
 // ---------------------------------------------------------------------------
 // DESTINATION CONTEXT
 //
@@ -1572,6 +1854,15 @@ function disableLensB() {
 lenses.A.marker.on("drag", () => (active !== "A" ? activateLens("A") : refresh()));
 lenses.B.marker.on("drag", () => (active !== "B" ? activateLens("B") : refresh()));
 map.on("click", (e) => {
+  if (hospitalityVisible && hospitalityState === "ready" && geographyIndex) {
+    const barrio = geographyIndex.barrioAt(e.latlng.lng, e.latlng.lat);
+    if (barrio && hospitalityModel.index?.barrio.has(String(barrio.official_id))) {
+      hospitalitySelectedBarrio = String(barrio.official_id);
+      applyHospitalityStyles();
+      renderHospitalityContext();
+      return;
+    }
+  }
   lenses[active].marker.setLatLng(e.latlng);
   refresh();
 });
@@ -1618,6 +1909,24 @@ radiusSlider.oninput = (e) => {
 };
 document.getElementById("basemapSelect").onchange = (e) => setBasemap(e.target.value);
 document.getElementById("boundarySelect").onchange = (e) => setBoundaryMode(e.target.value);
+document.getElementById("languageSelect").onchange = (event) => {
+  if (!hospitalityModel.i18n) return;
+  hospitalityModel.i18n.setLanguage(event.target.value);
+  applyHospitalityCopy();
+};
+document.getElementById("hospitalityMetricSelect").onchange = (event) => {
+  if (!hospitalityModel.module?.APPROVED_INDICATOR_IDS.includes(event.target.value)) return;
+  hospitalityMetric = event.target.value;
+  hospitalitySelectedBarrio = hospitalitySelectedBarrio || null;
+  setText("hospitalityMetricSelectValue", hospitalityT(hospitalityMetric));
+  applyHospitalityStyles();
+  renderHospitalityContext();
+};
+document.getElementById("hospitalityClearSelection").onclick = () => {
+  hospitalitySelectedBarrio = null;
+  applyHospitalityStyles();
+  renderHospitalityContext();
+};
 const areaSourceToggle = document.getElementById("areaSourceToggle");
 areaSourceToggle.onclick = () => {
   const details = document.getElementById("areaSourceDetails");
@@ -1649,6 +1958,7 @@ document.getElementById("resetButton").onclick = () => {
 document.querySelectorAll("[data-layer]").forEach((x) => (x.onchange = () => setLayerVisible(x.dataset.layer, x.checked)));
 syncHatiUi(false);
 syncPedestrianUi(false);
+syncHospitalityUi(false);
 
 const PANEL_SIZE_STORAGE_KEY = "madrid-tourism-intelligence-lens:analysis-panel-size:v1";
 const analysisPanel = document.querySelector(".panel");
@@ -1870,7 +2180,7 @@ async function boot() {
   // Administrative context loads after the operational layers are on screen:
   // the canonical geography is ~2.5 MB and must never delay the first paint of
   // the map. It is parsed and indexed exactly once, then reused.
-  loadAreaContext();
+  loadAreaContext().finally(loadHospitalityContext);
   // Started separately and never awaited together with the area context: the two
   // surfaces describe different things, from different publishers, and must fail
   // independently of each other.
