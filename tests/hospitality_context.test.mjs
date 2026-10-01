@@ -11,6 +11,7 @@ import {
   createHospitalityIndex,
   formatMetricValue,
   metricDomain,
+  normalizedMetricValue,
   validateHospitalityArtifact,
 } from "../js/hospitality-context.js";
 import { createI18n } from "../js/i18n.js";
@@ -46,6 +47,7 @@ test("loader rejects version, metadata, geography, numeric and indicator corrupt
     (copy) => (copy.barrios.bad = copy.barrios["011"]),
     (copy) => delete copy.barrios["011"].indicators.source_included_premises_count,
     (copy) => (copy.barrios["011"].indicators.premises_per_km2 = 3),
+    (copy) => (copy.barrios["011"].official_name = ""),
   ];
   for (const mutate of mutations) {
     const copy = structuredClone(artifact);
@@ -69,12 +71,14 @@ test("conditional indicator carries both dates, denominator type and interpretat
 test("ES and EN labels are exact and formatting is locale-aware", () => {
   const i18n = createI18n(HOSPITALITY_DICTIONARIES, "es");
   assert.equal(i18n.t("layerName"), "Contexto de hostelería y actividad comercial");
+  assert.equal(i18n.t("languageLabel"), "Idioma del contexto");
   assert.equal(
     i18n.t("core_hospitality_premises_count"),
     "Locales con actividad documentada de hostelería"
   );
   i18n.setLanguage("en");
   assert.equal(i18n.t("layerName"), "Hospitality & Commercial Context");
+  assert.equal(i18n.t("languageLabel"), "Context language");
   assert.equal(
     i18n.t("accommodation_class_premises_count"),
     "Documented accommodation-class premises (Division 55)"
@@ -95,6 +99,24 @@ test("artifact indexes all official units and yields a deterministic numeric dom
   assert.ok(Number.isFinite(domain.min));
   assert.ok(Number.isFinite(domain.max));
   assert.ok(domain.max >= domain.min);
+});
+
+test("choropleth normalization is linear and does not hide a square-root transform", () => {
+  const domain = { min: 0, max: 100 };
+  assert.equal(normalizedMetricValue(0, domain), 0);
+  assert.equal(normalizedMetricValue(25, domain), 0.25);
+  assert.equal(normalizedMetricValue(50, domain), 0.5);
+  assert.equal(normalizedMetricValue(100, domain), 1);
+});
+
+test("the hospitality language selector is explicitly scoped to this context", () => {
+  assert.match(html, /<html lang="en">/);
+  assert.match(html, /id="hospitalityLanguageLabel"[^>]*>Idioma del contexto<\/label>/);
+  assert.doesNotMatch(appSource, /document\.documentElement\.lang\s*=/);
+  assert.match(
+    appSource,
+    /createI18n\([\s\S]*?document\.getElementById\("languageSelect"\)\.value/
+  );
 });
 
 test("UI contains one layer, one selector and one existing-panel context section", () => {
@@ -121,12 +143,19 @@ test("hospitality rendering stays out of radius and A/B comparison calculations"
   assert.doesNotMatch(radiusHandler, /hospitality/i);
 });
 
-test("map clicks select a canonical barrio while Hospitality is active without moving a Lens", () => {
+test("Hospitality selection preserves the primary Lens click interaction", () => {
   assert.match(
     appSource,
-    /if \(hospitalityVisible && hospitalityState === "ready" && geographyIndex\) \{[\s\S]*?geographyIndex\.barrioAt\(e\.latlng\.lng, e\.latlng\.lat\)[\s\S]*?hospitalitySelectedBarrio = String\(barrio\.official_id\)[\s\S]*?return;/
+    /click\(event\) \{[\s\S]*?hospitalitySelectedBarrio = String\(feature\.properties\.official_id\);[\s\S]*?lenses\[active\]\.marker\.setLatLng\(event\.latlng\);[\s\S]*?refresh\(\);/
   );
-  assert.match(appSource, /lenses\[active\]\.marker\.setLatLng\(e\.latlng\);/);
+
+  const mapClickBody = appSource.slice(
+    appSource.indexOf('map.on("click"'),
+    appSource.indexOf('map.on("zoomend"')
+  );
+  assert.match(mapClickBody, /lenses\[active\]\.marker\.setLatLng\(e\.latlng\);/);
+  assert.match(mapClickBody, /refresh\(\);/);
+  assert.doesNotMatch(mapClickBody, /hospitalityVisible|hospitalitySelectedBarrio|return;/);
 });
 
 test("existing accommodation catalogue remains a separate layer", () => {
