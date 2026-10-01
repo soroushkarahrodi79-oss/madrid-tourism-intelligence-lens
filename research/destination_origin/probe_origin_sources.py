@@ -230,6 +230,16 @@ def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
         coded = sorted((s for s in series if series_code(s)), key=series_code)
         sample = coded[:8]
         all_obs = [row for s in series for row in observations(s)]
+        first_series_with_data = next((s for s in series if observations(s)), None)
+        sample_payload_shape = {
+            "series_keys": sorted(first_series_with_data.keys()) if first_series_with_data else [],
+            "series_metadata": {
+                key: first_series_with_data.get(key)
+                for key in ("COD", "Nombre", "Unidad", "Periodicidad", "FK_Unidad", "FK_Periodicidad")
+                if first_series_with_data and key in first_series_with_data
+            },
+            "observation": observations(first_series_with_data)[0] if first_series_with_data else None,
+        }
         sample_series = []
         for s in sample:
             code = series_code(s)
@@ -308,6 +318,7 @@ def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
                 },
                 "series_count": len(series),
                 "observation_count": len(all_obs),
+                "sample_payload_shape": sample_payload_shape,
                 "unit_ids": unit_ids,
                 "unit_names": [units.get(x) for x in unit_ids],
                 "periods": periods,
