@@ -581,6 +581,17 @@ test("a healthy deployment build passes and reports every layer available", () =
 
 // ------------------------------------------------------------------ structure
 
+test("hospitality administrative records require non-empty official names", () => {
+  const artifacts = healthyArtifacts();
+  const hospitality = artifacts["hospitality-commercial-context.json"];
+  const barrioId = Object.keys(hospitality.barrios)[0];
+  hospitality.barrios[barrioId].official_name = "";
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), new RegExp(`Hospitality & Commercial Context: barrio ${barrioId} has no official_name`));
+});
+
 test("a missing critical layer fails the build", () => {
   const artifacts = healthyArtifacts();
   delete artifacts["runtime_poi.json"].layers.stay;
