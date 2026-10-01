@@ -167,13 +167,13 @@ def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
         if madrid_code and madrid_code != MADRID_CODE:
             raise RuntimeError(f"Madrid destination carries code {madrid_code}, not {MADRID_CODE}")
 
-        payload, data_url = fetch_json(
-            f"DATOS_TABLA/{table_id}",
-            [("nult", 2), ("tip", "AM"), ("tv", f"{group_id}:{madrid_id}")],
+        series_payload, series_url = fetch_json(
+            f"SERIES_TABLA/{table_id}",
+            [("tip", "AM"), ("det", 2), ("tv", f"{group_id}:{madrid_id}")],
         )
-        series = flatten_series(payload)
+        series = flatten_series(series_payload)
         if not series:
-            raise RuntimeError("Madrid-filtered DATOS_TABLA returned zero series")
+            raise RuntimeError("Madrid-filtered SERIES_TABLA returned zero series")
 
         unit_ids = sorted(
             {
@@ -182,7 +182,52 @@ def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
                 if s.get("FK_Unidad") is not None
             }
         )
-        all_obs = [row for s in series for row in observations(s)]
+
+        # Do not download the full municipality-by-origin matrix merely to prove
+        # the contract. Sample deterministic series by publisher code, then read
+        # two recent observations from each code independently.
+        def series_code(s):
+            return text(s.get("COD") or s.get("Cod") or s.get("Codigo"))
+
+        coded = sorted((s for s in series if series_code(s)), key=series_code)
+        sample = coded[:8]
+        all_obs = []
+        sample_series = []
+        for s in sample:
+            code = series_code(s)
+            detail, _ = fetch_json(f"DATOS_SERIE/{code}", [("nult", 2)])
+            rows = observations(detail)
+            all_obs.extend(rows)
+
+            defining_values = []
+            try:
+                vals, _ = fetch_json(f"VALORES_SERIE/{code}", [("det", 1)])
+                if isinstance(vals, list):
+                    defining_values = [
+                        {
+                            "variable_id": v.get("FK_Variable") or v.get("IdVariable") or v.get("Variable"),
+                            "value_id": item_id(v),
+                            "name": item_name(v),
+                            "code": item_code(v) or None,
+                        }
+                        for v in vals
+                        if item_name(v)
+                    ]
+            except Exception:
+                defining_values = []
+
+            sample_series.append(
+                {
+                    "code": code,
+                    "name": s.get("Nombre"),
+                    "unit_id": s.get("FK_Unidad"),
+                    "unit_name": units.get(str(s.get("FK_Unidad"))),
+                    "periodicity": s.get("FK_Periodicidad"),
+                    "observations": len(rows),
+                    "defining_values": defining_values,
+                }
+            )
+
         periods = sorted(
             {
                 f"{row.get('Anyo'):04d}-{int(row.get('FK_Periodo')):02d}"
@@ -204,25 +249,12 @@ def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
             1 for row in all_obs if row.get("Valor") is None and row.get("Secreto") is not True
         )
 
-        sample_series = []
-        for s in series[:8]:
-            sample_series.append(
-                {
-                    "code": s.get("COD") or s.get("Cod") or s.get("Codigo"),
-                    "name": s.get("Nombre"),
-                    "unit_id": s.get("FK_Unidad"),
-                    "unit_name": units.get(str(s.get("FK_Unidad"))),
-                    "periodicity": s.get("FK_Periodicidad"),
-                    "observations": len(observations(s)),
-                }
-            )
-
         result.update(
             {
                 "reachable": True,
                 "groups_url": groups_url,
                 "values_url": values_url,
-                "data_url": data_url,
+                "series_url": series_url,
                 "destination_group": {
                     "id": group_id,
                     "name": item_name(dest_group),
@@ -233,7 +265,7 @@ def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
                     "code": madrid_code or None,
                 },
                 "series_count": len(series),
-                "observation_count": len(all_obs),
+                "sample_observation_count": len(all_obs),
                 "unit_ids": unit_ids,
                 "unit_names": [units.get(x) for x in unit_ids],
                 "periods": periods,
