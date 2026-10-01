@@ -118,7 +118,11 @@ def flatten_series(payload):
             value = payload.get(key)
             if isinstance(value, list):
                 return value
-    raise RuntimeError(f"unexpected DATOS_TABLA shape: {type(payload).__name__}")
+        preview = json.dumps(payload, ensure_ascii=False)[:1200]
+        raise RuntimeError(
+            f"unexpected SERIES_TABLA object keys={list(payload)[:20]} preview={preview}"
+        )
+    raise RuntimeError(f"unexpected SERIES_TABLA shape: {type(payload).__name__}")
 
 
 def observations(series: dict) -> list[dict]:
