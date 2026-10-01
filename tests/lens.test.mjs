@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import test from "node:test";
 import {
   LENS_RADIUS,
@@ -19,6 +20,12 @@ test("Lens radius: shared bounds preserve local precision through the expanded r
   assert.equal(clampLensRadius(LENS_RADIUS.defaultM), 900);
   assert.equal(clampLensRadius(2500), 2500); // above the previous 1,800 m maximum
   assert.equal(clampLensRadius(LENS_RADIUS.maxM), 5000);
+});
+
+test("README documents the canonical Lens radius range", () => {
+  const readme = fs.readFileSync(new URL("../README.md", import.meta.url), "utf8");
+  assert.match(readme, /radius\*\* \(100 m . 5 km\)/);
+  assert.doesNotMatch(readme, /250 m . 1\.8 km/);
 });
 
 test("Lens radius: invalid and out-of-range inputs are clamped to supported slider values", () => {
