@@ -41,7 +41,10 @@ test("Lens A/B comparison includes pedestrian activity only when evidence exists
 
 test("deployment builds a bounded pedestrian snapshot from Madrid Open Data", () => {
   assert.match(workflow, /python3 scripts\/build_pedestrian_activity\.py/);
-  assert.match(builder, /300321-0-aforos-peatones-bicicletas-csv\.csv/);
+  assert.match(builder, /DATASTORE_URL = "https:\/\/datos\.madrid\.es\/api\/3\/action\/datastore_search"/);
+  assert.match(builder, /RESOURCE_ID = "300321-0-aforos-peatones-bicicletas-csv"/);
+  assert.match(builder, /retrieval_route = "ckan_datastore_search"/);
+  assert.match(builder, /csv_download_fallback/);
   assert.match(builder, /LAT_MIN, LAT_MAX = 40\.385, 40\.455/);
   assert.match(builder, /LON_MIN, LON_MAX = -3\.745, -3\.645/);
   assert.match(builder, /not tourism-specific/);
