@@ -89,7 +89,7 @@
     },
     "cerrado_semantics": {
       "use_as_business_cessation_evidence": "NO-GO",
-      "basis": "Cerrado is an administrative 'no activity recorded at the extract moment'. It is NOT permanent closure, NOT business failure and NOT economic decline; no closure date exists and activity codes can remain attached."
+      "basis": "The verbatim source meaning is retained in source_semantics ('Local en el que en ese momento no se realiza ningun tipo de actividad'). Separately, the project interpretation ceiling applies: Cerrado is NOT independently verified current closure, NOT permanent cessation, NOT business failure and NOT economic decline. No closure date exists and activity codes can remain attached. NO-GO stands for those interpretations."
     },
     "baja_baja_r": {
       "use_as_explicit_source_exclusions": "GO",

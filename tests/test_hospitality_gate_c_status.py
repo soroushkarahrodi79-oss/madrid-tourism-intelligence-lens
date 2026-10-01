@@ -169,6 +169,33 @@ class GateCStatusReport(unittest.TestCase):
         # The project ceiling must be labelled as project interpretation, not source.
         self.assertIn("project interpretation ceiling", ceiling["note"].lower())
 
+    def test_cerrado_source_meaning_is_never_paraphrased_anywhere(self):
+        # Regression guard: the paraphrase "no activity recorded at the extract moment"
+        # (and the clipped "recorded at extract") must not appear ANYWHERE in the report,
+        # because it rewrites the source wording. This covers the ruling basis, the
+        # status-universe interpretation ceiling, and any other field that might regress.
+        def walk(node):
+            if isinstance(node, str):
+                low = node.lower()
+                self.assertNotIn("no activity recorded at", low)
+                self.assertNotIn("recorded at the extract", low)
+                self.assertNotIn("recorded at extract", low)
+            elif isinstance(node, dict):
+                for v in node.values():
+                    walk(v)
+            elif isinstance(node, list):
+                for v in node:
+                    walk(v)
+        walk(self.report)
+        # And the Cerrado ruling basis must positively tie back to the verbatim source
+        # meaning and the four bounded interpretations, not a paraphrase.
+        basis = self.ruling["cerrado_semantics"]["basis"].lower()
+        self.assertIn("source_semantics", basis)
+        self.assertIn("en ese momento no se realiza", basis)
+        for forbidden in ("current closure", "permanent cessation",
+                          "business failure", "economic decline"):
+            self.assertIn(forbidden, basis)
+
     # -- C9 Baja / Baja R -------------------------------------------------
     def test_baja_and_baja_r_remain_represented_though_excluded(self):
         baja = self.report["baja_and_baja_r"]

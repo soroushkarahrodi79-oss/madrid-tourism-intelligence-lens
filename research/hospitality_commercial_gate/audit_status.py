@@ -115,9 +115,12 @@ SITUACION_INTERPRETATION_CEILING = {
          "cierra sin aparecer una nueva actividad', and extraction shows 'la ultima "
          "situacion'. So Abierto may be stale. It is NOT revenue, demand, footfall, "
          "commercial success or proof a business operates today.",
-    "4": "Administrative 'no activity recorded at the extract moment'. NOT permanent "
-         "closure, NOT business failure, NOT economic decline. No closure date is "
-         "published and it is distinct from Baja (desaparecido).",
+    "4": "Project interpretation ceiling (the verbatim source meaning - 'Local en el que "
+         "en ese momento no se realiza ningun tipo de actividad' - is kept separate in "
+         "source_semantics): because situacion is a last-recorded, difficult-to-maintain "
+         "administrative variable, Cerrado is NOT independently verified current closure, "
+         "NOT permanent cessation, NOT business failure, NOT economic decline. No closure "
+         "date is published and it is distinct from Baja (desaparecido).",
     "5": "Administrative 'premises converted to dwelling'. Describes recorded use, not "
          "an economic-cessation date or a business outcome.",
     "7": "Administrative 'undergoing building works'. Not a business-activity claim.",

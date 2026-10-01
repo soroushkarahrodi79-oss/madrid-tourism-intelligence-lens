@@ -677,7 +677,7 @@ apartados II and III — not inherited from earlier gates.
 | Code | Official description | Documented meaning (verbatim sense) | Counting instruction | Analytical interpretation allowed |
 |---|---|---|---|---|
 | sit 1 Abierto | Local activo | *"Local activo en el que se desarrolla algún tipo de actividad económica"* | none | administrative **last-recorded** "active"; not verified trading |
-| sit 4 Cerrado | Local cerrado (sin actividad) | *"Local en el que en ese momento no se realiza ningún tipo de actividad"* | none | "no activity recorded at the extract moment"; not permanent, no date |
+| sit 4 Cerrado | Local cerrado (sin actividad) | *"Local en el que en ese momento no se realiza ningún tipo de actividad"* | none | not independently verified current closure, not permanent cessation, not failure/decline; no date |
 | sit 5 Uso vivienda | Local destinado a vivienda | *"…transformado en vivienda y se utilizan, exclusivamente, como vivienda familiar"* | none | recorded conversion to housing; no economic-cessation date |
 | sit 7 Obras | Local en obras | *"Locales en los que se está realizando una reforma"* | none | undergoing works; **absent from this snapshot** |
 | sit 8 Baja | Local que ha desaparecido | *"Locales desaparecidos"* | **exclude** | administrative "disappeared"; not a measured business failure |
@@ -896,7 +896,7 @@ unresolved or unclassified.
 | Question | Ruling |
 |---|---|
 | **`Abierto`** as a current-operation proxy | **NO-GO** (administrative status only; maintenance caveat applies) |
-| **`Cerrado`** as business-cessation / failure evidence | **NO-GO** (bounded; "no activity recorded at extract", no date, not permanent) |
+| **`Cerrado`** as business-cessation / failure evidence | **NO-GO** (bounded; source meaning kept verbatim, not independently verified closure, not permanent cessation, no date) |
 | **`Baja` / `Baja R`** as explicit source exclusions | **GO** (unconditional source instruction; records retained) |
 | **`PC Asociado`** as an explicit source exclusion | **GO** (not a physical premises) |
 | **Source-excluded premises universe** as a reproducible administrative filtering rule | **GO** (research filtering rule, overlaps handled; **not** a production denominator — Gate F) |
