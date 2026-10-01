@@ -164,7 +164,7 @@ let hatiAssets = [];
 let hatiStudyArea = null;
 let layerStatus = {};
 let stayKindFilter = "all";
-let radius = 900;
+let radius = LENS_RADIUS.defaultM;
 let active = "A";
 let bEnabled = false;
 let timestep = "15:00";
@@ -1597,16 +1597,22 @@ document.getElementById("navEvidence").onclick = () => {
   refresh();
 };
 function renderRadiusLabels() {
-  const text = radius >= 1000 ? (radius / 1000).toFixed(2) + " km" : radius + " m";
+  const text = formatLensRadius(radius);
   document.getElementById("radiusText").textContent = text;
   // The lens section states its own geometry, so "within the lens" can never be
   // read as the administrative area above it.
   document.getElementById("lensScopeHint").textContent = `${text} circle`;
 }
+const radiusSlider = document.getElementById("radiusSlider");
+radiusSlider.min = LENS_RADIUS.minM;
+radiusSlider.max = LENS_RADIUS.maxM;
+radiusSlider.step = LENS_RADIUS.stepM;
+radiusSlider.value = radius;
 renderRadiusLabels();
 
-document.getElementById("radiusSlider").oninput = (e) => {
-  radius = Number(e.target.value);
+radiusSlider.oninput = (e) => {
+  radius = clampLensRadius(e.target.value);
+  e.target.value = radius;
   renderRadiusLabels();
   refresh();
 };

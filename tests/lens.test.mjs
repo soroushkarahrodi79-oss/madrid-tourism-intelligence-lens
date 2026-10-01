@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  LENS_RADIUS,
+  clampLensRadius,
+  formatLensRadius,
   haversineMeters,
   poiStatsInLens,
   deltaOrDash,
@@ -9,6 +12,28 @@ import {
   comparisonDelta,
   categoryMixState,
 } from "../js/lens.js";
+
+test("Lens radius: shared bounds preserve local precision through the expanded range", () => {
+  assert.deepEqual(LENS_RADIUS, { minM: 100, maxM: 5000, stepM: 50, defaultM: 900 });
+  assert.equal(clampLensRadius(LENS_RADIUS.minM), 100);
+  assert.equal(clampLensRadius(LENS_RADIUS.defaultM), 900);
+  assert.equal(clampLensRadius(2500), 2500); // above the previous 1,800 m maximum
+  assert.equal(clampLensRadius(LENS_RADIUS.maxM), 5000);
+});
+
+test("Lens radius: invalid and out-of-range inputs are clamped to supported slider values", () => {
+  assert.equal(clampLensRadius(-1), 100);
+  assert.equal(clampLensRadius(6000), 5000);
+  assert.equal(clampLensRadius(123), 100);
+  assert.equal(clampLensRadius("not a number"), 900);
+});
+
+test("Lens radius: labels use metres below one kilometre and concise kilometres otherwise", () => {
+  assert.equal(formatLensRadius(750), "750 m");
+  assert.equal(formatLensRadius(1000), "1 km");
+  assert.equal(formatLensRadius(1200), "1.2 km");
+  assert.equal(formatLensRadius(5000), "5 km");
+});
 
 test("haversineMeters: zero distance for identical points", () => {
   const p = { lat: 40.4149, lon: -3.69 };
