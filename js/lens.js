@@ -1,6 +1,30 @@
 // Pure, deterministic lens geometry and statistics. No Leaflet/DOM
 // dependency in this file so it can be unit-tested with plain Node.
 
+// The circular Lens has one shared radius in normal and Compare modes. Keep
+// its bounds here so the UI, geometry and tests use one source of truth.
+const LENS_RADIUS = Object.freeze({
+  minM: 100,
+  maxM: 5000,
+  stepM: 50,
+  defaultM: 900,
+});
+
+function clampLensRadius(value) {
+  const radiusM = Number(value);
+  if (!Number.isFinite(radiusM)) return LENS_RADIUS.defaultM;
+
+  const withinBounds = Math.min(LENS_RADIUS.maxM, Math.max(LENS_RADIUS.minM, radiusM));
+  const steppedRadius = Math.round((withinBounds - LENS_RADIUS.minM) / LENS_RADIUS.stepM) * LENS_RADIUS.stepM + LENS_RADIUS.minM;
+  return Math.min(LENS_RADIUS.maxM, Math.max(LENS_RADIUS.minM, steppedRadius));
+}
+
+function formatLensRadius(radiusM) {
+  const validRadiusM = clampLensRadius(radiusM);
+  if (validRadiusM < 1000) return `${validRadiusM} m`;
+  return `${Number((validRadiusM / 1000).toFixed(2))} km`;
+}
+
 function haversineMeters(a, b) {
   const R = 6371000;
   const toRad = (x) => (x * Math.PI) / 180;
@@ -146,6 +170,9 @@ function categoryMixState(counts, statuses) {
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
+    LENS_RADIUS,
+    clampLensRadius,
+    formatLensRadius,
     haversineMeters,
     poiStatsInLens,
     deltaOrDash,
