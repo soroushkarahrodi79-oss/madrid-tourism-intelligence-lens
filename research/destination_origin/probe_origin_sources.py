@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 API_ROOT = "https://servicios.ine.es/wstempus/js/ES"
+SERIES_ROOT = "https://servicios.ine.es/wstempus/jsCache/ES"
 TABLES = {
     "domestic": {
         "table_id": 53001,
@@ -39,9 +40,14 @@ MADRID_NAME = "Madrid"
 OUT = Path("research/destination_origin/probe_report.json")
 
 
-def fetch_json(path: str, params: list[tuple[str, str | int]] | None = None, timeout: int = 180):
+def fetch_json(
+    path: str,
+    params: list[tuple[str, str | int]] | None = None,
+    timeout: int = 180,
+    root: str = API_ROOT,
+):
     query = urllib.parse.urlencode(params or [])
-    url = f"{API_ROOT}/{path}" + (f"?{query}" if query else "")
+    url = f"{root}/{path}" + (f"?{query}" if query else "")
     req = urllib.request.Request(
         url,
         headers={
@@ -171,9 +177,14 @@ def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
         if madrid_code and madrid_code != MADRID_CODE:
             raise RuntimeError(f"Madrid destination carries code {madrid_code}, not {MADRID_CODE}")
 
+        # These high-dimensional tables are TPX tables carrying Tempus3
+        # numeric identifiers. INE documents the ~id alias for exactly this case;
+        # without it the filter is ignored and SERIES_TABLA hits the volume limit.
+        destination_filter = f"{group_id}~id:{madrid_id}~id"
         series_payload, series_url = fetch_json(
             f"SERIES_TABLA/{table_id}",
-            [("tip", "AM"), ("det", 2), ("tv", f"{group_id}:{madrid_id}")],
+            [("tip", "AM"), ("det", 2), ("tv", destination_filter)],
+            root=SERIES_ROOT,
         )
         series = flatten_series(series_payload)
         if not series:
@@ -259,6 +270,7 @@ def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
                 "groups_url": groups_url,
                 "values_url": values_url,
                 "series_url": series_url,
+                "destination_filter": destination_filter,
                 "destination_group": {
                     "id": group_id,
                     "name": item_name(dest_group),
