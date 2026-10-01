@@ -203,14 +203,18 @@ def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
         # variable/value identifiers here, so the documented filter is
         # tv=id_variable:id_valor (19:2813 for Madrid).
         destination_filter = f"{variable_id}:{madrid_id}"
-        series_payload, series_url = fetch_json(
-            f"SERIES_TABLA/{table_id}",
-            [("tip", "AM"), ("det", 2), ("tv", destination_filter)],
-            root=SERIES_ROOT,
+        data_payload, data_url = fetch_json(
+            f"DATOS_TABLA/{table_id}",
+            [
+                ("nult", 2),
+                ("tip", "AM"),
+                ("det", 2),
+                ("tv", destination_filter),
+            ],
         )
-        series = flatten_series(series_payload)
+        series = flatten_series(data_payload)
         if not series:
-            raise RuntimeError("Madrid-filtered SERIES_TABLA returned zero series")
+            raise RuntimeError("Madrid-filtered DATOS_TABLA returned zero series")
 
         unit_ids = sorted(
             {
@@ -220,29 +224,29 @@ def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
             }
         )
 
-        # Do not download the full municipality-by-origin matrix merely to prove
-        # the contract. Sample deterministic series by publisher code, then read
-        # two recent observations from each code independently.
         def series_code(s):
             return text(s.get("COD") or s.get("Cod") or s.get("Codigo"))
 
         coded = sorted((s for s in series if series_code(s)), key=series_code)
         sample = coded[:8]
-        all_obs = []
+        all_obs = [row for s in series for row in observations(s)]
         sample_series = []
         for s in sample:
             code = series_code(s)
-            detail, _ = fetch_json(f"DATOS_SERIE/{code}", [("nult", 2)])
-            rows = observations(detail)
-            all_obs.extend(rows)
-
             defining_values = []
             try:
                 vals, _ = fetch_json(f"VALORES_SERIE/{code}", [("det", 1)])
                 if isinstance(vals, list):
                     defining_values = [
                         {
-                            "variable_id": v.get("FK_Variable") or v.get("IdVariable") or v.get("Variable"),
+                            "variable_id": (
+                                v.get("FK_Variable")
+                                or (
+                                    v.get("Variable", {}).get("Id")
+                                    if isinstance(v.get("Variable"), dict)
+                                    else v.get("Variable")
+                                )
+                            ),
                             "value_id": item_id(v),
                             "name": item_name(v),
                             "code": item_code(v) or None,
@@ -260,7 +264,7 @@ def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
                     "unit_id": s.get("FK_Unidad"),
                     "unit_name": units.get(str(s.get("FK_Unidad"))),
                     "periodicity": s.get("FK_Periodicidad"),
-                    "observations": len(rows),
+                    "observations": len(observations(s)),
                     "defining_values": defining_values,
                 }
             )
@@ -291,7 +295,7 @@ def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
                 "reachable": True,
                 "groups_url": groups_url,
                 "values_url": values_url,
-                "series_url": series_url,
+                "data_url": data_url,
                 "destination_filter": destination_filter,
                 "destination_group": {
                     "id": group_id,
@@ -303,7 +307,7 @@ def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
                     "code": madrid_code or None,
                 },
                 "series_count": len(series),
-                "sample_observation_count": len(all_obs),
+                "observation_count": len(all_obs),
                 "unit_ids": unit_ids,
                 "unit_names": [units.get(x) for x in unit_ids],
                 "periods": periods,
