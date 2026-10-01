@@ -110,6 +110,8 @@ const IDS = {
 function finiteIndicatorRecord(record) {
   const indicators = record && record.indicators;
   return (
+    typeof record?.official_name === "string" &&
+    record.official_name.trim().length > 0 &&
     indicators &&
     APPROVED_INDICATOR_IDS.every(
       (id) => Object.hasOwn(indicators, id) && Number.isFinite(indicators[id]) && indicators[id] >= 0
@@ -221,5 +223,5 @@ export function metricDomain(index, indicatorId) {
 export function normalizedMetricValue(value, domain) {
   if (!Number.isFinite(value) || !domain) return null;
   if (domain.max === domain.min) return 0.5;
-  return Math.sqrt(Math.max(0, Math.min(1, (value - domain.min) / (domain.max - domain.min))));
+  return Math.max(0, Math.min(1, (value - domain.min) / (domain.max - domain.min)));
 }
