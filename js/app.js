@@ -1352,6 +1352,10 @@ function rebuildHospitalityLayer() {
           click(event) {
             L.DomEvent.stopPropagation(event);
             hospitalitySelectedBarrio = String(feature.properties.official_id);
+            if (event.latlng) {
+              lenses[active].marker.setLatLng(event.latlng);
+              refresh();
+            }
             applyHospitalityStyles();
             renderHospitalityContext();
           },
@@ -1384,7 +1388,6 @@ function renderHospitalityScale() {
 function applyHospitalityCopy() {
   const module = hospitalityModel.module;
   if (!module || !hospitalityModel.i18n) return;
-  document.documentElement.lang = hospitalityModel.i18n.language;
   setText("hospitalityLanguageLabel", hospitalityT("languageLabel"));
   setText("hospitalityLayerName", hospitalityT("layerName"));
   setText("hospitalityMetricLabel", hospitalityT("metricLabel"));
@@ -1491,7 +1494,7 @@ async function loadHospitalityContext() {
     hospitalityModel.module = module;
     hospitalityModel.i18n = i18nModule.createI18n(
       module.HOSPITALITY_DICTIONARIES,
-      document.documentElement.lang
+      document.getElementById("languageSelect").value
     );
     hospitalityMetric = module.DEFAULT_INDICATOR_ID;
     hospitalityModel.index = module.createHospitalityIndex(artifact);
@@ -1854,15 +1857,6 @@ function disableLensB() {
 lenses.A.marker.on("drag", () => (active !== "A" ? activateLens("A") : refresh()));
 lenses.B.marker.on("drag", () => (active !== "B" ? activateLens("B") : refresh()));
 map.on("click", (e) => {
-  if (hospitalityVisible && hospitalityState === "ready" && geographyIndex) {
-    const barrio = geographyIndex.barrioAt(e.latlng.lng, e.latlng.lat);
-    if (barrio && hospitalityModel.index?.barrio.has(String(barrio.official_id))) {
-      hospitalitySelectedBarrio = String(barrio.official_id);
-      applyHospitalityStyles();
-      renderHospitalityContext();
-      return;
-    }
-  }
   lenses[active].marker.setLatLng(e.latlng);
   refresh();
 });
