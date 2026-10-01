@@ -199,9 +199,10 @@ def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
                 f"Madrid value exposes no Tempus3 variable id; keys={list(madrid)[:30]}"
             )
 
-        # These high-dimensional tables are TPX tables carrying Tempus3
-        # numeric identifiers. INE documents the ~id alias for exactly this case.
-        destination_filter = f"{variable_id}~id:{madrid_id}~id"
+        # GRUPOS_TABLA/VALORES_GRUPOSTABLA expose ordinary Tempus3 numeric
+        # variable/value identifiers here, so the documented filter is
+        # tv=id_variable:id_valor (19:2813 for Madrid).
+        destination_filter = f"{variable_id}:{madrid_id}"
         series_payload, series_url = fetch_json(
             f"SERIES_TABLA/{table_id}",
             [("tip", "AM"), ("det", 2), ("tv", destination_filter)],
