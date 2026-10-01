@@ -1,11 +1,11 @@
 # Hospitality & Commercial Context — methodology gate
 
 **This document is populated for Gate A — Unit & Identity, Gate B — Activity
-Taxonomy and Gate C — Status Semantics.** The temporal comparability (D), geography
-reconciliation (E) and denominator (F) gates are deliberately left unwritten.
-Writing their conclusions now, before their evidence exists, is the error this gate
-discipline exists to prevent. (Gate B renumbers the later gates' evidence questions
-onto C–F; issue #33's original letters are preserved.)
+Taxonomy, Gate C — Status Semantics and Gate D — Temporal Comparability.** The
+geography reconciliation (E) and denominator (F) gates are deliberately left
+unwritten. Writing their conclusions now, before their evidence exists, is the error
+this gate discipline exists to prevent. (Gate B renumbers the later gates' evidence
+questions onto C–F; issue #33's original letters are preserved.)
 
 Nothing here builds a UI, a map layer, an indicator, a score, a ranking or a
 denominator, and nothing here changes HATI, Destination Context, Area Profile,
@@ -924,3 +924,285 @@ complicado* (so cross-month deltas are register-update deltas, not events), and 
 live data already departs from the mar/2022 document (undocumented access code 3,
 absent situación 7), so category vocabularies must be read live per snapshot, not
 assumed stable from the PDF.
+
+---
+
+## Gate D — Temporal Comparability
+
+The reproducible evidence for this section is produced by
+[`audit_temporal.py`](../research/hospitality_commercial_gate/audit_temporal.py) and
+stored in
+[`results/gate_d_resource_manifest.json`](../research/hospitality_commercial_gate/results/gate_d_resource_manifest.json)
+(the full deterministic catalogue inventory + provenance),
+[`results/gate_d_schema_eras.json`](../research/hospitality_commercial_gate/results/gate_d_schema_eras.json)
+(the per-family schema eras + snapshot-identity model),
+[`results/gate_d_temporal_compatibility.json`](../research/hospitality_commercial_gate/results/gate_d_temporal_compatibility.json)
+(the sentinel vocabulary + identity-intersection evidence) and
+[`results/gate_d_temporal_summary.json`](../research/hospitality_commercial_gate/results/gate_d_temporal_summary.json)
+(the full report, including the drift classification, temporal tiers, earliest
+defensible windows and the scoped ruling). Every count below is produced by that
+script from the live source and stored in those files; none were typed by hand. The
+audit imports the Gate A source contract (catalogue access, streamed fingerprinting,
+per-file dialect detection) and the Gate B classification (`classify`, the CNAE
+section/division map), so Gate D reads the same upstream the same way and classifies
+activities identically to the earlier gates.
+
+### D.0 · Scope
+
+Gate D resolves **one** question: *which temporal comparisons across the historical
+premises/activity census are scientifically defensible, and where must the series be
+segmented, qualified or rejected?* It does **not** measure a trend, and builds **no**
+production aggregate, chart, choropleth, ranking, score, denominator, "growth"
+indicator or UI. It determines whether future trend measurement is valid. The Locales
+and Actividades families are analysed; Terrazas and Licencias are counted only in the
+catalogue inventory for structure context.
+
+**Network discipline (reproducibility is partly an efficiency property).** Stage 0 was
+one catalogue metadata call. Stage 1 read only the first 64 KiB of **every** Locales
+and Actividades resource (280 HTTP Range requests, ≈18.4 MB total; the server honours
+Range with `206`) to establish each month's schema without downloading it. Stage 2
+fully downloaded **10 deliberately chosen sentinels** (≈769 MB) — one per schema era,
+the structural breakpoints, one mid-history month, and the Sep 2025 / Sep 2026
+controls — to measure identity, status, taxonomy and geography vocabulary. All 10
+matched their catalogue-declared MD5. The full multi-gigabyte history was **not**
+downloaded, and no raw CSV is committed.
+
+### D.1 · Published historical coverage
+
+Dataset **`209548-0-censo-locales-historico`**, licence CC BY 4.0. The catalogue holds
+**860 resources**, of which **498 are CSV**: **Locales 141**, **Actividades 139**,
+Terrazas 118 and Locales con información de licencia 100 monthly resources. Every CSV
+description parses deterministically as `"<Family>. <Month> <Year>"` (**0 unparsed**).
+
+| Family | Earliest | Latest | Months present | Expected in span | Missing |
+|---|---|---|---:|---:|---:|
+| Locales | Marzo 2014 | Septiembre 2026 | 141 | 151 | 10 |
+| Actividades | Marzo 2014 | Septiembre 2026 | 139 | 151 | 12 |
+
+Missing months (both families): Apr, May, Jul, Aug, Oct, Nov 2014 (2014 is **quarterly**
+— only Mar/Jun/Sep/Dec), Jul 2015, Jan 2025, Feb 2025, Jul 2026. Actividades is
+additionally missing Dec 2017 and Apr 2022 (the only two months Locales has but
+Actividades does not). **A missing month is explicit and is never read as zero
+activity.**
+
+### D.2 · Snapshot identity and the revision model
+
+**A nominal month label is not a snapshot identity.** Gate C proved the resource
+labelled "Septiembre 2026" was re-published in place; Gate D formalises the rule:
+
+> `snapshot_identity = (family, nominal_period, content_fingerprint)`
+
+- **nominal_period** — the month the resource *represents* (parsed from the
+  description). Necessary, never sufficient.
+- **content_fingerprint** — *which published revision* was read. The project
+  fingerprint is a **SHA-256** computed on download; the catalogue *also* declares an
+  **MD5 + byte size** for every CSV, so a reader can detect a re-publication **without
+  downloading** by comparing catalogue MD5+size.
+- **retrieval timestamp**, HTTP `Last-Modified`/`ETag`, and — where present — a **cut
+  timestamp embedded in the download URL** (e.g. `209548_20261001_045230.csv`) are
+  recorded as corroborating revision signals.
+
+**Resource id is insufficient as version identity.** The Sep 2026 Locales resource kept
+id `209548-851` across the Gate A/B, Gate C and Gate D reads while its bytes changed
+(Gate A/B SHA `2475e8bc…` → Gate C SHA `4ca33fed…` → this run's recorded SHA; catalogue
+MD5 now `7e1aeea0…`, size 89,299,449, `Last-Modified` 2026-10-01). Each nominal month
+maps to **exactly one** resource id (**0 duplicate nominal periods**), so re-publication
+is in-place overwrite, which is precisely why the id cannot carry version identity. A
+later re-publication does **not** invalidate an earlier fingerprinted result; it is a
+*different version* of the same nominal period.
+
+### D.3 · Resource continuity
+
+The sequence is monthly from 2015 (quarterly in 2014) with the enumerated gaps in D.1.
+There are **no** duplicate nominal periods and **no** two resource ids for one month, so
+the catalogue cannot silently overwrite one month's result with another's. `created`/
+`issued` are populated for all 498 CSVs; `Last-Modified` only for the most recently
+touched resources (so the catalogue cannot, by itself, prove the full retrospective
+revision history of older months — D.11).
+
+### D.4 · Schema / format history
+
+Reading the header of every month (Stage 1) yields contiguous **schema eras** per family
+(delimiter `;` throughout):
+
+**Locales** — 2014-03 (headerless, 38 col) · 2014-06 (33 col) · 2014-09…12 (38 col) ·
+**2015-01…2022-09 (40 col)** · **2022-10…2024-09 (48 col)** · **2024-10…2026-09 (46 col,
+current)**.
+**Actividades** — 2014-03 (headerless, 44 col) · 2014-06…12 (44 col) ·
+**2015-01…2022-09 (46 col)** · **2022-10…2024-09 (49 col)** · **2024-10…2026-09 (47 col,
+current)**.
+
+The first ≈40 Locales / ≈46 Actividades columns — identity, geography, status, access,
+taxonomy — carry **identical names and order from 2015 onward**; the 48↔46 (and 49↔47)
+differences are **trailing** columns only (`cod_postal`, `hora_*`, `fx_carga` added
+2022-10; `fx_datos_ini`/`fx_datos_fin` added 2022-10 and dropped 2024-10). The 2014
+schema is a genuinely different field set and order (and the 33-col Junio 2014 file
+lacks `id_tipo_acceso_local`, `cod_barrio_local` and `id_seccion_censal_local`
+altogether). **Encoding** is Latin-1 (ISO-8859-1) through ≈2022 and UTF-8(-sig) from the
+2022-10 era. A compact `schema_signature` (sha256 of delimiter + header tuple, or
+`HEADERLESS ncols=n`) is recorded per month; presentation attributes (BOM, quoting, the
+2024-06 stray-byte header) are **excluded** from the signature so a pure format change
+does not read as a structural break.
+
+### D.5 · Status / access vocabulary history
+
+| Period | situación representation | access representation |
+|---|---|---|
+| 2014 | **text only** (codes blank): Abierto/Cerrado/Uso vivienda/**Obras**/Baja/Baja R | **text only**: Puerta calle/Agrupado/PC Asociado |
+| 2015, 2020 | **codes** 1/4/5/**7 En obras**/8/9 + undocumented **10 Baja PC Asociado** | text only (code blank) |
+| 2022-10 | codes 1/4/5/**7**/8/9 (+10) | **codes 0/1/12** |
+| 2025, 2026 | codes 1/4/5/8/9 (**7 and 10 gone**) | codes 0/1/12 **+ 3 "Interior"** |
+
+Findings: status/access was recorded as **text, not codes, in 2014**; situación codes
+appear from **2015**, access codes only from **2022-10**. Code **7 "En obras"** is
+present 2015–2022 (1,093 → 785 → 127 rows) and **absent** by 2025/2026 — dating the
+disappearance Gate C observed. An undocumented code **10 "Baja PC Asociado"** appears
+2015–2022 then vanishes. Access code **3 "Interior"** (undocumented, Gate C) is absent
+in 2022-10 and present (~50k rows) by 2025/2026. The code-9 description gains an accent
+("Baja Reunificacion" → "Baja Reunificación"). Existing code **meanings are stable**; it
+is the code **set** that drifts — so vocabulary must be read live per snapshot, and 2014
+status must be segmented.
+
+### D.6 · Activity-taxonomy stability
+
+The three-level CNAE hierarchy is present in **every** era, with **0 multi-parent
+epigraphs** throughout, and divisions **55 / 56 / 79** and sections **G / R** present in
+every Actividades sentinel (2014 → 2026). So the Gate B class **map** projects backward.
+**But** the *unclassified* set is represented differently across eras: blank epigraphs
+are ~30% (2014), ~28.6% (2015) and ~23.6% (2026), yet the **2022-10…2024-09 era carries
+zero blanks** and instead a sentinel section **`-1`** with divisions **`00`/`PT`** — which
+a naïve backward projection of the Gate B map misreads as 42,454 AMBIGUOUS rows.
+Separately, the **recorded accommodation (division 55) universe shows a large
+discontinuity, 527 → 8,050 premises**, across the window — a major change in the
+*recorded* accommodation universe whose **causal mechanism is unresolved**. The Gate D
+artifacts carry division-level counts only, not per-epigraph counts (e.g. `551005`
+*VIVIENDAS TURÍSTICAS*), so the discontinuity is **not attributed** to any specific
+epigraph here. The class *map* is stable; the class *shares/counts* need explicit
+normalisation (`-1`/`00`/`PT` → `UNCLASSIFIED_SOURCE_ACTIVITY`) and segmentation, not a
+raw projection.
+
+### D.7 · Identity stability
+
+`id_local` is longitudinally sound with **no re-key signature**:
+
+| From → To | Persistence of the earlier set | Appeared | Disappeared |
+|---|---:|---:|---:|
+| Sep 2014 → Sep 2015 | 99.706% | 2,414 | 417 |
+| Sep 2015 → Sep 2020 | 99.679% | 4,341 | 463 |
+| Sep 2020 → Oct 2022 | 99.958% | 2,570 | 62 |
+| Oct 2022 → Sep 2025 | 99.926% | **52,024** | 112 |
+| Sep 2025 → Sep 2026 | 99.999% | 1,345 | 3 |
+| **Sep 2014 → Sep 2026** | **99.335%** | 62,582 | 945 |
+
+Only 945 of 142,051 premises from 2014 are absent twelve years later. The large
+**+52,024** somewhere within Oct 2022 → Sep 2025 is **additive** (112 disappear): the
+`id_local` architecture is stable (no re-key), so this is an **observed administrative-
+universe expansion whose cause is unresolved** — the two sentinels do not localise it
+more precisely, and no official source documents a coverage-policy change. Identity
+persists, but **total counts are not comparable as a trend across that break** regardless
+of its cause. (The 2014 file carries one duplicate `id_local`; negligible.)
+
+### D.8 · Geography-field stability (for Gate E, not reconciled here)
+
+District count is **stable at 21** across all eras. The **barrio code system changes**:
+a bare barrio number in 2014 (e.g. `11`) vs a district-concatenated code from 2015 (e.g.
+`1502`, `704`, `104`); the distinct-barrio count moves **128 (2014/2015) → 131 (2020+)**.
+Gate D only **reports** this source-code break; reconciliation to canonical geometry is
+**Gate E**.
+
+### D.9 · Temporal comparison tiers
+
+- **TIER A — directly comparable** (fingerprint-aware): the current era (Locales/
+  Actividades **2024-10 → 2026-09**).
+- **TIER B — comparable after explicit normalisation**: the **2015-01…2022-09** and
+  **2022-10…2024-09** eras vs current, for `id_local` identity and the stable 55/56/79/G
+  classes — normalise encoding (Latin-1→UTF-8), BOM/quoting, trailing columns, the
+  description accent drift and the 2022-era `-1`/`00`/`PT` sentinel. Count-level
+  comparison across 2022→2025 stays blocked by the observed administrative-universe
+  expansion (cause unresolved).
+- **TIER C — segmented only**: the **2014** era(s) — different barrio code system,
+  text-only status/access, headerless Marzo 2014, 33-col Junio 2014, Latin-1.
+- **TIER D — NO-GO**: business-event inference from status transitions in any era;
+  count-level "growth" across the 2022→2025 observed administrative-universe expansion;
+  a single homogeneous 2014→2026 trend series.
+
+### D.10 · Earliest defensible windows (by dimension)
+
+There is **no** single universal start date. Each dimension carries evidence and a
+caveat in `gate_d_temporal_summary.json`:
+
+| Dimension | Earliest defensible | Mode |
+|---|---|---|
+| Premises identity (`id_local`) | **Sep 2014** | direct (persistence); counts not a trend |
+| Status composition (by code) | **Sep 2015** | normalise; segment 2014 (text-only) |
+| Source-excluded filtering (sit 8/9 ∪ acc 12) | **Oct 2022** | needs the access code; situación-only partial from 2015 |
+| CORE_HOSPITALITY (56) | Sep 2014 map / **Sep 2015** clean | normalise; segment 2014 |
+| ACCOMMODATION (55) | mapping to 2014; composition needs segmentation | segment; count comparison NO-GO (recorded-universe discontinuity, cause unresolved) |
+| TOURISM_ADJACENT (79) | Sep 2014 map / **Sep 2015** clean | normalise; segment 2014 |
+| GENERIC_COMMERCIAL (G) | Sep 2014 map / **Sep 2015** clean | normalise; segment 2014 |
+| Barrio-level grouping | **Sep 2015** (current code system) | MODIFY pending Gate E; segment 2014 |
+
+### D.11 · Monthly-transition semantics
+
+`STATUS_TRANSITION ≠ BUSINESS_EVENT`. Month-to-month situación transitions are **register-
+state changes**, not openings, closures, failures or reopenings — Gate C observed Baja/
+Baja R premises reverting to Abierto, which a literal "disappeared" reading cannot
+produce. **NO-GO** to labelling transitions as business events; permitted language is
+"recorded status transition", "register-state change", "administrative transition".
+
+### D.12 · Reproducibility / version protocol
+
+Any future analytical use of a monthly resource must persist: source family, nominal
+reference period, resource id, retrieval timestamp, source URL, HTTP `Last-Modified`,
+`ETag` (when available), byte count, SHA-256, the catalogue-declared MD5+size, the
+URL cut timestamp (when present), the parser/schema version and the observed
+`schema_signature`. Only the currently published revision can be reconstructed for a
+historical month once it is overwritten; raw CSVs are never committed.
+
+### D.13 · Interpretation ceiling
+
+A future historical series **may** claim: change in the number of administratively
+documented premises (after the source's own exclusions); change in recorded activity
+composition (CNAE class shares) within a comparable tier; change in administrative
+source-status composition. It may **never** claim: businesses operating or trading;
+openings/closures; survival; commercial success/failure; economic growth/decline;
+tourist demand; overtourism; saturation; tourism pressure. A premises census remains
+administrative evidence through time.
+
+### D.14 · Gate D ruling — **GO to Gate E, with scoped sub-rulings**
+
+| Question | Ruling |
+|---|---|
+| **Resource continuity** | **MODIFY** (deterministic and auditable — 0 duplicate periods — but NOT a complete uninterrupted series: 2014 quarterly, missing months; missing ≠ zero, never imputed) |
+| **Snapshot version identity** | **GO** (family + nominal period + fingerprint; resource id insufficient) |
+| **Schema continuity** | **MODIFY** (≥3 structural eras post-2014 + a distinct 2014 era; core normalisable) |
+| **Premises identity longitudinally** | **GO** (`id_local` ≥99.3% to 2014, no re-key; counts are a separate question) |
+| **Activity taxonomy longitudinally** | **MODIFY** (55/56/79/G/R map projects back, 0 multi-parent; unclassified representation era-specific; recorded accommodation-universe discontinuity, cause unresolved) |
+| **Status composition longitudinally** | **MODIFY** (codes from 2015/2022-10; 2014 text-only; code set drifts) |
+| **Month-to-month status transition as business events** | **NO-GO** |
+| **Barrio grouping over time** | **MODIFY pending Gate E** (districts stable; barrio code system changes 2014→2015) |
+| **Overall Gate D** | **GO to Gate E** |
+
+Mixed sub-rulings are the intended outcome: recent-era (2024-10+) comparisons are
+directly defensible and fingerprint-aware; the 2015→2024 history is comparable after
+explicit normalisation with count-level comparison blocked across the observed 2022→2025
+administrative-universe expansion (cause unresolved); 2014 is segmented; business-event
+inference is NO-GO; and a single
+homogeneous 2014→2026 trend series is NO-GO. **A shorter defensible window is preferred
+over a longer false series.**
+
+**What GO does not authorise.** No indicator, production count, chart, choropleth,
+ranking, score, denominator, trend or "growth" claim is admitted. Gate D establishes
+only *whether and where* future temporal comparison could be valid, never a measured
+change.
+
+### Recommendation for Gate E (geography reconciliation)
+
+Gate E must resolve the source geography before any barrio-level temporal grouping: the
+barrio **code system changes** between 2014 (bare barrio number) and 2015+ (district-
+concatenated), and the distinct-barrio count moves 128 → 131, while districts stay at 21.
+Reconcile the 2015+ source barrio codes to Lens's canonical 131 barrios (Gate A observed
+the counts match in the current era, but this is to be *tested*, not assumed), decide
+whether the 2014 barrio codes can be mapped at all, and treat a changed barrio code as a
+coding change rather than a boundary change unless independent evidence says otherwise.
+Gate D has deliberately performed **no** geometric reconciliation.
