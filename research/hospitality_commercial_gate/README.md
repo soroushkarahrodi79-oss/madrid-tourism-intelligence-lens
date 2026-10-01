@@ -1,7 +1,7 @@
-# Gate A/B research package — hospitality & commercial premises identity and taxonomy
+# Gate A/B/C research package — hospitality & commercial premises identity, taxonomy and status
 
-Reproducible evidence behind the **Gate A — Unit & Identity** and **Gate B —
-Activity Taxonomy** sections of
+Reproducible evidence behind the **Gate A — Unit & Identity**, **Gate B — Activity
+Taxonomy** and **Gate C — Status Semantics** sections of
 [`docs/HOSPITALITY_COMMERCIAL_METHOD_GATE.md`](../../docs/HOSPITALITY_COMMERCIAL_METHOD_GATE.md).
 
 Every count quoted in those sections is produced by the scripts here. None were
@@ -10,12 +10,16 @@ typed by hand.
 ```
 python research/hospitality_commercial_gate/audit_identity.py   # Gate A
 python research/hospitality_commercial_gate/audit_taxonomy.py   # Gate B
+python research/hospitality_commercial_gate/audit_status.py     # Gate C
 ```
 
 Standard library only. Requires network access to `datos.madrid.es`.
 `audit_taxonomy.py` imports the Gate A helpers (catalogue resolution, streamed
-fingerprinting, dialect detection) from `audit_identity.py`, so both gates read the
-same upstream the same way; it does not re-run or modify Gate A.
+fingerprinting, dialect detection) from `audit_identity.py`; `audit_status.py`
+imports both the Gate A helpers and the Gate B classification (`classify`, the CNAE
+section/division class map) from `audit_taxonomy.py`. So all three gates read the
+same upstream the same way and classify activities identically; later scripts do not
+re-run or modify earlier gates.
 
 ## The one question this gate answers
 
@@ -65,6 +69,20 @@ the scoped Gate B ruling and the product-name recommendation. The classification
 made on the official CNAE section/division the file carries, never on the epigraph
 description text. `results/gate_b_taxonomy_summary.json` is a compact digest of the
 same run. Gate B fetches only the Sep 2026 and Sep 2025 Actividades resources.
+
+`results/gate_c_status.json` — the Gate C report: the observed `id_situacion_local`
+and `id_tipo_acceso_local` universes (each code with its official description, source
+semantics, empirical observation and interpretation ceiling kept in **separate**
+fields), the status × taxonomy-record-state cross-tab, the per-Gate-B-class status
+composition, the impact of the source's own explicit total-count exclusion rules
+(situación 8/9 and access 12, with overlaps handled so PC Asociado is not
+double-subtracted), the `Abierto`/`Cerrado`/`Baja`/`Baja R`/access deep-dives, the
+Sep 2025 → Sep 2026 status-mutability control, and the scoped Gate C ruling.
+`results/gate_c_status_summary.json` is a compact digest. Gate C fetches the Sep 2026
+Locales + Actividades resources and the Sep 2025 Locales control only; it downloads
+no history (that is Gate D). The report keeps **source semantics**, **empirical
+observation** and **project handling / interpretation ceiling** as distinct fields
+and never encodes a project analytical rule as official source metadata.
 
 ## Conventions
 

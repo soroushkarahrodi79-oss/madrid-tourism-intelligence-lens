@@ -1,0 +1,881 @@
+{
+  "audit_started_at": "2026-10-01T06:58:23Z",
+  "audit_finished_at": "2026-10-01T06:58:48Z",
+  "environment_note": "Counts are observations of one run against the fingerprinted resources recorded below, not repository invariants.",
+  "dataset": {
+    "id": "209548-0-censo-locales-historico",
+    "title": "Censo de locales, sus actividades y terrazas de hostelería y restauración. Histórico",
+    "catalogue": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico",
+    "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+    "catalogue_metadata_modified": "2026-10-01T04:52:30.032000",
+    "resource_resolution_method": "Exact match on the resource `description` field (family + month), unique per resource. Opaque numeric resource ids are recorded, not used to select."
+  },
+  "documentation": {
+    "structure_pdf": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-403-censo-locales-historico/download/estructura_ds_ficherocla.pdf",
+    "structure_pdf_version": "mar/2022 (as printed in the PDF)",
+    "situacion_is_hard_to_maintain": "Apartado III: 'se trata de una variable de mantenimiento complicado, ya que ... no se dispone de ninguno [procedimiento] que informe de cuando una actividad cesa y el local se cierra sin aparecer una nueva actividad.' So any situacion value can be stale.",
+    "extraction_shows_last_situacion": "'Extraccion de datos ... a una fecha dada mostrandose la ultima situacion del local.' Situacion is the LAST RECORDED state, not a verified real-time status.",
+    "official_total_count_exclusions": "situacion 8 and 9 (apartado III) and acceso 12 PC Asociado (apartado II) are the ONLY codes the document instructs to exclude from 'numero total de locales'.",
+    "three_levels_kept_separate": "This report keeps source_semantics (what the document says), empirical_observation (what the data shows) and project_handling / interpretation_ceiling (our analytical decision) in separate fields and never merges them. Project handling labels are NOT official source metadata."
+  },
+  "nominal_snapshot_revision": {
+    "warning": "NOMINAL_SNAPSHOT_REVISION",
+    "nominal_label": "Septiembre 2026",
+    "revised_since_gate_a_b": true,
+    "gate_a_b_reference": {
+      "sha256": "2475e8bcff7dbf554d55e34f05f5a826afa593390add4e6913ca07cc932563b6",
+      "bytes": 89266582,
+      "http_last_modified": "Thu, 03 Sep 2026 06:18:05 GMT",
+      "distinct_premises": 203610
+    },
+    "gate_c_current": {
+      "sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+      "bytes": 89299449,
+      "http_last_modified": "Thu, 01 Oct 2026 04:54:12 GMT",
+      "distinct_premises": 203688
+    },
+    "statements": [
+      "1. Gate C uses a LATER published revision of the resource labelled 'Septiembre 2026' than the Gate A/B run did.",
+      "2. Gate C counts MUST NOT be numerically compared against the earlier Gate A/B Sep-2026 counts without using their respective SHA-256 fingerprints.",
+      "3. This does NOT invalidate Gate A/B conclusions; those remain valid observations tied to their own recorded SHA-256 upstream states.",
+      "4. The mutable/revised nature of nominal monthly snapshots is a formal Gate D temporal-comparability question.",
+      "5. Never treat the month label alone as sufficient version identity; identity is the (month label + SHA-256 fingerprint) pair."
+    ]
+  },
+  "resources": {
+    "locales_2026_09": {
+      "description": "Locales. Septiembre 2026",
+      "resource_id": "209548-851-censo-locales-historico",
+      "format": "CSV",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-851-censo-locales-historico/download/209548_20261001_045230.csv",
+      "retrieved_at": "2026-10-01T06:58:30Z",
+      "dialect_observed": {
+        "delimiter": ";",
+        "utf8_bom": true,
+        "header_fields_quoted": true
+      },
+      "http_last_modified": "Thu, 01 Oct 2026 04:54:12 GMT",
+      "etag": "\"1790830452.4639537-89299449-1714689183\"",
+      "content_type": "text/csv; charset=utf-8",
+      "bytes": 89299449,
+      "sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1"
+    },
+    "actividades_2026_09": {
+      "description": "Actividades. Septiembre 2026",
+      "resource_id": "209548-857-censo-locales-historico",
+      "format": "CSV",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-857-censo-locales-historico/download/209548_20261001_043906.csv",
+      "retrieved_at": "2026-10-01T06:58:40Z",
+      "dialect_observed": {
+        "delimiter": ";",
+        "utf8_bom": true,
+        "header_fields_quoted": true
+      },
+      "http_last_modified": "Thu, 01 Oct 2026 04:40:57 GMT",
+      "etag": "\"1790829657.7176304-125022514-1724519589\"",
+      "content_type": "text/csv; charset=utf-8",
+      "bytes": 125022514,
+      "sha256": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2"
+    },
+    "locales_2025_09": {
+      "description": "Locales. Septiembre 2025",
+      "resource_id": "209548-726-censo-locales-historico-csv",
+      "format": "CSV",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-726-censo-locales-historico-csv/download/209548-726-censo-locales-historico-csv.csv",
+      "retrieved_at": "2026-10-01T06:58:46Z",
+      "dialect_observed": {
+        "delimiter": ";",
+        "utf8_bom": true,
+        "header_fields_quoted": false
+      },
+      "http_last_modified": "Mon, 16 Feb 2026 00:52:21 GMT",
+      "etag": "\"1771203141.865065-89900542-3154187801\"",
+      "content_type": "text/csv; charset=utf-8",
+      "bytes": 89900542,
+      "sha256": "a9b5571a86eb95312125cbcd6fd5e5e4e2c644872070adbb64b59dd333a77fdf"
+    }
+  },
+  "primary_locales_snapshot": "locales_2026_09",
+  "primary_actividades_snapshot": "actividades_2026_09",
+  "control_locales_snapshot": "locales_2025_09",
+  "status_universe": {
+    "premises_rows_total": 203688,
+    "blank_id_local": 0,
+    "situacion": {
+      "1": {
+        "code": "1",
+        "official_description": "Abierto",
+        "source_semantics": "Abierto - 'Local activo en el que se desarrolla algun tipo de actividad economica' (apartado III); code table: 'Local activo'.",
+        "official_counting_instruction": "None. The source gives no exclusion instruction for Abierto.",
+        "maintenance_caveat": "Situacion is 'una variable de mantenimiento complicado'; there is no procedure that records when an activity ceases and the premises closes without a new activity appearing, and extraction shows 'la ultima situacion'. Applies to every situacion value.",
+        "empirical_observation": {
+          "rows": 139797,
+          "distinct_id_local": 139797,
+          "share_pct": 68.6329
+        },
+        "interpretation_ceiling": "Administrative LAST-RECORDED status 'active'. NOT verified current trading: the source warns situacion is a 'variable de mantenimiento complicado' with 'no ... procedimiento que informe de cuando una actividad cesa y el local se cierra sin aparecer una nueva actividad', and extraction shows 'la ultima situacion'. So Abierto may be stale. It is NOT revenue, demand, footfall, commercial success or proof a business operates today.",
+        "undocumented_code": false
+      },
+      "4": {
+        "code": "4",
+        "official_description": "Cerrado",
+        "source_semantics": "Cerrado - 'Local en el que en ese momento no se realiza ningun tipo de actividad' (apartado III); code table: 'Local cerrado (sin actividad)'.",
+        "official_counting_instruction": "None. The source gives no exclusion instruction for Cerrado.",
+        "maintenance_caveat": "Situacion is 'una variable de mantenimiento complicado'; there is no procedure that records when an activity ceases and the premises closes without a new activity appearing, and extraction shows 'la ultima situacion'. Applies to every situacion value.",
+        "empirical_observation": {
+          "rows": 38888,
+          "distinct_id_local": 38888,
+          "share_pct": 19.0919
+        },
+        "interpretation_ceiling": "Administrative 'no activity recorded at the extract moment'. NOT permanent closure, NOT business failure, NOT economic decline. No closure date is published and it is distinct from Baja (desaparecido).",
+        "undocumented_code": false
+      },
+      "5": {
+        "code": "5",
+        "official_description": "Uso vivienda",
+        "source_semantics": "Uso vivienda - 'Los locales puerta de calle que se han transformado en vivienda y se utilizan, exclusivamente, como vivienda familiar' (apartado III); code table: 'Local destinado a vivienda'.",
+        "official_counting_instruction": "None. The source gives no exclusion instruction for Uso vivienda.",
+        "maintenance_caveat": "Situacion is 'una variable de mantenimiento complicado'; there is no procedure that records when an activity ceases and the premises closes without a new activity appearing, and extraction shows 'la ultima situacion'. Applies to every situacion value.",
+        "empirical_observation": {
+          "rows": 8460,
+          "distinct_id_local": 8460,
+          "share_pct": 4.1534
+        },
+        "interpretation_ceiling": "Administrative 'premises converted to dwelling'. Describes recorded use, not an economic-cessation date or a business outcome.",
+        "undocumented_code": false
+      },
+      "8": {
+        "code": "8",
+        "official_description": "Baja",
+        "source_semantics": "Baja - code table: 'Local que ha desaparecido'. Apartado III groups 8 and 9 as 'Baja o baja por reunificacion: Locales desaparecidos'.",
+        "official_counting_instruction": "EXCLUDE from total-premises counts: 'Los locales en situacion 8 y 9, no deben tenerse en cuenta a la hora de extraer datos de numero total de locales.'",
+        "maintenance_caveat": "Situacion is 'una variable de mantenimiento complicado'; there is no procedure that records when an activity ceases and the premises closes without a new activity appearing, and extraction shows 'la ultima situacion'. Applies to every situacion value.",
+        "empirical_observation": {
+          "rows": 12423,
+          "distinct_id_local": 12423,
+          "share_pct": 6.099
+        },
+        "interpretation_ceiling": "Administrative 'premises has disappeared'. Explicitly excluded from total-premises counts. 'Desaparecido' is an administrative register event, NOT a measured business failure or economic outcome.",
+        "undocumented_code": false
+      },
+      "9": {
+        "code": "9",
+        "official_description": "Baja Reunificación",
+        "source_semantics": "Baja R - code table: 'Local que ha desaparecido uniendose a otro'. Apartado III groups 8 and 9 as 'Baja o baja por reunificacion: Locales desaparecidos'.",
+        "official_counting_instruction": "EXCLUDE from total-premises counts: 'Los locales en situacion 8 y 9, no deben tenerse en cuenta a la hora de extraer datos de numero total de locales.'",
+        "maintenance_caveat": "Situacion is 'una variable de mantenimiento complicado'; there is no procedure that records when an activity ceases and the premises closes without a new activity appearing, and extraction shows 'la ultima situacion'. Applies to every situacion value.",
+        "empirical_observation": {
+          "rows": 4120,
+          "distinct_id_local": 4120,
+          "share_pct": 2.0227
+        },
+        "interpretation_ceiling": "Administrative 'premises has disappeared by merging into another'. Explicitly excluded from total-premises counts. A register reorganisation event, NOT a measured business failure.",
+        "undocumented_code": false
+      }
+    },
+    "tipo_acceso": {
+      "0": {
+        "code": "0",
+        "official_description": "Agrupado",
+        "source_semantics": "Agrupado - 'Local perteneciente a una agrupacion de locales' (code table); apartado II: belongs to an agrupacion (markets, shopping centres ...).",
+        "official_counting_instruction": "None. The source gives no exclusion instruction for Agrupado.",
+        "empirical_observation": {
+          "rows": 14663,
+          "distinct_id_local": 14663,
+          "share_pct": 7.1988
+        },
+        "interpretation_ceiling": "Administrative access type (belongs to an agrupacion). Not a status claim.",
+        "undocumented_code": false
+      },
+      "1": {
+        "code": "1",
+        "official_description": "Puerta Calle",
+        "source_semantics": "Puerta calle - 'Local con acceso directo desde la calle' (code table); apartado II: 'Local con acceso directo desde la via publica'.",
+        "official_counting_instruction": "None. The source gives no exclusion instruction for Puerta calle.",
+        "empirical_observation": {
+          "rows": 134643,
+          "distinct_id_local": 134643,
+          "share_pct": 66.1026
+        },
+        "interpretation_ceiling": "Administrative access type (direct street access). Not a status claim.",
+        "undocumented_code": false
+      },
+      "12": {
+        "code": "12",
+        "official_description": "PC Asociado",
+        "source_semantics": "PC Asociado - 'No es un local fisico, va asociado a un local Puerta de Calle, permite diferenciar actividades, explotadas por diferente titular, dentro del local puerta de Calle' (code table); apartado II repeats 'No se trata de un local fisico'.",
+        "official_counting_instruction": "EXCLUDE from total-premises counts: 'No deben tenerse en cuenta a la hora de extraer datos del numero total de locales' (apartado II), because it 'No se trata de un local fisico'.",
+        "empirical_observation": {
+          "rows": 2881,
+          "distinct_id_local": 2881,
+          "share_pct": 1.4144
+        },
+        "interpretation_ceiling": "A non-physical sub-access used to separate activities of different owners inside one physical premises. It is a double-representation / subordinate access, excluded because it is not a premises - NOT a status or economic signal.",
+        "undocumented_code": false
+      },
+      "3": {
+        "code": "3",
+        "official_description": "Interior",
+        "source_semantics": "Interior - UNDOCUMENTED. This code and literal do not appear in the mar/2022 structure document, whose Tipo-acceso table lists only 0, 1 and 12 and whose extraction note says only Agrupado / Puerta de Calle / Puerta de Calle asociado premises were selected. Source meaning UNRESOLVED.",
+        "official_counting_instruction": "UNRESOLVED - the code is undocumented, so the source states no instruction for it. It is NOT named in any exclusion rule, so the explicit rules neither include nor exclude it by name.",
+        "empirical_observation": {
+          "rows": 51501,
+          "distinct_id_local": 51501,
+          "share_pct": 25.2843
+        },
+        "interpretation_ceiling": "UNDOCUMENTED access category. Its meaning cannot be asserted from the source. It is not named in any exclusion rule and so is left in the counted universe by the explicit rules, but any future count must flag it as undocumented.",
+        "undocumented_code": true
+      }
+    },
+    "documented_situacion_codes_not_observed": [
+      "7"
+    ],
+    "documented_situacion_codes_not_observed_note": "Code 7 (Obras) is documented in the structure PDF but is absent from this live snapshot. Documented != present; it is reported, not invented.",
+    "undocumented_acceso_codes_observed": [
+      "3"
+    ]
+  },
+  "status_x_taxonomy_state": {
+    "unit_note": "Rows are PREMISES (id_local), counted once each: status is one row per premises in Locales; taxonomy-record state is derived from that premises' Actividades rows. No premises is double-counted.",
+    "premises_with_no_actividades_row": 0,
+    "taxonomy_state_totals": {
+      "CLASSIFIED_ONLY": 145989,
+      "BLANK_ONLY": 53191,
+      "SIN_ACTIVIDAD_ONLY": 4413,
+      "CLASSIFIED_AND_SIN_ACTIVIDAD": 95
+    },
+    "matrix_situacion_x_taxonomy_state": {
+      "1": {
+        "BLANK_ONLY": 11015,
+        "CLASSIFIED_AND_SIN_ACTIVIDAD": 63,
+        "CLASSIFIED_ONLY": 126710,
+        "SIN_ACTIVIDAD_ONLY": 2009
+      },
+      "4": {
+        "BLANK_ONLY": 24017,
+        "CLASSIFIED_AND_SIN_ACTIVIDAD": 29,
+        "CLASSIFIED_ONLY": 13032,
+        "SIN_ACTIVIDAD_ONLY": 1810
+      },
+      "5": {
+        "BLANK_ONLY": 7390,
+        "CLASSIFIED_ONLY": 728,
+        "SIN_ACTIVIDAD_ONLY": 342
+      },
+      "8": {
+        "BLANK_ONLY": 9065,
+        "CLASSIFIED_AND_SIN_ACTIVIDAD": 2,
+        "CLASSIFIED_ONLY": 3167,
+        "SIN_ACTIVIDAD_ONLY": 189
+      },
+      "9": {
+        "BLANK_ONLY": 1704,
+        "CLASSIFIED_AND_SIN_ACTIVIDAD": 1,
+        "CLASSIFIED_ONLY": 2352,
+        "SIN_ACTIVIDAD_ONLY": 63
+      }
+    },
+    "answers": {
+      "abierto_can_coexist_with_blank_taxonomy": {
+        "answer": true,
+        "count_abierto_blank_only": 11015,
+        "note": "Abierto premises that carry only an UNCLASSIFIED_SOURCE_ACTIVITY (blank) taxonomy. If > 0, open status and absent classification co-occur - the two dimensions are independent."
+      },
+      "cerrado_can_retain_populated_activity_codes": {
+        "answer": true,
+        "count_cerrado_classified_only": 13032
+      },
+      "baja_can_retain_populated_activity_codes": {
+        "answer": true,
+        "count_baja_classified_only": 5519
+      },
+      "section_Z_sin_actividad_coexists_with_multiple_statuses": {
+        "answer": true,
+        "distribution_by_situacion": {
+          "1": 2009,
+          "4": 1810,
+          "5": 342,
+          "8": 189,
+          "9": 63
+        }
+      },
+      "administrative_status_determines_taxonomy_state": {
+        "answer": false,
+        "taxonomy_states_seen_per_situacion": {
+          "1": [
+            "BLANK_ONLY",
+            "CLASSIFIED_AND_SIN_ACTIVIDAD",
+            "CLASSIFIED_ONLY",
+            "SIN_ACTIVIDAD_ONLY"
+          ],
+          "4": [
+            "BLANK_ONLY",
+            "CLASSIFIED_AND_SIN_ACTIVIDAD",
+            "CLASSIFIED_ONLY",
+            "SIN_ACTIVIDAD_ONLY"
+          ],
+          "5": [
+            "BLANK_ONLY",
+            "CLASSIFIED_ONLY",
+            "SIN_ACTIVIDAD_ONLY"
+          ],
+          "8": [
+            "BLANK_ONLY",
+            "CLASSIFIED_AND_SIN_ACTIVIDAD",
+            "CLASSIFIED_ONLY",
+            "SIN_ACTIVIDAD_ONLY"
+          ],
+          "9": [
+            "BLANK_ONLY",
+            "CLASSIFIED_AND_SIN_ACTIVIDAD",
+            "CLASSIFIED_ONLY",
+            "SIN_ACTIVIDAD_ONLY"
+          ]
+        },
+        "conclusion": "Status does NOT determine taxonomy state: each status co-occurs with several taxonomy states, so status and activity classification are SEPARATE dimensions and must not be collapsed."
+      }
+    }
+  },
+  "status_by_gate_b_class": {
+    "CORE_HOSPITALITY": {
+      "distinct_premises": 21565,
+      "situacion_distribution": {
+        "1": {
+          "premises": 19227,
+          "share_pct": 89.1584
+        },
+        "4": {
+          "premises": 1777,
+          "share_pct": 8.2402
+        },
+        "5": {
+          "premises": 49,
+          "share_pct": 0.2272
+        },
+        "8": {
+          "premises": 163,
+          "share_pct": 0.7559
+        },
+        "9": {
+          "premises": 349,
+          "share_pct": 1.6184
+        }
+      },
+      "tipo_acceso_distribution": {
+        "0": {
+          "premises": 1471,
+          "share_pct": 6.8212
+        },
+        "1": {
+          "premises": 18151,
+          "share_pct": 84.1688
+        },
+        "12": {
+          "premises": 1522,
+          "share_pct": 7.0577
+        },
+        "3": {
+          "premises": 421,
+          "share_pct": 1.9522
+        }
+      },
+      "source_excluded_premises": 2033
+    },
+    "ACCOMMODATION": {
+      "distinct_premises": 8050,
+      "situacion_distribution": {
+        "1": {
+          "premises": 7503,
+          "share_pct": 93.205
+        },
+        "4": {
+          "premises": 362,
+          "share_pct": 4.4969
+        },
+        "5": {
+          "premises": 70,
+          "share_pct": 0.8696
+        },
+        "8": {
+          "premises": 63,
+          "share_pct": 0.7826
+        },
+        "9": {
+          "premises": 52,
+          "share_pct": 0.646
+        }
+      },
+      "tipo_acceso_distribution": {
+        "0": {
+          "premises": 5,
+          "share_pct": 0.0621
+        },
+        "1": {
+          "premises": 2124,
+          "share_pct": 26.3851
+        },
+        "12": {
+          "premises": 17,
+          "share_pct": 0.2112
+        },
+        "3": {
+          "premises": 5904,
+          "share_pct": 73.3416
+        }
+      },
+      "source_excluded_premises": 131
+    },
+    "TOURISM_ADJACENT": {
+      "distinct_premises": 834,
+      "situacion_distribution": {
+        "1": {
+          "premises": 751,
+          "share_pct": 90.048
+        },
+        "4": {
+          "premises": 50,
+          "share_pct": 5.9952
+        },
+        "5": {
+          "premises": 2,
+          "share_pct": 0.2398
+        },
+        "8": {
+          "premises": 22,
+          "share_pct": 2.6379
+        },
+        "9": {
+          "premises": 9,
+          "share_pct": 1.0791
+        }
+      },
+      "tipo_acceso_distribution": {
+        "0": {
+          "premises": 41,
+          "share_pct": 4.9161
+        },
+        "1": {
+          "premises": 512,
+          "share_pct": 61.3909
+        },
+        "12": {
+          "premises": 6,
+          "share_pct": 0.7194
+        },
+        "3": {
+          "premises": 275,
+          "share_pct": 32.9736
+        }
+      },
+      "source_excluded_premises": 37
+    },
+    "GENERIC_COMMERCIAL": {
+      "distinct_premises": 44411,
+      "situacion_distribution": {
+        "1": {
+          "premises": 37588,
+          "share_pct": 84.6367
+        },
+        "4": {
+          "premises": 4696,
+          "share_pct": 10.574
+        },
+        "5": {
+          "premises": 165,
+          "share_pct": 0.3715
+        },
+        "8": {
+          "premises": 673,
+          "share_pct": 1.5154
+        },
+        "9": {
+          "premises": 1289,
+          "share_pct": 2.9024
+        }
+      },
+      "tipo_acceso_distribution": {
+        "0": {
+          "premises": 7628,
+          "share_pct": 17.1759
+        },
+        "1": {
+          "premises": 34409,
+          "share_pct": 77.4786
+        },
+        "12": {
+          "premises": 388,
+          "share_pct": 0.8737
+        },
+        "3": {
+          "premises": 1986,
+          "share_pct": 4.4719
+        }
+      },
+      "source_excluded_premises": 2350
+    },
+    "EXCLUDED": {
+      "distinct_premises": 77769,
+      "situacion_distribution": {
+        "1": {
+          "premises": 65766,
+          "share_pct": 84.5658
+        },
+        "4": {
+          "premises": 8100,
+          "share_pct": 10.4155
+        },
+        "5": {
+          "premises": 780,
+          "share_pct": 1.003
+        },
+        "8": {
+          "premises": 2426,
+          "share_pct": 3.1195
+        },
+        "9": {
+          "premises": 697,
+          "share_pct": 0.8962
+        }
+      },
+      "tipo_acceso_distribution": {
+        "0": {
+          "premises": 2719,
+          "share_pct": 3.4963
+        },
+        "1": {
+          "premises": 47704,
+          "share_pct": 61.3406
+        },
+        "12": {
+          "premises": 777,
+          "share_pct": 0.9991
+        },
+        "3": {
+          "premises": 26569,
+          "share_pct": 34.164
+        }
+      },
+      "source_excluded_premises": 3893
+    },
+    "AMBIGUOUS": {
+      "distinct_premises": 4016,
+      "situacion_distribution": {
+        "1": {
+          "premises": 3545,
+          "share_pct": 88.2719
+        },
+        "4": {
+          "premises": 338,
+          "share_pct": 8.4163
+        },
+        "5": {
+          "premises": 9,
+          "share_pct": 0.2241
+        },
+        "8": {
+          "premises": 31,
+          "share_pct": 0.7719
+        },
+        "9": {
+          "premises": 93,
+          "share_pct": 2.3157
+        }
+      },
+      "tipo_acceso_distribution": {
+        "0": {
+          "premises": 203,
+          "share_pct": 5.0548
+        },
+        "1": {
+          "premises": 3394,
+          "share_pct": 84.512
+        },
+        "12": {
+          "premises": 80,
+          "share_pct": 1.992
+        },
+        "3": {
+          "premises": 339,
+          "share_pct": 8.4412
+        }
+      },
+      "source_excluded_premises": 203
+    },
+    "_note": "Distinct-premises counts do NOT sum across classes - a premises may host activities in more than one class. The purpose is to test whether any class has a materially different status composition, NOT to rank sectors."
+  },
+  "official_counting_exclusions": {
+    "raw_premises_universe": 203688,
+    "rules_verified_against_source": [
+      "situacion 8 (Baja): 'Los locales en situacion 8 y 9, no deben tenerse en cuenta a la hora de extraer datos de numero total de locales.' (apartado III)",
+      "situacion 9 (Baja R): same instruction, grouped with 8.",
+      "acceso 12 (PC Asociado): 'No deben tenerse en cuenta a la hora de extraer datos del numero total de locales' because 'No se trata de un local fisico' (apartado II)."
+    ],
+    "rule_scope": {
+      "applies_to": "Locales rows (premises). The instruction is about 'numero total de locales' (count of premises), not about Actividades activity rows.",
+      "unconditional": true,
+      "codes_covered": {
+        "situacion": [
+          "8",
+          "9"
+        ],
+        "tipo_acceso": [
+          "12"
+        ]
+      },
+      "codes_NOT_covered": "Cerrado (4), Uso vivienda (5) and Obras (7) carry NO exclusion instruction and are NOT excluded."
+    },
+    "excluded_by_each_rule": {
+      "situacion_8_baja": 12423,
+      "situacion_9_baja_r": 4120,
+      "acceso_12_pc_asociado": 2881
+    },
+    "overlaps": {
+      "sit8_and_sit9": 0,
+      "sit8_and_acceso12": 1,
+      "sit9_and_acceso12": 14,
+      "sit8_and_sit9_and_acceso12": 0,
+      "note": "situacion 8 and 9 are mutually exclusive (one situacion per premises), so sit8 & sit9 is 0 by construction. The meaningful overlap is PC Asociado premises that are also Baja/Baja R - these must be counted once, not subtracted twice."
+    },
+    "sum_if_naively_added": 19424,
+    "union_excluded": 19409,
+    "double_subtraction_avoided": 15,
+    "remaining_after_official_exclusions": 184279,
+    "audit_note": "This is an AUDIT calculation of the source's explicit exclusion rules. It does NOT authorise a production denominator or indicator. Gate F remains the denominator gate. The excluded records remain valid historical evidence; exclusion is from a current total-count universe only, not from the research record."
+  },
+  "candidate_counting_states": {
+    "_note": "These are PROJECT handling labels, NOT official source categories. They name counting universes; none asserts that a premises trades today.",
+    "SOURCE_INCLUDED_PREMISES": {
+      "rule": "All premises MINUS the union of situacion in {8,9} and acceso == 12.",
+      "source_basis": "Directly from the source's explicit 'no deben tenerse en cuenta' instructions (apartados II, III).",
+      "count": 184279,
+      "interpretation_ceiling": "The set of administrative premises records the source itself does not exclude from a total count. NOT a trading-business count, NOT economic activity.",
+      "usable_in_later_gates": true
+    },
+    "SOURCE_EXCLUDED_PREMISES": {
+      "rule": "Union of situacion in {8,9} and acceso == 12.",
+      "source_basis": "The source's explicit exclusion instructions.",
+      "count": 19409,
+      "interpretation_ceiling": "Administratively disappeared premises (Baja/Baja R) and non-physical sub-accesses (PC Asociado). Kept in the research record; excluded only from a current total-count universe.",
+      "usable_in_later_gates": true
+    },
+    "ADMINISTRATIVELY_OPEN": {
+      "rule": "situacion == 1 (Abierto).",
+      "source_basis": "Situacion code 1 only. Explicitly NOT an operating-business proxy - see the maintenance caveat and interpretation ceiling.",
+      "count": 139797,
+      "interpretation_ceiling": "Last-recorded administrative status is 'active'. CANNOT be read as 'currently operating business', trading, demand or commercial success. The source warns the value may be stale.",
+      "usable_in_later_gates": "MODIFY - usable only as an administrative-status descriptor, never as a current-operation count, and not without the maintenance caveat travelling with it."
+    },
+    "STATUS_UNCERTAIN": {
+      "rule": "Project reservation for any premises whose current real-world operating state cannot be established from the register.",
+      "source_basis": "The source's own maintenance caveat: no procedure detects cessation without a replacement activity.",
+      "count": null,
+      "interpretation_ceiling": "A disclaimer label, not a computed subset. It records that the register cannot certify real-time operation for ANY premises, so no 'currently trading' count is admitted.",
+      "usable_in_later_gates": false
+    }
+  },
+  "abierto": {
+    "official_definition": "Abierto - 'Local activo en el que se desarrolla algun tipo de actividad economica' (apartado III); code table: 'Local activo'.",
+    "count_premises": 139797,
+    "with_populated_classified_activity": 126773,
+    "with_blank_taxonomy_only_or_partial": 11015,
+    "with_section_Z_sin_actividad": 2072,
+    "gate_b_class_distribution": {
+      "EXCLUDED": 65766,
+      "GENERIC_COMMERCIAL": 37588,
+      "CORE_HOSPITALITY": 19227,
+      "ACCOMMODATION": 7503,
+      "AMBIGUOUS": 3545,
+      "TOURISM_ADJACENT": 751
+    },
+    "temporal": {
+      "abierto_2026_present_in_2025": 139051,
+      "their_2025_situacion": {
+        "1": 138485,
+        "4": 489,
+        "8": 60,
+        "5": 12,
+        "9": 5
+      },
+      "abierto_2025_present_in_2026": 139471,
+      "their_2026_situacion": {
+        "1": 138485,
+        "4": 867,
+        "9": 77,
+        "5": 38,
+        "8": 4
+      },
+      "note": "Mutability evidence only. A status change is an administrative record change, NOT an observed business opening or closing."
+    },
+    "question": "Does 'Abierto' support the statement 'currently operating business'?",
+    "ruling": "NO - only as an administrative status.",
+    "ruling_basis": "The source defines Abierto as a premises with 'algun tipo de actividad economica', but (a) it explicitly warns situacion is a 'variable de mantenimiento complicado' with no procedure to detect cessation without a replacement activity, (b) extraction shows 'la ultima situacion' (last recorded, not verified-today), and (c) 11,000+ Abierto premises carry no activity classification at all. Abierto is therefore ADMINISTRATIVELY_OPEN (last-recorded active), never a verified current-operation count."
+  },
+  "cerrado": {
+    "official_definition": "Cerrado - 'Local en el que en ese momento no se realiza ningun tipo de actividad' (apartado III); code table: 'Local cerrado (sin actividad)'.",
+    "source_semantics": "Local en el que en ese momento no se realiza ningun tipo de actividad. (apartado III - VERBATIM source meaning, not paraphrased.)",
+    "count_premises": 38888,
+    "with_populated_classified_activity": 13061,
+    "with_blank_taxonomy": 24017,
+    "activity_codes_can_remain_attached": true,
+    "closure_dates_published": false,
+    "temporary_or_permanent": "UNRESOLVED - the source says only 'en ese momento no se realiza ningun tipo de actividad' (no activity AT THAT MOMENT). It states neither permanence nor a closure date, and is explicitly distinct from Baja (desaparecido).",
+    "question": "Can 'Cerrado' be interpreted as business cessation or economic failure?",
+    "ruling": "NO (bounded).",
+    "project_interpretation_ceiling": {
+      "reasoning": "Because situacion is a difficult-to-maintain, LAST-RECORDED administrative variable and the source lacks a complete cessation-update procedure, Gate C does NOT treat Cerrado as any of the following:",
+      "not_treated_as": [
+        "independently verified current closure",
+        "permanent cessation",
+        "business failure",
+        "economic decline"
+      ],
+      "note": "This is the PROJECT interpretation ceiling, kept strictly separate from the verbatim source_semantics above; it does not restate or replace the source meaning."
+    },
+    "ruling_basis": "The verbatim source meaning is retained in source_semantics ('Local en el que en ese momento no se realiza ningun tipo de actividad'). Separately, the project interpretation ceiling applies: Cerrado is NOT independently verified current closure, NOT permanent cessation, NOT business failure and NOT economic decline. No closure date exists and activity codes can remain attached. NO-GO stands for those interpretations."
+  },
+  "baja_and_baja_r": {
+    "baja": {
+      "code": "8",
+      "official_definition": "Baja - code table: 'Local que ha desaparecido'. Apartado III groups 8 and 9 as 'Baja o baja por reunificacion: Locales desaparecidos'.",
+      "count_premises": 12423,
+      "retains_populated_activity_codes": 3169,
+      "explicitly_excluded_from_total_premises_count": true
+    },
+    "baja_r": {
+      "code": "9",
+      "official_definition": "Baja R - code table: 'Local que ha desaparecido uniendose a otro'. Apartado III groups 8 and 9 as 'Baja o baja por reunificacion: Locales desaparecidos'.",
+      "count_premises": 4120,
+      "retains_populated_activity_codes": 2353,
+      "explicitly_excluded_from_total_premises_count": true
+    },
+    "distinction_documented": "YES - the code table distinguishes 8 'Local que ha desaparecido' from 9 'Local que ha desaparecido uniendose a otro' (disappeared by merging into another). Apartado III groups both as 'Baja o baja por reunificacion: Locales desaparecidos'.",
+    "role_in_source_counting": "Both are UNCONDITIONALLY excluded from total-premises counts by the source's own instruction. They remain valid historical records and must NOT be deleted from research artifacts; exclusion is from a current total-count universe only.",
+    "interpretation_ceiling": "'Desaparecido' is an administrative register event. It is NOT a measured business failure, bankruptcy or economic outcome, and Baja R in particular is a reorganisation (merge), not a closure."
+  },
+  "other_statuses": {
+    "5": {
+      "official_description": "Uso vivienda",
+      "source_semantics": "Uso vivienda - 'Los locales puerta de calle que se han transformado en vivienda y se utilizan, exclusivamente, como vivienda familiar' (apartado III); code table: 'Local destinado a vivienda'.",
+      "count_premises": 8460,
+      "future_counting_inclusion_defensible": "Defensible as an administrative premises record; the source gives no exclusion instruction. But Uso vivienda is explicitly a premises converted to housing, so including it in a 'commercial premises' reading would need its own justification.",
+      "interpretation_ceiling": "Administrative 'premises converted to dwelling'. Describes recorded use, not an economic-cessation date or a business outcome.",
+      "uncertainty": "Documented and present."
+    },
+    "7": {
+      "official_description": null,
+      "source_semantics": "Obras - 'Locales en los que se esta realizando una reforma' (apartado III); code table: 'Local en obras'.",
+      "count_premises": 0,
+      "future_counting_inclusion_defensible": "N/A - absent from this snapshot.",
+      "interpretation_ceiling": "Administrative 'undergoing building works'. Not a business-activity claim.",
+      "uncertainty": "Documented in the structure PDF but ABSENT from this snapshot."
+    }
+  },
+  "access_type": {
+    "pc_asociado": {
+      "code": "12",
+      "official_meaning": "PC Asociado - 'No es un local fisico, va asociado a un local Puerta de Calle, permite diferenciar actividades, explotadas por diferente titular, dentro del local puerta de Calle' (code table); apartado II repeats 'No se trata de un local fisico'.",
+      "count_premises": 2881,
+      "share_pct": 1.4144,
+      "why_excluded": "The source says it 'No se trata de un local fisico' and must not be counted in the total number of premises. It is a subordinate access used to separate activities of different owners inside one physical premises - a double-representation, not an independent premises.",
+      "is_physical_premises": false,
+      "overlap_with_status_exclusions": {
+        "pc_asociado_also_baja_8": 1,
+        "pc_asociado_also_baja_r_9": 14,
+        "note": "Any PC Asociado premises also in Baja/Baja R must be counted once in the exclusion union, not subtracted twice."
+      },
+      "ruling": "GO as an explicit source exclusion (not a status/economic signal)."
+    },
+    "interior_undocumented": {
+      "code": "3",
+      "official_meaning": "Interior - UNDOCUMENTED. This code and literal do not appear in the mar/2022 structure document, whose Tipo-acceso table lists only 0, 1 and 12 and whose extraction note says only Agrupado / Puerta de Calle / Puerta de Calle asociado premises were selected. Source meaning UNRESOLVED.",
+      "count_premises": 51501,
+      "share_pct": 25.2843,
+      "handling": "Reported as UNDOCUMENTED. It is not named in any exclusion rule, so the explicit rules leave it in the counted universe. Any future count MUST flag it; Gate C does not invent a meaning for it.",
+      "materiality": "Large (one quarter of premises), so it is surfaced prominently, but it does not change the explicit exclusion arithmetic, which names only situacion 8/9 and acceso 12."
+    },
+    "other_access_codes_requiring_handling": "Agrupado (0) and Puerta calle (1) carry no special counting instruction. Only PC Asociado (12) is excluded; Interior (3) is undocumented and flagged."
+  },
+  "temporal_status_control": {
+    "control_snapshot": "locales_2025_09",
+    "primary_snapshot": "locales_2026_09",
+    "persistent_premises": 202343,
+    "situacion_transition_matrix": {
+      "1->1": 138485,
+      "4->4": 37402,
+      "8->8": 12416,
+      "5->5": 8376,
+      "9->9": 4014,
+      "1->4": 867,
+      "4->1": 489,
+      "1->9": 77,
+      "8->1": 60,
+      "4->5": 46,
+      "1->5": 38,
+      "4->9": 20,
+      "8->4": 18,
+      "5->1": 12,
+      "5->4": 10,
+      "9->1": 5,
+      "1->8": 4,
+      "9->4": 3,
+      "8->9": 1
+    },
+    "named_transitions": {
+      "abierto_to_cerrado": 867,
+      "cerrado_to_abierto": 489,
+      "abierto_to_baja": 4,
+      "baja_to_abierto": 60,
+      "abierto_to_baja_r": 77,
+      "uso_vivienda_to_other": 22,
+      "unchanged": 200693
+    },
+    "interpretation": "Statuses behave like MUTABLE administrative attributes: the same persistent premises (stable id_local) carries different situacion values across snapshots in both directions. Transitions are NOT read as real business openings/closures.",
+    "scope_note": "Two snapshots only. Full historical comparability (field/code/format homogeneity across the whole series) remains Gate D."
+  },
+  "gate_c_ruling": {
+    "abierto_semantics": {
+      "use_as_current_operation_proxy": "NO-GO",
+      "basis": "The source defines Abierto as a premises with 'algun tipo de actividad economica', but (a) it explicitly warns situacion is a 'variable de mantenimiento complicado' with no procedure to detect cessation without a replacement activity, (b) extraction shows 'la ultima situacion' (last recorded, not verified-today), and (c) 11,000+ Abierto premises carry no activity classification at all. Abierto is therefore ADMINISTRATIVELY_OPEN (last-recorded active), never a verified current-operation count."
+    },
+    "cerrado_semantics": {
+      "use_as_business_cessation_evidence": "NO-GO",
+      "basis": "Cerrado is an administrative 'no activity recorded at the extract moment'. It is NOT permanent closure, NOT business failure and NOT economic decline; no closure date exists and activity codes can remain attached."
+    },
+    "baja_baja_r": {
+      "use_as_explicit_source_exclusions": "GO",
+      "basis": "Both codes are unconditionally excluded from total-premises counts by the source's own instruction (apartado III)."
+    },
+    "pc_asociado": {
+      "use_as_explicit_source_exclusion": "GO",
+      "basis": "The source excludes PC Asociado from total-premises counts because it is not a physical premises (apartado II)."
+    },
+    "source_excluded_premises_universe": {
+      "use_as_reproducible_administrative_filtering_rule": "GO",
+      "basis": "Union of situacion {8,9} and acceso 12, overlaps handled so PC Asociado is not double-subtracted. This is a research filtering rule, NOT a production denominator (Gate F)."
+    },
+    "economic_interpretation": {
+      "ruling": "NO-GO",
+      "basis": "No status field supports trading, demand, turnover, success, failure, vitality, saturation or tourism-pressure claims. Independent evidence would be required and is absent."
+    },
+    "overall_gate_c": {
+      "ruling": "GO to Gate D",
+      "basis": "Administrative status semantics are established: the source's explicit exclusion rules are reproducible (administrative filtering GO), while current-operation and economic inference remain NO-GO. Mixed sub-rulings are the intended outcome of the gate.",
+      "mixed_subrulings_are_expected": true
+    }
+  },
+  "interpretation_ceiling": {
+    "this_evidence_can_never_claim_on_its_own": [
+      "that any premises is currently trading / operating today",
+      "a count of active businesses",
+      "a count of business failures or closures",
+      "economic decline, growth, success or commercial health",
+      "commercial vitality, saturation, tourism pressure or overtourism",
+      "demand, turnover, revenue, footfall or visitor numbers"
+    ],
+    "what_it_can_support": [
+      "the number of premises remaining after the source's explicit exclusion rules",
+      "the administrative status composition of documented hospitality/commercial premises",
+      "how much of the source universe is administratively unresolved or unclassified"
+    ]
+  }
+}
