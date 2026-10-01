@@ -180,10 +180,11 @@ def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
         # GRUPOS_TABLA returns a table-group id, which is not necessarily the
         # Tempus3 variable id accepted by tv=. With det=1, each value exposes
         # the underlying variable identity; use that instead of guessing.
+        variable = madrid.get("Variable")
         variable_id = (
             madrid.get("FK_Variable")
             or madrid.get("IdVariable")
-            or madrid.get("Variable")
+            or (variable.get("Id") if isinstance(variable, dict) else variable)
             or madrid.get("FKVariable")
         )
         result.update(
