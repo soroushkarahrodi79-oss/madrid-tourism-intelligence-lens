@@ -1,7 +1,8 @@
-# Gate A/B/C research package — hospitality & commercial premises identity, taxonomy and status
+# Gate A/B/C/D research package — hospitality & commercial premises identity, taxonomy, status and temporal comparability
 
 Reproducible evidence behind the **Gate A — Unit & Identity**, **Gate B — Activity
-Taxonomy** and **Gate C — Status Semantics** sections of
+Taxonomy**, **Gate C — Status Semantics** and **Gate D — Temporal Comparability**
+sections of
 [`docs/HOSPITALITY_COMMERCIAL_METHOD_GATE.md`](../../docs/HOSPITALITY_COMMERCIAL_METHOD_GATE.md).
 
 Every count quoted in those sections is produced by the scripts here. None were
@@ -11,15 +12,22 @@ typed by hand.
 python research/hospitality_commercial_gate/audit_identity.py   # Gate A
 python research/hospitality_commercial_gate/audit_taxonomy.py   # Gate B
 python research/hospitality_commercial_gate/audit_status.py     # Gate C
+python research/hospitality_commercial_gate/audit_temporal.py   # Gate D
 ```
 
 Standard library only. Requires network access to `datos.madrid.es`.
 `audit_taxonomy.py` imports the Gate A helpers (catalogue resolution, streamed
 fingerprinting, dialect detection) from `audit_identity.py`; `audit_status.py`
 imports both the Gate A helpers and the Gate B classification (`classify`, the CNAE
-section/division class map) from `audit_taxonomy.py`. So all three gates read the
-same upstream the same way and classify activities identically; later scripts do not
+section/division class map) from `audit_taxonomy.py`; `audit_temporal.py` imports the
+Gate A source contract and the Gate B classification. So all four gates read the same
+upstream the same way and classify activities identically; later scripts do not
 re-run or modify earlier gates.
+
+`audit_temporal.py` adds a `--rebuild-summary` flag that regenerates
+`gate_d_temporal_summary.json` (and its ruling blocks) **network-free** from the
+already-committed, fingerprinted artifacts, for deterministic verification without
+re-downloading the sentinels.
 
 ## The one question this gate answers
 
@@ -83,6 +91,25 @@ Locales + Actividades resources and the Sep 2025 Locales control only; it downlo
 no history (that is Gate D). The report keeps **source semantics**, **empirical
 observation** and **project handling / interpretation ceiling** as distinct fields
 and never encodes a project analytical rule as official source metadata.
+
+`results/gate_d_resource_manifest.json` — the deterministic catalogue inventory of all
+141 Locales and 139 Actividades monthly resources (Mar 2014 → Sep 2026), each with its
+resource id, URL, URL cut timestamp, catalogue size, catalogue-declared MD5,
+`created`/`issued`/`last_modified` and observed `schema_signature`, plus per-family
+coverage (missing/duplicate months). `results/gate_d_schema_eras.json` — the contiguous
+per-family schema eras and the version-aware snapshot-identity model.
+`results/gate_d_temporal_compatibility.json` — the 10 sentinel reports (identity,
+status/access code AND text vocabulary, CNAE taxonomy vocabulary + Gate B class
+projection, source geography) and the cross-era `id_local` identity intersections.
+`results/gate_d_temporal_summary.json` — the full report: catalogue inventory,
+continuity, snapshot-identity model, schema eras, sentinel evidence, the format-vs-
+semantic **drift classification**, revision/capture protocol, question types, the
+**temporal tiers** (A direct / B normalise / C segment / D no-go), the per-dimension
+**earliest defensible windows** (each with evidence + caveat), the monthly-transition
+ruling, the interpretation ceiling and the scoped Gate D ruling. Gate D uses staged
+network discipline: one catalogue call, a 64 KiB Range header scan of every
+Locales/Actividades resource, and full downloads of 10 sentinels only (≈769 MB) — the
+full history is never downloaded and no raw CSV is committed.
 
 ## Conventions
 

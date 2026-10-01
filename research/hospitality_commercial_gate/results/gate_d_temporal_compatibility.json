@@ -1,0 +1,1369 @@
+{
+  "audit_finished_at": "2026-10-01T08:33:48Z",
+  "sentinels": {
+    "Locales": {
+      "Septiembre 2014": {
+        "why_sentinel": "earliest full era (38-col 2014 schema)",
+        "resource_id": "209548-397-censo-locales-historico-csv",
+        "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-397-censo-locales-historico-csv/download/209548-397-censo-locales-historico-csv.csv",
+        "url_cut_timestamp": null,
+        "retrieved_at": "2026-10-01T08:32:52Z",
+        "bytes": 27343285,
+        "md5": "5323c81bf6f27ff8dc7bed5e61f8f2c8",
+        "sha256": "ad8eacabf30ca415690cfd207020950444994ba6cd1afd204596d22c3bec93dd",
+        "catalogue_declared_md5": "5323c81bf6f27ff8dc7bed5e61f8f2c8",
+        "md5_matches_catalogue": true,
+        "http_last_modified": "Sun, 15 Feb 2026 23:56:22 GMT",
+        "etag": "\"1771199782.636096-27343285-3161724445\"",
+        "schema_signature": "1decfb03c18b7d57",
+        "report": {
+          "encoding_observed": "latin-1",
+          "rows": 142052,
+          "identity": {
+            "field": "id_local",
+            "distinct": 142051,
+            "blank": 0,
+            "duplicate_rows": 1,
+            "unique_within_snapshot": false,
+            "id_length_distribution": {
+              "8": 5468,
+              "9": 136584
+            }
+          },
+          "situacion_code_populated_rows": 0,
+          "acceso_code_populated_rows": 0,
+          "situacion_code_vocabulary": {
+            "": {
+              "rows": 142052,
+              "desc": "Abierto"
+            }
+          },
+          "acceso_code_vocabulary": {
+            "": {
+              "rows": 142052,
+              "desc": "Agrupado"
+            }
+          },
+          "situacion_desc_vocabulary": {
+            "Abierto": 94567,
+            "Cerrado": 38773,
+            "Uso vivienda": 6597,
+            "Obras": 1156,
+            "Baja": 499,
+            "Baja R": 460
+          },
+          "acceso_desc_vocabulary": {
+            "Puerta calle": 129372,
+            "Agrupado": 11686,
+            "PC Asociado": 994
+          },
+          "geography": {
+            "distinct_id_distrito_local": 21,
+            "distinct_id_barrio_local": 128,
+            "rows_blank_barrio": 0,
+            "id_barrio_local_format": {
+              "integer": 142052
+            },
+            "id_barrio_local_samples": [
+              "11",
+              "16",
+              "15",
+              "12",
+              "14"
+            ]
+          }
+        }
+      },
+      "Septiembre 2015": {
+        "why_sentinel": "40-col era (2015-01..2022-09) early representative",
+        "resource_id": "209548-575-censo-locales-historico-csv",
+        "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-575-censo-locales-historico-csv/download/209548-575-censo-locales-historico-csv.csv",
+        "url_cut_timestamp": null,
+        "retrieved_at": "2026-10-01T08:32:57Z",
+        "bytes": 60816249,
+        "md5": "ab02dcd0d33fbedc0555801fc2915766",
+        "sha256": "deb0fd014c5bcedf4d1bdce142494055a9a3557ea5278371961a6fa9a9f12524",
+        "catalogue_declared_md5": "ab02dcd0d33fbedc0555801fc2915766",
+        "md5_matches_catalogue": true,
+        "http_last_modified": "Mon, 16 Feb 2026 00:26:02 GMT",
+        "etag": "\"1771201562.799186-60816249-3158054427\"",
+        "schema_signature": "99cf6051957fe5d9",
+        "report": {
+          "encoding_observed": "latin-1",
+          "rows": 144048,
+          "identity": {
+            "field": "id_local",
+            "distinct": 144048,
+            "blank": 0,
+            "duplicate_rows": 0,
+            "unique_within_snapshot": true,
+            "id_length_distribution": {
+              "8": 5520,
+              "9": 138528
+            }
+          },
+          "situacion_code_populated_rows": 144048,
+          "acceso_code_populated_rows": 0,
+          "situacion_code_vocabulary": {
+            "1": {
+              "rows": 97258,
+              "desc": "Abierto"
+            },
+            "10": {
+              "rows": 1,
+              "desc": "Baja PC Asociado"
+            },
+            "4": {
+              "rows": 37509,
+              "desc": "Cerrado"
+            },
+            "5": {
+              "rows": 6586,
+              "desc": "Uso vivienda"
+            },
+            "7": {
+              "rows": 1093,
+              "desc": "En obras"
+            },
+            "8": {
+              "rows": 707,
+              "desc": "Baja"
+            },
+            "9": {
+              "rows": 894,
+              "desc": "Baja Reunificacion"
+            }
+          },
+          "acceso_code_vocabulary": {
+            "": {
+              "rows": 144048,
+              "desc": "Puerta Calle"
+            }
+          },
+          "situacion_desc_vocabulary": {
+            "Abierto": 97258,
+            "Cerrado": 37509,
+            "Uso vivienda": 6586,
+            "En obras": 1093,
+            "Baja Reunificacion": 894,
+            "Baja": 707,
+            "Baja PC Asociado": 1
+          },
+          "acceso_desc_vocabulary": {
+            "Puerta Calle": 129769,
+            "Agrupado": 13089,
+            "PC Asociado": 1190
+          },
+          "geography": {
+            "distinct_id_distrito_local": 21,
+            "distinct_id_barrio_local": 128,
+            "rows_blank_barrio": 0,
+            "id_barrio_local_format": {
+              "integer": 144048
+            },
+            "id_barrio_local_samples": [
+              "1502",
+              "1503",
+              "1504",
+              "1505",
+              "1506"
+            ]
+          }
+        }
+      },
+      "Septiembre 2020": {
+        "why_sentinel": "40-col era mid-history representative",
+        "resource_id": "209548-713-censo-locales-historico-csv",
+        "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-713-censo-locales-historico-csv/download/209548-713-censo-locales-historico-csv.csv",
+        "url_cut_timestamp": null,
+        "retrieved_at": "2026-10-01T08:33:02Z",
+        "bytes": 62515940,
+        "md5": "a03f11a2d1b86cdfa2883ca126012f38",
+        "sha256": "f1beefe9f85a2272e1036bb0b5863ddeab280c77bc0f5e04c611e945525f27e3",
+        "catalogue_declared_md5": "a03f11a2d1b86cdfa2883ca126012f38",
+        "md5_matches_catalogue": true,
+        "http_last_modified": "Mon, 16 Feb 2026 00:50:40 GMT",
+        "etag": "\"1771203040.83919-62515940-3146520085\"",
+        "schema_signature": "99cf6051957fe5d9",
+        "report": {
+          "encoding_observed": "latin-1",
+          "rows": 147926,
+          "identity": {
+            "field": "id_local",
+            "distinct": 147926,
+            "blank": 0,
+            "duplicate_rows": 0,
+            "unique_within_snapshot": true,
+            "id_length_distribution": {
+              "8": 5617,
+              "9": 142309
+            }
+          },
+          "situacion_code_populated_rows": 147926,
+          "acceso_code_populated_rows": 0,
+          "situacion_code_vocabulary": {
+            "1": {
+              "rows": 102322,
+              "desc": "Abierto"
+            },
+            "10": {
+              "rows": 15,
+              "desc": "Baja PC Asociado"
+            },
+            "4": {
+              "rows": 33622,
+              "desc": "Cerrado"
+            },
+            "5": {
+              "rows": 6386,
+              "desc": "Uso vivienda"
+            },
+            "7": {
+              "rows": 785,
+              "desc": "En obras"
+            },
+            "8": {
+              "rows": 1937,
+              "desc": "Baja"
+            },
+            "9": {
+              "rows": 2859,
+              "desc": "Baja Reunificacion"
+            }
+          },
+          "acceso_code_vocabulary": {
+            "": {
+              "rows": 147926,
+              "desc": "Puerta Calle"
+            }
+          },
+          "situacion_desc_vocabulary": {
+            "Abierto": 102322,
+            "Cerrado": 33622,
+            "Uso vivienda": 6386,
+            "Baja Reunificacion": 2859,
+            "Baja": 1937,
+            "En obras": 785,
+            "Baja PC Asociado": 15
+          },
+          "acceso_desc_vocabulary": {
+            "Puerta Calle": 131727,
+            "Agrupado": 14188,
+            "PC Asociado": 2011
+          },
+          "geography": {
+            "distinct_id_distrito_local": 21,
+            "distinct_id_barrio_local": 131,
+            "rows_blank_barrio": 0,
+            "id_barrio_local_format": {
+              "integer": 147926
+            },
+            "id_barrio_local_samples": [
+              "704",
+              "705",
+              "706",
+              "702",
+              "703"
+            ]
+          }
+        }
+      },
+      "Octubre 2022": {
+        "why_sentinel": "48-col era start (structural breakpoint)",
+        "resource_id": "209548-652-censo-locales-historico-csv",
+        "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-652-censo-locales-historico-csv/download/209548-652-censo-locales-historico-csv.csv",
+        "url_cut_timestamp": null,
+        "retrieved_at": "2026-10-01T08:33:09Z",
+        "bytes": 74679469,
+        "md5": "ef63445aabb4207e94498079662c9350",
+        "sha256": "f5d9e9ec92e7c427bb665e0e17f2af6d017fbd2099cfa55ca504b7ff8e698098",
+        "catalogue_declared_md5": "ef63445aabb4207e94498079662c9350",
+        "md5_matches_catalogue": true,
+        "http_last_modified": "Mon, 16 Feb 2026 00:40:27 GMT",
+        "etag": "\"1771202427.925298-74679469-3150452247\"",
+        "schema_signature": "04b39b51d9a96f27",
+        "report": {
+          "encoding_observed": "utf-8-sig",
+          "rows": 150434,
+          "identity": {
+            "field": "id_local",
+            "distinct": 150434,
+            "blank": 0,
+            "duplicate_rows": 0,
+            "unique_within_snapshot": true,
+            "id_length_distribution": {
+              "8": 5617,
+              "9": 144817
+            }
+          },
+          "situacion_code_populated_rows": 150434,
+          "acceso_code_populated_rows": 150434,
+          "situacion_code_vocabulary": {
+            "1": {
+              "rows": 99576,
+              "desc": "Abierto"
+            },
+            "10": {
+              "rows": 17,
+              "desc": "Baja PC Asociado"
+            },
+            "4": {
+              "rows": 35914,
+              "desc": "Cerrado"
+            },
+            "5": {
+              "rows": 8155,
+              "desc": "Uso vivienda"
+            },
+            "7": {
+              "rows": 127,
+              "desc": "En obras"
+            },
+            "8": {
+              "rows": 3397,
+              "desc": "Baja"
+            },
+            "9": {
+              "rows": 3248,
+              "desc": "Baja Reunificación"
+            }
+          },
+          "acceso_code_vocabulary": {
+            "0": {
+              "rows": 14424,
+              "desc": "Agrupado"
+            },
+            "1": {
+              "rows": 133492,
+              "desc": "Puerta Calle"
+            },
+            "12": {
+              "rows": 2518,
+              "desc": "PC Asociado"
+            }
+          },
+          "situacion_desc_vocabulary": {
+            "Abierto": 99576,
+            "Cerrado": 35914,
+            "Uso vivienda": 8155,
+            "Baja": 3397,
+            "Baja Reunificación": 3248,
+            "En obras": 127,
+            "Baja PC Asociado": 17
+          },
+          "acceso_desc_vocabulary": {
+            "Puerta Calle": 133492,
+            "Agrupado": 14424,
+            "PC Asociado": 2518
+          },
+          "geography": {
+            "distinct_id_distrito_local": 21,
+            "distinct_id_barrio_local": 131,
+            "rows_blank_barrio": 0,
+            "id_barrio_local_format": {
+              "integer": 150434
+            },
+            "id_barrio_local_samples": [
+              "104",
+              "106",
+              "102",
+              "101",
+              "105"
+            ]
+          }
+        }
+      },
+      "Septiembre 2025": {
+        "why_sentinel": "46-col era; Gate A/C control (SHA a9b5571a86eb)",
+        "resource_id": "209548-726-censo-locales-historico-csv",
+        "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-726-censo-locales-historico-csv/download/209548-726-censo-locales-historico-csv.csv",
+        "url_cut_timestamp": null,
+        "retrieved_at": "2026-10-01T08:33:16Z",
+        "bytes": 89900542,
+        "md5": "b9ccfc76e5497389f6fcb10b4644dc59",
+        "sha256": "a9b5571a86eb95312125cbcd6fd5e5e4e2c644872070adbb64b59dd333a77fdf",
+        "catalogue_declared_md5": "b9ccfc76e5497389f6fcb10b4644dc59",
+        "md5_matches_catalogue": true,
+        "http_last_modified": "Mon, 16 Feb 2026 00:52:21 GMT",
+        "etag": "\"1771203141.865065-89900542-3154187801\"",
+        "schema_signature": "0d7be74aad1162c4",
+        "report": {
+          "encoding_observed": "utf-8-sig",
+          "rows": 202346,
+          "identity": {
+            "field": "id_local",
+            "distinct": 202346,
+            "blank": 0,
+            "duplicate_rows": 0,
+            "unique_within_snapshot": true,
+            "id_length_distribution": {
+              "8": 5730,
+              "9": 196616
+            }
+          },
+          "situacion_code_populated_rows": 202346,
+          "acceso_code_populated_rows": 202346,
+          "situacion_code_vocabulary": {
+            "1": {
+              "rows": 139473,
+              "desc": "Abierto"
+            },
+            "4": {
+              "rows": 37957,
+              "desc": "Cerrado"
+            },
+            "5": {
+              "rows": 8398,
+              "desc": "Uso vivienda"
+            },
+            "8": {
+              "rows": 12496,
+              "desc": "Baja"
+            },
+            "9": {
+              "rows": 4022,
+              "desc": "Baja Reunificación"
+            }
+          },
+          "acceso_code_vocabulary": {
+            "0": {
+              "rows": 14569,
+              "desc": "Agrupado"
+            },
+            "1": {
+              "rows": 134385,
+              "desc": "Puerta Calle"
+            },
+            "12": {
+              "rows": 2809,
+              "desc": "PC Asociado"
+            },
+            "3": {
+              "rows": 50583,
+              "desc": "Interior"
+            }
+          },
+          "situacion_desc_vocabulary": {
+            "Abierto": 139473,
+            "Cerrado": 37957,
+            "Baja": 12496,
+            "Uso vivienda": 8398,
+            "Baja Reunificación": 4022
+          },
+          "acceso_desc_vocabulary": {
+            "Puerta Calle": 134385,
+            "Interior": 50583,
+            "Agrupado": 14569,
+            "PC Asociado": 2809
+          },
+          "geography": {
+            "distinct_id_distrito_local": 21,
+            "distinct_id_barrio_local": 131,
+            "rows_blank_barrio": 1,
+            "id_barrio_local_format": {
+              "integer": 202345
+            },
+            "id_barrio_local_samples": [
+              "104",
+              "105",
+              "102",
+              "101",
+              "106"
+            ]
+          }
+        }
+      },
+      "Septiembre 2026": {
+        "why_sentinel": "46-col era current published revision",
+        "resource_id": "209548-851-censo-locales-historico",
+        "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-851-censo-locales-historico/download/209548_20261001_045230.csv",
+        "url_cut_timestamp": "20261001T045230",
+        "retrieved_at": "2026-10-01T08:33:22Z",
+        "bytes": 89299449,
+        "md5": "7e1aeea0b047120a813abb5e4d866837",
+        "sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+        "catalogue_declared_md5": "7e1aeea0b047120a813abb5e4d866837",
+        "md5_matches_catalogue": true,
+        "http_last_modified": "Thu, 01 Oct 2026 04:54:12 GMT",
+        "etag": "\"1790830452.4639537-89299449-1714689183\"",
+        "schema_signature": "0d7be74aad1162c4",
+        "report": {
+          "encoding_observed": "utf-8-sig",
+          "rows": 203688,
+          "identity": {
+            "field": "id_local",
+            "distinct": 203688,
+            "blank": 0,
+            "duplicate_rows": 0,
+            "unique_within_snapshot": true,
+            "id_length_distribution": {
+              "8": 5730,
+              "9": 197958
+            }
+          },
+          "situacion_code_populated_rows": 203688,
+          "acceso_code_populated_rows": 203688,
+          "situacion_code_vocabulary": {
+            "1": {
+              "rows": 139797,
+              "desc": "Abierto"
+            },
+            "4": {
+              "rows": 38888,
+              "desc": "Cerrado"
+            },
+            "5": {
+              "rows": 8460,
+              "desc": "Uso vivienda"
+            },
+            "8": {
+              "rows": 12423,
+              "desc": "Baja"
+            },
+            "9": {
+              "rows": 4120,
+              "desc": "Baja Reunificación"
+            }
+          },
+          "acceso_code_vocabulary": {
+            "0": {
+              "rows": 14663,
+              "desc": "Agrupado"
+            },
+            "1": {
+              "rows": 134643,
+              "desc": "Puerta Calle"
+            },
+            "12": {
+              "rows": 2881,
+              "desc": "PC Asociado"
+            },
+            "3": {
+              "rows": 51501,
+              "desc": "Interior"
+            }
+          },
+          "situacion_desc_vocabulary": {
+            "Abierto": 139797,
+            "Cerrado": 38888,
+            "Baja": 12423,
+            "Uso vivienda": 8460,
+            "Baja Reunificación": 4120
+          },
+          "acceso_desc_vocabulary": {
+            "Puerta Calle": 134643,
+            "Interior": 51501,
+            "Agrupado": 14663,
+            "PC Asociado": 2881
+          },
+          "geography": {
+            "distinct_id_distrito_local": 21,
+            "distinct_id_barrio_local": 131,
+            "rows_blank_barrio": 1,
+            "id_barrio_local_format": {
+              "integer": 203687
+            },
+            "id_barrio_local_samples": [
+              "104",
+              "106",
+              "102",
+              "101",
+              "103"
+            ]
+          }
+        }
+      }
+    },
+    "Actividades": {
+      "Septiembre 2014": {
+        "why_sentinel": "44-col 2014 taxonomy schema",
+        "resource_id": "209548-671-censo-locales-historico-csv",
+        "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-671-censo-locales-historico-csv/download/209548-671-censo-locales-historico-csv.csv",
+        "url_cut_timestamp": null,
+        "retrieved_at": "2026-10-01T08:33:26Z",
+        "bytes": 44416536,
+        "md5": "d6c0cb7a3a8a43876e26221642ed1389",
+        "sha256": "781b553b3ca1faf789c2d0963b743f1c041561fbfea6a79fbf0ef59df3e23a90",
+        "catalogue_declared_md5": "d6c0cb7a3a8a43876e26221642ed1389",
+        "md5_matches_catalogue": true,
+        "http_last_modified": "Mon, 16 Feb 2026 00:42:16 GMT",
+        "etag": "\"1771202536.432905-44416536-3152483864\"",
+        "schema_signature": "1cde37024af6a07c",
+        "report": {
+          "encoding_observed": "latin-1",
+          "rows": 153868,
+          "code_population": {
+            "id_seccion_populated_rows": 107446,
+            "id_division_populated_rows": 107161,
+            "desc_division_vocabulary_size": 80,
+            "desc_seccion_vocabulary_size": 21
+          },
+          "taxonomy_vocabulary": {
+            "distinct_sections": 21,
+            "distinct_divisions": 80,
+            "distinct_epigraphs": 422,
+            "sections_present": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E",
+              "F",
+              "G",
+              "H",
+              "I",
+              "J",
+              "K",
+              "L",
+              "M",
+              "N",
+              "O",
+              "P",
+              "Q",
+              "R",
+              "S",
+              "U",
+              "Z"
+            ],
+            "divisions_present": [
+              "1",
+              "2",
+              "6",
+              "9",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15",
+              "16",
+              "17",
+              "18",
+              "20",
+              "21",
+              "22",
+              "23",
+              "24",
+              "25",
+              "26",
+              "27",
+              "28",
+              "29",
+              "30",
+              "31",
+              "32",
+              "33",
+              "35",
+              "36",
+              "37",
+              "38",
+              "39",
+              "41",
+              "42",
+              "43",
+              "45",
+              "46",
+              "47",
+              "49",
+              "51",
+              "52",
+              "53",
+              "55",
+              "56",
+              "58",
+              "59",
+              "60",
+              "61",
+              "62",
+              "63",
+              "64",
+              "65",
+              "66",
+              "68",
+              "69",
+              "70",
+              "71",
+              "72",
+              "73",
+              "74",
+              "75",
+              "77",
+              "78",
+              "79",
+              "80",
+              "81",
+              "82",
+              "84",
+              "85",
+              "86",
+              "87",
+              "88",
+              "90",
+              "91",
+              "92",
+              "93",
+              "94",
+              "95",
+              "96",
+              "99"
+            ],
+            "epigraph_blank_rows": 46410,
+            "epigraph_blank_share_pct": 30.16,
+            "fully_blank_taxonomy_rows": 46410,
+            "epigraphs_with_multiple_parents": {}
+          },
+          "gate_b_class_projection": {
+            "CORE_HOSPITALITY": {
+              "rows": 17243,
+              "distinct_premises": 16539
+            },
+            "ACCOMMODATION": {
+              "rows": 540,
+              "distinct_premises": 527
+            },
+            "TOURISM_ADJACENT": {
+              "rows": 624,
+              "distinct_premises": 624
+            },
+            "GENERIC_COMMERCIAL": {
+              "rows": 47121,
+              "distinct_premises": 41009
+            },
+            "EXCLUDED": {
+              "rows": 39305,
+              "distinct_premises": 36931
+            },
+            "AMBIGUOUS": {
+              "rows": 2613,
+              "distinct_premises": 2482
+            },
+            "UNCLASSIFIED_SOURCE_ACTIVITY": {
+              "rows": 46422,
+              "distinct_premises": 46422
+            }
+          },
+          "gate_b_key_divisions_present": {
+            "55_accommodation": true,
+            "56_core_hospitality": true,
+            "79_tourism_adjacent": true,
+            "G_generic_commercial_section": true,
+            "R_ambiguous_section": true
+          }
+        }
+      },
+      "Septiembre 2015": {
+        "why_sentinel": "46-col era taxonomy representative",
+        "resource_id": "209548-499-censo-locales-historico-csv",
+        "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-499-censo-locales-historico-csv/download/209548-499-censo-locales-historico-csv.csv",
+        "url_cut_timestamp": null,
+        "retrieved_at": "2026-10-01T08:33:32Z",
+        "bytes": 87893016,
+        "md5": "d62c59ba13d93a702791f8df1a019e64",
+        "sha256": "4e740d88e3e00c451274a6bee65d167d96545b162f9847ec6a4f2aaae800f56c",
+        "catalogue_declared_md5": "d62c59ba13d93a702791f8df1a019e64",
+        "md5_matches_catalogue": true,
+        "http_last_modified": "Mon, 16 Feb 2026 00:13:27 GMT",
+        "etag": "\"1771200807.159228-87893016-3167557152\"",
+        "schema_signature": "17f76a8af3c02aac",
+        "report": {
+          "encoding_observed": "latin-1",
+          "rows": 157206,
+          "code_population": {
+            "id_seccion_populated_rows": 112291,
+            "id_division_populated_rows": 112291,
+            "desc_division_vocabulary_size": 82,
+            "desc_seccion_vocabulary_size": 21
+          },
+          "taxonomy_vocabulary": {
+            "distinct_sections": 21,
+            "distinct_divisions": 82,
+            "distinct_epigraphs": 426,
+            "sections_present": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E",
+              "F",
+              "G",
+              "H",
+              "I",
+              "J",
+              "K",
+              "L",
+              "M",
+              "N",
+              "O",
+              "P",
+              "Q",
+              "R",
+              "S",
+              "U",
+              "Z"
+            ],
+            "divisions_present": [
+              "00",
+              "01",
+              "02",
+              "06",
+              "09",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15",
+              "16",
+              "17",
+              "18",
+              "20",
+              "21",
+              "22",
+              "23",
+              "24",
+              "25",
+              "26",
+              "27",
+              "28",
+              "29",
+              "30",
+              "31",
+              "32",
+              "33",
+              "35",
+              "36",
+              "37",
+              "38",
+              "39",
+              "41",
+              "42",
+              "43",
+              "45",
+              "46",
+              "47",
+              "49",
+              "51",
+              "52",
+              "53",
+              "55",
+              "56",
+              "58",
+              "59",
+              "60",
+              "61",
+              "62",
+              "63",
+              "64",
+              "65",
+              "66",
+              "68",
+              "69",
+              "70",
+              "71",
+              "72",
+              "73",
+              "74",
+              "75",
+              "77",
+              "78",
+              "79",
+              "80",
+              "81",
+              "82",
+              "84",
+              "85",
+              "86",
+              "87",
+              "88",
+              "90",
+              "91",
+              "92",
+              "93",
+              "94",
+              "95",
+              "96",
+              "99",
+              "PT"
+            ],
+            "epigraph_blank_rows": 44915,
+            "epigraph_blank_share_pct": 28.57,
+            "fully_blank_taxonomy_rows": 44915,
+            "epigraphs_with_multiple_parents": {}
+          },
+          "gate_b_class_projection": {
+            "CORE_HOSPITALITY": {
+              "rows": 17758,
+              "distinct_premises": 17034
+            },
+            "ACCOMMODATION": {
+              "rows": 557,
+              "distinct_premises": 544
+            },
+            "TOURISM_ADJACENT": {
+              "rows": 615,
+              "distinct_premises": 615
+            },
+            "GENERIC_COMMERCIAL": {
+              "rows": 49394,
+              "distinct_premises": 42440
+            },
+            "EXCLUDED": {
+              "rows": 41183,
+              "distinct_premises": 38613
+            },
+            "AMBIGUOUS": {
+              "rows": 2784,
+              "distinct_premises": 2642
+            },
+            "UNCLASSIFIED_SOURCE_ACTIVITY": {
+              "rows": 44915,
+              "distinct_premises": 44915
+            }
+          },
+          "gate_b_key_divisions_present": {
+            "55_accommodation": true,
+            "56_core_hospitality": true,
+            "79_tourism_adjacent": true,
+            "G_generic_commercial_section": true,
+            "R_ambiguous_section": true
+          }
+        }
+      },
+      "Octubre 2022": {
+        "why_sentinel": "49-col era taxonomy representative",
+        "resource_id": "209548-256-censo-locales-historico-csv",
+        "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-256-censo-locales-historico-csv/download/209548-256-censo-locales-historico-csv.csv",
+        "url_cut_timestamp": null,
+        "retrieved_at": "2026-10-01T08:33:39Z",
+        "bytes": 107247889,
+        "md5": "9e02e377c24609d86bd9bc5d623aeedd",
+        "sha256": "7cfdf4d85d2ea215b049e72a2c3e0c5b3ff079ecb9e5509622d4712199c209bf",
+        "catalogue_declared_md5": "9e02e377c24609d86bd9bc5d623aeedd",
+        "md5_matches_catalogue": true,
+        "http_last_modified": "Sun, 15 Feb 2026 23:44:44 GMT",
+        "etag": "\"1771199084.321544-107247889-3149927959\"",
+        "schema_signature": "e2916172cbe40af8",
+        "report": {
+          "encoding_observed": "utf-8-sig",
+          "rows": 168280,
+          "code_population": {
+            "id_seccion_populated_rows": 168280,
+            "id_division_populated_rows": 168280,
+            "desc_division_vocabulary_size": 84,
+            "desc_seccion_vocabulary_size": 22
+          },
+          "taxonomy_vocabulary": {
+            "distinct_sections": 22,
+            "distinct_divisions": 84,
+            "distinct_epigraphs": 442,
+            "sections_present": [
+              "-1",
+              "A",
+              "B",
+              "C",
+              "D",
+              "E",
+              "F",
+              "G",
+              "H",
+              "I",
+              "J",
+              "K",
+              "L",
+              "M",
+              "N",
+              "O",
+              "P",
+              "Q",
+              "R",
+              "S",
+              "U",
+              "Z"
+            ],
+            "divisions_present": [
+              "-1",
+              "00",
+              "01",
+              "02",
+              "06",
+              "08",
+              "09",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15",
+              "16",
+              "17",
+              "18",
+              "20",
+              "21",
+              "22",
+              "23",
+              "24",
+              "25",
+              "26",
+              "27",
+              "28",
+              "29",
+              "30",
+              "31",
+              "32",
+              "33",
+              "35",
+              "36",
+              "37",
+              "38",
+              "39",
+              "41",
+              "42",
+              "43",
+              "45",
+              "46",
+              "47",
+              "49",
+              "51",
+              "52",
+              "53",
+              "55",
+              "56",
+              "58",
+              "59",
+              "60",
+              "61",
+              "62",
+              "63",
+              "64",
+              "65",
+              "66",
+              "68",
+              "69",
+              "70",
+              "71",
+              "72",
+              "73",
+              "74",
+              "75",
+              "77",
+              "78",
+              "79",
+              "80",
+              "81",
+              "82",
+              "84",
+              "85",
+              "86",
+              "87",
+              "88",
+              "90",
+              "91",
+              "92",
+              "93",
+              "94",
+              "95",
+              "96",
+              "99",
+              "PT"
+            ],
+            "epigraph_blank_rows": 0,
+            "epigraph_blank_share_pct": 0.0,
+            "fully_blank_taxonomy_rows": 0,
+            "epigraphs_with_multiple_parents": {}
+          },
+          "gate_b_class_projection": {
+            "CORE_HOSPITALITY": {
+              "rows": 21358,
+              "distinct_premises": 20336
+            },
+            "ACCOMMODATION": {
+              "rows": 996,
+              "distinct_premises": 985
+            },
+            "TOURISM_ADJACENT": {
+              "rows": 572,
+              "distinct_premises": 572
+            },
+            "GENERIC_COMMERCIAL": {
+              "rows": 51049,
+              "distinct_premises": 43278
+            },
+            "EXCLUDED": {
+              "rows": 51851,
+              "distinct_premises": 48103
+            },
+            "AMBIGUOUS": {
+              "rows": 42454,
+              "distinct_premises": 42247
+            },
+            "UNCLASSIFIED_SOURCE_ACTIVITY": {
+              "rows": 0,
+              "distinct_premises": 0
+            }
+          },
+          "gate_b_key_divisions_present": {
+            "55_accommodation": true,
+            "56_core_hospitality": true,
+            "79_tourism_adjacent": true,
+            "G_generic_commercial_section": true,
+            "R_ambiguous_section": true
+          }
+        }
+      },
+      "Septiembre 2026": {
+        "why_sentinel": "47-col era current taxonomy",
+        "resource_id": "209548-857-censo-locales-historico",
+        "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-857-censo-locales-historico/download/209548_20261001_043906.csv",
+        "url_cut_timestamp": "20261001T043906",
+        "retrieved_at": "2026-10-01T08:33:47Z",
+        "bytes": 125022514,
+        "md5": "045cbcda8bb41f39f055ca5ed113627e",
+        "sha256": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2",
+        "catalogue_declared_md5": "045cbcda8bb41f39f055ca5ed113627e",
+        "md5_matches_catalogue": true,
+        "http_last_modified": "Thu, 01 Oct 2026 04:40:57 GMT",
+        "etag": "\"1790829657.7176304-125022514-1724519589\"",
+        "schema_signature": "fd75b99cb62237a4",
+        "report": {
+          "encoding_observed": "utf-8-sig",
+          "rows": 225721,
+          "code_population": {
+            "id_seccion_populated_rows": 172530,
+            "id_division_populated_rows": 172530,
+            "desc_division_vocabulary_size": 86,
+            "desc_seccion_vocabulary_size": 21
+          },
+          "taxonomy_vocabulary": {
+            "distinct_sections": 21,
+            "distinct_divisions": 86,
+            "distinct_epigraphs": 453,
+            "sections_present": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E",
+              "F",
+              "G",
+              "H",
+              "I",
+              "J",
+              "K",
+              "L",
+              "M",
+              "N",
+              "O",
+              "P",
+              "Q",
+              "R",
+              "S",
+              "U",
+              "Z"
+            ],
+            "divisions_present": [
+              "00",
+              "01",
+              "02",
+              "06",
+              "07",
+              "08",
+              "09",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15",
+              "16",
+              "17",
+              "18",
+              "19",
+              "20",
+              "21",
+              "22",
+              "23",
+              "24",
+              "25",
+              "26",
+              "27",
+              "28",
+              "29",
+              "30",
+              "31",
+              "32",
+              "33",
+              "35",
+              "36",
+              "37",
+              "38",
+              "39",
+              "41",
+              "42",
+              "43",
+              "45",
+              "46",
+              "47",
+              "49",
+              "50",
+              "51",
+              "52",
+              "53",
+              "55",
+              "56",
+              "58",
+              "59",
+              "60",
+              "61",
+              "62",
+              "63",
+              "64",
+              "65",
+              "66",
+              "68",
+              "69",
+              "70",
+              "71",
+              "72",
+              "73",
+              "74",
+              "75",
+              "77",
+              "78",
+              "79",
+              "80",
+              "81",
+              "82",
+              "84",
+              "85",
+              "86",
+              "87",
+              "88",
+              "90",
+              "91",
+              "92",
+              "93",
+              "94",
+              "95",
+              "96",
+              "99",
+              "PT"
+            ],
+            "epigraph_blank_rows": 53191,
+            "epigraph_blank_share_pct": 23.56,
+            "fully_blank_taxonomy_rows": 53191,
+            "epigraphs_with_multiple_parents": {}
+          },
+          "gate_b_class_projection": {
+            "CORE_HOSPITALITY": {
+              "rows": 22778,
+              "distinct_premises": 21565
+            },
+            "ACCOMMODATION": {
+              "rows": 8136,
+              "distinct_premises": 8050
+            },
+            "TOURISM_ADJACENT": {
+              "rows": 834,
+              "distinct_premises": 834
+            },
+            "GENERIC_COMMERCIAL": {
+              "rows": 53593,
+              "distinct_premises": 44411
+            },
+            "EXCLUDED": {
+              "rows": 82890,
+              "distinct_premises": 77769
+            },
+            "AMBIGUOUS": {
+              "rows": 4299,
+              "distinct_premises": 4016
+            },
+            "UNCLASSIFIED_SOURCE_ACTIVITY": {
+              "rows": 53191,
+              "distinct_premises": 53191
+            }
+          },
+          "gate_b_key_divisions_present": {
+            "55_accommodation": true,
+            "56_core_hospitality": true,
+            "79_tourism_adjacent": true,
+            "G_generic_commercial_section": true,
+            "R_ambiguous_section": true
+          }
+        }
+      }
+    }
+  },
+  "identity_intersections": [
+    {
+      "from": "Septiembre 2014",
+      "to": "Septiembre 2015",
+      "from_count": 142051,
+      "to_count": 144048,
+      "intersection": 141634,
+      "persistence_from_rate": 0.99706,
+      "appeared_in_to": 2414,
+      "disappeared_from_from": 417
+    },
+    {
+      "from": "Septiembre 2015",
+      "to": "Septiembre 2020",
+      "from_count": 144048,
+      "to_count": 147926,
+      "intersection": 143585,
+      "persistence_from_rate": 0.99679,
+      "appeared_in_to": 4341,
+      "disappeared_from_from": 463
+    },
+    {
+      "from": "Septiembre 2020",
+      "to": "Octubre 2022",
+      "from_count": 147926,
+      "to_count": 150434,
+      "intersection": 147864,
+      "persistence_from_rate": 0.99958,
+      "appeared_in_to": 2570,
+      "disappeared_from_from": 62
+    },
+    {
+      "from": "Octubre 2022",
+      "to": "Septiembre 2025",
+      "from_count": 150434,
+      "to_count": 202346,
+      "intersection": 150322,
+      "persistence_from_rate": 0.99926,
+      "appeared_in_to": 52024,
+      "disappeared_from_from": 112
+    },
+    {
+      "from": "Septiembre 2025",
+      "to": "Septiembre 2026",
+      "from_count": 202346,
+      "to_count": 203688,
+      "intersection": 202343,
+      "persistence_from_rate": 0.99999,
+      "appeared_in_to": 1345,
+      "disappeared_from_from": 3
+    },
+    {
+      "from": "Septiembre 2014",
+      "to": "Septiembre 2026",
+      "from_count": 142051,
+      "to_count": 203688,
+      "intersection": 141106,
+      "persistence_from_rate": 0.99335,
+      "appeared_in_to": 62582,
+      "disappeared_from_from": 945
+    },
+    {
+      "from": "Septiembre 2015",
+      "to": "Septiembre 2026",
+      "from_count": 144048,
+      "to_count": 203688,
+      "intersection": 143506,
+      "persistence_from_rate": 0.99624,
+      "appeared_in_to": 60182,
+      "disappeared_from_from": 542
+    }
+  ]
+}
