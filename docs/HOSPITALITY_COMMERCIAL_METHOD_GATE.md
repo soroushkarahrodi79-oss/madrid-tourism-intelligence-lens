@@ -1,7 +1,7 @@
 # Hospitality & Commercial Context — methodology gate
 
-**This document is populated for Gate A — Unit & Identity and Gate B — Activity
-Taxonomy.** The status semantics (C), temporal comparability (D), geography
+**This document is populated for Gate A — Unit & Identity, Gate B — Activity
+Taxonomy and Gate C — Status Semantics.** The temporal comparability (D), geography
 reconciliation (E) and denominator (F) gates are deliberately left unwritten.
 Writing their conclusions now, before their evidence exists, is the error this gate
 discipline exists to prevent. (Gate B renumbers the later gates' evidence questions
@@ -570,3 +570,357 @@ when an activity ceases without a replacement. Two Gate B facts bound that work:
 access type 12 are a counting decision that Gate C/F must confront before any premises
 count is admitted. Gate C must not translate abierto/cerrado into operating
 performance, demand, turnover or commercial success.
+
+---
+
+## Gate C — Status Semantics
+
+The reproducible evidence for this section is produced by
+[`audit_status.py`](../research/hospitality_commercial_gate/audit_status.py) and
+stored in
+[`results/gate_c_status.json`](../research/hospitality_commercial_gate/results/gate_c_status.json)
+(full report) and
+[`results/gate_c_status_summary.json`](../research/hospitality_commercial_gate/results/gate_c_status_summary.json)
+(compact digest). Every count below is produced by that script from the live source
+and stored in those files; none were typed by hand. The audit imports the Gate A
+helpers (catalogue resolution by exact `description`, streamed fingerprinting,
+per-file dialect detection) and the Gate B classification (`classify`, the CNAE
+section/division class map), so all three gates provably read the same upstream and
+classify activities the same way.
+
+### C.0 · Scope
+
+Gate C resolves **one** question: *what can the administrative status fields
+(`id_situacion_local`, `id_tipo_acceso_local`) legitimately tell us about whether a
+premises belongs in a future administrative count — and what must they never be read
+as?* It establishes a **semantics layer** only. It builds **no** indicator, count
+for production, ranking, score, denominator, map, or any "operating business",
+"business failure", "economic", "vitality", "saturation" or "tourism-pressure"
+claim. A status field is administrative evidence, nothing more.
+
+Three evidence levels are kept in **separate fields** throughout the machine-readable
+report and never merged: **(1) source semantics** — what the structure document
+actually says; **(2) empirical observation** — what the live data shows; **(3)
+project handling / interpretation ceiling** — our analytical decision. A
+project-handling label is **not** official source metadata.
+
+Status lives on **Locales** (one row = one premises); taxonomy lives on
+**Actividades** (one row = one premises × epigraph). Gate C reads the primary
+snapshot **Locales. Septiembre 2026** and **Actividades. Septiembre 2026**, with
+**Locales. Septiembre 2025** as a status-mutability control. It does **not** download
+the full history — that is Gate D.
+
+> **⚠ `nominal_snapshot_revision` — the "Septiembre 2026" resource was re-published.**
+> This is a formal provenance finding, not an incidental note. The resource *labelled*
+> "Septiembre 2026" that Gate C read is a **later published revision** of the one Gate
+> A/B read: the Sep 2026 Locales fingerprint changed from SHA-256 `2475e8bcff7d…`
+> (HTTP `Last-Modified` 03 Sep 2026, 203,610 premises) at the Gate A/B run to
+> `4ca33fed004b…` (HTTP `Last-Modified` 01 Oct 2026, **203,688** premises) at the Gate
+> C run. Therefore:
+>
+> 1. Gate C uses a **later published revision** of the resource labelled "Septiembre
+>    2026" than Gate A/B did.
+> 2. Gate C counts **must not** be numerically compared against the earlier Gate A/B
+>    Sep-2026 counts **without using their respective SHA-256 fingerprints**.
+> 3. This does **not** invalidate Gate A/B conclusions; those remain valid observations
+>    tied to their own recorded SHA-256 upstream states.
+> 4. The mutable/revised nature of nominal monthly snapshots is a formal **Gate D**
+>    temporal-comparability question.
+> 5. **Never treat the month label alone as sufficient version identity** — identity is
+>    the (month label + SHA-256 fingerprint) pair.
+>
+> Counts throughout Gate C are observations of one run against the fingerprinted
+> resources recorded in the results file, not repository invariants. The Sep 2025
+> control file is byte-for-byte the one Gate A saw (SHA `a9b5571a86eb`). The machine-
+> readable form of this finding is `nominal_snapshot_revision` in
+> [`gate_c_status.json`](../research/hospitality_commercial_gate/results/gate_c_status.json)
+> and its summary.
+
+### C.1 · Status universe
+
+**`id_situacion_local` — complete observed universe (Sep 2026 Locales, 203,688
+premises; one row per premises, so rows = distinct `id_local`):**
+
+| Code | Official description | Premises | Share | Source counting instruction |
+|---|---|---:|---:|---|
+| 1 | Abierto | 139,797 | 68.63% | none |
+| 4 | Cerrado | 38,888 | 19.09% | none |
+| 5 | Uso vivienda | 8,460 | 4.15% | none |
+| 8 | Baja | 12,423 | 6.10% | **exclude from total count** |
+| 9 | Baja Reunificación | 4,120 | 2.02% | **exclude from total count** |
+
+**`id_tipo_acceso_local` — complete observed universe:**
+
+| Code | Official description | Premises | Share | Note |
+|---|---|---:|---:|---|
+| 1 | Puerta Calle | 134,643 | 66.10% | documented |
+| 3 | Interior | 51,501 | 25.28% | **UNDOCUMENTED** (see C.10) |
+| 0 | Agrupado | 14,663 | 7.20% | documented |
+| 12 | PC Asociado | 2,881 | 1.41% | **exclude from total count** |
+
+**Discrepancies vs the structure documentation (recorded, not normalised away):**
+
+- **Code 7 "Obras" is documented but absent** — the structure PDF lists situación 7
+  (Local en obras), but the live Sep 2026 snapshot has **0** such rows. Documented ≠
+  present; it is reported, not invented.
+- **Access code 3 "Interior" is undocumented** — it is 25% of all premises yet the
+  mar/2022 structure document's Tipo-acceso table lists only 0/1/12, and the
+  document's own extraction note says only Agrupado / Puerta de Calle / PC Asociado
+  premises were selected. Its source meaning is **UNRESOLVED**; it is surfaced
+  prominently and given no invented meaning.
+
+### C.2 · Official source semantics
+
+Verified **again** against `estructura_ds_ficherocla.pdf` (versión mar/2022),
+apartados II and III — not inherited from earlier gates.
+
+| Code | Official description | Documented meaning (verbatim sense) | Counting instruction | Analytical interpretation allowed |
+|---|---|---|---|---|
+| sit 1 Abierto | Local activo | *"Local activo en el que se desarrolla algún tipo de actividad económica"* | none | administrative **last-recorded** "active"; not verified trading |
+| sit 4 Cerrado | Local cerrado (sin actividad) | *"Local en el que en ese momento no se realiza ningún tipo de actividad"* | none | not independently verified current closure, not permanent cessation, not failure/decline; no date |
+| sit 5 Uso vivienda | Local destinado a vivienda | *"…transformado en vivienda y se utilizan, exclusivamente, como vivienda familiar"* | none | recorded conversion to housing; no economic-cessation date |
+| sit 7 Obras | Local en obras | *"Locales en los que se está realizando una reforma"* | none | undergoing works; **absent from this snapshot** |
+| sit 8 Baja | Local que ha desaparecido | *"Locales desaparecidos"* | **exclude** | administrative "disappeared"; not a measured business failure |
+| sit 9 Baja R | …desaparecido uniéndose a otro | *"Baja o baja por reunificación: Locales desaparecidos"* | **exclude** | administrative merge/reorganisation; not a failure |
+| acc 12 PC Asociado | PC asociado | *"No se trata de un local físico… permite diferenciar actividades…"* | **exclude** | non-physical sub-access / double-representation |
+
+Two caveats from the source govern **every** situación value:
+
+- **"Variable de mantenimiento complicado."** Apartado III: *"…no se dispone de
+  ninguno [procedimiento] que informe de cuándo una actividad cesa y el local se
+  cierra sin aparecer una nueva actividad."* There is no procedure that detects a
+  closure without a replacement activity, so any value — Abierto included — can be
+  stale.
+- **Extraction shows the last status.** *"…mostrándose la última situación del
+  local."* Situación is the last recorded state, not a verified real-time status.
+
+### C.3 · Status vs activity taxonomy
+
+Cross-tab of premises status × per-premises taxonomy-record state (classified /
+section-Z *SIN ACTIVIDAD* / blank `UNCLASSIFIED_SOURCE_ACTIVITY`), joined on
+`id_local`, each premises counted once:
+
+| Situación | CLASSIFIED | SIN_ACTIVIDAD | BLANK | CLASSIFIED+SIN_ACT |
+|---|---:|---:|---:|---:|
+| 1 Abierto | 126,710 | 2,009 | 11,015 | 63 |
+| 4 Cerrado | 13,032 | 1,810 | 24,017 | 29 |
+| 5 Uso vivienda | 728 | 342 | 7,390 | 0 |
+| 8 Baja | 3,167 | 189 | 9,065 | 2 |
+| 9 Baja R | 2,352 | 63 | 1,704 | 1 |
+
+Answers (all from the join, not assumption):
+
+1. **Can `Abierto` coexist with blank taxonomy?** **Yes** — 11,015 Abierto premises
+   carry only an `UNCLASSIFIED_SOURCE_ACTIVITY` (blank) taxonomy.
+2. **Can `Cerrado` retain populated activity codes?** **Yes** — 13,032 do.
+3. **Can `Baja` retain activity codes?** **Yes** — 3,167 (Baja) + 2,352 (Baja R) do.
+4. **Can section Z (SIN ACTIVIDAD) coexist with different statuses?** **Yes** — it
+   appears under every situación value.
+5. **Does administrative status determine taxonomy state?** **No** — every status
+   co-occurs with multiple taxonomy states.
+
+**Therefore status and activity classification are separate dimensions and must not
+be collapsed.**
+
+### C.4 · Status by Gate B class
+
+Per Gate B class, over its **distinct** premises (a premises may belong to several
+classes; it is counted once *within* a class and these do **not** sum across
+classes). The purpose is **not** to rank sectors — it is to test whether any class
+has a materially different status composition that would make a naive premises count
+misleading.
+
+| Gate B class | Distinct premises | Abierto | Cerrado | Uso viv. | Baja | Baja R | Source-excluded (8∪9∪acc12) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| CORE_HOSPITALITY (56) | 21,565 | 19,227 | 1,777 | 49 | 163 | 349 | 2,033 |
+| ACCOMMODATION (55) | 8,050 | 7,503 | 362 | 70 | 63 | 52 | 131 |
+| TOURISM_ADJACENT (79) | 834 | 751 | 50 | 2 | 22 | 9 | 37 |
+| GENERIC_COMMERCIAL (G) | 44,411 | 37,588 | 4,696 | 165 | 673 | 1,289 | 2,350 |
+| AMBIGUOUS (R) | 4,016 | 3,545 | 338 | 9 | 31 | 93 | 203 |
+| EXCLUDED | 77,769 | 65,766 | 8,100 | 780 | 2,426 | 697 | 3,893 |
+
+The composition differs modestly between classes (e.g. generic commerce carries
+proportionally more Baja R than accommodation). The finding is only that a naive
+total-premises count per class would fold in differing shares of source-excluded
+records; it is **not** a vitality, health or ranking statement.
+
+### C.5 · Official counting exclusions
+
+The structure document instructs **exactly three** codes out of a total-premises
+count, verified verbatim:
+
+- situación **8 (Baja)** and **9 (Baja R)**: *"Los locales en situación 8 y 9, no
+  deben tenerse en cuenta a la hora de extraer datos de número total de locales."*
+- access **12 (PC Asociado)**: *"No deben tenerse en cuenta a la hora de extraer
+  datos del número total de locales"* because *"No se trata de un local físico."*
+
+The rule applies to **Locales** rows (premises; it speaks of "número total de
+locales"), is **unconditional**, and covers **only** these codes — Cerrado, Uso
+vivienda and Obras carry no exclusion instruction.
+
+**Sep 2026 impact (audit calculation):**
+
+| Quantity | Premises |
+|---|---:|
+| Raw premises universe | 203,688 |
+| Excluded — situación 8 (Baja) | 12,423 |
+| Excluded — situación 9 (Baja R) | 4,120 |
+| Excluded — access 12 (PC Asociado) | 2,881 |
+| Naïve sum (with double-counting) | 19,424 |
+| Overlap: PC Asociado ∩ Baja | 1 |
+| Overlap: PC Asociado ∩ Baja R | 14 |
+| Overlap: Baja ∩ Baja R | 0 (mutually exclusive) |
+| Double-subtraction avoided | 15 |
+| **Union excluded** | **19,409** |
+| **Remaining after official exclusions** | **184,279** |
+
+> **This is an audit calculation only.** It does **not** authorise a production
+> denominator or indicator. Gate F remains the denominator gate. Excluded records
+> remain valid historical evidence; exclusion is from a current total-count universe,
+> not from the research record.
+
+### C.6 · `Abierto`
+
+Official definition: *"Local activo en el que se desarrolla algún tipo de actividad
+económica."* Sep 2026: **139,797** premises (68.6%). Of these, **126,773** carry a
+populated classified activity, **11,015** carry a blank-only taxonomy, and **2,072**
+carry a section-Z *SIN ACTIVIDAD* row. Abierto premises appear across **every** Gate
+B class, including 65,766 in EXCLUDED.
+
+**Does `Abierto` support "currently operating business"? — NO, only as an
+administrative status.** The source *does* say Abierto means a premises with economic
+activity, but (a) it explicitly warns situación is a *variable de mantenimiento
+complicado* with no procedure to detect cessation without a replacement activity, (b)
+extraction shows the *última situación* (last recorded, not verified-today), and (c)
+11,000+ Abierto premises carry no activity classification at all. Abierto is at most
+`ADMINISTRATIVELY_OPEN` (last-recorded active); it is never a verified current-
+operation count, and never revenue, demand, footfall or commercial success.
+
+### C.7 · `Cerrado`
+
+**Source semantics (verbatim, apartado III):** *"Local en el que en ese momento no se
+realiza ningún tipo de actividad."* This exact wording is the source meaning and is
+preserved as such — it is **not** paraphrased into a project phrase. Sep 2026:
+**38,888** premises; **13,061** still carry a populated classified activity. No
+closure dates are published, and Cerrado is explicitly distinct from Baja
+(desaparecido).
+
+**Project interpretation ceiling (separate from the source meaning).** Because
+`situación` is a difficult-to-maintain, last-recorded administrative variable and the
+source lacks a complete cessation-update procedure, Gate C does **not** treat
+`Cerrado` as: independently verified current closure; permanent cessation; business
+failure; or economic decline. Activity codes can remain attached and no date exists.
+
+**Can `Cerrado` be read as business cessation or economic failure? — NO (bounded).**
+The ruling is NO-GO for all four interpretations above; the verbatim source meaning
+stands on its own and is not stretched to cover them.
+
+### C.8 · `Baja` and `Baja R`
+
+Treated separately. **Baja (8):** *"Local que ha desaparecido"*, 12,423 premises,
+3,169 still carrying activity codes. **Baja R (9):** *"Local que ha desaparecido
+uniéndose a otro"*, 4,120 premises, 2,353 still carrying activity codes. The
+distinction **is** documented (9 = disappeared by merging into another); apartado III
+groups both as *"Baja o baja por reunificación: Locales desaparecidos."* Both are
+**unconditionally excluded** from total-premises counts.
+
+"Desaparecido" is an administrative register event, **not** a measured business
+failure or bankruptcy; Baja R in particular is a reorganisation (merge). The records
+**remain** in the research artifacts — exclusion from a count is not deletion from the
+evidence.
+
+### C.9 · Other statuses
+
+- **Uso vivienda (5):** 8,460 premises. *"Transformado en vivienda… exclusivamente
+  como vivienda familiar."* No source exclusion; inclusion as an administrative record
+  is defensible, but it is explicitly a premises converted to housing, so folding it
+  into a "commercial premises" reading would need its own justification.
+- **Obras (7):** documented in the PDF, **0 rows** in this snapshot — reported as
+  documented-but-absent, not invented.
+
+### C.10 · Access-type semantics
+
+- **PC Asociado (12):** 2,881 premises (1.4%). *"No se trata de un local físico"* — a
+  subordinate access that separates activities of different owners inside one physical
+  premises (a double-representation). Excluded from total-premises counts because it
+  is **not a premises**, not because of any status or economic signal. Its overlap
+  with the status exclusions (1 also Baja, 14 also Baja R) is handled so it is never
+  double-subtracted (C.5).
+- **Interior (3):** 51,501 premises (25.3%), **undocumented** (C.1). It is not named
+  in any exclusion rule, so the explicit rules leave it in the counted universe, but
+  any future count **must** flag it. Gate C invents no meaning for it; its source
+  semantics are UNRESOLVED.
+- **Agrupado (0)** and **Puerta Calle (1):** carry no special counting instruction.
+
+### C.11 · Temporal transition control
+
+Sep 2025 → Sep 2026, persistent premises (stable `id_local`): **202,343**; situación
+unchanged for **200,693**. Observed transitions include Abierto→Cerrado **867**,
+Cerrado→Abierto **489**, Abierto→Baja R **77**, **Baja→Abierto 60**, Baja
+R→Abierto **5**, Abierto→Baja **4**, Uso vivienda→other **22**.
+
+Statuses behave like **mutable administrative attributes**: the same persistent
+premises carries different situación values across snapshots in both directions —
+including "disappeared" premises (Baja/Baja R) reverting to Abierto, which a literal
+"disappeared" reading could not produce. Transitions are **not** read as real
+business openings or closures. Two snapshots only; full historical comparability
+(field/code/format homogeneity across the whole series) remains **Gate D**.
+
+### C.12 · Permissible counting language
+
+Project handling labels — each explicitly distinguished from source terminology, none
+asserting that a premises trades today:
+
+| Project label | Rule | Source basis | Interpretation ceiling | Usable later? |
+|---|---|---|---|---|
+| `SOURCE_INCLUDED_PREMISES` | all − (sit∈{8,9} ∪ acc=12) | explicit source instruction | administrative records the source does not exclude; not a trading count | **yes** |
+| `SOURCE_EXCLUDED_PREMISES` | sit∈{8,9} ∪ acc=12 | explicit source instruction | disappeared premises + non-physical sub-accesses; kept in the record | **yes** |
+| `ADMINISTRATIVELY_OPEN` | sit=1 | code 1 only | last-recorded "active"; **not** current operation | **MODIFY** — status descriptor only, caveat must travel |
+| `STATUS_UNCERTAIN` | disclaimer, not a subset | the maintenance caveat | the register cannot certify real-time operation for any premises | no (a disclaimer) |
+
+### C.13 · Interpretation limits
+
+This evidence can **never**, on its own, claim: that any premises is trading today; a
+count of active businesses; a count of business failures or closures; economic
+decline, growth, success or commercial health; commercial vitality, saturation,
+tourism pressure or overtourism; demand, turnover, revenue, footfall or visitor
+numbers.
+
+It **can** support: the number of premises remaining after the source's explicit
+exclusion rules; the administrative status composition of documented
+hospitality/commercial premises; how much of the source universe is administratively
+unresolved or unclassified.
+
+### C.14 · Gate C ruling — **GO to Gate D, with scoped sub-rulings**
+
+| Question | Ruling |
+|---|---|
+| **`Abierto`** as a current-operation proxy | **NO-GO** (administrative status only; maintenance caveat applies) |
+| **`Cerrado`** as business-cessation / failure evidence | **NO-GO** (bounded; source meaning kept verbatim, not independently verified closure, not permanent cessation, no date) |
+| **`Baja` / `Baja R`** as explicit source exclusions | **GO** (unconditional source instruction; records retained) |
+| **`PC Asociado`** as an explicit source exclusion | **GO** (not a physical premises) |
+| **Source-excluded premises universe** as a reproducible administrative filtering rule | **GO** (research filtering rule, overlaps handled; **not** a production denominator — Gate F) |
+| **Economic interpretation** | **NO-GO** (no status field supports trading/demand/success/failure/vitality/saturation) |
+| **Overall Gate C** | **GO to Gate D** |
+
+Mixed sub-rulings are the intended outcome: administrative filtering is **GO**,
+current-operation inference is **NO-GO**, economic interpretation is **NO-GO**, and
+the gate as a whole is **GO to Gate D**.
+
+**What GO does not authorise.** No indicator, production count, ranking, score,
+denominator, map or economic/operating reading is admitted. A status field is
+administrative evidence; the source's own exclusion rules are reproducible, but
+nothing here says a documented premises is trading, has failed, or carries any
+economic meaning.
+
+### Recommendation for Gate D (temporal comparability)
+
+Gate D should test field/code/format homogeneity across the **whole** published
+series (not the three months examined here), establish the earliest defensible
+comparison window, and treat status transitions strictly as mutable administrative-
+attribute changes — never as real openings/closures. Two Gate C facts bound that
+work: situación is the *última situación* and a *variable de mantenimiento
+complicado* (so cross-month deltas are register-update deltas, not events), and the
+live data already departs from the mar/2022 document (undocumented access code 3,
+absent situación 7), so category vocabularies must be read live per snapshot, not
+assumed stable from the PDF.

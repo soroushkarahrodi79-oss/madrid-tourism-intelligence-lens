@@ -1,0 +1,116 @@
+{
+  "audit_finished_at": "2026-10-01T06:58:48Z",
+  "primary_locales_snapshot": "locales_2026_09",
+  "nominal_snapshot_revision": {
+    "warning": "NOMINAL_SNAPSHOT_REVISION",
+    "nominal_label": "Septiembre 2026",
+    "revised_since_gate_a_b": true,
+    "gate_a_b_reference_sha256": "2475e8bcff7dbf554d55e34f05f5a826afa593390add4e6913ca07cc932563b6",
+    "gate_a_b_reference_premises": 203610,
+    "gate_c_current_sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+    "gate_c_current_premises": 203688,
+    "note": "Compare snapshots by (label + SHA-256), never by month label alone."
+  },
+  "resources_sha256": {
+    "locales_2026_09": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+    "actividades_2026_09": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2",
+    "locales_2025_09": "a9b5571a86eb95312125cbcd6fd5e5e4e2c644872070adbb64b59dd333a77fdf"
+  },
+  "situacion_universe": {
+    "1": {
+      "desc": "Abierto",
+      "rows": 139797,
+      "share_pct": 68.6329
+    },
+    "4": {
+      "desc": "Cerrado",
+      "rows": 38888,
+      "share_pct": 19.0919
+    },
+    "5": {
+      "desc": "Uso vivienda",
+      "rows": 8460,
+      "share_pct": 4.1534
+    },
+    "8": {
+      "desc": "Baja",
+      "rows": 12423,
+      "share_pct": 6.099
+    },
+    "9": {
+      "desc": "Baja Reunificación",
+      "rows": 4120,
+      "share_pct": 2.0227
+    }
+  },
+  "tipo_acceso_universe": {
+    "0": {
+      "desc": "Agrupado",
+      "rows": 14663,
+      "share_pct": 7.1988,
+      "undocumented": false
+    },
+    "1": {
+      "desc": "Puerta Calle",
+      "rows": 134643,
+      "share_pct": 66.1026,
+      "undocumented": false
+    },
+    "12": {
+      "desc": "PC Asociado",
+      "rows": 2881,
+      "share_pct": 1.4144,
+      "undocumented": false
+    },
+    "3": {
+      "desc": "Interior",
+      "rows": 51501,
+      "share_pct": 25.2843,
+      "undocumented": true
+    }
+  },
+  "official_counting_exclusions": {
+    "raw_premises_universe": 203688,
+    "excluded_by_each_rule": {
+      "situacion_8_baja": 12423,
+      "situacion_9_baja_r": 4120,
+      "acceso_12_pc_asociado": 2881
+    },
+    "union_excluded": 19409,
+    "double_subtraction_avoided": 15,
+    "remaining_after_official_exclusions": 184279
+  },
+  "abierto_blank_coexistence": 11015,
+  "status_determines_taxonomy_state": false,
+  "gate_c_ruling": {
+    "abierto_semantics": {
+      "use_as_current_operation_proxy": "NO-GO",
+      "basis": "The source defines Abierto as a premises with 'algun tipo de actividad economica', but (a) it explicitly warns situacion is a 'variable de mantenimiento complicado' with no procedure to detect cessation without a replacement activity, (b) extraction shows 'la ultima situacion' (last recorded, not verified-today), and (c) 11,000+ Abierto premises carry no activity classification at all. Abierto is therefore ADMINISTRATIVELY_OPEN (last-recorded active), never a verified current-operation count."
+    },
+    "cerrado_semantics": {
+      "use_as_business_cessation_evidence": "NO-GO",
+      "basis": "The verbatim source meaning is retained in source_semantics ('Local en el que en ese momento no se realiza ningun tipo de actividad'). Separately, the project interpretation ceiling applies: Cerrado is NOT independently verified current closure, NOT permanent cessation, NOT business failure and NOT economic decline. No closure date exists and activity codes can remain attached. NO-GO stands for those interpretations."
+    },
+    "baja_baja_r": {
+      "use_as_explicit_source_exclusions": "GO",
+      "basis": "Both codes are unconditionally excluded from total-premises counts by the source's own instruction (apartado III)."
+    },
+    "pc_asociado": {
+      "use_as_explicit_source_exclusion": "GO",
+      "basis": "The source excludes PC Asociado from total-premises counts because it is not a physical premises (apartado II)."
+    },
+    "source_excluded_premises_universe": {
+      "use_as_reproducible_administrative_filtering_rule": "GO",
+      "basis": "Union of situacion {8,9} and acceso 12, overlaps handled so PC Asociado is not double-subtracted. This is a research filtering rule, NOT a production denominator (Gate F)."
+    },
+    "economic_interpretation": {
+      "ruling": "NO-GO",
+      "basis": "No status field supports trading, demand, turnover, success, failure, vitality, saturation or tourism-pressure claims. Independent evidence would be required and is absent."
+    },
+    "overall_gate_c": {
+      "ruling": "GO to Gate D",
+      "basis": "Administrative status semantics are established: the source's explicit exclusion rules are reproducible (administrative filtering GO), while current-operation and economic inference remain NO-GO. Mixed sub-rulings are the intended outcome of the gate.",
+      "mixed_subrulings_are_expected": true
+    }
+  }
+}
