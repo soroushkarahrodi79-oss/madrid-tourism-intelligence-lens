@@ -1,0 +1,80 @@
+{
+  "contract_version": "1.0.0",
+  "gate": "Gate F - Denominator Construction & Indicator Admissibility",
+  "scope": "Current Sep-2026 fingerprinted snapshot in CURRENT_131 geography; research ruling, not UI implementation.",
+  "rulings": {
+    "source_included_premises_universe": "GO",
+    "blank_taxonomy_handling": "GO",
+    "interior_access_handling": "GO",
+    "populated_taxonomy_premises_denominator": "GO",
+    "population_denominator": "MODIFY",
+    "area_denominator": "NO-GO",
+    "core_hospitality_nonexclusive_membership_rate": "GO",
+    "core_hospitality_per_resident": "MODIFY",
+    "accommodation_per_resident": "NO-GO",
+    "pressure_saturation_overtourism_indicator": "NO-GO",
+    "overall_gate_f": "GO - scoped implementation may proceed only for the exact unconditional and conditional candidate sets and mandatory metadata; this audit itself authorises no UI change."
+  },
+  "admissibility_ladder": {
+    "LEVEL_1_DESCRIPTIVE_COUNT": "GO when the premises universe and exclusions are explicit.",
+    "LEVEL_2_SOURCE_INTERNAL_MEMBERSHIP": "GO/MODIFY depending on populated-taxonomy vs all-source denominator, with non-exclusive memberships disclosed.",
+    "LEVEL_3_EXTERNAL_DENOMINATOR_DENSITY": "MODIFY for resident population; NO-GO for gross area in the current evidence base.",
+    "LEVEL_4_PRESSURE_CAPACITY_IMPACT": "NO-GO; independent impact/capacity evidence is absent."
+  },
+  "production_candidate_indicator_ids": [
+    "source_included_premises_count",
+    "core_hospitality_premises_count",
+    "accommodation_class_premises_count",
+    "core_hospitality_membership_share_of_populated_taxonomy_premises"
+  ],
+  "conditional_production_candidate_indicator_ids": [
+    "core_hospitality_premises_per_1000_residents"
+  ],
+  "conditional_production_requirements": {
+    "core_hospitality_premises_per_1000_residents": [
+      "Premises reference period must be displayed as Sep 2026.",
+      "Resident denominator reference date must be displayed separately as 01 Jan 2026.",
+      "Denominator must be identified as registered residents / Padron reference-date stock.",
+      "Dual dates must be displayed separately; no shared '2026' wording may imply simultaneity.",
+      "Interpretation is residential-context administrative density only.",
+      "Must not be presented as tourism pressure, resident burden, saturation or overtourism.",
+      "Must not be presented as verified operating-business density."
+    ]
+  },
+  "context_only_indicator_ids": [
+    "tourism_adjacent_premises_count",
+    "core_hospitality_share_of_source_included_premises",
+    "source_included_premises_per_1000_residents"
+  ],
+  "no_go_indicator_ids": [
+    "accommodation_class_premises_per_1000_residents",
+    "premises_per_km2",
+    "core_hospitality_premises_per_km2"
+  ],
+  "required_global_metadata": [
+    "numerator universe",
+    "source exclusions",
+    "unit",
+    "denominator source and reference date where applicable",
+    "CURRENT_131 geography version",
+    "premises snapshot family + nominal period + content fingerprint",
+    "denominator data version",
+    "interpretation ceiling",
+    "temporal-use rule"
+  ],
+  "temporal_use_rule": "Current snapshot only. No approved current indicator automatically supports a trend; current population must never be applied to HISTORICAL_128 records.",
+  "interpretation_ceiling": [
+    "active or operating businesses",
+    "tourism pressure",
+    "resident burden",
+    "tourism stress",
+    "carrying capacity",
+    "saturation",
+    "overtourism",
+    "visitor demand",
+    "commercial vitality",
+    "accommodation capacity",
+    "tourist beds",
+    "tourist intensity"
+  ]
+}

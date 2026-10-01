@@ -1,8 +1,9 @@
-# Gate A/B/C/D/E research package — hospitality & commercial premises identity, taxonomy, status, temporal comparability and geographic reconciliation
+# Gate A/B/C/D/E/F research package — hospitality & commercial premises methodology
 
 Reproducible evidence behind the **Gate A — Unit & Identity**, **Gate B — Activity
-Taxonomy**, **Gate C — Status Semantics**, **Gate D — Temporal Comparability** and
-**Gate E — Geographic Reconciliation**
+Taxonomy**, **Gate C — Status Semantics**, **Gate D — Temporal Comparability**,
+**Gate E — Geographic Reconciliation** and **Gate F — Denominator Construction &
+Indicator Admissibility**
 sections of
 [`docs/HOSPITALITY_COMMERCIAL_METHOD_GATE.md`](../../docs/HOSPITALITY_COMMERCIAL_METHOD_GATE.md).
 
@@ -15,6 +16,8 @@ python research/hospitality_commercial_gate/audit_taxonomy.py    # Gate B
 python research/hospitality_commercial_gate/audit_status.py      # Gate C
 python research/hospitality_commercial_gate/audit_temporal.py    # Gate D
 python research/hospitality_commercial_gate/audit_geography.py   # Gate E
+python research/hospitality_commercial_gate/audit_denominator.py # Gate F
+python research/hospitality_commercial_gate/audit_denominator.py --rebuild-approved-semantics # Gate F, offline semantics only
 ```
 
 Standard library for A–D; Gate E additionally uses **shapely**, **pyproj** and
@@ -26,8 +29,10 @@ resolution, streamed fingerprinting, dialect detection) from `audit_identity.py`
 (`classify`, the CNAE section/division class map) from `audit_taxonomy.py`;
 `audit_temporal.py` imports the Gate A source contract and the Gate B classification;
 `audit_geography.py` imports the Gate A source contract and the Gate D inventory /
-sentinel helpers. So all gates read the same upstream the same way; later scripts do
-not re-run or modify earlier gates.
+sentinel helpers; `audit_denominator.py` imports the Gate A source contract, Gate B
+classifier, Gate C exclusion constants and Gate E current-geography decoder. So all
+gates read the same upstream the same way; later scripts do not re-run or modify
+earlier gates.
 
 `audit_geography.py` honours an optional `GATE_E_CACHE` environment variable: set it
 to a directory to cache the downloaded sentinels (reused only when the file's MD5
@@ -144,6 +149,21 @@ across the 2017 break never establishes entity identity (historical `192 Ambroz`
 nine Locales sentinels (one per schema era + the four 2017/2018 breakpoint snapshots); no
 raw CSV is committed. An optional MD5-verified `GATE_E_CACHE` directory speeds re-runs.
 
+`results/gate_f_denominator_audit.json` — Gate F's compact evidence: U0–U6 premises
+universes, exclusion union/overlap, blank-taxonomy and Interior effects, non-exclusive
+class overlap, population provenance/alignment/anomalies, coordinate-vs-code
+completeness, area-denominator findings and denominator-sensitivity diagnostics. No
+ordered barrio list is emitted. `results/gate_f_indicator_registry.json` — one contract
+per candidate indicator (definition, ruling, release status, risk matrix, metadata and
+interpretation ceiling). `results/gate_f_summary.json` — the scoped Gate F ruling and
+exact later production-candidate set. Gate F reads the current Sep-2026 Locales and
+Actividades revisions and committed population/geography assets. `GATE_F_CACHE` may
+point to an external cache directory; cached CSVs are accepted only when the
+catalogue-declared MD5 still matches and the cache is refused inside the repository.
+The `--rebuild-approved-semantics` mode is explicitly offline: it regenerates the
+registry/summary vocabulary and readiness contracts from the already approved compact
+Gate F evidence without fetching sources or recomputing any count or coefficient.
+
 ## Conventions
 
 - **Raw upstream files are never committed.** Each ~85–125 MB CSV is streamed to a
@@ -157,5 +177,6 @@ raw CSV is committed. An optional MD5-verified `GATE_E_CACHE` directory speeds r
 - **Counts are observations of one run**, not repository invariants and not
   integrity thresholds. The reports carry the fingerprints that say which upstream
   state was observed.
-- Nothing in the application imports this package, and it is not part of the test
-  suite. It is run on demand.
+- Nothing in the application imports this package. The network audits run on demand;
+  focused tests validate the contracts of their committed compact reports without
+  downloading live source files.

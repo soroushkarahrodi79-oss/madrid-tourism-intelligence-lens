@@ -1,0 +1,1446 @@
+{
+  "contract_version": "1.0.0",
+  "scope": "Gate F research audit only; no production/UI wiring and no area ranking output.",
+  "snapshot_identity": {
+    "premises": {
+      "description": "Locales. Septiembre 2026",
+      "resource_id": "209548-851-censo-locales-historico",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-851-censo-locales-historico/download/209548_20261001_045230.csv",
+      "nominal_period": "2026-09",
+      "content_fingerprint_sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+      "catalogue_md5": "7e1aeea0b047120a813abb5e4d866837",
+      "catalogue_size_bytes": 89299449,
+      "catalogue_created": "2026-09-03T06:16:30.925591",
+      "catalogue_issued": "2026-09-03T06:16:30.925591",
+      "catalogue_last_modified": "2026-10-01T04:53:39.877667",
+      "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+    },
+    "activities": {
+      "description": "Actividades. Septiembre 2026",
+      "resource_id": "209548-857-censo-locales-historico",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-857-censo-locales-historico/download/209548_20261001_043906.csv",
+      "nominal_period": "2026-09",
+      "content_fingerprint_sha256": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2",
+      "catalogue_md5": "045cbcda8bb41f39f055ca5ed113627e",
+      "catalogue_size_bytes": 125022514,
+      "catalogue_created": "2026-09-03T06:44:06.830611",
+      "catalogue_issued": "2026-09-03T06:44:06.830611",
+      "catalogue_last_modified": "2026-10-01T04:40:27.638017",
+      "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+    }
+  },
+  "candidate_universes": {
+    "U0_RAW_PREMISES": {
+      "definition": "All distinct id_local in Locales.",
+      "count": 203688
+    },
+    "U1_SOURCE_INCLUDED_PREMISES": {
+      "definition": "U0 minus the union of situacion 8/9 OR access 12; no inferred exclusion.",
+      "count": 184279
+    },
+    "U2_SOURCE_INCLUDED_POPULATED_TAXONOMY_PREMISES": {
+      "definition": "U1 premises with at least one populated id_epigrafe. Includes populated section Z / 000000 / SIN ACTIVIDAD under the mechanical populated-epigraph rule; blank taxonomy is excluded. Populated taxonomy does not mean verified current operation or economic activity.",
+      "count": 142107,
+      "includes_populated_sin_actividad": true,
+      "excludes_blank_taxonomy": true,
+      "verified_current_operation": false
+    },
+    "U3_SOURCE_INCLUDED_CORE_HOSPITALITY_PREMISES": {
+      "definition": "Distinct U1 premises with at least one Gate B CORE_HOSPITALITY (division 56) membership.",
+      "count": 19532
+    },
+    "U4_SOURCE_INCLUDED_ACCOMMODATION_PREMISES": {
+      "definition": "Distinct U1 premises with at least one Gate B ACCOMMODATION (division 55) membership.",
+      "count": 7919
+    },
+    "U5_SOURCE_INCLUDED_TOURISM_ADJACENT_PREMISES": {
+      "definition": "Distinct U1 premises with at least one Gate B TOURISM_ADJACENT (division 79) membership.",
+      "count": 797
+    },
+    "U6_SOURCE_INCLUDED_GENERIC_COMMERCIAL_PREMISES": {
+      "definition": "Distinct U1 premises with at least one Gate B GENERIC_COMMERCIAL (section G) membership.",
+      "count": 42061
+    }
+  },
+  "source_exclusion_impact": {
+    "situacion_8": {
+      "count": 12423,
+      "share_raw_pct": 6.099
+    },
+    "situacion_9": {
+      "count": 4120,
+      "share_raw_pct": 2.0227
+    },
+    "access_12": {
+      "count": 2881,
+      "share_raw_pct": 1.4144
+    },
+    "overlaps": {
+      "8_and_9": 0,
+      "8_and_12": 1,
+      "9_and_12": 14,
+      "triple": 0
+    },
+    "naive_sum": 19424,
+    "union_excluded": 19409,
+    "double_subtraction_avoided": 15,
+    "remaining_u1": 184279,
+    "barrio_order_sensitivity_raw_vs_union_filtered": {
+      "units_compared": 131,
+      "spearman_rho": 0.996429,
+      "mean_absolute_rank_shift": 2.0763,
+      "max_absolute_rank_shift": 17.0,
+      "note": "Diagnostic only; barrio identities and ordered rankings are not emitted."
+    }
+  },
+  "blank_taxonomy_effects": {
+    "project_label": "UNCLASSIFIED_SOURCE_ACTIVITY",
+    "source_semantics": "UNRESOLVED",
+    "u1_blank_premises": 42172,
+    "share_of_u1_pct": 22.8849,
+    "included_in": [
+      "U1/all documented-premises counts",
+      "U1 denominator"
+    ],
+    "excluded_from": [
+      "U2 populated-taxonomy-premises denominator",
+      "populated-taxonomy membership denominator"
+    ],
+    "status_composition": {
+      "1": 10880,
+      "4": 23902,
+      "5": 7390
+    },
+    "access_composition": {
+      "0": 1819,
+      "1": 30640,
+      "3": 9713
+    },
+    "by_district": [
+      {
+        "district_id": "01",
+        "source_included": 21607,
+        "blank_taxonomy": 3144,
+        "share_pct": 14.5508
+      },
+      {
+        "district_id": "02",
+        "source_included": 6946,
+        "blank_taxonomy": 928,
+        "share_pct": 13.3602
+      },
+      {
+        "district_id": "03",
+        "source_included": 5723,
+        "blank_taxonomy": 775,
+        "share_pct": 13.5418
+      },
+      {
+        "district_id": "04",
+        "source_included": 14478,
+        "blank_taxonomy": 1962,
+        "share_pct": 13.5516
+      },
+      {
+        "district_id": "05",
+        "source_included": 10180,
+        "blank_taxonomy": 1606,
+        "share_pct": 15.776
+      },
+      {
+        "district_id": "06",
+        "source_included": 12712,
+        "blank_taxonomy": 3222,
+        "share_pct": 25.3461
+      },
+      {
+        "district_id": "07",
+        "source_included": 11436,
+        "blank_taxonomy": 1623,
+        "share_pct": 14.192
+      },
+      {
+        "district_id": "08",
+        "source_included": 8732,
+        "blank_taxonomy": 2107,
+        "share_pct": 24.1296
+      },
+      {
+        "district_id": "09",
+        "source_included": 5888,
+        "blank_taxonomy": 1049,
+        "share_pct": 17.8159
+      },
+      {
+        "district_id": "10",
+        "source_included": 9766,
+        "blank_taxonomy": 3099,
+        "share_pct": 31.7325
+      },
+      {
+        "district_id": "11",
+        "source_included": 12928,
+        "blank_taxonomy": 3977,
+        "share_pct": 30.7627
+      },
+      {
+        "district_id": "12",
+        "source_included": 5947,
+        "blank_taxonomy": 1784,
+        "share_pct": 29.9983
+      },
+      {
+        "district_id": "13",
+        "source_included": 10996,
+        "blank_taxonomy": 4113,
+        "share_pct": 37.4045
+      },
+      {
+        "district_id": "14",
+        "source_included": 2598,
+        "blank_taxonomy": 476,
+        "share_pct": 18.3218
+      },
+      {
+        "district_id": "15",
+        "source_included": 12134,
+        "blank_taxonomy": 3438,
+        "share_pct": 28.3336
+      },
+      {
+        "district_id": "16",
+        "source_included": 7079,
+        "blank_taxonomy": 1995,
+        "share_pct": 28.1819
+      },
+      {
+        "district_id": "17",
+        "source_included": 7322,
+        "blank_taxonomy": 2362,
+        "share_pct": 32.2589
+      },
+      {
+        "district_id": "18",
+        "source_included": 5354,
+        "blank_taxonomy": 1356,
+        "share_pct": 25.3269
+      },
+      {
+        "district_id": "19",
+        "source_included": 2337,
+        "blank_taxonomy": 545,
+        "share_pct": 23.3205
+      },
+      {
+        "district_id": "20",
+        "source_included": 7387,
+        "blank_taxonomy": 2002,
+        "share_pct": 27.1017
+      },
+      {
+        "district_id": "21",
+        "source_included": 2728,
+        "blank_taxonomy": 609,
+        "share_pct": 22.324
+      }
+    ],
+    "by_barrio": [
+      {
+        "barrio_id": "011",
+        "source_included": 3228,
+        "blank_taxonomy": 507,
+        "share_pct": 15.7063
+      },
+      {
+        "barrio_id": "012",
+        "source_included": 5018,
+        "blank_taxonomy": 756,
+        "share_pct": 15.0658
+      },
+      {
+        "barrio_id": "013",
+        "source_included": 2335,
+        "blank_taxonomy": 291,
+        "share_pct": 12.4625
+      },
+      {
+        "barrio_id": "014",
+        "source_included": 3193,
+        "blank_taxonomy": 368,
+        "share_pct": 11.5252
+      },
+      {
+        "barrio_id": "015",
+        "source_included": 4199,
+        "blank_taxonomy": 577,
+        "share_pct": 13.7414
+      },
+      {
+        "barrio_id": "016",
+        "source_included": 3634,
+        "blank_taxonomy": 645,
+        "share_pct": 17.749
+      },
+      {
+        "barrio_id": "021",
+        "source_included": 932,
+        "blank_taxonomy": 117,
+        "share_pct": 12.5536
+      },
+      {
+        "barrio_id": "022",
+        "source_included": 1375,
+        "blank_taxonomy": 167,
+        "share_pct": 12.1455
+      },
+      {
+        "barrio_id": "023",
+        "source_included": 907,
+        "blank_taxonomy": 155,
+        "share_pct": 17.0893
+      },
+      {
+        "barrio_id": "024",
+        "source_included": 694,
+        "blank_taxonomy": 104,
+        "share_pct": 14.9856
+      },
+      {
+        "barrio_id": "025",
+        "source_included": 1017,
+        "blank_taxonomy": 140,
+        "share_pct": 13.766
+      },
+      {
+        "barrio_id": "026",
+        "source_included": 1679,
+        "blank_taxonomy": 191,
+        "share_pct": 11.3758
+      },
+      {
+        "barrio_id": "027",
+        "source_included": 342,
+        "blank_taxonomy": 54,
+        "share_pct": 15.7895
+      },
+      {
+        "barrio_id": "031",
+        "source_included": 1662,
+        "blank_taxonomy": 200,
+        "share_pct": 12.0337
+      },
+      {
+        "barrio_id": "032",
+        "source_included": 554,
+        "blank_taxonomy": 84,
+        "share_pct": 15.1625
+      },
+      {
+        "barrio_id": "033",
+        "source_included": 587,
+        "blank_taxonomy": 79,
+        "share_pct": 13.4583
+      },
+      {
+        "barrio_id": "034",
+        "source_included": 1463,
+        "blank_taxonomy": 198,
+        "share_pct": 13.5338
+      },
+      {
+        "barrio_id": "035",
+        "source_included": 765,
+        "blank_taxonomy": 118,
+        "share_pct": 15.4248
+      },
+      {
+        "barrio_id": "036",
+        "source_included": 692,
+        "blank_taxonomy": 96,
+        "share_pct": 13.8728
+      },
+      {
+        "barrio_id": "041",
+        "source_included": 3859,
+        "blank_taxonomy": 466,
+        "share_pct": 12.0757
+      },
+      {
+        "barrio_id": "042",
+        "source_included": 2675,
+        "blank_taxonomy": 284,
+        "share_pct": 10.6168
+      },
+      {
+        "barrio_id": "043",
+        "source_included": 1206,
+        "blank_taxonomy": 216,
+        "share_pct": 17.9104
+      },
+      {
+        "barrio_id": "044",
+        "source_included": 2374,
+        "blank_taxonomy": 419,
+        "share_pct": 17.6495
+      },
+      {
+        "barrio_id": "045",
+        "source_included": 1713,
+        "blank_taxonomy": 200,
+        "share_pct": 11.6754
+      },
+      {
+        "barrio_id": "046",
+        "source_included": 2651,
+        "blank_taxonomy": 377,
+        "share_pct": 14.221
+      },
+      {
+        "barrio_id": "051",
+        "source_included": 1775,
+        "blank_taxonomy": 255,
+        "share_pct": 14.3662
+      },
+      {
+        "barrio_id": "052",
+        "source_included": 2060,
+        "blank_taxonomy": 344,
+        "share_pct": 16.699
+      },
+      {
+        "barrio_id": "053",
+        "source_included": 1472,
+        "blank_taxonomy": 215,
+        "share_pct": 14.606
+      },
+      {
+        "barrio_id": "054",
+        "source_included": 2138,
+        "blank_taxonomy": 305,
+        "share_pct": 14.2657
+      },
+      {
+        "barrio_id": "055",
+        "source_included": 1466,
+        "blank_taxonomy": 210,
+        "share_pct": 14.3247
+      },
+      {
+        "barrio_id": "056",
+        "source_included": 1269,
+        "blank_taxonomy": 277,
+        "share_pct": 21.8282
+      },
+      {
+        "barrio_id": "061",
+        "source_included": 1728,
+        "blank_taxonomy": 472,
+        "share_pct": 27.3148
+      },
+      {
+        "barrio_id": "062",
+        "source_included": 3837,
+        "blank_taxonomy": 565,
+        "share_pct": 14.725
+      },
+      {
+        "barrio_id": "063",
+        "source_included": 2248,
+        "blank_taxonomy": 383,
+        "share_pct": 17.0374
+      },
+      {
+        "barrio_id": "064",
+        "source_included": 1660,
+        "blank_taxonomy": 578,
+        "share_pct": 34.8193
+      },
+      {
+        "barrio_id": "065",
+        "source_included": 1750,
+        "blank_taxonomy": 726,
+        "share_pct": 41.4857
+      },
+      {
+        "barrio_id": "066",
+        "source_included": 1489,
+        "blank_taxonomy": 498,
+        "share_pct": 33.4453
+      },
+      {
+        "barrio_id": "071",
+        "source_included": 1850,
+        "blank_taxonomy": 181,
+        "share_pct": 9.7838
+      },
+      {
+        "barrio_id": "072",
+        "source_included": 1719,
+        "blank_taxonomy": 262,
+        "share_pct": 15.2414
+      },
+      {
+        "barrio_id": "073",
+        "source_included": 2307,
+        "blank_taxonomy": 341,
+        "share_pct": 14.7811
+      },
+      {
+        "barrio_id": "074",
+        "source_included": 2379,
+        "blank_taxonomy": 381,
+        "share_pct": 16.0151
+      },
+      {
+        "barrio_id": "075",
+        "source_included": 1981,
+        "blank_taxonomy": 262,
+        "share_pct": 13.2256
+      },
+      {
+        "barrio_id": "076",
+        "source_included": 1200,
+        "blank_taxonomy": 196,
+        "share_pct": 16.3333
+      },
+      {
+        "barrio_id": "081",
+        "source_included": 187,
+        "blank_taxonomy": 63,
+        "share_pct": 33.6898
+      },
+      {
+        "barrio_id": "082",
+        "source_included": 32,
+        "blank_taxonomy": 8,
+        "share_pct": 25.0
+      },
+      {
+        "barrio_id": "083",
+        "source_included": 1101,
+        "blank_taxonomy": 187,
+        "share_pct": 16.9846
+      },
+      {
+        "barrio_id": "084",
+        "source_included": 2320,
+        "blank_taxonomy": 586,
+        "share_pct": 25.2586
+      },
+      {
+        "barrio_id": "085",
+        "source_included": 939,
+        "blank_taxonomy": 92,
+        "share_pct": 9.7977
+      },
+      {
+        "barrio_id": "086",
+        "source_included": 3071,
+        "blank_taxonomy": 1036,
+        "share_pct": 33.7349
+      },
+      {
+        "barrio_id": "087",
+        "source_included": 529,
+        "blank_taxonomy": 72,
+        "share_pct": 13.6106
+      },
+      {
+        "barrio_id": "088",
+        "source_included": 553,
+        "blank_taxonomy": 63,
+        "share_pct": 11.3924
+      },
+      {
+        "barrio_id": "091",
+        "source_included": 738,
+        "blank_taxonomy": 97,
+        "share_pct": 13.1436
+      },
+      {
+        "barrio_id": "092",
+        "source_included": 2041,
+        "blank_taxonomy": 355,
+        "share_pct": 17.3934
+      },
+      {
+        "barrio_id": "093",
+        "source_included": 936,
+        "blank_taxonomy": 167,
+        "share_pct": 17.8419
+      },
+      {
+        "barrio_id": "094",
+        "source_included": 922,
+        "blank_taxonomy": 298,
+        "share_pct": 32.321
+      },
+      {
+        "barrio_id": "095",
+        "source_included": 159,
+        "blank_taxonomy": 5,
+        "share_pct": 3.1447
+      },
+      {
+        "barrio_id": "096",
+        "source_included": 378,
+        "blank_taxonomy": 35,
+        "share_pct": 9.2593
+      },
+      {
+        "barrio_id": "097",
+        "source_included": 714,
+        "blank_taxonomy": 92,
+        "share_pct": 12.8852
+      },
+      {
+        "barrio_id": "101",
+        "source_included": 680,
+        "blank_taxonomy": 319,
+        "share_pct": 46.9118
+      },
+      {
+        "barrio_id": "102",
+        "source_included": 2808,
+        "blank_taxonomy": 1104,
+        "share_pct": 39.3162
+      },
+      {
+        "barrio_id": "103",
+        "source_included": 1378,
+        "blank_taxonomy": 458,
+        "share_pct": 33.2366
+      },
+      {
+        "barrio_id": "104",
+        "source_included": 2547,
+        "blank_taxonomy": 648,
+        "share_pct": 25.4417
+      },
+      {
+        "barrio_id": "105",
+        "source_included": 688,
+        "blank_taxonomy": 245,
+        "share_pct": 35.6105
+      },
+      {
+        "barrio_id": "106",
+        "source_included": 189,
+        "blank_taxonomy": 44,
+        "share_pct": 23.2804
+      },
+      {
+        "barrio_id": "107",
+        "source_included": 1476,
+        "blank_taxonomy": 281,
+        "share_pct": 19.0379
+      },
+      {
+        "barrio_id": "111",
+        "source_included": 1325,
+        "blank_taxonomy": 405,
+        "share_pct": 30.566
+      },
+      {
+        "barrio_id": "112",
+        "source_included": 1877,
+        "blank_taxonomy": 482,
+        "share_pct": 25.6793
+      },
+      {
+        "barrio_id": "113",
+        "source_included": 2122,
+        "blank_taxonomy": 829,
+        "share_pct": 39.0669
+      },
+      {
+        "barrio_id": "114",
+        "source_included": 3074,
+        "blank_taxonomy": 897,
+        "share_pct": 29.1802
+      },
+      {
+        "barrio_id": "115",
+        "source_included": 1434,
+        "blank_taxonomy": 487,
+        "share_pct": 33.9609
+      },
+      {
+        "barrio_id": "116",
+        "source_included": 2165,
+        "blank_taxonomy": 656,
+        "share_pct": 30.3002
+      },
+      {
+        "barrio_id": "117",
+        "source_included": 931,
+        "blank_taxonomy": 221,
+        "share_pct": 23.7379
+      },
+      {
+        "barrio_id": "121",
+        "source_included": 383,
+        "blank_taxonomy": 67,
+        "share_pct": 17.4935
+      },
+      {
+        "barrio_id": "122",
+        "source_included": 399,
+        "blank_taxonomy": 118,
+        "share_pct": 29.5739
+      },
+      {
+        "barrio_id": "123",
+        "source_included": 596,
+        "blank_taxonomy": 205,
+        "share_pct": 34.396
+      },
+      {
+        "barrio_id": "124",
+        "source_included": 1180,
+        "blank_taxonomy": 350,
+        "share_pct": 29.661
+      },
+      {
+        "barrio_id": "125",
+        "source_included": 1553,
+        "blank_taxonomy": 362,
+        "share_pct": 23.3097
+      },
+      {
+        "barrio_id": "126",
+        "source_included": 638,
+        "blank_taxonomy": 275,
+        "share_pct": 43.1034
+      },
+      {
+        "barrio_id": "127",
+        "source_included": 1198,
+        "blank_taxonomy": 407,
+        "share_pct": 33.9733
+      },
+      {
+        "barrio_id": "131",
+        "source_included": 1348,
+        "blank_taxonomy": 577,
+        "share_pct": 42.8042
+      },
+      {
+        "barrio_id": "132",
+        "source_included": 2870,
+        "blank_taxonomy": 1053,
+        "share_pct": 36.6899
+      },
+      {
+        "barrio_id": "133",
+        "source_included": 1305,
+        "blank_taxonomy": 460,
+        "share_pct": 35.249
+      },
+      {
+        "barrio_id": "134",
+        "source_included": 1827,
+        "blank_taxonomy": 752,
+        "share_pct": 41.1604
+      },
+      {
+        "barrio_id": "135",
+        "source_included": 1382,
+        "blank_taxonomy": 487,
+        "share_pct": 35.2388
+      },
+      {
+        "barrio_id": "136",
+        "source_included": 2264,
+        "blank_taxonomy": 784,
+        "share_pct": 34.629
+      },
+      {
+        "barrio_id": "141",
+        "source_included": 244,
+        "blank_taxonomy": 74,
+        "share_pct": 30.3279
+      },
+      {
+        "barrio_id": "142",
+        "source_included": 124,
+        "blank_taxonomy": 23,
+        "share_pct": 18.5484
+      },
+      {
+        "barrio_id": "143",
+        "source_included": 987,
+        "blank_taxonomy": 173,
+        "share_pct": 17.5279
+      },
+      {
+        "barrio_id": "144",
+        "source_included": 495,
+        "blank_taxonomy": 100,
+        "share_pct": 20.202
+      },
+      {
+        "barrio_id": "145",
+        "source_included": 361,
+        "blank_taxonomy": 46,
+        "share_pct": 12.7424
+      },
+      {
+        "barrio_id": "146",
+        "source_included": 387,
+        "blank_taxonomy": 60,
+        "share_pct": 15.5039
+      },
+      {
+        "barrio_id": "151",
+        "source_included": 2673,
+        "blank_taxonomy": 968,
+        "share_pct": 36.214
+      },
+      {
+        "barrio_id": "152",
+        "source_included": 3446,
+        "blank_taxonomy": 1114,
+        "share_pct": 32.3273
+      },
+      {
+        "barrio_id": "153",
+        "source_included": 1808,
+        "blank_taxonomy": 515,
+        "share_pct": 28.4845
+      },
+      {
+        "barrio_id": "154",
+        "source_included": 1450,
+        "blank_taxonomy": 378,
+        "share_pct": 26.069
+      },
+      {
+        "barrio_id": "155",
+        "source_included": 938,
+        "blank_taxonomy": 195,
+        "share_pct": 20.7889
+      },
+      {
+        "barrio_id": "156",
+        "source_included": 616,
+        "blank_taxonomy": 79,
+        "share_pct": 12.8247
+      },
+      {
+        "barrio_id": "157",
+        "source_included": 411,
+        "blank_taxonomy": 86,
+        "share_pct": 20.9246
+      },
+      {
+        "barrio_id": "158",
+        "source_included": 66,
+        "blank_taxonomy": 13,
+        "share_pct": 19.697
+      },
+      {
+        "barrio_id": "159",
+        "source_included": 726,
+        "blank_taxonomy": 90,
+        "share_pct": 12.3967
+      },
+      {
+        "barrio_id": "161",
+        "source_included": 130,
+        "blank_taxonomy": 13,
+        "share_pct": 10.0
+      },
+      {
+        "barrio_id": "162",
+        "source_included": 346,
+        "blank_taxonomy": 43,
+        "share_pct": 12.4277
+      },
+      {
+        "barrio_id": "163",
+        "source_included": 1964,
+        "blank_taxonomy": 571,
+        "share_pct": 29.0733
+      },
+      {
+        "barrio_id": "164",
+        "source_included": 2481,
+        "blank_taxonomy": 952,
+        "share_pct": 38.3716
+      },
+      {
+        "barrio_id": "165",
+        "source_included": 335,
+        "blank_taxonomy": 118,
+        "share_pct": 35.2239
+      },
+      {
+        "barrio_id": "166",
+        "source_included": 1823,
+        "blank_taxonomy": 298,
+        "share_pct": 16.3467
+      },
+      {
+        "barrio_id": "171",
+        "source_included": 4258,
+        "blank_taxonomy": 1527,
+        "share_pct": 35.8619
+      },
+      {
+        "barrio_id": "172",
+        "source_included": 357,
+        "blank_taxonomy": 109,
+        "share_pct": 30.5322
+      },
+      {
+        "barrio_id": "173",
+        "source_included": 374,
+        "blank_taxonomy": 75,
+        "share_pct": 20.0535
+      },
+      {
+        "barrio_id": "174",
+        "source_included": 1415,
+        "blank_taxonomy": 488,
+        "share_pct": 34.4876
+      },
+      {
+        "barrio_id": "175",
+        "source_included": 918,
+        "blank_taxonomy": 163,
+        "share_pct": 17.756
+      },
+      {
+        "barrio_id": "181",
+        "source_included": 3912,
+        "blank_taxonomy": 1139,
+        "share_pct": 29.1155
+      },
+      {
+        "barrio_id": "182",
+        "source_included": 561,
+        "blank_taxonomy": 107,
+        "share_pct": 19.0731
+      },
+      {
+        "barrio_id": "183",
+        "source_included": 881,
+        "blank_taxonomy": 110,
+        "share_pct": 12.4858
+      },
+      {
+        "barrio_id": "191",
+        "source_included": 1652,
+        "blank_taxonomy": 484,
+        "share_pct": 29.2978
+      },
+      {
+        "barrio_id": "192",
+        "source_included": 317,
+        "blank_taxonomy": 38,
+        "share_pct": 11.9874
+      },
+      {
+        "barrio_id": "193",
+        "source_included": 77,
+        "blank_taxonomy": 4,
+        "share_pct": 5.1948
+      },
+      {
+        "barrio_id": "194",
+        "source_included": 291,
+        "blank_taxonomy": 19,
+        "share_pct": 6.5292
+      },
+      {
+        "barrio_id": "201",
+        "source_included": 2593,
+        "blank_taxonomy": 843,
+        "share_pct": 32.5106
+      },
+      {
+        "barrio_id": "202",
+        "source_included": 106,
+        "blank_taxonomy": 27,
+        "share_pct": 25.4717
+      },
+      {
+        "barrio_id": "203",
+        "source_included": 427,
+        "blank_taxonomy": 176,
+        "share_pct": 41.2178
+      },
+      {
+        "barrio_id": "204",
+        "source_included": 381,
+        "blank_taxonomy": 44,
+        "share_pct": 11.5486
+      },
+      {
+        "barrio_id": "205",
+        "source_included": 1010,
+        "blank_taxonomy": 177,
+        "share_pct": 17.5248
+      },
+      {
+        "barrio_id": "206",
+        "source_included": 1035,
+        "blank_taxonomy": 182,
+        "share_pct": 17.5845
+      },
+      {
+        "barrio_id": "207",
+        "source_included": 1456,
+        "blank_taxonomy": 456,
+        "share_pct": 31.3187
+      },
+      {
+        "barrio_id": "208",
+        "source_included": 379,
+        "blank_taxonomy": 97,
+        "share_pct": 25.5937
+      },
+      {
+        "barrio_id": "211",
+        "source_included": 495,
+        "blank_taxonomy": 105,
+        "share_pct": 21.2121
+      },
+      {
+        "barrio_id": "212",
+        "source_included": 851,
+        "blank_taxonomy": 215,
+        "share_pct": 25.2644
+      },
+      {
+        "barrio_id": "213",
+        "source_included": 545,
+        "blank_taxonomy": 158,
+        "share_pct": 28.9908
+      },
+      {
+        "barrio_id": "214",
+        "source_included": 394,
+        "blank_taxonomy": 64,
+        "share_pct": 16.2437
+      },
+      {
+        "barrio_id": "215",
+        "source_included": 443,
+        "blank_taxonomy": 67,
+        "share_pct": 15.1242
+      }
+    ],
+    "barrio_share_distribution_pct": {
+      "count": 131,
+      "min": 3.1447,
+      "p10": 11.9874,
+      "median": 17.8419,
+      "p90": 35.249,
+      "max": 46.9118,
+      "mean": 21.969137,
+      "coefficient_of_variation": 0.446249
+    },
+    "spatial_bias_finding": "Material spatial variation means dropping blank taxonomy from an all-premises denominator would change area comparisons. It is excluded only where the denominator is explicitly limited to populated source taxonomy."
+  },
+  "interior_effects": {
+    "code": "3",
+    "source_semantics": "UNRESOLVED/undocumented",
+    "raw_count": 51501,
+    "raw_share_pct": 25.2843,
+    "u1_count": 42093,
+    "u1_share_pct": 22.842,
+    "overlap_source_excluded": 9408,
+    "taxonomy_membership_counts_nonexclusive": {
+      "CORE_HOSPITALITY": 273,
+      "ACCOMMODATION": 5805,
+      "TOURISM_ADJACENT": 255,
+      "GENERIC_COMMERCIAL": 1709,
+      "AMBIGUOUS": 299,
+      "EXCLUDED": 24231,
+      "UNCLASSIFIED_SOURCE_ACTIVITY": 9713
+    },
+    "by_district": [
+      {
+        "district_id": "01",
+        "source_included": 21607,
+        "interior": 8790,
+        "share_pct": 40.6813
+      },
+      {
+        "district_id": "02",
+        "source_included": 6946,
+        "interior": 1356,
+        "share_pct": 19.522
+      },
+      {
+        "district_id": "03",
+        "source_included": 5723,
+        "interior": 1977,
+        "share_pct": 34.5448
+      },
+      {
+        "district_id": "04",
+        "source_included": 14478,
+        "interior": 6588,
+        "share_pct": 45.5035
+      },
+      {
+        "district_id": "05",
+        "source_included": 10180,
+        "interior": 3549,
+        "share_pct": 34.8625
+      },
+      {
+        "district_id": "06",
+        "source_included": 12712,
+        "interior": 3452,
+        "share_pct": 27.1554
+      },
+      {
+        "district_id": "07",
+        "source_included": 11436,
+        "interior": 4204,
+        "share_pct": 36.7611
+      },
+      {
+        "district_id": "08",
+        "source_included": 8732,
+        "interior": 1403,
+        "share_pct": 16.0673
+      },
+      {
+        "district_id": "09",
+        "source_included": 5888,
+        "interior": 1490,
+        "share_pct": 25.3057
+      },
+      {
+        "district_id": "10",
+        "source_included": 9766,
+        "interior": 444,
+        "share_pct": 4.5464
+      },
+      {
+        "district_id": "11",
+        "source_included": 12928,
+        "interior": 1098,
+        "share_pct": 8.4932
+      },
+      {
+        "district_id": "12",
+        "source_included": 5947,
+        "interior": 437,
+        "share_pct": 7.3482
+      },
+      {
+        "district_id": "13",
+        "source_included": 10996,
+        "interior": 591,
+        "share_pct": 5.3747
+      },
+      {
+        "district_id": "14",
+        "source_included": 2598,
+        "interior": 138,
+        "share_pct": 5.3118
+      },
+      {
+        "district_id": "15",
+        "source_included": 12134,
+        "interior": 1462,
+        "share_pct": 12.0488
+      },
+      {
+        "district_id": "16",
+        "source_included": 7079,
+        "interior": 1306,
+        "share_pct": 18.4489
+      },
+      {
+        "district_id": "17",
+        "source_included": 7322,
+        "interior": 417,
+        "share_pct": 5.6952
+      },
+      {
+        "district_id": "18",
+        "source_included": 5354,
+        "interior": 555,
+        "share_pct": 10.3661
+      },
+      {
+        "district_id": "19",
+        "source_included": 2337,
+        "interior": 223,
+        "share_pct": 9.5421
+      },
+      {
+        "district_id": "20",
+        "source_included": 7387,
+        "interior": 1853,
+        "share_pct": 25.0846
+      },
+      {
+        "district_id": "21",
+        "source_included": 2728,
+        "interior": 760,
+        "share_pct": 27.8592
+      }
+    ],
+    "barrio_share_distribution_pct": {
+      "count": 131,
+      "min": 0.5348,
+      "p10": 3.2258,
+      "median": 15.4819,
+      "p90": 45.73,
+      "max": 61.4149,
+      "mean": 20.242034,
+      "coefficient_of_variation": 0.823282
+    },
+    "counterfactual_exclusion": {
+      "u1_removed": 42093,
+      "u1_change_pct": -22.842,
+      "u1_per_resident_rank_diagnostic": {
+        "units_compared": 131,
+        "spearman_rho": 0.933663,
+        "mean_absolute_rank_shift": 10.229,
+        "max_absolute_rank_shift": 46.0,
+        "note": "Diagnostic only; barrio identities and ordered rankings are not emitted."
+      },
+      "core_per_resident_rank_diagnostic": {
+        "units_compared": 131,
+        "spearman_rho": 0.998687,
+        "mean_absolute_rank_shift": 1.1603,
+        "max_absolute_rank_shift": 10.0,
+        "note": "Diagnostic only; barrio identities and ordered rankings are not emitted."
+      },
+      "core_membership_pct_of_populated_taxonomy_rank_diagnostic": {
+        "units_compared": 131,
+        "spearman_rho": 0.70049,
+        "mean_absolute_rank_shift": 21.9313,
+        "max_absolute_rank_shift": 95.0,
+        "note": "Diagnostic only; barrio identities and ordered rankings are not emitted."
+      }
+    },
+    "ruling": "GO to include under the explicit source rule, with source semantics flagged. No evidence supports exclusion; the counterfactual is material and therefore cannot be adopted silently."
+  },
+  "multi_activity": {
+    "treatment": "Non-exclusive premises memberships. Every class count deduplicates id_local within class; no forced exclusive assignment.",
+    "target_class_membership_cardinality_within_u1": {
+      "0": 115480,
+      "1": 67292,
+      "2": 1504,
+      "3": 3
+    },
+    "all_gate_b_class_membership_cardinality_within_u1": {
+      "0": 42172,
+      "1": 136438,
+      "2": 5462,
+      "3": 193,
+      "4": 13,
+      "5": 1
+    },
+    "pairwise_target_class_overlap": {
+      "CORE_HOSPITALITY__ACCOMMODATION": 141,
+      "CORE_HOSPITALITY__TOURISM_ADJACENT": 2,
+      "CORE_HOSPITALITY__GENERIC_COMMERCIAL": 1334,
+      "ACCOMMODATION__TOURISM_ADJACENT": 4,
+      "ACCOMMODATION__GENERIC_COMMERCIAL": 15,
+      "TOURISM_ADJACENT__GENERIC_COMMERCIAL": 17
+    },
+    "share_warning": "Class membership shares may overlap and are not expected to sum to 100%."
+  },
+  "activity_row_counting_sensitivity": {
+    "CORE_HOSPITALITY": {
+      "activity_rows": 20615,
+      "distinct_premises": 19532,
+      "row_overcount": 1083,
+      "row_inflation_pct": 5.5447
+    },
+    "ACCOMMODATION": {
+      "activity_rows": 8004,
+      "distinct_premises": 7919,
+      "row_overcount": 85,
+      "row_inflation_pct": 1.0734
+    },
+    "TOURISM_ADJACENT": {
+      "activity_rows": 797,
+      "distinct_premises": 797,
+      "row_overcount": 0,
+      "row_inflation_pct": 0.0
+    },
+    "GENERIC_COMMERCIAL": {
+      "activity_rows": 50954,
+      "distinct_premises": 42061,
+      "row_overcount": 8893,
+      "row_inflation_pct": 21.1431
+    },
+    "AMBIGUOUS": {
+      "activity_rows": 4078,
+      "distinct_premises": 3813,
+      "row_overcount": 265,
+      "row_inflation_pct": 6.9499
+    },
+    "EXCLUDED": {
+      "activity_rows": 78872,
+      "distinct_premises": 73876,
+      "row_overcount": 4996,
+      "row_inflation_pct": 6.7627
+    }
+  },
+  "population_alignment": {
+    "authority": "Ayuntamiento de Madrid - Subdireccion General de Estadistica",
+    "dataset": "Poblacion por distrito y barrio a 1 de enero",
+    "underlying_register": "Padron Municipal de habitantes",
+    "unit": "persons registered in the municipal Padron",
+    "reference_date": "2026-01-01",
+    "reference_type": "padron_annual_reference_date",
+    "annual_average": false,
+    "total_population": 3497277,
+    "coverage": {
+      "municipality": 1,
+      "districts": 21,
+      "barrios": 131
+    },
+    "key_structure": "barrio official_id (3 digits), district parent_id (2 digits), CURRENT_131 only",
+    "one_to_one_current_131": true,
+    "population_data_version": {
+      "contract_version": "1.0.0",
+      "artifact_sha256": "e6bc8a209927d2acdfd1f0489638d7996b8fed809624093436beafd78cfa8e08",
+      "metadata_sha256": "89aec4d13856f699fc6b2bcf72006d05664cc138f7a3d660a0e923bd20f9d97d",
+      "retrieved_at": "2026-09-29T14:11:37Z"
+    },
+    "premises_nominal_period": "2026-09",
+    "calendar_month_offset": 8,
+    "lower_bound_days_if_premises_anchored_to_2026_09_01": 243,
+    "exact_day_gap": "UNAVAILABLE because the premises source supplies a nominal month, not an exact reference day",
+    "alternative_closer_period": "A monthly Padron dataset exists (dataset 200076) but uses rolling end-of-month semantics and is not a committed, audited CURRENT_131 denominator in this project. It is not substituted silently.",
+    "ruling": "MODIFY: acceptable as an annual residential-context denominator only with both dates displayed and no simultaneity claim."
+  },
+  "population_denominator_anomalies": {
+    "zero_population_barrios": [],
+    "under_1000_residents": [],
+    "under_5000_residents": [
+      {
+        "barrio_id": "027",
+        "residents": 2939
+      },
+      {
+        "barrio_id": "081",
+        "residents": 3472
+      },
+      {
+        "barrio_id": "082",
+        "residents": 3567
+      },
+      {
+        "barrio_id": "096",
+        "residents": 3161
+      },
+      {
+        "barrio_id": "158",
+        "residents": 1690
+      },
+      {
+        "barrio_id": "212",
+        "residents": 1928
+      }
+    ],
+    "resident_distribution": {
+      "count": 131,
+      "min": 1690,
+      "p10": 8099,
+      "median": 24009,
+      "p90": 48085,
+      "max": 77038,
+      "mean": 26696.770992,
+      "coefficient_of_variation": 0.564579
+    },
+    "suppression_rule": "NONE. No zero denominator is present; small-denominator diagnostics are disclosed instead of winsorising or suppressing."
+  },
+  "geographic_completeness": {
+    "u0_missing_barrio_code": 1,
+    "u1_missing_barrio_code": 1,
+    "u3_missing_barrio_code": 1,
+    "u0_missing_coordinate": 50870,
+    "code_resolved_despite_missing_coordinate": 50870,
+    "rule": "Code-resolved premises remain geographically assignable even when coordinates are missing; coordinates are never an eligibility filter."
+  },
+  "sensitivity_diagnostics": {
+    "scenario_definitions": {
+      "A": "U1 / population",
+      "B": "U2 populated-taxonomy premises / population",
+      "C": "CORE_HOSPITALITY / population",
+      "D": "CORE_HOSPITALITY non-exclusive membership / U2 populated-taxonomy premises"
+    },
+    "barrio_rank_diagnostics": {
+      "A_U1_per_1000_residents__vs__B_U2_populated_taxonomy_per_1000_residents": {
+        "units_compared": 131,
+        "spearman_rho": 0.974526,
+        "mean_absolute_rank_shift": 6.4122,
+        "max_absolute_rank_shift": 28.0,
+        "note": "Diagnostic only; barrio identities and ordered rankings are not emitted."
+      },
+      "A_U1_per_1000_residents__vs__C_core_per_1000_residents": {
+        "units_compared": 131,
+        "spearman_rho": 0.881711,
+        "mean_absolute_rank_shift": 12.7176,
+        "max_absolute_rank_shift": 75.0,
+        "note": "Diagnostic only; barrio identities and ordered rankings are not emitted."
+      },
+      "A_U1_per_1000_residents__vs__D_core_membership_pct_of_populated_taxonomy": {
+        "units_compared": 131,
+        "spearman_rho": -0.216503,
+        "mean_absolute_rank_shift": 48.6718,
+        "max_absolute_rank_shift": 125.0,
+        "note": "Diagnostic only; barrio identities and ordered rankings are not emitted."
+      },
+      "B_U2_populated_taxonomy_per_1000_residents__vs__C_core_per_1000_residents": {
+        "units_compared": 131,
+        "spearman_rho": 0.920216,
+        "mean_absolute_rank_shift": 10.6718,
+        "max_absolute_rank_shift": 63.0,
+        "note": "Diagnostic only; barrio identities and ordered rankings are not emitted."
+      },
+      "B_U2_populated_taxonomy_per_1000_residents__vs__D_core_membership_pct_of_populated_taxonomy": {
+        "units_compared": 131,
+        "spearman_rho": -0.192401,
+        "mean_absolute_rank_shift": 48.0153,
+        "max_absolute_rank_shift": 125.0,
+        "note": "Diagnostic only; barrio identities and ordered rankings are not emitted."
+      },
+      "C_core_per_1000_residents__vs__D_core_membership_pct_of_populated_taxonomy": {
+        "units_compared": 131,
+        "spearman_rho": 0.136946,
+        "mean_absolute_rank_shift": 39.6794,
+        "max_absolute_rank_shift": 122.0,
+        "note": "Diagnostic only; barrio identities and ordered rankings are not emitted."
+      }
+    },
+    "no_rankings_emitted": true
+  },
+  "area_denominator": {
+    "method": "Spherical polygon area derived from the committed canonical WGS84 geometry; gross administrative area, with polygon holes subtracted.",
+    "municipality_area_km2": 603.705319,
+    "sum_barrio_area_km2": 603.705321,
+    "barrio_area_distribution_km2": {
+      "count": 131,
+      "min": 0.248778,
+      "p10": 0.60679,
+      "median": 1.362588,
+      "p90": 6.989543,
+      "max": 187.491062,
+      "mean": 4.608438,
+      "coefficient_of_variation": 3.699005
+    },
+    "built_up_area_denominator_available": false,
+    "ruling": "NO-GO for production: gross polygons include parks and non-buildable/non-commercial land, so raw km2 creates land-use bias. Arithmetic is retained only as a method diagnostic."
+  },
+  "indicator_family_preference": {
+    "population_density": "Admissible only as residential-context density with an external denominator, dual dates and a strict interpretation ceiling; answers a different question.",
+    "universal_kpi": "NO-GO. Counts, non-exclusive source membership and external-denominator densities answer different questions.",
+    "source_internal_membership": "More internally coherent because numerator and denominator share the same administrative system; answers non-exclusive class membership within populated taxonomy, not residential context and not a mutually exclusive partition."
+  }
+}

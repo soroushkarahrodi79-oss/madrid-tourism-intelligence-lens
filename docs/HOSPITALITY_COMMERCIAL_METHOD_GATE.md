@@ -1,11 +1,10 @@
 # Hospitality & Commercial Context — methodology gate
 
 **This document is populated for Gate A — Unit & Identity, Gate B — Activity
-Taxonomy, Gate C — Status Semantics, Gate D — Temporal Comparability and Gate E —
-Geographic Reconciliation.** The denominator (F) gate is deliberately left unwritten.
-Writing its conclusions now, before its evidence exists, is the error this gate
-discipline exists to prevent. (Gate B renumbers the later gates' evidence questions
-onto C–F; issue #33's original letters are preserved.)
+Taxonomy, Gate C — Status Semantics, Gate D — Temporal Comparability, Gate E —
+Geographic Reconciliation and Gate F — Denominator Construction & Indicator
+Admissibility.** (Gate B renumbers the later gates' evidence questions onto C–F;
+issue #33's original letters are preserved.)
 
 Nothing here builds a UI, a map layer, an indicator, a score, a ranking or a
 denominator, and nothing here changes HATI, Destination Context, Area Profile,
@@ -1499,3 +1498,413 @@ premises snapshot with the Padrón reference period (geometry carries a version,
 effective date); (4) carry forward the Gate D count-comparability blocks (2022→2025
 expansion; accommodation discontinuity); and (5) never read a per-resident ratio as
 tourism pressure, saturation or resident burden.
+
+---
+
+## Gate F — Denominator Construction & Indicator Admissibility
+
+The reproducible evidence for this section is produced by
+[`audit_denominator.py`](../research/hospitality_commercial_gate/audit_denominator.py)
+and stored in
+[`gate_f_denominator_audit.json`](../research/hospitality_commercial_gate/results/gate_f_denominator_audit.json),
+[`gate_f_indicator_registry.json`](../research/hospitality_commercial_gate/results/gate_f_indicator_registry.json)
+and
+[`gate_f_summary.json`](../research/hospitality_commercial_gate/results/gate_f_summary.json).
+The audit imports Gate A's resource resolver and fingerprinting, Gate B's classifier,
+Gate C's exclusion-code constants and Gate E's current-barrio decoder. It does not
+duplicate or alter those decisions. Raw CSVs are temporary (or externally cached after
+MD5 verification) and are never committed.
+
+### F.0 · Scope
+
+Gate F answers: *which count, non-exclusive membership or density constructions are
+methodologically admissible for the current Hospitality & Commercial Context layer,
+for which management question, and under what interpretation ceiling?* It does not
+build the layer. It creates no UI configuration, map, ranking, score, hotspot,
+pressure index or production aggregate.
+
+The audited source versions are deliberately exact:
+
+| Family | Nominal period | Resource | SHA-256 |
+|---|---|---|---|
+| Locales | Sep 2026 | `209548-851-censo-locales-historico` | `4ca33fed004b836d…` |
+| Actividades | Sep 2026 | `209548-857-censo-locales-historico` | `ba9279d6d187105b…` |
+
+These are the re-published Sep-2026 revisions recorded by Gates C/D, not the earlier
+Gate A/B cuts. Snapshot identity remains `family + nominal_period + content
+fingerprint`; the month label alone is never enough.
+
+The admissibility ladder is:
+
+1. **Level 1 — descriptive count.** Strongest source fidelity, but still requires a
+   premises universe and exclusions.
+2. **Level 2 — source-internal non-exclusive membership.** Numerator and denominator
+   come from the same administrative system; overlaps and blank taxonomy must remain
+   explicit, and analytical classes are not a mutually exclusive partition.
+3. **Level 3 — external-denominator density.** Requires conceptual, geographic and
+   temporal compatibility with the external denominator.
+4. **Level 4 — pressure/capacity/impact.** Requires independent evidence not present
+   here. **NO-GO.**
+
+There is no universal KPI. Counts, source-internal membership and residential-context
+density answer different questions and are not interchangeable.
+
+### F.1 · Candidate premises universes
+
+Every universe is premises-level and deduplicated by `id_local`:
+
+| Universe | Exact definition | Sep-2026 count |
+|---|---|---:|
+| **U0 — RAW_PREMISES** | all distinct `id_local` in Locales | **203,688** |
+| **U1 — SOURCE_INCLUDED_PREMISES** | U0 minus `(situacion ∈ {8,9}) OR (access = 12)` | **184,279** |
+| **U2 — SOURCE_INCLUDED_POPULATED_TAXONOMY_PREMISES** | U1 with at least one populated `id_epigrafe` | **142,107** |
+| **U3 — SOURCE_INCLUDED_CORE_HOSPITALITY_PREMISES** | distinct U1 premises with division 56 | **19,532** |
+| **U4 — SOURCE_INCLUDED_ACCOMMODATION_PREMISES** | distinct U1 premises with division 55 | **7,919** |
+| **U5 — SOURCE_INCLUDED_TOURISM_ADJACENT_PREMISES** | distinct U1 premises with division 79 | **797** |
+| **U6 — SOURCE_INCLUDED_GENERIC_COMMERCIAL_PREMISES** | distinct U1 premises in section G | **42,061** |
+
+U2 is a mechanical **populated-source-taxonomy** universe. It includes every U1
+premises with at least one populated epigraph, including populated section-Z code
+`000000 / SIN ACTIVIDAD` under Gate B's `EXCLUDED` class. Those premises are **not
+silently removed**. Blank taxonomy remains outside U2. A populated epigraph establishes
+recorded taxonomy only: it does **not** establish verified current operation or even
+that the source category represents current economic activity.
+
+The Gate C exclusion union reproduces exactly: situación 8 **12,423**, situación 9
+**4,120**, access 12 **2,881**; overlaps are 8∩12 **1**, 9∩12 **14**, 8∩9 **0**, triple
+**0**. The naïve sum is 19,424, the union is **19,409**, and **15** double-subtractions
+are avoided. No inferred status or access exclusion is added.
+
+**Ruling — source-included universe: GO.** It is a reproducible administrative
+premises universe, not a count of active/operating businesses and not automatically a
+commercial or tourism universe.
+
+### F.2 · Multi-activity handling
+
+Class membership is **non-exclusive**. A premises belongs to every Gate B class for
+which it has at least one populated activity row. It is deduplicated once within each
+class, and no dominant or exclusive activity is invented.
+
+Within U1, 1,504 premises belong to two of U3–U6 and 3 belong to three. The pairwise
+overlaps include CORE_HOSPITALITY∩ACCOMMODATION **141** and
+CORE_HOSPITALITY∩GENERIC_COMMERCIAL **1,334**. Consequently class-membership shares are
+valid set-membership proportions but **are not a partition and need not sum to 100%**.
+
+The row-count negative control shows why premises deduplication is mandatory. Among
+source-included records, CORE_HOSPITALITY has 20,615 activity rows but 19,532 premises
+(**5.54%** row inflation); GENERIC_COMMERCIAL has 50,954 rows but 42,061 premises
+(**21.14%** inflation). Activity rows are never substituted for a premises numerator or
+denominator.
+
+### F.3 · Blank taxonomy treatment
+
+After the explicit source exclusions, **42,172 U1 premises (22.8849%)** carry only the
+Gate B handling label `UNCLASSIFIED_SOURCE_ACTIVITY`. They remain:
+
+- **included** in U1 and in a denominator explicitly defined as all source-included
+  documented premises;
+- **excluded** from U2 and any denominator explicitly limited to populated source
+  taxonomy;
+- visible as source semantics **UNRESOLVED**, never interpreted as inactivity.
+
+Their U1 status composition is Abierto 10,880, Cerrado 23,902 and Uso vivienda 7,390.
+Their access composition is Agrupado 1,819, Puerta Calle 30,640 and Interior 9,713.
+The complete code-sorted district and barrio counts are in the audit artifact.
+
+Exclusion is not spatially neutral: barrio blank shares range from **3.1447%** to
+**46.9118%**, with median **17.8419%**, p90 **35.2490%** and coefficient of variation
+**0.446**. Dropping blank taxonomy from an “all documented premises” denominator would
+therefore introduce material spatial bias. Exclusion is justified only when the
+question itself is *membership within populated source taxonomy*.
+
+**Ruling — blank handling: GO** under this split rule. A single silent include/drop
+rule across every denominator family is NO-GO.
+
+### F.4 · Access type `Interior`
+
+Code 3 `Interior` appears on **51,501 raw premises (25.2843%)** and **42,093 U1
+premises (22.8420%)**. Its source semantics remain undocumented; **9,408** Interior
+records overlap the Gate C status exclusions. It occurs across taxonomy classes and
+includes 9,713 U1 blank-taxonomy premises. Its barrio share ranges from **0.5348%** to
+**61.4149%**.
+
+No source evidence authorises excluding it. A diagnostic counterfactual exclusion
+would remove all 42,093 U1 Interior premises. It changes U1-per-resident barrio order
+materially (Spearman **0.933663**, mean absolute rank shift **10.23**, maximum **46**) and
+changes the CORE/U2 membership-percentage order much more (Spearman **0.700490**, mean
+shift **21.93**, maximum **95**). Those orderings are diagnostics only; no barrio
+ranking is published.
+
+**Ruling — GO to include under the explicit Gate C rule, with semantics flagged.**
+Absence from the source documentation is not evidence for exclusion. The
+counterfactual's material effect is precisely why an undocumented exclusion cannot be
+introduced silently.
+
+### F.5 · Population denominator provenance
+
+| Field | Established value |
+|---|---|
+| Authority | Ayuntamiento de Madrid — Subdirección General de Estadística |
+| Dataset | *Población por distrito y barrio a 1 de enero* (`300557-0-poblacion-distrito-barrio`) |
+| Underlying register | Padrón Municipal de habitantes |
+| Unit | persons registered in the municipal Padrón |
+| Reference date | **2026-01-01** (*1 de enero de 2026*) |
+| Period type | annual reference-date stock; **not** an annual average |
+| Total | **3,497,277** registered residents |
+| Coverage | 1 municipality, 21 districts, 131 barrios |
+| Geography join | exact 3-digit `official_id` + 2-digit parent, CURRENT_131 only |
+| Artifact contract/version | `1.0.0`; JSON SHA-256 `e6bc8a209927…` |
+
+District and municipality totals are derived deterministically from the 131
+source-reported barrio values. The population asset joins 1:1 to barrio geography
+v3.4.1 and district v3.2.1. It measures registered residents, not present population,
+daytime population, workers, visitors, tourists, households or dwellings.
+
+### F.6 · Temporal alignment
+
+The premises/activity source has nominal period **September 2026**; it provides no
+exact within-month reference day. Population is a stock at **2026-01-01**. The nominal
+month offset is **8 calendar months**; if the premises month is conservatively anchored
+at 1 September, the lower-bound day gap is **243 days**, but an exact day gap cannot be
+claimed.
+
+The monthly Padrón dataset (`200076`) is a potentially closer source, but it has rolling
+end-of-month semantics and is not a committed/audited CURRENT_131 denominator in this
+project. Gate F does not silently substitute it for the explicit annual stock.
+
+**Ruling — population denominator: MODIFY.** The annual value is acceptable for a
+bounded *residential-context* density if both source periods are displayed separately.
+It may not be labelled simply “2026” or presented as simultaneous with the premises
+snapshot.
+
+There are **no zero-population barrios** and none below 1,000 residents. Six are below
+5,000: codes `027` (2,939), `081` (3,472), `082` (3,567), `096` (3,161), `158`
+(1,690) and `212` (1,928). These can amplify rates and must be available as denominator
+metadata. Gate F applies **no winsorisation or suppression**: it discloses the issue
+instead. Any later product design may add a transparent small-denominator flag but may
+not hide or cap values without a separate decision.
+
+### F.7 · Candidate indicators
+
+The citywide arithmetic below is an audit cross-check, not a published KPI or area
+ranking.
+
+| Machine key | Public label | Audit value | Method ruling | Release status |
+|---|---|---:|---|---|
+| `source_included_premises_count` | Source-included premises | 184,279 | **GO** | `PRODUCTION_CANDIDATE` |
+| `core_hospitality_premises_count` | Documented hospitality-class premises | 19,532 | **GO** | `PRODUCTION_CANDIDATE` |
+| `accommodation_class_premises_count` | Documented accommodation-class premises | 7,919 | **GO** | `PRODUCTION_CANDIDATE` |
+| `tourism_adjacent_premises_count` | Documented travel-trade-class premises | 797 | **CONTEXT ONLY** | `CONTEXT_ONLY` |
+| `core_hospitality_membership_share_of_populated_taxonomy_premises` | Premises with a documented core-hospitality activity (%) | 13.7446% | **GO** | `PRODUCTION_CANDIDATE` |
+| `core_hospitality_share_of_source_included_premises` | Hospitality-class membership share of source-included premises | 10.5991% | **MODIFY** | `CONTEXT_ONLY` |
+| `source_included_premises_per_1000_residents` | Source-included premises per 1,000 registered residents | 52.6921 | **MODIFY** | `CONTEXT_ONLY` |
+| `core_hospitality_premises_per_1000_residents` | Documented hospitality-class premises per 1,000 registered residents | 5.5849 | **MODIFY** | `CONDITIONAL_PRODUCTION_CANDIDATE` |
+| `accommodation_class_premises_per_1000_residents` | Documented accommodation-class premises per 1,000 registered residents | 2.2643 arithmetic only | **NO-GO** | `NO_GO` |
+| `premises_per_km2` | Source-included premises per gross administrative km² | not admitted | **NO-GO** | `NO_GO` |
+| `core_hospitality_premises_per_km2` | Documented hospitality-class premises per gross administrative km² | not admitted | **NO-GO** | `NO_GO` |
+
+`PRODUCTION_CANDIDATE` is reserved for the four methodologically GO candidates.
+`CONDITIONAL_PRODUCTION_CANDIDATE` is distinct: the per-resident indicator remains
+methodologically MODIFY and may be proposed only if every registry condition travels
+with it. Neither status is production approval and nothing is wired here.
+
+### F.8 · Source-internal non-exclusive membership
+
+`CORE_HOSPITALITY / U2` is a coherent **non-exclusive membership rate**: numerator and
+denominator use the same source, snapshot, geography, exclusion rule and populated-
+taxonomy condition. Its exact public meaning is: *percentage of source-included
+premises with populated taxonomy that have at least one documented CORE_HOSPITALITY
+activity.* It is not a mutually exclusive compositional partition. U2 retains populated
+`000000 / SIN ACTIVIDAD`; populated taxonomy does not mean verified operation. Class
+membership percentages are not expected to sum to 100%.
+
+`CORE_HOSPITALITY / U1` is also arithmetically defined but answers a different question:
+hospitality membership among all source-included premises, including blank taxonomy.
+Because the blank share varies strongly in space, it is **MODIFY / CONTEXT ONLY**, not a
+replacement for the populated-taxonomy membership rate.
+
+Source-internal membership is more internally coherent than population density, but it
+does not “win”: it answers documented class membership, while population density
+answers residential context. Neither is capacity or impact.
+
+### F.9 · Population-based density
+
+`CORE_HOSPITALITY / registered residents` is **MODIFY** and may proceed only as:
+**Documented hospitality-class premises per 1,000 registered residents**. It describes
+administrative hospitality presence relative to residential population. It is useful
+for asking where the recorded class is relatively concentrated compared with the
+residential base.
+
+It does not account for daytime population, commuters, visitors, land use, premises
+size, seats, turnover, opening status or impacts. Central/non-residential areas may have
+a small residential denominator relative to their functions. The six under-5,000
+barrios require denominator visibility. The indicator must display Sep-2026 premises
+and 2026-01-01 population as separate periods.
+
+Its `CONDITIONAL_PRODUCTION_CANDIDATE` conditions are mandatory: premises period
+**Sep 2026**; resident denominator date **01 Jan 2026**; denominator named as
+**registered residents / Padrón reference-date stock**; dual dates displayed
+separately; no shared “2026” wording implying simultaneity; residential-context
+density only; and explicit prohibitions on tourism pressure, resident burden,
+saturation, overtourism and verified operating-business density.
+
+Broad `U1 / population` is **MODIFY / CONTEXT ONLY**: its numerator combines populated-
+taxonomy, blank-taxonomy, Cerrado and Uso-vivienda records that the source does not
+explicitly exclude. It is a legitimate administrative-density arithmetic but a weak
+destination-management KPI.
+
+### F.10 · Area-based density
+
+The audit derives gross area from the committed canonical WGS84 polygons using a
+spherical polygon-area calculation (holes subtracted): municipality **603.705 km²**;
+the sum of barrio areas agrees to rounding. Barrio gross area ranges from **0.249 km²**
+to **187.491 km²** and has a coefficient of variation of **3.699**.
+
+Gross administrative area includes parks, protected/open land, infrastructure and
+other non-buildable or non-commercial space. No canonical built-up, developable or
+commercial-floor-area denominator is available. Therefore both area candidates are
+**NO-GO for production**. A mathematically valid quotient cannot be rescued by a safer
+label when the denominator does not represent the relevant exposure surface.
+
+### F.11 · Sensitivity analysis
+
+No ranking is authorised or emitted. Rank correlation and absolute order movement are
+used only to diagnose whether denominator choice changes the spatial story:
+
+| Diagnostic comparison | Spearman ρ | Mean absolute shift | Maximum shift |
+|---|---:|---:|---:|
+| A U1/population vs B U2 populated-taxonomy premises/population | 0.974526 | 6.41 | 28 |
+| A U1/population vs C CORE/population | 0.881711 | 12.72 | 75 |
+| C CORE/population vs D CORE/U2 non-exclusive membership | 0.136946 | 39.68 | 122 |
+| raw/population vs source-excluded-union U1/population | 0.996429 | 2.08 | 17 |
+
+The first comparison shows that blank-taxonomy handling changes order non-trivially;
+the last shows Gate C exclusions are less disruptive but still not inert. The near-zero
+association between CORE/population and CORE/U2 is not an instability defect: the two
+denominators answer fundamentally different questions (residential context versus
+non-exclusive source membership). It is evidence against presenting them as
+interchangeable KPIs.
+
+Premises versus activity-row sensitivity is material (F.2), and the Interior
+counterfactual is especially material for source membership (F.4). These findings
+support explicit denominator families, not a composite score.
+
+Geographic completeness does not drive the result: only **1 U0/U1 premises** lacks a
+barrio code (it is also U3). By contrast, **50,870** premises have no usable coordinate,
+and all 50,870 are still code-resolved. Coordinate missingness is never an eligibility
+filter; code assignability and coordinate QA are separate.
+
+### F.12 · Decision relevance
+
+Admitted questions are bounded:
+
+- How many source-included administrative premises are documented?
+- Where is documented division-56 hospitality activity present?
+- What percentage of populated-taxonomy premises has at least one documented
+  CORE_HOSPITALITY activity?
+- Where is documented hospitality presence relatively concentrated compared with
+  registered residents, with both dates shown?
+- Where are heterogeneous division-55 accommodation-class premises documented (count
+  only, with no capacity reading)?
+
+Division 79 is mathematically clear but has limited decision relevance as a per-resident
+construction. Its count remains **CONTEXT ONLY**; a travel-agency-per-resident rate is
+not added merely because it is calculable.
+
+Not legitimate: which barrio suffers most; where residents bear the greatest burden;
+where tourism stress, saturation or overtourism is highest; or any “hot/worst/top”
+area question.
+
+### F.13 · Naming and interpretation ceilings
+
+Admitted labels use **source-included**, **administratively documented**, **recorded**
+and **class premises**. They do not use active businesses, operating restaurants,
+tourism businesses, hospitality supply or tourism capacity.
+
+The three admitted count labels are guarded explicitly: `source_included_premises_count`
+remains premises, never “businesses”; `core_hospitality_premises_count` remains
+documented hospitality-class premises, never operating restaurants; and
+`accommodation_class_premises_count` remains documented division-55/accommodation-class
+premises, never beds, capacity or licensed accommodation stock.
+
+The per-resident ratio is a **conditional**, not unconditional, production candidate.
+It may never claim:
+
+- pressure on residents, resident burden or tourism stress;
+- carrying capacity, saturation or overtourism;
+- tourism/visitor demand, present-person exposure or commercial vitality;
+- verified operating businesses; or
+- accommodation capacity, tourist beds or tourist intensity.
+
+The accommodation class is especially constrained. Division 55 mixes hotels/motels,
+hostales, apart-hotels, viviendas turísticas, albergues, student residences, pensiones
+and casas de huéspedes. A premises count is not capacity. Gate D also found a major
+recorded-universe discontinuity. **Accommodation count: GO with the exact class label.**
+**Accommodation per resident: NO-GO.** It is not merged with the licensed-VUT or Madrid
+Destino universes.
+
+### F.14 · Indicator registry and required metadata
+
+The machine-readable registry contains, for every candidate: machine key, public label,
+exact numerator, denominator, unit, current geography/version, reference period and
+fingerprints, ruling, release status, legitimate decision question, interpretation,
+interpretation ceiling, temporal-use rule, required metadata, known sensitivity,
+reason, and a non-numeric risk matrix covering source validity, numerator clarity,
+denominator clarity, temporal/geographic compatibility, sensitivity, interpretive risk
+and decision relevance.
+
+Every admitted candidate must carry:
+
+- numerator universe and source exclusions;
+- unit;
+- denominator authority/source/reference date where applicable;
+- CURRENT_131 geography and published versions;
+- premises/activity family + nominal period + content fingerprint;
+- denominator artifact/data version;
+- interpretation ceiling; and
+- temporal-use rule.
+
+No `NO_GO` entry is a production candidate.
+
+Release readiness is also categorical: four GO indicators are
+`PRODUCTION_CANDIDATE`; the one MODIFY density is separately
+`CONDITIONAL_PRODUCTION_CANDIDATE` with its mandatory conditions embedded in the
+registry. These statuses must never be collapsed.
+
+### F.15 · Gate F ruling — **GO, scoped to the exact admitted set**
+
+| Question | Ruling |
+|---|---|
+| Source-included premises universe | **GO** |
+| Blank taxonomy handling | **GO** — retain in U1; exclude only from explicitly populated-taxonomy membership |
+| Interior access handling | **GO** — include under explicit source rules; semantics flagged |
+| Populated-taxonomy-premises denominator | **GO** — U2, populated epigraph, premises-deduplicated; includes populated `SIN ACTIVIDAD`; not verified operation |
+| Population denominator | **MODIFY** — residential-context only; dual dates; current geography |
+| Area denominator | **NO-GO** — gross-area land-use bias; no built-up denominator |
+| CORE_HOSPITALITY membership percentage within U2 | **GO** — non-exclusive membership rate; analytical-class percentages need not sum to 100% |
+| CORE_HOSPITALITY per resident | **MODIFY** — administrative residential-context density only |
+| ACCOMMODATION per resident | **NO-GO** — heterogeneous premises class is not capacity |
+| Pressure / saturation / overtourism indicator | **NO-GO** |
+| **Overall Gate F** | **GO to a later, scoped implementation proposal only for the exact unconditional and conditional sets below** |
+
+The exact unconditional `PRODUCTION_CANDIDATE` set is:
+
+1. `source_included_premises_count`
+2. `core_hospitality_premises_count`
+3. `accommodation_class_premises_count`
+4. `core_hospitality_membership_share_of_populated_taxonomy_premises`
+
+The exact `CONDITIONAL_PRODUCTION_CANDIDATE` set is:
+
+1. `core_hospitality_premises_per_1000_residents`
+
+The conditional candidate remains MODIFY and may be proposed only with all dual-period,
+denominator and interpretation requirements above. Neither readiness class is a UI
+authorisation; a later implementation change must consume the registry contract and be
+reviewed separately.
+
+**Temporal-use rule.** Gate F approves a current fingerprinted snapshot only. It does
+not authorise a trend chart. A later CURRENT_131 series must still satisfy Gate D's
+snapshot/version and administrative-universe segmentation. Current 2026 population is
+never applied to HISTORICAL_128 records; cross-2017 per-resident analysis remains
+NO-GO unless era-compatible historical population is independently established.

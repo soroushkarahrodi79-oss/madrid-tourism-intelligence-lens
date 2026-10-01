@@ -1,0 +1,826 @@
+[
+  {
+    "indicator_id": "source_included_premises_count",
+    "label": "Source-included premises",
+    "numerator": "U1: distinct id_local after situacion 8/9 OR access 12 exclusions",
+    "denominator": "none",
+    "unit": "premises",
+    "geography": {
+      "scope": "Madrid municipality, district and CURRENT_131 barrio; barrio production use is current snapshot only",
+      "district_version": "v3.2.1",
+      "barrio_version": "v3.4.1"
+    },
+    "reference_period": {
+      "premises_and_activities": {
+        "premises": {
+          "description": "Locales. Septiembre 2026",
+          "resource_id": "209548-851-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-851-censo-locales-historico/download/209548_20261001_045230.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+          "catalogue_md5": "7e1aeea0b047120a813abb5e4d866837",
+          "catalogue_size_bytes": 89299449,
+          "catalogue_created": "2026-09-03T06:16:30.925591",
+          "catalogue_issued": "2026-09-03T06:16:30.925591",
+          "catalogue_last_modified": "2026-10-01T04:53:39.877667",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        },
+        "activities": {
+          "description": "Actividades. Septiembre 2026",
+          "resource_id": "209548-857-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-857-censo-locales-historico/download/209548_20261001_043906.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2",
+          "catalogue_md5": "045cbcda8bb41f39f055ca5ed113627e",
+          "catalogue_size_bytes": 125022514,
+          "catalogue_created": "2026-09-03T06:44:06.830611",
+          "catalogue_issued": "2026-09-03T06:44:06.830611",
+          "catalogue_last_modified": "2026-10-01T04:40:27.638017",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        }
+      }
+    },
+    "ruling": "GO",
+    "admissibility_status": "PRODUCTION_CANDIDATE",
+    "decision_question": "How many premises records remain after the source's explicit exclusions?",
+    "interpretation": "A direct administrative count.",
+    "interpretation_ceiling": "Not active businesses, commercial vitality, tourism supply or current operation.",
+    "temporal_use": "Current Sep-2026 fingerprinted snapshot only; no trend inference. CURRENT_131 comparisons require separately audited snapshots and Gate D segmentation.",
+    "required_metadata": [
+      "numerator_universe",
+      "source_exclusions",
+      "unit",
+      "geography_version",
+      "premises_snapshot_fingerprint",
+      "interpretation_ceiling",
+      "temporal_use_rule"
+    ],
+    "known_sensitivity": "Low; union exclusions and premises deduplication are source-defined.",
+    "reason": "GO: A direct administrative count. Low; union exclusions and premises deduplication are source-defined.",
+    "risk_matrix": {
+      "source_validity": "GO",
+      "numerator_clarity": "GO",
+      "denominator_clarity": "GO",
+      "temporal_compatibility": "MODIFY",
+      "geographic_compatibility": "GO",
+      "sensitivity": "GO",
+      "interpretive_risk": "MODIFY",
+      "decision_relevance": "GO"
+    },
+    "implementation_conditions": []
+  },
+  {
+    "indicator_id": "core_hospitality_premises_count",
+    "label": "Documented hospitality-class premises",
+    "numerator": "U3: distinct U1 premises with at least one division 56 activity",
+    "denominator": "none",
+    "unit": "premises",
+    "geography": {
+      "scope": "Madrid municipality, district and CURRENT_131 barrio; barrio production use is current snapshot only",
+      "district_version": "v3.2.1",
+      "barrio_version": "v3.4.1"
+    },
+    "reference_period": {
+      "premises_and_activities": {
+        "premises": {
+          "description": "Locales. Septiembre 2026",
+          "resource_id": "209548-851-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-851-censo-locales-historico/download/209548_20261001_045230.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+          "catalogue_md5": "7e1aeea0b047120a813abb5e4d866837",
+          "catalogue_size_bytes": 89299449,
+          "catalogue_created": "2026-09-03T06:16:30.925591",
+          "catalogue_issued": "2026-09-03T06:16:30.925591",
+          "catalogue_last_modified": "2026-10-01T04:53:39.877667",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        },
+        "activities": {
+          "description": "Actividades. Septiembre 2026",
+          "resource_id": "209548-857-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-857-censo-locales-historico/download/209548_20261001_043906.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2",
+          "catalogue_md5": "045cbcda8bb41f39f055ca5ed113627e",
+          "catalogue_size_bytes": 125022514,
+          "catalogue_created": "2026-09-03T06:44:06.830611",
+          "catalogue_issued": "2026-09-03T06:44:06.830611",
+          "catalogue_last_modified": "2026-10-01T04:40:27.638017",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        }
+      }
+    },
+    "ruling": "GO",
+    "admissibility_status": "PRODUCTION_CANDIDATE",
+    "decision_question": "Where is documented food-and-beverage activity present?",
+    "interpretation": "Administrative presence of division-56-class premises.",
+    "interpretation_ceiling": "Not verified operation, visitor use, demand, capacity, pressure or saturation.",
+    "temporal_use": "Current Sep-2026 fingerprinted snapshot only; no trend inference. CURRENT_131 comparisons require separately audited snapshots and Gate D segmentation.",
+    "required_metadata": [
+      "numerator_universe",
+      "source_exclusions",
+      "unit",
+      "geography_version",
+      "premises_snapshot_fingerprint",
+      "interpretation_ceiling",
+      "temporal_use_rule"
+    ],
+    "known_sensitivity": "Non-exclusive membership; activity-row counting would inflate the numerator.",
+    "reason": "GO: Administrative presence of division-56-class premises. Non-exclusive membership; activity-row counting would inflate the numerator.",
+    "risk_matrix": {
+      "source_validity": "GO",
+      "numerator_clarity": "GO",
+      "denominator_clarity": "GO",
+      "temporal_compatibility": "MODIFY",
+      "geographic_compatibility": "GO",
+      "sensitivity": "GO",
+      "interpretive_risk": "MODIFY",
+      "decision_relevance": "GO"
+    },
+    "implementation_conditions": []
+  },
+  {
+    "indicator_id": "accommodation_class_premises_count",
+    "label": "Documented accommodation-class premises",
+    "numerator": "U4: distinct U1 premises with at least one division 55 activity",
+    "denominator": "none",
+    "unit": "premises",
+    "geography": {
+      "scope": "Madrid municipality, district and CURRENT_131 barrio; barrio production use is current snapshot only",
+      "district_version": "v3.2.1",
+      "barrio_version": "v3.4.1"
+    },
+    "reference_period": {
+      "premises_and_activities": {
+        "premises": {
+          "description": "Locales. Septiembre 2026",
+          "resource_id": "209548-851-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-851-censo-locales-historico/download/209548_20261001_045230.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+          "catalogue_md5": "7e1aeea0b047120a813abb5e4d866837",
+          "catalogue_size_bytes": 89299449,
+          "catalogue_created": "2026-09-03T06:16:30.925591",
+          "catalogue_issued": "2026-09-03T06:16:30.925591",
+          "catalogue_last_modified": "2026-10-01T04:53:39.877667",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        },
+        "activities": {
+          "description": "Actividades. Septiembre 2026",
+          "resource_id": "209548-857-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-857-censo-locales-historico/download/209548_20261001_043906.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2",
+          "catalogue_md5": "045cbcda8bb41f39f055ca5ed113627e",
+          "catalogue_size_bytes": 125022514,
+          "catalogue_created": "2026-09-03T06:44:06.830611",
+          "catalogue_issued": "2026-09-03T06:44:06.830611",
+          "catalogue_last_modified": "2026-10-01T04:40:27.638017",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        }
+      }
+    },
+    "ruling": "GO",
+    "admissibility_status": "PRODUCTION_CANDIDATE",
+    "decision_question": "Where are division-55-class premises documented?",
+    "interpretation": "Administrative presence of the heterogeneous division-55 class.",
+    "interpretation_ceiling": "Not beds, capacity, licensed VUT stock, demand or tourist intensity.",
+    "temporal_use": "Current Sep-2026 fingerprinted snapshot only; no trend inference. CURRENT_131 comparisons require separately audited snapshots and Gate D segmentation.",
+    "required_metadata": [
+      "numerator_universe",
+      "source_exclusions",
+      "unit",
+      "geography_version",
+      "premises_snapshot_fingerprint",
+      "interpretation_ceiling",
+      "temporal_use_rule"
+    ],
+    "known_sensitivity": "Heterogeneous epigraphs; count only, no merged accommodation universe.",
+    "reason": "GO: Administrative presence of the heterogeneous division-55 class. Heterogeneous epigraphs; count only, no merged accommodation universe.",
+    "risk_matrix": {
+      "source_validity": "GO",
+      "numerator_clarity": "GO",
+      "denominator_clarity": "GO",
+      "temporal_compatibility": "MODIFY",
+      "geographic_compatibility": "GO",
+      "sensitivity": "MODIFY",
+      "interpretive_risk": "MODIFY",
+      "decision_relevance": "GO"
+    },
+    "implementation_conditions": []
+  },
+  {
+    "indicator_id": "tourism_adjacent_premises_count",
+    "label": "Documented travel-trade-class premises",
+    "numerator": "U5: distinct U1 premises with a division 79 activity",
+    "denominator": "none",
+    "unit": "premises",
+    "geography": {
+      "scope": "Madrid municipality, district and CURRENT_131 barrio; barrio production use is current snapshot only",
+      "district_version": "v3.2.1",
+      "barrio_version": "v3.4.1"
+    },
+    "reference_period": {
+      "premises_and_activities": {
+        "premises": {
+          "description": "Locales. Septiembre 2026",
+          "resource_id": "209548-851-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-851-censo-locales-historico/download/209548_20261001_045230.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+          "catalogue_md5": "7e1aeea0b047120a813abb5e4d866837",
+          "catalogue_size_bytes": 89299449,
+          "catalogue_created": "2026-09-03T06:16:30.925591",
+          "catalogue_issued": "2026-09-03T06:16:30.925591",
+          "catalogue_last_modified": "2026-10-01T04:53:39.877667",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        },
+        "activities": {
+          "description": "Actividades. Septiembre 2026",
+          "resource_id": "209548-857-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-857-censo-locales-historico/download/209548_20261001_043906.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2",
+          "catalogue_md5": "045cbcda8bb41f39f055ca5ed113627e",
+          "catalogue_size_bytes": 125022514,
+          "catalogue_created": "2026-09-03T06:44:06.830611",
+          "catalogue_issued": "2026-09-03T06:44:06.830611",
+          "catalogue_last_modified": "2026-10-01T04:40:27.638017",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        }
+      }
+    },
+    "ruling": "CONTEXT ONLY",
+    "admissibility_status": "CONTEXT_ONLY",
+    "decision_question": "Where is documented travel-trade activity present?",
+    "interpretation": "Administrative context for division 79.",
+    "interpretation_ceiling": "Not tourism intensity, demand or pressure; limited destination-management relevance.",
+    "temporal_use": "Current Sep-2026 fingerprinted snapshot only; no trend inference. CURRENT_131 comparisons require separately audited snapshots and Gate D segmentation.",
+    "required_metadata": [
+      "numerator_universe",
+      "source_exclusions",
+      "unit",
+      "geography_version",
+      "premises_snapshot_fingerprint",
+      "interpretation_ceiling",
+      "temporal_use_rule"
+    ],
+    "known_sensitivity": "Small numerator; mathematically clear but limited decision relevance.",
+    "reason": "CONTEXT ONLY: Administrative context for division 79. Small numerator; mathematically clear but limited decision relevance.",
+    "risk_matrix": {
+      "source_validity": "GO",
+      "numerator_clarity": "GO",
+      "denominator_clarity": "GO",
+      "temporal_compatibility": "MODIFY",
+      "geographic_compatibility": "GO",
+      "sensitivity": "MODIFY",
+      "interpretive_risk": "MODIFY",
+      "decision_relevance": "CONTEXT ONLY"
+    },
+    "implementation_conditions": []
+  },
+  {
+    "indicator_id": "core_hospitality_membership_share_of_populated_taxonomy_premises",
+    "label": "Premises with a documented core-hospitality activity (%)",
+    "numerator": "U3 distinct premises with at least one documented CORE_HOSPITALITY activity",
+    "denominator": "U2 distinct source-included premises with at least one populated epigraph, including populated section Z / SIN ACTIVIDAD",
+    "unit": "percent",
+    "geography": {
+      "scope": "Madrid municipality, district and CURRENT_131 barrio; barrio production use is current snapshot only",
+      "district_version": "v3.2.1",
+      "barrio_version": "v3.4.1"
+    },
+    "reference_period": {
+      "premises_and_activities": {
+        "premises": {
+          "description": "Locales. Septiembre 2026",
+          "resource_id": "209548-851-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-851-censo-locales-historico/download/209548_20261001_045230.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+          "catalogue_md5": "7e1aeea0b047120a813abb5e4d866837",
+          "catalogue_size_bytes": 89299449,
+          "catalogue_created": "2026-09-03T06:16:30.925591",
+          "catalogue_issued": "2026-09-03T06:16:30.925591",
+          "catalogue_last_modified": "2026-10-01T04:53:39.877667",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        },
+        "activities": {
+          "description": "Actividades. Septiembre 2026",
+          "resource_id": "209548-857-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-857-censo-locales-historico/download/209548_20261001_043906.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2",
+          "catalogue_md5": "045cbcda8bb41f39f055ca5ed113627e",
+          "catalogue_size_bytes": 125022514,
+          "catalogue_created": "2026-09-03T06:44:06.830611",
+          "catalogue_issued": "2026-09-03T06:44:06.830611",
+          "catalogue_last_modified": "2026-10-01T04:40:27.638017",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        }
+      }
+    },
+    "ruling": "GO",
+    "admissibility_status": "PRODUCTION_CANDIDATE",
+    "decision_question": "What percentage of source-included premises with populated taxonomy have at least one documented CORE_HOSPITALITY activity?",
+    "interpretation": "A source-internal, non-exclusive membership rate; populated taxonomy does not mean verified current operation.",
+    "interpretation_ceiling": "Class memberships are non-exclusive; shares across analytical classes are not expected to sum to 100%. Not market share, capacity, saturation or verified operation.",
+    "temporal_use": "Current Sep-2026 fingerprinted snapshot only; no trend inference. CURRENT_131 comparisons require separately audited snapshots and Gate D segmentation.",
+    "required_metadata": [
+      "numerator_universe",
+      "source_exclusions",
+      "unit",
+      "geography_version",
+      "premises_snapshot_fingerprint",
+      "interpretation_ceiling",
+      "temporal_use_rule"
+    ],
+    "known_sensitivity": "Blank taxonomy is excluded; populated section Z / SIN ACTIVIDAD remains in U2; class multi-membership is retained.",
+    "reason": "GO: A source-internal, non-exclusive membership rate; populated taxonomy does not mean verified current operation. Blank taxonomy is excluded; populated section Z / SIN ACTIVIDAD remains in U2; class multi-membership is retained.",
+    "risk_matrix": {
+      "source_validity": "GO",
+      "numerator_clarity": "GO",
+      "denominator_clarity": "GO",
+      "temporal_compatibility": "MODIFY",
+      "geographic_compatibility": "GO",
+      "sensitivity": "GO",
+      "interpretive_risk": "MODIFY",
+      "decision_relevance": "GO"
+    },
+    "implementation_conditions": []
+  },
+  {
+    "indicator_id": "core_hospitality_share_of_source_included_premises",
+    "label": "Hospitality-class membership share of source-included premises",
+    "numerator": "U3 distinct premises",
+    "denominator": "U1 distinct source-included premises",
+    "unit": "percent",
+    "geography": {
+      "scope": "Madrid municipality, district and CURRENT_131 barrio; barrio production use is current snapshot only",
+      "district_version": "v3.2.1",
+      "barrio_version": "v3.4.1"
+    },
+    "reference_period": {
+      "premises_and_activities": {
+        "premises": {
+          "description": "Locales. Septiembre 2026",
+          "resource_id": "209548-851-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-851-censo-locales-historico/download/209548_20261001_045230.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+          "catalogue_md5": "7e1aeea0b047120a813abb5e4d866837",
+          "catalogue_size_bytes": 89299449,
+          "catalogue_created": "2026-09-03T06:16:30.925591",
+          "catalogue_issued": "2026-09-03T06:16:30.925591",
+          "catalogue_last_modified": "2026-10-01T04:53:39.877667",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        },
+        "activities": {
+          "description": "Actividades. Septiembre 2026",
+          "resource_id": "209548-857-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-857-censo-locales-historico/download/209548_20261001_043906.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2",
+          "catalogue_md5": "045cbcda8bb41f39f055ca5ed113627e",
+          "catalogue_size_bytes": 125022514,
+          "catalogue_created": "2026-09-03T06:44:06.830611",
+          "catalogue_issued": "2026-09-03T06:44:06.830611",
+          "catalogue_last_modified": "2026-10-01T04:40:27.638017",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        }
+      }
+    },
+    "ruling": "MODIFY",
+    "admissibility_status": "CONTEXT_ONLY",
+    "decision_question": "What share of all source-included premises carries hospitality classification?",
+    "interpretation": "A source-internal membership share whose denominator includes blank-taxonomy premises.",
+    "interpretation_ceiling": "Not a populated-taxonomy membership rate, capacity or saturation.",
+    "temporal_use": "Current Sep-2026 fingerprinted snapshot only; no trend inference. CURRENT_131 comparisons require separately audited snapshots and Gate D segmentation.",
+    "required_metadata": [
+      "numerator_universe",
+      "source_exclusions",
+      "unit",
+      "geography_version",
+      "premises_snapshot_fingerprint",
+      "interpretation_ceiling",
+      "temporal_use_rule"
+    ],
+    "known_sensitivity": "Sensitive to spatial variation in blank taxonomy; use the populated-taxonomy membership indicator when that is the intended denominator.",
+    "reason": "MODIFY: A source-internal membership share whose denominator includes blank-taxonomy premises. Sensitive to spatial variation in blank taxonomy; use the populated-taxonomy membership indicator when that is the intended denominator.",
+    "risk_matrix": {
+      "source_validity": "GO",
+      "numerator_clarity": "GO",
+      "denominator_clarity": "MODIFY",
+      "temporal_compatibility": "MODIFY",
+      "geographic_compatibility": "GO",
+      "sensitivity": "MODIFY",
+      "interpretive_risk": "MODIFY",
+      "decision_relevance": "CONTEXT ONLY"
+    },
+    "implementation_conditions": []
+  },
+  {
+    "indicator_id": "source_included_premises_per_1000_residents",
+    "label": "Source-included premises per 1,000 registered residents",
+    "numerator": "U1 distinct source-included premises",
+    "denominator": "registered residents at 2026-01-01",
+    "unit": "premises per 1,000 registered residents",
+    "geography": {
+      "scope": "Madrid municipality, district and CURRENT_131 barrio; barrio production use is current snapshot only",
+      "district_version": "v3.2.1",
+      "barrio_version": "v3.4.1"
+    },
+    "reference_period": {
+      "premises_and_activities": {
+        "premises": {
+          "description": "Locales. Septiembre 2026",
+          "resource_id": "209548-851-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-851-censo-locales-historico/download/209548_20261001_045230.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+          "catalogue_md5": "7e1aeea0b047120a813abb5e4d866837",
+          "catalogue_size_bytes": 89299449,
+          "catalogue_created": "2026-09-03T06:16:30.925591",
+          "catalogue_issued": "2026-09-03T06:16:30.925591",
+          "catalogue_last_modified": "2026-10-01T04:53:39.877667",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        },
+        "activities": {
+          "description": "Actividades. Septiembre 2026",
+          "resource_id": "209548-857-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-857-censo-locales-historico/download/209548_20261001_043906.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2",
+          "catalogue_md5": "045cbcda8bb41f39f055ca5ed113627e",
+          "catalogue_size_bytes": 125022514,
+          "catalogue_created": "2026-09-03T06:44:06.830611",
+          "catalogue_issued": "2026-09-03T06:44:06.830611",
+          "catalogue_last_modified": "2026-10-01T04:40:27.638017",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        }
+      },
+      "population": {
+        "reference_date": "2026-01-01",
+        "type": "padron_annual_reference_date",
+        "data_version": {
+          "contract_version": "1.0.0",
+          "artifact_sha256": "e6bc8a209927d2acdfd1f0489638d7996b8fed809624093436beafd78cfa8e08",
+          "metadata_sha256": "89aec4d13856f699fc6b2bcf72006d05664cc138f7a3d660a0e923bd20f9d97d",
+          "retrieved_at": "2026-09-29T14:11:37Z"
+        }
+      }
+    },
+    "ruling": "MODIFY",
+    "admissibility_status": "CONTEXT_ONLY",
+    "decision_question": "How does the broad documented-premises universe compare with residential population?",
+    "interpretation": "A residential-context administrative density.",
+    "interpretation_ceiling": "Not tourism pressure, resident burden, tourism intensity, saturation, overtourism or present-person exposure.",
+    "temporal_use": "Current Sep-2026 fingerprinted snapshot only; no trend inference. CURRENT_131 comparisons require separately audited snapshots and Gate D segmentation.",
+    "required_metadata": [
+      "numerator_universe",
+      "source_exclusions",
+      "unit",
+      "geography_version",
+      "premises_snapshot_fingerprint",
+      "interpretation_ceiling",
+      "temporal_use_rule",
+      "denominator_source",
+      "denominator_reference_date",
+      "denominator_data_version",
+      "premises_population_reference_mismatch"
+    ],
+    "known_sensitivity": "Broad mixed numerator plus eight-calendar-month reference mismatch.",
+    "reason": "MODIFY: A residential-context administrative density. Broad mixed numerator plus eight-calendar-month reference mismatch.",
+    "risk_matrix": {
+      "source_validity": "GO",
+      "numerator_clarity": "GO",
+      "denominator_clarity": "MODIFY",
+      "temporal_compatibility": "MODIFY",
+      "geographic_compatibility": "GO",
+      "sensitivity": "MODIFY",
+      "interpretive_risk": "MODIFY",
+      "decision_relevance": "CONTEXT ONLY"
+    },
+    "implementation_conditions": []
+  },
+  {
+    "indicator_id": "core_hospitality_premises_per_1000_residents",
+    "label": "Documented hospitality-class premises per 1,000 registered residents",
+    "numerator": "U3 distinct source-included division-56 premises",
+    "denominator": "registered residents at 2026-01-01",
+    "unit": "premises per 1,000 registered residents",
+    "geography": {
+      "scope": "Madrid municipality, district and CURRENT_131 barrio; barrio production use is current snapshot only",
+      "district_version": "v3.2.1",
+      "barrio_version": "v3.4.1"
+    },
+    "reference_period": {
+      "premises_and_activities": {
+        "premises": {
+          "description": "Locales. Septiembre 2026",
+          "resource_id": "209548-851-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-851-censo-locales-historico/download/209548_20261001_045230.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+          "catalogue_md5": "7e1aeea0b047120a813abb5e4d866837",
+          "catalogue_size_bytes": 89299449,
+          "catalogue_created": "2026-09-03T06:16:30.925591",
+          "catalogue_issued": "2026-09-03T06:16:30.925591",
+          "catalogue_last_modified": "2026-10-01T04:53:39.877667",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        },
+        "activities": {
+          "description": "Actividades. Septiembre 2026",
+          "resource_id": "209548-857-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-857-censo-locales-historico/download/209548_20261001_043906.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2",
+          "catalogue_md5": "045cbcda8bb41f39f055ca5ed113627e",
+          "catalogue_size_bytes": 125022514,
+          "catalogue_created": "2026-09-03T06:44:06.830611",
+          "catalogue_issued": "2026-09-03T06:44:06.830611",
+          "catalogue_last_modified": "2026-10-01T04:40:27.638017",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        }
+      },
+      "population": {
+        "reference_date": "2026-01-01",
+        "type": "padron_annual_reference_date",
+        "data_version": {
+          "contract_version": "1.0.0",
+          "artifact_sha256": "e6bc8a209927d2acdfd1f0489638d7996b8fed809624093436beafd78cfa8e08",
+          "metadata_sha256": "89aec4d13856f699fc6b2bcf72006d05664cc138f7a3d660a0e923bd20f9d97d",
+          "retrieved_at": "2026-09-29T14:11:37Z"
+        }
+      }
+    },
+    "ruling": "MODIFY",
+    "admissibility_status": "CONDITIONAL_PRODUCTION_CANDIDATE",
+    "decision_question": "Where is documented hospitality presence relatively concentrated compared with resident population?",
+    "interpretation": "Administrative residential-context density only.",
+    "interpretation_ceiling": "Not tourism pressure, resident burden, visitor intensity, demand, capacity, saturation, overtourism or verified operating-business density.",
+    "temporal_use": "Current Sep-2026 fingerprinted snapshot only; no trend inference. CURRENT_131 comparisons require separately audited snapshots and Gate D segmentation.",
+    "required_metadata": [
+      "numerator_universe",
+      "source_exclusions",
+      "unit",
+      "geography_version",
+      "premises_snapshot_fingerprint",
+      "interpretation_ceiling",
+      "temporal_use_rule",
+      "denominator_source",
+      "denominator_reference_date",
+      "denominator_data_version",
+      "premises_population_reference_mismatch"
+    ],
+    "known_sensitivity": "Date mismatch and non-residential centrality require dual-date metadata and an interpretation ceiling.",
+    "reason": "MODIFY: Administrative residential-context density only. Date mismatch and non-residential centrality require dual-date metadata and an interpretation ceiling.",
+    "risk_matrix": {
+      "source_validity": "GO",
+      "numerator_clarity": "GO",
+      "denominator_clarity": "MODIFY",
+      "temporal_compatibility": "MODIFY",
+      "geographic_compatibility": "GO",
+      "sensitivity": "MODIFY",
+      "interpretive_risk": "MODIFY",
+      "decision_relevance": "GO"
+    },
+    "implementation_conditions": [
+      "Premises reference period must be displayed as Sep 2026.",
+      "Resident denominator reference date must be displayed separately as 01 Jan 2026.",
+      "Denominator must be identified as registered residents / Padron reference-date stock.",
+      "Dual dates must be displayed separately; no shared '2026' wording may imply simultaneity.",
+      "Interpretation is residential-context administrative density only.",
+      "Must not be presented as tourism pressure, resident burden, saturation or overtourism.",
+      "Must not be presented as verified operating-business density."
+    ]
+  },
+  {
+    "indicator_id": "accommodation_class_premises_per_1000_residents",
+    "label": "Documented accommodation-class premises per 1,000 registered residents",
+    "numerator": "U4 distinct source-included division-55 premises",
+    "denominator": "registered residents at 2026-01-01",
+    "unit": "premises per 1,000 registered residents",
+    "geography": {
+      "scope": "Madrid municipality, district and CURRENT_131 barrio; barrio production use is current snapshot only",
+      "district_version": "v3.2.1",
+      "barrio_version": "v3.4.1"
+    },
+    "reference_period": {
+      "premises_and_activities": {
+        "premises": {
+          "description": "Locales. Septiembre 2026",
+          "resource_id": "209548-851-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-851-censo-locales-historico/download/209548_20261001_045230.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+          "catalogue_md5": "7e1aeea0b047120a813abb5e4d866837",
+          "catalogue_size_bytes": 89299449,
+          "catalogue_created": "2026-09-03T06:16:30.925591",
+          "catalogue_issued": "2026-09-03T06:16:30.925591",
+          "catalogue_last_modified": "2026-10-01T04:53:39.877667",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        },
+        "activities": {
+          "description": "Actividades. Septiembre 2026",
+          "resource_id": "209548-857-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-857-censo-locales-historico/download/209548_20261001_043906.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2",
+          "catalogue_md5": "045cbcda8bb41f39f055ca5ed113627e",
+          "catalogue_size_bytes": 125022514,
+          "catalogue_created": "2026-09-03T06:44:06.830611",
+          "catalogue_issued": "2026-09-03T06:44:06.830611",
+          "catalogue_last_modified": "2026-10-01T04:40:27.638017",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        }
+      },
+      "population": {
+        "reference_date": "2026-01-01",
+        "type": "padron_annual_reference_date",
+        "data_version": {
+          "contract_version": "1.0.0",
+          "artifact_sha256": "e6bc8a209927d2acdfd1f0489638d7996b8fed809624093436beafd78cfa8e08",
+          "metadata_sha256": "89aec4d13856f699fc6b2bcf72006d05664cc138f7a3d660a0e923bd20f9d97d",
+          "retrieved_at": "2026-09-29T14:11:37Z"
+        }
+      }
+    },
+    "ruling": "NO-GO",
+    "admissibility_status": "NO_GO",
+    "decision_question": "Would division-55 premises relative to residents support a useful management question?",
+    "interpretation": "Arithmetic is possible but the numerator is too heterogeneous for a stable accommodation reading.",
+    "interpretation_ceiling": "Never accommodation capacity, tourist beds, licensed VUT stock, demand, tourist intensity, tourism pressure, resident burden, saturation or overtourism.",
+    "temporal_use": "Current Sep-2026 fingerprinted snapshot only; no trend inference. CURRENT_131 comparisons require separately audited snapshots and Gate D segmentation.",
+    "required_metadata": [
+      "numerator_universe",
+      "source_exclusions",
+      "unit",
+      "geography_version",
+      "premises_snapshot_fingerprint",
+      "interpretation_ceiling",
+      "temporal_use_rule",
+      "denominator_source",
+      "denominator_reference_date",
+      "denominator_data_version",
+      "premises_population_reference_mismatch"
+    ],
+    "known_sensitivity": "Division-55 heterogeneity and its longitudinal administrative-universe discontinuity.",
+    "reason": "NO-GO: Arithmetic is possible but the numerator is too heterogeneous for a stable accommodation reading. Division-55 heterogeneity and its longitudinal administrative-universe discontinuity.",
+    "risk_matrix": {
+      "source_validity": "GO",
+      "numerator_clarity": "MODIFY",
+      "denominator_clarity": "MODIFY",
+      "temporal_compatibility": "NO-GO",
+      "geographic_compatibility": "GO",
+      "sensitivity": "MODIFY",
+      "interpretive_risk": "NO-GO",
+      "decision_relevance": "NO-GO"
+    },
+    "implementation_conditions": []
+  },
+  {
+    "indicator_id": "premises_per_km2",
+    "label": "Source-included premises per gross administrative km²",
+    "numerator": "U1 distinct source-included premises",
+    "denominator": "gross canonical polygon area",
+    "unit": "premises per km²",
+    "geography": {
+      "scope": "Madrid municipality, district and CURRENT_131 barrio; barrio production use is current snapshot only",
+      "district_version": "v3.2.1",
+      "barrio_version": "v3.4.1"
+    },
+    "reference_period": {
+      "premises_and_activities": {
+        "premises": {
+          "description": "Locales. Septiembre 2026",
+          "resource_id": "209548-851-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-851-censo-locales-historico/download/209548_20261001_045230.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+          "catalogue_md5": "7e1aeea0b047120a813abb5e4d866837",
+          "catalogue_size_bytes": 89299449,
+          "catalogue_created": "2026-09-03T06:16:30.925591",
+          "catalogue_issued": "2026-09-03T06:16:30.925591",
+          "catalogue_last_modified": "2026-10-01T04:53:39.877667",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        },
+        "activities": {
+          "description": "Actividades. Septiembre 2026",
+          "resource_id": "209548-857-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-857-censo-locales-historico/download/209548_20261001_043906.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2",
+          "catalogue_md5": "045cbcda8bb41f39f055ca5ed113627e",
+          "catalogue_size_bytes": 125022514,
+          "catalogue_created": "2026-09-03T06:44:06.830611",
+          "catalogue_issued": "2026-09-03T06:44:06.830611",
+          "catalogue_last_modified": "2026-10-01T04:40:27.638017",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        }
+      }
+    },
+    "ruling": "NO-GO",
+    "admissibility_status": "NO_GO",
+    "decision_question": "How concentrated are documented premises in physical space?",
+    "interpretation": "Gross-area arithmetic only; not admitted as an indicator.",
+    "interpretation_ceiling": "Not built-up density, accessible-land density, commercial intensity, pressure or saturation.",
+    "temporal_use": "Current Sep-2026 fingerprinted snapshot only; no trend inference. CURRENT_131 comparisons require separately audited snapshots and Gate D segmentation.",
+    "required_metadata": [
+      "numerator_universe",
+      "source_exclusions",
+      "unit",
+      "geography_version",
+      "premises_snapshot_fingerprint",
+      "interpretation_ceiling",
+      "temporal_use_rule",
+      "area_method",
+      "land_use_exclusions"
+    ],
+    "known_sensitivity": "Gross polygons include parks and non-buildable land; no built-up-area denominator exists.",
+    "reason": "NO-GO: Gross-area arithmetic only; not admitted as an indicator. Gross polygons include parks and non-buildable land; no built-up-area denominator exists.",
+    "risk_matrix": {
+      "source_validity": "GO",
+      "numerator_clarity": "GO",
+      "denominator_clarity": "NO-GO",
+      "temporal_compatibility": "MODIFY",
+      "geographic_compatibility": "GO",
+      "sensitivity": "NO-GO",
+      "interpretive_risk": "NO-GO",
+      "decision_relevance": "NO-GO"
+    },
+    "implementation_conditions": []
+  },
+  {
+    "indicator_id": "core_hospitality_premises_per_km2",
+    "label": "Documented hospitality-class premises per gross administrative km²",
+    "numerator": "U3 distinct source-included division-56 premises",
+    "denominator": "gross canonical polygon area",
+    "unit": "premises per km²",
+    "geography": {
+      "scope": "Madrid municipality, district and CURRENT_131 barrio; barrio production use is current snapshot only",
+      "district_version": "v3.2.1",
+      "barrio_version": "v3.4.1"
+    },
+    "reference_period": {
+      "premises_and_activities": {
+        "premises": {
+          "description": "Locales. Septiembre 2026",
+          "resource_id": "209548-851-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-851-censo-locales-historico/download/209548_20261001_045230.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+          "catalogue_md5": "7e1aeea0b047120a813abb5e4d866837",
+          "catalogue_size_bytes": 89299449,
+          "catalogue_created": "2026-09-03T06:16:30.925591",
+          "catalogue_issued": "2026-09-03T06:16:30.925591",
+          "catalogue_last_modified": "2026-10-01T04:53:39.877667",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        },
+        "activities": {
+          "description": "Actividades. Septiembre 2026",
+          "resource_id": "209548-857-censo-locales-historico",
+          "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-857-censo-locales-historico/download/209548_20261001_043906.csv",
+          "nominal_period": "2026-09",
+          "content_fingerprint_sha256": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2",
+          "catalogue_md5": "045cbcda8bb41f39f055ca5ed113627e",
+          "catalogue_size_bytes": 125022514,
+          "catalogue_created": "2026-09-03T06:44:06.830611",
+          "catalogue_issued": "2026-09-03T06:44:06.830611",
+          "catalogue_last_modified": "2026-10-01T04:40:27.638017",
+          "snapshot_identity_rule": "family + nominal_period + content_fingerprint"
+        }
+      }
+    },
+    "ruling": "NO-GO",
+    "admissibility_status": "NO_GO",
+    "decision_question": "How concentrated is documented hospitality presence in physical space?",
+    "interpretation": "Gross-area arithmetic only; not admitted as an indicator.",
+    "interpretation_ceiling": "Not capacity, pressure, saturation, tourism intensity or usable-urban-area density.",
+    "temporal_use": "Current Sep-2026 fingerprinted snapshot only; no trend inference. CURRENT_131 comparisons require separately audited snapshots and Gate D segmentation.",
+    "required_metadata": [
+      "numerator_universe",
+      "source_exclusions",
+      "unit",
+      "geography_version",
+      "premises_snapshot_fingerprint",
+      "interpretation_ceiling",
+      "temporal_use_rule",
+      "area_method",
+      "land_use_exclusions"
+    ],
+    "known_sensitivity": "Gross polygons create land-use bias; a defensible built-up-area denominator is unavailable.",
+    "reason": "NO-GO: Gross-area arithmetic only; not admitted as an indicator. Gross polygons create land-use bias; a defensible built-up-area denominator is unavailable.",
+    "risk_matrix": {
+      "source_validity": "GO",
+      "numerator_clarity": "GO",
+      "denominator_clarity": "NO-GO",
+      "temporal_compatibility": "MODIFY",
+      "geographic_compatibility": "GO",
+      "sensitivity": "NO-GO",
+      "interpretive_risk": "NO-GO",
+      "decision_relevance": "NO-GO"
+    },
+    "implementation_conditions": []
+  }
+]
