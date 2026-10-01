@@ -1,0 +1,1186 @@
+{
+  "generated_at": "2026-10-01T13:49:19Z",
+  "geography_eras": {
+    "HISTORICAL_128": "Censo barrio geography matches the 1987 restructuring (128 barrios); <= Aug 2017 observed.",
+    "TRANSITIONAL_129": "128 historical barrios + 183 Ensanche de Vallecas (129); Sep 2017 - Jun 2018 observed; Vicalvaro still pre-reorg.",
+    "CURRENT_131": "Post-2017 reorganisation geography (131 barrios); >= Jul 2018 observed; matches current v3.4.1."
+  },
+  "breakpoints": {
+    "method": "geography era determined from the OBSERVED source barrio set per sentinel (presence of 183 / 193 / 194 and the name of code 192), not the calendar",
+    "last_historical_128_observed": "Agosto 2017",
+    "first_transitional_129_observed": "Septiembre 2017",
+    "last_transitional_129_observed": "Junio 2018",
+    "first_current_131_observed": "Julio 2018",
+    "ensanche_de_vallecas_183_breakpoint": {
+      "legal_decision": "31 May 2017 - Acuerdo del Pleno del Ayuntamiento de Madrid creating the barrio 'Ensanche de Vallecas' (Distrito de Villa de Vallecas) and amending the Reglamento Organico de los Distritos",
+      "boam_publication": "BOAM nº 7927, 15 Jun 2017",
+      "censo_first_observed": "Septiembre 2017",
+      "last_without": "Agosto 2017",
+      "first_with": "Septiembre 2017",
+      "note": "128 -> 129 (183 Ensanche de Vallecas appears). Legal decision, BOAM publication and Censo implementation are three distinct dates; the Censo implementation date is NOT a legal effective date."
+    },
+    "vicalvaro_reorg_breakpoint": {
+      "legal_decision": "31 Oct 2017 - Acuerdo del Pleno del Ayuntamiento de Madrid (Vicalvaro reorganisation + barrio 171 rename), BOAM nº 8034",
+      "boam_publication": "17 Nov 2017",
+      "censo_first_observed": "Julio 2018",
+      "last_before": "Junio 2018",
+      "first_after": "Julio 2018",
+      "note": "129 -> 131 (192 Ambroz -> Valdebernardo; 193 Valderrivas, 194 El Canaveral appear). Legal decision, BOAM publication and Censo implementation are three distinct dates; the Censo implementation date is NOT a legal effective date."
+    },
+    "san_andres_171_rename": "NOT implemented in the Censo source as of the current snapshot - the source still records 'SAN ANDRES' for code 171 while the official v3.4.1 geometry uses 'Villaverde Alto - Casco Historico de Villaverde' (code/entity stable, name label lags)"
+  },
+  "entity_relationships_1987_to_current": {
+    "by_current_code": {
+      "011": {
+        "current_name": "Palacio",
+        "historical_name": "Palacio",
+        "dominant_historical_source": "011",
+        "overlap_pct": 99.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.4%"
+      },
+      "012": {
+        "current_name": "Embajadores",
+        "historical_name": "Embajadores",
+        "dominant_historical_source": "012",
+        "overlap_pct": 99.2,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.2%"
+      },
+      "013": {
+        "current_name": "Cortes",
+        "historical_name": "Cortes",
+        "dominant_historical_source": "013",
+        "overlap_pct": 99.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.5%"
+      },
+      "014": {
+        "current_name": "Justicia",
+        "historical_name": "Justicia",
+        "dominant_historical_source": "014",
+        "overlap_pct": 99.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.6%"
+      },
+      "015": {
+        "current_name": "Universidad",
+        "historical_name": "Universidad",
+        "dominant_historical_source": "015",
+        "overlap_pct": 99.9,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.9%"
+      },
+      "016": {
+        "current_name": "Sol",
+        "historical_name": "Sol",
+        "dominant_historical_source": "016",
+        "overlap_pct": 99.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.5%"
+      },
+      "021": {
+        "current_name": "Imperial",
+        "historical_name": "Imperial",
+        "dominant_historical_source": "021",
+        "overlap_pct": 99.1,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.1%"
+      },
+      "022": {
+        "current_name": "Acacias",
+        "historical_name": "Las Acacias",
+        "dominant_historical_source": "022",
+        "overlap_pct": 99.6,
+        "relationship": "NAME_CHANGE_ONLY",
+        "note": "historical 'Las Acacias' -> current 'Acacias'; self-overlap 99.6%"
+      },
+      "023": {
+        "current_name": "Chopera",
+        "historical_name": "La Chopera",
+        "dominant_historical_source": "023",
+        "overlap_pct": 99.1,
+        "relationship": "NAME_CHANGE_ONLY",
+        "note": "historical 'La Chopera' -> current 'Chopera'; self-overlap 99.1%"
+      },
+      "024": {
+        "current_name": "Legazpi",
+        "historical_name": "Legazpi",
+        "dominant_historical_source": "024",
+        "overlap_pct": 95.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 95.4%"
+      },
+      "025": {
+        "current_name": "Delicias",
+        "historical_name": "Delicias",
+        "dominant_historical_source": "025",
+        "overlap_pct": 99.3,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.3%"
+      },
+      "026": {
+        "current_name": "Palos de la Frontera",
+        "historical_name": "Palos de Moguer",
+        "dominant_historical_source": "026",
+        "overlap_pct": 99.0,
+        "relationship": "NAME_CHANGE_ONLY",
+        "note": "historical 'Palos de Moguer' -> current 'Palos de la Frontera'; self-overlap 99.0%"
+      },
+      "027": {
+        "current_name": "Atocha",
+        "historical_name": "Atocha",
+        "dominant_historical_source": "027",
+        "overlap_pct": 99.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.6%"
+      },
+      "031": {
+        "current_name": "Pacífico",
+        "historical_name": "Pacífico",
+        "dominant_historical_source": "031",
+        "overlap_pct": 89.1,
+        "relationship": "BOUNDARY_CHANGED",
+        "note": "same name, self-overlap 89.1% (boundary/cartographic adjustment)"
+      },
+      "032": {
+        "current_name": "Adelfas",
+        "historical_name": "Adelfas",
+        "dominant_historical_source": "032",
+        "overlap_pct": 92.0,
+        "relationship": "BOUNDARY_CHANGED",
+        "note": "same name, self-overlap 92.0% (boundary/cartographic adjustment)"
+      },
+      "033": {
+        "current_name": "Estrella",
+        "historical_name": "Estrella",
+        "dominant_historical_source": "033",
+        "overlap_pct": 99.0,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.0%"
+      },
+      "034": {
+        "current_name": "Ibiza",
+        "historical_name": "Ibiza",
+        "dominant_historical_source": "034",
+        "overlap_pct": 99.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.4%"
+      },
+      "035": {
+        "current_name": "Los Jerónimos",
+        "historical_name": "Jerónimos",
+        "dominant_historical_source": "035",
+        "overlap_pct": 98.9,
+        "relationship": "NAME_CHANGE_ONLY",
+        "note": "historical 'Jerónimos' -> current 'Los Jerónimos'; self-overlap 98.9%"
+      },
+      "036": {
+        "current_name": "Niño Jesús",
+        "historical_name": "Niño Jesús",
+        "dominant_historical_source": "036",
+        "overlap_pct": 99.1,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.1%"
+      },
+      "041": {
+        "current_name": "Recoletos",
+        "historical_name": "Recoletos",
+        "dominant_historical_source": "041",
+        "overlap_pct": 98.0,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.0%"
+      },
+      "042": {
+        "current_name": "Goya",
+        "historical_name": "Goya",
+        "dominant_historical_source": "042",
+        "overlap_pct": 99.8,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.8%"
+      },
+      "043": {
+        "current_name": "Fuente del Berro",
+        "historical_name": "Fuente del Berro",
+        "dominant_historical_source": "043",
+        "overlap_pct": 99.2,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.2%"
+      },
+      "044": {
+        "current_name": "Guindalera",
+        "historical_name": "Guindalera",
+        "dominant_historical_source": "044",
+        "overlap_pct": 99.3,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.3%"
+      },
+      "045": {
+        "current_name": "Lista",
+        "historical_name": "Lista",
+        "dominant_historical_source": "045",
+        "overlap_pct": 99.9,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.9%"
+      },
+      "046": {
+        "current_name": "Castellana",
+        "historical_name": "Castellana",
+        "dominant_historical_source": "046",
+        "overlap_pct": 99.0,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.0%"
+      },
+      "051": {
+        "current_name": "El Viso",
+        "historical_name": "El Viso",
+        "dominant_historical_source": "051",
+        "overlap_pct": 98.9,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.9%"
+      },
+      "052": {
+        "current_name": "Prosperidad",
+        "historical_name": "Prosperidad",
+        "dominant_historical_source": "052",
+        "overlap_pct": 99.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.4%"
+      },
+      "053": {
+        "current_name": "Ciudad Jardín",
+        "historical_name": "Ciudad Jardín",
+        "dominant_historical_source": "053",
+        "overlap_pct": 99.0,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.0%"
+      },
+      "054": {
+        "current_name": "Hispanoamérica",
+        "historical_name": "Hispanoamérica",
+        "dominant_historical_source": "054",
+        "overlap_pct": 99.2,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.2%"
+      },
+      "055": {
+        "current_name": "Nueva España",
+        "historical_name": "Nueva España",
+        "dominant_historical_source": "055",
+        "overlap_pct": 99.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.6%"
+      },
+      "056": {
+        "current_name": "Castilla",
+        "historical_name": "Castilla",
+        "dominant_historical_source": "056",
+        "overlap_pct": 99.8,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.8%"
+      },
+      "061": {
+        "current_name": "Bellas Vistas",
+        "historical_name": "Bellas Vistas",
+        "dominant_historical_source": "061",
+        "overlap_pct": 98.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.4%"
+      },
+      "062": {
+        "current_name": "Cuatro Caminos",
+        "historical_name": "Cuatro Caminos",
+        "dominant_historical_source": "062",
+        "overlap_pct": 99.7,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.7%"
+      },
+      "063": {
+        "current_name": "Castillejos",
+        "historical_name": "Castillejos",
+        "dominant_historical_source": "063",
+        "overlap_pct": 99.7,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.7%"
+      },
+      "064": {
+        "current_name": "Almenara",
+        "historical_name": "Almenara",
+        "dominant_historical_source": "064",
+        "overlap_pct": 99.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.6%"
+      },
+      "065": {
+        "current_name": "Valdeacederas",
+        "historical_name": "Valdeacederas",
+        "dominant_historical_source": "065",
+        "overlap_pct": 98.9,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.9%"
+      },
+      "066": {
+        "current_name": "Berruguete",
+        "historical_name": "Berruguete",
+        "dominant_historical_source": "066",
+        "overlap_pct": 99.1,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.1%"
+      },
+      "071": {
+        "current_name": "Gaztambide",
+        "historical_name": "Gaztambide",
+        "dominant_historical_source": "071",
+        "overlap_pct": 99.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.5%"
+      },
+      "072": {
+        "current_name": "Arapiles",
+        "historical_name": "Arapiles",
+        "dominant_historical_source": "072",
+        "overlap_pct": 99.7,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.7%"
+      },
+      "073": {
+        "current_name": "Trafalgar",
+        "historical_name": "Trafalgar",
+        "dominant_historical_source": "073",
+        "overlap_pct": 98.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.4%"
+      },
+      "074": {
+        "current_name": "Almagro",
+        "historical_name": "Almagro",
+        "dominant_historical_source": "074",
+        "overlap_pct": 100.0,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 100.0%"
+      },
+      "075": {
+        "current_name": "Ríos Rosas",
+        "historical_name": "Rios Rosas",
+        "dominant_historical_source": "075",
+        "overlap_pct": 99.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.5%"
+      },
+      "076": {
+        "current_name": "Vallehermoso",
+        "historical_name": "Vallehermoso",
+        "dominant_historical_source": "076",
+        "overlap_pct": 99.8,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.8%"
+      },
+      "081": {
+        "current_name": "El Pardo",
+        "historical_name": "El Pardo",
+        "dominant_historical_source": "081",
+        "overlap_pct": 99.9,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.9%"
+      },
+      "082": {
+        "current_name": "Fuentelarreina",
+        "historical_name": "Fuentelarreina",
+        "dominant_historical_source": "082",
+        "overlap_pct": 93.2,
+        "relationship": "BOUNDARY_CHANGED",
+        "note": "same name, self-overlap 93.2% (boundary/cartographic adjustment)"
+      },
+      "083": {
+        "current_name": "Peñagrande",
+        "historical_name": "Peñagrande",
+        "dominant_historical_source": "083",
+        "overlap_pct": 98.8,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.8%"
+      },
+      "084": {
+        "current_name": "Pilar",
+        "historical_name": "Pilar",
+        "dominant_historical_source": "084",
+        "overlap_pct": 98.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.4%"
+      },
+      "085": {
+        "current_name": "La Paz",
+        "historical_name": "La Paz",
+        "dominant_historical_source": "085",
+        "overlap_pct": 99.0,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.0%"
+      },
+      "086": {
+        "current_name": "Valverde",
+        "historical_name": "Valverde",
+        "dominant_historical_source": "086",
+        "overlap_pct": 98.9,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.9%"
+      },
+      "087": {
+        "current_name": "Mirasierra",
+        "historical_name": "Mirasierra",
+        "dominant_historical_source": "087",
+        "overlap_pct": 99.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.6%"
+      },
+      "088": {
+        "current_name": "El Goloso",
+        "historical_name": "El Goloso",
+        "dominant_historical_source": "088",
+        "overlap_pct": 98.8,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.8%"
+      },
+      "091": {
+        "current_name": "Casa de Campo",
+        "historical_name": "Casa de Campo",
+        "dominant_historical_source": "091",
+        "overlap_pct": 99.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.6%"
+      },
+      "092": {
+        "current_name": "Argüelles",
+        "historical_name": "Argüelles",
+        "dominant_historical_source": "092",
+        "overlap_pct": 99.1,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.1%"
+      },
+      "093": {
+        "current_name": "Ciudad Universitaria",
+        "historical_name": "Ciudad Universitaria",
+        "dominant_historical_source": "093",
+        "overlap_pct": 99.2,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.2%"
+      },
+      "094": {
+        "current_name": "Valdezarza",
+        "historical_name": "Valdezarza",
+        "dominant_historical_source": "094",
+        "overlap_pct": 99.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.5%"
+      },
+      "095": {
+        "current_name": "Valdemarín",
+        "historical_name": "Valdemarín",
+        "dominant_historical_source": "095",
+        "overlap_pct": 98.9,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.9%"
+      },
+      "096": {
+        "current_name": "El Plantío",
+        "historical_name": "El Plantío",
+        "dominant_historical_source": "096",
+        "overlap_pct": 99.8,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.8%"
+      },
+      "097": {
+        "current_name": "Aravaca",
+        "historical_name": "Aravaca",
+        "dominant_historical_source": "097",
+        "overlap_pct": 99.2,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.2%"
+      },
+      "101": {
+        "current_name": "Los Cármenes",
+        "historical_name": "Cármenes",
+        "dominant_historical_source": "101",
+        "overlap_pct": 97.3,
+        "relationship": "NAME_CHANGE_ONLY",
+        "note": "historical 'Cármenes' -> current 'Los Cármenes'; self-overlap 97.3%"
+      },
+      "102": {
+        "current_name": "Puerta del Ángel",
+        "historical_name": "Puerta del Ángel",
+        "dominant_historical_source": "102",
+        "overlap_pct": 99.8,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.8%"
+      },
+      "103": {
+        "current_name": "Lucero",
+        "historical_name": "Lucero",
+        "dominant_historical_source": "103",
+        "overlap_pct": 99.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.4%"
+      },
+      "104": {
+        "current_name": "Aluche",
+        "historical_name": "Aluche",
+        "dominant_historical_source": "104",
+        "overlap_pct": 99.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.4%"
+      },
+      "105": {
+        "current_name": "Campamento",
+        "historical_name": "Campamento",
+        "dominant_historical_source": "105",
+        "overlap_pct": 98.1,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.1%"
+      },
+      "106": {
+        "current_name": "Cuatro Vientos",
+        "historical_name": "Cuatro Vientos",
+        "dominant_historical_source": "106",
+        "overlap_pct": 99.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.5%"
+      },
+      "107": {
+        "current_name": "Águilas",
+        "historical_name": "Águilas",
+        "dominant_historical_source": "107",
+        "overlap_pct": 99.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.6%"
+      },
+      "111": {
+        "current_name": "Comillas",
+        "historical_name": "Comillas",
+        "dominant_historical_source": "111",
+        "overlap_pct": 99.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.6%"
+      },
+      "112": {
+        "current_name": "Opañel",
+        "historical_name": "Opañel",
+        "dominant_historical_source": "112",
+        "overlap_pct": 99.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.5%"
+      },
+      "113": {
+        "current_name": "San Isidro",
+        "historical_name": "San Isidro",
+        "dominant_historical_source": "113",
+        "overlap_pct": 99.8,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.8%"
+      },
+      "114": {
+        "current_name": "Vista Alegre",
+        "historical_name": "Vista Alegre",
+        "dominant_historical_source": "114",
+        "overlap_pct": 97.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 97.4%"
+      },
+      "115": {
+        "current_name": "Puerta Bonita",
+        "historical_name": "Puerta Bonita",
+        "dominant_historical_source": "115",
+        "overlap_pct": 99.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.5%"
+      },
+      "116": {
+        "current_name": "Buenavista",
+        "historical_name": "Buena-Vista",
+        "dominant_historical_source": "116",
+        "overlap_pct": 99.8,
+        "relationship": "NAME_CHANGE_ONLY",
+        "note": "historical 'Buena-Vista' -> current 'Buenavista'; self-overlap 99.8%"
+      },
+      "117": {
+        "current_name": "Abrantes",
+        "historical_name": "Abrantes",
+        "dominant_historical_source": "117",
+        "overlap_pct": 99.7,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.7%"
+      },
+      "121": {
+        "current_name": "Orcasitas",
+        "historical_name": "Orcasitas",
+        "dominant_historical_source": "121",
+        "overlap_pct": 97.0,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 97.0%"
+      },
+      "122": {
+        "current_name": "Orcasur",
+        "historical_name": "Orcasur",
+        "dominant_historical_source": "122",
+        "overlap_pct": 99.7,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.7%"
+      },
+      "123": {
+        "current_name": "San Fermín",
+        "historical_name": "San Fermín",
+        "dominant_historical_source": "123",
+        "overlap_pct": 98.9,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.9%"
+      },
+      "124": {
+        "current_name": "Almendrales",
+        "historical_name": "Almendrales",
+        "dominant_historical_source": "124",
+        "overlap_pct": 99.3,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.3%"
+      },
+      "125": {
+        "current_name": "Moscardó",
+        "historical_name": "Moscardó",
+        "dominant_historical_source": "125",
+        "overlap_pct": 98.0,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.0%"
+      },
+      "126": {
+        "current_name": "Zofío",
+        "historical_name": "Zofío",
+        "dominant_historical_source": "126",
+        "overlap_pct": 98.9,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.9%"
+      },
+      "127": {
+        "current_name": "Pradolongo",
+        "historical_name": "Pradolongo",
+        "dominant_historical_source": "127",
+        "overlap_pct": 98.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.4%"
+      },
+      "131": {
+        "current_name": "Entrevías",
+        "historical_name": "Entrevías",
+        "dominant_historical_source": "131",
+        "overlap_pct": 99.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.5%"
+      },
+      "132": {
+        "current_name": "San Diego",
+        "historical_name": "San Diego",
+        "dominant_historical_source": "132",
+        "overlap_pct": 99.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.5%"
+      },
+      "133": {
+        "current_name": "Palomeras Bajas",
+        "historical_name": "Palomeras Bajas",
+        "dominant_historical_source": "133",
+        "overlap_pct": 99.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.6%"
+      },
+      "134": {
+        "current_name": "Palomeras Sureste",
+        "historical_name": "Palomeras Sureste",
+        "dominant_historical_source": "134",
+        "overlap_pct": 98.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.5%"
+      },
+      "135": {
+        "current_name": "Portazgo",
+        "historical_name": "Portazgo",
+        "dominant_historical_source": "135",
+        "overlap_pct": 98.8,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.8%"
+      },
+      "136": {
+        "current_name": "Numancia",
+        "historical_name": "Numancia",
+        "dominant_historical_source": "136",
+        "overlap_pct": 98.8,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.8%"
+      },
+      "141": {
+        "current_name": "Pavones",
+        "historical_name": "Pavones",
+        "dominant_historical_source": "141",
+        "overlap_pct": 98.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.5%"
+      },
+      "142": {
+        "current_name": "Horcajo",
+        "historical_name": "Horcajo",
+        "dominant_historical_source": "142",
+        "overlap_pct": 98.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.5%"
+      },
+      "143": {
+        "current_name": "Marroquina",
+        "historical_name": "Marroquina",
+        "dominant_historical_source": "143",
+        "overlap_pct": 99.7,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.7%"
+      },
+      "144": {
+        "current_name": "Media Legua",
+        "historical_name": "Media Legua",
+        "dominant_historical_source": "144",
+        "overlap_pct": 98.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.6%"
+      },
+      "145": {
+        "current_name": "Fontarrón",
+        "historical_name": "Fontarrón",
+        "dominant_historical_source": "145",
+        "overlap_pct": 99.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.5%"
+      },
+      "146": {
+        "current_name": "Vinateros",
+        "historical_name": "Vinateros",
+        "dominant_historical_source": "146",
+        "overlap_pct": 99.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.4%"
+      },
+      "151": {
+        "current_name": "Ventas",
+        "historical_name": "Ventas",
+        "dominant_historical_source": "151",
+        "overlap_pct": 99.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.4%"
+      },
+      "152": {
+        "current_name": "Pueblo Nuevo",
+        "historical_name": "Pueblo Nuevo",
+        "dominant_historical_source": "152",
+        "overlap_pct": 99.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.6%"
+      },
+      "153": {
+        "current_name": "Quintana",
+        "historical_name": "Quintana",
+        "dominant_historical_source": "153",
+        "overlap_pct": 99.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.4%"
+      },
+      "154": {
+        "current_name": "La Concepción",
+        "historical_name": "Concepción",
+        "dominant_historical_source": "154",
+        "overlap_pct": 98.2,
+        "relationship": "NAME_CHANGE_ONLY",
+        "note": "historical 'Concepción' -> current 'La Concepción'; self-overlap 98.2%"
+      },
+      "155": {
+        "current_name": "San Pascual",
+        "historical_name": "San Pascual",
+        "dominant_historical_source": "155",
+        "overlap_pct": 98.7,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.7%"
+      },
+      "156": {
+        "current_name": "San Juan Bautista",
+        "historical_name": "San Juan Bautista",
+        "dominant_historical_source": "156",
+        "overlap_pct": 98.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.6%"
+      },
+      "157": {
+        "current_name": "Colina",
+        "historical_name": "Colina",
+        "dominant_historical_source": "157",
+        "overlap_pct": 96.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 96.4%"
+      },
+      "158": {
+        "current_name": "Atalaya",
+        "historical_name": "Atalaya",
+        "dominant_historical_source": "158",
+        "overlap_pct": 96.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 96.4%"
+      },
+      "159": {
+        "current_name": "Costillares",
+        "historical_name": "Costillares",
+        "dominant_historical_source": "159",
+        "overlap_pct": 99.3,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.3%"
+      },
+      "161": {
+        "current_name": "Palomas",
+        "historical_name": "Palomas",
+        "dominant_historical_source": "161",
+        "overlap_pct": 99.3,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.3%"
+      },
+      "162": {
+        "current_name": "Piovera",
+        "historical_name": "Piovera",
+        "dominant_historical_source": "162",
+        "overlap_pct": 99.8,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.8%"
+      },
+      "163": {
+        "current_name": "Canillas",
+        "historical_name": "Canillas",
+        "dominant_historical_source": "163",
+        "overlap_pct": 99.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.6%"
+      },
+      "164": {
+        "current_name": "Pinar del Rey",
+        "historical_name": "Pinar del Rey",
+        "dominant_historical_source": "164",
+        "overlap_pct": 98.7,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.7%"
+      },
+      "165": {
+        "current_name": "Apóstol Santiago",
+        "historical_name": "Apóstol Santiago",
+        "dominant_historical_source": "165",
+        "overlap_pct": 99.4,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.4%"
+      },
+      "166": {
+        "current_name": "Valdefuentes",
+        "historical_name": "Valdefuentes",
+        "dominant_historical_source": "166",
+        "overlap_pct": 95.7,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 95.7%"
+      },
+      "171": {
+        "current_name": "Villaverde Alto - Casco Histórico de Villaverde",
+        "historical_name": "San Andrés",
+        "dominant_historical_source": "171",
+        "overlap_pct": 99.5,
+        "relationship": "NAME_CHANGE_ONLY",
+        "note": "historical 'San Andrés' -> current 'Villaverde Alto - Casco Histórico de Villaverde'; self-overlap 99.5%"
+      },
+      "172": {
+        "current_name": "San Cristóbal",
+        "historical_name": "San Cristóbal",
+        "dominant_historical_source": "172",
+        "overlap_pct": 98.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.6%"
+      },
+      "173": {
+        "current_name": "Butarque",
+        "historical_name": "Butarque",
+        "dominant_historical_source": "173",
+        "overlap_pct": 99.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.5%"
+      },
+      "174": {
+        "current_name": "Los Rosales",
+        "historical_name": "Los Rosales",
+        "dominant_historical_source": "174",
+        "overlap_pct": 98.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.6%"
+      },
+      "175": {
+        "current_name": "Ángeles",
+        "historical_name": "Los Ángeles",
+        "dominant_historical_source": "175",
+        "overlap_pct": 99.1,
+        "relationship": "NAME_CHANGE_ONLY",
+        "note": "historical 'Los Ángeles' -> current 'Ángeles'; self-overlap 99.1%"
+      },
+      "181": {
+        "current_name": "Casco Histórico de Vallecas",
+        "historical_name": "Casco Histórico de Vallecas",
+        "dominant_historical_source": "181",
+        "overlap_pct": 99.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.6%"
+      },
+      "182": {
+        "current_name": "Santa Eugenia",
+        "historical_name": "Santa Eugenia",
+        "dominant_historical_source": "182",
+        "overlap_pct": 97.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 97.5%"
+      },
+      "183": {
+        "current_name": "Ensanche de Vallecas",
+        "historical_name": null,
+        "dominant_historical_source": "181",
+        "overlap_pct": 99.6,
+        "relationship": "NEW_ENTITY",
+        "note": "code absent from 1987; dominant historical source 181 (Casco Histórico de Vallecas) -> SPLIT"
+      },
+      "191": {
+        "current_name": "Casco Histórico de Vicálvaro",
+        "historical_name": "Casco Histórico de Vicálvaro",
+        "dominant_historical_source": "191",
+        "overlap_pct": 84.8,
+        "relationship": "BOUNDARY_CHANGED",
+        "note": "same name, self-overlap 84.8% (boundary/cartographic adjustment)"
+      },
+      "192": {
+        "current_name": "Valdebernardo",
+        "historical_name": "Ambroz",
+        "dominant_historical_source": "191",
+        "overlap_pct": 99.9,
+        "relationship": "REPLACED",
+        "note": "code reused: current entity is 99.9% carved from historical 191 (Casco Histórico de Vicálvaro), NOT historical 192 (Ambroz); numeric code equality != entity identity"
+      },
+      "193": {
+        "current_name": "Valderrivas",
+        "historical_name": null,
+        "dominant_historical_source": "191",
+        "overlap_pct": 100.0,
+        "relationship": "NEW_ENTITY",
+        "note": "code absent from 1987; dominant historical source 191 (Casco Histórico de Vicálvaro) -> SPLIT"
+      },
+      "194": {
+        "current_name": "El Cañaveral",
+        "historical_name": null,
+        "dominant_historical_source": "191",
+        "overlap_pct": 99.8,
+        "relationship": "NEW_ENTITY",
+        "note": "code absent from 1987; dominant historical source 191 (Casco Histórico de Vicálvaro) -> SPLIT"
+      },
+      "201": {
+        "current_name": "Simancas",
+        "historical_name": "Simancas",
+        "dominant_historical_source": "201",
+        "overlap_pct": 99.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.6%"
+      },
+      "202": {
+        "current_name": "Hellín",
+        "historical_name": "Hellín",
+        "dominant_historical_source": "202",
+        "overlap_pct": 98.3,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.3%"
+      },
+      "203": {
+        "current_name": "Amposta",
+        "historical_name": "Amposta",
+        "dominant_historical_source": "203",
+        "overlap_pct": 98.9,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.9%"
+      },
+      "204": {
+        "current_name": "Arcos",
+        "historical_name": "Arcos",
+        "dominant_historical_source": "204",
+        "overlap_pct": 99.6,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.6%"
+      },
+      "205": {
+        "current_name": "Rosas",
+        "historical_name": "Rosas",
+        "dominant_historical_source": "205",
+        "overlap_pct": 91.3,
+        "relationship": "BOUNDARY_CHANGED",
+        "note": "same name, self-overlap 91.3% (boundary/cartographic adjustment)"
+      },
+      "206": {
+        "current_name": "Rejas",
+        "historical_name": "Rejas",
+        "dominant_historical_source": "206",
+        "overlap_pct": 98.7,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 98.7%"
+      },
+      "207": {
+        "current_name": "Canillejas",
+        "historical_name": "Canillejas",
+        "dominant_historical_source": "207",
+        "overlap_pct": 99.7,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.7%"
+      },
+      "208": {
+        "current_name": "El Salvador",
+        "historical_name": "Salvador",
+        "dominant_historical_source": "208",
+        "overlap_pct": 99.0,
+        "relationship": "NAME_CHANGE_ONLY",
+        "note": "historical 'Salvador' -> current 'El Salvador'; self-overlap 99.0%"
+      },
+      "211": {
+        "current_name": "Alameda de Osuna",
+        "historical_name": "Alameda de Osuna",
+        "dominant_historical_source": "211",
+        "overlap_pct": 96.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 96.5%"
+      },
+      "212": {
+        "current_name": "Aeropuerto",
+        "historical_name": "Aeropuerto",
+        "dominant_historical_source": "212",
+        "overlap_pct": 84.4,
+        "relationship": "BOUNDARY_CHANGED",
+        "note": "same name, self-overlap 84.4% (boundary/cartographic adjustment)"
+      },
+      "213": {
+        "current_name": "Casco Histórico de Barajas",
+        "historical_name": "Casco Histórico de Barajas",
+        "dominant_historical_source": "213",
+        "overlap_pct": 97.9,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 97.9%"
+      },
+      "214": {
+        "current_name": "Timón",
+        "historical_name": "Timón",
+        "dominant_historical_source": "214",
+        "overlap_pct": 91.4,
+        "relationship": "BOUNDARY_CHANGED",
+        "note": "same name, self-overlap 91.4% (boundary/cartographic adjustment)"
+      },
+      "215": {
+        "current_name": "Corralejos",
+        "historical_name": "Corralejos",
+        "dominant_historical_source": "215",
+        "overlap_pct": 99.5,
+        "relationship": "SAME_ENTITY",
+        "note": "self-overlap 99.5%"
+      }
+    },
+    "legacy_historical_entities": {
+      "192": {
+        "historical_name": "Ambroz",
+        "district": "19",
+        "relationship": "LEGACY_ENTITY",
+        "note": "no current barrio is predominantly derived from this historical entity; it was absorbed/dissolved in 2017"
+      }
+    }
+  },
+  "per_sentinel_era": {
+    "Septiembre 2014": {
+      "geography_era": "HISTORICAL_128",
+      "target_barrio_count": 128,
+      "distinct_source_barrios": 128,
+      "status_counts": {
+        "EXACT_CODE_MATCH": 128
+      },
+      "target_matched": 128,
+      "target_absent_count": 0
+    },
+    "Septiembre 2015": {
+      "geography_era": "HISTORICAL_128",
+      "target_barrio_count": 128,
+      "distinct_source_barrios": 128,
+      "status_counts": {
+        "EXACT_CODE_MATCH": 128
+      },
+      "target_matched": 128,
+      "target_absent_count": 0
+    },
+    "Agosto 2017": {
+      "geography_era": "HISTORICAL_128",
+      "target_barrio_count": 128,
+      "distinct_source_barrios": 128,
+      "status_counts": {
+        "EXACT_CODE_MATCH": 128
+      },
+      "target_matched": 128,
+      "target_absent_count": 0
+    },
+    "Septiembre 2017": {
+      "geography_era": "TRANSITIONAL_129",
+      "target_barrio_count": 129,
+      "distinct_source_barrios": 129,
+      "status_counts": {
+        "EXACT_CODE_MATCH": 129
+      },
+      "target_matched": 129,
+      "target_absent_count": 0
+    },
+    "Junio 2018": {
+      "geography_era": "TRANSITIONAL_129",
+      "target_barrio_count": 129,
+      "distinct_source_barrios": 130,
+      "status_counts": {
+        "GEOGRAPHY_MISSING": 1,
+        "EXACT_CODE_MATCH": 129
+      },
+      "target_matched": 129,
+      "target_absent_count": 0
+    },
+    "Julio 2018": {
+      "geography_era": "CURRENT_131",
+      "target_barrio_count": 131,
+      "distinct_source_barrios": 132,
+      "status_counts": {
+        "GEOGRAPHY_MISSING": 1,
+        "EXACT_CODE_MATCH": 131
+      },
+      "target_matched": 131,
+      "target_absent_count": 0
+    },
+    "Septiembre 2020": {
+      "geography_era": "CURRENT_131",
+      "target_barrio_count": 131,
+      "distinct_source_barrios": 131,
+      "status_counts": {
+        "EXACT_CODE_MATCH": 131
+      },
+      "target_matched": 131,
+      "target_absent_count": 0
+    },
+    "Octubre 2022": {
+      "geography_era": "CURRENT_131",
+      "target_barrio_count": 131,
+      "distinct_source_barrios": 131,
+      "status_counts": {
+        "EXACT_CODE_MATCH": 131
+      },
+      "target_matched": 131,
+      "target_absent_count": 0
+    },
+    "Septiembre 2026": {
+      "geography_era": "CURRENT_131",
+      "target_barrio_count": 131,
+      "distinct_source_barrios": 131,
+      "status_counts": {
+        "EXACT_CODE_MATCH": 131
+      },
+      "target_matched": 131,
+      "target_absent_count": 0
+    }
+  }
+}

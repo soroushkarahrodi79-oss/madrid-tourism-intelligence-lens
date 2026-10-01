@@ -1,0 +1,627 @@
+{
+  "gate": "E - Geographic Reconciliation",
+  "started_at": "2026-10-01T13:48:49Z",
+  "finished_at": "2026-10-01T13:49:19Z",
+  "scope": "Research only. No indicator, denominator, map layer, ranking, score or production/UI change. Era-aware spatial ASSIGNMENT rules only.",
+  "evidence_layers_kept_separate": [
+    "source-record geography",
+    "authoritative Madrid geography (current + historical)",
+    "project canonical geometry (current)",
+    "project reconciliation crosswalk (era-aware)"
+  ],
+  "authoritative_canonical_geography": {
+    "authority": "Ayuntamiento de Madrid - IDEAM (Infraestructura de Datos Espaciales del Ayuntamiento de Madrid)",
+    "artifact": "data/geography/madrid_admin.geojson",
+    "districts": 21,
+    "barrios": 131,
+    "barrio_code_scheme": "Official Ayuntamiento de Madrid barrio code COD_BAR, 3 digits, prefixed by the parent district code",
+    "district_dataset_version": "v3.2.1",
+    "barrio_dataset_version": "v3.4.1",
+    "crs": {
+      "source": "EPSG:25830 (ETRS89 / UTM zone 30N)",
+      "output": "EPSG:4326 / CRS84 (WGS84, lon,lat)",
+      "reprojection": "server-side via ArcGIS outSR=4326; no client-side reprojection"
+    },
+    "provenance_established": true
+  },
+  "authoritative_historical_geography": {
+    "authority": "Ayuntamiento de Madrid - IDEAM",
+    "dataset": "300496-0-barrios-madrid",
+    "resource_id": "300496-5-barrios-madrid",
+    "resource_name": "Divisiones administrativas historicas (SHP)",
+    "url": "https://geoportal.madrid.es/fsdescargas/IDEAM_WBGEOPORTAL/LIMITES_ADMINISTRATIVOS/Barrios/Historicos/Divisiones_Historicas.zip",
+    "inner": "SHAPES_1987.zip",
+    "shapefile": "SHAPES_1987/Barrios_1987.shp",
+    "sha256": "39717f9e1b7f04b9b59ed1a88b13e8906aa05068ea83b554d77903c755517132",
+    "feature_count": 128,
+    "crs": "EPSG:25830",
+    "basis": "1987 territorial restructuring (barrio system in force until the 2017 reorganisation)"
+  },
+  "sentinels": {
+    "Septiembre 2014": {
+      "why_sentinel": "2014 legacy era (38-col); bare barrio code scheme",
+      "declared_era_hint": "HISTORICAL_128",
+      "observed_geography_era": "HISTORICAL_128",
+      "resource_id": "209548-397-censo-locales-historico-csv",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-397-censo-locales-historico-csv/download/209548-397-censo-locales-historico-csv.csv",
+      "retrieved_at": "2026-10-01T13:48:57Z",
+      "bytes": 27343285,
+      "sha256": "ad8eacabf30ca415690cfd207020950444994ba6cd1afd204596d22c3bec93dd",
+      "md5": "5323c81bf6f27ff8dc7bed5e61f8f2c8",
+      "catalogue_declared_md5": "5323c81bf6f27ff8dc7bed5e61f8f2c8",
+      "md5_matches_catalogue": true,
+      "schema_num_columns": 38,
+      "encoding_observed": "latin-1",
+      "rows": 142052,
+      "distinct_id_local": 142051,
+      "distinct_id_distrito_local": 21,
+      "distinct_id_barrio_local": 128,
+      "blank_barrio_rows": 0,
+      "has_cod_barrio_local": true,
+      "cod_barrio_present_rows": 0,
+      "coordinate_quality": {
+        "valid_in_utm_range": 128958,
+        "missing_or_zero_sentinel": 13093,
+        "invalid_or_out_of_range": 1
+      },
+      "vicalvaro_192_source_name": "Ambroz",
+      "has_183": false,
+      "has_193": false,
+      "has_194": false
+    },
+    "Septiembre 2015": {
+      "why_sentinel": "2015+ early (40-col era)",
+      "declared_era_hint": "HISTORICAL_128",
+      "observed_geography_era": "HISTORICAL_128",
+      "resource_id": "209548-575-censo-locales-historico-csv",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-575-censo-locales-historico-csv/download/209548-575-censo-locales-historico-csv.csv",
+      "retrieved_at": "2026-10-01T13:48:59Z",
+      "bytes": 60816249,
+      "sha256": "deb0fd014c5bcedf4d1bdce142494055a9a3557ea5278371961a6fa9a9f12524",
+      "md5": "ab02dcd0d33fbedc0555801fc2915766",
+      "catalogue_declared_md5": "ab02dcd0d33fbedc0555801fc2915766",
+      "md5_matches_catalogue": true,
+      "schema_num_columns": 40,
+      "encoding_observed": "latin-1",
+      "rows": 144048,
+      "distinct_id_local": 144048,
+      "distinct_id_distrito_local": 21,
+      "distinct_id_barrio_local": 128,
+      "blank_barrio_rows": 0,
+      "has_cod_barrio_local": true,
+      "cod_barrio_present_rows": 0,
+      "coordinate_quality": {
+        "valid_in_utm_range": 137482,
+        "missing_or_zero_sentinel": 6565,
+        "invalid_or_out_of_range": 1
+      },
+      "vicalvaro_192_source_name": "AMBROZ",
+      "has_183": false,
+      "has_193": false,
+      "has_194": false
+    },
+    "Agosto 2017": {
+      "why_sentinel": "last 128-barrio snapshot before Ensanche de Vallecas",
+      "declared_era_hint": "HISTORICAL_128",
+      "observed_geography_era": "HISTORICAL_128",
+      "resource_id": "209548-665-censo-locales-historico-csv",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-665-censo-locales-historico-csv/download/209548-665-censo-locales-historico-csv.csv",
+      "retrieved_at": "2026-10-01T13:49:01Z",
+      "bytes": 61233774,
+      "sha256": "115e9484c4cbebaba3dc9e7711b111095532bfe32f095374e7fe9638c01c85cb",
+      "md5": "86ce566cdbc4538c144fcf0f10e79624",
+      "catalogue_declared_md5": "86ce566cdbc4538c144fcf0f10e79624",
+      "md5_matches_catalogue": true,
+      "schema_num_columns": 40,
+      "encoding_observed": "latin-1",
+      "rows": 145650,
+      "distinct_id_local": 145650,
+      "distinct_id_distrito_local": 21,
+      "distinct_id_barrio_local": 128,
+      "blank_barrio_rows": 0,
+      "has_cod_barrio_local": true,
+      "cod_barrio_present_rows": 0,
+      "coordinate_quality": {
+        "valid_in_utm_range": 129692,
+        "missing_or_zero_sentinel": 7774,
+        "invalid_or_out_of_range": 8184
+      },
+      "vicalvaro_192_source_name": "AMBROZ",
+      "has_183": false,
+      "has_193": false,
+      "has_194": false
+    },
+    "Septiembre 2017": {
+      "why_sentinel": "first snapshot with 183 Ensanche de Vallecas (128->129)",
+      "declared_era_hint": "TRANSITIONAL_129",
+      "observed_geography_era": "TRANSITIONAL_129",
+      "resource_id": "209548-367-censo-locales-historico-csv",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-367-censo-locales-historico-csv/download/209548-367-censo-locales-historico-csv.csv",
+      "retrieved_at": "2026-10-01T13:49:03Z",
+      "bytes": 61540628,
+      "sha256": "742e4a156e6f1868ea961954a0b1948da7c2fb78b7f12abc11537e07bfd90f35",
+      "md5": "a6e09068128845746b92a69a2f24c694",
+      "catalogue_declared_md5": "a6e09068128845746b92a69a2f24c694",
+      "md5_matches_catalogue": true,
+      "schema_num_columns": 40,
+      "encoding_observed": "latin-1",
+      "rows": 145722,
+      "distinct_id_local": 145722,
+      "distinct_id_distrito_local": 21,
+      "distinct_id_barrio_local": 129,
+      "blank_barrio_rows": 0,
+      "has_cod_barrio_local": true,
+      "cod_barrio_present_rows": 0,
+      "coordinate_quality": {
+        "valid_in_utm_range": 137906,
+        "missing_or_zero_sentinel": 7816,
+        "invalid_or_out_of_range": 0
+      },
+      "vicalvaro_192_source_name": "AMBROZ",
+      "has_183": true,
+      "has_193": false,
+      "has_194": false
+    },
+    "Junio 2018": {
+      "why_sentinel": "last 129 snapshot before the Vicalvaro reorganisation",
+      "declared_era_hint": "TRANSITIONAL_129",
+      "observed_geography_era": "TRANSITIONAL_129",
+      "resource_id": "209548-664-censo-locales-historico-csv",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-664-censo-locales-historico-csv/download/209548-664-censo-locales-historico-csv.csv",
+      "retrieved_at": "2026-10-01T13:49:05Z",
+      "bytes": 61859939,
+      "sha256": "a1cf597b6002f748a825c5e6be1df7082028a2b4acf19b9b39705cf32843d1a6",
+      "md5": "5a4f5c558fbdc671e0c4fa7380cfe606",
+      "catalogue_declared_md5": "5a4f5c558fbdc671e0c4fa7380cfe606",
+      "md5_matches_catalogue": true,
+      "schema_num_columns": 40,
+      "encoding_observed": "latin-1",
+      "rows": 146455,
+      "distinct_id_local": 146455,
+      "distinct_id_distrito_local": 22,
+      "distinct_id_barrio_local": 130,
+      "blank_barrio_rows": 0,
+      "has_cod_barrio_local": true,
+      "cod_barrio_present_rows": 0,
+      "coordinate_quality": {
+        "valid_in_utm_range": 138044,
+        "missing_or_zero_sentinel": 8411,
+        "invalid_or_out_of_range": 0
+      },
+      "vicalvaro_192_source_name": "AMBROZ",
+      "has_183": true,
+      "has_193": false,
+      "has_194": false
+    },
+    "Julio 2018": {
+      "why_sentinel": "first snapshot with the Vicalvaro reorg (192 Valdebernardo/193/194); 129->131",
+      "declared_era_hint": "CURRENT_131",
+      "observed_geography_era": "CURRENT_131",
+      "resource_id": "209548-663-censo-locales-historico-csv",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-663-censo-locales-historico-csv/download/209548-663-censo-locales-historico-csv.csv",
+      "retrieved_at": "2026-10-01T13:49:08Z",
+      "bytes": 61905812,
+      "sha256": "112104efff7403553c454b06ee9dd819104cdb0f829c00e08ed7d6e78dba7c06",
+      "md5": "8633b9853eb947465ff52c14d7f2a607",
+      "catalogue_declared_md5": "8633b9853eb947465ff52c14d7f2a607",
+      "md5_matches_catalogue": true,
+      "schema_num_columns": 40,
+      "encoding_observed": "latin-1",
+      "rows": 146567,
+      "distinct_id_local": 146567,
+      "distinct_id_distrito_local": 22,
+      "distinct_id_barrio_local": 132,
+      "blank_barrio_rows": 0,
+      "has_cod_barrio_local": true,
+      "cod_barrio_present_rows": 0,
+      "coordinate_quality": {
+        "valid_in_utm_range": 138128,
+        "missing_or_zero_sentinel": 8439,
+        "invalid_or_out_of_range": 0
+      },
+      "vicalvaro_192_source_name": "VALDEBERNARDO",
+      "has_183": true,
+      "has_193": true,
+      "has_194": true
+    },
+    "Septiembre 2020": {
+      "why_sentinel": "mid-history (40-col era)",
+      "declared_era_hint": "CURRENT_131",
+      "observed_geography_era": "CURRENT_131",
+      "resource_id": "209548-713-censo-locales-historico-csv",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-713-censo-locales-historico-csv/download/209548-713-censo-locales-historico-csv.csv",
+      "retrieved_at": "2026-10-01T13:49:10Z",
+      "bytes": 62515940,
+      "sha256": "f1beefe9f85a2272e1036bb0b5863ddeab280c77bc0f5e04c611e945525f27e3",
+      "md5": "a03f11a2d1b86cdfa2883ca126012f38",
+      "catalogue_declared_md5": "a03f11a2d1b86cdfa2883ca126012f38",
+      "md5_matches_catalogue": true,
+      "schema_num_columns": 40,
+      "encoding_observed": "latin-1",
+      "rows": 147926,
+      "distinct_id_local": 147926,
+      "distinct_id_distrito_local": 21,
+      "distinct_id_barrio_local": 131,
+      "blank_barrio_rows": 0,
+      "has_cod_barrio_local": true,
+      "cod_barrio_present_rows": 0,
+      "coordinate_quality": {
+        "valid_in_utm_range": 138356,
+        "missing_or_zero_sentinel": 9570,
+        "invalid_or_out_of_range": 0
+      },
+      "vicalvaro_192_source_name": "VALDEBERNARDO",
+      "has_183": true,
+      "has_193": true,
+      "has_194": true
+    },
+    "Octubre 2022": {
+      "why_sentinel": "2022-10 structural era (48-col)",
+      "declared_era_hint": "CURRENT_131",
+      "observed_geography_era": "CURRENT_131",
+      "resource_id": "209548-652-censo-locales-historico-csv",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-652-censo-locales-historico-csv/download/209548-652-censo-locales-historico-csv.csv",
+      "retrieved_at": "2026-10-01T13:49:13Z",
+      "bytes": 74679469,
+      "sha256": "f5d9e9ec92e7c427bb665e0e17f2af6d017fbd2099cfa55ca504b7ff8e698098",
+      "md5": "ef63445aabb4207e94498079662c9350",
+      "catalogue_declared_md5": "ef63445aabb4207e94498079662c9350",
+      "md5_matches_catalogue": true,
+      "schema_num_columns": 48,
+      "encoding_observed": "utf-8-sig",
+      "rows": 150434,
+      "distinct_id_local": 150434,
+      "distinct_id_distrito_local": 21,
+      "distinct_id_barrio_local": 131,
+      "blank_barrio_rows": 0,
+      "has_cod_barrio_local": true,
+      "cod_barrio_present_rows": 150434,
+      "coordinate_quality": {
+        "valid_in_utm_range": 139696,
+        "missing_or_zero_sentinel": 10738,
+        "invalid_or_out_of_range": 0
+      },
+      "vicalvaro_192_source_name": "VALDEBERNARDO",
+      "has_183": true,
+      "has_193": true,
+      "has_194": true
+    },
+    "Septiembre 2026": {
+      "why_sentinel": "current era (46-col); coordinate validation era",
+      "declared_era_hint": "CURRENT_131",
+      "observed_geography_era": "CURRENT_131",
+      "resource_id": "209548-851-censo-locales-historico",
+      "url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico/resource/209548-851-censo-locales-historico/download/209548_20261001_045230.csv",
+      "retrieved_at": "2026-10-01T13:49:16Z",
+      "bytes": 89299449,
+      "sha256": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+      "md5": "7e1aeea0b047120a813abb5e4d866837",
+      "catalogue_declared_md5": "7e1aeea0b047120a813abb5e4d866837",
+      "md5_matches_catalogue": true,
+      "schema_num_columns": 46,
+      "encoding_observed": "utf-8-sig",
+      "rows": 203688,
+      "distinct_id_local": 203688,
+      "distinct_id_distrito_local": 21,
+      "distinct_id_barrio_local": 131,
+      "blank_barrio_rows": 1,
+      "has_cod_barrio_local": true,
+      "cod_barrio_present_rows": 203687,
+      "coordinate_quality": {
+        "valid_in_utm_range": 152818,
+        "missing_or_zero_sentinel": 50870,
+        "invalid_or_out_of_range": 0
+      },
+      "vicalvaro_192_source_name": "VALDEBERNARDO",
+      "has_183": true,
+      "has_193": true,
+      "has_194": true
+    }
+  },
+  "geography_eras_and_breakpoints": {
+    "method": "geography era determined from the OBSERVED source barrio set per sentinel (presence of 183 / 193 / 194 and the name of code 192), not the calendar",
+    "last_historical_128_observed": "Agosto 2017",
+    "first_transitional_129_observed": "Septiembre 2017",
+    "last_transitional_129_observed": "Junio 2018",
+    "first_current_131_observed": "Julio 2018",
+    "ensanche_de_vallecas_183_breakpoint": {
+      "legal_decision": "31 May 2017 - Acuerdo del Pleno del Ayuntamiento de Madrid creating the barrio 'Ensanche de Vallecas' (Distrito de Villa de Vallecas) and amending the Reglamento Organico de los Distritos",
+      "boam_publication": "BOAM nº 7927, 15 Jun 2017",
+      "censo_first_observed": "Septiembre 2017",
+      "last_without": "Agosto 2017",
+      "first_with": "Septiembre 2017",
+      "note": "128 -> 129 (183 Ensanche de Vallecas appears). Legal decision, BOAM publication and Censo implementation are three distinct dates; the Censo implementation date is NOT a legal effective date."
+    },
+    "vicalvaro_reorg_breakpoint": {
+      "legal_decision": "31 Oct 2017 - Acuerdo del Pleno del Ayuntamiento de Madrid (Vicalvaro reorganisation + barrio 171 rename), BOAM nº 8034",
+      "boam_publication": "17 Nov 2017",
+      "censo_first_observed": "Julio 2018",
+      "last_before": "Junio 2018",
+      "first_after": "Julio 2018",
+      "note": "129 -> 131 (192 Ambroz -> Valdebernardo; 193 Valderrivas, 194 El Canaveral appear). Legal decision, BOAM publication and Censo implementation are three distinct dates; the Censo implementation date is NOT a legal effective date."
+    },
+    "san_andres_171_rename": "NOT implemented in the Censo source as of the current snapshot - the source still records 'SAN ANDRES' for code 171 while the official v3.4.1 geometry uses 'Villaverde Alto - Casco Historico de Villaverde' (code/entity stable, name label lags)"
+  },
+  "entity_relationships_1987_to_current": {
+    "counts": {
+      "SAME_ENTITY": 110,
+      "NAME_CHANGE_ONLY": 10,
+      "BOUNDARY_CHANGED": 7,
+      "NEW_ENTITY": 3,
+      "REPLACED": 1,
+      "LEGACY_ENTITY": 1
+    },
+    "documented_2017_reorganisation": {
+      "legal_basis": "Two 2017 acuerdos of the Pleno del Ayuntamiento de Madrid: (a) 31-05-2017 creating barrio 183 'Ensanche de Vallecas' (BOAM nº 7927, 15-06-2017); (b) 31-10-2017 reorganising Vicalvaro + renaming barrio 171 (BOAM nº 8034, published 17-11-2017). Censo implementation: 183 at Sep 2017, Vicalvaro reorg at Jul 2018.",
+      "code_reuse_warning": {
+        "current_name": "Valdebernardo",
+        "historical_name": "Ambroz",
+        "dominant_historical_source": "191",
+        "overlap_pct": 99.9,
+        "relationship": "REPLACED",
+        "note": "code reused: current entity is 99.9% carved from historical 191 (Casco Histórico de Vicálvaro), NOT historical 192 (Ambroz); numeric code equality != entity identity"
+      },
+      "legacy_entities": {
+        "192": {
+          "historical_name": "Ambroz",
+          "district": "19",
+          "relationship": "LEGACY_ENTITY",
+          "note": "no current barrio is predominantly derived from this historical entity; it was absorbed/dissolved in 2017"
+        }
+      }
+    }
+  },
+  "current_era_reconciliation": {
+    "era": "Septiembre 2026",
+    "distinct_source_barrios": 131,
+    "status_counts": {
+      "EXACT_CODE_MATCH": 131
+    },
+    "exact_code_match": 131,
+    "hierarchy_conflicts": 0,
+    "all_131_reconciled_exactly": true
+  },
+  "point_in_polygon": {
+    "scope": "CURRENT_131 snapshot against CURRENT polygons only",
+    "crs_source_empirical": "EPSG:25830 (ETRS89 / UTM zone 30N) - EMPIRICAL: inferred from coordinate magnitude, NOT documented by the source PDF",
+    "crs_target": "EPSG:4326 (WGS84 lon,lat)",
+    "transform": "pyproj Transformer 25830->4326, always_xy=True; no snapping",
+    "boundary_tolerance_m": 25.0,
+    "points_tested": 152818,
+    "classification": {
+      "CODE_MATCH_POINT_INSIDE_BARRIO": 152774,
+      "CODE_MATCH_POINT_OUTSIDE_DISTRICT": 27,
+      "CODE_MATCH_POINT_IN_DISTRICT_OTHER_BARRIO": 6,
+      "UNMATCHED_CODE_WITH_COORD": 1,
+      "CODE_MATCH_BOUNDARY_EDGE": 10
+    },
+    "conflict_examples": [
+      {
+        "assigned": "041",
+        "assigned_name": "Recoletos",
+        "point_in_district": false,
+        "actual_barrio": "011"
+      },
+      {
+        "assigned": "159",
+        "assigned_name": "Costillares",
+        "point_in_district": true,
+        "actual_barrio": "155"
+      },
+      {
+        "assigned": "214",
+        "assigned_name": "Timón",
+        "point_in_district": true,
+        "actual_barrio": "212"
+      },
+      {
+        "assigned": "214",
+        "assigned_name": "Timón",
+        "point_in_district": true,
+        "actual_barrio": "212"
+      },
+      {
+        "assigned": "132",
+        "assigned_name": "San Diego",
+        "point_in_district": true,
+        "actual_barrio": "133"
+      },
+      {
+        "assigned": "214",
+        "assigned_name": "Timón",
+        "point_in_district": false,
+        "actual_barrio": "166"
+      },
+      {
+        "assigned": "214",
+        "assigned_name": "Timón",
+        "point_in_district": false,
+        "actual_barrio": "166"
+      },
+      {
+        "assigned": "214",
+        "assigned_name": "Timón",
+        "point_in_district": false,
+        "actual_barrio": "166"
+      },
+      {
+        "assigned": "214",
+        "assigned_name": "Timón",
+        "point_in_district": false,
+        "actual_barrio": "166"
+      },
+      {
+        "assigned": "214",
+        "assigned_name": "Timón",
+        "point_in_district": false,
+        "actual_barrio": "166"
+      },
+      {
+        "assigned": "214",
+        "assigned_name": "Timón",
+        "point_in_district": false,
+        "actual_barrio": "166"
+      },
+      {
+        "assigned": "214",
+        "assigned_name": "Timón",
+        "point_in_district": false,
+        "actual_barrio": "166"
+      },
+      {
+        "assigned": "214",
+        "assigned_name": "Timón",
+        "point_in_district": false,
+        "actual_barrio": "166"
+      },
+      {
+        "assigned": "214",
+        "assigned_name": "Timón",
+        "point_in_district": false,
+        "actual_barrio": "166"
+      },
+      {
+        "assigned": "214",
+        "assigned_name": "Timón",
+        "point_in_district": false,
+        "actual_barrio": "166"
+      },
+      {
+        "assigned": "214",
+        "assigned_name": "Timón",
+        "point_in_district": false,
+        "actual_barrio": "166"
+      },
+      {
+        "assigned": "181",
+        "assigned_name": "Casco Histórico de Vallecas",
+        "point_in_district": false,
+        "actual_barrio": null
+      },
+      {
+        "assigned": "214",
+        "assigned_name": "Timón",
+        "point_in_district": false,
+        "actual_barrio": "166"
+      },
+      {
+        "assigned": "214",
+        "assigned_name": "Timón",
+        "point_in_district": false,
+        "actual_barrio": "166"
+      },
+      {
+        "assigned": "214",
+        "assigned_name": "Timón",
+        "point_in_district": false,
+        "actual_barrio": "166"
+      }
+    ],
+    "coordinate_availability": {
+      "total_premises": 203688,
+      "usable_coordinates": 152818,
+      "unusable_zero_sentinel": 50870,
+      "availability_rate": 0.75026,
+      "unusable_share": 0.24974,
+      "note": "coverage rate: ~24.97% of premises carry the (0,0) missing sentinel and have NO usable point coordinate."
+    },
+    "point_in_polygon_agreement": {
+      "basis": "CONDITIONAL on a usable coordinate; this is NOT a universe-wide rate and must never be read as a coordinate-availability figure",
+      "points_agreeing_inside_or_edge": 152784,
+      "points_tested": 152818,
+      "agreement_rate_conditional_on_usable": 0.99978
+    },
+    "historical_point_in_polygon": "NOT_PERFORMED - pre-2017 records must be validated against the 1987 historical polygons (now available), never against current polygons; deferred as out of current scope"
+  },
+  "128_to_131": {
+    "cause": "DOCUMENTED_ADMINISTRATIVE_REORGANISATION_2017",
+    "evidence": "Official 'Barrios municipales de Madrid' v3.4.1 dataset notes state it incorporates the Vicalvaro reorganisation (two new barrios + modification of existing) and the barrio 171 rename per Pleno 31-10-2017 BOAM nº 8034; the official 'Divisiones administrativas historicas' resource carries the 1987 pre-change geography (128 barrios). This is a documented administrative change, NOT a source-coverage gap.",
+    "new_current_barrios": [
+      "183 Ensanche de Vallecas (split from 181)",
+      "193 Valderrivas (split from 191)",
+      "194 El Canaveral (split from 191)"
+    ],
+    "code_reuse": "current 192 'Valdebernardo' is carved from historical 191, while historical 192 'Ambroz' was absorbed into current 191; the code 192 is REUSED for a different entity.",
+    "ensanche_de_vallecas_legal_instrument": {
+      "acuerdo": "Acuerdo de 31 de mayo de 2017 del Pleno del Ayuntamiento de Madrid, por el que se aprueba la creacion del barrio denominado 'Ensanche de Vallecas' en el Distrito de Villa de Vallecas y la modificacion del Reglamento Organico de los Distritos de la Ciudad de Madrid",
+      "boam_publication": "BOAM nº 7927, 15/06/2017",
+      "censo_first_observed": "Septiembre 2017",
+      "note": "the legal instrument is established (no longer an open item); legal decision, BOAM publication and Censo implementation are three distinct dates and are not collapsed."
+    }
+  },
+  "boundary_history": {
+    "finding": "Madrid has DOCUMENTED barrio-level administrative boundary/entity changes in 2017 (Vicalvaro reorganisation; Villaverde 171 rename; Ensanche de Vallecas). Current v3.4.1 geometry incorporates them; the official 1987 historical geometry is used for pre-change records. Historical records before the Censo implementation breakpoint must use the historical geography or remain segmented.",
+    "three_distinct_dates_not_collapsed": {
+      "ensanche_de_vallecas_183": {
+        "legal_decision": "31 May 2017",
+        "boam_publication": "15 Jun 2017 (nº 7927)",
+        "censo_first_observed": "Sep 2017"
+      },
+      "vicalvaro_reorg_191_192_193_194": {
+        "legal_decision": "31 Oct 2017",
+        "boam_publication": "17 Nov 2017 (nº 8034)",
+        "censo_first_observed": "Jul 2018"
+      },
+      "caveat": "the Censo source-implementation date is an OBSERVED data fact, not a legal effective date; the three date types are never collapsed",
+      "current_geometry_effective_period": "v3.4.1; no published effective date (see geography meta.json); represents current/recent snapshots"
+    },
+    "historical_polygons_available": true,
+    "historical_polygons_source": "300496-5-barrios-madrid"
+  },
+  "population_geography_joinability": {
+    "population_asset_present": true,
+    "population_barrio_key_field": "official_id",
+    "population_distinct_barrio_ids": 131,
+    "population_distinct_district_ids": 21,
+    "canonical_barrio_ids": 131,
+    "canonical_district_ids": 21,
+    "barrio_ids_in_population_not_canonical": [],
+    "barrio_ids_in_canonical_not_population": [],
+    "barrio_parent_mismatches": [],
+    "one_to_one_barrio_join": true,
+    "one_to_one_district_join": true,
+    "scope": "join is defined against the CURRENT (131) canonical geography only; a historical join would require the historical barrio set",
+    "note": "KEY compatibility only. No population value is joined to any premises count and no per-resident indicator is constructed (Gate F)."
+  },
+  "interpretation_ceiling": {
+    "supports": [
+      "number/share of administratively documented premises by canonical barrio/district within a geography era",
+      "distribution of recorded activity classes by district",
+      "geography of source-included premises"
+    ],
+    "does_not_support": [
+      "tourism pressure",
+      "overtourism",
+      "saturation",
+      "neighbourhood commercial health",
+      "causal impacts",
+      "displacement",
+      "gentrification",
+      "resident burden",
+      "any per-resident indicator (Gate F)",
+      "cross-2017 barrio trend without explicit harmonisation"
+    ]
+  },
+  "ruling": {
+    "current_district_reconciliation": "GO",
+    "current_barrio_reconciliation": "GO",
+    "era_2015plus_district_compatibility": "GO",
+    "era_2015plus_barrio_compatibility": "MODIFY",
+    "era_2014_district_compatibility": "GO",
+    "era_2014_barrio_compatibility": "MODIFY",
+    "coordinate_validation": "MODIFY",
+    "project_current_canonical_geography": "GO",
+    "population_geography_joinability": "GO",
+    "overall": "GO to Gate F",
+    "point_in_polygon_agreement_rate": 0.99978,
+    "ruling_bases": {
+      "current_barrio": "131/131 source barrios reconcile EXACT_CODE_MATCH to the CURRENT canonical geography, 0 conflicts.",
+      "era_2015plus_barrio": "MODIFY - segmented across the DOCUMENTED 2017 geography break. Observed source barrios reconcile within each era, but pre- and post-change barrios are NOT one homogeneous canonical unit system (code 192 is reused for a different entity; 193/194/183 are new; old 192 Ambroz is legacy). Cross-2017 barrio comparison requires explicit harmonisation.",
+      "era_2014_barrio": "MODIFY - defensible within the historical 128-barrio (1987) geography; NOT directly 1:1 to the current 131-barrio geography.",
+      "coordinate_validation": "MODIFY - point-in-assigned-barrio agreement is 99.978% AMONG THE USABLE-COORDINATE SUBSET (conditional rate), while 50,870/203,688 (~24.97%) of premises carry the (0,0) sentinel and have no usable point coordinate. The agreement rate is NOT a coordinate-availability figure. Coordinates corroborate the code reconciliation; they are never the primary key or a silent fallback. Code-based reconciliation remains GO.",
+      "population": "GO for the CURRENT canonical geography only (1:1 key join).",
+      "overall": "GO to Gate F - the historical segmentation and the 2017 break are now explicit and reproducible, with official historical geometry and an era-aware crosswalk."
+    },
+    "notes": "Rulings are computed from the artifacts. The canonical entity key is era-aware (era:code); numeric code equality across the 2017 reorganisation never establishes entity identity."
+  }
+}
