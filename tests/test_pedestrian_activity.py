@@ -56,6 +56,35 @@ class PedestrianActivityBuilderTests(unittest.TestCase):
         self.assertEqual(station["dateMax"], "2024-01-01")
         self.assertEqual(station["meanObserved"], 910.0)
 
+    def test_accepts_current_ckan_datastore_record_shape(self):
+        records = [
+            {
+                "_id": "1",
+                "fecha": "01/01/2024 0:00",
+                "hora": "0:00",
+                "identificador": "PERM_PEA01_PM01",
+                "peatones": "910",
+                "device_id": "PERM_PEA01_PM01",
+                "Numero_distrito": "1",
+                "distrito": "Centro",
+                "direccion": "Calle Arenal esquina San Martín",
+                "observaciones_direccion": "Calle peatonal",
+                "latitude": "40.417.386",
+                "longitude": "-3.707.141",
+            }
+        ]
+        normalized = [
+            {
+                MODULE.normalize_header(k): ("" if v is None else str(v).strip())
+                for k, v in row.items()
+            }
+            for row in records
+        ]
+        parsed = MODULE.parse_pedestrian_rows(normalized)
+        self.assertEqual(parsed["stationCount"], 1)
+        self.assertEqual(parsed["observationCount"], 1)
+        self.assertEqual(parsed["stations"][0]["meanObserved"], 910.0)
+
     def test_rejects_invalid_or_negative_counts_without_fabricating_values(self):
         csv_text = """fecha;hora;identificador;peatones;distrito;direccion;latitude;longitude
 01-01-2024;10:00;BAD1;-1;Centro;Test;40.416;-3.703
