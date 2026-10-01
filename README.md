@@ -25,7 +25,7 @@ including comparing two places at once.
 
 - Move **Lens A** (always on) by dragging it or clicking the map.
 - Enable **Lens B** to compare two locations side by side.
-- Adjust the lens **radius** (250 m – 1.8 km).
+- Adjust the lens **radius** (100 m – 5 km).
 - Toggle each operational data layer on/off.
 - Opt into **observed pedestrian activity** from Madrid's permanent counters;
   the lens reports the mean published hourly count for counters inside the
@@ -182,13 +182,17 @@ restrict it in the CARTO Basemaps dashboard to the GitHub Pages host
   evidence, and it owns its own period: there is still **no global time
   control**, and no other surface became time-aware.
 
-## 10. What is next?
+## 10. Decision utility
 
-- Build a reproducible, sufficiently complete AOI snapshot per POI layer
-  (ideally scripted like `scripts/extract_hati_evidence.py`) so counts stay
-  interpretable even when live APIs fail, and verify exact BiciMAD station
-  coordinates against the official EMT Madrid dataset before reintroducing
-  a BiciMAD fallback.
+Gate G formalizes what the current product can and cannot support as a management aid. Today Lens can support three bounded descriptive questions: same-radius local comparison, whole-barrio administrative context, and municipality-wide hotel-demand monitoring. It cannot rank barrios, measure tourism pressure, infer causality, allocate citywide demand to local areas, or recommend investment/restriction/promotion from the current evidence.
+
+See [Gate G — Decision utility and next evidence increment](docs/DECISION_UTILITY_GATE_G.md).
+
+## 11. What is next?
+
+**Next authorized gate: Gate H — Destination Origin Context source contract.** Gate C0 already marked domestic municipality→Madrid and international country→Madrid origin evidence as USE candidates. Gate H must verify the exact source unit, Madrid geography, temporal semantics, missing/zero handling, origin identifiers and reproducible retrieval before any production UI is authorized.
+
+- After Gate H, continue hardening reproducible AOI snapshots for operational POI layers and verify exact BiciMAD coordinates against the official EMT Madrid source before any BiciMAD fallback is reintroduced.
 - Add automated visual regression checks for the map UI.
 - Decide, explicitly and separately, whether the **Madrid Destino accommodation
   catalogue** can ever carry a per-resident measure. It still cannot: Gate A
@@ -205,7 +209,7 @@ restrict it in the CARTO Basemaps dashboard to the GitHub Pages host
   closing that gap needs the tourist-apartment survey, the INE experimental VUT
   series or an origin/destination source, each with its own gate.
 
-## Project structure
+## 12. Project structure
 
 ```
 index.html            entry point
@@ -223,7 +227,7 @@ docs/                   methodology, data provenance, claims & limitations
 tests/                  Node built-in test runner, no framework
 ```
 
-## License
+## 13. License
 
 The MIT license in [LICENSE](LICENSE) covers **this repository's original
 code and documentation only**. It does not relicense any third-party data or
