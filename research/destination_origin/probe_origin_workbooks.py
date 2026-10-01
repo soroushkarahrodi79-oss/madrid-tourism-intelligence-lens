@@ -19,8 +19,6 @@ from pathlib import Path
 
 FILES = {
     "domestic_2026": "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_2026.xlsx",
-    "domestic_2025": "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_2025.xlsx",
-    "inbound_2025": "https://www.ine.es/experimental/turismo_moviles/exp_tmov_receptor_mun_2025.xlsx",
 }
 OUT = Path("research/destination_origin/workbook_probe_report.json")
 NS_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
@@ -112,7 +110,7 @@ def cell_value(cell, strings):
 def inspect_sheet(zf, sheet, strings):
     first_rows = []
     madrid_rows = []
-    row_count = 0
+    rows_seen = 0
     dimension = None
     with zf.open(sheet["path"]) as fh:
         context = ET.iterparse(fh, events=("start", "end"))
@@ -121,7 +119,7 @@ def inspect_sheet(zf, sheet, strings):
                 dimension = elem.attrib.get("ref")
             if event != "end" or elem.tag != f"{{{NS_MAIN}}}row":
                 continue
-            row_count += 1
+            rows_seen += 1
             row = {}
             for cell in elem.findall(f"{{{NS_MAIN}}}c"):
                 ref = cell.attrib.get("r", "")
@@ -134,9 +132,11 @@ def inspect_sheet(zf, sheet, strings):
             if "28079" in values and len(madrid_rows) < 25:
                 madrid_rows.append({"row": elem.attrib.get("r"), "cells": compact})
             elem.clear()
+            if len(first_rows) >= 12 and len(madrid_rows) >= 25:
+                break
     return {
         "dimension": dimension,
-        "row_count": row_count,
+        "rows_scanned": rows_seen,
         "first_rows": first_rows,
         "madrid_rows": madrid_rows,
     }
