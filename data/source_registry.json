@@ -402,6 +402,54 @@
       "interpretation_ceiling": "A count of urban-planning activity licences GRANTED for tourist-dwelling (vivienda de uso turistico) use in the city of Madrid, and of the tourist-dwelling units those licences include. The primary quantity is units; the licence count is supporting evidence and a licence is NOT a dwelling. It does NOT establish that the dwellings are currently operating: the source carries no revocation, expiry or cessation field and publishes no retention policy, so nothing may call these 'active', 'operating' or 'current' tourist dwellings, and the extract is not described as a cumulative stock. It is NOT all VUT (it excludes responsible declarations filed with the Comunidad de Madrid and the regional inventory), NOT all accommodation (the publisher names tourist apartments, hostels, guest houses, hotels, pensions and aparthotels as excluded), NOT beds, rooms or places, NOT platform listings and NOT evidence of the legality of any platform listing. It is NOT a measure of tourism pressure, overtourism, saturation, carrying capacity, tourism intensity, resident displacement, neighbourhood burden, impact or attractiveness, and it is never ranked, banded, scored or mapped as a heat surface. The per-1,000-registered-residents figure is a DESCRIPTIVE ratio of two administrative facts with two different periods, not a rate of anything and not a share of dwellings: the denominator is registered residents, never homes or households. Counts belong to the WHOLE OFFICIAL BARRIO and must never be spatially distributed into a circular Lens or any sub-area."
     },
     {
+      "id": "hospitality_commercial_context",
+      "display_name": "Hospitality & Commercial Context",
+      "authority": "Ayuntamiento de Madrid - Censo de Locales",
+      "dataset_url": "https://datos.madrid.es/dataset/209548-0-censo-locales-historico",
+      "artifact": "hospitality-commercial-context.json",
+      "shape": "admin_hospitality_context",
+      "contract_version": "1.0.0",
+      "builder": "scripts/build_hospitality_commercial_context.py",
+      "rebuilt_at_deploy": false,
+      "provenance_state": "committed_fingerprinted_administrative_snapshot",
+      "role": "administrative_context",
+      "blocks_deployment": true,
+      "unavailable_is_allowed": false,
+      "evidence_type": "ADMINISTRATIVE_REGISTER",
+      "expected_spatial_scope": "madrid_city_area",
+      "geography_dependency": "geography/madrid_admin.geojson",
+      "denominator_dependency": "population/madrid_population.json",
+      "source_period_exposed_by_source": true,
+      "source_period_semantics": "Locales and Actividades are the separately fingerprinted nominal September 2026 snapshots approved by Gate F. The conditional resident denominator is a different source and a reference-date stock at 1 January 2026; both dates must remain visible and must never be collapsed to a shared '2026' period.",
+      "expected_fingerprints": {
+        "premises": "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+        "activities": "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2"
+      },
+      "selectable_indicator_ids": [
+        "source_included_premises_count",
+        "core_hospitality_premises_count",
+        "accommodation_class_premises_count",
+        "core_hospitality_membership_share_of_populated_taxonomy_premises",
+        "core_hospitality_premises_per_1000_residents"
+      ],
+      "expected_counts": {
+        "municipality": 1,
+        "districts": 21,
+        "barrios": 131,
+        "note": "Exactly the canonical CURRENT_131 administrative coverage; no geometry is duplicated in this artifact."
+      },
+      "expected_municipality_values": {
+        "source_included_premises_count": 184279,
+        "core_hospitality_premises_count": 19532,
+        "accommodation_class_premises_count": 7919,
+        "core_hospitality_membership_share_of_populated_taxonomy_premises": 13.744573,
+        "core_hospitality_premises_per_1000_residents": 5.584916
+      },
+      "blocks_deployment_note": "BLOCKING because the application publishes these committed Gate F aggregates as user-facing administrative-area values. Runtime failure is shown explicitly as unavailable, but a malformed, unpinned, mis-joined or semantically incomplete committed artifact must not be deployed.",
+      "deployment_source_role": "COMMITTED FINGERPRINTED ADMINISTRATIVE SNAPSHOT. It is generated only through the reviewed builder, is not refreshed during Pages deployment, and contains no source rows or geometry.",
+      "interpretation_ceiling": "Administratively documented premises in the Censo de Locales under Gate F's exact universes and exclusions. Not verified active or operating businesses, tourism pressure, resident burden, tourism stress, carrying capacity, saturation, overtourism, visitor demand, commercial vitality, accommodation capacity, tourist beds or tourist intensity. Division 55 remains a heterogeneous premises class and is not merged with the separate accommodation catalogue or licensed-VUT source. Values belong to official administrative areas and must never be calculated inside a Lens circle or used in Lens A/B comparison."
+    },
+    {
       "id": "hotel_demand",
       "display_name": "Hotel demand by month (Destination Context)",
       "authority": "Instituto Nacional de Estadistica (INE) - Encuesta de Ocupacion Hotelera",

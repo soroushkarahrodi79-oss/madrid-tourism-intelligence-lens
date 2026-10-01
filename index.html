@@ -6,7 +6,7 @@
 <title>Madrid Tourism Intelligence Lens</title>
 <meta name="description" content="Move a spatial lens across central Madrid to explore how tourism POIs, mobility nodes and bounded HATI thermal evidence change locally.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20260930-31">
+<link rel="stylesheet" href="css/app.css?v=20261001-35">
 </head>
 <body>
 <div id="map"></div>
@@ -42,6 +42,13 @@
         <option value="barrio">All barrio outlines</option>
       </select>
     </div>
+    <div class="language-control">
+      <label id="hospitalityLanguageLabel" for="languageSelect">Idioma</label>
+      <select id="languageSelect" aria-labelledby="hospitalityLanguageLabel">
+        <option value="es" selected>Español</option>
+        <option value="en">English</option>
+      </select>
+    </div>
   </div>
   <h3>Operational layers</h3>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--museum);background:var(--museum)"></i>Museums</div><label class="switch"><input data-layer="museum" type="checkbox" checked><span></span></label></div>
@@ -75,6 +82,7 @@
     <small>not in metrics</small>
   </div>
   <div class="layer context-layer"><div class="layer-left"><i class="dot" style="color:var(--park);background:var(--park)"></i>Principal parks</div><label class="switch"><input data-layer="park" type="checkbox" aria-label="Toggle principal municipal parks"><span></span></label></div>
+  <div id="hospitalityLayerRow" class="layer context-layer hospitality-layer"><div class="layer-left"><i class="dot hospitality-dot"></i><span id="hospitalityLayerName">Contexto de hostelería y actividad comercial</span></div><label class="switch"><input id="hospitalityToggle" data-layer="hospitality" type="checkbox" aria-label="Mostrar contexto de hostelería y actividad comercial" aria-checked="false"><span></span></label></div>
 
   <div class="research-divider">
     <span>Research evidence</span>
@@ -157,6 +165,36 @@
     </div>
     <button id="areaSourceToggle" class="area-source-toggle" type="button" aria-expanded="false" aria-controls="areaSourceDetails" hidden>Source &amp; interpretation</button>
     <div id="areaSourceDetails" class="area-source-details" hidden></div>
+  </section>
+
+  <section id="hospitalityContext" class="hospitality-context" aria-labelledby="hospitalityContextHeading" hidden>
+    <div class="section-head"><span id="hospitalityContextHeading">Contexto administrativo</span><small id="hospitalityContextScope">geografía oficial</small></div>
+    <div id="hospitalityControls" class="hospitality-controls" hidden>
+      <label id="hospitalityMetricLabel" for="hospitalityMetricSelect">Métrica</label>
+      <div class="hospitality-select-wrap">
+        <span id="hospitalityMetricSelectValue" class="hospitality-select-value" aria-hidden="true"></span>
+        <select id="hospitalityMetricSelect" aria-labelledby="hospitalityMetricLabel"></select>
+      </div>
+      <div id="hospitalityScale" class="hospitality-scale" aria-live="polite"></div>
+      <p id="hospitalitySelectorHint" class="hospitality-selector-hint">Polígonos oficiales de barrio · no se calcula dentro del círculo Lens</p>
+    </div>
+    <div id="hospitalityContextLive" class="hospitality-context-card" aria-live="polite">
+      <div class="hospitality-context-top">
+        <div><span id="hospitalityAreaLabel" class="hospitality-field-label">Área</span><h2 id="hospitalityAreaName" class="hospitality-area-name">Municipio de Madrid</h2></div>
+        <button id="hospitalityClearSelection" class="hospitality-clear" type="button" hidden aria-label="Clear selected barrio">×</button>
+      </div>
+      <div class="hospitality-field"><span id="hospitalitySelectedMetricLabel" class="hospitality-field-label">Métrica</span><strong id="hospitalitySelectedMetric"></strong></div>
+      <div class="hospitality-value-row"><span id="hospitalityValue" class="hospitality-value">—</span><span id="hospitalityUnit" class="hospitality-unit"></span></div>
+      <div class="hospitality-meta-grid">
+        <div><span id="hospitalityReferenceLabel" class="hospitality-field-label">Periodo de referencia</span><span id="hospitalityReference">sep. 2026</span></div>
+        <div><span id="hospitalitySourceLabel" class="hospitality-field-label">Fuente</span><span id="hospitalitySource">Ayuntamiento de Madrid · Censo de Locales</span></div>
+        <div id="hospitalityPopulationRow" hidden><span id="hospitalityPopulationLabel" class="hospitality-field-label">Población</span><span id="hospitalityPopulation">Padrón · 1 ene. 2026</span></div>
+      </div>
+      <p id="hospitalityDualDate" class="hospitality-dual-date" hidden></p>
+      <p id="hospitalityInterpretation" class="hospitality-interpretation"></p>
+      <p id="hospitalityState" class="hospitality-state"></p>
+      <a id="hospitalityMethodologyLink" class="hospitality-methodology-link" href="docs/HOSPITALITY_COMMERCIAL_METHOD_GATE.md">Metodología completa</a>
+    </div>
   </section>
 
   <div class="section-head"><span>Within the Lens</span><small id="lensScopeHint">—</small></div>
@@ -245,7 +283,7 @@
   </section>
 
   <div class="source">
-    Sources: Ayuntamiento de Madrid — IDEAM (administrative geography: districts, barrios) and Subdirección General de Estadística / Padrón Municipal (registered residents), Madrid Open Data (museums, tourist information, principal parks, permanent pedestrian counters), EMT Madrid (BiciMAD), CRTM (Metro and Cercanías stations), and Madrid Destino / esmadrid.com (hotels and other accommodation) — GitHub Pages uses the latest deployment-time snapshot first so markers render immediately; a small curated repository sample is the final packaged fallback when a deployment source is unavailable. HATI-Madrid locked pilot evidence (21 Aug 2023; UTCI is model output, not field observation). Destination context: Instituto Nacional de Estadística — Encuesta de Ocupación Hotelera (monthly hotel demand for the municipality of Madrid; hotel establishments only, not all tourism or all accommodation) — see <a href="docs/DATA_PROVENANCE.md">data provenance</a> and <a href="docs/CLAIMS_AND_LIMITATIONS.md">claims &amp; limitations</a>. Base maps: OpenStreetMap/CARTO or Esri World Imagery, depending on selection.
+    Sources: Ayuntamiento de Madrid — IDEAM (administrative geography: districts, barrios), Subdirección General de Estadística / Padrón Municipal (registered residents), and Censo de Locales (Hospitality &amp; Commercial Context, Sep 2026 fingerprinted snapshot); Madrid Open Data (museums, tourist information, principal parks, permanent pedestrian counters); EMT Madrid (BiciMAD); CRTM (Metro and Cercanías stations); and Madrid Destino / esmadrid.com (hotels and other accommodation). The accommodation catalogue remains separate from the administrative Division-55 premises class. GitHub Pages uses the latest deployment-time POI snapshot first so markers render immediately; a small curated repository sample is the final packaged fallback when a deployment source is unavailable. HATI-Madrid locked pilot evidence (21 Aug 2023; UTCI is model output, not field observation). Destination context: Instituto Nacional de Estadística — Encuesta de Ocupación Hotelera (monthly hotel demand for the municipality of Madrid; hotel establishments only, not all tourism or all accommodation) — see <a href="docs/DATA_PROVENANCE.md">data provenance</a> and <a href="docs/CLAIMS_AND_LIMITATIONS.md">claims &amp; limitations</a>. Base maps: OpenStreetMap/CARTO or Esri World Imagery, depending on selection.
   </div>
 </section>
 
@@ -256,6 +294,6 @@
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20260930-33"></script>
+<script src="js/app.js?v=20261001-35"></script>
 </body>
 </html>

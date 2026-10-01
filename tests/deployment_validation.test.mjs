@@ -38,6 +38,9 @@ function testRegistry() {
       source.expected_source_totals.licences = VUT_FIXTURE_TOTALS.licences;
       source.expected_source_totals.units = VUT_FIXTURE_TOTALS.units;
     }
+    if (source.id === "hospitality_commercial_context") {
+      source.expected_municipality_values = hospitalityArtifact().municipality["28079"].indicators;
+    }
     // The series-length floor describes the real committed artifact, so it is
     // re-aimed at the fixture's own short series here. The floor's behaviour is
     // asserted on its own below, and the real number is asserted in
@@ -203,6 +206,68 @@ function populationMeta() {
     source_period: { reference_date: "2026-01-01", type: "padron_annual_reference_date" },
     geography_linkage: { barrio_geography_version: "v3.4.1", district_geography_version: "v3.2.1" },
     retrieved_at: GENERATED_AT,
+  };
+}
+
+function hospitalityArtifact() {
+  const geo = geographyFeatureCollection();
+  const barrios = geo.features.filter((f) => f.properties.geography_level === "barrio");
+  const districts = geo.features.filter((f) => f.properties.geography_level === "district");
+  const indicatorIds = [
+    "source_included_premises_count",
+    "core_hospitality_premises_count",
+    "accommodation_class_premises_count",
+    "core_hospitality_membership_share_of_populated_taxonomy_premises",
+    "core_hospitality_premises_per_1000_residents",
+  ];
+  const values = (factor) => ({
+    [indicatorIds[0]]: 100 * factor,
+    [indicatorIds[1]]: 20 * factor,
+    [indicatorIds[2]]: 5 * factor,
+    [indicatorIds[3]]: 25,
+    [indicatorIds[4]]: 4.5,
+  });
+  return {
+    contract_version: "1.0.0",
+    metadata: {
+      generated_at: GENERATED_AT,
+      premises_nominal_period: "2026-09",
+      premises_sha256: "4ca33fed004b836d685aa55961adeca89fdedb8f333f3adc0e8abb8f7a4b87c1",
+      activities_nominal_period: "2026-09",
+      activities_sha256: "ba9279d6d187105b57889d30b4fe335fe5a60f5fe9efbf47425f46068f0d91a2",
+      geography_version: { era: "CURRENT_131", district: "v3.2.1", barrio: "v3.4.1" },
+      population_reference_date: "2026-01-01",
+      population_artifact_sha256: "e6bc8a209927d2acdfd1f0489638d7996b8fed809624093436beafd78cfa8e08",
+      selectable_indicator_ids: indicatorIds,
+      default_indicator_id: "core_hospitality_premises_count",
+      interpretation_ceiling: ["no pressure claims"],
+      conditional_indicator: {
+        indicator_id: "core_hospitality_premises_per_1000_residents",
+        premises_period: "Sep 2026",
+        population_date: "2026-01-01",
+        denominator_type: "registered residents / Padron reference-date stock",
+        interpretation_ceiling: "Not tourism pressure.",
+      },
+    },
+    municipality: {
+      "28079": { official_name: "Madrid", parent_id: null, indicators: values(131) },
+    },
+    districts: Object.fromEntries(
+      districts.map((feature) => [
+        feature.properties.official_id,
+        { official_name: feature.properties.official_name, parent_id: "28079", indicators: values(6) },
+      ])
+    ),
+    barrios: Object.fromEntries(
+      barrios.map((feature) => [
+        feature.properties.official_id,
+        {
+          official_name: feature.properties.official_name,
+          parent_id: feature.properties.parent_id,
+          indicators: values(1),
+        },
+      ])
+    ),
   };
 }
 
@@ -491,6 +556,7 @@ function healthyArtifacts() {
     "accommodation/madrid_vut_licences.meta.json": vutMeta(),
     "destination/madrid_hotel_demand.json": destinationArtifact(),
     "destination/madrid_hotel_demand.meta.json": destinationMeta(),
+    "hospitality-commercial-context.json": hospitalityArtifact(),
   };
 }
 
@@ -1775,6 +1841,7 @@ test("source registry is internally coherent", () => {
         "committed_reference_geography",
         "committed_reference_evidence",
         "committed_administrative_snapshot",
+        "committed_fingerprinted_administrative_snapshot",
         "committed_statistical_snapshot",
       ].includes(source.provenance_state),
       `${source.id} must declare a known provenance_state`
@@ -1813,7 +1880,7 @@ test("source registry is internally coherent", () => {
       );
       assert.ok(counts.calibrated_on, `${source.id} guardrail needs a calibration date`);
       assert.ok(counts.note, `${source.id} guardrail needs a stated rationale`);
-    } else if (["admin_geography", "admin_population", "admin_licence_counts"].includes(source.shape)) {
+    } else if (["admin_geography", "admin_population", "admin_licence_counts", "admin_hospitality_context"].includes(source.shape)) {
       // The administrative geography, the population denominator and the
       // licensed-VUT numerator have an exact-count contract, not a collapse
       // floor: they cover exactly the official number of districts and barrios,
@@ -2008,6 +2075,7 @@ test("exactly the layers a user-facing feature depends on block deployment", () 
     "bike",
     "geography",
     "hati",
+    "hospitality_commercial_context",
     "hotel_demand",
     "info",
     "museum",
@@ -2070,7 +2138,7 @@ test("the committed evidence artifacts satisfy the real registry", () => {
   };
   assert.deepEqual(
     committedRegistry.sources.map((s) => s.id).sort(),
-    ["geography", "hati", "hotel_demand", "population", "snapshot_fallback", "vut_licences"],
+    ["geography", "hati", "hospitality_commercial_context", "hotel_demand", "population", "snapshot_fallback", "vut_licences"],
     "the set of committed, non-rebuilt sources changed; update this test deliberately"
   );
 

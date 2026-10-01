@@ -587,7 +587,10 @@ test("destination context loads and fails independently of the area context", ()
   assert.match(appOut, /let destinationState = "loading"/);
   assert.match(appOut, /async function loadDestinationContext\(\)/);
   // Started separately, not awaited together with the area artifacts.
-  assert.match(appOut, /loadAreaContext\(\);\s*\n\s*loadDestinationContext\(\);/);
+  assert.match(
+    appOut,
+    /loadAreaContext\(\)(?:\.finally\(loadHospitalityContext\))?;[\s\S]*?loadDestinationContext\(\);/
+  );
   // And its failure must not touch the other surfaces' state variables.
   const loader = appOut.slice(
     appOut.indexOf("async function loadDestinationContext"),

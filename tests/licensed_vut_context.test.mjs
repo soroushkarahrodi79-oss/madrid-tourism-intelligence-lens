@@ -849,14 +849,13 @@ test("the three runtime states are tracked independently", () => {
   assert.doesNotMatch(vutBranch, /disableBoundaryControl|geographyState|populationState/);
 });
 
-test("no choropleth, and no new map layer, is introduced", () => {
+test("licensed VUT introduces no choropleth or map layer", () => {
   // The indicator is a panel figure. Nothing paints it onto the map, because a
   // choropleth would import normalisation, class breaks and visual salience
   // that need their own design decision.
-  assert.doesNotMatch(app, /choropleth/i);
+  // Another separately governed feature may use a choropleth; VUT still may not.
   assert.doesNotMatch(app, /vut[\s\S]{0,40}(?:fillColor|setStyle|L\.geoJSON|addTo\(map\))/i);
   assert.doesNotMatch(app, /(?:fillColor|setStyle)[\s\S]{0,40}vut/i);
-  assert.doesNotMatch(html, /choropleth/i);
   // And the administrative boundary control is unchanged: three options, off.
   assert.match(html, /<option value="off" selected>/);
   const options = html.match(/<select id="boundarySelect"[\s\S]*?<\/select>/)[0];
@@ -865,11 +864,15 @@ test("no choropleth, and no new map layer, is introduced", () => {
 
 test("no global time control is introduced: each source keeps its own state", () => {
   assert.doesNotMatch(html, /id="yearSelect"|id="periodSelect"|id="dateSelect"/);
-  // The only time selector remains HATI's own model-time control.
+  // The only time selector remains HATI's own model-time control. Non-temporal
+  // selectors for language and the separately governed hospitality metric are
+  // permitted.
   const selects = html.match(/<select id="(\w+)"/g) || [];
   assert.deepEqual(selects.sort(), [
     '<select id="basemapSelect"',
     '<select id="boundarySelect"',
+    '<select id="hospitalityMetricSelect"',
+    '<select id="languageSelect"',
     '<select id="stayKindFilter"',
     '<select id="timeSelect"',
   ]);
