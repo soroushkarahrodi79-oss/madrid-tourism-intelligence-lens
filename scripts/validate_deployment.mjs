@@ -465,6 +465,9 @@ function validateHospitalityContext(source, artifact, geography, errors, warning
     if (entries.length !== expectedCount) sink.push(`${label}: expected ${expectedCount} ${level} record(s), found ${entries.length}`);
     for (const [id, record] of entries) {
       if (!idPattern.test(id)) sink.push(`${label}: malformed ${level} official id ${id}`);
+      if (!isNonEmptyString(record?.official_name)) {
+        sink.push(`${label}: ${level} ${id} has no official_name`);
+      }
       const keys = Object.keys(record?.indicators ?? {});
       if (JSON.stringify(keys) !== JSON.stringify(expectedIndicators)) {
         sink.push(`${label}: ${level} ${id} has missing or unapproved indicators`);

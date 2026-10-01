@@ -20,7 +20,7 @@ export const HOSPITALITY_DICTIONARIES = Object.freeze({
     layerName: "Contexto de hostelería y actividad comercial",
     layerToggle: "Mostrar contexto de hostelería y actividad comercial",
     metricLabel: "Métrica",
-    languageLabel: "Idioma",
+    languageLabel: "Idioma del contexto",
     unavailable: "Datos no disponibles",
     municipality: "Municipio de Madrid",
     barrio: "Barrio",
@@ -36,7 +36,7 @@ export const HOSPITALITY_DICTIONARIES = Object.freeze({
     premisesReference: "sep. 2026",
     sourceLabel: "Ayuntamiento de Madrid · Censo de Locales",
     methodologyLink: "Metodología completa",
-    selectorHint: "Polígonos oficiales de barrio · no se calcula dentro del círculo Lens",
+    selectorHint: "Polígonos oficiales de barrio · el clic mueve el Lens activo y fija el contexto del barrio",
     hoverHint: "Seleccione un barrio para fijar este contexto administrativo.",
     municipalityHint: "Total del municipio; los registros sin barrio se conservan cuando corresponde.",
     countHint: "Recuento administrativo de locales documentados; no acredita funcionamiento actual.",
@@ -61,7 +61,7 @@ export const HOSPITALITY_DICTIONARIES = Object.freeze({
     layerName: "Hospitality & Commercial Context",
     layerToggle: "Show Hospitality & Commercial Context",
     metricLabel: "Metric",
-    languageLabel: "Language",
+    languageLabel: "Context language",
     unavailable: "Data unavailable",
     municipality: "Madrid municipality",
     barrio: "Barrio",
@@ -77,7 +77,7 @@ export const HOSPITALITY_DICTIONARIES = Object.freeze({
     premisesReference: "Sep 2026",
     sourceLabel: "Madrid City Council · Business Premises Census",
     methodologyLink: "Full methodology",
-    selectorHint: "Official barrio polygons · not calculated inside the Lens circle",
+    selectorHint: "Official barrio polygons · click moves the active Lens and selects that barrio context",
     hoverHint: "Select a barrio to hold this administrative context.",
     municipalityHint: "Municipality total; records without a barrio remain included where applicable.",
     countHint: "Administrative count of documented premises; not evidence of current operation.",
@@ -110,6 +110,8 @@ const IDS = {
 function finiteIndicatorRecord(record) {
   const indicators = record && record.indicators;
   return (
+    typeof record?.official_name === "string" &&
+    record.official_name.trim().length > 0 &&
     indicators &&
     APPROVED_INDICATOR_IDS.every(
       (id) => Object.hasOwn(indicators, id) && Number.isFinite(indicators[id]) && indicators[id] >= 0
@@ -221,5 +223,5 @@ export function metricDomain(index, indicatorId) {
 export function normalizedMetricValue(value, domain) {
   if (!Number.isFinite(value) || !domain) return null;
   if (domain.max === domain.min) return 0.5;
-  return Math.sqrt(Math.max(0, Math.min(1, (value - domain.min) / (domain.max - domain.min))));
+  return Math.max(0, Math.min(1, (value - domain.min) / (domain.max - domain.min)));
 }
