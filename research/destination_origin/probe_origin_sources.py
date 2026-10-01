@@ -177,10 +177,30 @@ def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
         if madrid_code and madrid_code != MADRID_CODE:
             raise RuntimeError(f"Madrid destination carries code {madrid_code}, not {MADRID_CODE}")
 
+        # GRUPOS_TABLA returns a table-group id, which is not necessarily the
+        # Tempus3 variable id accepted by tv=. With det=1, each value exposes
+        # the underlying variable identity; use that instead of guessing.
+        variable_id = (
+            madrid.get("FK_Variable")
+            or madrid.get("IdVariable")
+            or madrid.get("Variable")
+            or madrid.get("FKVariable")
+        )
+        result.update(
+            {
+                "destination_group_raw": dest_group,
+                "madrid_raw": madrid,
+                "destination_variable_id": variable_id,
+            }
+        )
+        if variable_id is None:
+            raise RuntimeError(
+                f"Madrid value exposes no Tempus3 variable id; keys={list(madrid)[:30]}"
+            )
+
         # These high-dimensional tables are TPX tables carrying Tempus3
-        # numeric identifiers. INE documents the ~id alias for exactly this case;
-        # without it the filter is ignored and SERIES_TABLA hits the volume limit.
-        destination_filter = f"{group_id}~id:{madrid_id}~id"
+        # numeric identifiers. INE documents the ~id alias for exactly this case.
+        destination_filter = f"{variable_id}~id:{madrid_id}~id"
         series_payload, series_url = fetch_json(
             f"SERIES_TABLA/{table_id}",
             [("tip", "AM"), ("det", 2), ("tv", destination_filter)],
