@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Build a bounded deployment snapshot of Madrid permanent pedestrian counters.
 
-Source: Madrid Open Data dataset 300321, latest published pedestrian CSV (2024).
+Source: Madrid Open Data dataset 300321, 2024 permanent pedestrian resource.
 The source reports pedestrian counts at fixed stations by date and hour.
-This script aggregates raw rows to station-level summaries so the static app
-never needs to ship or fetch the large CSV in the browser.
+The builder reads the official CKAN DataStore API first and retains the direct
+CSV download as a fallback. It aggregates raw rows to station-level summaries
+so the static app never needs to ship or fetch the large source in the browser.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ import re
 import sys
 import unicodedata
 import urllib.request
+import urllib.parse
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -29,6 +31,9 @@ SOURCE_URL = (
 DATASET_URL = "https://datos.madrid.es/dataset/300321-0-aforos-peatones-bicicletas"
 OUTPUT_PATH = Path("data/pedestrian_activity.json")
 SOURCE_YEAR = 2024
+RESOURCE_ID = "300321-0-aforos-peatones-bicicletas-csv"
+DATASTORE_URL = "https://datos.madrid.es/api/3/action/datastore_search"
+DATASTORE_PAGE_SIZE = 5000
 
 LAT_MIN, LAT_MAX = 40.385, 40.455
 LON_MIN, LON_MAX = -3.745, -3.645
@@ -130,12 +135,12 @@ def normalized_rows(text: str):
         yield {normalize_header(k): (v or "").strip() for k, v in raw.items() if k is not None}
 
 
-def parse_pedestrian_csv(text: str) -> dict:
+def parse_pedestrian_rows(rows) -> dict:
     groups: dict[tuple[str, float, float], dict] = {}
     accepted_rows = 0
     rejected_rows = 0
 
-    for row in normalized_rows(text):
+    for row in rows:
         lat = parse_coordinate(row_value(row, "latitude", "latitud"))
         lon = parse_coordinate(row_value(row, "longitude", "longitud"))
         pedestrians = parse_number(row_value(row, "peatones", "bicicletas/peatones", "bicicletas_peatones"))
@@ -226,11 +231,54 @@ def parse_pedestrian_csv(text: str) -> dict:
     }
 
 
-def fetch_bytes(url: str, timeout: int = 60) -> bytes:
+def parse_pedestrian_csv(text: str) -> dict:
+    return parse_pedestrian_rows(normalized_rows(text))
+
+
+def datastore_rows(timeout: int = 60):
+    offset = 0
+    total = None
+
+    while True:
+        query = urllib.parse.urlencode(
+            {
+                "resource_id": RESOURCE_ID,
+                "limit": DATASTORE_PAGE_SIZE,
+                "offset": offset,
+            }
+        )
+        payload = fetch_bytes(
+            f"{DATASTORE_URL}?{query}",
+            timeout=timeout,
+            accept="application/json",
+        )
+        decoded = json.loads(payload.decode("utf-8"))
+        if not decoded.get("success"):
+            raise RuntimeError("Madrid CKAN DataStore returned success=false")
+
+        result = decoded.get("result") or {}
+        records = result.get("records") or []
+        if total is None:
+            total_value = result.get("total")
+            total = int(total_value) if isinstance(total_value, (int, float)) else None
+
+        for raw in records:
+            yield {
+                normalize_header(k): ("" if v is None else str(v).strip())
+                for k, v in raw.items()
+                if k is not None
+            }
+
+        offset += len(records)
+        if not records or (total is not None and offset >= total):
+            break
+
+
+def fetch_bytes(url: str, timeout: int = 60, accept: str = "text/csv,text/plain,*/*") -> bytes:
     req = urllib.request.Request(
         url,
         headers={
-            "Accept": "text/csv,text/plain,*/*",
+            "Accept": accept,
             "User-Agent": (
                 "madrid-tourism-intelligence-lens/1.0 "
                 "(+https://github.com/soroushkarahrodi79-oss/madrid-tourism-intelligence-lens)"
@@ -249,6 +297,8 @@ def unavailable_payload(error: str) -> dict:
             "dataset": "Madrid Open Data — Aforos de peatones y bicicletas",
             "datasetUrl": DATASET_URL,
             "resourceUrl": SOURCE_URL,
+            "resourceId": RESOURCE_ID,
+            "dataApiUrl": DATASTORE_URL,
             "year": SOURCE_YEAR,
         },
         "scope": {
@@ -268,9 +318,18 @@ def unavailable_payload(error: str) -> dict:
 
 
 def main() -> int:
+    retrieval_route = None
+    retrieval_errors: list[str] = []
     try:
-        payload = fetch_bytes(SOURCE_URL)
-        parsed = parse_pedestrian_csv(decode_csv(payload))
+        try:
+            parsed = parse_pedestrian_rows(datastore_rows())
+            retrieval_route = "ckan_datastore_search"
+        except Exception as api_exc:
+            retrieval_errors.append(f"CKAN DataStore: {api_exc}")
+            payload = fetch_bytes(SOURCE_URL)
+            parsed = parse_pedestrian_csv(decode_csv(payload))
+            retrieval_route = "csv_download_fallback"
+
         if not parsed["stations"]:
             raise RuntimeError("source produced zero valid pedestrian stations inside the central-Madrid envelope")
 
@@ -281,6 +340,9 @@ def main() -> int:
                 "dataset": "Madrid Open Data — Aforos de peatones y bicicletas",
                 "datasetUrl": DATASET_URL,
                 "resourceUrl": SOURCE_URL,
+                "resourceId": RESOURCE_ID,
+                "dataApiUrl": DATASTORE_URL,
+                "retrievalRoute": retrieval_route,
                 "year": SOURCE_YEAR,
             },
             "scope": {
@@ -295,13 +357,15 @@ def main() -> int:
             "error": None,
         }
     except Exception as exc:
-        print(f"[pedestrian-activity] unavailable: {exc}", file=sys.stderr)
-        output = unavailable_payload(str(exc))
+        detail = "; ".join(retrieval_errors + [str(exc)]) if retrieval_errors else str(exc)
+        print(f"[pedestrian-activity] unavailable: {detail}", file=sys.stderr)
+        output = unavailable_payload(detail)
 
     OUTPUT_PATH.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(
         "[pedestrian-activity] "
-        f"available={output['available']} stations={output['stationCount']} observations={output['observationCount']}"
+        f"available={output['available']} stations={output['stationCount']} observations={output['observationCount']} "
+        f"route={output.get('source', {}).get('retrievalRoute', 'none')}"
     )
     return 0
 
