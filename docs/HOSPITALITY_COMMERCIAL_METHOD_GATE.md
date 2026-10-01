@@ -1,10 +1,11 @@
 # Hospitality & Commercial Context — methodology gate
 
-**This document is opened at Gate A and populated only for Gate A — Unit &
-Identity.** The taxonomy (B), status semantics (C), temporal comparability (D),
-geography reconciliation (E) and denominator (F) gates are deliberately left
-unwritten. Writing their conclusions now, before their evidence exists, is the
-error this gate discipline exists to prevent.
+**This document is populated for Gate A — Unit & Identity and Gate B — Activity
+Taxonomy.** The status semantics (C), temporal comparability (D), geography
+reconciliation (E) and denominator (F) gates are deliberately left unwritten.
+Writing their conclusions now, before their evidence exists, is the error this gate
+discipline exists to prevent. (Gate B renumbers the later gates' evidence questions
+onto C–F; issue #33's original letters are preserved.)
 
 Nothing here builds a UI, a map layer, an indicator, a score, a ranking or a
 denominator, and nothing here changes HATI, Destination Context, Area Profile,
@@ -271,3 +272,301 @@ distinct epigraphs and 86 divisions** in Sep 2026 (the mar/2022 document says 44
 and 87 — the taxonomy has drifted and must be read live, not from the PDF), and
 **53,242 activity rows carry a blank epigraph** and must be handled explicitly
 rather than silently dropped or bucketed.
+
+---
+
+## Gate B — Activity Taxonomy
+
+The reproducible evidence for this section is produced by
+[`audit_taxonomy.py`](../research/hospitality_commercial_gate/audit_taxonomy.py)
+and stored in
+[`results/gate_b_taxonomy.json`](../research/hospitality_commercial_gate/results/gate_b_taxonomy.json)
+(full per-epigraph mapping) and
+[`results/gate_b_taxonomy_summary.json`](../research/hospitality_commercial_gate/results/gate_b_taxonomy_summary.json).
+Every count below is produced by that script from the live source and stored in
+those files; none were typed by hand. The audit reuses the Gate A source contract
+(catalogue resolution by exact `description`, streamed fingerprinting, per-file
+dialect detection) by importing the Gate A helpers, so both gates provably read the
+same upstream the same way.
+
+### B.0 · Scope
+
+Gate B resolves **one** question: *which official activity epigraphs can support a
+defensible Hospitality & Commercial Context classification, and which cannot?* It
+builds a classification **layer** only. It does **not** build an indicator, count,
+ranking, score, denominator, map, or any "pressure", "overtourism", "saturation" or
+"commercial vitality" claim. An activity record remains administrative evidence — it
+is not revenue, turnover, employment, footfall, demand, popularity, commercial
+health, economic success, tourist use, tourist expenditure, visitor pressure, legal
+compliance, or proof that a premises is trading today. Central location is not read
+as tourist orientation, and hospitality presence is not read as tourist demand.
+
+The taxonomy is read **live** from the primary snapshot **Actividades. Septiembre
+2026** (resource `209548-857`, SHA-256 head `47185269efe6`), with **Actividades.
+Septiembre 2025** (resource `209548-35`, SHA-256 head `cd7f23269570`) as a
+drift/control snapshot. Only these two Actividades files are fetched; no years of
+history are downloaded, and no raw CSV is committed.
+
+### B.1 · Observed taxonomy
+
+The primary snapshot carries a clean three-level hierarchy. Read live:
+
+| Quantity | Sep 2026 (live) |
+|---|---:|
+| Distinct sections (`id_seccion`) | **21** |
+| Distinct divisions (`id_division`) | **86** |
+| Distinct populated epigraphs (`id_epigrafe`) | **453** |
+| Rows total | 225,556 |
+| Rows with a populated epigraph | **172,314** |
+| Rows with a blank epigraph | **53,242** |
+
+For every populated epigraph the report records its `id_seccion`, `desc_seccion`,
+`id_division`, `desc_division`, `desc_epigrafe`, activity-row count and distinct
+`id_local` count.
+
+**One epigraph maps to exactly one parent.** `epigraph_multi_parent_count` is **0**:
+no `id_epigrafe` appears under more than one `(id_seccion, id_division)` pair. This is
+the fact that makes a hierarchy-based classification safe (Stop condition 2 does not
+fire). **One epigraph carries a within-snapshot description inconsistency:** code
+`561008` appears as both `ESTABLECIMIENTO DE RESTAURACION MOVIL` and `VENDEDOR
+AMBULANTE DE ALIMENTOS PREPARADOS PARA SU CONSUMO INMEDIATO`. Both are food service
+under division 56, so the *class* is unaffected; the inconsistency is recorded on the
+epigraph record rather than normalised away.
+
+### B.2 · Source hierarchy semantics
+
+The structure document (`estructura_ds_ficherocla.pdf`, versión mar/2022), section
+IV, is explicit, and the live data confirms it:
+
+- **Epígrafe is an administrative code, not an operational label.** Activities are
+  coded by *"una clasificación propia del Ayuntamiento que parte de los antiguos
+  epígrafes de Impuesto de Actividades Económicas (I.A.E.)"*, and the epigraph
+  information is provided *"sólo a efectos estadísticos"*. It is derived from a tax
+  register lineage; it is not a statement that a business trades, earns or is used.
+- **Sección and División are CNAE-09.** The document states the two upper levels
+  *"coinciden con los utilizados por la CNAE-09 del INE"* and that *"todos los
+  epígrafes de una misma división empiezan por los dos dígitos de división."* So the
+  section (a letter) and division (two digits) are **source-stable, INE-aligned
+  administrative categories**, and the epigraph code itself begins with its division.
+  Classification in Gate B is therefore made on the **official section/division the
+  file carries**, never by keyword-matching the free-text description.
+- **The PDF counts are stale; the live counts govern.** The mar/2022 document reports
+  **21 sections / 87 divisions / 448 epigraphs**; the live Sep 2026 data has **21 /
+  86 / 453**. The PDF is not exhaustive and is not used as the taxonomy of record.
+- **Mixed sections exist.** Section I (Hostelería) itself contains two very different
+  divisions — 55 (alojamiento) and 56 (comidas y bebidas) — and section R mixes
+  culture, sport, entertainment and gambling. This is why the classification resolves
+  section I and section N at the division level rather than the section level.
+
+### B.3 · Classification framework
+
+Six analytical classes (issue #33's letters A–F), assigned on the CNAE
+section/division, plus a separate label for the blank rows. No class is a binary
+"tourism / not tourism" variable.
+
+| Class | Meaning | Source-native rule |
+|---|---|---|
+| **A · Core hospitality / restoration** | Food and beverage service | Division **56** |
+| **B · Accommodation** | Lodging (kept separate from A, and from VUT / Madrid Destino) | Division **55** |
+| **C · Tourism-adjacent commercial context** | Not inherently a tourist business but defensibly destination-relevant | Division **79** |
+| **D · Generic commercial context** | Documented commerce, background composition only | Section **G** (div 45/46/47) |
+| **E · Excluded** | Outside a Hospitality & Commercial Context reading | All other sections + Z (SIN ACTIVIDAD) |
+| **F · Ambiguous / manual review** | Semantics do not permit a confident class | Section **R** (div 90/91/92/93) |
+| *(separate)* **UNCLASSIFIED_SOURCE_ACTIVITY** | Blank epigraph — a premises with no activity classification recorded | blank `id_epigrafe` |
+
+The assignment is a rule on the official code (`DIVISION_OVERRIDE` for 55/56/79, else
+`SECTION_DEFAULT`), so every one of the 453 epigraphs is auditable to its CNAE parent.
+Programmatic grouping assists review; it is not a black-box authority, and there is no
+keyword-only production rule. The six classes **partition** the populated universe
+exactly: 21 + 9 + 1 + 158 + 241 + 23 = **453** epigraphs and 22,762 + 8,092 + 837 +
+53,575 + 82,768 + 4,280 = **172,314** rows.
+
+Per-class rollup (Sep 2026). *Distinct-premises counts are a union within each class
+and deliberately do **not** sum across classes — a premises may host activities in
+more than one class:*
+
+| Class | Epigraphs | Source rows | Distinct premises |
+|---|---:|---:|---:|
+| CORE_HOSPITALITY (56) | 21 | 22,762 | 21,552 |
+| ACCOMMODATION (55) | 9 | 8,092 | 8,007 |
+| TOURISM_ADJACENT (79) | 1 | 837 | 837 |
+| GENERIC_COMMERCIAL (G) | 158 | 53,575 | 44,433 |
+| EXCLUDED | 241 | 82,768 | 77,652 |
+| AMBIGUOUS (R) | 23 | 4,280 | 3,997 |
+
+### B.4 · Core hospitality / restoration
+
+**Division 56 — Servicios de comidas y bebidas.** 21 epigraphs, 22,762 activity
+rows, 21,552 distinct premises. This is the food-and-beverage core: restaurants,
+fast food, cafés/bars, catering and mobile food service all sit under one CNAE
+division whose code prefix is unambiguous (`56xxxx`). The defensible management
+question this supports is bounded: *"how much administratively documented
+food-and-beverage activity is recorded in a barrio?"* — not how much it earns, how
+busy it is, or whether it serves tourists. **GO.**
+
+### B.5 · Accommodation
+
+**Division 55 — Servicios de alojamiento.** 9 epigraphs, 8,092 activity rows, 8,007
+distinct premises. Lodging is a **separate** class from food/beverage: CNAE places
+hotels, hostels and other lodging in division 55, distinct from 56. Examples include
+`HOTELES Y MOTELES CON/SIN RESTAURANTE`.
+
+This class is census-**activity** evidence and is a **different evidence universe**
+from the project's licensed-VUT numerator and from the Madrid Destino accommodation
+catalogue. It must **not** be merged with them; any later reconciliation is a separate
+decision-module task with explicit compatibility logic. As a class, it is defensible
+and cleanly source-native. **GO** (as a distinct class, with the no-merge condition).
+
+### B.6 · Tourism-adjacent commercial context
+
+**Division 79 — Agencias de viajes, operadores turísticos y servicios de reservas.**
+1 epigraph, 837 rows, 837 premises. This is the one category that is both
+destination-facing and cleanly isolable by a source-native code. It is admitted
+because a real management question justifies it (documented travel-trade presence),
+not because it contains the word "turístico".
+
+No other category is admitted to C. Section R (culture, entertainment, sport,
+gambling) is a *candidate* — museums, shows and sports venues are plausibly
+destination-relevant — but the section is heterogeneous and no source-native sub-code
+isolates the tourism-facing part, so it is held in F, not forced into C. **GO for
+division 79 only; MODIFY** if C is to be broadened, which would require an explicit
+management question and, ideally, a source-native way to isolate the relevant subset.
+
+### B.7 · Generic commercial context
+
+**Section G — Comercio al por mayor y al por menor; reparación de vehículos.** 158
+epigraphs, 53,575 rows, 44,433 premises (divisions 45 vehicle sales/repair, 46
+wholesale, 47 retail). This is the barrio's documented commercial composition, with no
+tourism-specific interpretation. It supports the question *"what is the documented
+commercial composition of the barrio?"* — background only. **GO.**
+
+The boundary between D and E is, beyond section G, a **scope decision, not a taxonomy
+fact.** Several excluded sections are consumer-facing and could be folded into a
+broader "commercial composition" if a management question warranted it — finance and
+insurance branches (K, div 64/65/66), real-estate agencies (L, div 68), and repair and
+other personal services (S, div 95/96). The report flags these divisions as
+`broader_composition_candidate` rather than silently discarding them. They are not
+included in the confirmed commercial class here.
+
+### B.8 · Blank epigraph analysis
+
+**53,242 rows carry a blank `id_epigrafe` — the single most important finding of Gate
+B.** What was learned:
+
+1. **The whole taxonomy is blank, not just the epigraph.** In all 53,242 rows,
+   `id_seccion`, `id_division` and all three descriptions are empty as well. There is
+   **no higher hierarchy level to fall back to** — a blank epigraph cannot be rescued
+   to a section or division.
+2. **It is one row per premises, and never co-occurs with a classified activity.**
+   53,242 distinct `id_local`; `locals_blank_only_no_populated = 53,242`;
+   `locals_blank_and_also_populated = 0`. A premises either carries classified
+   activities **or** appears once with an entirely blank taxonomy — never both.
+3. **It is not merely "closed".** Situación skews to Cerrado (24,046), Baja (9,069),
+   Uso vivienda (7,396) and Baja R (1,704) — but **11,027 are "Abierto"** (open,
+   with declared economic activity per the source) yet carry no activity code. So the
+   blank is genuinely an *absent classification*, not a synonym for a closed premises.
+4. **It is spread across the whole city** — present in all 131 barrios — so it is not
+   a localised artefact.
+5. **The source documentation does not define it.** The structure PDF describes every
+   field but never says what an empty epigraph means. The characterisation above is
+   therefore **empirical only**.
+6. **A higher-level classification is not supported** (point 1), and the rows must not
+   be invented into an epigraph, assigned "unknown hospitality", bucketed, discarded,
+   or treated as the activity identity `(id_local, "")`.
+
+**Ruling for the blank set — split: handling RESOLVED, source semantics UNRESOLVED.**
+The *empirical handling* is **RESOLVED**: the set is fully characterised (points 1–4
+above) and carried under the project label **`UNCLASSIFIED_SOURCE_ACTIVITY`** — a
+premises-level "no activity classification recorded" set, explicitly outside classes
+A–F and **not an activity**, distinct from section **Z "SIN ACTIVIDAD"** (4,402 rows
+under code `000000`), which is an explicit **populated** "no activity" code classified
+as Excluded. The *source semantics* are **UNRESOLVED**: the official documentation
+never defines an empty epigraph (point 5), so **why** these records carry no taxonomy
+is not stated by the source and is not asserted here. `UNCLASSIFIED_SOURCE_ACTIVITY`
+is therefore a **project handling label, not an official source meaning**. The blank
+set must be carried explicitly through any later premises-level counting and **never
+silently dropped** from a denominator.
+
+### B.9 · Taxonomy drift
+
+Sep 2025 → Sep 2026, taxonomy stability only (not a trend claim; full comparability
+is a later gate):
+
+| Check | Result |
+|---|---|
+| Epigraphs present in both | **453** |
+| New epigraph codes in 2026 | **0** |
+| Disappeared epigraph codes | **0** |
+| Same code, changed description | **0** |
+| Same code, changed division/section | **0** |
+| Distinct sections | 21 → 21 |
+| Distinct divisions | 86 → 86 |
+| Blank-epigraph share | 24.08% → 23.60% |
+
+The taxonomy is **stable across this one-year pair**: identical code set, identical
+descriptions, identical parents, identical section/division counts, and a
+near-constant blank share (~24%). The only drift observed anywhere is the **PDF vs
+live** discrepancy (87→86 divisions, 448→453 epigraphs) noted in B.2, which is a
+documentation-lag artefact, not a change between the two live snapshots. No claim is
+made about the 2014→2025 history, which is not examined here.
+
+### B.10 · Interpretation limits
+
+- The classification is a **layer**, not a verdict. It labels what kind of activity a
+  code represents; it does not measure how much, how busy, how profitable, or how
+  touristic.
+- **Counts are not yet admitted.** The per-class row and premises counts in B.3 are
+  observations that describe the taxonomy's shape; they are not a barrio indicator and
+  carry no denominator. The source's own counting rules (situación Baja 8/9 and access
+  type 12 *"no deben tenerse en cuenta a la hora de extraer datos del número total de
+  locales"*) are a Gate C/F concern and are **not** applied here.
+- **Accommodation (B) must not be merged** with licensed-VUT or Madrid Destino
+  evidence; they are different universes.
+- The **blank set** must remain visible in any later premises-level denominator.
+- Central location, hospitality density and status are **not** admitted as evidence of
+  tourist demand, pressure or economic strength.
+
+### B.11 · Gate B ruling — **GO to Gate C, with scoped sub-rulings**
+
+| Question | Ruling |
+|---|---|
+| **Core hospitality / restoration** — division 56 | **GO** |
+| **Accommodation** — division 55 | **GO** (distinct class; no merge with VUT / Madrid Destino) |
+| **Tourism-adjacent commercial context** — division 79 | **GO** (division 79 only); **MODIFY** to broaden (needs a management question) |
+| **Generic commercial context** — section G | **GO** |
+| **Blank-epigraph** — handling | **RESOLVED** — characterised and labelled `UNCLASSIFIED_SOURCE_ACTIVITY` (a project handling label) |
+| **Blank-epigraph** — source semantics | **UNRESOLVED** — the official documentation does not define why these records carry no taxonomy |
+| **Overall Gate B** | **GO to Gate C**, subject to the scope limitation below |
+
+A defensible hospitality/restoration subset (56), a defensible and *separate*
+accommodation subset (55), a clean tourism-adjacent code (79) and a defensible generic
+commercial subset (section G) all exist as source-native CNAE categories; the
+ambiguous entertainment/culture section (R) is held explicitly for manual review
+rather than forced into a tourism class; and the blank rows' *handling* is resolved as
+an explicit unclassified set while their *source semantics* remain undefined by the
+documentation. No result is hidden under a blanket GO.
+
+**What GO does not authorise.** No indicator, count, ranking, score, denominator, map
+or status interpretation is admitted by this ruling. A classification layer is not a
+policy verdict.
+
+### Product name (B evaluation)
+
+**Recommendation: keep "Hospitality & Commercial Context."** The taxonomy supports it:
+*Hospitality* maps cleanly to CNAE section I (division 56 food/beverage + division 55
+accommodation) and *Commercial Context* maps cleanly to CNAE section G (comercio). Both
+pillars have defensible source-native definitions. This is recorded as a
+recommendation only; production is not renamed here, and the name is valid solely for
+the classification layer — never as a tourism-pressure or vitality claim.
+
+### Recommendation for Gate C (status semantics)
+
+Gate C should establish exactly what `id_situacion_local` (Abierto/Cerrado/Uso
+vivienda/Obras/Baja/Baja R) can and cannot mean, given the source's own warning that
+situación is a *"variable de mantenimiento complicado"* with no procedure to record
+when an activity ceases without a replacement. Two Gate B facts bound that work: the
+53,242 `UNCLASSIFIED_SOURCE_ACTIVITY` rows carry a situación even with no activity code
+(including 11,027 "Abierto"), and the source's exclusion rules for situación 8/9 and
+access type 12 are a counting decision that Gate C/F must confront before any premises
+count is admitted. Gate C must not translate abierto/cerrado into operating
+performance, demand, turnover or commercial success.

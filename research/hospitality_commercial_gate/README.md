@@ -1,16 +1,21 @@
-# Gate A research package — hospitality & commercial premises identity
+# Gate A/B research package — hospitality & commercial premises identity and taxonomy
 
-Reproducible evidence behind the **Gate A — Unit & Identity** section of
+Reproducible evidence behind the **Gate A — Unit & Identity** and **Gate B —
+Activity Taxonomy** sections of
 [`docs/HOSPITALITY_COMMERCIAL_METHOD_GATE.md`](../../docs/HOSPITALITY_COMMERCIAL_METHOD_GATE.md).
 
-Every count quoted in that section is produced by the script here. None were
+Every count quoted in those sections is produced by the scripts here. None were
 typed by hand.
 
 ```
-python research/hospitality_commercial_gate/audit_identity.py
+python research/hospitality_commercial_gate/audit_identity.py   # Gate A
+python research/hospitality_commercial_gate/audit_taxonomy.py   # Gate B
 ```
 
 Standard library only. Requires network access to `datos.madrid.es`.
+`audit_taxonomy.py` imports the Gate A helpers (catalogue resolution, streamed
+fingerprinting, dialect detection) from `audit_identity.py`, so both gates read the
+same upstream the same way; it does not re-run or modify Gate A.
 
 ## The one question this gate answers
 
@@ -50,6 +55,16 @@ reviewer can tell whether they are looking at the same upstream files this audit
 saw; and per snapshot: row/unit counts, identity uniqueness, the observed CSV
 dialect, situación and access-type distributions, negative controls, source-native
 geography counts, and the Aug→Sep 2026 and Sep 2025→Sep 2026 persistence tests.
+
+`results/gate_b_taxonomy.json` — the Gate B report: the observed Sección → División
+→ Epígrafe hierarchy read live from Sep 2026, a per-epigraph classification (all 453
+populated epigraphs, each with its CNAE parent, assigned class, rationale, status,
+row count and distinct-premises count), the full blank-epigraph profile
+(`UNCLASSIFIED_SOURCE_ACTIVITY`), the Sep 2025 → Sep 2026 taxonomy-drift comparison,
+the scoped Gate B ruling and the product-name recommendation. The classification is
+made on the official CNAE section/division the file carries, never on the epigraph
+description text. `results/gate_b_taxonomy_summary.json` is a compact digest of the
+same run. Gate B fetches only the Sep 2026 and Sep 2025 Actividades resources.
 
 ## Conventions
 
