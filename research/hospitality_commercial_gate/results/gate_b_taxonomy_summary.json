@@ -63,7 +63,12 @@
     "accommodation": "GO",
     "tourism_adjacent_commercial_context": "GO (division 79 only); MODIFY to broaden",
     "generic_commercial_context": "GO",
-    "blank_epigraph_semantics": "RESOLVED (empirically; source documentation silent) - labelled UNCLASSIFIED_SOURCE_ACTIVITY",
+    "blank_epigraph_semantics": {
+      "handling": "RESOLVED",
+      "source_semantics": "UNRESOLVED",
+      "label": "UNCLASSIFIED_SOURCE_ACTIVITY",
+      "note": "Empirical handling is RESOLVED - the blank set is fully characterised and given the project handling label UNCLASSIFIED_SOURCE_ACTIVITY. Source semantics are UNRESOLVED - the official documentation does not define why these records carry no taxonomy, so UNCLASSIFIED_SOURCE_ACTIVITY is a project handling label, not an official source meaning."
+    },
     "overall": "GO to Gate C, with scoped sub-rulings above",
     "scope_limitation": "GO admits a classification LAYER only. No indicator, count, ranking, score, denominator, map or 'pressure' claim is authorised. Accommodation here is census-activity evidence and must not be merged with licensed-VUT or Madrid Destino accommodation. The blank set must be carried explicitly, never silently dropped."
   }

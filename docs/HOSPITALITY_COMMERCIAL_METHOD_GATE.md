@@ -474,14 +474,18 @@ B.** What was learned:
    be invented into an epigraph, assigned "unknown hospitality", bucketed, discarded,
    or treated as the activity identity `(id_local, "")`.
 
-**Ruling for the blank set: it is labelled `UNCLASSIFIED_SOURCE_ACTIVITY`** — a
+**Ruling for the blank set — split: handling RESOLVED, source semantics UNRESOLVED.**
+The *empirical handling* is **RESOLVED**: the set is fully characterised (points 1–4
+above) and carried under the project label **`UNCLASSIFIED_SOURCE_ACTIVITY`** — a
 premises-level "no activity classification recorded" set, explicitly outside classes
-A–F and **not an activity**. It is *distinct* from section **Z "SIN ACTIVIDAD"**
-(4,402 rows under code `000000`), which is an explicit **populated** "no activity"
-code and is classified as Excluded. The blank set must be carried explicitly through
-any later premises-level counting and **never silently dropped** from a denominator.
-The **structure** of the blank is RESOLVED; because the source is silent, the
-*reason* a premises has no code is not documented and is not asserted.
+A–F and **not an activity**, distinct from section **Z "SIN ACTIVIDAD"** (4,402 rows
+under code `000000`), which is an explicit **populated** "no activity" code classified
+as Excluded. The *source semantics* are **UNRESOLVED**: the official documentation
+never defines an empty epigraph (point 5), so **why** these records carry no taxonomy
+is not stated by the source and is not asserted here. `UNCLASSIFIED_SOURCE_ACTIVITY`
+is therefore a **project handling label, not an official source meaning**. The blank
+set must be carried explicitly through any later premises-level counting and **never
+silently dropped** from a denominator.
 
 ### B.9 · Taxonomy drift
 
@@ -530,15 +534,17 @@ made about the 2014→2025 history, which is not examined here.
 | **Accommodation** — division 55 | **GO** (distinct class; no merge with VUT / Madrid Destino) |
 | **Tourism-adjacent commercial context** — division 79 | **GO** (division 79 only); **MODIFY** to broaden (needs a management question) |
 | **Generic commercial context** — section G | **GO** |
-| **Blank-epigraph semantics** | **RESOLVED** (empirically; source documentation silent) — labelled `UNCLASSIFIED_SOURCE_ACTIVITY` |
+| **Blank-epigraph** — handling | **RESOLVED** — characterised and labelled `UNCLASSIFIED_SOURCE_ACTIVITY` (a project handling label) |
+| **Blank-epigraph** — source semantics | **UNRESOLVED** — the official documentation does not define why these records carry no taxonomy |
 | **Overall Gate B** | **GO to Gate C**, subject to the scope limitation below |
 
 A defensible hospitality/restoration subset (56), a defensible and *separate*
 accommodation subset (55), a clean tourism-adjacent code (79) and a defensible generic
 commercial subset (section G) all exist as source-native CNAE categories; the
 ambiguous entertainment/culture section (R) is held explicitly for manual review
-rather than forced into a tourism class; and the blank rows are resolved as an
-explicit unclassified set. No result is hidden under a blanket GO.
+rather than forced into a tourism class; and the blank rows' *handling* is resolved as
+an explicit unclassified set while their *source semantics* remain undefined by the
+documentation. No result is hidden under a blanket GO.
 
 **What GO does not authorise.** No indicator, count, ranking, score, denominator, map
 or status interpretation is admitted by this ruling. A classification layer is not a

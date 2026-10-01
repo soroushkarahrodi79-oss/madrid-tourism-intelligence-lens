@@ -417,6 +417,16 @@ def main() -> int:
 
     blank = dict(p["blank"])
     blank["label"] = UNCLASSIFIED
+    blank["label_scope"] = (
+        "A PROJECT HANDLING label, not an official source meaning. The source defines no "
+        "category for these records; this label is how the project carries them.")
+    blank["handling"] = (
+        "RESOLVED - the blank set is fully characterised empirically (fields above): the entire "
+        "taxonomy is blank, it is one row per premises, it never co-occurs with a classified "
+        "activity, and it is present across all barrios.")
+    blank["source_semantics"] = (
+        "UNRESOLVED - the official structure documentation never defines an empty epigraph, so "
+        "WHY these records carry no taxonomy is not stated by the source and is not asserted here.")
     blank["semantics"] = (
         "Every blank-epigraph row carries an entirely blank taxonomy (id_seccion, id_division, "
         "and all three descriptions are also empty), so no higher hierarchy level can rescue it. "
@@ -483,8 +493,16 @@ def main() -> int:
             "accommodation": "GO",
             "tourism_adjacent_commercial_context": "GO (division 79 only); MODIFY to broaden",
             "generic_commercial_context": "GO",
-            "blank_epigraph_semantics": "RESOLVED (empirically; source documentation silent) - "
-                "labelled UNCLASSIFIED_SOURCE_ACTIVITY",
+            "blank_epigraph_semantics": {
+                "handling": "RESOLVED",
+                "source_semantics": "UNRESOLVED",
+                "label": UNCLASSIFIED,
+                "note": "Empirical handling is RESOLVED - the blank set is fully characterised "
+                    "and given the project handling label UNCLASSIFIED_SOURCE_ACTIVITY. Source "
+                    "semantics are UNRESOLVED - the official documentation does not define why "
+                    "these records carry no taxonomy, so UNCLASSIFIED_SOURCE_ACTIVITY is a "
+                    "project handling label, not an official source meaning.",
+            },
             "overall": "GO to Gate C, with scoped sub-rulings above",
             "scope_limitation": "GO admits a classification LAYER only. No indicator, count, "
                 "ranking, score, denominator, map or 'pressure' claim is authorised. Accommodation "

@@ -7086,6 +7086,9 @@
     "locals_blank_only_no_populated": 53242,
     "locals_blank_and_also_populated": 0,
     "label": "UNCLASSIFIED_SOURCE_ACTIVITY",
+    "label_scope": "A PROJECT HANDLING label, not an official source meaning. The source defines no category for these records; this label is how the project carries them.",
+    "handling": "RESOLVED - the blank set is fully characterised empirically (fields above): the entire taxonomy is blank, it is one row per premises, it never co-occurs with a classified activity, and it is present across all barrios.",
+    "source_semantics": "UNRESOLVED - the official structure documentation never defines an empty epigraph, so WHY these records carry no taxonomy is not stated by the source and is not asserted here.",
     "semantics": "Every blank-epigraph row carries an entirely blank taxonomy (id_seccion, id_division, and all three descriptions are also empty), so no higher hierarchy level can rescue it. It is one row per premises and never co-occurs on a premises that also has a populated epigraph. It is therefore a premises-level 'no activity classification recorded' set, labelled UNCLASSIFIED_SOURCE_ACTIVITY. It is NOT an activity, NOT assigned any class A-F, NOT given a placeholder category, NOT discarded, and (id_local, '') is NOT an activity identity. It is distinct from section Z 'SIN ACTIVIDAD', which is an explicit populated code. It must never be silently dropped from a later premises denominator.",
     "situacion_note": "Situacion skews to Cerrado/Baja/Uso-vivienda, consistent with premises that plausibly have no current activity, BUT a substantial share are 'Abierto' (situacion=1), i.e. open premises with economic activity yet no activity code. So the blank cannot be read as merely 'closed'; it is genuinely an absent classification. Situacion interpretation itself is Gate C, not decided here."
   },
@@ -7114,7 +7117,12 @@
     "accommodation": "GO",
     "tourism_adjacent_commercial_context": "GO (division 79 only); MODIFY to broaden",
     "generic_commercial_context": "GO",
-    "blank_epigraph_semantics": "RESOLVED (empirically; source documentation silent) - labelled UNCLASSIFIED_SOURCE_ACTIVITY",
+    "blank_epigraph_semantics": {
+      "handling": "RESOLVED",
+      "source_semantics": "UNRESOLVED",
+      "label": "UNCLASSIFIED_SOURCE_ACTIVITY",
+      "note": "Empirical handling is RESOLVED - the blank set is fully characterised and given the project handling label UNCLASSIFIED_SOURCE_ACTIVITY. Source semantics are UNRESOLVED - the official documentation does not define why these records carry no taxonomy, so UNCLASSIFIED_SOURCE_ACTIVITY is a project handling label, not an official source meaning."
+    },
     "overall": "GO to Gate C, with scoped sub-rulings above",
     "scope_limitation": "GO admits a classification LAYER only. No indicator, count, ranking, score, denominator, map or 'pressure' claim is authorised. Accommodation here is census-activity evidence and must not be merged with licensed-VUT or Madrid Destino accommodation. The blank set must be carried explicitly, never silently dropped."
   },

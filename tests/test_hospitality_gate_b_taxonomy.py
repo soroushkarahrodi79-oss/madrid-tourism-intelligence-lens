@@ -118,6 +118,23 @@ class GateBTaxonomyReport(unittest.TestCase):
                       "locals_blank_only_no_populated", "situacion_dist"):
             self.assertIn(field, blank)
 
+    def test_blank_epigraph_handling_resolved_but_source_semantics_unresolved(self):
+        # The split the ruling must preserve: empirical HANDLING is resolved, but the
+        # SOURCE semantics (why these records carry no taxonomy) are not, because the
+        # official documentation never defines a blank epigraph. The label is the
+        # project's handling, not an official source category.
+        sem = self.report["gate_b_ruling"]["blank_epigraph_semantics"]
+        self.assertIsInstance(sem, dict, "blank ruling must be a split, not a bare RESOLVED")
+        self.assertEqual(sem["handling"], "RESOLVED")
+        self.assertEqual(sem["source_semantics"], "UNRESOLVED")
+        self.assertEqual(sem["label"], "UNCLASSIFIED_SOURCE_ACTIVITY")
+        self.assertIn("not an official source meaning", sem["note"].lower())
+        # The blank block itself must carry the same split and disclaim the label scope.
+        blank = self.report["blank_epigraph"]
+        self.assertTrue(blank["handling"].startswith("RESOLVED"))
+        self.assertTrue(blank["source_semantics"].startswith("UNRESOLVED"))
+        self.assertIn("not an official source meaning", blank["label_scope"].lower())
+
     def test_no_class_is_named_a_pressure_style_claim(self):
         # "No class named 'tourism pressure'/'overtourism'/..." is a guard on the
         # class *labels*, not on prose: a disclaimer is allowed to name a forbidden
