@@ -227,15 +227,10 @@ const lenses = {
 // unrelated map data. Values and abstention states update in place.
 const HALO_GLYPH_COLORS = Object.freeze({ A: "#f7fbff", B: "#43d7ff" });
 const HALO_INNER_GAP_PX = 5;
-const HALO_FULL_TRACK_PX = 44;
-const HALO_COMPACT_TRACK_PX = 30;
+const HALO_FULL_TRACK_PX = HALO_VISUAL_GEOMETRY.FULL_TRACK_PX;
+const HALO_COMPACT_TRACK_PX = HALO_VISUAL_GEOMETRY.COMPACT_TRACK_PX;
 const HALO_MIN_SLOT_SEPARATION_PX = 40;
-const HALO_SLOT_GEOMETRY = Object.freeze({
-  north: Object.freeze({ anchor: [68, 52], origin: [68, 52], direction: [0, -1], label: [77, 13], labelAnchor: "start" }),
-  east: Object.freeze({ anchor: [6, 28], origin: [6, 28], direction: [1, 0], label: [58, 32], labelAnchor: "start" }),
-  south: Object.freeze({ anchor: [68, 4], origin: [68, 4], direction: [0, 1], label: [77, 53], labelAnchor: "start" }),
-  west: Object.freeze({ anchor: [130, 28], origin: [130, 28], direction: [-1, 0], label: [78, 32], labelAnchor: "end" }),
-});
+const HALO_SLOT_GEOMETRY = HALO_VISUAL_GEOMETRY.slots;
 const comparisonHalos = { A: {}, B: {} };
 let haloEnabled = true;
 let lastHaloComparison = null;
@@ -299,12 +294,6 @@ function setHaloLine(line, start, end) {
   line.setAttribute("x2", String(end[0])); line.setAttribute("y2", String(end[1]));
 }
 
-function haloLabelPoint(geometry, end) {
-  if (geometry.direction[0] > 0) return [end[0] + 8, end[1] + 4];
-  if (geometry.direction[0] < 0) return [end[0] - 8, end[1] + 4];
-  return [end[0] + 8, end[1] + (geometry.direction[1] < 0 ? 4 : 5)];
-}
-
 function updateHaloGlyph(marker, state, layout = "full") {
   const nodes = marker._haloNodes;
   if (!nodes) cacheHaloNodes(marker);
@@ -319,11 +308,12 @@ function updateHaloGlyph(marker, state, layout = "full") {
   cached.svg.classList.toggle("halo-compact", layout === "compact");
   cached.svg.classList.toggle("halo-active", marker._haloLens === active);
   cached.svg.classList.toggle("halo-inactive", marker._haloLens !== active);
-  const labelLength = spec.type === "bar" ? Math.max(8, trackLength * spec.magnitude) : spec.type === "zero" ? 8 : trackLength;
-  const labelPoint = haloLabelPoint(geometry, haloLineEnd(geometry, labelLength));
   cached.label.textContent = spec.label;
-  cached.label.setAttribute("x", String(labelPoint[0])); cached.label.setAttribute("y", String(labelPoint[1]));
-  cached.label.style.display = layout === "compact" ? "none" : "";
+  if (spec.labelAnchor) {
+    cached.label.setAttribute("x", String(spec.labelAnchor.x)); cached.label.setAttribute("y", String(spec.labelAnchor.y));
+    cached.label.setAttribute("text-anchor", spec.labelAnchor.textAnchor);
+  }
+  cached.label.style.display = spec.labelAnchor ? "" : "none";
   setHaloLine(cached.track, geometry.origin, outer);
   setHaloLine(cached.stateTrack, geometry.origin, outer);
   cached.zero.setAttribute("cx", String(geometry.origin[0])); cached.zero.setAttribute("cy", String(geometry.origin[1]));
@@ -379,16 +369,6 @@ function haloGlyphIntersects(element, point, footprint) {
   return x + footprint.maxX > rect.left && x + footprint.minX < rect.right && y + footprint.maxY > rect.top && y + footprint.minY < rect.bottom;
 }
 
-function haloFootprint(metric, layout) {
-  const compact = layout === "compact";
-  const length = compact ? HALO_COMPACT_TRACK_PX : HALO_FULL_TRACK_PX;
-  const label = compact ? 0 : 84;
-  if (metric.slot === "north") return { minX: compact ? -18 : -68, maxX: compact ? 18 : 68, minY: -length - 4, maxY: 4 };
-  if (metric.slot === "south") return { minX: compact ? -18 : -68, maxX: compact ? 18 : 68, minY: -4, maxY: length + 4 };
-  if (metric.slot === "east") return { minX: -6, maxX: length + label, minY: compact ? -18 : -28, maxY: compact ? 18 : 28 };
-  return { minX: -length - label, maxX: 6, minY: compact ? -18 : -28, maxY: compact ? 18 : 28 };
-}
-
 function updateHaloLayout() {
   const note = document.getElementById("haloVisibilityNote");
   if (!bEnabled || !lastHaloComparison) {
@@ -411,7 +391,7 @@ function updateHaloLayout() {
     }
     for (const metric of HALO_METRICS) {
       const point = map.latLngToContainerPoint(sides[which].positions[metric.id]);
-      const footprint = haloFootprint(metric, layouts[which]);
+      const footprint = haloSlotFootprint(metric.slot, layouts[which]);
       for (const element of [document.querySelector(".panel"), document.querySelector(".left")]) {
         if (haloGlyphIntersects(element, point, footprint)) blocked[which].set(metric.id, "overlapped by a map control panel");
       }
@@ -422,7 +402,9 @@ function updateHaloLayout() {
       for (const metricB of HALO_METRICS) {
         const aPoint = map.latLngToContainerPoint(sides.A.positions[metricA.id]);
         const bPoint = map.latLngToContainerPoint(sides.B.positions[metricB.id]);
-        if (aPoint.distanceTo(bPoint) < HALO_MIN_SLOT_SEPARATION_PX) {
+        const aFootprint = haloSlotFootprint(metricA.slot, layouts.A);
+        const bFootprint = haloSlotFootprint(metricB.slot, layouts.B);
+        if (aPoint.distanceTo(bPoint) < HALO_MIN_SLOT_SEPARATION_PX || haloFootprintsOverlap(aPoint, aFootprint, bPoint, bFootprint)) {
           blocked.A.set(metricA.id, "ambiguous Lens A/B slot overlap");
           blocked.B.set(metricB.id, "ambiguous Lens A/B slot overlap");
         }
@@ -434,7 +416,7 @@ function updateHaloLayout() {
     if (layouts[which] === "hidden") continue;
     for (const metric of HALO_METRICS) {
       const point = map.latLngToContainerPoint(sides[which].positions[metric.id]);
-      const footprint = haloFootprint(metric, layouts[which]);
+      const footprint = haloSlotFootprint(metric.slot, layouts[which]);
       if (point.x + footprint.minX < 0 || point.y + footprint.minY < 0 || point.x + footprint.maxX > mapSize.x || point.y + footprint.maxY > mapSize.y) {
         blocked[which].set(metric.id, "at the map edge");
       }
