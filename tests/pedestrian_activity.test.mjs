@@ -34,9 +34,10 @@ test("pedestrian KPI is directly below the active Lens control and communicates 
 });
 
 test("Lens A/B comparison includes pedestrian activity only when evidence exists in both lenses", () => {
-  assert.match(html, /Ped flow<b id="cmpPedestrian">—<\/b>/);
-  assert.match(app, /pa\.evidence === "OBSERVED" && pb\.evidence === "OBSERVED"/);
-  assert.match(app, /deltaOrDash\(Math\.round\(pa\.meanObserved\), Math\.round\(pb\.meanObserved\), "\/h"\)/);
+  assert.match(html, /<th scope="row">Pedestrian<\/th><td id="cmpPedestrianA">—<\/td><td id="cmpPedestrianB">—<\/td><td id="cmpPedestrian">—<\/td>/);
+  assert.match(app, /pedestrian: \{[\s\S]*enabled: pedestrianOn/);
+  assert.match(app, /setComparisonRow\("cmpPedestrian", comparison\.metrics\.pedestrian/);
+  assert.match(app, /pa\.stationCount[\s\S]*pa\.observationCount/);
 });
 
 test("deployment builds a bounded pedestrian snapshot from Madrid Open Data", () => {

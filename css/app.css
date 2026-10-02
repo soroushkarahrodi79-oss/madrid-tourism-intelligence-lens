@@ -276,8 +276,31 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .nearest li{font-size:9px;color:#aebdcd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nearest em{font-style:normal;color:#657b92;margin-left:5px}
 .compareline{margin-top:4px;border-top:1px solid var(--line);padding-top:2px;display:none}
 .compareline.show{display:block}
-.comparegrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center;font-size:9px}
-.comparegrid div{padding:7px 4px;border-radius:8px;background:rgba(255,255,255,.025);color:#8fa2b7}.comparegrid b{display:block;color:white;font-size:12px;margin-top:3px}
+.halo-toggle{display:flex;align-items:center;gap:7px;min-height:36px;padding:4px 8px;margin:3px 0 5px;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(255,255,255,.02);font-size:9px;color:#c5d3e1;cursor:pointer}
+.halo-toggle input{width:17px;height:17px;margin:0;accent-color:#dcefff}
+.halo-toggle input:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px}
+.halo-toggle small{margin-left:auto;font-size:8px;color:#7e93a9}
+.halo-legend{font-size:7.7px;line-height:1.4;color:#8194a9;margin:0 3px 7px}
+.comparetable-wrap{overflow-x:auto;overscroll-behavior-x:contain}
+.comparetable{width:100%;border-collapse:collapse;font-size:8.2px;font-variant-numeric:tabular-nums}
+.comparetable th,.comparetable td{padding:5px 4px;border-bottom:1px solid rgba(255,255,255,.055);text-align:right;vertical-align:top;color:#afbece;line-height:1.35}
+.comparetable thead th{font-size:7.4px;text-transform:uppercase;letter-spacing:.05em;color:#8195ab;font-weight:650}
+.comparetable th:first-child{text-align:left;color:#c4d1df;font-weight:600;min-width:88px}
+.comparetable td{max-width:112px;overflow-wrap:anywhere}
+.comparetable td:last-child{color:#eef5fc;font-weight:650}
+.compare-evidence,.halo-visibility-note{font-size:7.8px;line-height:1.4;color:#8296ac;margin:6px 2px 0}
+.halo-visibility-note{color:#a7b8c9}
+.halo-visibility-note:empty{display:none}
+.panel-only-metric th:after{content:""}
+.comparison-halo-icon{background:transparent!important;border:0!important;pointer-events:none!important}
+.halo-glyph{overflow:visible;transform:rotate(var(--slot-rotation));transform-origin:21px 7px;filter:drop-shadow(0 0 1.3px rgba(0,0,0,.98)) drop-shadow(0 0 1.1px rgba(255,255,255,.78));}
+.halo-track{fill:rgba(8,16,27,.44);stroke:var(--halo-color);stroke-width:1.2;stroke-dasharray:2.3 2;opacity:.94}
+.halo-fill{fill:var(--halo-color);stroke:rgba(8,16,27,.75);stroke-width:.45}
+.halo-temperature-track{stroke:var(--halo-color);stroke-width:1;stroke-dasharray:2.2 2;opacity:.78}
+.halo-temperature-mid{stroke:var(--halo-color);stroke-width:1;opacity:.7}
+.halo-temperature-marker{fill:var(--halo-color);stroke:#08101a;stroke-width:1.2}
+.halo-state-mark{fill:none;stroke:var(--halo-color);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.halo-qualified-mark{fill:#08101a;stroke:var(--halo-color);stroke-width:1.2}
 /* DESTINATION CONTEXT: the citywide surface.
    Given its own quiet card so it reads as a different KIND of thing from the
    lens metrics above it, and styled with no performance semantics anywhere: no
@@ -377,7 +400,8 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .area-other{margin-top:6px;padding-top:6px;font-size:8.4px;gap:6px}
   .area-source-toggle,.area-source-details{display:none}
   .activity-card{grid-template-columns:1fr;padding:9px}.activity-card-note{display:none}
-  .mix{display:none}.source{display:none}.compareline{display:none!important}
+  .mix{display:none}.source{display:none}
+  .compareline{margin-top:8px;padding-bottom:2px}.halo-toggle{min-height:40px}.comparetable{font-size:8px}.comparetable th,.comparetable td{padding:5px 3px}.comparetable th:first-child{min-width:75px}.compare-evidence,.halo-visibility-note{font-size:8px}
   select,.smallbtn{font-size:16px}
   .basemap-control select{font-size:16px}
   .map-control select{font-size:16px}

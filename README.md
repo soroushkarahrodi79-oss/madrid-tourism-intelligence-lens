@@ -25,6 +25,10 @@ including comparing two places at once.
 
 - Move **Lens A** (always on) by dragging it or clicking the map.
 - Enable **Lens B** to compare two locations side by side.
+- In Compare mode, use the optional **comparison halo** around each circle for
+  a compact pattern cue: Tourism POIs, represented stays, observed pedestrian
+  activity, and same-timestep HATI UTCI. The panel remains authoritative and
+  shows Lens A, Lens B, and B−A; Mobility stays panel-only.
 - Adjust the lens **radius** (100 m – 5 km).
 - Toggle each operational data layer on/off.
 - Opt into **observed pedestrian activity** from Madrid's permanent counters;
@@ -134,6 +138,12 @@ is **not** total tourism demand, **not** all accommodation and **not** a count o
 unique visitors, and nothing explains **why** a figure moved. Full list in
 [`docs/CLAIMS_AND_LIMITATIONS.md`](docs/CLAIMS_AND_LIMITATIONS.md).
 
+The comparison halo is a supplementary display for the current shared-radius
+Compare mode. Its count-bar lengths use a shared Lens A/Lens B scale for each
+metric, with the longest valid value in that pair filling the track. That local
+display scale is not a Madrid benchmark, percentage, score, or ranking. Missing,
+off, and no-evidence states remain distinct from a genuine observed zero.
+
 ## 7. How do I run it locally?
 
 No build step, no dependencies. Any static file server works:
@@ -221,6 +231,7 @@ See [Gate G — Decision utility and next evidence increment](docs/DECISION_UTIL
 index.html            entry point
 css/app.css            styling
 js/lens.js             pure lens geometry + POI statistics (tested)
+js/radial-halo.js      pure comparative halo states and shared scales (tested)
 js/evidence.js          pure HATI evidence statistics (tested)
 js/geography.js         pure administrative containment / point-in-polygon (tested)
 js/area-profile.js      pure Area Profile model: place, residents, licensed VUT, states (tested)
