@@ -29,7 +29,15 @@ including comparing two places at once.
   a compact pattern cue: Tourism POIs, represented stays, observed pedestrian
   activity, and same-timestep HATI UTCI. The panel remains authoritative and
   shows Lens A, Lens B, and B−A; Mobility stays panel-only.
-- Adjust the lens **radius** (100 m – 5 km).
+- Adjust one active-Lens **radius** (100 m – 5 km); Lens A and Lens B keep
+  independent radii, and both are shown in Compare mode. Lens B copies A's
+  current radius on its first enable in a session and remembers its own radius
+  after later disable/re-enable cycles.
+- Compare equal-radius POI and stay windows with eligible raw represented-count
+  deltas. For unequal radii, retain both raw counts and compare represented
+  records/km² only when both full circles fit inside Madrid's official
+  municipality polygon and source states are compatible. The single active
+  radius slider never changes the inactive Lens.
 - Toggle each operational data layer on/off.
 - Opt into **observed pedestrian activity** from Madrid's permanent counters;
   the lens reports the mean published hourly count for counters inside the
@@ -138,11 +146,13 @@ is **not** total tourism demand, **not** all accommodation and **not** a count o
 unique visitors, and nothing explains **why** a figure moved. Full list in
 [`docs/CLAIMS_AND_LIMITATIONS.md`](docs/CLAIMS_AND_LIMITATIONS.md).
 
-The comparison halo is a supplementary display for the current shared-radius
-Compare mode. Its count-bar lengths use a shared Lens A/Lens B scale for each
-metric, with the longest valid value in that pair filling the track. That local
-display scale is not a Madrid benchmark, percentage, score, or ranking. Missing,
-off, and no-evidence states remain distinct from a genuine observed zero.
+The comparison halo is supplementary. In equal-radius mode its POI and stay
+bars use raw represented counts; in eligible unequal-radius mode they use
+represented records/km² on a shared A/B scale. Unequal-radius Mobility deltas
+are withheld. Pedestrian means and UTCI remain in native units with evidence
+coverage. The halo's local pair scale is not a Madrid benchmark, percentage,
+score, or ranking. Missing, off, and no-evidence states remain distinct from a
+genuine observed zero.
 
 ## 7. How do I run it locally?
 

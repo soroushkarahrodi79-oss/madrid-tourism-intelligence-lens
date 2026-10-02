@@ -276,6 +276,8 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .nearest li{font-size:9px;color:#aebdcd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nearest em{font-style:normal;color:#657b92;margin-left:5px}
 .compareline{margin-top:4px;border-top:1px solid var(--line);padding-top:2px;display:none}
 .compareline.show{display:block}
+.comparison-radius-readout{margin:4px 2px 5px;padding:6px 8px;border:1px solid rgba(255,255,255,.09);border-radius:8px;background:rgba(255,255,255,.025);font-size:9px;font-weight:650;color:#d7e5f2;font-variant-numeric:tabular-nums}
+.comparison-mode-cue{margin:0 2px 5px;font-size:8.1px;line-height:1.4;color:#a9bacb}
 .halo-toggle{display:flex;align-items:center;gap:7px;min-height:36px;padding:4px 8px;margin:3px 0 5px;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(255,255,255,.02);font-size:9px;color:#c5d3e1;cursor:pointer}
 .halo-toggle input{width:17px;height:17px;margin:0;accent-color:#dcefff}
 .halo-toggle input:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px}
@@ -287,6 +289,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .comparetable thead th{font-size:7.4px;text-transform:uppercase;letter-spacing:.05em;color:#8195ab;font-weight:650}
 .comparetable th:first-child{text-align:left;color:#c4d1df;font-weight:600;min-width:88px}
 .comparetable td{max-width:112px;overflow-wrap:anywhere}
+.comparetable td{white-space:pre-line}
 .comparetable td:last-child{color:#eef5fc;font-weight:650}
 .compare-evidence,.halo-visibility-note{font-size:7.8px;line-height:1.4;color:#8296ac;margin:6px 2px 0}
 .halo-visibility-note{color:#a7b8c9}

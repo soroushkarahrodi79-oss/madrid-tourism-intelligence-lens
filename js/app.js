@@ -25,7 +25,7 @@ const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 // modules load identically however the page is served. They are ES modules
 // (shared with `node --test`), while the rest of the app is classic scripts.
 const MODULE_BASE = (document.currentScript && document.currentScript.src) || window.location.href;
-const AREA_ASSET_VERSION = "20261002-40";
+const AREA_ASSET_VERSION = "20261002-43";
 const moduleUrl = (name) => new URL(`${name}?v=${AREA_ASSET_VERSION}`, MODULE_BASE).href;
 
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
@@ -174,9 +174,10 @@ let hatiAssets = [];
 let hatiStudyArea = null;
 let layerStatus = {};
 let stayKindFilter = "all";
-let radius = LENS_RADIUS.defaultM;
+const radii = createLensRadii();
 let active = "A";
 let bEnabled = false;
+let lensBHasBeenInitialized = false;
 let timestep = "15:00";
 
 const defaults = { A: [40.4149, -3.69], B: [40.4224, -3.7037] };
@@ -194,7 +195,7 @@ const lenses = {
   A: {
     marker: L.marker(defaults.A, { draggable: true, icon: markerIcon("a"), zIndexOffset: 1000 }).addTo(map),
     circle: L.circle(defaults.A, {
-      radius,
+      radius: radii.A,
       pane: "lensPane",
       className: "lens-boundary lens-boundary-a",
       color: "#123b5f",
@@ -208,7 +209,7 @@ const lenses = {
   B: {
     marker: L.marker(defaults.B, { draggable: true, icon: markerIcon("b"), zIndexOffset: 1000 }),
     circle: L.circle(defaults.B, {
-      radius,
+      radius: radii.B,
       pane: "lensPane",
       className: "lens-boundary lens-boundary-b",
       color: "#00768f",
@@ -319,7 +320,7 @@ function haloPositionsFor(which) {
   const projectedCenter = map.project(centerLatLng);
   const onePixelEast = map.unproject(projectedCenter.add([1, 0]));
   const metresPerPixel = map.distance(centerLatLng, onePixelEast);
-  const radiusPx = metresPerPixel > 0 ? radius / metresPerPixel : 0;
+  const radiusPx = metresPerPixel > 0 ? radiusFor(which) / metresPerPixel : 0;
   const slotDistance = radiusPx + 20;
   const offsets = { north: [0, -slotDistance], east: [slotDistance, 0], south: [0, slotDistance], west: [-slotDistance, 0] };
   const positions = {};
@@ -686,16 +687,27 @@ function centerOf(which) {
   return { lat: c.lat, lon: c.lng };
 }
 
+function radiusFor(which) { return radii[which]; }
+function setLensRadius(which, value) { setLensRadiusState(radii, which, value); return radii[which]; }
+
+function windowRelationship() {
+  const distance = haversineMeters(centerOf("A"), centerOf("B"));
+  const smaller = Math.min(radii.A, radii.B); const larger = Math.max(radii.A, radii.B);
+  if (distance + smaller <= larger) return "Nested windows · records may be shared";
+  if (distance < radii.A + radii.B) return "Overlapping windows · observations are not independent";
+  return "";
+}
+
 function statsFor(which) {
-  return poiStatsInLens(visiblePoiPoints(), centerOf(which), radius);
+  return poiStatsInLens(visiblePoiPoints(), centerOf(which), radiusFor(which));
 }
 
 function heatStatsFor(which) {
-  return hatiStatsInLens(hatiAssets, timestep, centerOf(which), radius, haversineMeters);
+  return hatiStatsInLens(hatiAssets, timestep, centerOf(which), radiusFor(which), haversineMeters);
 }
 
 function pedestrianStatsFor(which) {
-  return pedestrianStatsInLens(pedestrianStations, centerOf(which), radius);
+  return pedestrianStatsInLens(pedestrianStations, centerOf(which), radiusFor(which));
 }
 
 const STATUS_LABEL = {
@@ -776,7 +788,7 @@ function renderPedestrianMetric(p) {
 
   value.textContent = `${Math.round(p.meanObserved).toLocaleString("en-GB")} ${p.stationCount === 1 ? "ped/h" : "passages/hour"}`;
   value.className = "activity-card-value";
-  foot.textContent = `${p.stationCount} counter${p.stationCount !== 1 ? "s" : ""} in current lens · ${radius} m radius`;
+  foot.textContent = `${p.stationCount} counter${p.stationCount !== 1 ? "s" : ""} in current lens · ${formatLensRadius(radiusFor(active))} radius`;
 }
 
 function renderMix(s) {
@@ -857,7 +869,12 @@ function renderCompare() {
   const hb = hatiOn ? heatStatsFor("B") : null;
   const pa = pedestrianOn ? pedestrianStatsFor("A") : null;
   const pb = pedestrianOn ? pedestrianStatsFor("B") : null;
+  const radiusMode = radiusComparisonMode(radii.A, radii.B);
+  const aoiA = geographyIndex?.municipalityContainsCircle?.(centerOf("A").lon, centerOf("A").lat, radii.A);
+  const aoiB = geographyIndex?.municipalityContainsCircle?.(centerOf("B").lon, centerOf("B").lat, radii.B);
+  const aoiState = radiusMode === "EQUAL_RADIUS" ? "not-required" : !aoiA || !aoiB || aoiA.state === "unavailable" || aoiB.state === "unavailable" ? "unavailable" : aoiA.eligible && aoiB.eligible ? "eligible" : aoiA.state === "outside" || aoiB.state === "outside" ? "outside" : "crosses";
   const comparison = buildHaloComparison({
+    radiusMode, radii: { ...radii }, aoiState,
     tourism: {
       a: { value: a.tourism, sourceState: combinedStatus(layerStatus, ["museums", "info"]) },
       b: { value: b.tourism, sourceState: combinedStatus(layerStatus, ["museums", "info"]) },
@@ -874,12 +891,32 @@ function renderCompare() {
   });
   setComparisonRow("cmpPoi", comparison.metrics.tourism, "tourism");
   setComparisonRow("cmpStay", comparison.metrics.stays, "stays");
+  for (const [prefix, state, name] of [["cmpPoi", comparison.metrics.tourism, "represented records"], ["cmpStay", comparison.metrics.stays, "represented catalogue records"]]) {
+    const formatSide = (side) => {
+      const raw = side === "A" ? state.aRawValue : state.bRawValue;
+      if (raw == null) return "Unavailable";
+      const rate = state.aoiEligible ? (side === "A" ? state.aValue : state.bValue) : null;
+      const rawUnit = prefix === "cmpStay" ? "catalogue records" : "records";
+      return `${raw} ${rawUnit}${rate == null ? "" : `\n${rate.toFixed(1)} ${name}/km²`}\nr ${formatLensRadius(radiusFor(side))}`;
+    };
+    document.getElementById(`${prefix}A`).textContent = formatSide("A");
+    document.getElementById(`${prefix}B`).textContent = formatSide("B");
+    const delta = document.getElementById(prefix);
+    if (radiusMode === "UNEQUAL_RADIUS" && !state.comparable) delta.textContent = state.qualifier === "circle crosses Madrid AOI" ? "Withheld · circle crosses Madrid AOI" : state.qualifier === "circle outside Madrid AOI" ? "Withheld · circle outside Madrid AOI" : state.qualifier === "Madrid AOI unavailable" ? "Withheld · AOI unavailable" : "Withheld · source states incompatible";
+    else if (radiusMode === "UNEQUAL_RADIUS") delta.textContent = `${state.delta > 0 ? "+" : ""}${state.delta.toFixed(1)} ${name}/km²`;
+    else delta.textContent = comparisonDeltaCell(state, prefix === "cmpPoi" ? "tourism" : "stays");
+  }
   const mobilityStatus = combinedStatus(layerStatus, ["bikes", "rail"]);
   const mobilityState = buildCountPairState(
     { value: a.mobility, sourceState: mobilityStatus },
-    { value: b.mobility, sourceState: mobilityStatus }
+    { value: b.mobility, sourceState: mobilityStatus }, radiusMode
   );
   setComparisonRow("cmpMobility", mobilityState, "mobility");
+  for (const side of ["A", "B"]) {
+    const value = side === "A" ? mobilityState.aValue : mobilityState.bValue;
+    document.getElementById(`cmpMobility${side}`).textContent = value == null ? "Unavailable" : `${value} nodes\nr ${formatLensRadius(radiusFor(side))}`;
+  }
+  document.getElementById("cmpMobility").textContent = radiusMode === "UNEQUAL_RADIUS" ? "Withheld · different window sizes" : comparisonDeltaCell(mobilityState, "mobility");
   setComparisonRow("cmpPedestrian", comparison.metrics.pedestrian, "pedestrian");
   setComparisonRow("cmpHeat", comparison.metrics.utci, "utci");
   const mobilityA = document.getElementById("cmpMobilityA");
@@ -891,11 +928,26 @@ function renderCompare() {
   const pedestrianEvidence = pedestrianStatus === "unavailable"
     ? "Pedestrian source unavailable"
     : pedestrianOn
-      ? `Pedestrian observations · A ${pa.stationCount} counters / ${pa.observationCount} observations${pa.dateMin && pa.dateMax ? ` (${pa.dateMin}–${pa.dateMax})` : ""}; B ${pb.stationCount} counters / ${pb.observationCount} observations${pb.dateMin && pb.dateMax ? ` (${pb.dateMin}–${pb.dateMax})` : ""}; observed pedestrians, not tourists.`
+      ? `Pedestrian observations · A ${pa.stationCount} counters / ${pa.observationCount} observations · r ${formatLensRadius(radii.A)}${pa.dateMin && pa.dateMax ? ` (${pa.dateMin}–${pa.dateMax})` : ""}; B ${pb.stationCount} counters / ${pb.observationCount} observations · r ${formatLensRadius(radii.B)}${pb.dateMin && pb.dateMax ? ` (${pb.dateMin}–${pb.dateMax})` : ""}; observed pedestrians, not tourists.`
       : "Pedestrian layer off.";
-  document.getElementById("cmpEvidence").textContent = `${hatiOn ? `HATI ${timestep} · 21 Aug 2023 · ${ha.count}/${hb.count} model samples` : "HATI off"}. ${pedestrianEvidence}`;
+  const radiusCue = document.getElementById("comparisonModeCue");
+  const relationship = windowRelationship();
+  const normalizedEligible = comparison.metrics.tourism.comparable && comparison.metrics.stays.comparable;
+  const cue = radiusMode === "EQUAL_RADIUS" ? "Equal windows · raw represented counts" : normalizedEligible ? "Different windows · POI/stay comparator: represented records/km²" : "Different windows · POI/stay normalized comparison withheld";
+  document.getElementById("comparisonRadiusReadout").textContent = `Lens A · ${formatLensRadius(radii.A)} | Lens B · ${formatLensRadius(radii.B)}`;
+  const cueReason = radiusMode !== "UNEQUAL_RADIUS" ? "" : aoiState === "unavailable" ? "AOI unavailable" : aoiState === "outside" ? "circle outside Madrid AOI" : aoiState === "crosses" ? "circle crosses Madrid AOI" : !normalizedEligible ? "source evidence incompatible or unavailable" : "";
+  radiusCue.textContent = [cue, cueReason, relationship].filter(Boolean).join(" · ");
+  const radiusLine = `Lens A ${formatLensRadius(radii.A)}; Lens B ${formatLensRadius(radii.B)}.`;
+  const hatiCoverage = hatiOn
+    ? `HATI ${timestep} · 21 Aug 2023 · A ${ha.count} samples (r ${formatLensRadius(radii.A)}) / B ${hb.count} samples (r ${formatLensRadius(radii.B)})${ha.count !== hb.count ? "; sample counts differ, summarizing different sampled assets/windows" : ""}`
+    : "HATI off";
+  document.getElementById("cmpEvidence").textContent = `${radiusLine} ${hatiCoverage}. ${pedestrianEvidence}`;
   lastHaloComparison = comparison;
-  document.getElementById("comparisonHaloSummary").textContent = accessibleComparisonSummary(comparison);
+  const pointSummary = radiusMode === "EQUAL_RADIUS"
+    ? `Tourism POIs raw counts ${a.tourism} and ${b.tourism}; stays raw counts ${a.stay} and ${b.stay}.`
+    : `Tourism POIs raw counts ${a.tourism} and ${b.tourism}; stays raw counts ${a.stay} and ${b.stay}. ${comparison.metrics.tourism.comparable ? `Tourism rates ${comparison.metrics.tourism.aValue.toFixed(1)} and ${comparison.metrics.tourism.bValue.toFixed(1)} represented records per km²; delta ${comparison.metrics.tourism.delta.toFixed(1)}.` : comparison.metrics.tourism.qualifier}. ${comparison.metrics.stays.comparable ? `Stay rates ${comparison.metrics.stays.aValue.toFixed(1)} and ${comparison.metrics.stays.bValue.toFixed(1)} represented catalogue records per km²; delta ${comparison.metrics.stays.delta.toFixed(1)}.` : comparison.metrics.stays.qualifier} Mobility delta withheld · different window sizes.`;
+  const nestedSummary = relationship ? `${relationship}.` : "Windows are disjoint.";
+  document.getElementById("comparisonHaloSummary").textContent = `${accessibleComparisonSummary(comparison)} ${pointSummary} ${nestedSummary}`;
   updateHaloLayout();
 }
 
@@ -1480,6 +1532,7 @@ async function loadAreaContext() {
 
   lastAreaRenderKey = null;
   updateAreaContext();
+  renderCompare(); // AOI readiness changes only the unequal-radius normalization state.
 }
 
 // ------------------------------------------------ Hospitality & Commercial
@@ -2042,7 +2095,7 @@ function shadeMarkersOutsideActiveLens() {
     g.eachLayer((m) => {
       if (!m._p) return;
       const d = haversineMeters(center, m._p);
-      const inside = d <= radius;
+      const inside = d <= radiusFor(active);
 
       if (m._cluster && typeof m.setOpacity === "function") {
         m.setOpacity(inside ? 1 : 0.38);
@@ -2075,7 +2128,7 @@ function renderCountMetric({ valueId, footId, value, status, liveFoot, published
 }
 
 function refresh() {
-  Object.values(lenses).forEach((x) => x.circle.setRadius(radius).setLatLng(x.marker.getLatLng()));
+  for (const which of ["A", "B"]) lenses[which].circle.setRadius(radiusFor(which)).setLatLng(lenses[which].marker.getLatLng());
   const s = statsFor(active);
   renderCountMetric({
     valueId: "tourismValue",
@@ -2118,6 +2171,8 @@ function refresh() {
 
 function activateLens(which) {
   active = which;
+  radiusSlider.value = radiusFor(which);
+  renderRadiusLabels();
   applyLensBasemapStyle(activeBasemapName);
   document.getElementById("lensAButton").className = "lensbtn a" + (which === "A" ? " active" : "");
   document.getElementById("lensBButton").className = "lensbtn b" + (which === "B" ? " active" : "");
@@ -2132,6 +2187,8 @@ function activateLens(which) {
 
 function enableLensB() {
   if (!bEnabled) {
+    if (!lensBHasBeenInitialized) { initializeLensBRadius(radii); lensBHasBeenInitialized = true; }
+    lenses.B.circle.setRadius(radiusFor("B"));
     bEnabled = true;
     lenses.B.marker.addTo(map);
     lenses.B.circle.addTo(map);
@@ -2183,8 +2240,11 @@ document.getElementById("navEvidence").onclick = () => {
   refresh();
 };
 function renderRadiusLabels() {
-  const text = formatLensRadius(radius);
+  const text = formatLensRadius(radiusFor(active));
   document.getElementById("radiusText").textContent = text;
+  const lensName = `Lens ${active}`;
+  document.getElementById("radiusControlLabel").textContent = `${lensName} radius`;
+  radiusSlider.setAttribute("aria-label", `${lensName} radius`);
   // The lens section states its own geometry, so "within the lens" can never be
   // read as the administrative area above it.
   document.getElementById("lensScopeHint").textContent = `${text} circle`;
@@ -2193,12 +2253,13 @@ const radiusSlider = document.getElementById("radiusSlider");
 radiusSlider.min = LENS_RADIUS.minM;
 radiusSlider.max = LENS_RADIUS.maxM;
 radiusSlider.step = LENS_RADIUS.stepM;
-radiusSlider.value = radius;
+radiusSlider.value = radiusFor(active);
+radiusSlider.setAttribute("aria-label", "Lens A radius");
 renderRadiusLabels();
 
 radiusSlider.oninput = (e) => {
-  radius = clampLensRadius(e.target.value);
-  e.target.value = radius;
+  setLensRadius(active, e.target.value);
+  e.target.value = radiusFor(active);
   renderRadiusLabels();
   refresh();
 };

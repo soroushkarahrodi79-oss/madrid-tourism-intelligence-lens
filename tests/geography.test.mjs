@@ -206,6 +206,17 @@ test("a point outside Madrid returns no administrative assignment", () => {
   }
 });
 
+test("whole-circle Madrid AOI eligibility tests boundary segments conservatively", () => {
+  const index = createGeographyIndex(GEO);
+  assert.equal(index.municipalityContainsCircle(-3.7038, 40.4168, 100).eligible, true);
+  assert.equal(index.municipalityContainsCircle(-3.887, 40.35, 100).state, "outside");
+  assert.equal(index.municipalityContains(-3.7, 40.5), true);
+  assert.equal(index.municipalityContainsCircle(-3.7, 40.5, 5000).eligible, false);
+  assert.equal(index.municipalityContainsCircle(-3.58, 40.35, 100).eligible, true);
+  assert.equal(index.municipalityContainsCircle(-3.58, 40.35, 1388).eligible, false);
+  assert.equal(index.municipalityContainsCircle(-3.58, 40.35, 1300).eligible, true);
+});
+
 test("point-in-polygon is deterministic for a given point", () => {
   const index = createGeographyIndex(GEO);
   const a = index.locate(-3.7038, 40.4168);

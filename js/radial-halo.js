@@ -23,6 +23,18 @@ const DISPLAY_STATE = Object.freeze({
   INCOMPATIBLE: "comparison withheld · incompatible evidence",
 });
 const UTCI_PX_PER_C = 2;
+const COMPARISON_RADIUS_MODE = Object.freeze({ EQUAL: "EQUAL_RADIUS", UNEQUAL: "UNEQUAL_RADIUS" });
+
+function haloCircleAreaKm2(radiusM) {
+  return Number.isFinite(radiusM) && radiusM > 0 ? Math.PI * Math.pow(radiusM / 1000, 2) : null;
+}
+
+function haloRepresentedRate(count, radiusM) {
+  const area = haloCircleAreaKm2(radiusM);
+  if (!validNumber(count) || count < 0 || area == null) return null;
+  const value = count / area;
+  return Number.isFinite(value) ? value : null;
+}
 
 function validNumber(value) {
   return typeof value === "number" && Number.isFinite(value);
@@ -46,15 +58,18 @@ function difference(a, b) {
   return validNumber(a) && validNumber(b) ? b - a : null;
 }
 
-function countState(a, b) {
+function countState(a, b, window = {}) {
   const stateA = a?.sourceState;
   const stateB = b?.sourceState;
   const valueA = SOURCE_STATES.has(stateA) && validNumber(a?.value) && a.value >= 0 ? a.value : null;
   const valueB = SOURCE_STATES.has(stateB) && validNumber(b?.value) && b.value >= 0 ? b.value : null;
+  const radiusMode = window.radiusMode || COMPARISON_RADIUS_MODE.EQUAL;
+  const radiusA = window.radii?.A;
+  const radiusB = window.radii?.B;
   if (!SOURCE_STATES.has(stateA) || !SOURCE_STATES.has(stateB)) {
     return {
       id: "unavailable", stateA: valueA == null ? "UNAVAILABLE" : "VALID", stateB: valueB == null ? "UNAVAILABLE" : "VALID",
-      aValue: valueA, bValue: valueB, aMagnitude: null, bMagnitude: null,
+      aValue: radiusMode === COMPARISON_RADIUS_MODE.EQUAL ? valueA : null, bValue: radiusMode === COMPARISON_RADIUS_MODE.EQUAL ? valueB : null, aRawValue: valueA, bRawValue: valueB, aMagnitude: null, bMagnitude: null,
       delta: null, qualifier: "source unavailable", comparable: false,
     };
   }
@@ -62,18 +77,28 @@ function countState(a, b) {
     return {
       id: "incompatible", stateA: stateA === "unavailable" ? "UNAVAILABLE" : "INCOMPATIBLE",
       stateB: stateB === "unavailable" ? "UNAVAILABLE" : "INCOMPATIBLE",
-      aValue: valueA, bValue: valueB,
+      aValue: radiusMode === COMPARISON_RADIUS_MODE.EQUAL ? valueA : null, bValue: radiusMode === COMPARISON_RADIUS_MODE.EQUAL ? valueB : null, aRawValue: valueA, bRawValue: valueB,
       aMagnitude: null, bMagnitude: null, delta: null,
       qualifier: "source states differ or a value is unavailable", comparable: false,
     };
   }
-  const scale = positivePair(a.value, b.value);
   const qualifier = SOURCE_LABELS[stateA];
+  if (radiusMode === COMPARISON_RADIUS_MODE.UNEQUAL) {
+    if (window.aoiState !== "eligible") {
+      const reason = window.aoiState === "unavailable" ? "Madrid AOI unavailable" : window.aoiState === "crosses" ? "circle crosses Madrid AOI" : "circle outside Madrid AOI";
+      return { id: "aoi-withheld", stateA: "VALID", stateB: "VALID", aValue: null, bValue: null, aRawValue: a.value, bRawValue: b.value, aMagnitude: null, bMagnitude: null, delta: null, qualifier: reason, comparable: false, reason, aoiEligible: false };
+    }
+    const rateA = haloRepresentedRate(a.value, radiusA); const rateB = haloRepresentedRate(b.value, radiusB);
+    if (rateA == null || rateB == null) return { id: "incompatible", stateA: "INCOMPATIBLE", stateB: "INCOMPATIBLE", aValue: null, bValue: null, aRawValue: a.value, bRawValue: b.value, aMagnitude: null, bMagnitude: null, delta: null, qualifier: "invalid circle area", comparable: false };
+    const scale = positivePair(rateA, rateB);
+    return { id: stateA === "snapshot" ? "valid-partial" : stateA === "published" ? "valid-deployment" : "valid", stateA: "VALID", stateB: "VALID", aValue: rateA, bValue: rateB, aRawValue: a.value, bRawValue: b.value, aMagnitude: scale.a, bMagnitude: scale.b, delta: rateB - rateA, qualifier: `${qualifier}; represented ${window.metricName === "stays" ? "catalogue records" : "records"}/km²`, comparable: true, aoiEligible: true };
+  }
+  const scale = positivePair(a.value, b.value);
   return {
     id: stateA === "snapshot" ? "valid-partial" : stateA === "published" ? "valid-deployment" : "valid",
     stateA: stateA === "snapshot" ? "VALID_PARTIAL" : stateA === "published" ? "VALID_DEPLOYMENT" : "VALID",
     stateB: stateA === "snapshot" ? "VALID_PARTIAL" : stateA === "published" ? "VALID_DEPLOYMENT" : "VALID",
-    aValue: a.value, bValue: b.value, aMagnitude: scale.a, bMagnitude: scale.b,
+    aValue: a.value, bValue: b.value, aRawValue: a.value, bRawValue: b.value, aMagnitude: scale.a, bMagnitude: scale.b,
     delta: b.value - a.value, qualifier, comparable: true,
   };
 }
@@ -137,7 +162,7 @@ function utciState({ enabled, timestepA, timestepB, a, b }) {
     aOffsetPx: (a.mean - midpoint) * UTCI_PX_PER_C,
     bOffsetPx: (b.mean - midpoint) * UTCI_PX_PER_C,
     midpoint, pixelsPerC: UTCI_PX_PER_C, delta: b.mean - a.mean,
-    qualifier: `model-derived · ${timestepA} · 21 Aug 2023 · ${a.count} / ${b.count} samples`, comparable: true,
+    qualifier: `model-derived · ${timestepA} · 21 Aug 2023 · ${a.count} / ${b.count} samples${a.count !== b.count ? "; counts differ, summarizing different sampled assets/windows" : ""}`, comparable: true,
     aCoverage: `${a.count} model-derived samples`, bCoverage: `${b.count} model-derived samples`,
   };
 }
@@ -147,17 +172,21 @@ function abstention(id, stateA, stateB, qualifier) {
 }
 
 function buildHaloComparison(input) {
+  const radiusMode = input?.radiusMode || COMPARISON_RADIUS_MODE.EQUAL;
+  const window = (metricName) => ({ radiusMode, radii: input?.radii, aoiState: input?.aoiState, metricName });
   const metrics = {
-    tourism: countState(input?.tourism?.a, input?.tourism?.b),
-    stays: countState(input?.stays?.a, input?.stays?.b),
+    tourism: countState(input?.tourism?.a, input?.tourism?.b, window("tourism")),
+    stays: countState(input?.stays?.a, input?.stays?.b, window("stays")),
     pedestrian: activityState(input?.pedestrian || {}),
     utci: utciState(input?.utci || {}),
   };
-  return Object.freeze({ order: HALO_METRICS.map((metric) => metric.id), metrics: Object.freeze(metrics) });
+  return Object.freeze({ order: HALO_METRICS.map((metric) => metric.id), radiusMode, radii: input?.radii || null, aoiState: input?.aoiState || "not-required", metrics: Object.freeze(metrics) });
 }
 
-function buildCountPairState(a, b) {
-  return countState(a, b);
+function buildCountPairState(a, b, radiusMode = COMPARISON_RADIUS_MODE.EQUAL) {
+  const state = countState(a, b);
+  if (radiusMode !== COMPARISON_RADIUS_MODE.UNEQUAL) return state;
+  return { ...state, id: state.comparable ? "mobility-withheld" : state.id, delta: null, comparable: false, qualifier: "Withheld · different window sizes" };
 }
 
 function formatValue(value, id) {
@@ -187,26 +216,32 @@ function formatEvidenceState(state) {
 }
 
 function accessibleComparisonSummary(comparison) {
-  const lines = ["Comparison halo. Four fixed slots, clockwise from twelve o'clock: Tourism POIs, Stays, Pedestrian activity, UTCI."];
+  const radiusCue = comparison.radii ? `Lens A radius ${comparison.radii.A} m; Lens B radius ${comparison.radii.B} m; ${comparison.radiusMode === COMPARISON_RADIUS_MODE.EQUAL ? "equal windows, raw represented counts" : `different windows; ${comparison.aoiState === "eligible" ? "represented-record rate per km²" : `POI and stay normalized comparison withheld: ${comparison.aoiState}`}`}.` : "";
+  const lines = [`Comparison halo. ${radiusCue} Four fixed slots, clockwise from twelve o'clock: Tourism POIs, Stays, Pedestrian activity, UTCI.`];
   for (const metric of HALO_METRICS) {
     const state = comparison.metrics[metric.id];
-    const a = formatValue(state.aValue, metric.id) || formatEvidenceState(state.stateA);
-    const b = formatValue(state.bValue, metric.id) || formatEvidenceState(state.stateB);
+    const aValue = comparison.radiusMode === COMPARISON_RADIUS_MODE.UNEQUAL && ["tourism", "stays"].includes(metric.id) ? state.aRawValue : state.aValue;
+    const bValue = comparison.radiusMode === COMPARISON_RADIUS_MODE.UNEQUAL && ["tourism", "stays"].includes(metric.id) ? state.bRawValue : state.bValue;
+    const a = formatValue(aValue, metric.id) || formatEvidenceState(state.stateA);
+    const b = formatValue(bValue, metric.id) || formatEvidenceState(state.stateB);
     const coverage = [state.aCoverage && `Lens A coverage: ${state.aCoverage}`, state.bCoverage && `Lens B coverage: ${state.bCoverage}`]
       .filter(Boolean).join(". ");
     if (state.comparable) {
-      lines.push(`${metric.label}: Lens A ${a}, Lens B ${b}, difference ${formatDifference(state.delta, metric.id)}. ${coverage ? `${coverage}. ` : ""}${state.qualifier}.`);
+      const differenceText = comparison.radiusMode === COMPARISON_RADIUS_MODE.UNEQUAL && ["tourism", "stays"].includes(metric.id)
+        ? `${state.delta > 0 ? "+" : ""}${state.delta.toFixed(1)} represented ${metric.id === "stays" ? "catalogue records" : "records"}/km²`
+        : formatDifference(state.delta, metric.id);
+      lines.push(`${metric.label}: Lens A ${a}, Lens B ${b}, difference ${differenceText}. ${coverage ? `${coverage}. ` : ""}${state.qualifier}.`);
     } else {
       lines.push(`${metric.label}: Lens A ${a}, Lens B ${b}; comparison withheld. ${coverage ? `${coverage}. ` : ""}${state.qualifier}.`);
     }
   }
-  lines.push("The full count track represents the largest valid value in this A/B comparison only; this is a local display scale, not a benchmark. UTCI marks use a neutral local midpoint and two pixels per degree Celsius. No mark is a score or recommendation.");
+  lines.push(`Lens A radius ${comparison.radii?.A ?? "unknown"} m; Lens B radius ${comparison.radii?.B ?? "unknown"} m. The full track uses the pair maximum for the active same-unit comparator only; this is a local display scale, not a benchmark. UTCI marks use a neutral local midpoint and two pixels per degree Celsius. No mark is a score or recommendation.`);
   return lines.join(" ");
 }
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
-    HALO_METRICS, SOURCE_LABELS, DISPLAY_STATE, UTCI_PX_PER_C,
+    HALO_METRICS, SOURCE_LABELS, DISPLAY_STATE, UTCI_PX_PER_C, COMPARISON_RADIUS_MODE, circleAreaKm2: haloCircleAreaKm2, representedRate: haloRepresentedRate,
     normalizedCountPair, positivePair, buildCountPairState, buildHaloComparison, accessibleComparisonSummary,
   };
 }
