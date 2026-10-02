@@ -25,7 +25,7 @@ const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 // modules load identically however the page is served. They are ES modules
 // (shared with `node --test`), while the rest of the app is classic scripts.
 const MODULE_BASE = (document.currentScript && document.currentScript.src) || window.location.href;
-const AREA_ASSET_VERSION = "20261001-36";
+const AREA_ASSET_VERSION = "20261002-39";
 const moduleUrl = (name) => new URL(`${name}?v=${AREA_ASSET_VERSION}`, MODULE_BASE).href;
 
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
@@ -1511,7 +1511,6 @@ async function loadHospitalityContext() {
       })
     );
     select.disabled = hospitalityState !== "ready";
-    document.getElementById("languageSelect").value = hospitalityModel.i18n.language;
     applyHospitalityCopy();
     renderHospitalityScale();
     if (hospitalityState !== "ready") {
@@ -1543,6 +1542,8 @@ async function loadHospitalityContext() {
 // and HATI all stand.
 const destinationModel = { module: null, index: null, meta: null };
 let destinationState = "loading"; // loading | ready | unavailable
+const originModel = { module: null, index: null, i18n: null };
+let originMonth = null;
 
 function renderDestinationContext() {
   const section = document.getElementById("destinationContext");
@@ -1735,6 +1736,33 @@ async function loadDestinationContext() {
   renderDestinationContext();
 }
 
+// Domestic origins are a sibling statistical operation inside Destination
+// Context. This loader is deliberately separate from Lens and area context;
+// changing a position, radius, barrio or compare mode cannot call it.
+function originT(key) { return originModel.i18n?.t(key) || key; }
+function renderDomesticOrigins() {
+  const host = document.getElementById("domesticOrigins");
+  if (!host || !originModel.module || !originModel.i18n) return;
+  const module = originModel.module;
+  const model = module.buildDomesticOriginContext({ index: originModel.index, month: originMonth });
+  host.hidden = false;
+  setText("domesticOriginsHeading", originT("heading")); setText("domesticOriginsOfficial", originT("official"));
+  setText("domesticOriginsMonthLabel", originT("month")); setText("domesticOriginsScope", originT("municipality")); setText("domesticOriginsUniverse", originT("universe"));
+  setText("domesticOriginsOrigin", originT("origin")); setText("domesticOriginsTourists", originT("tourists"));
+  const select = document.getElementById("domesticOriginsMonth");
+  if (select) { select.innerHTML = (model.availableMonths || []).slice().reverse().map((month) => `<option value="${month}">${month}</option>`).join(""); select.value = model.month || ""; select.disabled = model.state === module.ORIGIN_STATE.UNAVAILABLE; }
+  const rows = document.getElementById("domesticOriginsRows");
+  if (rows) rows.innerHTML = model.origins.map((row) => `<tr><td>${escapeHtml(row.origin_municipality_name)} <span class="muted">${row.origin_municipality_code}</span></td><td>${row.countDisplay}</td></tr>`).join("");
+  setText("domesticOriginsState", model.state === module.ORIGIN_STATE.UNAVAILABLE ? originT("unavailable") : model.state === module.ORIGIN_STATE.MONTH_UNAVAILABLE ? originT("periodUnavailable") : module.ORIGIN_SCOPE_CAVEAT);
+  setText("domesticOriginsCaveat", originT("caveat"));
+}
+async function loadDomesticOrigins() {
+  try {
+    const [module, i18nModule, artifact] = await Promise.all([import(moduleUrl("domestic-origin-context.js")), import(moduleUrl("i18n.js")), fetchAreaJson("data/destination/madrid_domestic_origins.json")]);
+    originModel.module = module; originModel.i18n = i18nModule.createI18n(module.ORIGIN_DICTIONARIES, document.getElementById("languageSelect").value); originModel.index = module.createDomesticOriginIndex(artifact); originMonth = originModel.index?.latest || null; renderDomesticOrigins();
+  } catch (error) { console.warn("domestic origin context unavailable", error); if (originModel.module) renderDomesticOrigins(); }
+}
+
 function shadeMarkersOutsideActiveLens() {
   const center = centerOf(active);
   Object.values(groups).forEach((g) =>
@@ -1904,10 +1932,12 @@ radiusSlider.oninput = (e) => {
 document.getElementById("basemapSelect").onchange = (e) => setBasemap(e.target.value);
 document.getElementById("boundarySelect").onchange = (e) => setBoundaryMode(e.target.value);
 document.getElementById("languageSelect").onchange = (event) => {
-  if (!hospitalityModel.i18n) return;
-  hospitalityModel.i18n.setLanguage(event.target.value);
+  hospitalityModel.i18n?.setLanguage(event.target.value);
   applyHospitalityCopy();
+  originModel.i18n?.setLanguage(event.target.value);
+  renderDomesticOrigins();
 };
+document.getElementById("domesticOriginsMonth").onchange = (event) => { originMonth = event.target.value; renderDomesticOrigins(); };
 document.getElementById("hospitalityMetricSelect").onchange = (event) => {
   if (!hospitalityModel.module?.APPROVED_INDICATOR_IDS.includes(event.target.value)) return;
   hospitalityMetric = event.target.value;
@@ -2179,6 +2209,7 @@ async function boot() {
   // surfaces describe different things, from different publishers, and must fail
   // independently of each other.
   loadDestinationContext();
+  loadDomesticOrigins();
 }
 
 boot();

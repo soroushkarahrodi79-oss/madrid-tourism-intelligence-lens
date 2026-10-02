@@ -58,6 +58,12 @@ including comparing two places at once.
   the Lens**: it describes the municipality of Madrid, and moving either Lens
   cannot change a single figure on it. Hotel demand is **not** total tourism
   demand.
+- Read **Domestic origins** within that same Destination Context: published
+  origin municipalities for residents travelling to Madrid municipality from
+  another Spanish province in a selected source month. Same-province travel is
+  outside the source universe; within it, INE publishes only crossings above 30
+  tourists, so an absent origin is **not zero** and the list is not a complete
+  domestic-tourism distribution. It is also independent of the Lens.
 - Optionally overlay the full lattice of **district** or **barrio** outlines;
   the containing barrio is always outlined, the lattice defaults to off.
 
@@ -219,6 +225,7 @@ js/evidence.js          pure HATI evidence statistics (tested)
 js/geography.js         pure administrative containment / point-in-polygon (tested)
 js/area-profile.js      pure Area Profile model: place, residents, licensed VUT, states (tested)
 js/destination-context.js  pure citywide hotel-demand model: period, YoY, trend, states (tested)
+js/domestic-origin-context.js pure municipality-level domestic-origin model (tested)
 js/data.js              deployment-snapshot-first + bounded live fallback loading
 js/app.js               Leaflet map + UI wiring
 data/                   HATI evidence extract + POI snapshot + provenance

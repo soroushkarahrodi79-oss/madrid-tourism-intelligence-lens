@@ -210,6 +210,28 @@ The hotel-demand artifact is a **committed statistical snapshot**. It is not
 rebuilt when the site deploys, and the browser never calls the publisher's API
 at runtime. Refreshing it requires re-running the builder and reviewing the diff.
 
+### Destination Context — domestic origins
+
+The same municipality-level surface also reports published **origin
+municipalities** for residents travelling to Madrid municipality **from another
+Spanish province** in a selected source month. Same-province travel, including
+travel within Madrid province, is outside the source universe. It uses INE's
+direct internal-tourism workbook and destination code **28079**, corroborated
+by the workbook's Madrid destination and province fields.
+
+**It does not establish:** a Lens, barrio or district origin; a complete
+distribution of domestic tourism; an all-origin share; unique people; market
+attractiveness; causality; or a forecast. INE publishes only origin-destination
+crossings with **more than 30 tourists**. An origin absent from the published
+table may therefore be outside the source universe or, within that universe,
+suppressed; it is **not zero** and no residual “other origins” category is
+made. The source-reported `turistas` count remains a count for that published
+crossing in that month.
+
+The artifact is a committed, Madrid-only snapshot. Its source month, workbook
+year, retrieval time and latest actually published month are stored separately;
+moving a Lens cannot alter any origin value.
+
 ## Evidence states shown in the UI
 
 - **MODEL-DERIVED** — one or more HATI samples fall inside the active lens;

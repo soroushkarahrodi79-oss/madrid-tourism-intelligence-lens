@@ -493,6 +493,41 @@
       "blocks_deployment_note": "BLOCKING because the Destination Context surface publishes these figures as user-facing numbers with a year-over-year comparison. A deployment must not publish an official statistic that is missing, mis-parsed, detached from its provenance or - the worst case - drawn from the wrong statistical operation, because the failure mode is a confident wrong number under a correct-looking label rather than a visibly empty panel. The browser degrades gracefully when a runtime fetch fails and shows Destination Context as unavailable while leaving the Area Profile, the Lens metrics, VUT and HATI untouched; that is a separate concern from this gate, which verifies the COMMITTED artifact at publication time.",
       "deployment_source_role": "COMMITTED STATISTICAL SNAPSHOT. This artifact is not rebuilt during the Pages deployment (rebuilt_at_deploy is false): deployment validation verifies the committed file, and a successful deployment therefore does NOT mean the publisher was re-queried at deploy time. Refreshing it requires explicitly re-running scripts/build_destination_context.py and reviewing the diff. Nothing about this layer is live data, and the browser never calls the publisher's API at runtime.",
       "interpretation_ceiling": "Hotel-sector demand in the municipality of Madrid, as measured by the official INE hotel occupancy survey. 'Travellers' is the survey's viajeros entrados: persons making one or more consecutive overnight stays in the SAME establishment, so a person staying in two hotels is counted twice - it is NOT a count of unique people and NOT a count of visitors to Madrid. 'Overnight stays' is pernoctaciones, each night a traveller is accommodated. This is NOT total tourism demand, NOT all accommodation and NOT all visitors: it excludes tourist apartments, tourist dwellings (VUT), campsites, rural accommodation, day visitors and everyone staying in unpaid or private accommodation. The residence split is the publisher's own 'Residentes en Espana' / 'Residentes en el extranjero', which is PLACE OF RESIDENCE and must never be relabelled as domestic/international tourists, nationality or trip type. It is NOT a measure of tourism pressure, overtourism, saturation, carrying capacity, tourism intensity or attractiveness, it is never ranked, banded or scored, and it carries no explanation of why a figure changed: the product reports the observation and never attributes it to events, weather, prices or policy. The figure belongs to the WHOLE MUNICIPALITY and must never be distributed into a district, a barrio or a Lens circle."
+    },
+    {
+      "id": "domestic_origin_context",
+      "display_name": "Madrid domestic origin context by month (Destination Context)",
+      "authority": "Instituto Nacional de Estadística (INE) - Medición del turismo interno a partir de la posición de teléfonos móviles",
+      "dataset_url": "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_2026.xlsx",
+      "dataset_url_template": "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_{year}.xlsx",
+      "artifact": "destination/madrid_domestic_origins.json",
+      "meta_artifact": "destination/madrid_domestic_origins.meta.json",
+      "shape": "destination_domestic_origins",
+      "builder": "scripts/build_domestic_origin_context.py",
+      "rebuilt_at_deploy": false,
+      "provenance_state": "committed_statistical_snapshot",
+      "role": "destination_context",
+      "blocks_deployment": true,
+      "unavailable_is_allowed": false,
+      "evidence_type": "OFFICIAL_STATISTICAL_SERIES",
+      "expected_spatial_scope": null,
+      "spatial_scope_note": "DELIBERATELY NULL because this is municipality-level origin-destination context with no coordinates or sub-municipal geometry; municipality code 28079 is the geographic gate.",
+      "expected_municipality_code": "28079",
+      "source_period_exposed_by_source": true,
+      "source_period_semantics": "Each record is a crossing in the monthly worksheet named by source_month. Every sheet year must match the declared workbook year; the workbook year is only an acquisition container and retrieved_at is kept separately.",
+      "source_universe": "Residents in Spain travelling to a province different from their province of residence, disaggregated by origin and destination municipality. Same-province travel, including travel within Madrid province, is outside this statistic's universe.",
+      "suppression_rule": "Only origin-destination crossings with more than 30 tourists are published. Origins may be outside the source universe; within the universe, absent origins are not zero and no residual or all-origin share may be created.",
+      "expected_source_schema": ["mes", "mun_orig_cod", "mun_orig", "dest_cod", "dest", "turistas", "prov_orig_cod", "prov_orig", "prov_dest_cod", "prov_dest"],
+      "integrity_guardrail": {
+        "minimum_rows_per_published_month": 500,
+        "baseline_count": 15102,
+        "baseline_months": 7,
+        "baseline_rows_per_published_month": 2157,
+        "calibrated_on": "2026-10-02",
+        "rationale": "Per-published-month engineering floor for a committed Madrid-only extraction, not a statement about total domestic tourism. It catches a truncated workbook, broken Madrid filter or incomplete parser without rejecting a legitimate early-year workbook with only one or two available monthly sheets."
+      },
+      "blocks_deployment_note": "BLOCKING because Destination Context publishes source-reported domestic origin crossings. A missing, malformed, wrongly scoped or suppression-erasing artifact would make an absent crossing look like zero. Runtime failure remains explicit and independent of the Lens and Area Profile.",
+      "interpretation_ceiling": "Published origin municipalities for residents travelling to Madrid municipality from another Spanish province. Same-province travel, including travel within Madrid province, is outside the statistic's universe. Within the covered universe only crossings with more than 30 tourists are published, so absent origins are not zero. Descriptive context, not a complete distribution of domestic tourism, an all-origin share, a market attractiveness ranking, causal evidence, forecast, barrio, district or Lens-circle measure. International origins are not implemented."
     }
   ]
 }
