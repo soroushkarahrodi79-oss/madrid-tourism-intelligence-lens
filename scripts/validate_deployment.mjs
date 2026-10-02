@@ -1418,6 +1418,43 @@ function validateDestinationSeries(source, artifact, meta, errors, warnings) {
   };
 }
 
+// Published domestic municipality origins are a distinct statistical operation
+// from hotel demand. The crucial guard here is that suppression stays absence:
+// no missing crossing may arrive as a synthetic zero or residual category.
+function validateDomesticOrigins(source, artifact, meta, errors, warnings) {
+  const sink = source.blocks_deployment ? errors : warnings;
+  if (!artifact || !Array.isArray(artifact.months) || !artifact.months.length) {
+    sink.push(`${source.display_name}: ${source.artifact} is missing or has no monthly origin records`);
+    return { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
+  }
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) sink.push(`${source.display_name}: provenance sidecar is missing or invalid`);
+  const expectedWorkbookUrl = Number.isInteger(artifact.source?.workbook_year) ? source.dataset_url_template?.replace("{year}", String(artifact.source.workbook_year)) : null;
+  if (!isNonEmptyString(artifact.source?.authority) || artifact.source?.source_url !== expectedWorkbookUrl || !Number.isInteger(artifact.source?.workbook_year) || !isNonEmptyString(artifact.source?.retrieved_at)) sink.push(`${source.display_name}: artifact source provenance is incomplete or does not use the registered direct INE workbook`);
+  if (meta?.source?.source_url !== artifact.source?.source_url || meta?.source?.workbook_year !== artifact.source?.workbook_year || meta?.source?.retrieved_at !== artifact.source?.retrieved_at) sink.push(`${source.display_name}: sidecar source provenance does not match the artifact`);
+  if (artifact.geography?.municipality_code !== source.expected_municipality_code || artifact.geography?.level !== "municipality") sink.push(`${source.display_name}: artifact is not strictly Madrid municipality ${source.expected_municipality_code}`);
+  if (meta?.geography?.municipality_code !== source.expected_municipality_code || meta?.geography?.resolved_level !== "municipality") sink.push(`${source.display_name}: sidecar does not corroborate Madrid municipality ${source.expected_municipality_code}`);
+  if (JSON.stringify(meta?.geography?.destination_corroboration) !== JSON.stringify({ dest: "Madrid", prov_dest_cod: "28", prov_dest: "Madrid" })) sink.push(`${source.display_name}: sidecar destination corroboration drifted`);
+  if (JSON.stringify(artifact.source_schema) !== JSON.stringify(source.expected_source_schema)) sink.push(`${source.display_name}: exact INE source schema drifted`);
+  if (!isNonEmptyString(artifact.schema_fingerprint) || artifact.schema_fingerprint !== meta?.schema_fingerprint) sink.push(`${source.display_name}: artifact and sidecar schema fingerprints disagree`);
+  if (!/more than 30 tourists/i.test(artifact.suppression?.rule || "") || !/(not zero|never materialised as zero)/i.test(artifact.suppression?.absent_is_not_zero || "")) sink.push(`${source.display_name}: suppression contract is absent or permits missing origins to become zero`);
+  let previous = null; let count = 0;
+  for (const month of artifact.months) {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month?.source_month || "") || (previous && month.source_month <= previous)) { sink.push(`${source.display_name}: monthly records are not strictly ordered`); continue; }
+    previous = month.source_month;
+    if (!Array.isArray(month.published_origins)) { sink.push(`${source.display_name}: ${month.source_month} has no published origins array`); continue; }
+    const seen = new Set();
+    for (const origin of month.published_origins) {
+      const code = origin?.origin_municipality_code;
+      if (!/^\d{5}$/.test(code || "") || !/^\d{2}$/.test(origin?.origin_province_code || "") || !isNonEmptyString(origin?.origin_municipality_name) || !isNonEmptyString(origin?.origin_province_name) || !Number.isInteger(origin?.source_reported_tourists) || origin.source_reported_tourists < 0 || seen.has(code)) sink.push(`${source.display_name}: invalid or duplicate origin row in ${month.source_month}`);
+      if (origin && ["barrio", "district", "lat", "lon", "geometry", "international"].some((key) => key in origin)) sink.push(`${source.display_name}: origin row contains prohibited non-municipal or international field`);
+      seen.add(code); count += 1;
+    }
+  }
+  if (artifact.source_period?.latest !== previous || JSON.stringify(artifact.source_period?.available_months) !== JSON.stringify(artifact.months.map((month) => month.source_month))) sink.push(`${source.display_name}: declared source months do not match the monthly records`);
+  if (Number.isInteger(source.integrity_guardrail?.min_count) && count < source.integrity_guardrail.min_count) sink.push(`${source.display_name}: published-row count ${count} is below the committed extraction floor ${source.integrity_guardrail.min_count}`);
+  return { record_count: count, state: count ? "available" : "unavailable", source_period: artifact.source_period?.latest || null, warnings: [] };
+}
+
 function validateRuntimePoiStructure(runtimePoi, registry, errors) {
   // Only demanded when a registry source actually lives in this artifact, so a
   // registry scoped to committed evidence does not require a build artifact.
@@ -1540,6 +1577,9 @@ export function validateDeployment({
           warnings
         );
         break;
+      case "destination_domestic_origins":
+        result = validateDomesticOrigins(source, artifacts[source.artifact], artifacts[source.meta_artifact], errors, warnings);
+        break;
       case "admin_hospitality_context":
         result = validateHospitalityContext(
           source,
@@ -1636,6 +1676,8 @@ const ARTIFACT_FILES = [
   // Committed city-level hotel-demand series (not rebuilt at deploy).
   "destination/madrid_hotel_demand.json",
   "destination/madrid_hotel_demand.meta.json",
+  "destination/madrid_domestic_origins.json",
+  "destination/madrid_domestic_origins.meta.json",
   // Committed Gate F Hospitality & Commercial aggregate (not rebuilt at deploy).
   "hospitality-commercial-context.json",
 ];

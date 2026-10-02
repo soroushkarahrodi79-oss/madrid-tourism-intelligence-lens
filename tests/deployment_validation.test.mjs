@@ -556,6 +556,8 @@ function healthyArtifacts() {
     "accommodation/madrid_vut_licences.meta.json": vutMeta(),
     "destination/madrid_hotel_demand.json": destinationArtifact(),
     "destination/madrid_hotel_demand.meta.json": destinationMeta(),
+    "destination/madrid_domestic_origins.json": { source: { authority: "INE", source_url: "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_2026.xlsx", workbook_year: 2026, retrieved_at: GENERATED_AT }, geography: { level: "municipality", municipality_code: "28079" }, source_period: { latest: "2026-01", available_months: ["2026-01"] }, suppression: { rule: "more than 30 tourists", absent_is_not_zero: "never materialised as zero" }, source_schema: ["mes", "mun_orig_cod", "mun_orig", "dest_cod", "dest", "turistas", "prov_orig_cod", "prov_orig", "prov_dest_cod", "prov_dest"], schema_fingerprint: "a".repeat(64), months: [{ source_month: "2026-01", published_origins: [{ origin_municipality_code: "01001", origin_municipality_name: "A", origin_province_code: "01", origin_province_name: "A", source_reported_tourists: 40 }, { origin_municipality_code: "08019", origin_municipality_name: "B", origin_province_code: "08", origin_province_name: "B", source_reported_tourists: 50 }] }] },
+    "destination/madrid_domestic_origins.meta.json": { source: { authority: "INE", source_url: "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_2026.xlsx", workbook_year: 2026, retrieved_at: GENERATED_AT }, schema_fingerprint: "a".repeat(64), geography: { municipality_code: "28079", resolved_level: "municipality", destination_corroboration: { dest: "Madrid", prov_dest_cod: "28", prov_dest: "Madrid" } } },
     "hospitality-commercial-context.json": hospitalityArtifact(),
   };
 }
@@ -2084,6 +2086,7 @@ test("exactly the layers a user-facing feature depends on block deployment", () 
   const blocking = REAL_REGISTRY.sources.filter((s) => s.blocks_deployment).map((s) => s.id).sort();
   assert.deepEqual(blocking, [
     "bike",
+    "domestic_origin_context",
     "geography",
     "hati",
     "hospitality_commercial_context",
@@ -2149,7 +2152,7 @@ test("the committed evidence artifacts satisfy the real registry", () => {
   };
   assert.deepEqual(
     committedRegistry.sources.map((s) => s.id).sort(),
-    ["geography", "hati", "hospitality_commercial_context", "hotel_demand", "population", "snapshot_fallback", "vut_licences"],
+    ["domestic_origin_context", "geography", "hati", "hospitality_commercial_context", "hotel_demand", "population", "snapshot_fallback", "vut_licences"],
     "the set of committed, non-rebuilt sources changed; update this test deliberately"
   );
 

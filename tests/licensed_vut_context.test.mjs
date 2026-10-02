@@ -871,6 +871,7 @@ test("no global time control is introduced: each source keeps its own state", ()
   assert.deepEqual(selects.sort(), [
     '<select id="basemapSelect"',
     '<select id="boundarySelect"',
+    '<select id="domesticOriginsMonth"',
     '<select id="hospitalityMetricSelect"',
     '<select id="languageSelect"',
     '<select id="stayKindFilter"',

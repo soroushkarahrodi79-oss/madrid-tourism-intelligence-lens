@@ -449,7 +449,7 @@ class RegistryContract(unittest.TestCase):
         self.assertEqual(ENTRY["role"], "destination_context")
 
     def test_the_new_evidence_type_is_distinguished_from_the_existing_ones(self):
-        existing = {s["evidence_type"] for s in REGISTRY["sources"] if s["id"] != "hotel_demand"}
+        existing = {s["evidence_type"] for s in REGISTRY["sources"] if s["id"] not in {"hotel_demand", "domestic_origin_context"}}
         self.assertNotIn("OFFICIAL_STATISTICAL_SERIES", existing)
         # It is genuinely a different kind of fact from the ones already present.
         self.assertTrue({"OBSERVED", "ADMINISTRATIVE_REGISTER", "ADMINISTRATIVE_LICENSE"} <= existing)

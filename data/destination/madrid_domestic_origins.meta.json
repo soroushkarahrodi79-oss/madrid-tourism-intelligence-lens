@@ -1,0 +1,43 @@
+{
+  "contract_version": "1.0.0",
+  "artifact": "madrid_domestic_origins.json",
+  "source": {
+    "authority": "Instituto Nacional de Estadística (INE)",
+    "source_url": "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_2026.xlsx",
+    "workbook_year": 2026,
+    "retrieved_at": "2026-10-02T09:17:53Z"
+  },
+  "geography": {
+    "resolved_level": "municipality",
+    "municipality_code": "28079",
+    "destination_corroboration": {
+      "dest": "Madrid",
+      "prov_dest_cod": "28",
+      "prov_dest": "Madrid"
+    }
+  },
+  "source_schema": [
+    "mes",
+    "mun_orig_cod",
+    "mun_orig",
+    "dest_cod",
+    "dest",
+    "turistas",
+    "prov_orig_cod",
+    "prov_orig",
+    "prov_dest_cod",
+    "prov_dest"
+  ],
+  "schema_fingerprint": "decbd3927afe6e78b2e6c302f6452cf411da7ecd69f2040b4f0f7ac344bba556",
+  "temporal_contract": {
+    "workbook_year": "Container year, not the observation date.",
+    "source_month": "Each published crossing is assigned to its exact monthly worksheet.",
+    "latest_source_month": "2026-07",
+    "retrieved_at": "2026-10-02T09:17:53Z"
+  },
+  "suppression_semantics": {
+    "rule": "INE publishes only origin-destination crossings with more than 30 tourists.",
+    "absent_is_not_zero": "Absent origin rows may be suppressed and are never materialised as zero or an other-origins residual."
+  },
+  "interpretation_ceiling": "Source-reported resident tourists from published Spanish origin municipalities travelling to Madrid municipality in a source month. It is descriptive context, not a complete distribution of domestic tourism, a share of all domestic tourists, a market ranking, causal evidence, forecast or any barrio, district or Lens-circle measure."
+}

@@ -6,7 +6,7 @@
 <title>Madrid Tourism Intelligence Lens</title>
 <meta name="description" content="Move a spatial lens across central Madrid to explore how tourism POIs, mobility nodes and bounded HATI thermal evidence change locally.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261001-35">
+<link rel="stylesheet" href="css/app.css?v=20261002-38">
 </head>
 <body>
 <div id="map"></div>
@@ -277,13 +277,21 @@
       <div id="destinationComposition" class="destination-composition"></div>
       <p id="destinationState" class="destination-state"></p>
       <p id="destinationCeiling" class="destination-ceiling">Hotel establishments only &mdash; not all tourism, not all accommodation.</p>
+      <section id="domesticOrigins" class="domestic-origins" aria-live="polite" hidden>
+        <div class="domestic-origins-head"><strong id="domesticOriginsHeading">Domestic origins</strong><span id="domesticOriginsOfficial" class="badge statistics">Official statistics</span></div>
+        <div class="domestic-origin-controls"><label id="domesticOriginsMonthLabel" for="domesticOriginsMonth">Source month</label><select id="domesticOriginsMonth"></select></div>
+        <div id="domesticOriginsScope" class="domestic-origin-scope">Madrid municipality · 28079</div>
+        <div class="domestic-origin-table-wrap"><table><thead><tr><th id="domesticOriginsOrigin">Origin municipality</th><th id="domesticOriginsTourists">Source-reported tourists</th></tr></thead><tbody id="domesticOriginsRows"></tbody></table></div>
+        <p id="domesticOriginsState" class="destination-state"></p>
+        <p id="domesticOriginsCaveat" class="destination-ceiling"></p>
+      </section>
     </div>
     <button id="destinationSourceToggle" class="area-source-toggle" type="button" aria-expanded="false" aria-controls="destinationSourceDetails" hidden>Source &amp; interpretation</button>
     <div id="destinationSourceDetails" class="area-source-details" hidden></div>
   </section>
 
   <div class="source">
-    Sources: Ayuntamiento de Madrid — IDEAM (administrative geography: districts, barrios), Subdirección General de Estadística / Padrón Municipal (registered residents), and Censo de Locales (Hospitality &amp; Commercial Context, Sep 2026 fingerprinted snapshot); Madrid Open Data (museums, tourist information, principal parks, permanent pedestrian counters); EMT Madrid (BiciMAD); CRTM (Metro and Cercanías stations); and Madrid Destino / esmadrid.com (hotels and other accommodation). The accommodation catalogue remains separate from the administrative Division-55 premises class. GitHub Pages uses the latest deployment-time POI snapshot first so markers render immediately; a small curated repository sample is the final packaged fallback when a deployment source is unavailable. HATI-Madrid locked pilot evidence (21 Aug 2023; UTCI is model output, not field observation). Destination context: Instituto Nacional de Estadística — Encuesta de Ocupación Hotelera (monthly hotel demand for the municipality of Madrid; hotel establishments only, not all tourism or all accommodation) — see <a href="docs/DATA_PROVENANCE.md">data provenance</a> and <a href="docs/CLAIMS_AND_LIMITATIONS.md">claims &amp; limitations</a>. Base maps: OpenStreetMap/CARTO or Esri World Imagery, depending on selection.
+    Sources: Ayuntamiento de Madrid — IDEAM (administrative geography: districts, barrios), Subdirección General de Estadística / Padrón Municipal (registered residents), and Censo de Locales (Hospitality &amp; Commercial Context, Sep 2026 fingerprinted snapshot); Madrid Open Data (museums, tourist information, principal parks, permanent pedestrian counters); EMT Madrid (BiciMAD); CRTM (Metro and Cercanías stations); and Madrid Destino / esmadrid.com (hotels and other accommodation). The accommodation catalogue remains separate from the administrative Division-55 premises class. GitHub Pages uses the latest deployment-time POI snapshot first so markers render immediately; a small curated repository sample is the final packaged fallback when a deployment source is unavailable. HATI-Madrid locked pilot evidence (21 Aug 2023; UTCI is model output, not field observation). Destination context: Instituto Nacional de Estadística — hotel occupancy survey and direct internal-tourism municipality workbook (Madrid municipality only; domestic origin crossings published only above 30 tourists) — see <a href="docs/DATA_PROVENANCE.md">data provenance</a> and <a href="docs/CLAIMS_AND_LIMITATIONS.md">claims &amp; limitations</a>. Base maps: OpenStreetMap/CARTO or Esri World Imagery, depending on selection.
   </div>
 </section>
 
