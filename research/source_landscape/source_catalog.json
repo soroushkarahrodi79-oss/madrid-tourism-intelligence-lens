@@ -21,10 +21,28 @@
     }
   },
   "enums": {
-    "recommendation": ["USE", "WATCH", "REJECT"],
-    "implementation_effort": ["LOW", "LOW_MEDIUM", "MEDIUM", "MEDIUM_HIGH", "HIGH"],
-    "rating": ["HIGH", "MEDIUM", "LOW"],
-    "fit": ["PASS", "CONDITIONAL", "FAIL"],
+    "recommendation": [
+      "USE",
+      "WATCH",
+      "REJECT"
+    ],
+    "implementation_effort": [
+      "LOW",
+      "LOW_MEDIUM",
+      "MEDIUM",
+      "MEDIUM_HIGH",
+      "HIGH"
+    ],
+    "rating": [
+      "HIGH",
+      "MEDIUM",
+      "LOW"
+    ],
+    "fit": [
+      "PASS",
+      "CONDITIONAL",
+      "FAIL"
+    ],
     "effort_note": "Compound values (LOW_MEDIUM, MEDIUM_HIGH) are kept rather than forced to a single step, because inventing precision the evidence does not support is the same error this gate exists to avoid.",
     "reject_note": "REJECT means 'not appropriate for Lens now'. It is not a quality criticism of the source, and each REJECT records whether it is a sequencing decision that could be revisited."
   },
@@ -122,7 +140,33 @@
       "remaining_questions": "Exact measure semantics (trips vs tourists vs estimated flows) and any suppression or confidentiality rule for small cells must be read from the source documentation before publication.",
       "verified_at": "2026-09-30",
       "verification_method": "external_official_documentation",
-      "notes": "Extension of the same Destination Context module rather than a separate product."
+      "notes": "Extension of the same Destination Context module rather than a separate product.",
+      "implementation_resolution": {
+        "resolved_by": "Gate H / PR #47",
+        "resolved_on": "2026-10-02",
+        "status": "GO_VIA_ORIGINATING_AUTHORITY",
+        "ruling": "Domestic origin context is authorized at Madrid municipality level, but production acquisition moves from the Dataestur redistribution to INE's originating workbook.",
+        "production_route": "Direct INE annual workbook for the experimental mobile-position tourism statistic (for example exp_tmov_interno_mun_2026.xlsx). The workbook packages one sheet per published month.",
+        "verified_schema": [
+          "mes",
+          "mun_orig_cod",
+          "mun_orig",
+          "dest_cod",
+          "dest",
+          "turistas",
+          "prov_orig_cod",
+          "prov_orig",
+          "prov_dest_cod",
+          "prov_dest"
+        ],
+        "madrid_identity": "Filter strictly on dest_cod 28079; corroborate dest Madrid, prov_dest_cod 28 and prov_dest Madrid.",
+        "unit": "Source-reported turistas: residents in Spain travelling to a province different from their province of residence, disaggregated by origin and destination municipality.",
+        "temporal_resolution": "Monthly observations inside an annual workbook. The 2026 workbook observed in CI contained sheets 2026-01 through 2026-07.",
+        "suppression": "Only origin-destination crossings with more than 30 tourists are published. Missing rows are not zero and published rows do not form a complete universe.",
+        "dataestur_status": "The API-SEGITTUR OpenAPI contract remains valid and documents /TURISMO_INTERNO_MUN_MUN_DL with required year parameter and CSV output, but a 2025 request returned HTTP 504 in GitHub Actions on 2026-10-02. Do not make production builds depend on that route while this persists.",
+        "interpretation_ceiling": "Municipality-to-municipality source-reported resident-tourist counts for a source month. Not unique annual people, not hotel guests, not spend, not local movement inside Madrid, and never barrio/district/Lens evidence.",
+        "next_authorized_step": "Domestic Origin Context v1 inside Destination Context, municipality 28079 only."
+      }
     },
     {
       "id": "dataestur_turismo_receptor_mun_pais",
@@ -158,7 +202,16 @@
       "remaining_questions": "Whether the measure counts tourists, trips or estimated flows, and how small countries are suppressed, must be read from the source before publication.",
       "verified_at": "2026-09-30",
       "verification_method": "external_official_documentation",
-      "notes": "Later extension of the Destination Context module, after the hotel-demand core is proven."
+      "notes": "Later extension of the Destination Context module, after the hotel-demand core is proven.",
+      "implementation_resolution": {
+        "resolved_by": "Gate H / PR #47",
+        "resolved_on": "2026-10-02",
+        "status": "HOLD_WATCH",
+        "ruling": "No current international-origin production UI is authorized.",
+        "reason": "INE ended the experimental inbound mobile-position series at reference month December 2025 while integrating inbound measurement into FRONTUR. Future municipal FRONTUR results are stated to be non-comparable with the experimental series.",
+        "reopen_condition": "Reopen only when municipality-level FRONTUR origin results are published and their unit, geography and comparability break have been verified.",
+        "prohibited_bridge": "Do not stitch a continuous trend across the experimental-series / FRONTUR boundary unless the originating authority publishes a valid comparability bridge."
+      }
     },
     {
       "id": "madrid_censo_locales",
