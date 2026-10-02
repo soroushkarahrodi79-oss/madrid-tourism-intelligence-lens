@@ -57,76 +57,101 @@ const COMPARISON_RADIUS_MODE = Object.freeze({ EQUAL: "EQUAL_RADIUS", UNEQUAL: "
 const HALO_REFERENCE_DEFAULTS = Object.freeze({ radiusM: 900, quantile: 0.95 });
 const HALO_UTCI_FALLBACK_BAND = Object.freeze({ min: 26, max: 46 });
 
-// V3 presentation constants. These describe the small, fixed map instrument
-// only; they are never geographic measurements or data domains.
+// Compact captions are identifiers only; they do not encode magnitude.
 const HALO_COMPACT_LABELS = Object.freeze({
   tourism: "POI",
   stays: "STAY",
   mobility: "MOB",
   utci: "UTCI",
 });
-const HALO_LAYOUT = Object.freeze({ FULL_MIN_RADIUS_PX: 42, COMPACT_MIN_RADIUS_PX: 30 });
-// Screen-space SVG coordinates. A spoke is attached to its cardinal slot's
-// origin (the Lens edge) and grows outward; text is placed beyond the full
-// track end so it never moves when a data fill changes length.
-const HALO_VISUAL_GEOMETRY = Object.freeze({
-  FULL_TRACK_PX: 40,
-  COMPACT_TRACK_PX: 26,
-  LABEL_GAP_PX: 7,
-  VALUE_CAPTION_DY_PX: 11,
-  LABEL_FOOTPRINT_PX: 104,
-  slots: Object.freeze({
-    north: Object.freeze({ anchor: [68, 54], origin: [68, 54], direction: [0, -1], labelAnchor: "middle" }),
-    east: Object.freeze({ anchor: [4, 28], origin: [4, 28], direction: [1, 0], labelAnchor: "start" }),
-    south: Object.freeze({ anchor: [68, 2], origin: [68, 2], direction: [0, 1], labelAnchor: "middle" }),
-    west: Object.freeze({ anchor: [132, 28], origin: [132, 28], direction: [-1, 0], labelAnchor: "end" }),
-  }),
+// Fixed clockwise positions keyed by canonical metric identity. Angles use SVG
+// screen coordinates: 0° points right and positive angles turn clockwise.
+const HALO_METRIC_SLOT_ANGLES = Object.freeze({
+  tourism: -90, // 12 o'clock
+  stays: -30, // 2 o'clock
+  mobility: 90, // 6 o'clock
+  utci: 180, // 9 o'clock
 });
+const HALO_RADIAL_GEOMETRY = Object.freeze({ RADIAL_GAP: 5, MAX_BAR_LENGTH: 32, BAR_THICKNESS: 2.6, LABEL_GAP: 7, FULL_MIN_RADIUS_PX: 42, COMPACT_MIN_RADIUS_PX: 30 });
+const HALO_LAYOUT = Object.freeze({ FULL_MIN_RADIUS_PX: HALO_RADIAL_GEOMETRY.FULL_MIN_RADIUS_PX, COMPACT_MIN_RADIUS_PX: HALO_RADIAL_GEOMETRY.COMPACT_MIN_RADIUS_PX });
+// Compatibility surface for callers that only need rendering thresholds.
+const HALO_VISUAL_GEOMETRY = HALO_RADIAL_GEOMETRY;
+
+function getMetricSlotAngle(metricId) {
+  return Object.hasOwn(HALO_METRIC_SLOT_ANGLES, metricId) ? HALO_METRIC_SLOT_ANGLES[metricId] : null;
+}
+
+function getRadialUnitVector(angleDegrees) {
+  if (!validNumber(angleDegrees)) return null;
+  const radians = angleDegrees * Math.PI / 180;
+  return Object.freeze({ x: Math.cos(radians), y: Math.sin(radians) });
+}
+
+function getHaloBarGeometry({ center, renderedRadius, angle, magnitude, maxLength = HALO_RADIAL_GEOMETRY.MAX_BAR_LENGTH, radialGap = HALO_RADIAL_GEOMETRY.RADIAL_GAP, thickness = HALO_RADIAL_GEOMETRY.BAR_THICKNESS } = {}) {
+  if (!center || !validNumber(center.x) || !validNumber(center.y) || !validNumber(renderedRadius) || renderedRadius < 0) return null;
+  if (!validNumber(magnitude)) return null;
+  if (!validNumber(maxLength) || maxLength < 0 || !validNumber(radialGap) || radialGap < 0 || !validNumber(thickness) || thickness <= 0) return null;
+  const unit = getRadialUnitVector(angle);
+  if (!unit) return null;
+  const length = Math.max(0, Math.min(1, magnitude)) * maxLength;
+  const originDistance = renderedRadius + radialGap;
+  const origin = Object.freeze({ x: center.x + unit.x * originDistance, y: center.y + unit.y * originDistance });
+  const endpoint = Object.freeze({ x: origin.x + unit.x * length, y: origin.y + unit.y * length });
+  return Object.freeze({ center: Object.freeze({ x: center.x, y: center.y }), angle, unit, origin, endpoint, length, thickness });
+}
+
+function getHaloLabelGeometry({ endpoint, angle, gap = HALO_RADIAL_GEOMETRY.LABEL_GAP } = {}) {
+  if (!endpoint || !validNumber(endpoint.x) || !validNumber(endpoint.y) || !validNumber(gap) || gap < 0) return null;
+  const unit = getRadialUnitVector(angle);
+  if (!unit) return null;
+  const x = endpoint.x + unit.x * gap;
+  const y = endpoint.y + unit.y * gap;
+  const textAnchor = Math.abs(unit.x) < 0.35 ? "middle" : unit.x > 0 ? "start" : "end";
+  return Object.freeze({ x, y, textAnchor });
+}
 
 function validNumber(value) {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-// The raw numeric value position (printed just beyond the full track end). The
-// short metric caption is stacked one line further out in the renderer.
+// Compatibility anchors for pure callers. The live renderer places labels from
+// the actual bar endpoint, so they move with the encoded magnitude.
 function haloValueAnchorForSlot(slot, layout = "full") {
-  const geometry = HALO_VISUAL_GEOMETRY.slots[slot];
-  if (!geometry) return null;
-  const track = layout === "compact" ? HALO_VISUAL_GEOMETRY.COMPACT_TRACK_PX : HALO_VISUAL_GEOMETRY.FULL_TRACK_PX;
-  const [originX, originY] = geometry.origin;
-  const [dx, dy] = geometry.direction;
-  const endX = originX + dx * track;
-  const endY = originY + dy * track;
-  const gap = HALO_VISUAL_GEOMETRY.LABEL_GAP_PX;
-  return Object.freeze({
-    x: endX + dx * gap,
-    y: endY + dy * gap + (dy === 0 ? 4 : dy < 0 ? -1 : 9),
-    textAnchor: geometry.labelAnchor,
-  });
+  const metricId = Object.keys(HALO_METRIC_SLOT_ANGLES).find((id) => id === slot || HALO_METRICS.find((metric) => metric.id === id)?.slot === slot);
+  const angle = getMetricSlotAngle(metricId);
+  if (angle == null) return null;
+  const unit = getRadialUnitVector(angle);
+  const track = HALO_RADIAL_GEOMETRY.MAX_BAR_LENGTH;
+  return getHaloLabelGeometry({ endpoint: { x: unit.x * track, y: unit.y * track }, angle });
 }
 
-// Backward-compatible name retained for the caption anchor (full layout only).
+// Backward-compatible caption anchor helper (full layout only).
 function haloLabelAnchorForSlot(slot, layout = "full") {
   if (layout !== "full") return null;
   const value = haloValueAnchorForSlot(slot, layout);
   if (!value) return null;
-  const geometry = HALO_VISUAL_GEOMETRY.slots[slot];
-  const [, dy] = geometry.direction;
-  // Caption is stacked on the outward side of the number so both read cleanly.
-  const captionDy = dy > 0 ? HALO_VISUAL_GEOMETRY.VALUE_CAPTION_DY_PX : -HALO_VISUAL_GEOMETRY.VALUE_CAPTION_DY_PX;
-  return Object.freeze({ x: value.x, y: value.y + captionDy, textAnchor: value.textAnchor });
+  const metricId = Object.keys(HALO_METRIC_SLOT_ANGLES).find((id) => id === slot || HALO_METRICS.find((metric) => metric.id === id)?.slot === slot);
+  const unit = getRadialUnitVector(getMetricSlotAngle(metricId));
+  return Object.freeze({ x: value.x + unit.x * 12, y: value.y + unit.y * 12, textAnchor: value.textAnchor });
 }
 
 // Footprints include the longest text so collision handling stays conservative.
 function haloSlotFootprint(slot, layout = "full") {
-  const compact = layout === "compact";
-  const length = compact ? HALO_VISUAL_GEOMETRY.COMPACT_TRACK_PX : HALO_VISUAL_GEOMETRY.FULL_TRACK_PX;
-  const label = compact ? 22 : HALO_VISUAL_GEOMETRY.LABEL_FOOTPRINT_PX;
-  if (slot === "north") return { minX: compact ? -26 : -40, maxX: compact ? 26 : 40, minY: -length - label, maxY: 6 };
-  if (slot === "south") return { minX: compact ? -26 : -40, maxX: compact ? 26 : 40, minY: -6, maxY: length + label };
-  if (slot === "east") return { minX: -6, maxX: length + 10 + label, minY: compact ? -16 : -24, maxY: compact ? 16 : 24 };
-  if (slot === "west") return { minX: -length - 10 - label, maxX: 6, minY: compact ? -16 : -24, maxY: compact ? 16 : 24 };
-  return null;
+  const metricId = HALO_METRICS.find((metric) => metric.slot === slot)?.id;
+  const angle = getMetricSlotAngle(metricId);
+  if (angle == null) return null;
+  const unit = getRadialUnitVector(angle);
+  const along = HALO_RADIAL_GEOMETRY.MAX_BAR_LENGTH
+    + HALO_RADIAL_GEOMETRY.LABEL_GAP + 12 + 26;
+  const across = layout === "compact" ? 14 : 18;
+  const corners = [
+    { along: -4, across: -across }, { along, across: -across },
+    { along, across }, { along: -4, across },
+  ].map(({ along: a, across: b }) => ({ x: unit.x * a - unit.y * b, y: unit.y * a + unit.x * b }));
+  return {
+    minX: Math.min(...corners.map(({ x }) => x)), maxX: Math.max(...corners.map(({ x }) => x)),
+    minY: Math.min(...corners.map(({ y }) => y)), maxY: Math.max(...corners.map(({ y }) => y)),
+  };
 }
 
 function haloFootprintsOverlap(pointA, footprintA, pointB, footprintB) {
@@ -509,6 +534,7 @@ function buildHaloGlyphSpec(metric, state, which, layout = "full") {
   const spec = {
     metric: metric.id,
     slot: metric.slot,
+    angle: getMetricSlotAngle(metric.id),
     which,
     layout,
     label: HALO_COMPACT_LABELS[metric.id],
@@ -572,7 +598,7 @@ function formatEvidenceState(state) {
 // own raw value and makes the within-metric-only comparability explicit.
 function accessibleComparisonSummary(comparison) {
   const radiusCue = comparison.radii ? `Lens A radius ${comparison.radii.A} m; Lens B radius ${comparison.radii.B} m.` : "";
-  const lines = [`Comparison halo. ${radiusCue} Four fixed perimeter bars, clockwise from twelve o'clock: Tourism POIs, Hotels & stays, Mobility nodes, Mean UTCI. The printed number is the raw count inside the lens; for the three count metrics the bar length is that lens's represented spatial density (records per square kilometre) relative to a fixed Madrid reference density, so unequal radii stay comparable. UTCI's bar is its position in a model-derived Celsius band. Bar lengths are comparable within the same metric only, never across metrics.`];
+  const lines = [`Comparison halo. ${radiusCue} Fixed radial slots: Tourism POIs at twelve o'clock, Hotels & stays at two, Mobility nodes at six, Mean UTCI at nine. Every bar starts just outside its own Lens circumference and points outward; the same metric keeps the same angle on Lens A and Lens B. The printed number is the raw value inside the lens; for the three count metrics the bar length is that lens's represented spatial density (records per square kilometre) relative to a fixed Madrid reference density, so unequal radii stay comparable. UTCI's bar is its position in a model-derived Celsius band. Bar lengths are comparable within the same metric only, never across metrics.`];
   for (const metric of HALO_METRICS) {
     const state = comparison.metrics[metric.id];
     const a = state.aValueText ? `${state.aValueText} ${metric.unit}`.replace("°C °C", "°C") : formatEvidenceState(state.stateA);
@@ -591,7 +617,7 @@ function accessibleComparisonSummary(comparison) {
       lines.push(`${metric.label}: Lens A ${a}, Lens B ${b}; direct comparison withheld; ${barNote}. ${coverage ? `${coverage}. ` : ""}${state.qualifier}.`);
     }
   }
-  lines.push(`Reference density is the Madrid ${comparison.references ? `p${Math.round((comparison.references.quantile ?? 0.95) * 100)} local density in a ${comparison.references.radiusM ?? 900} metre window` : "p95 local density"} per count metric, shared by Lens A and Lens B, and a model-derived Celsius band for UTCI. Values above the reference density saturate the bar while the raw number keeps the real magnitude. Unavailable data reads N/A, never zero; a genuine zero stays a distinct zero state. No bar is a score or recommendation.`);
+  lines.push(`Reference density is the Madrid ${comparison.references ? `p${Math.round((comparison.references.quantile ?? 0.95) * 100)} local density in a ${comparison.references.radiusM ?? 900} metre window` : "p95 local density"} per count metric, shared by Lens A and Lens B, and a model-derived Celsius band for UTCI. Values above the reference density saturate the bar while the raw value keeps the real magnitude. Unavailable data reads N/A, never zero; a genuine zero stays a distinct zero state. No bar is a score or recommendation.`);
   return lines.join(" ");
 }
 
@@ -600,7 +626,8 @@ if (typeof module !== "undefined" && module.exports) {
     HALO_METRICS, SOURCE_LABELS, DISPLAY_STATE, UTCI_PX_PER_C, COMPARISON_RADIUS_MODE,
     HALO_REFERENCE_DEFAULTS, HALO_UTCI_FALLBACK_BAND,
     circleAreaKm2: haloCircleAreaKm2, representedRate: haloRepresentedRate,
-    HALO_COMPACT_LABELS, HALO_LAYOUT, HALO_VISUAL_GEOMETRY,
+    HALO_COMPACT_LABELS, HALO_LAYOUT, HALO_VISUAL_GEOMETRY, HALO_METRIC_SLOT_ANGLES, HALO_RADIAL_GEOMETRY,
+    getMetricSlotAngle, getRadialUnitVector, getHaloBarGeometry, getHaloLabelGeometry,
     normalizedCountPair, positivePair, buildCountPairState, buildHaloComparison, accessibleComparisonSummary,
     computeHaloReferenceScales, deriveHaloUtciBand, haloDensity, haloDensityMagnitude, haloUtciMagnitude, formatHaloValue, haloQuantile, haloHaversineMeters,
     activityState, utciState, countState,

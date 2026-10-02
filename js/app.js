@@ -222,19 +222,21 @@ const lenses = {
   },
 };
 
-// Eight reusable, pointer-transparent Leaflet markers form the screen-space
-// halo. They follow their Lens through map transforms without redrawing any
-// unrelated map data. Values and abstention states update in place.
+// Eight reusable Leaflet SVG markers form the screen-space halo. Each marker is
+// anchored at its radial bar origin and recomputed from the live map projection.
 const HALO_GLYPH_COLORS = Object.freeze({ A: "#f7fbff", B: "#43d7ff" });
-const HALO_INNER_GAP_PX = 5;
-const HALO_FULL_TRACK_PX = HALO_VISUAL_GEOMETRY.FULL_TRACK_PX;
-const HALO_COMPACT_TRACK_PX = HALO_VISUAL_GEOMETRY.COMPACT_TRACK_PX;
+const HALO_INNER_GAP_PX = HALO_RADIAL_GEOMETRY.RADIAL_GAP;
+const HALO_FULL_TRACK_PX = HALO_RADIAL_GEOMETRY.MAX_BAR_LENGTH;
+const HALO_COMPACT_TRACK_PX = HALO_FULL_TRACK_PX;
+const HALO_SVG_CENTER = Object.freeze({ x: 110, y: 70 });
+const HALO_ICON_SIZE = Object.freeze([220, 140]);
 const HALO_MIN_SLOT_SEPARATION_PX = 40;
-const HALO_SLOT_GEOMETRY = HALO_VISUAL_GEOMETRY.slots;
 const comparisonHalos = { A: {}, B: {} };
 let haloEnabled = true;
 let lastHaloComparison = null;
 let haloVisibilityReason = "";
+let focusedHaloMetric = null;
+let selectedHaloMetric = null;
 
 // Deterministic reference DENSITIES for the perimeter bars, computed from the
 // loaded dataset (not the live Lens radius) so a bar's scale semantics never
@@ -258,9 +260,8 @@ function getHaloUtciBand() {
 }
 
 function haloIcon(which, metric) {
-  const geometry = HALO_SLOT_GEOMETRY[metric.slot];
   const color = HALO_GLYPH_COLORS[which];
-  const html = `<svg class="halo-glyph halo-${which.toLowerCase()} halo-slot-${metric.slot}" viewBox="0 0 136 56" width="136" height="56" role="presentation" aria-hidden="true" style="--halo-color:${color}">
+  const html = `<svg class="halo-glyph halo-${which.toLowerCase()} halo-slot-${metric.slot}" viewBox="0 0 220 140" width="220" height="140" data-metric="${metric.id}" role="button" tabindex="0" aria-pressed="false" aria-label="Lens ${which}, ${metric.label}; focus to compare this metric" style="--halo-color:${color};--halo-thickness:${HALO_RADIAL_GEOMETRY.BAR_THICKNESS}px">
     <line class="halo-track"/>
     <line class="halo-fill"/>
     <circle class="halo-zero" r="3.2"/>
@@ -269,20 +270,26 @@ function haloIcon(which, metric) {
     <text class="halo-value"></text>
     <text class="halo-label"></text>
   </svg>`;
-  return L.divIcon({ className: "comparison-halo-icon", html, iconSize: [136, 56], iconAnchor: geometry.anchor });
+  return L.divIcon({ className: "comparison-halo-icon", html, iconSize: HALO_ICON_SIZE, iconAnchor: [HALO_SVG_CENTER.x, HALO_SVG_CENTER.y] });
 }
 
 for (const which of ["A", "B"]) {
   for (const metric of HALO_METRICS) {
     const marker = L.marker(lenses[which].marker.getLatLng(), {
-      pane: "haloPane", interactive: false, keyboard: false, icon: haloIcon(which, metric), zIndexOffset: 0,
+      pane: "haloPane", interactive: true, keyboard: true, bubblingMouseEvents: false,
+      title: `Lens ${which}, ${metric.label}`, icon: haloIcon(which, metric), zIndexOffset: 0,
     });
     marker._haloMetric = metric.id;
     marker._haloLens = which;
     marker.on("add", () => {
       cacheHaloNodes(marker);
+      bindHaloMetricFocus(marker);
       if (lastHaloComparison) updateHaloGlyph(marker, lastHaloComparison.metrics[marker._haloMetric]);
     });
+    marker.on("mouseover", () => setHaloMetricFocus(metric.id, which));
+    marker.on("mouseout", () => setHaloMetricFocus(null, which));
+    marker.on("click", () => setHaloMetricFocus(metric.id, which, true));
+    marker.on("remove", () => setHaloMetricFocus(null, which));
     comparisonHalos[which][metric.id] = marker;
   }
 }
@@ -304,8 +311,41 @@ function cacheHaloNodes(marker) {
   };
 }
 
-function haloLineEnd(geometry, length) {
-  return [geometry.origin[0] + geometry.direction[0] * length, geometry.origin[1] + geometry.direction[1] * length];
+function bindHaloMetricFocus(marker) {
+  const svg = marker._haloNodes?.svg;
+  if (!svg || svg._haloFocusBound) return;
+  svg._haloFocusBound = true;
+  svg.addEventListener("focus", () => setHaloMetricFocus(marker._haloMetric, marker._haloLens));
+  svg.addEventListener("blur", () => setHaloMetricFocus(null, marker._haloLens));
+  svg.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setHaloMetricFocus(marker._haloMetric, marker._haloLens, true);
+    }
+    if (event.key === "Escape") {
+      selectedHaloMetric = null;
+      setHaloMetricFocus(null, marker._haloLens);
+    }
+  });
+}
+
+function setHaloMetricFocus(metricId, sourceLens, selected = false) {
+  if (selected && metricId) selectedHaloMetric = selectedHaloMetric === metricId ? null : metricId;
+  focusedHaloMetric = metricId || selectedHaloMetric || null;
+  for (const which of ["A", "B"]) for (const marker of Object.values(comparisonHalos[which])) {
+    const svg = marker._haloNodes?.svg;
+    if (!svg) continue;
+    const focused = focusedHaloMetric && marker._haloMetric === focusedHaloMetric;
+    svg.classList.toggle("halo-metric-focused", Boolean(focused));
+    svg.classList.toggle("halo-metric-deemphasized", Boolean(focusedHaloMetric && !focused));
+    svg.setAttribute("aria-pressed", selectedHaloMetric === marker._haloMetric ? "true" : "false");
+  }
+  document.querySelectorAll(".comparetable [data-halo-metric]").forEach((row) => {
+    const focused = Boolean(focusedHaloMetric && row.dataset.haloMetric === focusedHaloMetric);
+    row.classList.toggle("halo-metric-row-focused", focused);
+    if (focused) row.setAttribute("aria-current", "true"); else row.removeAttribute("aria-current");
+  });
+  window.dispatchEvent(new CustomEvent("halo:metricfocus", { detail: { metricId: focusedHaloMetric, lens: sourceLens || null, selected: Boolean(focusedHaloMetric && selectedHaloMetric === focusedHaloMetric) } }));
 }
 
 function setHaloLine(line, start, end) {
@@ -321,55 +361,54 @@ function updateHaloGlyph(marker, state, layout = "full") {
   const which = marker._haloLens;
   const metric = HALO_METRICS.find((candidate) => candidate.id === marker._haloMetric);
   const spec = buildHaloGlyphSpec(metric, state, which, layout);
-  const geometry = HALO_SLOT_GEOMETRY[spec.slot];
   const trackLength = layout === "compact" ? HALO_COMPACT_TRACK_PX : HALO_FULL_TRACK_PX;
-  const outer = haloLineEnd(geometry, trackLength);
-  const midpoint = haloLineEnd(geometry, trackLength / 2);
+  const trackGeometry = getHaloBarGeometry({ center: HALO_SVG_CENTER, renderedRadius: 0, angle: spec.angle, magnitude: 1, maxLength: trackLength });
+  const fillGeometry = getHaloBarGeometry({ center: HALO_SVG_CENTER, renderedRadius: 0, angle: spec.angle, magnitude: spec.magnitude ?? 0, maxLength: trackLength });
+  const origin = [HALO_SVG_CENTER.x, HALO_SVG_CENTER.y];
+  const outer = [trackGeometry.endpoint.x, trackGeometry.endpoint.y];
+  const midpoint = [(origin[0] + outer[0]) / 2, (origin[1] + outer[1]) / 2];
   const isBar = spec.type === "bar";
   const isZero = spec.type === "zero";
   const isAbstain = spec.type === "abstain";
   cached.svg.classList.toggle("halo-compact", layout === "compact");
   cached.svg.classList.toggle("halo-active", which === active);
   cached.svg.classList.toggle("halo-inactive", which !== active);
+  cached.svg.classList.toggle("halo-metric-focused", Boolean(focusedHaloMetric && focusedHaloMetric === metric.id));
+  cached.svg.classList.toggle("halo-metric-deemphasized", Boolean(focusedHaloMetric && focusedHaloMetric !== metric.id));
   cached.svg.setAttribute("data-visual-state", spec.visualState);
   cached.svg.setAttribute("data-saturated", spec.saturated ? "true" : "false");
+  cached.svg.setAttribute("aria-label", `Lens ${which}, ${metric.label}: ${spec.value || spec.visualState}. Radial bar length represents this metric against its own Madrid reference; compare this metric across lenses only.`);
 
   // The raw value (or N/A / OFF) is the primary mark and is always printed, so
   // the map alone answers "how much"; it stays visible in compact layout too.
   cached.value.textContent = spec.value || "";
   cached.value.setAttribute("class", `halo-value halo-value-${spec.visualState}`);
-  if (spec.valueAnchor) {
-    cached.value.setAttribute("x", String(spec.valueAnchor.x));
-    cached.value.setAttribute("y", String(spec.valueAnchor.y));
-    cached.value.setAttribute("text-anchor", spec.valueAnchor.textAnchor);
-    cached.value.style.display = spec.value ? "" : "none";
-  } else {
-    cached.value.style.display = "none";
-  }
+  const valueAnchor = getHaloLabelGeometry({ endpoint: isBar ? fillGeometry.endpoint : HALO_SVG_CENTER, angle: spec.angle, gap: HALO_RADIAL_GEOMETRY.LABEL_GAP });
+  cached.value.setAttribute("x", String(valueAnchor.x));
+  cached.value.setAttribute("y", String(valueAnchor.y));
+  cached.value.setAttribute("text-anchor", valueAnchor.textAnchor);
+  cached.value.style.display = spec.value ? "" : "none";
 
   // The short metric caption (lens letter + identity) rides one line out; it is
   // a full-layout convenience and is dropped in compact layout.
-  if (spec.labelAnchor) {
-    cached.label.textContent = `${which}·${spec.label}`;
-    cached.label.setAttribute("x", String(spec.labelAnchor.x));
-    cached.label.setAttribute("y", String(spec.labelAnchor.y));
-    cached.label.setAttribute("text-anchor", spec.labelAnchor.textAnchor);
-    cached.label.style.display = "";
-  } else {
-    cached.label.style.display = "none";
-  }
+  const labelAnchor = getHaloLabelGeometry({ endpoint: { x: valueAnchor.x, y: valueAnchor.y }, angle: spec.angle, gap: 12 });
+  cached.label.textContent = `${which}·${spec.label}`;
+  cached.label.setAttribute("x", String(labelAnchor.x));
+  cached.label.setAttribute("y", String(labelAnchor.y));
+  cached.label.setAttribute("text-anchor", labelAnchor.textAnchor);
+  cached.label.style.display = layout === "compact" ? "none" : "";
 
-  setHaloLine(cached.track, geometry.origin, outer);
-  setHaloLine(cached.stateTrack, geometry.origin, outer);
-  cached.zero.setAttribute("cx", String(geometry.origin[0])); cached.zero.setAttribute("cy", String(geometry.origin[1]));
+  setHaloLine(cached.track, origin, outer);
+  setHaloLine(cached.stateTrack, origin, outer);
+  cached.zero.setAttribute("cx", String(origin[0])); cached.zero.setAttribute("cy", String(origin[1]));
   cached.qualifier.setAttribute("cx", String(outer[0])); cached.qualifier.setAttribute("cy", String(outer[1]));
-  cached.track.style.display = isAbstain ? "none" : "";
+  cached.track.style.display = isBar ? "" : "none";
   cached.fill.style.display = isBar ? "" : "none";
   cached.zero.style.display = isZero ? "" : "none";
   cached.abstain.style.display = isAbstain ? "" : "none";
   cached.qualifier.style.display = spec.qualified && isBar ? "" : "none";
-  if (isBar) setHaloLine(cached.fill, geometry.origin, haloLineEnd(geometry, trackLength * spec.magnitude));
-  else setHaloLine(cached.fill, geometry.origin, geometry.origin);
+  if (isBar) setHaloLine(cached.fill, origin, [fillGeometry.endpoint.x, fillGeometry.endpoint.y]);
+  else setHaloLine(cached.fill, origin, origin);
   if (isAbstain) {
     cached.state.textContent = spec.visualState === "no-evidence" ? "○" : spec.visualState === "off" ? "·" : spec.visualState === "unavailable" ? "∕" : "×";
     cached.state.setAttribute("x", String(midpoint[0])); cached.state.setAttribute("y", String(midpoint[1] + 4));
@@ -385,15 +424,15 @@ function haloPositionsFor(which) {
   const onePixelEast = map.unproject(projectedCenter.add([1, 0]));
   const metresPerPixel = map.distance(centerLatLng, onePixelEast);
   const radiusPx = metresPerPixel > 0 ? radiusFor(which) / metresPerPixel : 0;
-  const slotDistance = radiusPx + HALO_INNER_GAP_PX;
-  const offsets = { north: [0, -slotDistance], east: [slotDistance, 0], south: [0, slotDistance], west: [-slotDistance, 0] };
   const positions = {};
+  const geometries = {};
   for (const metric of HALO_METRICS) {
-    const offset = offsets[metric.slot];
-    positions[metric.id] = map.containerPointToLatLng(center.add(offset));
+    const geometry = getHaloBarGeometry({ center, renderedRadius: radiusPx, angle: getMetricSlotAngle(metric.id), magnitude: 0 });
+    geometries[metric.id] = geometry;
+    positions[metric.id] = map.containerPointToLatLng([geometry.origin.x, geometry.origin.y]);
     comparisonHalos[which][metric.id].setLatLng(positions[metric.id]);
   }
-  return { center, radiusPx, positions };
+  return { center, radiusPx, positions, geometries };
 }
 
 function haloGlyphIntersects(element, point, footprint) {
@@ -565,13 +604,20 @@ if (haloRegressionRequested && haloRegressionLocal) {
     setActive(which) {
       activateLens(which);
     },
+    focusMetric(metricId, which = "A", selected = false) {
+      setHaloMetricFocus(metricId, which, selected);
+    },
     geometry(which, metric) {
       const projected = haloPositionsFor(which);
       const anchor = map.latLngToContainerPoint(projected.positions[metric]);
+      const radial = projected.geometries[metric];
       return {
         center: { x: projected.center.x, y: projected.center.y },
         anchor: { x: anchor.x, y: anchor.y },
         radiusPx: projected.radiusPx,
+        angle: radial.angle,
+        unit: radial.unit,
+        origin: radial.origin,
       };
     },
   });

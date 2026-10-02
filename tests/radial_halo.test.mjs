@@ -3,6 +3,8 @@ import fs from "node:fs";
 import test from "node:test";
 import {
   HALO_METRICS,
+  HALO_METRIC_SLOT_ANGLES,
+  HALO_RADIAL_GEOMETRY,
   HALO_COMPACT_LABELS,
   HALO_REFERENCE_DEFAULTS,
   HALO_UTCI_FALLBACK_BAND,
@@ -27,6 +29,10 @@ import {
   haloSlotFootprint,
   haloFootprintsOverlap,
   haloLayoutForRadius,
+  getMetricSlotAngle,
+  getRadialUnitVector,
+  getHaloBarGeometry,
+  getHaloLabelGeometry,
   resolveHaloSlotVisibility,
 } from "../js/radial-halo.js";
 
@@ -68,6 +74,55 @@ test("V3 halo exposes exactly the four brief metrics in a fixed clockwise order"
   assert.deepEqual(model.order, ["tourism", "stays", "mobility", "utci"]);
   assert.equal("pedestrian" in model.metrics, false);
   assert.equal(HALO_COMPACT_LABELS.mobility, "MOB");
+});
+
+test("radial slots are fixed by canonical metric id, independent of registry iteration order", () => {
+  const reversed = [...HALO_METRICS].reverse();
+  assert.deepEqual(Object.fromEntries(reversed.map(({ id }) => [id, getMetricSlotAngle(id)])), {
+    utci: 180, mobility: 90, stays: -30, tourism: -90,
+  });
+  assert.deepEqual(HALO_METRIC_SLOT_ANGLES, { tourism: -90, stays: -30, mobility: 90, utci: 180 });
+  assert.equal(getMetricSlotAngle("unknown"), null);
+});
+
+test("radial bars originate beyond each lens and point outward at the shared metric angle", () => {
+  const center = { x: 100, y: 200 };
+  const a = getHaloBarGeometry({ center, renderedRadius: 45, angle: getMetricSlotAngle("stays"), magnitude: 0.5 });
+  const b = getHaloBarGeometry({ center, renderedRadius: 80, angle: getMetricSlotAngle("stays"), magnitude: 0.5 });
+  assert.equal(a.angle, b.angle);
+  assert.equal(a.length, HALO_RADIAL_GEOMETRY.MAX_BAR_LENGTH / 2);
+  assert.ok(Math.abs(Math.hypot(a.origin.x - center.x, a.origin.y - center.y) - (45 + HALO_RADIAL_GEOMETRY.RADIAL_GAP)) < 1e-9);
+  assert.ok(Math.hypot(b.origin.x - center.x, b.origin.y - center.y) > Math.hypot(a.origin.x - center.x, a.origin.y - center.y));
+  assert.ok(Math.hypot(a.endpoint.x - center.x, a.endpoint.y - center.y) > Math.hypot(a.origin.x - center.x, a.origin.y - center.y));
+  assert.ok(Math.abs((a.endpoint.x - a.origin.x) / a.length - a.unit.x) < 1e-9);
+  assert.ok(Math.abs((a.endpoint.y - a.origin.y) / a.length - a.unit.y) < 1e-9);
+});
+
+test("bar magnitudes clamp, zero has no quantitative length, and invalid states have no geometry", () => {
+  const geometry = (magnitude) => getHaloBarGeometry({ center: { x: 0, y: 0 }, renderedRadius: 20, angle: -90, magnitude });
+  assert.equal(geometry(0.25).length, HALO_RADIAL_GEOMETRY.MAX_BAR_LENGTH * 0.25);
+  assert.equal(geometry(-2).length, 0);
+  assert.equal(geometry(2).length, HALO_RADIAL_GEOMETRY.MAX_BAR_LENGTH);
+  assert.equal(geometry(0).length, 0);
+  assert.equal(geometry(null), null);
+  const model = buildHaloComparison(baseInput({ tourism: { a: unavailable(), b: live(5) }, utci: { enabled: false } }));
+  const na = buildHaloGlyphSpec(HALO_METRICS.find((metric) => metric.id === "tourism"), model.metrics.tourism, "A");
+  const off = buildHaloGlyphSpec(HALO_METRICS.find((metric) => metric.id === "utci"), model.metrics.utci, "A");
+  assert.equal(na.type, "abstain");
+  assert.equal(off.visualState, "off");
+  assert.equal(getHaloBarGeometry({ center: { x: 0, y: 0 }, renderedRadius: 20, angle: na.angle, magnitude: na.magnitude }), null);
+  assert.equal(getHaloBarGeometry({ center: { x: 0, y: 0 }, renderedRadius: 20, angle: off.angle, magnitude: off.magnitude }), null);
+});
+
+test("labels sit outside endpoints and choose readable upright alignment by hemisphere", () => {
+  const endpoint = { x: 3, y: 4 };
+  const right = getHaloLabelGeometry({ endpoint, angle: 0, gap: 8 });
+  const left = getHaloLabelGeometry({ endpoint, angle: 180, gap: 8 });
+  const top = getHaloLabelGeometry({ endpoint, angle: -90, gap: 8 });
+  assert.equal(Math.hypot(right.x - endpoint.x, right.y - endpoint.y), 8);
+  assert.equal(right.textAnchor, "start");
+  assert.equal(left.textAnchor, "end");
+  assert.equal(top.textAnchor, "middle");
 });
 
 // --- Reference DENSITY universe --------------------------------------------
@@ -246,7 +301,7 @@ test("mobility abstains as unavailable (N/A) when its sources are unavailable", 
 
 // --- Geometry helpers ------------------------------------------------------
 
-test("value and caption anchors are fixed per slot and layout, independent of magnitude", () => {
+test("compatibility value and caption anchors are deterministic per fixed slot", () => {
   const poi = HALO_METRICS[0];
   const anchors = [0, 2, 5, 40].map((count) =>
     buildHaloGlyphSpec(poi, buildHaloComparison(baseInput({ tourism: { a: live(count), b: live(10) } })).metrics.tourism, "A").valueAnchor);
@@ -306,7 +361,7 @@ test("accessible summary states raw counts, density-bar meaning, and within-metr
   assert.match(summary, /Tourism POIs: Lens A 5 POIs, Lens B 10 POIs/);
   assert.match(summary, /Mobility nodes: Lens A 3 nodes, Lens B 6 nodes/);
   assert.match(summary, /Mean UTCI: Lens A 36\.4°C, Lens B 38\.1°C/);
-  assert.match(summary, /printed number is the raw count/i);
+  assert.match(summary, /printed number is the raw value/i);
   assert.match(summary, /represented spatial density/i);
   assert.match(summary, /comparable within the same metric only, never across metrics/);
   assert.match(summary, /Unavailable data reads N\/A, never zero/);
@@ -318,17 +373,18 @@ test("accessible summary states raw counts, density-bar meaning, and within-metr
 
 // --- Production wiring (source-level guards) --------------------------------
 
-test("the renderer prints a raw-value node, uses the shared density references, and stays pointer-transparent", () => {
+test("the renderer prints raw values, uses shared references, and supports metric keyboard focus", () => {
   const app = fs.readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
   const css = fs.readFileSync(new URL("../css/app.css", import.meta.url), "utf8");
-  assert.match(app, /interactive: false, keyboard: false/);
-  assert.match(css, /\.comparison-halo-icon\{[^}]*pointer-events:none!important/);
+  assert.match(app, /interactive: true, keyboard: true/);
+  assert.match(css, /\.comparison-halo-icon\{[^}]*pointer-events:auto!important/);
   assert.match(app, /class="halo-value"/);
   assert.match(css, /\.halo-value\{/);
   assert.match(app, /getHaloReferences\(\)/);
   assert.match(app, /computeHaloReferenceScales\(visiblePoiPoints\(\)\)/, "references share the counted (filtered) population");
-  const slice = app.slice(app.indexOf("const HALO_SLOT_GEOMETRY"), app.indexOf("const LENS_BASEMAP_STYLES"));
-  assert.match(slice, /buildHaloGlyphSpec/);
+  assert.match(app, /buildHaloGlyphSpec/);
+  assert.match(app, /bindHaloMetricFocus/);
+  assert.match(app, /halo:metricfocus/);
 });
 
 test("browser regression API requires both its query flag and a local hostname", () => {

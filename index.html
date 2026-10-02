@@ -238,16 +238,16 @@
     <div id="comparisonRadiusReadout" class="comparison-radius-readout" aria-label="Lens radii">Lens A · 900 m | Lens B · 900 m</div>
     <div id="comparisonModeCue" class="comparison-mode-cue" aria-live="polite">Equal windows · raw represented counts</div>
     <label class="halo-toggle"><input id="haloToggle" type="checkbox" checked aria-label="Show comparison halo around Lens A and Lens B" aria-checked="true"><span>Comparison halo</span><small>supplementary map marks</small></label>
-    <div class="halo-legend">Halo bars (clockwise from 12): Tourism POIs · Hotels &amp; stays · Mobility nodes · Mean UTCI. The number is the raw count in the lens; for the three count metrics the bar length is that count per km² relative to a fixed Madrid reference, so lenses of different radius stay comparable (UTCI uses a model Celsius band). Comparable within a metric only, not across metrics. Unavailable reads N/A, never 0.</div>
+    <div class="halo-legend">Fixed slots: Tourism POIs at 12 · Stays at 2 · Mobility nodes at 6 · Mean UTCI at 9 o’clock. Thin bars extend outward from each lens; the number is the raw value and length is density against a fixed Madrid reference (UTCI uses its model Celsius band). Lengths compare within the same metric only, never across metrics. Unavailable is N/A, never zero.</div>
     <div class="comparetable-wrap">
       <table class="comparetable" aria-label="Lens A and Lens B circle measurements">
         <thead><tr><th scope="col">Metric</th><th scope="col">Lens A</th><th scope="col">Lens B</th><th scope="col">B−A</th></tr></thead>
         <tbody>
-          <tr><th scope="row">Tourism POIs</th><td id="cmpPoiA">—</td><td id="cmpPoiB">—</td><td id="cmpPoi">—</td></tr>
-          <tr><th scope="row">Stays</th><td id="cmpStayA">—</td><td id="cmpStayB">—</td><td id="cmpStay">—</td></tr>
-          <tr><th scope="row">Mobility nodes</th><td id="cmpMobilityA">—</td><td id="cmpMobilityB">—</td><td id="cmpMobility">—</td></tr>
+          <tr data-halo-metric="tourism"><th scope="row">Tourism POIs</th><td id="cmpPoiA">—</td><td id="cmpPoiB">—</td><td id="cmpPoi">—</td></tr>
+          <tr data-halo-metric="stays"><th scope="row">Stays</th><td id="cmpStayA">—</td><td id="cmpStayB">—</td><td id="cmpStay">—</td></tr>
+          <tr data-halo-metric="mobility"><th scope="row">Mobility nodes</th><td id="cmpMobilityA">—</td><td id="cmpMobilityB">—</td><td id="cmpMobility">—</td></tr>
           <tr class="panel-only-metric"><th scope="row">Pedestrian · panel only</th><td id="cmpPedestrianA">—</td><td id="cmpPedestrianB">—</td><td id="cmpPedestrian">—</td></tr>
-          <tr><th scope="row">UTCI</th><td id="cmpHeatA">—</td><td id="cmpHeatB">—</td><td id="cmpHeat">—</td></tr>
+          <tr data-halo-metric="utci"><th scope="row">UTCI</th><td id="cmpHeatA">—</td><td id="cmpHeatB">—</td><td id="cmpHeat">—</td></tr>
         </tbody>
       </table>
     </div>
@@ -324,7 +324,7 @@
 
 <script src="assets/leaflet/leaflet.js"></script>
 <script src="js/lens.js?v=20261002-43"></script>
-<script src="js/radial-halo.js?v=20261002-46"></script>
+<script src="js/radial-halo.js?v=20261003-47"></script>
 <script src="js/evidence.js"></script>
 <script src="js/data.js?v=20260928-15"></script>
 <script src="js/clustering.js?v=20260928-9"></script>

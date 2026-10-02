@@ -1,6 +1,6 @@
 # Radial Halo V3 — Quantitative Perimeter Bars
 
-**Status:** implemented.
+**Status:** implemented; fixed shared radial slots.
 **Supersedes:** the V1/V2 presentation of the comparison halo. The analytical
 gate contract in [`SPATIAL_COMPARISON_RADIAL_GATE_I.md`](SPATIAL_COMPARISON_RADIAL_GATE_I.md)
 still governs *what* may be encoded; this document describes the V3 *rendering
@@ -25,12 +25,14 @@ remains authoritative for provenance, administrative context and interpretation.
 
 ## 2. The four perimeter metrics
 
-Fixed clockwise angular layout (never reordered by magnitude):
+The canonical metric IDs in `HALO_METRICS` map to stable clock positions. Slot
+angles are keyed by metric ID, not registry iteration or DOM order, and never
+reorder by value:
 
 | Clock | Slot | Metric | Definition (exact) | Unit printed |
 |------|------|--------|--------------------|--------------|
 | 12 | north | **Tourism POIs** | Count of `museum` + `info` records inside the Lens circle (`poiStatsInLens.tourism`). | integer (`POIs`) |
-| 3 | east | **Hotels & stays** | Count of `stay` records inside the circle, honouring the active accommodation-category filter (`poiStatsInLens.stay`). Madrid Destino catalogue listings, one per record. | integer (`stays`) |
+| 2 | east | **Hotels & stays** | Count of `stay` records inside the circle, honouring the active accommodation-category filter (`poiStatsInLens.stay`). Madrid Destino catalogue listings, one per record. | integer (`stays`) |
 | 6 | south | **Mobility nodes** | Count of `bike` (BiciMAD docking stations) + `rail` (Metro & Cercanías stations) inside the circle (`poiStatsInLens.mobility`). | integer (`nodes`) |
 | 9 | west | **Mean UTCI** | Mean of the model-derived UTCI values of the HATI assets inside the circle at the selected timestep (`hatiStatsInLens`). Bounded research pilot: 14 outdoor assets, 21 Aug 2023. | `°C` (one decimal) |
 
@@ -52,6 +54,27 @@ Every bar prints its own raw value beside it, always:
 
 The caption beside each bar carries the lens letter and a short metric id
 (`A·POI`, `B·STAY`, …) so the two lenses are labelled explicitly.
+
+## 3.1 Fixed outward geometry
+
+The radial geometry is defined in screen coordinates (`x` right, `y` down;
+positive angle clockwise): tourism `−90°` (12 o'clock), stays `−30°` (2),
+mobility `90°` (6), and UTCI `180°` (9). The same canonical metric angle is
+used on both lenses. For projected Lens center `C`, its actual projected radius
+`r`, slot angle `θ`, unit vector `u = (cos θ, sin θ)`, radial gap `g = 5 px`,
+maximum bar length `M = 32 px`, and normalized magnitude `m`:
+
+```
+P0 = C + u × (r + g)           // bar origin just outside this Lens boundary
+L  = M × clamp(m, 0, 1)       // only quantitative dimension
+P1 = P0 + u × L               // bar endpoint grows directly outward
+label = P1 + u × 7 px          // upright text, hemisphere-aligned
+```
+
+Bar thickness is a constant `2.6 px`. Lens A and B calculate `P0` from their
+own currently projected radius; slot angle and data meaning remain shared.
+Pan, zoom, resize, reposition and radius changes all recompute from Leaflet's
+current projection. Labels remain upright and outside their bar tips.
 
 ## 4. Bar-length semantics (normalization)
 
@@ -170,6 +193,12 @@ Both lenses render their four bars **simultaneously** whenever Compare is on:
 In single-lens mode (Compare off) the halo renders Lens A's four bars on the same
 reference scale.
 
+Focusing, hovering, or selecting a slot highlights that canonical metric on both
+lenses and its matching comparison-table row. Keyboard users can tab to a metric,
+activate it with Enter/Space, and clear focus with Escape. Other metrics remain
+visible at reduced emphasis. The event `halo:metricfocus` exposes the metric ID,
+source lens and selection state to another comparison consumer.
+
 ## 6. Unavailable vs zero
 
 These are never conflated:
@@ -184,10 +213,10 @@ These are never conflated:
 
 ## 7. Projection, radius and responsiveness
 
-- Bars are screen-space SVG attached to Leaflet markers on a dedicated
-  pointer-transparent pane; they follow the Lens through pan, zoom, resize, Lens
-  move, radius change, active-lens switch and Compare interaction, always sitting
-  a fixed 5 px beyond the **projected** circle edge.
+- Bars are screen-space SVG attached to Leaflet markers on a dedicated pane; they
+  follow the Lens through pan, zoom, resize, Lens move, radius change, active-lens
+  switch and Compare interaction, always sitting a fixed 5 px beyond the
+  **projected** circle edge.
 - Each lens uses its own radius; unequal A/B radii remain correctly projected.
 - A very small on-screen Lens drops to a compact layout (bars + numbers, captions
   omitted) and, below a threshold, hides the slots; the numeric value is never
@@ -204,9 +233,9 @@ These are never conflated:
   This is intentional (the reference tracks the data) but means bar lengths are
   not comparable across dataset versions.
 - Provenance and the raw-count-vs-density distinction are carried in the panel and
-  the halo's accessible summary (the bars are pointer-transparent, so they expose
-  no hover tooltip of their own); the summary states, per metric, the raw count
-  and that the bar is represented density relative to the Madrid reference.
+  the halo's accessible summary; each metric has an accessible name and keyboard
+  focus. The summary states, per metric, the raw count and that the bar is
+  represented density relative to the Madrid reference.
 - Stays are Madrid Destino **catalogue listings** (one record per listing, city
   and surroundings), not an exhaustive accommodation census; the bar reflects
   represented records, not operating-stock density.

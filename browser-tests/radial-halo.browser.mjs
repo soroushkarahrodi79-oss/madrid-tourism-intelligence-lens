@@ -8,9 +8,9 @@ import { chromium } from "playwright";
 
 // Radial Halo V3 browser regression. Exercises the production Leaflet/SVG
 // renderer and asserts the SEMANTICS of the quantitative perimeter bars:
-// raw values printed, density-based bar length (within-metric), one shared A/B
+// raw values printed, outward radial geometry, density-based bar length (within-metric), one shared A/B
 // scale, radius-compatible comparison, unavailable-vs-zero, saturation, and
-// pointer transparency. Value-semantics tests use the deterministic query-gated
+// keyboard focus and open-map interaction. Value-semantics tests use the deterministic query-gated
 // seam so they are independent of which data layers a given checkout ships
 // (notably data/runtime_poi.json is a gitignored deploy artifact, so a clean CI
 // checkout serves only the committed snapshot and mobility is legitimately N/A).
@@ -49,6 +49,7 @@ const { port } = server.address();
 const browser = await chromium.launch({ headless: true });
 
 const SLOT_METRIC = { north: "tourism", east: "stays", south: "mobility", west: "utci" };
+const SLOT_ANGLE = { tourism: -90, stays: -30, mobility: 90, utci: 180 };
 const COUNT_TOKEN = /^\d[\d,]*$/;              // a grouped integer, including "0"
 const COUNT_OR_NA = /^(\d[\d,]*|N\/A)$/;        // integer or unavailable
 const VALID_TOKEN = /^(\d[\d,]*|N\/A|OFF|-?\d[\d.,]*°C)$/;
@@ -131,6 +132,12 @@ async function setRadius(page, which, metres) {
 async function geometryFor(page, lens, metric) {
   return page.evaluate(({ lens, metric }) => window.__HALO_REGRESSION__.geometry(lens, metric), { lens, metric });
 }
+async function lineGeometry(page, lens, slot, selector = ".halo-fill") {
+  return glyph(page, lens, slot).locator(selector).evaluate((line) => {
+    const n = (name) => Number(line.getAttribute(name));
+    return { x1: n("x1"), y1: n("y1"), x2: n("x2"), y2: n("y2") };
+  });
+}
 const live = (value) => ({ value, sourceState: "live" });
 
 // A/B/N. Single lens renders four bars that print real runtime values, honest
@@ -145,6 +152,34 @@ test("A/B/N single lens renders four perimeter bars printing honest runtime valu
   assert.match(await valueText(page, "A", "south"), COUNT_OR_NA, "Mobility prints an integer or N/A (never a fake 0)");
   assert.match(await valueText(page, "A", "west"), VALID_TOKEN, "UTCI prints a valid token");
   assert.equal(await page.locator(".halo-glyph.halo-b").count(), 0, "no Lens B markers in single-lens mode");
+});
+
+test("each rendered quantitative SVG bar points outward along its fixed canonical metric slot", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
+  t.after(() => page.close());
+  await setComparison(page, {
+    tourism: { a: live(5), b: live(10) }, stays: { a: live(2), b: live(4) }, mobility: { a: live(3), b: live(6) },
+    utci: { enabled: true, timestepA: "15:00", timestepB: "15:00", a: { evidence: "MODEL-DERIVED", mean: 38, count: 2 }, b: { evidence: "MODEL-DERIVED", mean: 35, count: 2 } },
+  });
+  for (const lens of ["A", "B"]) {
+    for (const [slot, metric] of Object.entries(SLOT_METRIC)) {
+      const { x1, y1, x2, y2 } = await lineGeometry(page, lens, slot);
+      const magnitude = Math.hypot(x2 - x1, y2 - y1);
+      assert.ok(magnitude > 0, `${lens} ${metric} has a positive rendered bar`);
+      const angle = SLOT_ANGLE[metric] * Math.PI / 180;
+      const ux = (x2 - x1) / magnitude;
+      const uy = (y2 - y1) / magnitude;
+      assert.ok(Math.abs(ux - Math.cos(angle)) < 0.015 && Math.abs(uy - Math.sin(angle)) < 0.015,
+        `${lens} ${metric} SVG axis matches its canonical outward angle`);
+      const label = await glyph(page, lens, slot).locator(".halo-value").evaluate((node) => ({
+        x: Number(node.getAttribute("x")), y: Number(node.getAttribute("y")), anchor: node.getAttribute("text-anchor"),
+      }));
+      const labelDelta = { x: label.x - x2, y: label.y - y2 };
+      assert.ok(Math.abs(labelDelta.x * uy - labelDelta.y * ux) < 0.15, `${lens} ${metric} value stays on its radial axis`);
+      assert.ok(labelDelta.x * ux + labelDelta.y * uy >= 6.9, `${lens} ${metric} value sits outside the bar tip`);
+      assert.equal(label.anchor, Math.abs(Math.cos(angle)) < 0.35 ? "middle" : Math.cos(angle) > 0 ? "start" : "end");
+    }
+  }
 });
 
 // C (brief). Monotonic within a metric and ONE shared A/B scale, at equal radius.
@@ -234,15 +269,20 @@ test("I genuine zero, unavailable and off render distinct states", async (t) => 
   assert.equal(await valueText(page, "A", "north"), "0");
   assert.notEqual(await groupDisplay(page, "A", "north", ".halo-zero"), "none");
   assert.equal(await groupDisplay(page, "A", "north", ".halo-abstain"), "none");
+  assert.equal(await groupDisplay(page, "A", "north", ".halo-fill"), "none", "observed zero has no quantitative bar");
+  assert.equal(await groupDisplay(page, "A", "north", ".halo-track"), "none", "observed zero has no positive-looking track");
 
   await setComparison(page, { tourism: { a: { value: null, sourceState: "unavailable" }, b: live(10) } });
   assert.equal(await valueText(page, "A", "north"), "N/A");
   assert.notEqual(await groupDisplay(page, "A", "north", ".halo-abstain"), "none");
   assert.equal(await groupDisplay(page, "A", "north", ".halo-fill"), "none");
+  assert.equal(await groupDisplay(page, "A", "north", ".halo-track"), "none");
   assert.match(await glyph(page, "A", "north").locator(".halo-abstain").getAttribute("class"), /halo-state-unavailable/);
 
   await setComparison(page, { utci: { enabled: false } });
   assert.equal(await valueText(page, "A", "west"), "OFF");
+  assert.equal(await groupDisplay(page, "A", "west", ".halo-fill"), "none", "OFF has no quantitative bar");
+  assert.match(await glyph(page, "A", "west").locator(".halo-abstain").getAttribute("class"), /halo-state-off/);
 });
 
 // J (brief). Switching the active lens never removes the other lens's bars.
@@ -289,6 +329,23 @@ test("unequal radii keep each lens's bars projected onto its own boundary", asyn
   assert.ok(Math.abs(afterB.radiusPx - beforeB.radiusPx) < 0.01, "B radius unchanged when A grows");
 });
 
+test("minimum and maximum supported lens radii keep their radial origins attached independently", async (t) => {
+  const page = await openCompare({ width: 1440, height: 1000 }, { zoom: 12 });
+  t.after(() => page.close());
+  await page.evaluate(() => {
+    window.__HALO_REGRESSION__.setCenterAtPoint("A", 480, 500);
+    window.__HALO_REGRESSION__.setCenterAtPoint("B", 1050, 500);
+  });
+  await setRadius(page, "A", 100);
+  await setRadius(page, "B", 5000);
+  for (const lens of ["A", "B"]) {
+    const g = await geometryFor(page, lens, "tourism");
+    const distance = Math.hypot(g.anchor.x - g.center.x, g.anchor.y - g.center.y);
+    assert.ok(Math.abs(distance - g.radiusPx - 5) < 1.8, `${lens} origin follows actual projected radius plus 5 px gap`);
+    assert.equal(g.angle, -90);
+  }
+});
+
 // K. Pan/zoom preserves attachment.
 test("K pan and zoom preserve bar attachment to the Lens boundary", async (t) => {
   const page = await openCompare();
@@ -331,11 +388,23 @@ for (const viewport of [
 }
 
 // M. The halo never blocks pointer interaction with the map.
-test("M the halo is pointer-transparent and clicks pass through to the map", async (t) => {
+test("M the halo exposes keyboard metric focus while open map space remains clickable", async (t) => {
   const page = await openCompare();
   t.after(() => page.close());
-  const cssPointerEvents = await glyph(page, "A", "north").evaluate((svg) => getComputedStyle(svg.closest(".comparison-halo-icon")).pointerEvents);
-  assert.equal(cssPointerEvents, "none");
+  const interaction = await glyph(page, "A", "north").evaluate((svg) => ({
+    pointerEvents: getComputedStyle(svg.closest(".comparison-halo-icon")).pointerEvents,
+    role: svg.getAttribute("role"), tabIndex: svg.getAttribute("tabindex"),
+    ariaLabel: svg.getAttribute("aria-label"),
+  }));
+  assert.equal(interaction.pointerEvents, "auto");
+  assert.equal(interaction.role, "button");
+  assert.equal(interaction.tabIndex, "0");
+  assert.match(interaction.ariaLabel, /Lens A, Tourism POIs/);
+  await glyph(page, "A", "north").focus();
+  await page.waitForFunction(() => document.querySelectorAll(".halo-metric-focused").length === 2);
+  assert.notEqual(await page.locator('[data-halo-metric="tourism"]').getAttribute("aria-current"), null);
+  await glyph(page, "A", "north").press("Escape");
+  await page.waitForFunction(() => document.querySelectorAll(".halo-metric-focused").length === 0);
   const target = await page.evaluate(() => {
     const anchor = window.__HALO_REGRESSION__.geometry("A", "tourism").anchor;
     window.__haloMapClicks = 0;
@@ -344,6 +413,36 @@ test("M the halo is pointer-transparent and clicks pass through to the map", asy
   });
   await page.mouse.click(target.x, target.y);
   await page.waitForFunction(() => window.__haloMapClicks === 1);
+});
+
+test("metric focus started at either lens synchronizes its partner and the comparison row", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
+  t.after(() => page.close());
+  for (const lens of ["A", "B"]) {
+    await glyph(page, lens, "east").focus();
+    await page.waitForFunction(() => document.querySelectorAll(".halo-metric-focused").length === 2);
+    assert.equal(await glyph(page, "A", "east").evaluate((el) => el.classList.contains("halo-metric-focused")), true);
+    assert.equal(await glyph(page, "B", "east").evaluate((el) => el.classList.contains("halo-metric-focused")), true);
+    assert.equal(await page.locator('[data-halo-metric="stays"]').getAttribute("aria-current"), "true");
+    assert.equal(await page.locator('[data-halo-metric="tourism"]').getAttribute("aria-current"), null);
+    await glyph(page, lens, "east").evaluate((svg) => svg.blur());
+    await page.waitForFunction(() => document.querySelectorAll(".halo-metric-focused").length === 0);
+  }
+});
+
+test("selecting a metric keeps the paired highlight until it is toggled off", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
+  t.after(() => page.close());
+  await page.evaluate(() => window.__HALO_REGRESSION__.focusMetric("mobility", "B", true));
+  for (const lens of ["A", "B"]) {
+    assert.equal(await glyph(page, lens, "south").getAttribute("aria-pressed"), "true");
+    assert.equal(await glyph(page, lens, "south").evaluate((svg) => svg.classList.contains("halo-metric-focused")), true);
+  }
+  await page.evaluate(() => window.__HALO_REGRESSION__.focusMetric("mobility", "B", true));
+  assert.equal(await glyph(page, "A", "south").getAttribute("aria-pressed"), "false");
+  await page.evaluate(() => window.__HALO_REGRESSION__.focusMetric(null, "B"));
+  assert.equal(await page.locator(".halo-metric-focused").count(), 0);
+  assert.equal(await page.locator('[data-halo-metric="mobility"]').getAttribute("aria-current"), null);
 });
 
 // Compare panel survives, collisions suppress ambiguous slots, readout stays.
