@@ -285,6 +285,21 @@
         <div class="domestic-origin-table-wrap"><table><thead><tr><th id="domesticOriginsOrigin">Origin municipality</th><th id="domesticOriginsTourists">Source-reported tourists</th></tr></thead><tbody id="domesticOriginsRows"></tbody></table></div>
         <p id="domesticOriginsState" class="destination-state"></p>
         <p id="domesticOriginsCaveat" class="destination-ceiling"></p>
+        <section id="domesticOriginDynamics" class="domestic-origin-dynamics" aria-labelledby="domesticOriginDynamicsHeading">
+          <div class="domestic-origins-head"><strong id="domesticOriginDynamicsHeading">Monthly origin dynamics</strong></div>
+          <p id="domesticOriginDynamicsRelationship" class="domestic-origin-dynamics-relationship"></p>
+          <div id="domesticOriginDynamicsSummary" class="domestic-origin-dynamics-summary" aria-label="Published-origin set counts"></div>
+          <div id="domesticOriginDynamicsShared" class="domestic-origin-dynamics-shared">
+            <div id="domesticOriginDynamicsSharedHeading" class="domestic-origin-dynamics-table-heading"></div>
+            <div class="domestic-origin-table-wrap domestic-origin-dynamics-table-wrap"><table><thead><tr><th id="domesticOriginDynamicsOrigin">Origin municipality</th><th id="domesticOriginDynamicsPrevious">Previous</th><th id="domesticOriginDynamicsCurrent">Current</th><th id="domesticOriginDynamicsChange">Observed count change</th></tr></thead><tbody id="domesticOriginDynamicsSharedRows"></tbody></table></div>
+          </div>
+          <div id="domesticOriginDynamicsTransitions" class="domestic-origin-dynamics-transitions">
+            <details><summary id="domesticOriginDynamicsNewlyPresent">Newly present in published set</summary><div class="domestic-origin-table-wrap domestic-origin-dynamics-detail-wrap"><table><thead><tr><th id="domesticOriginDynamicsNewlyOrigin">Origin municipality</th><th id="domesticOriginDynamicsCurrentPublished">Current published count</th></tr></thead><tbody id="domesticOriginDynamicsNewlyRows"></tbody></table></div></details>
+            <details><summary id="domesticOriginDynamicsNoLongerPresent">No longer present in published set</summary><div class="domestic-origin-table-wrap domestic-origin-dynamics-detail-wrap"><table><thead><tr><th id="domesticOriginDynamicsNoLongerOrigin">Origin municipality</th><th id="domesticOriginDynamicsPreviousPublished">Previous published count</th></tr></thead><tbody id="domesticOriginDynamicsNoLongerRows"></tbody></table></div></details>
+          </div>
+          <p id="domesticOriginDynamicsState" class="destination-state"></p>
+          <p id="domesticOriginDynamicsDisclosure" class="destination-ceiling"></p>
+        </section>
       </section>
     </div>
     <button id="destinationSourceToggle" class="area-source-toggle" type="button" aria-expanded="false" aria-controls="destinationSourceDetails" hidden>Source &amp; interpretation</button>

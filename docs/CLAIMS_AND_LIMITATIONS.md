@@ -232,6 +232,17 @@ The artifact is a committed, Madrid-only snapshot. Its source month, workbook
 year, retrieval time and latest actually published month are stored separately;
 moving a Lens cannot alter any origin value.
 
+Domestic Origin Dynamics compares a selected source month only with the exact
+prior calendar month when it is present in the committed artifact. It describes
+published municipality sets: published in both months, newly present in the
+published set, and no longer present in the published set. A row entering or
+leaving that set does **not** establish that tourism started or stopped, because
+the source publishes only crossings above 30 tourists. An absent value is never
+converted to zero. Observed count changes and percentages are shown only where
+the source publishes both monthly values. This is descriptive, not causal or
+predictive, and it does not establish visitor retention, all-origin shares,
+province totals, international origins or any geography within Madrid.
+
 ## Evidence states shown in the UI
 
 - **MODEL-DERIVED** — one or more HATI samples fall inside the active lens;

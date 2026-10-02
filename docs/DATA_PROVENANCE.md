@@ -601,6 +601,15 @@ independent of barrios, districts, map coordinates and Lens state.
   sidecar. It records a structural fingerprint. Refresh by running that builder
   against an official workbook, reviewing both committed outputs, and running
   the deployment validator; never commit the source workbook itself.
+- **Derived temporal comparison:** Domestic Origin Dynamics derives its
+  published-set classifications and observed count changes at runtime from this
+  same artifact. The underlying counts remain official statistical observations;
+  shared/newly-present/no-longer-present classifications and count deltas are
+  model-derived descriptive transformations, not a second source or duplicate
+  artifact. It requires the exact prior calendar month, treats absent rows as
+  unavailable rather than zero, calculates numeric change only where both
+  months publish a value, and remains descriptive rather than causal or
+  predictive.
 
 
 ## Observed pedestrian activity (`data/pedestrian_activity.json`)
