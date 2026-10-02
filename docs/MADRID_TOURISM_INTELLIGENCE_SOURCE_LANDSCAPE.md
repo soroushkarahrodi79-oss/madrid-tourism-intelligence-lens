@@ -237,6 +237,28 @@ elsewhere in Dataestur.**
 
 ### A2 · `TURISMO_INTERNO_MUN_MUN_DL` — domestic origin→destination → **USE**
 
+> **↓ GATE H ADDENDUM — 2 October 2026.**
+> Gate H resolves the open unit/suppression questions and changes the production
+> acquisition route, not the statistic. **H-A = GO via INE direct workbook.**
+> The originating INE workbook publishes one sheet per month with the exact
+> fields `mes, mun_orig_cod, mun_orig, dest_cod, dest, turistas,
+> prov_orig_cod, prov_orig, prov_dest_cod, prov_dest`. Madrid is selected by
+> `dest_cod=28079`, corroborated by destination name Madrid and province code
+> 28. The workbook describes the measure as tourists resident in Spain who
+> travel to a province different from their province of residence.
+>
+> Statistical secrecy is binding: **only origin-destination crossings with more
+> than 30 tourists are published. An absent row is therefore not zero**, and the
+> visible sum of published origins is not automatically a complete Madrid total.
+> The 2026 workbook verified in CI contained monthly sheets 2026-01 through
+> 2026-07.
+>
+> Dataestur remains a valid documented redistribution/discovery route:
+> `/TURISMO_INTERNO_MUN_MUN_DL` requires `año` and returns CSV. However, a
+> 2025 request returned **HTTP 504 Gateway Time-out** in GitHub Actions on
+> 2026-10-02, so production must not depend on that route while the failure
+> persists. See [Gate H](DESTINATION_ORIGIN_GATE_H.md).
+
 Origin and destination of resident tourists visiting another Spanish
 municipality. **Municipality → municipality**, available **since 2019**, year
 parameter, **CSV**.
@@ -250,6 +272,16 @@ must be reported exactly as the source names it and never silently relabelled
 "tourists" if the source says trips. **Do not distribute to barrios.**
 
 ### A3 · `TURISMO_RECEPTOR_MUN_PAIS_DL` — international origin → **USE**
+
+> **↓ GATE H ADDENDUM — 2 October 2026.**
+> The Gate-C0 source remained a legitimate candidate, but **H-B is now
+> HOLD / WATCH**. INE ended the experimental inbound mobile-position series at
+> reference month **December 2025** while integrating inbound measurement into
+> FRONTUR, and states that future municipality-level FRONTUR results will not be
+> comparable with the experimental series. Do not present domestic and
+> international origin as synchronized current series, and do not stitch the
+> experimental/FRONTUR boundary without an official comparability bridge.
+> See [Gate H](DESTINATION_ORIGIN_GATE_H.md).
 
 Origin country of foreign tourists, at **municipality-level destination**.
 Available from **2019-07**, **CSV**. A later extension of the same Destination
@@ -701,9 +733,10 @@ question. Only then does an indicator get named.
    methodology gate.
 3. **Municipal Urban Heat Context** (ICU 2024), after its own gate, kept
    strictly separate from HATI.
-4. **Destination-origin extension**: `TURISMO_INTERNO_MUN_MUN_DL` and
-   `TURISMO_RECEPTOR_MUN_PAIS_DL` onto the existing Destination Context
-   surface.
+4. **Domestic Origin Context v1** — authorized by Gate H from the direct INE
+   workbook at municipality 28079, preserving the >30-tourist suppression rule.
+   **International origin remains HOLD / WATCH** pending the new municipal
+   FRONTUR series and an explicit comparability treatment.
 5. **Promote the official Callejero into shared reconciliation infrastructure**
    — *when a second dataset actually needs it*, not before.
 
