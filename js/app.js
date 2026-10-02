@@ -25,7 +25,7 @@ const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 // modules load identically however the page is served. They are ES modules
 // (shared with `node --test`), while the rest of the app is classic scripts.
 const MODULE_BASE = (document.currentScript && document.currentScript.src) || window.location.href;
-const AREA_ASSET_VERSION = "20261002-39";
+const AREA_ASSET_VERSION = "20261002-40";
 const moduleUrl = (name) => new URL(`${name}?v=${AREA_ASSET_VERSION}`, MODULE_BASE).href;
 
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
@@ -1542,7 +1542,7 @@ async function loadHospitalityContext() {
 // and HATI all stand.
 const destinationModel = { module: null, index: null, meta: null };
 let destinationState = "loading"; // loading | ready | unavailable
-const originModel = { module: null, index: null, i18n: null };
+const originModel = { module: null, index: null, i18n: null, dynamics: null, dynamicsI18n: null };
 let originMonth = null;
 
 function renderDestinationContext() {
@@ -1740,6 +1740,47 @@ async function loadDestinationContext() {
 // Context. This loader is deliberately separate from Lens and area context;
 // changing a position, radius, barrio or compare mode cannot call it.
 function originT(key) { return originModel.i18n?.t(key) || key; }
+function dynamicsT(key, values = {}) { return (originModel.dynamicsI18n?.t(key) || key).replace(/\{(\w+)\}/g, (_, name) => values[name] ?? ""); }
+function dynamicsCount(value) { return Number.isInteger(value) ? value.toLocaleString(document.documentElement.lang || "en-GB") : "—"; }
+function dynamicsIdentity(row) { return `${escapeHtml(row.origin_municipality_name)} <span class="muted">${row.origin_municipality_code}</span>`; }
+function dynamicsChange(row) {
+  if (!Number.isFinite(row.absoluteChange) || !Number.isFinite(row.percentChange)) return "—";
+  const count = `${row.absoluteChange > 0 ? "+" : ""}${dynamicsCount(row.absoluteChange)}`;
+  const percent = `${row.percentChange > 0 ? "+" : ""}${row.percentChange.toFixed(1)}%`;
+  return `${count} · ${percent}`;
+}
+function dynamicsStateLine(module, model) {
+  if (model.state === module.DYNAMICS_STATE.UNAVAILABLE) return dynamicsT("unavailable");
+  if (model.state === module.DYNAMICS_STATE.MONTH_UNAVAILABLE) return dynamicsT("monthUnavailable");
+  if (model.state === module.DYNAMICS_STATE.NO_ADJACENT_PRIOR_MONTH) return dynamicsT("noPrior");
+  if (model.state === module.DYNAMICS_STATE.CURRENT_MONTH_EMPTY) return dynamicsT("emptyCurrent");
+  if (model.state === module.DYNAMICS_STATE.NO_SHARED_ORIGINS) return dynamicsT("noShared");
+  return "";
+}
+function renderDomesticOriginDynamics() {
+  const module = originModel.dynamics;
+  if (!module || !originModel.dynamicsI18n) return;
+  const model = module.compareDomesticOriginMonths(originModel.index, originMonth);
+  const ready = Boolean(model.summary);
+  setText("domesticOriginDynamicsHeading", dynamicsT("heading"));
+  setText("domesticOriginDynamicsRelationship", model.currentMonth && model.previousMonth ? dynamicsT("relationship", { current: model.currentMonth, previous: model.previousMonth }) : "");
+  const summary = document.getElementById("domesticOriginDynamicsSummary");
+  if (summary) summary.innerHTML = ready ? [
+    ["currentPublished", model.summary.currentPublishedOrigins], ["previousPublished", model.summary.previousPublishedOrigins], ["shared", model.summary.sharedOrigins], ["newlyPresent", model.summary.newlyPresentOrigins], ["noLongerPresent", model.summary.noLongerPresentOrigins],
+  ].map(([label, value]) => `<div><span>${dynamicsT(label)}</span><b>${dynamicsCount(value)}</b></div>`).join("") : "";
+  setText("domesticOriginDynamicsSharedHeading", dynamicsT("sharedHeading"));
+  setText("domesticOriginDynamicsOrigin", dynamicsT("origin")); setText("domesticOriginDynamicsPrevious", dynamicsT("previous")); setText("domesticOriginDynamicsCurrent", dynamicsT("current")); setText("domesticOriginDynamicsChange", dynamicsT("observedChange"));
+  const sharedRows = document.getElementById("domesticOriginDynamicsSharedRows");
+  if (sharedRows) sharedRows.innerHTML = model.shared.map((row) => `<tr><td>${dynamicsIdentity(row)}</td><td>${dynamicsCount(row.previousCount)}</td><td>${dynamicsCount(row.currentCount)}</td><td>${dynamicsChange(row)}</td></tr>`).join("");
+  const shared = document.getElementById("domesticOriginDynamicsShared"); if (shared) shared.hidden = !ready || model.shared.length === 0;
+  setText("domesticOriginDynamicsNewlyPresent", `${dynamicsT("newlyPresent")} (${dynamicsCount(model.newlyPresent.length)})`);
+  setText("domesticOriginDynamicsNoLongerPresent", `${dynamicsT("noLongerPresent")} (${dynamicsCount(model.noLongerPresent.length)})`);
+  setText("domesticOriginDynamicsNewlyOrigin", dynamicsT("origin")); setText("domesticOriginDynamicsNoLongerOrigin", dynamicsT("origin")); setText("domesticOriginDynamicsCurrentPublished", dynamicsT("currentPublishedCount")); setText("domesticOriginDynamicsPreviousPublished", dynamicsT("previousPublishedCount"));
+  const newlyRows = document.getElementById("domesticOriginDynamicsNewlyRows"); if (newlyRows) newlyRows.innerHTML = model.newlyPresent.map((row) => `<tr><td>${dynamicsIdentity(row)}</td><td>${dynamicsCount(row.currentCount)}</td></tr>`).join("");
+  const noLongerRows = document.getElementById("domesticOriginDynamicsNoLongerRows"); if (noLongerRows) noLongerRows.innerHTML = model.noLongerPresent.map((row) => `<tr><td>${dynamicsIdentity(row)}</td><td>${dynamicsCount(row.previousCount)}</td></tr>`).join("");
+  const transitions = document.getElementById("domesticOriginDynamicsTransitions"); if (transitions) transitions.hidden = !ready;
+  setText("domesticOriginDynamicsState", dynamicsStateLine(module, model)); setText("domesticOriginDynamicsDisclosure", dynamicsT("disclosure"));
+}
 function renderDomesticOrigins() {
   const host = document.getElementById("domesticOrigins");
   if (!host || !originModel.module || !originModel.i18n) return;
@@ -1755,11 +1796,12 @@ function renderDomesticOrigins() {
   if (rows) rows.innerHTML = model.origins.map((row) => `<tr><td>${escapeHtml(row.origin_municipality_name)} <span class="muted">${row.origin_municipality_code}</span></td><td>${row.countDisplay}</td></tr>`).join("");
   setText("domesticOriginsState", model.state === module.ORIGIN_STATE.UNAVAILABLE ? originT("unavailable") : model.state === module.ORIGIN_STATE.MONTH_UNAVAILABLE ? originT("periodUnavailable") : module.ORIGIN_SCOPE_CAVEAT);
   setText("domesticOriginsCaveat", originT("caveat"));
+  renderDomesticOriginDynamics();
 }
 async function loadDomesticOrigins() {
   try {
-    const [module, i18nModule, artifact] = await Promise.all([import(moduleUrl("domestic-origin-context.js")), import(moduleUrl("i18n.js")), fetchAreaJson("data/destination/madrid_domestic_origins.json")]);
-    originModel.module = module; originModel.i18n = i18nModule.createI18n(module.ORIGIN_DICTIONARIES, document.getElementById("languageSelect").value); originModel.index = module.createDomesticOriginIndex(artifact); originMonth = originModel.index?.latest || null; renderDomesticOrigins();
+    const [module, dynamicsModule, i18nModule, artifact] = await Promise.all([import(moduleUrl("domestic-origin-context.js")), import(moduleUrl("domestic-origin-dynamics.js")), import(moduleUrl("i18n.js")), fetchAreaJson("data/destination/madrid_domestic_origins.json")]);
+    originModel.module = module; originModel.dynamics = dynamicsModule; originModel.i18n = i18nModule.createI18n(module.ORIGIN_DICTIONARIES, document.getElementById("languageSelect").value); originModel.dynamicsI18n = i18nModule.createI18n(dynamicsModule.DYNAMICS_DICTIONARIES, document.getElementById("languageSelect").value); originModel.index = module.createDomesticOriginIndex(artifact); originMonth = originModel.index?.latest || null; renderDomesticOrigins();
   } catch (error) { console.warn("domestic origin context unavailable", error); if (originModel.module) renderDomesticOrigins(); }
 }
 
@@ -1935,6 +1977,7 @@ document.getElementById("languageSelect").onchange = (event) => {
   hospitalityModel.i18n?.setLanguage(event.target.value);
   applyHospitalityCopy();
   originModel.i18n?.setLanguage(event.target.value);
+  originModel.dynamicsI18n?.setLanguage(event.target.value);
   renderDomesticOrigins();
 };
 document.getElementById("domesticOriginsMonth").onchange = (event) => { originMonth = event.target.value; renderDomesticOrigins(); };
