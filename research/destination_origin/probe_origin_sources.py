@@ -85,7 +85,8 @@ def choose_measure_columns(headers: list[str]) -> list[int]:
 
 def scan_year(year: int) -> dict:
     response, url = request_year(year)
-    digest = hashlib.sha256()\n    content_length = response.headers.get("Content-Length")
+    digest = hashlib.sha256()
+    content_length = response.headers.get("Content-Length")
     content_type = response.headers.get("Content-Type")
     disposition = response.headers.get("Content-Disposition")
 
