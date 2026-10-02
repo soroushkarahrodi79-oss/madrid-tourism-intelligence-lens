@@ -443,7 +443,9 @@ function updateHaloLayout() {
 // Browser regression tests exercise the production Leaflet renderer with
 // deterministic evidence and map geometry. The seam is opt-in by query string
 // and is absent during normal use.
-if (new URLSearchParams(window.location.search).get("haloRegressionTest") === "1") {
+const haloRegressionRequested = new URLSearchParams(window.location.search).get("haloRegressionTest") === "1";
+const haloRegressionLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
+if (haloRegressionRequested && haloRegressionLocal) {
   window.__HALO_REGRESSION__ = Object.freeze({
     fixture: Object.freeze({
       radiusMode: "EQUAL_RADIUS",
