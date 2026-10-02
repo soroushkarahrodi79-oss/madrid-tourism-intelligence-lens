@@ -217,6 +217,41 @@ test("whole-circle Madrid AOI eligibility tests boundary segments conservatively
   assert.equal(index.municipalityContainsCircle(-3.58, 40.35, 1300).eligible, true);
 });
 
+test("whole-circle AOI uses the municipality exterior, not internal district seams", () => {
+  const index = createGeographyIndex(GEO);
+  const municipality = MUNICIPALITY[0].geometry;
+
+  // The official municipality is the union of all 21 official districts. Its
+  // canonical geometry is one exterior ring; district edges must not become
+  // false municipal edges in the circle-clearance index.
+  assert.equal(municipality.type, "Polygon");
+  assert.equal(municipality.coordinates.length, 1);
+  assert.equal(DISTRICTS.length, 21);
+  assert.equal(META.municipality_geometry.how, "shapely unary_union of the 21 official district polygons. The service's TERMINO MUNICIPAL layer is a polyline, so no published municipality polygon exists to use directly.");
+
+  // This point lies on the actual Centro / Arganzuela shared district edge.
+  // A 250 m circle around it crosses that internal seam but remains well
+  // inside Madrid, so it must remain eligible.
+  const seamCircle = index.municipalityContainsCircle(-3.693086, 40.40745775, 250);
+  assert.equal(index.districtAt(-3.693086, 40.40745775).official_id, "02");
+  assert.equal(seamCircle.state, "inside");
+  assert.equal(seamCircle.eligible, true);
+  assert.ok(seamCircle.conservativeClearanceM > 252);
+
+  // A circle wholly inside the centre and one whose centre remains inside but
+  // whose edge crosses Madrid's exterior exercise opposite sides of the rule.
+  assert.equal(index.municipalityContainsCircle(-3.7038, 40.4168, 100).eligible, true);
+  assert.equal(index.municipalityContainsCircle(-3.7, 40.5, 5000).eligible, false);
+  assert.equal(index.municipalityContainsCircle(-3.887, 40.35, 100).state, "outside");
+
+  // This 1.3 km circle is clear; at 1.388 km the boundary is within the 2 m
+  // conservative guard band and the result abstains.
+  assert.equal(index.municipalityContainsCircle(-3.58, 40.35, 1300).eligible, true);
+  const guardBand = index.municipalityContainsCircle(-3.58, 40.35, 1388);
+  assert.equal(guardBand.eligible, false);
+  assert.equal(guardBand.state, "crosses");
+});
+
 test("point-in-polygon is deterministic for a given point", () => {
   const index = createGeographyIndex(GEO);
   const a = index.locate(-3.7038, 40.4168);
