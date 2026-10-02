@@ -1,365 +1,207 @@
 #!/usr/bin/env python3
-"""Gate H probe for Madrid destination-origin evidence.
+"""Gate H-A probe: Dataestur domestic municipality-origin evidence for Madrid.
 
-This is a research probe, not a production builder. It interrogates INE's
-official Tempus3 JSON API for the two municipality-level origin tables already
-identified in Gate C0:
-
-- domestic origin municipality -> destination municipality (table 53001)
-- inbound country of residence -> destination municipality (table 52048)
-
-The probe is deliberately compact: resolve the destination-municipality group,
-prove Madrid is official municipality code 28079, fetch only the Madrid slice,
-and report the source unit, periods and null/secrecy/zero semantics.
+Research probe only. The official Dataestur OpenAPI documents
+/TURISMO_INTERNO_MUN_MUN_DL with one required year parameter and a CSV response.
+This probe streams the file, fingerprints it, identifies its schema, and retains
+only bounded evidence for destination municipality Madrid (28079).
 """
 
 from __future__ import annotations
 
+import csv
+import hashlib
 import json
-import sys
-import urllib.error
+import re
+import unicodedata
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-API_ROOT = "https://servicios.ine.es/wstempus/js/ES"
-SERIES_ROOT = "https://servicios.ine.es/wstempus/jsCache/ES"
-TABLES = {
-    "domestic": {
-        "table_id": 53001,
-        "title": "Número de turistas por municipio de origen y destino",
-    },
-    "inbound": {
-        "table_id": 52048,
-        "title": "RECEPTOR - Número de turistas mensuales por municipio de destino, desglosados por continente y país de residencia.",
-    },
-}
+BASE_URL = "https://www.dataestur.es/API-SEGITTUR-v2/TURISMO_INTERNO_MUN_MUN_DL"
+YEARS_TO_TRY = (2026, 2025, 2024)
 MADRID_CODE = "28079"
-MADRID_NAME = "Madrid"
-OUT = Path("research/destination_origin/probe_report.json")
+OUT = Path("research/destination_origin/dataestur_domestic_probe.json")
 
 
-def fetch_json(
-    path: str,
-    params: list[tuple[str, str | int]] | None = None,
-    timeout: int = 180,
-    root: str = API_ROOT,
-):
-    query = urllib.parse.urlencode(params or [])
-    url = f"{root}/{path}" + (f"?{query}" if query else "")
+def norm(value: str) -> str:
+    text = unicodedata.normalize("NFKD", str(value or ""))
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    return re.sub(r"[^a-z0-9]+", "_", text.casefold()).strip("_")
+
+
+def delimiter_from(header_line: str) -> str:
+    candidates = [";", ",", "\t", "|"]
+    return max(candidates, key=header_line.count)
+
+
+def request_year(year: int):
+    query = urllib.parse.urlencode({"año": year})
+    url = f"{BASE_URL}?{query}"
     req = urllib.request.Request(
         url,
         headers={
-            "Accept": "application/json",
-            "User-Agent": "madrid-tourism-intelligence-lens/1.0 Gate-H source probe",
+            "Accept": "application/octet-stream,text/csv,*/*",
+            "User-Agent": "madrid-tourism-intelligence-lens/1.0 Gate-H-A probe",
         },
     )
-    with urllib.request.urlopen(req, timeout=timeout) as response:
-        raw = response.read()
-    if not raw.strip():
-        raise RuntimeError(f"{url} returned an empty body")
-    return json.loads(raw.decode("utf-8")), url
+    return urllib.request.urlopen(req, timeout=240), url
 
 
-def text(value) -> str:
-    return str(value or "").strip()
+def decode(raw: bytes) -> str:
+    for enc in ("utf-8-sig", "utf-8", "cp1252", "latin-1"):
+        try:
+            return raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("utf-8", errors="replace")
 
 
-def item_name(item: dict) -> str:
-    for key in ("Nombre", "nombre", "Name", "name"):
-        if key in item:
-            return text(item[key])
-    return ""
+def parse_row(line: str, delimiter: str) -> list[str]:
+    return next(csv.reader([line], delimiter=delimiter))
 
 
-def item_id(item: dict):
-    for key in ("Id", "id", "ID"):
-        if key in item:
-            return item[key]
-    return None
+def choose_destination_columns(headers: list[str]) -> list[int]:
+    result = []
+    for idx, header in enumerate(headers):
+        n = norm(header)
+        if "destino" not in n:
+            continue
+        if any(token in n for token in ("codigo", "cod_", "municipio", "ine")):
+            result.append(idx)
+    return result
 
 
-def item_code(item: dict) -> str:
-    for key in ("Codigo", "Código", "codigo", "code", "Cod"):
-        if key in item:
-            return text(item[key])
-    return ""
+def choose_measure_columns(headers: list[str]) -> list[int]:
+    result = []
+    for idx, header in enumerate(headers):
+        n = norm(header)
+        if any(token in n for token in ("turista", "viaje", "valor", "numero", "flujo")):
+            if not any(token in n for token in ("origen", "destino", "codigo", "municipio")):
+                result.append(idx)
+    return result
 
 
-def find_destination_group(groups: list[dict]) -> dict:
-    candidates = []
-    for group in groups:
-        name = item_name(group).casefold()
-        if "municipio" in name and "destino" in name:
-            candidates.append(group)
-    if len(candidates) != 1:
-        raise RuntimeError(
-            f"expected exactly one destination-municipality group, found {len(candidates)}: "
-            f"{[item_name(g) for g in candidates]}"
-        )
-    return candidates[0]
+def scan_year(year: int) -> dict:
+    response, url = request_year(year)
+    digest = hashlib.sha256()
+    content_type = response.headers.get("Content-Type")
+    disposition = response.headers.get("Content-Disposition")
 
+    first_raw = response.readline()
+    if not first_raw:
+        raise RuntimeError("empty response")
+    digest.update(first_raw)
+    first = decode(first_raw).rstrip("\r\n")
+    delimiter = delimiter_from(first)
+    headers = [h.strip() for h in parse_row(first, delimiter)]
+    if len(headers) < 2:
+        raise RuntimeError(f"could not parse CSV header: {first[:300]!r}")
 
-def find_madrid_value(values: list[dict]) -> dict:
-    exact_code = [v for v in values if item_code(v) == MADRID_CODE]
-    if len(exact_code) == 1:
-        return exact_code[0]
-    exact_name = [v for v in values if item_name(v).casefold() == MADRID_NAME.casefold()]
-    if len(exact_name) == 1:
-        return exact_name[0]
-    matches = [
-        {"id": item_id(v), "name": item_name(v), "code": item_code(v)}
-        for v in values
-        if "madrid" in item_name(v).casefold() or MADRID_CODE in item_code(v)
-    ]
-    raise RuntimeError(f"Madrid municipality 28079 not uniquely resolved: {matches[:20]}")
-
-
-def flatten_series(payload):
-    if isinstance(payload, list):
-        return payload
-    if isinstance(payload, dict):
-        for key in ("Data", "data", "Series", "series"):
-            value = payload.get(key)
-            if isinstance(value, list):
-                return value
-        preview = json.dumps(payload, ensure_ascii=False)[:1200]
-        raise RuntimeError(
-            f"unexpected SERIES_TABLA object keys={list(payload)[:20]} preview={preview}"
-        )
-    raise RuntimeError(f"unexpected SERIES_TABLA shape: {type(payload).__name__}")
-
-
-def observations(series: dict) -> list[dict]:
-    for key in ("Data", "data"):
-        value = series.get(key)
-        if isinstance(value, list):
-            return value
-    return []
-
-
-def unit_catalog() -> dict[str, str]:
-    payload, _ = fetch_json("UNIDADES")
-    if not isinstance(payload, list):
-        return {}
-    return {str(item_id(x)): item_name(x) for x in payload if item_id(x) is not None}
-
-
-def analyse_table(kind: str, spec: dict, units: dict[str, str]) -> dict:
-    table_id = spec["table_id"]
-    result = {
-        "kind": kind,
-        "table_id": table_id,
-        "title": spec["title"],
-        "reachable": False,
+    dest_cols = choose_destination_columns(headers)
+    measure_cols = choose_measure_columns(headers)
+    total_rows = 0
+    madrid_rows = 0
+    sample = []
+    measure_profile = {
+        headers[i]: {"blank": 0, "zero": 0, "numeric": 0, "other": 0, "examples": []}
+        for i in measure_cols
     }
 
-    try:
-        groups, groups_url = fetch_json(f"GRUPOS_TABLA/{table_id}")
-        if not isinstance(groups, list):
-            raise RuntimeError("GRUPOS_TABLA did not return a list")
+    for raw in response:
+        digest.update(raw)
+        line = decode(raw).rstrip("\r\n")
+        if not line:
+            continue
+        row = parse_row(line, delimiter)
+        if len(row) < len(headers):
+            row += [""] * (len(headers) - len(row))
+        total_rows += 1
 
-        dest_group = find_destination_group(groups)
-        group_id = item_id(dest_group)
-        if group_id is None:
-            raise RuntimeError("destination-municipality group has no Id")
+        match = False
+        if dest_cols:
+            match = any(str(row[i]).strip() == MADRID_CODE for i in dest_cols if i < len(row))
+        else:
+            match = any(str(value).strip() == MADRID_CODE for value in row)
 
-        values, values_url = fetch_json(f"VALORES_GRUPOSTABLA/{table_id}/{group_id}", [("det", 1)])
-        if not isinstance(values, list):
-            raise RuntimeError("VALORES_GRUPOSTABLA did not return a list")
-        madrid = find_madrid_value(values)
+        if not match:
+            continue
 
-        madrid_id = item_id(madrid)
-        madrid_code = item_code(madrid)
-        if madrid_id is None:
-            raise RuntimeError("Madrid destination value has no Id")
-        if madrid_code and madrid_code != MADRID_CODE:
-            raise RuntimeError(f"Madrid destination carries code {madrid_code}, not {MADRID_CODE}")
+        madrid_rows += 1
+        if len(sample) < 20:
+            sample.append({headers[i]: row[i] if i < len(row) else "" for i in range(len(headers))})
 
-        # GRUPOS_TABLA returns a table-group id, which is not necessarily the
-        # Tempus3 variable id accepted by tv=. With det=1, each value exposes
-        # the underlying variable identity; use that instead of guessing.
-        variable = madrid.get("Variable")
-        variable_id = (
-            madrid.get("FK_Variable")
-            or madrid.get("IdVariable")
-            or (variable.get("Id") if isinstance(variable, dict) else variable)
-            or madrid.get("FKVariable")
-        )
-        result.update(
-            {
-                "destination_group_raw": dest_group,
-                "madrid_raw": madrid,
-                "destination_variable_id": variable_id,
-            }
-        )
-        if variable_id is None:
-            raise RuntimeError(
-                f"Madrid value exposes no Tempus3 variable id; keys={list(madrid)[:30]}"
-            )
-
-        # GRUPOS_TABLA/VALORES_GRUPOSTABLA expose ordinary Tempus3 numeric
-        # variable/value identifiers here, so the documented filter is
-        # tv=id_variable:id_valor (19:2813 for Madrid).
-        destination_filter = f"{variable_id}:{madrid_id}"
-        data_payload, data_url = fetch_json(
-            f"DATOS_TABLA/{table_id}",
-            [
-                ("nult", 2),
-                ("tip", "AM"),
-                ("det", 2),
-                ("tv", destination_filter),
-            ],
-        )
-        series = flatten_series(data_payload)
-        if not series:
-            raise RuntimeError("Madrid-filtered DATOS_TABLA returned zero series")
-
-        unit_ids = sorted(
-            {
-                str(s.get("FK_Unidad"))
-                for s in series
-                if s.get("FK_Unidad") is not None
-            }
-        )
-
-        def series_code(s):
-            return text(s.get("COD") or s.get("Cod") or s.get("Codigo"))
-
-        coded = sorted((s for s in series if series_code(s)), key=series_code)
-        sample = coded[:8]
-        all_obs = [row for s in series for row in observations(s)]
-        first_series_with_data = next((s for s in series if observations(s)), None)
-        sample_payload_shape = {
-            "series_keys": sorted(first_series_with_data.keys()) if first_series_with_data else [],
-            "series_metadata": {
-                key: first_series_with_data.get(key)
-                for key in ("COD", "Nombre", "Unidad", "Periodicidad", "FK_Unidad", "FK_Periodicidad")
-                if first_series_with_data and key in first_series_with_data
-            },
-            "observation": observations(first_series_with_data)[0] if first_series_with_data else None,
-        }
-        sample_series = []
-        for s in sample:
-            code = series_code(s)
-            defining_values = []
+        for i in measure_cols:
+            if i >= len(row):
+                continue
+            raw_value = str(row[i]).strip()
+            profile = measure_profile[headers[i]]
+            if raw_value == "":
+                profile["blank"] += 1
+                continue
+            normalized = raw_value.replace(".", "").replace(",", ".")
             try:
-                vals, _ = fetch_json(f"VALORES_SERIE/{code}", [("det", 1)])
-                if isinstance(vals, list):
-                    defining_values = [
-                        {
-                            "variable_id": (
-                                v.get("FK_Variable")
-                                or (
-                                    v.get("Variable", {}).get("Id")
-                                    if isinstance(v.get("Variable"), dict)
-                                    else v.get("Variable")
-                                )
-                            ),
-                            "value_id": item_id(v),
-                            "name": item_name(v),
-                            "code": item_code(v) or None,
-                        }
-                        for v in vals
-                        if item_name(v)
-                    ]
-            except Exception:
-                defining_values = []
+                value = float(normalized)
+                profile["numeric"] += 1
+                if value == 0:
+                    profile["zero"] += 1
+            except ValueError:
+                profile["other"] += 1
+                if raw_value not in profile["examples"] and len(profile["examples"]) < 8:
+                    profile["examples"].append(raw_value)
 
-            sample_series.append(
-                {
-                    "code": code,
-                    "name": s.get("Nombre"),
-                    "unit_id": s.get("FK_Unidad"),
-                    "unit_name": units.get(str(s.get("FK_Unidad"))),
-                    "periodicity": s.get("FK_Periodicidad"),
-                    "observations": len(observations(s)),
-                    "defining_values": defining_values,
-                }
-            )
-
-        periods = sorted(
-            {
-                f"{row.get('Anyo'):04d}-{int(row.get('FK_Periodo')):02d}"
-                for row in all_obs
-                if isinstance(row.get("Anyo"), int)
-                and isinstance(row.get("FK_Periodo"), int)
-                and 1 <= int(row.get("FK_Periodo")) <= 12
-            }
-        )
-
-        null_count = sum(1 for row in all_obs if row.get("Valor") is None)
-        secret_count = sum(1 for row in all_obs if row.get("Secreto") is True)
-        zero_count = sum(
-            1
-            for row in all_obs
-            if isinstance(row.get("Valor"), (int, float)) and row.get("Valor") == 0
-        )
-        unknown_null = sum(
-            1 for row in all_obs if row.get("Valor") is None and row.get("Secreto") is not True
-        )
-
-        result.update(
-            {
-                "reachable": True,
-                "groups_url": groups_url,
-                "values_url": values_url,
-                "data_url": data_url,
-                "destination_filter": destination_filter,
-                "destination_group": {
-                    "id": group_id,
-                    "name": item_name(dest_group),
-                },
-                "madrid": {
-                    "id": madrid_id,
-                    "name": item_name(madrid),
-                    "code": madrid_code or None,
-                },
-                "series_count": len(series),
-                "observation_count": len(all_obs),
-                "sample_payload_shape": sample_payload_shape,
-                "unit_ids": unit_ids,
-                "unit_names": [units.get(x) for x in unit_ids],
-                "periods": periods,
-                "null_count": null_count,
-                "secret_count": secret_count,
-                "true_zero_count": zero_count,
-                "null_without_secret_flag": unknown_null,
-                "sample_series": sample_series,
-            }
-        )
-    except Exception as exc:
-        result["error"] = f"{type(exc).__name__}: {exc}"
-
-    return result
+    response.close()
+    return {
+        "year": year,
+        "url": url,
+        "content_type": content_type,
+        "content_disposition": disposition,
+        "sha256": digest.hexdigest(),
+        "delimiter": delimiter,
+        "headers": headers,
+        "normalized_headers": [norm(h) for h in headers],
+        "destination_candidate_columns": [headers[i] for i in dest_cols],
+        "measure_candidate_columns": [headers[i] for i in measure_cols],
+        "row_count": total_rows,
+        "madrid_row_count": madrid_rows,
+        "madrid_sample": sample,
+        "madrid_measure_profile": measure_profile,
+    }
 
 
 def main() -> int:
     report = {
         "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
-        "source": "INE Tempus3 JSON API",
-        "api_root": API_ROOT,
-        "madrid_required_code": MADRID_CODE,
-        "tables": {},
+        "source": {
+            "authority": "SEGITTUR / Dataestur",
+            "endpoint": "/TURISMO_INTERNO_MUN_MUN_DL",
+            "documented_semantics": "Procedencia y destino de los turistas residentes que visitan un municipio distinto al suyo en el territorio español",
+            "response_format": "CSV",
+            "required_parameter": "año",
+            "documented_available_since": 2019,
+        },
+        "madrid_destination_code": MADRID_CODE,
+        "attempts": [],
+        "selected": None,
     }
 
-    try:
-        units = unit_catalog()
-        report["unit_catalog_reachable"] = True
-    except Exception as exc:
-        units = {}
-        report["unit_catalog_reachable"] = False
-        report["unit_catalog_error"] = f"{type(exc).__name__}: {exc}"
-
-    for kind, spec in TABLES.items():
-        report["tables"][kind] = analyse_table(kind, spec, units)
+    for year in YEARS_TO_TRY:
+        try:
+            result = scan_year(year)
+            report["attempts"].append({"year": year, "ok": True, "madrid_rows": result["madrid_row_count"]})
+            if result["madrid_row_count"] > 0:
+                report["selected"] = result
+                break
+        except Exception as exc:
+            report["attempts"].append({"year": year, "ok": False, "error": f"{type(exc).__name__}: {exc}"})
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    # A blocked source is a Gate-H finding, not a CI infrastructure failure.
+
+    if not report["selected"]:
+        raise SystemExit("Gate H-A hard stop: no usable Madrid destination rows found")
     return 0
 
 
