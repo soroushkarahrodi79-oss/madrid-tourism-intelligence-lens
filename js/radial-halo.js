@@ -25,6 +25,66 @@ const DISPLAY_STATE = Object.freeze({
 const UTCI_PX_PER_C = 2;
 const COMPARISON_RADIUS_MODE = Object.freeze({ EQUAL: "EQUAL_RADIUS", UNEQUAL: "UNEQUAL_RADIUS" });
 
+// V2 keeps the analytical comparison model above deliberately separate from
+// screen-space presentation. These constants describe the small, fixed map
+// instrument only; they are never geographic measurements or data domains.
+const HALO_COMPACT_LABELS = Object.freeze({
+  tourism: "POI",
+  stays: "STAY",
+  pedestrian: "PED",
+  utci: "UTCI",
+});
+const HALO_LAYOUT = Object.freeze({ FULL_MIN_RADIUS_PX: 42, COMPACT_MIN_RADIUS_PX: 30 });
+// These coordinates are deliberately screen-space SVG coordinates. A label is
+// attached to its cardinal slot's full-track endpoint, never to a data fill.
+const HALO_VISUAL_GEOMETRY = Object.freeze({
+  FULL_TRACK_PX: 44,
+  COMPACT_TRACK_PX: 30,
+  LABEL_GAP_PX: 8,
+  LABEL_FOOTPRINT_PX: 96,
+  slots: Object.freeze({
+    north: Object.freeze({ anchor: [68, 52], origin: [68, 52], direction: [0, -1], label: [77, 13], labelAnchor: "start" }),
+    east: Object.freeze({ anchor: [6, 28], origin: [6, 28], direction: [1, 0], label: [58, 32], labelAnchor: "start" }),
+    south: Object.freeze({ anchor: [68, 4], origin: [68, 4], direction: [0, 1], label: [77, 53], labelAnchor: "start" }),
+    west: Object.freeze({ anchor: [130, 28], origin: [130, 28], direction: [-1, 0], label: [78, 32], labelAnchor: "end" }),
+  }),
+});
+
+function haloLabelAnchorForSlot(slot, layout = "full") {
+  if (layout !== "full") return null;
+  const geometry = HALO_VISUAL_GEOMETRY.slots[slot];
+  if (!geometry) return null;
+  const [originX, originY] = geometry.origin;
+  const [directionX, directionY] = geometry.direction;
+  const endX = originX + directionX * HALO_VISUAL_GEOMETRY.FULL_TRACK_PX;
+  const endY = originY + directionY * HALO_VISUAL_GEOMETRY.FULL_TRACK_PX;
+  return Object.freeze({
+    x: endX + (directionX < 0 ? -HALO_VISUAL_GEOMETRY.LABEL_GAP_PX : HALO_VISUAL_GEOMETRY.LABEL_GAP_PX),
+    y: endY + (directionY < 0 ? 4 : directionY > 0 ? 5 : 4),
+    textAnchor: geometry.labelAnchor,
+  });
+}
+
+// Footprints include the longest full-mode status label so collision handling
+// remains conservative even when a slot changes evidence state.
+function haloSlotFootprint(slot, layout = "full") {
+  const compact = layout === "compact";
+  const length = compact ? HALO_VISUAL_GEOMETRY.COMPACT_TRACK_PX : HALO_VISUAL_GEOMETRY.FULL_TRACK_PX;
+  const label = compact ? 0 : HALO_VISUAL_GEOMETRY.LABEL_FOOTPRINT_PX;
+  if (slot === "north") return { minX: compact ? -18 : -68, maxX: compact ? 18 : 8 + label, minY: -length - 4, maxY: 4 };
+  if (slot === "south") return { minX: compact ? -18 : -68, maxX: compact ? 18 : 8 + label, minY: -4, maxY: length + 8 };
+  if (slot === "east") return { minX: -6, maxX: length + 8 + label, minY: compact ? -18 : -28, maxY: compact ? 18 : 28 };
+  if (slot === "west") return { minX: -length - 8 - label, maxX: 6, minY: compact ? -18 : -28, maxY: compact ? 18 : 28 };
+  return null;
+}
+
+function haloFootprintsOverlap(pointA, footprintA, pointB, footprintB) {
+  return pointA.x + footprintA.minX < pointB.x + footprintB.maxX
+    && pointA.x + footprintA.maxX > pointB.x + footprintB.minX
+    && pointA.y + footprintA.minY < pointB.y + footprintB.maxY
+    && pointA.y + footprintA.maxY > pointB.y + footprintB.minY;
+}
+
 function haloCircleAreaKm2(radiusM) {
   return Number.isFinite(radiusM) && radiusM > 0 ? Math.PI * Math.pow(radiusM / 1000, 2) : null;
 }
@@ -171,6 +231,55 @@ function abstention(id, stateA, stateB, qualifier) {
   return { id, stateA, stateB, aValue: null, bValue: null, aMagnitude: null, bMagnitude: null, delta: null, qualifier, comparable: false };
 }
 
+function haloLayoutForRadius(radiusPx) {
+  if (!validNumber(radiusPx) || radiusPx < HALO_LAYOUT.COMPACT_MIN_RADIUS_PX) return "hidden";
+  return radiusPx < HALO_LAYOUT.FULL_MIN_RADIUS_PX ? "compact" : "full";
+}
+
+function haloVisualState(metric, state, which) {
+  if (metric.id === "utci" && state.comparable) return "numeric";
+  if (state.comparable) return state[which === "A" ? "aMagnitude" : "bMagnitude"] === 0 ? "zero" : "numeric";
+  if (state.id === "aoi-withheld") return "withheld";
+  const sideState = state[which === "A" ? "stateA" : "stateB"];
+  if (sideState === "OFF") return "off";
+  if (sideState === "UNAVAILABLE") return "unavailable";
+  if (sideState === "NO_EVIDENCE") return "no-evidence";
+  return "withheld";
+}
+
+function buildHaloGlyphSpec(metric, state, which, layout = "full") {
+  const visualState = haloVisualState(metric, state, which);
+  const statusLabel = {
+    off: "OFF", unavailable: "NA", "no-evidence": "NO DATA", withheld: "WITHHELD",
+  }[visualState];
+  const spec = {
+    metric: metric.id,
+    slot: metric.slot,
+    which,
+    layout,
+    label: HALO_COMPACT_LABELS[metric.id],
+    labelAnchor: haloLabelAnchorForSlot(metric.slot, layout),
+    visualState,
+    type: metric.id === "utci" && visualState === "numeric" ? "temperature" : visualState === "numeric" ? "bar" : visualState === "zero" ? "zero" : "abstain",
+    qualified: state.id === "valid-partial" || state.id === "valid-deployment",
+  };
+  if (visualState === "numeric" && metric.id !== "utci") spec.magnitude = state[which === "A" ? "aMagnitude" : "bMagnitude"];
+  if (visualState === "numeric" && metric.id === "utci") spec.offsetPx = state[which === "A" ? "aOffsetPx" : "bOffsetPx"];
+  if (statusLabel) spec.label = `${spec.label} · ${statusLabel}`;
+  return Object.freeze(spec);
+}
+
+// The renderer may remove only the ambiguous slots. Keeping this tiny policy
+// pure makes degradation deterministic without putting geometry rules into the
+// analytical state model.
+function resolveHaloSlotVisibility({ layout, blockedSlots = [] } = {}) {
+  const blocked = new Set(blockedSlots);
+  return Object.freeze(Object.fromEntries(HALO_METRICS.map((metric) => [metric.id, Object.freeze({
+    visible: layout !== "hidden" && !blocked.has(metric.id),
+    compact: layout === "compact",
+  })])));
+}
+
 function buildHaloComparison(input) {
   const radiusMode = input?.radiusMode || COMPARISON_RADIUS_MODE.EQUAL;
   const window = (metricName) => ({ radiusMode, radii: input?.radii, aoiState: input?.aoiState, metricName });
@@ -242,6 +351,7 @@ function accessibleComparisonSummary(comparison) {
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     HALO_METRICS, SOURCE_LABELS, DISPLAY_STATE, UTCI_PX_PER_C, COMPARISON_RADIUS_MODE, circleAreaKm2: haloCircleAreaKm2, representedRate: haloRepresentedRate,
-    normalizedCountPair, positivePair, buildCountPairState, buildHaloComparison, accessibleComparisonSummary,
+    HALO_COMPACT_LABELS, HALO_LAYOUT, HALO_VISUAL_GEOMETRY, normalizedCountPair, positivePair, buildCountPairState, buildHaloComparison, accessibleComparisonSummary,
+    haloLayoutForRadius, haloLabelAnchorForSlot, haloSlotFootprint, haloFootprintsOverlap, buildHaloGlyphSpec, resolveHaloSlotVisibility,
   };
 }

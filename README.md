@@ -26,9 +26,10 @@ including comparing two places at once.
 - Move **Lens A** (always on) by dragging it or clicking the map.
 - Enable **Lens B** to compare two locations side by side.
 - In Compare mode, use the optional **comparison halo** around each circle for
-  a compact pattern cue: Tourism POIs, represented stays, observed pedestrian
-  activity, and same-timestep HATI UTCI. The panel remains authoritative and
-  shows Lens A, Lens B, and B−A; Mobility stays panel-only.
+  a compact radial-spoke pattern cue: Tourism POIs at 12, represented stays at
+  3, observed pedestrian activity at 6, and same-timestep HATI UTCI at 9. The
+  panel remains authoritative and shows Lens A, Lens B, and B−A; Mobility stays
+  panel-only.
 - Adjust one active-Lens **radius** (100 m – 5 km); Lens A and Lens B keep
   independent radii, and both are shown in Compare mode. Lens B copies A's
   current radius on its first enable in a session and remembers its own radius
@@ -146,13 +147,15 @@ is **not** total tourism demand, **not** all accommodation and **not** a count o
 unique visitors, and nothing explains **why** a figure moved. Full list in
 [`docs/CLAIMS_AND_LIMITATIONS.md`](docs/CLAIMS_AND_LIMITATIONS.md).
 
-The comparison halo is supplementary. In equal-radius mode its POI and stay
-bars use raw represented counts; in eligible unequal-radius mode they use
-represented records/km² on a shared A/B scale. Unequal-radius Mobility deltas
-are withheld. Pedestrian means and UTCI remain in native units with evidence
-coverage. The halo's local pair scale is not a Madrid benchmark, percentage,
-score, or ranking. Missing, off, and no-evidence states remain distinct from a
-genuine observed zero.
+The comparison halo is supplementary. Its screen-space spokes attach just
+outside, but do not enlarge, the analytical Lens boundary. In equal-radius mode
+its POI and stay bars use raw represented counts; in eligible unequal-radius
+mode they use represented records/km² on a shared A/B scale. Unequal-radius
+Mobility deltas are withheld. Pedestrian means remain native; UTCI uses a
+native-°C marker around the current A/B midpoint rather than a zero-based bar.
+Exact values remain panel-authoritative. The halo's local pair scale is not a
+Madrid benchmark, percentage, score, or ranking. Missing, off, no-evidence and
+withheld states are visually distinct from a genuine observed zero.
 
 ## 7. How do I run it locally?
 

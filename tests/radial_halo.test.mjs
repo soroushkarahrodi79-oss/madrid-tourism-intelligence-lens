@@ -10,6 +10,12 @@ import {
   COMPARISON_RADIUS_MODE,
   representedRate,
   buildCountPairState,
+  buildHaloGlyphSpec,
+  haloLabelAnchorForSlot,
+  haloSlotFootprint,
+  haloFootprintsOverlap,
+  haloLayoutForRadius,
+  resolveHaloSlotVisibility,
 } from "../js/radial-halo.js";
 
 const live = (value) => ({ value, sourceState: "live" });
@@ -157,6 +163,82 @@ test("metric slots have stable fixed order even when evidence is absent", () => 
   assert.deepEqual(model.order, ["tourism", "stays", "pedestrian", "utci"]);
   assert.equal(model.metrics.stays.comparable, false);
   assert.deepEqual(model.order, HALO_METRICS.map(({ id }) => id));
+});
+
+test("V2 maps count/rate values to outward bars and real zero to an origin mark", () => {
+  const model = buildHaloComparison(baseInput());
+  const poi = HALO_METRICS.find(({ id }) => id === "tourism");
+  assert.deepEqual(buildHaloGlyphSpec(poi, model.metrics.tourism, "A"), {
+    metric: "tourism", slot: "north", which: "A", layout: "full", label: "POI", labelAnchor: { x: 76, y: 12, textAnchor: "start" }, visualState: "numeric", type: "bar", qualified: false, magnitude: 0.5,
+  });
+  const zeroModel = buildHaloComparison({ ...baseInput(), tourism: { a: live(0), b: live(10) } });
+  assert.equal(buildHaloGlyphSpec(poi, zeroModel.metrics.tourism, "A").type, "zero");
+  assert.notEqual(buildHaloGlyphSpec(poi, zeroModel.metrics.tourism, "A").type, "abstain");
+  const unequal = buildHaloComparison({ ...baseInput(), radiusMode: COMPARISON_RADIUS_MODE.UNEQUAL, radii: { A: 500, B: 1500 }, aoiState: "eligible" });
+  assert.equal(buildHaloGlyphSpec(poi, unequal.metrics.tourism, "A").type, "bar");
+  assert.equal(unequal.metrics.tourism.aValue, representedRate(5, 500));
+});
+
+test("V2 makes unavailable, no evidence and AOI withholding nonnumeric states", () => {
+  const poi = HALO_METRICS.find(({ id }) => id === "tourism");
+  const unavailable = buildHaloComparison({ ...baseInput(), tourism: { a: { value: null, sourceState: "unavailable" }, b: live(10) } });
+  assert.equal(buildHaloGlyphSpec(poi, unavailable.metrics.tourism, "A").visualState, "unavailable");
+  const noEvidenceInput = baseInput(); noEvidenceInput.pedestrian.a.evidence = "NONE"; noEvidenceInput.pedestrian.a.observationCount = 0;
+  const pedestrian = buildHaloComparison(noEvidenceInput).metrics.pedestrian;
+  assert.equal(buildHaloGlyphSpec(HALO_METRICS[2], pedestrian, "A").visualState, "no-evidence");
+  const withheld = buildHaloComparison({ ...baseInput(), radiusMode: COMPARISON_RADIUS_MODE.UNEQUAL, radii: { A: 500, B: 1500 }, aoiState: "crosses" });
+  const withheldSpec = buildHaloGlyphSpec(poi, withheld.metrics.tourism, "A");
+  assert.equal(withheldSpec.visualState, "withheld"); assert.equal(withheldSpec.type, "abstain");
+});
+
+test("V2 uses the UTCI midpoint marker rather than a count bar and keeps short labels at fixed slots", () => {
+  const model = buildHaloComparison(baseInput());
+  const temp = buildHaloGlyphSpec(HALO_METRICS[3], model.metrics.utci, "B");
+  assert.equal(temp.type, "temperature"); assert.equal("magnitude" in temp, false); assert.equal(temp.label, "UTCI");
+  assert.deepEqual(HALO_METRICS.map(({ slot, id }) => [slot, id]), [["north", "tourism"], ["east", "stays"], ["south", "pedestrian"], ["west", "utci"]]);
+});
+
+test("V2 compact fallback and per-slot suppression are deterministic", () => {
+  assert.equal(haloLayoutForRadius(42), "full");
+  assert.equal(haloLayoutForRadius(30), "compact");
+  assert.equal(haloLayoutForRadius(29.9), "hidden");
+  const visible = resolveHaloSlotVisibility({ layout: "full", blockedSlots: ["stays"] });
+  assert.equal(visible.tourism.visible, true); assert.equal(visible.stays.visible, false); assert.equal(visible.utci.visible, true);
+  assert.equal(resolveHaloSlotVisibility({ layout: "compact" }).tourism.compact, true);
+});
+
+test("V2 labels stay at a fixed full-track endpoint across magnitudes and abstention", () => {
+  const poi = HALO_METRICS.find(({ id }) => id === "tourism");
+  const anchors = [0, 0.25, 0.5, 1].map((magnitude) => {
+    const model = buildHaloComparison({ ...baseInput(), tourism: { a: live(magnitude * 10), b: live(10) } });
+    return buildHaloGlyphSpec(poi, model.metrics.tourism, "A").labelAnchor;
+  });
+  assert.deepEqual(anchors, Array(4).fill({ x: 76, y: 12, textAnchor: "start" }));
+  const zeroSpec = buildHaloGlyphSpec(poi, buildHaloComparison({ ...baseInput(), tourism: { a: live(0), b: live(10) } }).metrics.tourism, "A");
+  const withheldSpec = buildHaloGlyphSpec(poi, buildHaloComparison({ ...baseInput(), radiusMode: COMPARISON_RADIUS_MODE.UNEQUAL, radii: { A: 500, B: 1500 }, aoiState: "crosses" }).metrics.tourism, "A");
+  assert.equal(zeroSpec.type, "zero");
+  assert.deepEqual(zeroSpec.labelAnchor, anchors[0]);
+  assert.deepEqual(withheldSpec.labelAnchor, anchors[0]);
+  assert.equal(buildHaloGlyphSpec(poi, buildHaloComparison(baseInput()).metrics.tourism, "A", "compact").labelAnchor, null);
+  assert.equal(haloLabelAnchorForSlot("north", "compact"), null);
+});
+
+test("V2 footprint collisions include fixed full labels while preserving per-slot suppression", () => {
+  const east = haloSlotFootprint("east", "full");
+  const west = haloSlotFootprint("west", "full");
+  assert.equal(haloFootprintsOverlap({ x: 100, y: 100 }, east, { x: 150, y: 100 }, west), true, "full label footprints overlap despite 50 px anchor separation");
+  const visibleA = resolveHaloSlotVisibility({ layout: "full", blockedSlots: ["stays"] });
+  const visibleB = resolveHaloSlotVisibility({ layout: "full", blockedSlots: ["utci"] });
+  assert.equal(visibleA.stays.visible, false); assert.equal(visibleA.tourism.visible, true);
+  assert.equal(visibleB.utci.visible, false); assert.equal(visibleB.pedestrian.visible, true);
+});
+
+test("V2 renderer remains pointer-transparent and excludes Mobility", () => {
+  const app = fs.readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
+  const css = fs.readFileSync(new URL("../css/app.css", import.meta.url), "utf8");
+  assert.match(app, /interactive: false, keyboard: false/);
+  assert.match(css, /\.comparison-halo-icon\{[^}]*pointer-events:none!important/);
+  assert.doesNotMatch(app.slice(app.indexOf("const HALO_SLOT_GEOMETRY"), app.indexOf("const LENS_BASEMAP_STYLES")), /mobility/i);
 });
 
 test("V1 halo model admits no Mobility, Category Mix, or administrative/destination metric", () => {

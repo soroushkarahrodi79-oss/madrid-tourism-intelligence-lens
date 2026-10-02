@@ -12,7 +12,7 @@ falls inside it. Nothing here ranks locations, scores "quality," or predicts
 behaviour — it answers "what is here" and "what does the evidence actually
 support here," nothing more.
 
-## Radial Comparative Halo V1
+## Radial Comparative Halo V2
 
 The optional halo is active only in Compare mode and draws one halo around each
 Lens. It is a supplementary pattern cue; the panel gives the authoritative
@@ -44,17 +44,21 @@ is built with the canonical geography once and reused. If it is unavailable,
 only unequal-radius POI/stay normalization abstains.
 
 The four fixed slots proceed clockwise: Tourism POIs at 12 o'clock, Stays at
-3, Pedestrian activity at 6, and UTCI at 9. Empty or abstaining slots do not
-rotate the order. Mobility stays in the comparison table only. No Category Mix,
-administrative-area, destination, hospitality, parks, or hotel-demand measure
-enters the halo.
+3, Pedestrian activity at 6, and UTCI at 9. V2 makes these fixed positions
+readable as labelled radial spokes (`POI`, `STAY`, `PED`, `UTCI`) attached five
+screen pixels outside the projected circle boundary. Empty or abstaining slots
+do not rotate the order. Mobility stays in the comparison table only. No
+Category Mix, administrative-area, destination, hospitality, parks, or
+hotel-demand measure enters the halo.
 
 For Tourism POIs and Stays, both comparable source states are required. Equal
 windows scale raw counts; eligible unequal windows scale rates after both
 counts are divided by their own full-circle areas. A=5 and B=10 in equal mode
 share a 0.5/1.0 scale. The largest bar is only the maximum within the current
 same-unit A/B pair; it is not a Madrid benchmark, percent, target, score, or
-ranking. AOI/source abstentions show nonnumeric marks, never raw bars or zero.
+ranking. V2 uses a 44 px maximum, 8 px-thick screen-space spoke with a rounded
+outer end; it points away from (rather than extends) the analytical circle.
+AOI/source abstentions show nonnumeric marks, never raw bars or zero.
 
 Pedestrian bars use the observed fixed-counter hourly means, with one shared
 local A/B maximum only when both Lenses have observed records and compatible
@@ -64,7 +68,8 @@ not zero pedestrians; pedestrian evidence is not tourist-specific and is never
 divided by circle area.
 
 UTCI does not use a zero-origin count bar or a percentage. For two same-timestep
-HATI sample means, the halo places each neutral marker relative to their shared
+HATI sample means, V2 uses a short west-facing radial temperature track with an
+identifiable centre tick; each neutral marker remains relative to their shared
 pair midpoint, at 2 screen pixels per 1°C. This preserves the sign and magnitude
 of B−A in the two marks without making 0°C a baseline or defining a thermal
 threshold. The pixel-per-degree conversion is local display geometry, not a
@@ -72,16 +77,18 @@ heat score or performance scale. UTCI remains a mean of model-derived samples
 from the bounded 21 August 2023 pilot; it is not live, citywide, interpolated,
 or a safety or recommendation signal.
 
-OFF, UNAVAILABLE, NO EVIDENCE, and incompatible comparison states use distinct
-non-numeric glyphs; they are never zero-length value bars. Snapshot and
+OFF, UNAVAILABLE, NO EVIDENCE, and withheld/incompatible comparison states use
+distinct non-numeric spoke marks; they are never zero-length value bars. A real
+zero retains the normal track and a Lens-side origin circle. Snapshot and
 deployment qualifiers remain in the panel and accessible A/B summary. The
 screen-reader summary follows the fixed metric order and reports A, B, B−A or
 the reason comparison was withheld. The keyboard/touch toggle controls only
-the map marks. If the projected Lens radius is under 42 pixels, glyphs overlap
-each other, overlap a map control panel, approach within 24 pixels of the map
-edge, or A/B slots approach within 48 pixels, the affected halo is hidden and
-the panel comparison remains available. The marks are screen-space decorations
-and do not change the circle boundary or geographic radius.
+the map marks. At a projected Lens radius of 42 px or more, full spokes and
+labels show; from 30–41.9 px compact unlabeled spokes show; under 30 px they
+hide. Control, map-edge, and A/B collisions suppress only their ambiguous slot
+where possible, with the panel remaining authoritative. The marks are
+screen-space decorations and do not change the circle boundary or geographic
+radius.
 
 ## Area Profile — the administrative area of the Lens centre
 
