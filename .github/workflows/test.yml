@@ -28,8 +28,6 @@ jobs:
       # "python" (not "python3") is the interpreter name actions/setup-python
       # puts on PATH on both runners; "python3" does not exist on Windows.
       - run: python -m unittest discover -s tests -p "test_*.py"
-      - name: Probe Gate H origin sources
+      - name: Probe Gate H-A Dataestur domestic origin source
         if: matrix.os == 'ubuntu-latest'
-        run: |
-          python research/destination_origin/probe_origin_sources.py
-          python research/destination_origin/probe_origin_workbooks.py
+        run: python research/destination_origin/probe_origin_sources.py
