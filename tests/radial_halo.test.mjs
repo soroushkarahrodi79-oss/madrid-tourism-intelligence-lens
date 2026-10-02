@@ -241,6 +241,13 @@ test("V2 renderer remains pointer-transparent and excludes Mobility", () => {
   assert.doesNotMatch(app.slice(app.indexOf("const HALO_SLOT_GEOMETRY"), app.indexOf("const LENS_BASEMAP_STYLES")), /mobility/i);
 });
 
+test("browser regression API requires both its query flag and a local hostname", () => {
+  const app = fs.readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
+  assert.match(app, /const haloRegressionRequested = new URLSearchParams\(window\.location\.search\)\.get\("haloRegressionTest"\) === "1";/);
+  assert.match(app, /const haloRegressionLocal = window\.location\.hostname === "127\.0\.0\.1" \|\| window\.location\.hostname === "localhost";/);
+  assert.match(app, /if \(haloRegressionRequested && haloRegressionLocal\) \{\s*window\.__HALO_REGRESSION__ = Object\.freeze\(/);
+});
+
 test("V1 halo model admits no Mobility, Category Mix, or administrative/destination metric", () => {
   const model = buildHaloComparison(baseInput());
   assert.deepEqual(Object.keys(model.metrics), ["tourism", "stays", "pedestrian", "utci"]);

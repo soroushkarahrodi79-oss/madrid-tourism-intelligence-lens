@@ -17,3 +17,4 @@ data/deployment_manifest.json
 # Python bytecode from running the test suite or the builders.
 __pycache__/
 *.py[cod]
+node_modules/

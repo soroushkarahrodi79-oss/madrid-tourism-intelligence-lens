@@ -440,6 +440,53 @@ function updateHaloLayout() {
   }
 }
 
+// Browser regression tests exercise the production Leaflet renderer with
+// deterministic evidence and map geometry. The seam is opt-in by query string
+// and is absent during normal use.
+const haloRegressionRequested = new URLSearchParams(window.location.search).get("haloRegressionTest") === "1";
+const haloRegressionLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
+if (haloRegressionRequested && haloRegressionLocal) {
+  window.__HALO_REGRESSION__ = Object.freeze({
+    fixture: Object.freeze({
+      radiusMode: "EQUAL_RADIUS",
+      radii: Object.freeze({ A: 900, B: 900 }),
+      aoiState: "eligible",
+      tourism: Object.freeze({ a: Object.freeze({ value: 5, sourceState: "live" }), b: Object.freeze({ value: 10, sourceState: "live" }) }),
+      stays: Object.freeze({ a: Object.freeze({ value: 2, sourceState: "live" }), b: Object.freeze({ value: 4, sourceState: "live" }) }),
+      pedestrian: Object.freeze({ enabled: false, sourceState: "unavailable" }),
+      utci: Object.freeze({ enabled: false }),
+    }),
+    setComparison(input) {
+      lastHaloComparison = buildHaloComparison(input);
+      updateHaloLayout();
+      return lastHaloComparison;
+    },
+    setRadius(which, radiusM) {
+      radii[which] = Number(radiusM);
+      lenses[which].circle.setRadius(radii[which]);
+      updateHaloLayout();
+    },
+    setCenterAtPoint(which, x, y) {
+      const latlng = map.containerPointToLatLng([x, y]);
+      lenses[which].marker.setLatLng(latlng);
+      lenses[which].circle.setLatLng(latlng);
+      updateHaloLayout();
+    },
+    setZoom(zoom) {
+      map.setZoom(Number(zoom), { animate: false });
+    },
+    geometry(which, metric) {
+      const projected = haloPositionsFor(which);
+      const anchor = map.latLngToContainerPoint(projected.positions[metric]);
+      return {
+        center: { x: projected.center.x, y: projected.center.y },
+        anchor: { x: anchor.x, y: anchor.y },
+        radiusPx: projected.radiusPx,
+      };
+    },
+  });
+}
+
 const LENS_BASEMAP_STYLES = {
   light: {
     A: { color: "#123b5f", fillColor: "#3da8ff", fillOpacity: 0.10 },

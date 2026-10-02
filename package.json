@@ -1,0 +1,10 @@
+{
+  "name": "madrid-tourism-intelligence-lens",
+  "private": true,
+  "scripts": {
+    "test:browser": "node --test browser-tests/radial-halo.browser.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}
