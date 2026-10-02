@@ -27,9 +27,10 @@ including comparing two places at once.
 - Enable **Lens B** to compare two locations side by side.
 - Read the **Radial Halo V3** quantitative perimeter bars around each circle:
   Tourism POIs at 12, Hotels & stays at 3, Mobility nodes at 6, and mean HATI
-  UTCI at 9. Each bar **prints its own raw value** and its length is that lens's
-  value as a share of a fixed Madrid reference for the metric, so the map alone
-  shows which lens has more of each metric — in single-lens and Compare mode.
+  UTCI at 9. Each bar **prints its own raw count**, and for the three count
+  metrics its length is that lens's **density** (count per km²) relative to a fixed
+  Madrid reference, so the map shows which lens is denser — comparably even when
+  the two lenses have different radii, in single-lens and Compare mode.
   Bar lengths compare **within a metric only, never across metrics**. The panel
   stays authoritative for exact values, provenance and interpretation; Pedestrian
   activity is panel-only. See
@@ -153,18 +154,23 @@ unique visitors, and nothing explains **why** a figure moved. Full list in
 
 The Radial Halo V3 makes the Lens itself a compact quantitative display. Its
 screen-space bars attach just outside, but do not enlarge, the analytical Lens
-boundary, and follow it through pan, zoom, radius and Compare-mode changes. Every
-bar prints its raw value (`12`, `1,284`, `31.6°C`); bar length is a within-metric
-magnitude — `clamp(raw / reference, 0..1)` against a deterministic Madrid
-reference (the p95 of per-feature local density in a fixed window for counts; a
-model-derived Celsius band for UTCI). The **same reference drives Lens A and
-Lens B**, so a larger valid raw value never produces a shorter bar, and bar
-lengths are comparable **within a metric only, never across metrics**. The circle
-boundary is quieter than the bars; A and B differ by hue **and** structure (B's
-fill is dashed) so colour is never the only cue. Exact values stay
+boundary, and follow it through pan, zoom, radius and Compare-mode changes. The
+printed number is always the **raw count** inside the Lens (`12`, `1,284`, or
+`31.6°C` for UTCI). For the three count metrics the **bar length is a density** —
+`clamp((rawCount / circleAreaKm2(radius)) / referenceDensity, 0..1)` — against a
+deterministic Madrid reference density (the p95 of per-feature local density in a
+fixed 900 m window); UTCI's bar is the mean's position in a model-derived Celsius
+band and is never area-normalized. Encoding density (not a raw count) keeps
+**unequal A/B radii comparable**: a bigger window no longer buys a longer bar, and
+counts that scale with area give equal bars. The **same reference density drives
+Lens A and Lens B**, and the identical rule applies in single-lens, equal-radius
+and unequal-radius modes. Bar lengths are comparable **within a metric only, never
+across metrics**. The circle boundary is quieter than the bars; A and B differ by
+hue **and** structure (B's fill is dashed). Densities above the reference saturate
+the bar while the raw number keeps its real magnitude. Exact values stay
 panel-authoritative; the scale is not a Madrid benchmark, percentage, score, or
-ranking. Unavailable data reads `N/A`, off reads `OFF`, and both stay visually
-distinct from a genuine observed `0`. Full contract:
+ranking. Unavailable data reads `N/A`, off reads `OFF`, both distinct from a
+genuine observed `0`. Full contract:
 [`docs/radial-halo-v3.md`](docs/radial-halo-v3.md).
 
 ## 7. How do I run it locally?

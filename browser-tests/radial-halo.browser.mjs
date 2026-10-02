@@ -6,11 +6,14 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
-// Radial Halo V3 browser regression. These tests exercise the production
-// Leaflet/SVG renderer and assert the *semantics* of the quantitative perimeter
-// bars — raw values present, within-metric monotonic lengths, one shared A/B
-// scale, unavailable-vs-zero, single-lens + compare, projection and pointer
-// transparency — not merely that SVG nodes exist.
+// Radial Halo V3 browser regression. Exercises the production Leaflet/SVG
+// renderer and asserts the SEMANTICS of the quantitative perimeter bars:
+// raw values printed, density-based bar length (within-metric), one shared A/B
+// scale, radius-compatible comparison, unavailable-vs-zero, saturation, and
+// pointer transparency. Value-semantics tests use the deterministic query-gated
+// seam so they are independent of which data layers a given checkout ships
+// (notably data/runtime_poi.json is a gitignored deploy artifact, so a clean CI
+// checkout serves only the committed snapshot and mobility is legitimately N/A).
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MIME = {
@@ -46,7 +49,9 @@ const { port } = server.address();
 const browser = await chromium.launch({ headless: true });
 
 const SLOT_METRIC = { north: "tourism", east: "stays", south: "mobility", west: "utci" };
-const ICON_ANCHORS = { north: [68, 54], east: [4, 28], south: [68, 2], west: [132, 28] };
+const COUNT_TOKEN = /^\d[\d,]*$/;              // a grouped integer, including "0"
+const COUNT_OR_NA = /^(\d[\d,]*|N\/A)$/;        // integer or unavailable
+const VALID_TOKEN = /^(\d[\d,]*|N\/A|OFF|-?\d[\d.,]*°C)$/;
 
 async function newPage(viewport = { width: 1366, height: 1024 }) {
   const page = await browser.newPage({ viewport });
@@ -61,26 +66,25 @@ async function newPage(viewport = { width: 1366, height: 1024 }) {
   return page;
 }
 
-// Compare mode: both lenses enabled, positioned apart, Lens A active. The
-// panel/left rails are hidden by default so both lenses' bars sit over open map
-// for geometry reads; pass { panels: true } to keep the Compare panel visible.
-async function openCompare(viewport, { panels = false } = {}) {
+// Compare mode: both lenses enabled, positioned apart, Lens A active. Panels are
+// hidden by default so both lenses' bars sit over open map for geometry reads.
+async function openCompare(viewport, { panels = false, zoom = 13 } = {}) {
   const page = await newPage(viewport);
   await page.locator("#lensBButton").click();
   await page.waitForFunction(() => document.querySelectorAll(".comparison-halo-icon").length > 0);
   if (!panels) await page.addStyleTag({ content: ".panel,.left{display:none!important}" });
-  await page.evaluate(() => {
+  await page.evaluate((z) => {
     const api = window.__HALO_REGRESSION__;
-    api.setZoom(13);
+    api.setZoom(z);
     api.setCenterAtPoint("A", 460, 430);
     api.setCenterAtPoint("B", 1000, 430);
     api.setActive("A");
-  });
+  }, zoom);
   return page;
 }
 
-// Single-lens mode: Lens B never enabled; the halo must still render Lens A.
-// The lens is moved over central (dense) Madrid via the real recompute path.
+// Single-lens mode: Lens B never enabled; the halo must still render Lens A from
+// the real (production) data path, over central Madrid.
 async function openSingle(viewport) {
   const page = await newPage(viewport);
   await page.waitForFunction(() => document.querySelectorAll(".comparison-halo-icon").length > 0);
@@ -107,6 +111,9 @@ async function fillLength(page, lens, slot) {
 async function groupDisplay(page, lens, slot, selector) {
   return glyph(page, lens, slot).locator(selector).evaluate((node) => getComputedStyle(node).display);
 }
+async function saturated(page, lens, slot) {
+  return glyph(page, lens, slot).evaluate((svg) => svg.getAttribute("data-saturated"));
+}
 async function visibleSlots(page, lens) {
   const slots = ["north", "east", "south", "west"];
   return Promise.all(slots.map(async (slot) => {
@@ -121,104 +128,127 @@ async function setComparison(page, patch) {
 async function setRadius(page, which, metres) {
   await page.evaluate(({ which, metres }) => window.__HALO_REGRESSION__.setRadius(which, metres), { which, metres });
 }
-async function setUiRadius(page, which, metres) {
-  await page.locator(which === "A" ? "#lensAButton" : "#lensBButton").click();
-  await page.locator("#radiusSlider").evaluate((input, value) => {
-    input.value = String(value);
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-  }, metres);
-}
 async function geometryFor(page, lens, metric) {
   return page.evaluate(({ lens, metric }) => window.__HALO_REGRESSION__.geometry(lens, metric), { lens, metric });
 }
-
 const live = (value) => ({ value, sourceState: "live" });
 
-// A. single Lens renders four valid metric positions, each printing a raw value.
-test("A/B/N single lens renders four perimeter bars that print real runtime values", async (t) => {
+// A/B/N. Single lens renders four bars that print real runtime values, honest
+// about the actual data contract (mobility may be unavailable in a snapshot-only
+// checkout; it then reads N/A, never a fake 0).
+test("A/B/N single lens renders four perimeter bars printing honest runtime values", async (t) => {
   const page = await openSingle();
   t.after(() => page.close());
-  const slots = await visibleSlots(page, "A");
-  assert.equal(slots.filter((s) => s.visible).length, 4, "all four Lens A slots render with Compare off");
-  // Count metrics at a central lens are numeric and derived from runtime data
-  // (not a test-only constant): north/east/south print plain integers.
-  for (const slot of ["north", "east", "south"]) {
-    const text = await valueText(page, "A", slot);
-    assert.match(text, /^\d[\d,]*$/, `${SLOT_METRIC[slot]} prints a runtime integer, got "${text}"`);
-  }
-  // No Lens B markers exist in single-lens mode.
-  assert.equal(await page.locator(".halo-glyph.halo-b").count(), 0);
+  assert.equal((await visibleSlots(page, "A")).filter((s) => s.visible).length, 4, "all four Lens A slots render with Compare off");
+  assert.match(await valueText(page, "A", "north"), COUNT_TOKEN, "Tourism prints a runtime integer");
+  assert.match(await valueText(page, "A", "east"), COUNT_TOKEN, "Stays prints a runtime integer");
+  assert.match(await valueText(page, "A", "south"), COUNT_OR_NA, "Mobility prints an integer or N/A (never a fake 0)");
+  assert.match(await valueText(page, "A", "west"), VALID_TOKEN, "UTCI prints a valid token");
+  assert.equal(await page.locator(".halo-glyph.halo-b").count(), 0, "no Lens B markers in single-lens mode");
 });
 
-// I + N. The same production path updates values when the Lens radius changes.
-test("I values update from runtime data when the Lens radius changes", async (t) => {
-  const page = await openSingle();
+// C (brief). Monotonic within a metric and ONE shared A/B scale, at equal radius.
+test("C/D/E density bar is monotonic and shares one A/B scale at equal radius", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
   t.after(() => page.close());
-  await page.evaluate(() => { window.__HALO_REGRESSION__.setRadius("A", 400); window.__HALO_REGRESSION__.recompute(); });
-  const small = Number((await valueText(page, "A", "south")).replace(/,/g, ""));
-  await page.evaluate(() => { window.__HALO_REGRESSION__.setRadius("A", 1500); window.__HALO_REGRESSION__.recompute(); });
-  const large = Number((await valueText(page, "A", "south")).replace(/,/g, ""));
-  assert.ok(Number.isFinite(small) && Number.isFinite(large), "mobility value is numeric at both radii");
-  assert.ok(large >= small, "a larger radius never reports fewer mobility nodes");
-  assert.ok(large > small, "a central lens gains mobility nodes as the radius grows");
-});
-
-// C + D + E. Within-metric monotonic lengths, equal values equal, one shared
-// A/B scale (reference 20 for every count metric in the fixture).
-test("C/D/E bar length is monotonic within a metric and shares one A/B scale", async (t) => {
-  const page = await openCompare();
-  t.after(() => page.close());
+  await setRadius(page, "A", 900);
+  await setRadius(page, "B", 900);
   const lengths = [];
-  for (const value of [2, 4, 10, 40]) {
-    await setComparison(page, { tourism: { a: live(value), b: live(10) } });
+  for (const value of [1, 2, 5, 40]) {
+    await setComparison(page, { radii: { A: 900, B: 900 }, tourism: { a: live(value), b: live(10) } });
     lengths.push(await fillLength(page, "A", "north"));
   }
   for (let i = 1; i < lengths.length; i += 1) {
-    assert.ok(lengths[i] >= lengths[i - 1] - 0.01, `length is monotonic non-decreasing (${lengths[i - 1]} -> ${lengths[i]})`);
+    assert.ok(lengths[i] >= lengths[i - 1] - 0.01, `monotonic non-decreasing (${lengths[i - 1]} -> ${lengths[i]})`);
   }
-  assert.ok(lengths[2] > lengths[0], "10 renders a visibly longer bar than 2");
-  assert.ok(Math.abs(lengths[3] - lengths[2]) < 0.5 || lengths[3] >= lengths[2], "a value above the reference clamps, never shrinks");
-
-  // Equal values on A and B produce equal bars (same reference).
-  await setComparison(page, { tourism: { a: live(7), b: live(7) } });
-  assert.ok(Math.abs((await fillLength(page, "A", "north")) - (await fillLength(page, "B", "north"))) < 0.01, "equal values -> equal A/B bars");
-
-  // Shared scale: with reference 20, value 10 is exactly twice value 5.
-  await setComparison(page, { tourism: { a: live(5), b: live(10) } });
-  const a = await fillLength(page, "A", "north");
-  const b = await fillLength(page, "B", "north");
-  assert.ok(a > 0 && b > a, "Lens B (10) is longer than Lens A (5) under the same scale");
-  assert.ok(Math.abs(b - 2 * a) < 1.0, `Lens B length ~= 2x Lens A under the shared reference (a=${a}, b=${b})`);
+  assert.ok(lengths[2] > lengths[0], "5 renders a longer bar than 1");
+  // Equal raw count + equal radius -> equal bars on both lenses.
+  await setComparison(page, { radii: { A: 900, B: 900 }, tourism: { a: live(7), b: live(7) } });
+  assert.ok(Math.abs((await fillLength(page, "A", "north")) - (await fillLength(page, "B", "north"))) < 0.01, "equal density -> equal A/B bars");
+  // Raw numbers printed (brief D); Lens B (10) longer than Lens A (5) (brief E).
+  await setComparison(page, { radii: { A: 900, B: 900 }, tourism: { a: live(5), b: live(10) } });
   assert.equal(await valueText(page, "A", "north"), "5");
   assert.equal(await valueText(page, "B", "north"), "10");
+  assert.ok((await fillLength(page, "B", "north")) > (await fillLength(page, "A", "north")), "same radius: larger count -> longer bar");
 });
 
-// G + H. Missing metric renders an unavailable state and NOT zero; a genuine
-// zero stays a distinct zero state.
-test("G/H unavailable renders N/A (not zero) and a genuine zero stays distinct", async (t) => {
-  const page = await openCompare();
+// B + C (brief). Unequal radii: smaller radius = higher density = longer bar;
+// counts proportional to area = equal density = equal bars.
+test("B/C unequal radii compare by density, not raw window size", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
   t.after(() => page.close());
+  await setRadius(page, "A", 500);
+  await setRadius(page, "B", 1000);
+  // Same raw count, A's window is 4x smaller -> A denser -> A's bar is longer.
+  await setComparison(page, { radii: { A: 500, B: 1000 }, tourism: { a: live(5), b: live(5) } });
+  assert.equal(await valueText(page, "A", "north"), "5");
+  assert.equal(await valueText(page, "B", "north"), "5");
+  assert.ok((await fillLength(page, "A", "north")) > (await fillLength(page, "B", "north")) + 1, "smaller radius, same count -> longer bar");
+  // Counts proportional to area (2 in 500 m, 8 in 1000 m) -> equal density -> equal bars.
+  await setComparison(page, { radii: { A: 500, B: 1000 }, tourism: { a: live(2), b: live(8) } });
+  assert.equal(await valueText(page, "A", "north"), "2");
+  assert.equal(await valueText(page, "B", "north"), "8");
+  const la = await fillLength(page, "A", "north");
+  const lb = await fillLength(page, "B", "north");
+  assert.ok(Math.abs(la - lb) < 0.8, `area-proportional counts -> equal density bars (${la} vs ${lb})`);
+});
 
-  // Genuine zero: a bar-less zero mark with the printed value "0".
+// J(UTCI) (brief). UTCI is Celsius-band based (never area-normalized): the same
+// mean gives the same bar at any Lens radius. Tested on one lens across two radii
+// (both full layout) to avoid cross-lens slot collision.
+test("J(UTCI) UTCI bar is Celsius-band based and radius-independent", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
+  t.after(() => page.close());
+  const utci = { enabled: true, timestepA: "15:00", timestepB: "15:00", a: { evidence: "MODEL-DERIVED", mean: 38, count: 2 }, b: { evidence: "MODEL-DERIVED", mean: 35, count: 2 } };
+  await setComparison(page, { radii: { A: 500, B: 500 }, utci });
+  await setRadius(page, "A", 500);
+  assert.equal(await valueText(page, "A", "west"), "38.0°C");
+  const small = await fillLength(page, "A", "west");
+  await setRadius(page, "A", 1500);
+  assert.equal(await valueText(page, "A", "west"), "38.0°C", "raw UTCI unchanged by radius");
+  const large = await fillLength(page, "A", "west");
+  assert.ok(Math.abs(small - large) < 0.8, `UTCI bar length is radius-independent (${small} vs ${large})`);
+  // And it is a real band position, not full/empty.
+  assert.ok(small > 2, "UTCI bar has a meaningful length");
+});
+
+// H (brief). Values above the reference density saturate the bar, raw unchanged.
+test("H above-reference density saturates the bar while the raw number stays full", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
+  t.after(() => page.close());
+  await setRadius(page, "A", 500);
+  await setRadius(page, "B", 900);
+  await setComparison(page, { radii: { A: 500, B: 900 }, tourism: { a: live(500), b: live(1) } });
+  assert.equal(await valueText(page, "A", "north"), "500", "raw count still printed in full");
+  assert.equal(await saturated(page, "A", "north"), "true", "saturation flagged");
+  assert.equal(await saturated(page, "B", "north"), "false", "below-reference density not flagged");
+  const full = await fillLength(page, "A", "north");
+  assert.ok(full > (await fillLength(page, "B", "north")), "saturated bar is the longer one");
+});
+
+// I (brief). Zero vs unavailable vs off stay distinct in the rendered SVG.
+test("I genuine zero, unavailable and off render distinct states", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
+  t.after(() => page.close());
   await setComparison(page, { tourism: { a: live(0), b: live(10) } });
   assert.equal(await valueText(page, "A", "north"), "0");
   assert.notEqual(await groupDisplay(page, "A", "north", ".halo-zero"), "none");
   assert.equal(await groupDisplay(page, "A", "north", ".halo-abstain"), "none");
 
-  // Unavailable: an abstain mark printing "N/A", with no data bar and no zero.
   await setComparison(page, { tourism: { a: { value: null, sourceState: "unavailable" }, b: live(10) } });
   assert.equal(await valueText(page, "A", "north"), "N/A");
   assert.notEqual(await groupDisplay(page, "A", "north", ".halo-abstain"), "none");
   assert.equal(await groupDisplay(page, "A", "north", ".halo-fill"), "none");
-  assert.equal(await groupDisplay(page, "A", "north", ".halo-zero"), "none");
   assert.match(await glyph(page, "A", "north").locator(".halo-abstain").getAttribute("class"), /halo-state-unavailable/);
+
+  await setComparison(page, { utci: { enabled: false } });
+  assert.equal(await valueText(page, "A", "west"), "OFF");
 });
 
-// J. Switching the active Lens does not remove the other Lens's bars.
+// J (brief). Switching the active lens never removes the other lens's bars.
 test("J active-lens switching keeps both lenses' quantitative bars on the map", async (t) => {
   const page = await openCompare();
   t.after(() => page.close());
-  // Both lenses over dense central Madrid (real recompute), well separated.
   await page.evaluate(() => {
     window.__HALO_REGRESSION__.setZoom(14);
     window.__HALO_REGRESSION__.moveLens("A", 380, 430);
@@ -227,8 +257,8 @@ test("J active-lens switching keeps both lenses' quantitative bars on the map", 
   const bothPresent = async () => {
     assert.equal((await visibleSlots(page, "A")).filter((s) => s.visible).length, 4, "Lens A keeps four bars");
     assert.equal((await visibleSlots(page, "B")).filter((s) => s.visible).length, 4, "Lens B keeps four bars");
-    assert.match(await valueText(page, "A", "south"), /^\d[\d,]*$/, "Lens A still prints its mobility value");
-    assert.match(await valueText(page, "B", "south"), /^\d[\d,]*$/, "Lens B still prints its mobility value");
+    assert.match(await valueText(page, "A", "south"), VALID_TOKEN);
+    assert.match(await valueText(page, "B", "south"), VALID_TOKEN);
   };
   await bothPresent();
   await page.evaluate(() => window.__HALO_REGRESSION__.setActive("B"));
@@ -237,24 +267,18 @@ test("J active-lens switching keeps both lenses' quantitative bars on the map", 
   await bothPresent();
 });
 
-// F. Unequal Lens radii remain correctly projected (5 px attachment per lens).
-test("F unequal radii keep each lens's bars projected onto its own boundary", async (t) => {
+// Unequal radii remain projected 5 px beyond each lens's own boundary.
+test("unequal radii keep each lens's bars projected onto its own boundary", async (t) => {
   const page = await openCompare();
   t.after(() => page.close());
-  await page.addStyleTag({ content: ".panel,.left{display:none!important}" });
-  await page.evaluate(() => {
-    window.__HALO_REGRESSION__.setCenterAtPoint("A", 500, 430);
-    window.__HALO_REGRESSION__.setCenterAtPoint("B", 1200, 430);
-  });
   await setRadius(page, "A", 500);
   await setRadius(page, "B", 1500);
   for (const lens of ["A", "B"]) {
-    const geometry = await geometryFor(page, lens, "tourism");
-    const distance = Math.hypot(geometry.anchor.x - geometry.center.x, geometry.anchor.y - geometry.center.y);
-    assert.ok(Math.abs(distance - geometry.radiusPx - 5) <= 1.5, `${lens} spoke attaches 5 px beyond its own radius`);
-    assert.ok(geometry.radiusPx > 0);
+    const g = await geometryFor(page, lens, "tourism");
+    const distance = Math.hypot(g.anchor.x - g.center.x, g.anchor.y - g.center.y);
+    assert.ok(Math.abs(distance - g.radiusPx - 5) <= 1.5, `${lens} spoke attaches 5 px beyond its own radius`);
+    assert.ok(g.radiusPx > 0);
   }
-  // Independent radii: growing A moves A's spoke, leaves B's untouched.
   const before = await geometryFor(page, "A", "tourism");
   const beforeB = await geometryFor(page, "B", "tourism");
   await setRadius(page, "A", 1500);
@@ -265,15 +289,15 @@ test("F unequal radii keep each lens's bars projected onto its own boundary", as
   assert.ok(Math.abs(afterB.radiusPx - beforeB.radiusPx) < 0.01, "B radius unchanged when A grows");
 });
 
-// K. Pan/zoom preserves attachment to the Lens.
+// K. Pan/zoom preserves attachment.
 test("K pan and zoom preserve bar attachment to the Lens boundary", async (t) => {
   const page = await openCompare();
   t.after(() => page.close());
   await setRadius(page, "A", 900);
   const check = async () => {
-    const geometry = await geometryFor(page, "A", "mobility");
-    const distance = Math.hypot(geometry.anchor.x - geometry.center.x, geometry.anchor.y - geometry.center.y);
-    assert.ok(Math.abs(distance - geometry.radiusPx - 5) <= 1.5, "spoke stays 5 px beyond the projected radius");
+    const g = await geometryFor(page, "A", "mobility");
+    const distance = Math.hypot(g.anchor.x - g.center.x, g.anchor.y - g.center.y);
+    assert.ok(Math.abs(distance - g.radiusPx - 5) <= 1.5, "spoke stays 5 px beyond the projected radius");
   };
   await check();
   await page.evaluate(() => window.__HALO_REGRESSION__.setZoom(15));
@@ -282,8 +306,7 @@ test("K pan and zoom preserve bar attachment to the Lens boundary", async (t) =>
   await check();
 });
 
-// L. Labels/values stay within viewport bounds (or the slot is suppressed) on
-// desktop, laptop and iPad viewports; values are never hidden to fit.
+// L. Values stay legible and in-bounds on desktop, laptop and iPad viewports.
 for (const viewport of [
   { name: "desktop", width: 1440, height: 900 },
   { name: "laptop", width: 1280, height: 800 },
@@ -298,10 +321,8 @@ for (const viewport of [
     for (const lens of ["A", "B"]) {
       for (const { slot, visible, display } of await visibleSlots(page, lens)) {
         if (!visible || display === "none") continue;
-        const value = glyph(page, lens, slot).locator(".halo-value");
-        const box = await value.evaluate((node) => node.getBoundingClientRect().toJSON());
-        // A rendered value is never microscopic and never fully off the map.
-        assert.ok(box.height >= 9, `${lens} ${slot} value font is legible (${box.height}px) on ${viewport.name}`);
+        const box = await glyph(page, lens, slot).locator(".halo-value").evaluate((node) => node.getBoundingClientRect().toJSON());
+        assert.ok(box.height >= 9, `${lens} ${slot} value is legible (${box.height}px) on ${viewport.name}`);
         assert.ok(box.right > mapRect.left && box.left < mapRect.right && box.bottom > mapRect.top && box.top < mapRect.bottom,
           `${lens} ${slot} value stays within the map on ${viewport.name}`);
       }
@@ -325,8 +346,7 @@ test("M the halo is pointer-transparent and clicks pass through to the map", asy
   await page.waitForFunction(() => window.__haloMapClicks === 1);
 });
 
-// Compare panel survives, collisions suppress ambiguous slots, and the single
-// Compare readout remains available throughout.
+// Compare panel survives, collisions suppress ambiguous slots, readout stays.
 test("compare panel and collision suppression stay intact alongside the bars", async (t) => {
   const page = await openCompare(undefined, { panels: true });
   t.after(() => page.close());

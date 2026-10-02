@@ -304,6 +304,9 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .halo-track{stroke:rgba(7,16,27,.5);stroke-width:9;stroke-linecap:round}
 .halo-fill{stroke:var(--halo-color);stroke-width:9;stroke-linecap:round}
 .halo-glyph.halo-b .halo-fill{stroke-width:9;stroke-dasharray:3.2 2.6}
+/* Density at or above the Madrid reference: the bar is clamped to full length,
+   so a subtle glow marks the clamp while the raw number keeps the real value. */
+.halo-glyph[data-saturated="true"] .halo-fill{filter:drop-shadow(0 0 1.3px var(--halo-color))}
 .halo-glyph.halo-b .halo-track{stroke:rgba(7,16,27,.42)}
 .halo-zero{fill:#08101a;stroke:var(--halo-color);stroke-width:2}
 /* The raw value — the primary readable mark. */

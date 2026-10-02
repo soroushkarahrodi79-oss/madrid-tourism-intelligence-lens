@@ -236,15 +236,21 @@ let haloEnabled = true;
 let lastHaloComparison = null;
 let haloVisibilityReason = "";
 
-// Deterministic within-metric reference universe for the perimeter bars,
-// computed once from the loaded dataset and then held constant so a bar's
-// length never changes merely because the Lens radius changes. Tests and the
-// regression seam may inject their own references instead.
-let haloReferenceScales = null;
+// Deterministic reference DENSITIES for the perimeter bars, computed from the
+// loaded dataset (not the live Lens radius) so a bar's scale semantics never
+// change merely because the geography changes. The reference population is the
+// SAME population the raw counts are drawn from — visiblePoiPoints() — so when an
+// accommodation category filter narrows the represented stays, its reference
+// density is recomputed from the same filtered population. Cached per filter key;
+// tests and the regression seam may inject their own references instead.
+const haloReferenceByFilter = new Map();
 let haloUtciBand = null;
 function getHaloReferences() {
-  if (!haloReferenceScales) haloReferenceScales = computeHaloReferenceScales(poiPoints);
-  return haloReferenceScales;
+  const key = stayKindFilter || "all";
+  if (!haloReferenceByFilter.has(key)) {
+    haloReferenceByFilter.set(key, computeHaloReferenceScales(visiblePoiPoints()));
+  }
+  return haloReferenceByFilter.get(key);
 }
 function getHaloUtciBand() {
   if (!haloUtciBand) haloUtciBand = deriveHaloUtciBand(hatiAssets);
@@ -326,6 +332,7 @@ function updateHaloGlyph(marker, state, layout = "full") {
   cached.svg.classList.toggle("halo-active", which === active);
   cached.svg.classList.toggle("halo-inactive", which !== active);
   cached.svg.setAttribute("data-visual-state", spec.visualState);
+  cached.svg.setAttribute("data-saturated", spec.saturated ? "true" : "false");
 
   // The raw value (or N/A / OFF) is the primary mark and is always printed, so
   // the map alone answers "how much"; it stays visible in compact layout too.
@@ -517,7 +524,7 @@ if (haloRegressionRequested && haloRegressionLocal) {
       radiusMode: "EQUAL_RADIUS",
       radii: Object.freeze({ A: 900, B: 900 }),
       aoiState: "eligible",
-      references: Object.freeze({ tourism: 20, stays: 20, mobility: 20 }),
+      references: Object.freeze({ tourism: 8, stays: 8, mobility: 8 }),
       utciBand: Object.freeze({ min: 30, max: 46 }),
       tourism: Object.freeze({ a: Object.freeze({ value: 5, sourceState: "live" }), b: Object.freeze({ value: 10, sourceState: "live" }) }),
       stays: Object.freeze({ a: Object.freeze({ value: 2, sourceState: "live" }), b: Object.freeze({ value: 4, sourceState: "live" }) }),

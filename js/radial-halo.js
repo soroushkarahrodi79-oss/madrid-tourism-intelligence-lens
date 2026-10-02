@@ -39,12 +39,21 @@ const DISPLAY_STATE = Object.freeze({
 const UTCI_PX_PER_C = 2;
 const COMPARISON_RADIUS_MODE = Object.freeze({ EQUAL: "EQUAL_RADIUS", UNEQUAL: "UNEQUAL_RADIUS" });
 
-// Deterministic reference universe for the within-metric bar scale. The count
-// reference is the p95 of each feature's same-metric neighbour count inside a
-// fixed reference window; the UTCI band is a robust Celsius spread. Both are
-// derived from the loaded dataset (see computeHaloReferenceScales /
-// deriveHaloUtciBand) and are intentionally independent of the live Lens
-// radius so bar semantics never change merely because the geography changes.
+// Deterministic reference universe for the within-metric bar scale. For count
+// metrics the reference is a DENSITY (records/km² or nodes/km²): the p95 of each
+// feature's same-metric local density — its neighbour count inside a fixed
+// reference window divided by that window's area. The UTCI band is a robust
+// Celsius spread. Both are derived from the loaded dataset (see
+// computeHaloReferenceScales / deriveHaloUtciBand) and are intentionally
+// independent of the live Lens radius, so the bar's *scale semantics* never
+// change merely because the geography changes.
+//
+// Because the bar encodes spatial density (rawCount / circleAreaKm2(radius))
+// rather than a raw count, unequal Lens radii stay directly comparable: a larger
+// window no longer buys a longer bar for free. The printed number is always the
+// RAW COUNT; the bar length is the represented density relative to this
+// reference. Lens A and Lens B share the reference, so bars never normalize
+// independently. See docs/radial-halo-v3.md.
 const HALO_REFERENCE_DEFAULTS = Object.freeze({ radiusM: 900, quantile: 0.95 });
 const HALO_UTCI_FALLBACK_BAND = Object.freeze({ min: 26, max: 46 });
 
@@ -155,13 +164,16 @@ function haloPointMetric(type) {
   if (type === "bike" || type === "rail") return "mobility";
   return null;
 }
-// p-quantile of each feature's same-metric neighbour count within a fixed
-// reference window. Alignment-free (windows centre on real features) and
-// deterministic given the points, radius and quantile. Floored at 1 so a bar
-// never divides by zero.
+// Per-metric reference DENSITY (records/km² or nodes/km²): the p-quantile of each
+// feature's same-metric local density — its neighbour count inside a fixed
+// reference window divided by that window's area. Alignment-free (windows centre
+// on real features) and deterministic given the points, radius and quantile. The
+// neighbour count is floored at 1 so the reference density is always positive and
+// a bar never divides by zero.
 function computeHaloReferenceScales(points, options = {}) {
   const radiusM = Number.isFinite(options.radiusM) ? options.radiusM : HALO_REFERENCE_DEFAULTS.radiusM;
   const quantile = Number.isFinite(options.quantile) ? options.quantile : HALO_REFERENCE_DEFAULTS.quantile;
+  const windowAreaKm2 = haloCircleAreaKm2(radiusM) || 1;
   const groups = { tourism: [], stays: [], mobility: [] };
   for (const point of points || []) {
     const lat = Number(point.lat);
@@ -169,15 +181,17 @@ function computeHaloReferenceScales(points, options = {}) {
     const metric = haloPointMetric(point.type);
     if (metric && Number.isFinite(lat) && Number.isFinite(lon)) groups[metric].push({ lat, lon });
   }
+  // Each metric value is a DENSITY in records/km², not a raw neighbour count.
   const scales = { radiusM, quantile };
   for (const metric of ["tourism", "stays", "mobility"]) {
     const features = groups[metric];
-    const densities = features.map((centre) => {
+    const localDensities = features.map((centre) => {
       let count = 0;
       for (const other of features) if (haloHaversineMeters(centre, other) <= radiusM) count += 1;
-      return count;
+      return Math.max(1, count) / windowAreaKm2;
     });
-    scales[metric] = Math.max(1, haloQuantile(densities, quantile));
+    const floorDensity = 1 / windowAreaKm2;
+    scales[metric] = Math.max(floorDensity, haloQuantile(localDensities, quantile));
   }
   return Object.freeze(scales);
 }
@@ -205,10 +219,23 @@ function deriveHaloUtciBand(assets, options = {}) {
 
 // --- Within-metric bar magnitude + value formatting ------------------------
 
-function haloBarMagnitude(rawValue, referenceMax) {
-  if (!validNumber(rawValue) || rawValue < 0) return null;
-  if (!validNumber(referenceMax) || referenceMax <= 0) return null;
-  const magnitude = rawValue / referenceMax;
+// Represented spatial density of a count metric inside a Lens, records/km².
+function haloDensity(rawCount, radiusM) {
+  if (!validNumber(rawCount) || rawCount < 0) return null;
+  const area = haloCircleAreaKm2(radiusM);
+  if (area == null) return null;
+  return rawCount / area;
+}
+// Count-metric bar magnitude: the represented density relative to the fixed
+// metric reference density, clamped to [0, 1]. Because it is a density (not a
+// raw count), the same raw count in a smaller Lens yields a longer bar, and two
+// Lenses whose counts scale with their areas yield equal bars — so unequal radii
+// stay directly comparable. The printed number remains the raw count.
+function haloDensityMagnitude(rawCount, radiusM, referenceDensity) {
+  const density = haloDensity(rawCount, radiusM);
+  if (density == null) return null;
+  if (!validNumber(referenceDensity) || referenceDensity <= 0) return null;
+  const magnitude = density / referenceDensity;
   return magnitude < 0 ? 0 : magnitude > 1 ? 1 : magnitude;
 }
 function haloUtciMagnitude(mean, band) {
@@ -394,17 +421,26 @@ function haloLayoutForRadius(radiusPx) {
 // a valid raw value always shows its own bar + number, regardless of whether
 // the A/B *delta* is comparable. Cross-side comparability still governs the
 // panel delta, never a lens's own bar.
-function attachCountBars(state, metricId, references) {
-  const reference = references?.[metricId];
+function attachCountBars(state, metricId, references, radii) {
+  const referenceDensity = references?.[metricId];
+  const radiusA = radii?.A;
+  const radiusB = radii?.B;
   state.aSideState = validNumber(state.aRawValue) ? "VALID" : "UNAVAILABLE";
   state.bSideState = validNumber(state.bRawValue) ? "VALID" : "UNAVAILABLE";
-  state.aBarMagnitude = haloBarMagnitude(state.aRawValue, reference);
-  state.bBarMagnitude = haloBarMagnitude(state.bRawValue, reference);
+  // Bar = represented density relative to the shared metric reference density.
+  state.aDensity = haloDensity(state.aRawValue, radiusA);
+  state.bDensity = haloDensity(state.bRawValue, radiusB);
+  state.aBarMagnitude = haloDensityMagnitude(state.aRawValue, radiusA, referenceDensity);
+  state.bBarMagnitude = haloDensityMagnitude(state.bRawValue, radiusB, referenceDensity);
+  // Saturated = density strictly above the reference (bar clamps at full length).
+  state.aSaturated = validNumber(referenceDensity) && referenceDensity > 0 && state.aDensity != null && state.aDensity > referenceDensity;
+  state.bSaturated = validNumber(referenceDensity) && referenceDensity > 0 && state.bDensity != null && state.bDensity > referenceDensity;
+  // Printed number is always the RAW COUNT.
   state.aValueText = formatHaloValue(metricId, state.aRawValue);
   state.bValueText = formatHaloValue(metricId, state.bRawValue);
   state.aQualified = state.id === "valid-partial" || state.id === "valid-deployment";
   state.bQualified = state.aQualified;
-  state.referenceMax = validNumber(reference) ? reference : null;
+  state.referenceDensity = validNumber(referenceDensity) ? referenceDensity : null;
   return state;
 }
 
@@ -431,11 +467,12 @@ function buildHaloComparison(input) {
   const radiusMode = input?.radiusMode || COMPARISON_RADIUS_MODE.EQUAL;
   const references = input?.references || null;
   const utciBand = input?.utciBand || null;
-  const window = (metricName) => ({ radiusMode, radii: input?.radii, aoiState: input?.aoiState, metricName });
+  const radii = input?.radii || null;
+  const window = (metricName) => ({ radiusMode, radii, aoiState: input?.aoiState, metricName });
   const metrics = {
-    tourism: attachCountBars(countState(input?.tourism?.a, input?.tourism?.b, window("tourism")), "tourism", references),
-    stays: attachCountBars(countState(input?.stays?.a, input?.stays?.b, window("stays")), "stays", references),
-    mobility: attachCountBars(countState(input?.mobility?.a, input?.mobility?.b, window("mobility")), "mobility", references),
+    tourism: attachCountBars(countState(input?.tourism?.a, input?.tourism?.b, window("tourism")), "tourism", references, radii),
+    stays: attachCountBars(countState(input?.stays?.a, input?.stays?.b, window("stays")), "stays", references, radii),
+    mobility: attachCountBars(countState(input?.mobility?.a, input?.mobility?.b, window("mobility")), "mobility", references, radii),
     utci: attachUtciBars(utciState(input?.utci || {}), utciBand),
   };
   return Object.freeze({ order: HALO_METRICS.map((metric) => metric.id), radiusMode, radii: input?.radii || null, aoiState: input?.aoiState || "not-required", references, utciBand, metrics: Object.freeze(metrics) });
@@ -466,6 +503,7 @@ function buildHaloGlyphSpec(metric, state, which, layout = "full") {
   const magnitude = state[which === "A" ? "aBarMagnitude" : "bBarMagnitude"];
   const valueText = state[which === "A" ? "aValueText" : "bValueText"];
   const qualified = Boolean(state[which === "A" ? "aQualified" : "bQualified"]);
+  const saturated = Boolean(state[which === "A" ? "aSaturated" : "bSaturated"]);
   const type = visualState === "numeric" ? "bar" : visualState === "zero" ? "zero" : "abstain";
   const statusText = visualState === "off" ? "OFF" : visualState === "numeric" || visualState === "zero" ? valueText : "N/A";
   const spec = {
@@ -481,6 +519,9 @@ function buildHaloGlyphSpec(metric, state, which, layout = "full") {
     visualState,
     type,
     qualified: qualified && type === "bar",
+    // Density at or above the reference; the bar is clamped full, the raw number
+    // still carries the real magnitude.
+    saturated: saturated && type === "bar",
   };
   if (type === "bar") spec.magnitude = magnitude == null ? 0 : magnitude;
   else if (type === "zero") spec.magnitude = 0;
@@ -531,23 +572,26 @@ function formatEvidenceState(state) {
 // own raw value and makes the within-metric-only comparability explicit.
 function accessibleComparisonSummary(comparison) {
   const radiusCue = comparison.radii ? `Lens A radius ${comparison.radii.A} m; Lens B radius ${comparison.radii.B} m.` : "";
-  const lines = [`Comparison halo. ${radiusCue} Four fixed perimeter bars, clockwise from twelve o'clock: Tourism POIs, Hotels & stays, Mobility nodes, Mean UTCI. Each bar length is this lens's value as a share of a Madrid reference for that metric; bar lengths are comparable within the same metric only, never across metrics.`];
+  const lines = [`Comparison halo. ${radiusCue} Four fixed perimeter bars, clockwise from twelve o'clock: Tourism POIs, Hotels & stays, Mobility nodes, Mean UTCI. The printed number is the raw count inside the lens; for the three count metrics the bar length is that lens's represented spatial density (records per square kilometre) relative to a fixed Madrid reference density, so unequal radii stay comparable. UTCI's bar is its position in a model-derived Celsius band. Bar lengths are comparable within the same metric only, never across metrics.`];
   for (const metric of HALO_METRICS) {
     const state = comparison.metrics[metric.id];
     const a = state.aValueText ? `${state.aValueText} ${metric.unit}`.replace("°C °C", "°C") : formatEvidenceState(state.stateA);
     const b = state.bValueText ? `${state.bValueText} ${metric.unit}`.replace("°C °C", "°C") : formatEvidenceState(state.stateB);
+    const barNote = metric.kind === "count"
+      ? `bar: represented ${metric.id === "stays" ? "stay" : metric.id === "mobility" ? "mobility node" : "POI"} density vs Madrid reference${state.aSaturated || state.bSaturated ? ` (${[state.aSaturated && "Lens A", state.bSaturated && "Lens B"].filter(Boolean).join(" and ")} at or above reference)` : ""}`
+      : "bar: position in model-derived Celsius band";
     const coverage = [state.aCoverage && `Lens A coverage: ${state.aCoverage}`, state.bCoverage && `Lens B coverage: ${state.bCoverage}`]
       .filter(Boolean).join(". ");
     if (state.comparable) {
       const differenceText = comparison.radiusMode === COMPARISON_RADIUS_MODE.UNEQUAL && ["tourism", "stays", "mobility"].includes(metric.id)
         ? `${state.delta > 0 ? "+" : ""}${state.delta.toFixed(1)} represented ${metric.id === "stays" ? "catalogue records" : "records"}/km²`
         : formatDifference(state.delta, metric.id);
-      lines.push(`${metric.label}: Lens A ${a}, Lens B ${b}, difference ${differenceText}. ${coverage ? `${coverage}. ` : ""}${state.qualifier}.`);
+      lines.push(`${metric.label}: Lens A ${a}, Lens B ${b}, difference ${differenceText}; ${barNote}. ${coverage ? `${coverage}. ` : ""}${state.qualifier}.`);
     } else {
-      lines.push(`${metric.label}: Lens A ${a}, Lens B ${b}; direct comparison withheld. ${coverage ? `${coverage}. ` : ""}${state.qualifier}.`);
+      lines.push(`${metric.label}: Lens A ${a}, Lens B ${b}; direct comparison withheld; ${barNote}. ${coverage ? `${coverage}. ` : ""}${state.qualifier}.`);
     }
   }
-  lines.push(`Reference scale is the Madrid ${comparison.references ? `p${Math.round((comparison.references.quantile ?? 0.95) * 100)} local density in a ${comparison.references.radiusM ?? 900} metre window` : "p95 local density"} per count metric, and a model-derived Celsius band for UTCI. Unavailable data reads N/A, never zero; a genuine zero stays a distinct zero state. No bar is a score or recommendation.`);
+  lines.push(`Reference density is the Madrid ${comparison.references ? `p${Math.round((comparison.references.quantile ?? 0.95) * 100)} local density in a ${comparison.references.radiusM ?? 900} metre window` : "p95 local density"} per count metric, shared by Lens A and Lens B, and a model-derived Celsius band for UTCI. Values above the reference density saturate the bar while the raw number keeps the real magnitude. Unavailable data reads N/A, never zero; a genuine zero stays a distinct zero state. No bar is a score or recommendation.`);
   return lines.join(" ");
 }
 
@@ -558,7 +602,7 @@ if (typeof module !== "undefined" && module.exports) {
     circleAreaKm2: haloCircleAreaKm2, representedRate: haloRepresentedRate,
     HALO_COMPACT_LABELS, HALO_LAYOUT, HALO_VISUAL_GEOMETRY,
     normalizedCountPair, positivePair, buildCountPairState, buildHaloComparison, accessibleComparisonSummary,
-    computeHaloReferenceScales, deriveHaloUtciBand, haloBarMagnitude, haloUtciMagnitude, formatHaloValue, haloQuantile, haloHaversineMeters,
+    computeHaloReferenceScales, deriveHaloUtciBand, haloDensity, haloDensityMagnitude, haloUtciMagnitude, formatHaloValue, haloQuantile, haloHaversineMeters,
     activityState, utciState, countState,
     haloLayoutForRadius, haloLabelAnchorForSlot, haloValueAnchorForSlot, haloSlotFootprint, haloFootprintsOverlap, buildHaloGlyphSpec, resolveHaloSlotVisibility,
   };

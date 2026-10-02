@@ -56,72 +56,109 @@ The caption beside each bar carries the lens letter and a short metric id
 ## 4. Bar-length semantics (normalization)
 
 > **BAR LENGTHS ARE COMPARABLE WITHIN THE SAME METRIC, NOT ACROSS DIFFERENT
-> METRICS.**
+> METRICS. THEY ARE NOT SCORES, RANKINGS, TARGETS OR PERCENTAGES.**
 
-The four metrics have different units, so their raw values are never mapped onto
-one common physical scale. Instead each bar length is a **within-metric
-magnitude**:
+Two concepts are kept explicitly separate:
+
+- **RAW VALUE** — what is physically inside the selected Lens. This is the number
+  printed on the map, always the raw count (or the mean UTCI for the thermal bar).
+- **BAR MAGNITUDE** — the spatial intensity used for visual comparison. For the
+  three count metrics this is a **density** (records/km² or nodes/km²), so that a
+  larger sampling window does not by itself buy a longer bar.
+
+### 4.1 Count metrics — density bar (Tourism POIs, Hotels & stays, Mobility nodes)
 
 ```
-magnitude = clamp(rawValue / reference[metric], 0, 1)
+density    = rawCount / circleAreaKm2(lensRadius)        // records/km² or nodes/km²
+magnitude  = clamp(density / referenceDensity[metric], 0, 1)
 barLength  = fullTrackPx * magnitude
 ```
 
-### 4.1 Count reference (Tourism POIs, Hotels & stays, Mobility nodes)
-
-`reference[metric]` is the **p95 of per-feature local density** for that metric
-over a fixed reference window, computed once from the loaded dataset
-(`computeHaloReferenceScales`):
+`referenceDensity[metric]` is a **fixed, deterministic Madrid reference density**
+computed from the loaded dataset (`computeHaloReferenceScales`):
 
 1. take every feature of the metric (e.g. every stay record);
-2. for each feature, count how many same-metric features lie within the
-   reference radius (default **900 m**);
-3. the reference is the **95th-percentile** of those neighbour counts, floored
-   at 1 (so a bar never divides by zero).
+2. for each feature, compute its **local density** = (same-metric neighbours
+   within the reference radius, default **900 m**) ÷ the area of that reference
+   window;
+3. the reference density is the **95th-percentile (p95)** of those per-feature
+   local densities, floored at `1 / windowArea` so a bar never divides by zero.
 
-Interpretation: a bar is "this lens's count as a share of a busy Madrid
-neighbourhood (p95 local density, 900 m) for this metric." On the committed
-dataset this yields references of roughly **tourism ≈ 20, stays ≈ 277,
-mobility ≈ 50**.
+Note the terminology precisely: step 2 divides a neighbour *count* by an *area*,
+so the reference is a true **density**, not a raw neighbour count. On the
+committed deploy dataset (p95, 900 m window ≈ 2.545 km²) the reference densities
+are roughly **tourism ≈ 7.9 /km², stays ≈ 108.9 /km², mobility ≈ 19.7 /km²**.
 
-This method is:
+Because the bar encodes density rather than a raw count, and the reference is
+shared by both lenses, the encoding is:
 
-- **within-metric** — each metric has its own reference;
-- **shared across A and B** — the same reference divides both lenses, so a larger
-  valid raw value never yields a shorter bar than a smaller one;
-- **radius-independent** — the reference is computed at a fixed reference radius,
-  not the live Lens radius, so bar *scale semantics* do not change when the
-  geographic radius changes (the raw value may, of course);
-- **single-lens capable** — a bar needs only its own raw value and the reference,
-  so it renders with or without Lens B;
+- **radius-compatible** — the same raw count in a smaller Lens produces a longer
+  bar (it is denser), and two Lenses whose counts scale with their areas produce
+  equal bars. Unequal A/B radii therefore stay directly comparable, matching the
+  panel's density treatment and never over-claiming.
+- **within-metric** — each metric has its own reference density;
+- **shared across A and B** — the same reference divides both lenses, so bars
+  never normalize independently and a larger valid density never yields a shorter
+  bar;
+- **radius-independent in its scale** — the reference is computed at a fixed
+  reference radius, not the live Lens radius, so the bar's *scale semantics* do
+  not change when the geographic radius changes (the raw count and the density
+  do, of course);
+- **identical in every mode** — the same density rule drives single-lens,
+  equal-radius Compare and unequal-radius Compare; the visual language never
+  switches meaning by mode;
+- **single-lens capable** — a bar needs only its own raw count, its radius and
+  the reference, so it renders with or without Lens B;
 - **deterministic** — alignment-free (windows centre on real features), fixed
   quantile, dependency-free nearest-rank quantile;
 - **honest about missing data** — `null`/unavailable never enters as `0`.
 
-### 4.2 UTCI reference
+### 4.2 UTCI — Celsius-band bar (never area-normalized)
 
-UTCI is a bounded physical quantity, so its bar maps a robust Celsius band to
-`0..1` (`deriveHaloUtciBand`): `min = p05`, `max = p95` of the HATI assets'
-model-derived UTCI values (≈ **33.7–45.0 °C** on the committed pilot), with a
-documented fallback band `{min: 26, max: 46}` when assets are missing.
+UTCI is a bounded physical quantity, not a count, so its bar is **not**
+area-normalized. It maps the mean UTCI to a robust Celsius band
+(`deriveHaloUtciBand`): `min = p05`, `max = p95` of the HATI assets' model-derived
+UTCI values (≈ **33.7–45.0 °C** on the committed pilot), with a documented
+fallback band `{min: 26, max: 46}` when assets are missing.
 
 ```
 magnitude = clamp((mean - band.min) / (band.max - band.min), 0, 1)
 ```
 
-### 4.3 Rendering safety
+The UTCI bar length therefore depends only on temperature, never on the Lens
+radius.
 
-Magnitudes are clamped to `[0, 1]`; a raw value above the reference saturates to
-a full bar (the raw number is still printed). A degenerate reference (`≤ 0` or
-missing) abstains to no bar rather than dividing.
+### 4.3 Saturation
+
+A p95 reference means densities above the 95th percentile **saturate**: the bar
+clamps to full length while the printed raw number keeps the real magnitude. The
+glyph carries `data-saturated="true"` (a subtle glow on the fill) and the
+accessible summary states which lens is "at or above reference", so a full bar is
+never read as an exact density equality.
+
+### 4.4 Rendering safety
+
+Magnitudes are clamped to `[0, 1]`. A degenerate reference (`≤ 0` or missing) or
+an invalid radius abstains to no bar rather than dividing; the raw number is still
+printed.
+
+### 4.5 Accommodation filter and the reference population
+
+The raw stay count honours the active accommodation-category filter. To keep the
+numerator and the reference describing the *same* metric, the stay reference
+density is computed from the **same filtered population** (both the counts and
+`computeHaloReferenceScales` run over `visiblePoiPoints()`), and is cached per
+filter key. Filtering to "hotels only" therefore compares hotel density against a
+hotel-density reference, not against an all-accommodation reference.
 
 ## 5. Compare-mode semantics
 
 Both lenses render their four bars **simultaneously** whenever Compare is on:
 
-- same metric → same reference on both lenses, so lengths are directly
-  comparable (Lens A visibly longer than Lens B ⇒ Lens A has more);
-- both lenses print their own raw numbers;
+- same metric → same reference **density** on both lenses, so lengths are directly
+  comparable even at unequal radii (Lens A visibly longer than Lens B ⇒ Lens A is
+  denser in that metric);
+- both lenses print their own raw counts;
 - switching the active lens changes emphasis/opacity and panel content but
   **never removes the other lens's bars**;
 - A and B are distinguished by **hue and structure** — Lens A fill is solid
@@ -159,18 +196,27 @@ These are never conflated:
 
 ## 8. Known limitations
 
-- The count references are derived from the **currently loaded dataset**; if the
-  underlying POI feed changes materially, the references (and therefore bar
-  *lengths*, not the printed raw values) shift accordingly. This is intentional
-  (the reference tracks the data) but means bar lengths are not comparable across
-  dataset versions.
+- The reference **densities** are derived from the **currently loaded dataset**
+  (`data/runtime_poi.json` is a deploy-time artifact, not committed; a plain
+  checkout serves the committed snapshot and layers it lacks — e.g. mobility —
+  read `N/A`). If the underlying feed changes materially, the reference densities
+  (and therefore bar *lengths*, not the printed raw counts) shift accordingly.
+  This is intentional (the reference tracks the data) but means bar lengths are
+  not comparable across dataset versions.
+- Provenance and the raw-count-vs-density distinction are carried in the panel and
+  the halo's accessible summary (the bars are pointer-transparent, so they expose
+  no hover tooltip of their own); the summary states, per metric, the raw count
+  and that the bar is represented density relative to the Madrid reference.
 - Stays are Madrid Destino **catalogue listings** (one record per listing, city
   and surroundings), not an exhaustive accommodation census; the bar reflects
   represented records, not operating-stock density.
 - UTCI is a **bounded research pilot** (14 assets, one day); its bar and band are
   model-derived, not measured comfort, and carry the MODEL evidence marker.
 - Mobility counts BiciMAD docks + rail/metro stations (node presence), not trips
-  or ridership.
+  or ridership. The halo mobility bar shows node **density**; this is a separate
+  concept from the right-hand panel's analytical mobility B−A delta, which remains
+  **withheld under unequal radii** by its own contract. Halo intensity and panel
+  delta are deliberately distinct.
 - The halo is a locator and magnitude cue. **Exact values, provenance and
   caveats remain panel-authoritative.** No bar is a score, ranking, percentage or
   Madrid benchmark.
