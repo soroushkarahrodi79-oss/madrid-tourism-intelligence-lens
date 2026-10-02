@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 BASE_URL = "https://www.dataestur.es/API-SEGITTUR-v2/TURISMO_INTERNO_MUN_MUN_DL"
-YEARS_TO_TRY = (2026, 2025, 2024)
+YEARS_TO_TRY = (2025,)
 MADRID_CODE = "28079"
 OUT = Path("research/destination_origin/dataestur_domestic_probe.json")
 
@@ -85,7 +85,7 @@ def choose_measure_columns(headers: list[str]) -> list[int]:
 
 def scan_year(year: int) -> dict:
     response, url = request_year(year)
-    digest = hashlib.sha256()
+    digest = hashlib.sha256()\n    content_length = response.headers.get("Content-Length")
     content_type = response.headers.get("Content-Type")
     disposition = response.headers.get("Content-Disposition")
 
@@ -157,7 +157,7 @@ def scan_year(year: int) -> dict:
         "url": url,
         "content_type": content_type,
         "content_disposition": disposition,
-        "sha256": digest.hexdigest(),
+        "prefix_sha256": digest.hexdigest(),\n        "source_content_length": content_length,\n        "scan_bounded_after_madrid_rows": 50,
         "delimiter": delimiter,
         "headers": headers,
         "normalized_headers": [norm(h) for h in headers],
