@@ -9,11 +9,17 @@
   sample points, for a single historical pilot day (21 August 2023), at three
   modelled times of day.
 - Compares two lenses' descriptive statistics side by side.
-- In Compare mode, shows an optional supplementary radial-spoke halo for
-  Tourism POIs, represented stays, observed pedestrian activity and same-time
-  HATI UTCI. The spokes are screen-space graphics attached outside the Lens,
-  not extensions of its analytical radius. Lens A, Lens B and B−A values remain
-  in the panel; Mobility is panel-only.
+- Shows the **Radial Halo V3** quantitative perimeter bars around each Lens (in
+  single-lens and Compare mode) for **Tourism POIs, Hotels & stays, Mobility
+  nodes and mean HATI UTCI**. Each bar prints its own **raw count** inside the
+  Lens; for the three count metrics the bar **length** is that lens's represented
+  **density** (records or nodes per km²) relative to a fixed Madrid reference
+  density, so unequal A/B radii stay comparable; UTCI's bar is the mean's position
+  in a model-derived Celsius band. Bar lengths are comparable within a metric
+  only, not across metrics. The bars are screen-space graphics attached outside
+  the Lens, not extensions of its analytical radius. Lens A, Lens B and B−A values
+  remain in the panel; **pedestrian activity is panel-only** (observed counter
+  evidence, not a count). See `docs/radial-halo-v3.md`.
 - Keeps Lens A and Lens B radii independent with one active-Lens slider. First
   enable of B copies A's radius; later re-enables preserve B. Equal-radius
   Tourism POI/stay comparisons use raw represented counts. Unequal-radius
@@ -46,13 +52,16 @@ establish, measure, or infer:
 - Tourist-specific footfall or visitor flow from the pedestrian counters
 - Safety outcomes of any kind
 - Tourism "quality," attractiveness, or competitiveness
-- A winner, ranking, composite score, or Madrid benchmark from the halo. Its
-  count-bar scale is normalized only to the largest valid value in the current
-  A/B comparison and resets for another pair. It is not a percentage or target.
-- A zero value from absent or incompatible evidence. The halo distinguishes
-  OFF, UNAVAILABLE, NO EVIDENCE, WITHHELD and a valid observed zero (a normal
-  track with an origin mark); Pedestrian and HATI comparisons abstain unless
-  both Lenses have compatible evidence.
+- A winner, ranking, composite score, or Madrid benchmark from the halo. Each
+  count bar's length is a within-metric density magnitude,
+  `clamp((rawCount / circleAreaKm2(radius)) / referenceDensity, 0..1)`, against a
+  fixed deterministic Madrid reference density (p95 of per-feature local density)
+  shared by Lens A and Lens B; UTCI uses a model-derived Celsius band and is never
+  area-normalized. It is comparable within a metric only, never across metrics, and
+  is not a percentage, score or target.
+- A zero value from absent evidence. The halo distinguishes a valid number, a
+  valid observed zero (printed `0` with a zero mark, no bar), unavailable
+  (printed `N/A`) and off (printed `OFF`); unavailable data never renders as zero.
 - A complete POI or accommodation inventory from a represented-record rate.
   Unequal-radius rates are normalized to the full geometric circle area only
   inside the canonical Madrid municipality AOI; they are not population

@@ -3,242 +3,332 @@ import fs from "node:fs";
 import test from "node:test";
 import {
   HALO_METRICS,
-  UTCI_PX_PER_C,
+  HALO_COMPACT_LABELS,
+  HALO_REFERENCE_DEFAULTS,
+  HALO_UTCI_FALLBACK_BAND,
   accessibleComparisonSummary,
   buildHaloComparison,
-  normalizedCountPair,
+  buildHaloGlyphSpec,
+  buildCountPairState,
+  computeHaloReferenceScales,
+  deriveHaloUtciBand,
+  haloDensity,
+  haloDensityMagnitude,
+  haloUtciMagnitude,
+  formatHaloValue,
+  haloQuantile,
+  circleAreaKm2,
+  activityState,
+  utciState,
   COMPARISON_RADIUS_MODE,
   representedRate,
-  buildCountPairState,
-  buildHaloGlyphSpec,
   haloLabelAnchorForSlot,
+  haloValueAnchorForSlot,
   haloSlotFootprint,
   haloFootprintsOverlap,
   haloLayoutForRadius,
   resolveHaloSlotVisibility,
 } from "../js/radial-halo.js";
 
+const AREA900 = Math.PI * 0.81; // km² of a 900 m reference window
 const live = (value) => ({ value, sourceState: "live" });
-const baseInput = () => ({
+const unavailable = () => ({ value: null, sourceState: "unavailable" });
+// Reference DENSITIES (records/km²) for the bars, shared by Lens A and Lens B.
+const REFS = Object.freeze({ tourism: 8, stays: 8, mobility: 8, radiusM: 900, quantile: 0.95 });
+const BAND = Object.freeze({ min: 30, max: 46 });
+
+const baseInput = (overrides = {}) => ({
+  references: REFS,
+  utciBand: BAND,
+  radii: { A: 900, B: 900 },
   tourism: { a: live(5), b: live(10) },
   stays: { a: live(2), b: live(4) },
-  pedestrian: {
-    enabled: true, sourceState: "published", periodKey: "2024",
-    a: { evidence: "OBSERVED", meanObserved: 0, stationCount: 1, observationCount: 3, dateMin: "2024-01-01", dateMax: "2024-01-01" },
-    b: { evidence: "OBSERVED", meanObserved: 10, stationCount: 2, observationCount: 8, dateMin: "2024-01-01", dateMax: "2024-01-02" },
-  },
+  mobility: { a: live(3), b: live(6) },
   utci: {
     enabled: true, timestepA: "15:00", timestepB: "15:00",
     a: { evidence: "MODEL-DERIVED", mean: 36.4, count: 2 },
     b: { evidence: "MODEL-DERIVED", mean: 38.1, count: 3 },
   },
+  ...overrides,
+});
+const pedestrianInput = () => ({
+  enabled: true, sourceState: "published", periodKey: "2024",
+  a: { evidence: "OBSERVED", meanObserved: 0, stationCount: 1, observationCount: 3, dateMin: "2024-01-01", dateMax: "2024-01-01" },
+  b: { evidence: "OBSERVED", meanObserved: 10, stationCount: 2, observationCount: 8, dateMin: "2024-01-01", dateMax: "2024-01-02" },
 });
 
-test("shared count scale uses one A/B maximum in either value order", () => {
-  assert.deepEqual(normalizedCountPair(5, 10), { max: 10, a: 0.5, b: 1 });
-  assert.deepEqual(normalizedCountPair(10, 5), { max: 10, a: 1, b: 0.5 });
-});
+// --- The four V3 perimeter metrics ----------------------------------------
 
-test("two genuine valid count zeros stay valid without division by zero", () => {
-  const model = buildHaloComparison({ ...baseInput(), tourism: { a: live(0), b: live(0) } });
-  assert.equal(model.metrics.tourism.comparable, true);
-  assert.equal(model.metrics.tourism.aMagnitude, 0);
-  assert.equal(model.metrics.tourism.bMagnitude, 0);
-  assert.equal(model.metrics.tourism.delta, 0);
-});
-
-test("equal windows compare raw POI/stay counts while unequal eligible windows compare represented rates", () => {
-  const equal = buildHaloComparison({ ...baseInput(), radiusMode: COMPARISON_RADIUS_MODE.EQUAL, radii: { A: 900, B: 900 }, aoiState: "not-required" });
-  assert.equal(equal.metrics.tourism.delta, 5);
-  const unequal = buildHaloComparison({
-    ...baseInput(), radiusMode: COMPARISON_RADIUS_MODE.UNEQUAL, radii: { A: 500, B: 1500 }, aoiState: "eligible",
-    tourism: { a: live(8), b: live(21) }, stays: { a: live(8), b: live(21) },
-  });
-  assert.equal(unequal.metrics.tourism.aRawValue, 8);
-  assert.equal(unequal.metrics.tourism.bRawValue, 21);
-  assert.equal(unequal.metrics.tourism.aValue, representedRate(8, 500));
-  assert.equal(unequal.metrics.tourism.delta, representedRate(21, 1500) - representedRate(8, 500));
-  assert.equal(unequal.metrics.stays.aValue, representedRate(8, 500));
-});
-
-test("unequal POI and stay comparisons withhold at AOI or source mismatch and never fall back to raw delta", () => {
-  const crossing = buildHaloComparison({ ...baseInput(), radiusMode: COMPARISON_RADIUS_MODE.UNEQUAL, radii: { A: 500, B: 1500 }, aoiState: "crosses" });
-  assert.equal(crossing.metrics.tourism.aRawValue, 5);
-  assert.equal(crossing.metrics.tourism.delta, null);
-  assert.equal(crossing.metrics.tourism.aMagnitude, null);
-  assert.match(crossing.metrics.tourism.qualifier, /crosses Madrid AOI/);
-  const incompatible = buildHaloComparison({
-    ...baseInput(), radiusMode: COMPARISON_RADIUS_MODE.UNEQUAL, radii: { A: 500, B: 1500 }, aoiState: "eligible",
-    tourism: { a: live(5), b: { value: 10, sourceState: "snapshot" } },
-  });
-  assert.equal(incompatible.metrics.tourism.delta, null);
-  assert.equal(incompatible.metrics.tourism.aRawValue, 5);
-});
-
-test("unequal mobility keeps raw side counts and withholds delta; native evidence remains native", () => {
-  const mobility = buildCountPairState(live(5), live(10), COMPARISON_RADIUS_MODE.UNEQUAL);
-  assert.equal(mobility.aValue, 5); assert.equal(mobility.bValue, 10); assert.equal(mobility.delta, null);
-  assert.match(mobility.qualifier, /different window sizes/);
-  const model = buildHaloComparison({ ...baseInput(), radiusMode: COMPARISON_RADIUS_MODE.UNEQUAL, radii: { A: 500, B: 1500 }, aoiState: "eligible" });
-  assert.equal(model.metrics.pedestrian.delta, 10);
-  assert.equal(Number(model.metrics.utci.delta.toFixed(1)), 1.7);
-});
-
-test("unavailable A or B is an abstention, never a zero comparison", () => {
-  const inputA = baseInput();
-  inputA.tourism = { a: { value: null, sourceState: "unavailable" }, b: live(10) };
-  const a = buildHaloComparison(inputA).metrics.tourism;
-  assert.equal(a.aValue, null);
-  assert.equal(a.bValue, 10);
-  assert.equal(a.aMagnitude, null);
-  assert.equal(a.comparable, false);
-
-  const inputB = baseInput();
-  inputB.tourism = { a: live(10), b: { value: null, sourceState: "unavailable" } };
-  const b = buildHaloComparison(inputB).metrics.tourism;
-  assert.equal(b.aValue, 10);
-  assert.equal(b.bValue, null);
-  assert.equal(b.bMagnitude, null);
-  assert.equal(b.comparable, false);
-});
-
-test("Pedestrian no evidence does not make a numeric comparison", () => {
-  const input = baseInput();
-  input.pedestrian.b.evidence = "NONE";
-  input.pedestrian.b.meanObserved = null;
-  input.pedestrian.b.observationCount = 0;
-  const state = buildHaloComparison(input).metrics.pedestrian;
-  assert.equal(state.comparable, false);
-  assert.equal(state.stateB, "NO_EVIDENCE");
-  assert.equal(state.aMagnitude, null);
-});
-
-test("Pedestrian evidence without a source period withholds the direct comparison", () => {
-  const input = baseInput();
-  input.pedestrian.periodKey = null;
-  const state = buildHaloComparison(input).metrics.pedestrian;
-  assert.equal(state.comparable, false);
-  assert.equal(state.delta, null);
-  assert.match(state.qualifier, /source period unavailable/);
-});
-
-test("HATI off and one-sided HATI evidence abstain distinctly", () => {
-  const offInput = baseInput();
-  offInput.utci.enabled = false;
-  const off = buildHaloComparison(offInput).metrics.utci;
-  assert.equal(off.id, "off");
-  assert.equal(off.stateA, "OFF");
-  assert.equal(off.aValue, null);
-
-  const oneSided = baseInput();
-  oneSided.utci.b = { evidence: "NONE", mean: null, count: 0 };
-  const missing = buildHaloComparison(oneSided).metrics.utci;
-  assert.equal(missing.comparable, false);
-  assert.equal(missing.stateA, "VALID");
-  assert.equal(missing.stateB, "NO_EVIDENCE");
-  assert.equal(missing.delta, null);
-});
-
-test("UTCI keeps the native Celsius difference around a shared local midpoint", () => {
-  const state = buildHaloComparison(baseInput()).metrics.utci;
-  assert.equal(Number(state.delta.toFixed(1)), 1.7);
-  assert.equal(state.midpoint, 37.25);
-  assert.equal(Number(state.aOffsetPx.toFixed(2)), -0.85 * UTCI_PX_PER_C);
-  assert.equal(Number(state.bOffsetPx.toFixed(2)), 0.85 * UTCI_PX_PER_C);
-  assert.equal(Number(state.delta.toFixed(1)), 1.7);
-});
-
-test("source-state mismatch withholds direct count comparison", () => {
-  const input = baseInput();
-  input.stays = { a: live(5), b: { value: 7, sourceState: "snapshot" } };
-  const state = buildHaloComparison(input).metrics.stays;
-  assert.equal(state.comparable, false);
-  assert.equal(state.delta, null);
-  assert.equal(state.aValue, 5);
-  assert.equal(state.bValue, 7);
-});
-
-test("metric slots have stable fixed order even when evidence is absent", () => {
-  const model = buildHaloComparison({ ...baseInput(), stays: { a: null, b: null } });
-  assert.deepEqual(model.order, ["tourism", "stays", "pedestrian", "utci"]);
-  assert.equal(model.metrics.stays.comparable, false);
-  assert.deepEqual(model.order, HALO_METRICS.map(({ id }) => id));
-});
-
-test("V2 maps count/rate values to outward bars and real zero to an origin mark", () => {
+test("V3 halo exposes exactly the four brief metrics in a fixed clockwise order", () => {
+  assert.deepEqual(HALO_METRICS.map(({ id, slot }) => [id, slot]), [
+    ["tourism", "north"], ["stays", "east"], ["mobility", "south"], ["utci", "west"],
+  ]);
   const model = buildHaloComparison(baseInput());
-  const poi = HALO_METRICS.find(({ id }) => id === "tourism");
-  assert.deepEqual(buildHaloGlyphSpec(poi, model.metrics.tourism, "A"), {
-    metric: "tourism", slot: "north", which: "A", layout: "full", label: "POI", labelAnchor: { x: 76, y: 12, textAnchor: "start" }, visualState: "numeric", type: "bar", qualified: false, magnitude: 0.5,
-  });
-  const zeroModel = buildHaloComparison({ ...baseInput(), tourism: { a: live(0), b: live(10) } });
-  assert.equal(buildHaloGlyphSpec(poi, zeroModel.metrics.tourism, "A").type, "zero");
-  assert.notEqual(buildHaloGlyphSpec(poi, zeroModel.metrics.tourism, "A").type, "abstain");
-  const unequal = buildHaloComparison({ ...baseInput(), radiusMode: COMPARISON_RADIUS_MODE.UNEQUAL, radii: { A: 500, B: 1500 }, aoiState: "eligible" });
-  assert.equal(buildHaloGlyphSpec(poi, unequal.metrics.tourism, "A").type, "bar");
-  assert.equal(unequal.metrics.tourism.aValue, representedRate(5, 500));
+  assert.deepEqual(Object.keys(model.metrics), ["tourism", "stays", "mobility", "utci"]);
+  assert.deepEqual(model.order, ["tourism", "stays", "mobility", "utci"]);
+  assert.equal("pedestrian" in model.metrics, false);
+  assert.equal(HALO_COMPACT_LABELS.mobility, "MOB");
 });
 
-test("V2 makes unavailable, no evidence and AOI withholding nonnumeric states", () => {
-  const poi = HALO_METRICS.find(({ id }) => id === "tourism");
-  const unavailable = buildHaloComparison({ ...baseInput(), tourism: { a: { value: null, sourceState: "unavailable" }, b: live(10) } });
-  assert.equal(buildHaloGlyphSpec(poi, unavailable.metrics.tourism, "A").visualState, "unavailable");
-  const noEvidenceInput = baseInput(); noEvidenceInput.pedestrian.a.evidence = "NONE"; noEvidenceInput.pedestrian.a.observationCount = 0;
-  const pedestrian = buildHaloComparison(noEvidenceInput).metrics.pedestrian;
-  assert.equal(buildHaloGlyphSpec(HALO_METRICS[2], pedestrian, "A").visualState, "no-evidence");
-  const withheld = buildHaloComparison({ ...baseInput(), radiusMode: COMPARISON_RADIUS_MODE.UNEQUAL, radii: { A: 500, B: 1500 }, aoiState: "crosses" });
-  const withheldSpec = buildHaloGlyphSpec(poi, withheld.metrics.tourism, "A");
-  assert.equal(withheldSpec.visualState, "withheld"); assert.equal(withheldSpec.type, "abstain");
+// --- Reference DENSITY universe --------------------------------------------
+
+test("reference scales are the p95 of per-feature local DENSITY (records/km²), deterministic", () => {
+  const points = [
+    // 3 tourism features clustered (<900 m apart) -> each neighbourhood is 3.
+    { lat: 40.4168, lon: -3.7038, type: "museum" },
+    { lat: 40.4170, lon: -3.7040, type: "museum" },
+    { lat: 40.4172, lon: -3.7042, type: "info" },
+    // 1 isolated stay far away -> neighbourhood density 1.
+    { lat: 40.5000, lon: -3.6000, type: "stay" },
+  ];
+  const scales = computeHaloReferenceScales(points);
+  assert.equal(scales.radiusM, HALO_REFERENCE_DEFAULTS.radiusM);
+  // Density = neighbour count / window area, NOT a raw neighbour count.
+  assert.ok(Math.abs(scales.tourism - 3 / AREA900) < 1e-6, `tourism density ${scales.tourism}`);
+  assert.ok(Math.abs(scales.stays - 1 / AREA900) < 1e-6, "a lone feature floors the density at 1/area");
+  assert.ok(Math.abs(scales.mobility - 1 / AREA900) < 1e-6, "an empty metric floors at 1/area (no divide by zero)");
+  assert.deepEqual(computeHaloReferenceScales(points), scales, "same input yields the same reference");
 });
 
-test("V2 uses the UTCI midpoint marker rather than a count bar and keeps short labels at fixed slots", () => {
+test("haloQuantile is a deterministic nearest-rank quantile ignoring non-finite values", () => {
+  assert.equal(haloQuantile([1, 2, 3, 4], 0), 1);
+  assert.equal(haloQuantile([1, 2, 3, 4], 1), 4);
+  assert.equal(haloQuantile([10, 20, 30, NaN], 0.5), 20);
+  assert.equal(haloQuantile([], 0.95), 0);
+});
+
+test("UTCI band is a robust Celsius spread from model assets, with a documented fallback", () => {
+  const assets = { 0: { utci_mean_10m: { "12:00": 30, "15:00": 40, "18:00": 50 } }, 1: { utci_mean_10m: { "15:00": 35 } } };
+  const band = deriveHaloUtciBand(assets, { lowerQuantile: 0, upperQuantile: 1 });
+  assert.equal(band.min, 30);
+  assert.equal(band.max, 50);
+  assert.deepEqual(deriveHaloUtciBand({}), { ...HALO_UTCI_FALLBACK_BAND });
+});
+
+// --- Density-based bar magnitude (the core V3 semantic) --------------------
+
+test("density = rawCount / circleAreaKm2(radius)", () => {
+  assert.ok(Math.abs(haloDensity(10, 900) - 10 / AREA900) < 1e-9);
+  assert.equal(haloDensity(null, 900), null);
+  assert.equal(haloDensity(-1, 900), null);
+});
+
+test("bar magnitude is density / referenceDensity, clamped, and monotonic in density", () => {
+  // Same reference, same radius: monotonic in raw count.
+  assert.ok(haloDensityMagnitude(5, 900, 8) < haloDensityMagnitude(6, 900, 8));
+  // Same raw count, SMALLER radius -> higher density -> longer bar (brief B).
+  assert.ok(haloDensityMagnitude(5, 500, 8) > haloDensityMagnitude(5, 1000, 8));
+  // Counts proportional to area -> EQUAL density -> EQUAL bars (brief C).
+  const a = haloDensityMagnitude(2, 500, 8);
+  const b = haloDensityMagnitude(8, 1000, 8); // area(1000)=4*area(500), 8=4*2
+  assert.ok(Math.abs(a - b) < 1e-9, `area-proportional counts give equal bars (${a} vs ${b})`);
+  // Clamp and abstention.
+  assert.equal(haloDensityMagnitude(10000, 500, 8), 1, "above-reference density clamps to a full bar");
+  assert.equal(haloDensityMagnitude(0, 900, 8), 0, "a genuine zero is a zero-length bar");
+  assert.equal(haloDensityMagnitude(null, 900, 8), null, "missing data never becomes zero");
+  assert.equal(haloDensityMagnitude(5, 900, 0), null, "a zero reference abstains rather than divides");
+});
+
+test("UTCI magnitude maps a Celsius band to 0..1, never area-normalized", () => {
+  assert.equal(haloUtciMagnitude(30, { min: 30, max: 46 }), 0);
+  assert.equal(haloUtciMagnitude(46, { min: 30, max: 46 }), 1);
+  assert.equal(haloUtciMagnitude(38, { min: 30, max: 46 }), 0.5);
+  assert.equal(haloUtciMagnitude(60, { min: 30, max: 46 }), 1);
+  assert.equal(haloUtciMagnitude(NaN, { min: 30, max: 46 }), null);
+});
+
+test("value formatting prints the RAW COUNT with thousands separators, UTCI in Celsius", () => {
+  assert.equal(formatHaloValue("tourism", 12), "12");
+  assert.equal(formatHaloValue("stays", 1284), "1,284");
+  assert.equal(formatHaloValue("mobility", 0), "0");
+  assert.equal(formatHaloValue("utci", 31.63), "31.6°C");
+  assert.equal(formatHaloValue("tourism", null), null);
+});
+
+// --- Per-side bars + shared scale + unequal radii -------------------------
+
+test("each lens shows its own density bar; the printed value stays the raw count", () => {
   const model = buildHaloComparison(baseInput());
-  const temp = buildHaloGlyphSpec(HALO_METRICS[3], model.metrics.utci, "B");
-  assert.equal(temp.type, "temperature"); assert.equal("magnitude" in temp, false); assert.equal(temp.label, "UTCI");
-  assert.deepEqual(HALO_METRICS.map(({ slot, id }) => [slot, id]), [["north", "tourism"], ["east", "stays"], ["south", "pedestrian"], ["west", "utci"]]);
+  const t = model.metrics.tourism;
+  assert.equal(t.aValueText, "5");
+  assert.equal(t.bValueText, "10");
+  assert.equal(t.referenceDensity, 8);
+  assert.ok(Math.abs(t.aDensity - 5 / AREA900) < 1e-9);
+  assert.equal(t.aBarMagnitude, haloDensityMagnitude(5, 900, 8));
+  assert.equal(t.bBarMagnitude, haloDensityMagnitude(10, 900, 8));
 });
 
-test("V2 compact fallback and per-slot suppression are deterministic", () => {
-  assert.equal(haloLayoutForRadius(42), "full");
-  assert.equal(haloLayoutForRadius(30), "compact");
-  assert.equal(haloLayoutForRadius(29.9), "hidden");
-  const visible = resolveHaloSlotVisibility({ layout: "full", blockedSlots: ["stays"] });
-  assert.equal(visible.tourism.visible, true); assert.equal(visible.stays.visible, false); assert.equal(visible.utci.visible, true);
-  assert.equal(resolveHaloSlotVisibility({ layout: "compact" }).tourism.compact, true);
+test("bar semantics are identical in single, equal-radius and unequal-radius modes (brief F)", () => {
+  const poi = HALO_METRICS[0];
+  // Equal radius.
+  const equal = buildHaloComparison(baseInput({ radii: { A: 900, B: 900 }, tourism: { a: live(5), b: live(5) } }));
+  assert.equal(
+    buildHaloGlyphSpec(poi, equal.metrics.tourism, "A").magnitude,
+    buildHaloGlyphSpec(poi, equal.metrics.tourism, "B").magnitude,
+    "equal density -> equal bars at equal radius"
+  );
+  // Unequal radius, counts proportional to area -> equal bars (same semantic).
+  const unequal = buildHaloComparison(baseInput({ radii: { A: 500, B: 1000 }, tourism: { a: live(2), b: live(8) } }));
+  const ua = buildHaloGlyphSpec(poi, unequal.metrics.tourism, "A").magnitude;
+  const ub = buildHaloGlyphSpec(poi, unequal.metrics.tourism, "B").magnitude;
+  assert.ok(Math.abs(ua - ub) < 1e-9, "equal density across unequal radii -> equal bars");
+  // Single lens (B absent): A still gets its own density bar.
+  const single = buildHaloComparison(baseInput({ radii: { A: 900, B: 900 }, tourism: { a: live(5), b: unavailable() } }));
+  assert.equal(buildHaloGlyphSpec(poi, single.metrics.tourism, "A").type, "bar");
+  assert.equal(buildHaloGlyphSpec(poi, single.metrics.tourism, "B").type, "abstain");
 });
 
-test("V2 labels stay at a fixed full-track endpoint across magnitudes and abstention", () => {
-  const poi = HALO_METRICS.find(({ id }) => id === "tourism");
-  const anchors = [0, 0.25, 0.5, 1].map((magnitude) => {
-    const model = buildHaloComparison({ ...baseInput(), tourism: { a: live(magnitude * 10), b: live(10) } });
-    return buildHaloGlyphSpec(poi, model.metrics.tourism, "A").labelAnchor;
-  });
-  assert.deepEqual(anchors, Array(4).fill({ x: 76, y: 12, textAnchor: "start" }));
-  const zeroSpec = buildHaloGlyphSpec(poi, buildHaloComparison({ ...baseInput(), tourism: { a: live(0), b: live(10) } }).metrics.tourism, "A");
-  const withheldSpec = buildHaloGlyphSpec(poi, buildHaloComparison({ ...baseInput(), radiusMode: COMPARISON_RADIUS_MODE.UNEQUAL, radii: { A: 500, B: 1500 }, aoiState: "crosses" }).metrics.tourism, "A");
-  assert.equal(zeroSpec.type, "zero");
-  assert.deepEqual(zeroSpec.labelAnchor, anchors[0]);
-  assert.deepEqual(withheldSpec.labelAnchor, anchors[0]);
+test("the SAME reference density is shared by Lens A and Lens B (brief E)", () => {
+  const model = buildHaloComparison(baseInput({ radii: { A: 500, B: 2500 } }));
+  assert.equal(model.metrics.tourism.referenceDensity, model.metrics.stays.referenceDensity === 8 ? 8 : model.metrics.tourism.referenceDensity);
+  assert.equal(model.metrics.tourism.referenceDensity, 8);
+  // A larger window no longer buys a longer bar for free: same raw count, bigger
+  // radius -> shorter bar.
+  const same = buildHaloComparison(baseInput({ radii: { A: 500, B: 2500 }, mobility: { a: live(10), b: live(10) } }));
+  const poiMob = HALO_METRICS[2];
+  assert.ok(
+    buildHaloGlyphSpec(poiMob, same.metrics.mobility, "A").magnitude >
+    buildHaloGlyphSpec(poiMob, same.metrics.mobility, "B").magnitude,
+    "same raw count in the 25x-larger window gives a shorter bar"
+  );
+});
+
+// --- Glyph spec: bar / zero / abstain + raw value + saturation -------------
+
+test("glyph spec carries the raw count, a clamped density magnitude and fixed slot", () => {
+  const model = buildHaloComparison(baseInput());
+  const spec = buildHaloGlyphSpec(HALO_METRICS[0], model.metrics.tourism, "A");
+  assert.equal(spec.value, "5");
+  assert.equal(spec.type, "bar");
+  assert.equal(spec.magnitude, haloDensityMagnitude(5, 900, 8));
+  assert.equal(spec.unit, "POIs");
+});
+
+test("values above the reference density saturate without changing the printed raw number (brief H)", () => {
+  // density of 500 POIs in a 500 m window hugely exceeds reference 8/km².
+  const model = buildHaloComparison(baseInput({ radii: { A: 500, B: 900 }, tourism: { a: live(500), b: live(10) } }));
+  const spec = buildHaloGlyphSpec(HALO_METRICS[0], model.metrics.tourism, "A");
+  assert.equal(spec.magnitude, 1, "bar clamps at full length");
+  assert.equal(spec.value, "500", "raw count still printed in full");
+  assert.equal(spec.saturated, true, "saturation is flagged");
+  // A below-reference density is not flagged saturated.
+  const low = buildHaloComparison(baseInput({ radii: { A: 900, B: 900 }, tourism: { a: live(1), b: live(10) } }));
+  assert.equal(buildHaloGlyphSpec(HALO_METRICS[0], low.metrics.tourism, "A").saturated, false);
+});
+
+test("genuine zero and unavailable render distinct glyph states, never conflated (brief I)", () => {
+  const poi = HALO_METRICS[0];
+  const zero = buildHaloGlyphSpec(poi, buildHaloComparison(baseInput({ tourism: { a: live(0), b: live(10) } })).metrics.tourism, "A");
+  assert.equal(zero.type, "zero");
+  assert.equal(zero.value, "0");
+  const na = buildHaloGlyphSpec(poi, buildHaloComparison(baseInput({ tourism: { a: unavailable(), b: live(10) } })).metrics.tourism, "A");
+  assert.equal(na.type, "abstain");
+  assert.equal(na.value, "N/A");
+  assert.notEqual(na.type, zero.type);
+  assert.notEqual(na.value, zero.value);
+});
+
+test("UTCI is a within-metric band bar (not area-normalized) and prints Celsius (brief J)", () => {
+  const model = buildHaloComparison(baseInput({ radii: { A: 400, B: 2000 } }));
+  const spec = buildHaloGlyphSpec(HALO_METRICS[3], model.metrics.utci, "B");
+  assert.equal(spec.type, "bar");
+  assert.equal(spec.value, "38.1°C");
+  assert.equal(spec.magnitude, haloUtciMagnitude(38.1, BAND), "UTCI magnitude depends only on the Celsius band, not the radius");
+});
+
+test("mobility abstains as unavailable (N/A) when its sources are unavailable", () => {
+  const model = buildHaloComparison(baseInput({ mobility: { a: unavailable(), b: unavailable() } }));
+  const spec = buildHaloGlyphSpec(HALO_METRICS[2], model.metrics.mobility, "A");
+  assert.equal(spec.type, "abstain");
+  assert.equal(spec.value, "N/A");
+  assert.equal(spec.visualState, "unavailable");
+});
+
+// --- Geometry helpers ------------------------------------------------------
+
+test("value and caption anchors are fixed per slot and layout, independent of magnitude", () => {
+  const poi = HALO_METRICS[0];
+  const anchors = [0, 2, 5, 40].map((count) =>
+    buildHaloGlyphSpec(poi, buildHaloComparison(baseInput({ tourism: { a: live(count), b: live(10) } })).metrics.tourism, "A").valueAnchor);
+  assert.deepEqual(anchors, Array(4).fill(haloValueAnchorForSlot("north", "full")));
+  assert.notEqual(buildHaloGlyphSpec(poi, buildHaloComparison(baseInput()).metrics.tourism, "A", "compact").valueAnchor, null);
   assert.equal(buildHaloGlyphSpec(poi, buildHaloComparison(baseInput()).metrics.tourism, "A", "compact").labelAnchor, null);
   assert.equal(haloLabelAnchorForSlot("north", "compact"), null);
 });
 
-test("V2 footprint collisions include fixed full labels while preserving per-slot suppression", () => {
-  const east = haloSlotFootprint("east", "full");
-  const west = haloSlotFootprint("west", "full");
-  assert.equal(haloFootprintsOverlap({ x: 100, y: 100 }, east, { x: 150, y: 100 }, west), true, "full label footprints overlap despite 50 px anchor separation");
-  const visibleA = resolveHaloSlotVisibility({ layout: "full", blockedSlots: ["stays"] });
-  const visibleB = resolveHaloSlotVisibility({ layout: "full", blockedSlots: ["utci"] });
-  assert.equal(visibleA.stays.visible, false); assert.equal(visibleA.tourism.visible, true);
-  assert.equal(visibleB.utci.visible, false); assert.equal(visibleB.pedestrian.visible, true);
+test("layout thresholds and per-slot suppression stay deterministic", () => {
+  assert.equal(haloLayoutForRadius(42), "full");
+  assert.equal(haloLayoutForRadius(30), "compact");
+  assert.equal(haloLayoutForRadius(29.9), "hidden");
+  const visible = resolveHaloSlotVisibility({ layout: "full", blockedSlots: ["stays"] });
+  assert.equal(visible.tourism.visible, true);
+  assert.equal(visible.stays.visible, false);
+  assert.equal(visible.mobility.visible, true);
+  assert.equal(resolveHaloSlotVisibility({ layout: "compact" }).tourism.compact, true);
 });
 
-test("V2 renderer remains pointer-transparent and excludes Mobility", () => {
+test("footprint collisions remain conservative across adjacent slots", () => {
+  const east = haloSlotFootprint("east", "full");
+  const west = haloSlotFootprint("west", "full");
+  assert.equal(haloFootprintsOverlap({ x: 100, y: 100 }, east, { x: 140, y: 100 }, west), true);
+});
+
+// --- Pedestrian analytical comparison (panel-only) -------------------------
+
+test("pedestrian activity stays a panel-only analytical comparison with distinct abstentions", () => {
+  assert.equal(activityState(pedestrianInput()).comparable, true);
+  assert.equal(activityState({ ...pedestrianInput(), enabled: false }).stateA, "OFF");
+  assert.equal(activityState({ enabled: false, sourceState: "unavailable" }).stateA, "UNAVAILABLE");
+  const noEvidenceInput = pedestrianInput();
+  noEvidenceInput.a.evidence = "NONE";
+  noEvidenceInput.a.observationCount = 0;
+  assert.equal(activityState(noEvidenceInput).stateA, "NO_EVIDENCE");
+  assert.match(activityState({ ...pedestrianInput(), periodKey: null }).qualifier, /source period unavailable/);
+});
+
+test("mobility panel comparison withholds its delta under unequal windows (halo intensity is separate)", () => {
+  const mobility = buildCountPairState(live(5), live(10), COMPARISON_RADIUS_MODE.UNEQUAL);
+  assert.equal(mobility.delta, null);
+  assert.match(mobility.qualifier, /different window sizes/);
+});
+
+test("UTCI off and one-sided evidence abstain distinctly for the panel", () => {
+  assert.equal(utciState({ enabled: false }).stateA, "OFF");
+  const oneSided = utciState({ enabled: true, timestepA: "15:00", timestepB: "15:00", a: { evidence: "MODEL-DERIVED", mean: 36, count: 2 }, b: { evidence: "NONE", mean: null, count: 0 } });
+  assert.equal(oneSided.stateB, "NO_EVIDENCE");
+  assert.equal(oneSided.comparable, false);
+});
+
+// --- Accessibility ---------------------------------------------------------
+
+test("accessible summary states raw counts, density-bar meaning, and within-metric-only comparability", () => {
+  const summary = accessibleComparisonSummary(buildHaloComparison(baseInput()));
+  assert.match(summary, /Tourism POIs: Lens A 5 POIs, Lens B 10 POIs/);
+  assert.match(summary, /Mobility nodes: Lens A 3 nodes, Lens B 6 nodes/);
+  assert.match(summary, /Mean UTCI: Lens A 36\.4°C, Lens B 38\.1°C/);
+  assert.match(summary, /printed number is the raw count/i);
+  assert.match(summary, /represented spatial density/i);
+  assert.match(summary, /comparable within the same metric only, never across metrics/);
+  assert.match(summary, /Unavailable data reads N\/A, never zero/);
+  assert.doesNotMatch(summary, /percent|%/i);
+  // Saturation is surfaced for accessibility.
+  const sat = accessibleComparisonSummary(buildHaloComparison(baseInput({ radii: { A: 400, B: 900 }, tourism: { a: live(500), b: live(10) } })));
+  assert.match(sat, /at or above reference/i);
+});
+
+// --- Production wiring (source-level guards) --------------------------------
+
+test("the renderer prints a raw-value node, uses the shared density references, and stays pointer-transparent", () => {
   const app = fs.readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
   const css = fs.readFileSync(new URL("../css/app.css", import.meta.url), "utf8");
   assert.match(app, /interactive: false, keyboard: false/);
   assert.match(css, /\.comparison-halo-icon\{[^}]*pointer-events:none!important/);
-  assert.doesNotMatch(app.slice(app.indexOf("const HALO_SLOT_GEOMETRY"), app.indexOf("const LENS_BASEMAP_STYLES")), /mobility/i);
+  assert.match(app, /class="halo-value"/);
+  assert.match(css, /\.halo-value\{/);
+  assert.match(app, /getHaloReferences\(\)/);
+  assert.match(app, /computeHaloReferenceScales\(visiblePoiPoints\(\)\)/, "references share the counted (filtered) population");
+  const slice = app.slice(app.indexOf("const HALO_SLOT_GEOMETRY"), app.indexOf("const LENS_BASEMAP_STYLES"));
+  assert.match(slice, /buildHaloGlyphSpec/);
 });
 
 test("browser regression API requires both its query flag and a local hostname", () => {
@@ -248,47 +338,11 @@ test("browser regression API requires both its query flag and a local hostname",
   assert.match(app, /if \(haloRegressionRequested && haloRegressionLocal\) \{\s*window\.__HALO_REGRESSION__ = Object\.freeze\(/);
 });
 
-test("V1 halo model admits no Mobility, Category Mix, or administrative/destination metric", () => {
-  const model = buildHaloComparison(baseInput());
-  assert.deepEqual(Object.keys(model.metrics), ["tourism", "stays", "pedestrian", "utci"]);
-  assert.equal("mobility" in model.metrics, false);
-  assert.equal("categoryMix" in model.metrics, false);
-  assert.equal("population" in model.metrics, false);
-  assert.equal("licensedVut" in model.metrics, false);
-  assert.equal("hotelDemand" in model.metrics, false);
-  assert.equal("domesticOrigins" in model.metrics, false);
-});
-
-test("Pedestrian OFF, UNAVAILABLE and NO EVIDENCE remain separate states", () => {
-  const off = buildHaloComparison({ ...baseInput(), pedestrian: { ...baseInput().pedestrian, enabled: false } }).metrics.pedestrian;
-  const unavailable = buildHaloComparison({ ...baseInput(), pedestrian: { enabled: false, sourceState: "unavailable" } }).metrics.pedestrian;
-  const noEvidenceInput = baseInput();
-  noEvidenceInput.pedestrian.a.evidence = "NONE";
-  noEvidenceInput.pedestrian.a.observationCount = 0;
-  const noEvidence = buildHaloComparison(noEvidenceInput).metrics.pedestrian;
-  assert.equal(off.stateA, "OFF");
-  assert.equal(unavailable.stateA, "UNAVAILABLE");
-  assert.equal(noEvidence.stateA, "NO_EVIDENCE");
-});
-
-test("accessible comparison summary provides A, B, difference and evidence ceilings", () => {
-  const summary = accessibleComparisonSummary(buildHaloComparison(baseInput()));
-  assert.match(summary, /Lens A 5 represented records, Lens B 10 represented records, difference \+5/);
-  assert.match(summary, /Pedestrian activity: Lens A 0\.0 observed pedestrians\/hour, Lens B 10\.0 observed pedestrians\/hour/);
-  assert.match(summary, /Lens A coverage: 1 counter, 3 observations, 2024-01-01 to 2024-01-01/);
-  assert.match(summary, /Lens B coverage: 2 counters, 8 observations, 2024-01-01 to 2024-01-02/);
-  assert.doesNotMatch(summary, /percent|%/i);
-  assert.equal(buildHaloComparison(baseInput()).metrics.pedestrian.id, "valid-deployment");
-  const oneSided = baseInput();
-  oneSided.utci.b = { evidence: "NONE", mean: null, count: 0 };
-  assert.match(accessibleComparisonSummary(buildHaloComparison(oneSided)), /Lens B no evidence; comparison withheld/);
-  assert.match(summary, /pair maximum for the active same-unit comparator only/);
-  assert.match(summary, /not a benchmark/);
-});
-
-test("Compare panel has a four-column A/B counterpart and halo toggle stays accessible", () => {
+test("compare panel keeps the four-column A/B table, Pedestrian panel-only, Mobility promoted", () => {
   const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
   assert.match(html, /aria-label="Show comparison halo around Lens A and Lens B" aria-checked="true"/);
   assert.match(html, /Lens A<\/th><th scope="col">Lens B<\/th><th scope="col">B−A/);
-  assert.match(html, /Mobility · panel only/);
+  assert.match(html, /<th scope="row">Mobility nodes<\/th>/);
+  assert.match(html, /Pedestrian · panel only/);
+  assert.doesNotMatch(html, /Mobility · panel only/);
 });

@@ -20,9 +20,15 @@ test("lens contrast adapts to light satellite and dark basemaps", () => {
   assert.match(app, /if \(lensStyleController\) lensStyleController\(requested\)/);
 });
 
-test("active lens boundary is stronger than inactive lens boundary", () => {
-  assert.match(app, /weight: isActive \? 3\.4 : 2\.7/);
-  assert.match(app, /opacity: isActive \? 1 : 0\.88/);
+test("active lens boundary is stronger than inactive lens boundary, but quiet enough for the V3 bars", () => {
+  const weight = app.match(/weight: isActive \? ([\d.]+) : ([\d.]+)/);
+  const opacity = app.match(/opacity: isActive \? ([\d.]+) : ([\d.]+)/);
+  assert.ok(weight, "lens weight is driven by the active flag");
+  assert.ok(opacity, "lens opacity is driven by the active flag");
+  assert.ok(Number(weight[1]) > Number(weight[2]), "active boundary is thicker than inactive");
+  assert.ok(Number(opacity[1]) > Number(opacity[2]), "active boundary is more opaque than inactive");
+  // The circumference must stay quieter than the data bars (fill stroke-width 9).
+  assert.ok(Number(weight[1]) <= 3, "active boundary does not dominate the perimeter bars");
   assert.match(app, /applyLensBasemapStyle\(activeBasemapName\)/);
 });
 

@@ -33,10 +33,12 @@ test("pedestrian KPI is directly below the active Lens control and communicates 
   assert.match(app, /pedestrianStatus === "unavailable"/);
 });
 
-test("Lens A/B comparison includes pedestrian activity only when evidence exists in both lenses", () => {
-  assert.match(html, /<th scope="row">Pedestrian<\/th><td id="cmpPedestrianA">—<\/td><td id="cmpPedestrianB">—<\/td><td id="cmpPedestrian">—<\/td>/);
-  assert.match(app, /pedestrian: \{[\s\S]*enabled: pedestrianOn/);
-  assert.match(app, /setComparisonRow\("cmpPedestrian", comparison\.metrics\.pedestrian/);
+test("Lens A/B comparison includes pedestrian activity (panel-only) when evidence exists in both lenses", () => {
+  assert.match(html, /<th scope="row">Pedestrian · panel only<\/th><td id="cmpPedestrianA">—<\/td><td id="cmpPedestrianB">—<\/td><td id="cmpPedestrian">—<\/td>/);
+  // V3: pedestrian is a panel-only analytical comparison (not a halo bar), built
+  // directly from activityState rather than routed through the halo metrics.
+  assert.match(app, /const pedestrianState = activityState\(\{[\s\S]*enabled: pedestrianOn/);
+  assert.match(app, /setComparisonRow\("cmpPedestrian", pedestrianState/);
   assert.match(app, /pa\.stationCount[\s\S]*pa\.observationCount/);
 });
 

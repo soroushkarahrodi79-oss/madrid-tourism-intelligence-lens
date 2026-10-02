@@ -6,6 +6,15 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
+// Radial Halo V3 browser regression. Exercises the production Leaflet/SVG
+// renderer and asserts the SEMANTICS of the quantitative perimeter bars:
+// raw values printed, density-based bar length (within-metric), one shared A/B
+// scale, radius-compatible comparison, unavailable-vs-zero, saturation, and
+// pointer transparency. Value-semantics tests use the deterministic query-gated
+// seam so they are independent of which data layers a given checkout ships
+// (notably data/runtime_poi.json is a gitignored deploy artifact, so a clean CI
+// checkout serves only the committed snapshot and mobility is legitimately N/A).
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MIME = {
   ".css": "text/css; charset=utf-8",
@@ -39,7 +48,12 @@ await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const { port } = server.address();
 const browser = await chromium.launch({ headless: true });
 
-async function openPage(viewport = { width: 1366, height: 1024 }) {
+const SLOT_METRIC = { north: "tourism", east: "stays", south: "mobility", west: "utci" };
+const COUNT_TOKEN = /^\d[\d,]*$/;              // a grouped integer, including "0"
+const COUNT_OR_NA = /^(\d[\d,]*|N\/A)$/;        // integer or unavailable
+const VALID_TOKEN = /^(\d[\d,]*|N\/A|OFF|-?\d[\d.,]*°C)$/;
+
+async function newPage(viewport = { width: 1366, height: 1024 }) {
   const page = await browser.newPage({ viewport });
   page.setDefaultTimeout(5000);
   await page.route("**/*", (route) => {
@@ -49,219 +63,294 @@ async function openPage(viewport = { width: 1366, height: 1024 }) {
   });
   await page.goto(`http://127.0.0.1:${port}/?haloRegressionTest=1`, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => Boolean(window.__HALO_REGRESSION__));
-  await page.locator("#lensBButton").click();
-  await page.waitForFunction(() => document.querySelectorAll(".comparison-halo-icon").length > 0);
-  await page.evaluate(() => {
-    const api = window.__HALO_REGRESSION__;
-    api.setZoom(13);
-    api.setCenterAtPoint("A", 500, 430);
-    api.setCenterAtPoint("B", 1200, 430);
-  });
-  await page.locator("#lensAButton").click();
   return page;
 }
 
-async function visibleHaloSlots(page, lens) {
+// Compare mode: both lenses enabled, positioned apart, Lens A active. Panels are
+// hidden by default so both lenses' bars sit over open map for geometry reads.
+async function openCompare(viewport, { panels = false, zoom = 13 } = {}) {
+  const page = await newPage(viewport);
+  await page.locator("#lensBButton").click();
+  await page.waitForFunction(() => document.querySelectorAll(".comparison-halo-icon").length > 0);
+  if (!panels) await page.addStyleTag({ content: ".panel,.left{display:none!important}" });
+  await page.evaluate((z) => {
+    const api = window.__HALO_REGRESSION__;
+    api.setZoom(z);
+    api.setCenterAtPoint("A", 460, 430);
+    api.setCenterAtPoint("B", 1000, 430);
+    api.setActive("A");
+  }, zoom);
+  return page;
+}
+
+// Single-lens mode: Lens B never enabled; the halo must still render Lens A from
+// the real (production) data path, over central Madrid.
+async function openSingle(viewport) {
+  const page = await newPage(viewport);
+  await page.waitForFunction(() => document.querySelectorAll(".comparison-halo-icon").length > 0);
+  await page.evaluate(() => {
+    window.__HALO_REGRESSION__.setZoom(14);
+    window.__HALO_REGRESSION__.moveLens("A", 560, 430);
+  });
+  await page.waitForFunction(() => document.querySelectorAll(".halo-glyph.halo-a").length === 4);
+  return page;
+}
+
+function glyph(page, lens, slot) {
+  return page.locator(`.halo-glyph.halo-${lens.toLowerCase()}.halo-slot-${slot}`);
+}
+async function valueText(page, lens, slot) {
+  return (await glyph(page, lens, slot).locator(".halo-value").textContent())?.trim();
+}
+async function fillLength(page, lens, slot) {
+  return glyph(page, lens, slot).locator(".halo-fill").evaluate((line) => {
+    const n = (name) => Number(line.getAttribute(name));
+    return Math.hypot(n("x2") - n("x1"), n("y2") - n("y1"));
+  });
+}
+async function groupDisplay(page, lens, slot, selector) {
+  return glyph(page, lens, slot).locator(selector).evaluate((node) => getComputedStyle(node).display);
+}
+async function saturated(page, lens, slot) {
+  return glyph(page, lens, slot).evaluate((svg) => svg.getAttribute("data-saturated"));
+}
+async function visibleSlots(page, lens) {
   const slots = ["north", "east", "south", "west"];
   return Promise.all(slots.map(async (slot) => {
-    const icon = page.locator(`.halo-glyph.halo-${lens.toLowerCase()}.halo-slot-${slot}`).locator("xpath=..");
+    const icon = glyph(page, lens, slot).locator("xpath=..");
     const present = await icon.count() > 0;
     return { slot, visible: present, display: present ? await icon.evaluate((node) => getComputedStyle(node).display) : "none" };
   }));
 }
-
-async function glyph(page, lens, slot) {
-  return page.locator(`.halo-glyph.halo-${lens.toLowerCase()}.halo-slot-${slot}`);
+async function setComparison(page, patch) {
+  return page.evaluate((patch) => window.__HALO_REGRESSION__.setComparison({ ...window.__HALO_REGRESSION__.fixture, ...patch }), patch);
 }
-
-async function textPoint(glyphLocator) {
-  return glyphLocator.evaluate((svg) => {
-    const box = svg.querySelector(".halo-label").getBBox();
-    const rect = svg.getBoundingClientRect();
-    return { x: rect.left + box.x + box.width / 2, y: rect.top + box.y + box.height / 2 };
-  });
-}
-
-async function renderedAnchor(glyphLocator, slot) {
-  const iconAnchors = { north: [68, 52], east: [6, 28], south: [68, 4], west: [130, 28] };
-  const [iconX, iconY] = iconAnchors[slot];
-  return glyphLocator.locator("xpath=..").evaluate((icon, point) => {
-    const rect = icon.getBoundingClientRect();
-    return { x: rect.left + point.x, y: rect.top + point.y };
-  }, { x: iconX, y: iconY });
-}
-
 async function setRadius(page, which, metres) {
   await page.evaluate(({ which, metres }) => window.__HALO_REGRESSION__.setRadius(which, metres), { which, metres });
 }
-
-async function setUiRadius(page, which, metres) {
-  await page.locator(which === "A" ? "#lensAButton" : "#lensBButton").click();
-  await page.locator("#radiusSlider").evaluate((input, value) => {
-    input.value = String(value);
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-  }, metres);
+async function geometryFor(page, lens, metric) {
+  return page.evaluate(({ lens, metric }) => window.__HALO_REGRESSION__.geometry(lens, metric), { lens, metric });
 }
+const live = (value) => ({ value, sourceState: "live" });
 
-test("equal and unequal radius UI retains the panel and positions independent Lens halos", async (t) => {
-  const page = await openPage();
+// A/B/N. Single lens renders four bars that print real runtime values, honest
+// about the actual data contract (mobility may be unavailable in a snapshot-only
+// checkout; it then reads N/A, never a fake 0).
+test("A/B/N single lens renders four perimeter bars printing honest runtime values", async (t) => {
+  const page = await openSingle();
   t.after(() => page.close());
-  await setUiRadius(page, "A", 900);
-  await setUiRadius(page, "B", 900);
-  assert.match(await page.locator("#comparisonModeCue").innerText(), /Equal windows/);
-  assert.match(await page.locator("#comparisonRadiusReadout").innerText(), /900 m/);
-  await page.addStyleTag({ content: ".panel,.left{display:none!important}" });
-  await page.evaluate(() => {
-    window.__HALO_REGRESSION__.setCenterAtPoint("A", 360, 430);
-    window.__HALO_REGRESSION__.setCenterAtPoint("B", 1000, 430);
-  });
-  assert.equal((await visibleHaloSlots(page, "A")).filter((slot) => slot.visible).length, 4);
-  assert.equal((await visibleHaloSlots(page, "B")).filter((slot) => slot.visible).length, 4);
-
-  await page.addStyleTag({ content: ".panel,.left{display:block!important}" });
-  await page.evaluate(() => {
-    window.__HALO_REGRESSION__.setCenterAtPoint("A", 280, 430);
-    window.__HALO_REGRESSION__.setCenterAtPoint("B", 600, 430);
-  });
-  await setUiRadius(page, "A", 500);
-  await setUiRadius(page, "B", 1500);
-  assert.match(await page.locator("#comparisonRadiusReadout").innerText(), /Lens A · 500 m \| Lens B · 1\.5 km/);
-  assert.match(await page.locator("#comparisonModeCue").innerText(), /Different windows/);
-  assert.match(await page.locator("#cmpMobility").innerText(), /Withheld · different window sizes/);
-  const unequal = await page.evaluate(() => window.__HALO_REGRESSION__.setComparison({
-    ...window.__HALO_REGRESSION__.fixture,
-    radiusMode: "UNEQUAL_RADIUS", radii: { A: 500, B: 1500 }, aoiState: "eligible",
-  }));
-  assert.equal(unequal.metrics.tourism.aRawValue, 5);
-  assert.equal(unequal.metrics.stays.bRawValue, 4);
-  assert.ok(unequal.metrics.tourism.aValue > 0, "POI uses the unequal-window rate comparison state");
-  assert.ok(unequal.metrics.stays.bValue > 0, "Stay uses the unequal-window rate comparison state");
-  assert.equal("mobility" in unequal.metrics, false);
-  assert.equal(await page.locator(".halo-slot-mobility").count(), 0);
-  assert.ok((await visibleHaloSlots(page, "A")).some((slot) => slot.visible));
-  assert.ok((await visibleHaloSlots(page, "B")).some((slot) => slot.visible));
-  for (const [lens, metres] of [["A", 500], ["B", 1500]]) {
-    const geometry = await page.evaluate(({ lens }) => window.__HALO_REGRESSION__.geometry(lens, "tourism"), { lens });
-    const distance = Math.hypot(geometry.anchor.x - geometry.center.x, geometry.anchor.y - geometry.center.y);
-    assert.ok(Math.abs(distance - geometry.radiusPx - 5) <= 1.5, `${lens} anchor gap was ${distance - geometry.radiusPx}px`);
-    assert.ok(geometry.radiusPx > 0, `${lens} radius projects to a positive screen radius`);
-  }
-  const panel = await page.locator("#comparisonRadiusReadout").count();
-  assert.equal(panel, 1, "Compare panel remains present with the map Halo enabled");
+  assert.equal((await visibleSlots(page, "A")).filter((s) => s.visible).length, 4, "all four Lens A slots render with Compare off");
+  assert.match(await valueText(page, "A", "north"), COUNT_TOKEN, "Tourism prints a runtime integer");
+  assert.match(await valueText(page, "A", "east"), COUNT_TOKEN, "Stays prints a runtime integer");
+  assert.match(await valueText(page, "A", "south"), COUNT_OR_NA, "Mobility prints an integer or N/A (never a fake 0)");
+  assert.match(await valueText(page, "A", "west"), VALID_TOKEN, "UTCI prints a valid token");
+  assert.equal(await page.locator(".halo-glyph.halo-b").count(), 0, "no Lens B markers in single-lens mode");
 });
 
-test("metric labels keep fixed screen coordinates while POI and Stay fills change", async (t) => {
-  const page = await openPage();
+// C (brief). Monotonic within a metric and ONE shared A/B scale, at equal radius.
+test("C/D/E density bar is monotonic and shares one A/B scale at equal radius", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
   t.after(() => page.close());
-  await page.addStyleTag({ content: ".panel,.left{display:none!important}" });
-  await page.evaluate(() => {
-    window.__HALO_REGRESSION__.setCenterAtPoint("A", 500, 430);
-    window.__HALO_REGRESSION__.setCenterAtPoint("B", 1200, 430);
-  });
   await setRadius(page, "A", 900);
-  const observations = [];
-  for (const magnitude of [0, 0.25, 0.5, 1]) {
-    await page.evaluate((magnitude) => window.__HALO_REGRESSION__.setComparison({
-      ...window.__HALO_REGRESSION__.fixture,
-      tourism: { a: { value: magnitude * 10, sourceState: "live" }, b: { value: 10, sourceState: "live" } },
-      stays: { a: { value: magnitude * 10, sourceState: "live" }, b: { value: 10, sourceState: "live" } },
-    }), magnitude);
-    const poi = await glyph(page, "A", "north");
-    const stay = await glyph(page, "A", "east");
-    observations.push({
-      labels: await Promise.all([poi, stay, await glyph(page, "A", "south"), await glyph(page, "A", "west")].map(textPoint)),
-      poiFill: await poi.locator(".halo-fill").getAttribute("x2") + "," + await poi.locator(".halo-fill").getAttribute("y2"),
-      stayFill: await stay.locator(".halo-fill").getAttribute("x2") + "," + await stay.locator(".halo-fill").getAttribute("y2"),
-      track: await poi.locator(".halo-track").evaluate((line) => ["x1", "y1", "x2", "y2"].map((attribute) => line.getAttribute(attribute))),
-    });
+  await setRadius(page, "B", 900);
+  const lengths = [];
+  for (const value of [1, 2, 5, 40]) {
+    await setComparison(page, { radii: { A: 900, B: 900 }, tourism: { a: live(value), b: live(10) } });
+    lengths.push(await fillLength(page, "A", "north"));
   }
-  for (const row of observations.slice(1)) {
-    for (const [index, name] of ["POI", "STAY", "PED", "UTCI"].entries()) {
-      assert.ok(Math.hypot(row.labels[index].x - observations[0].labels[index].x, row.labels[index].y - observations[0].labels[index].y) < 0.5, `${name} label screen position is stable`);
-    }
-    assert.deepEqual(row.track, observations[0].track, "screen-space track length is fixed");
+  for (let i = 1; i < lengths.length; i += 1) {
+    assert.ok(lengths[i] >= lengths[i - 1] - 0.01, `monotonic non-decreasing (${lengths[i - 1]} -> ${lengths[i]})`);
   }
-  assert.equal(new Set(observations.map((row) => row.poiFill)).size, 4, "POI fill endpoint changes at every magnitude");
-  assert.equal(new Set(observations.map((row) => row.stayFill)).size, 4, "Stay fill endpoint changes at every magnitude");
+  assert.ok(lengths[2] > lengths[0], "5 renders a longer bar than 1");
+  // Equal raw count + equal radius -> equal bars on both lenses.
+  await setComparison(page, { radii: { A: 900, B: 900 }, tourism: { a: live(7), b: live(7) } });
+  assert.ok(Math.abs((await fillLength(page, "A", "north")) - (await fillLength(page, "B", "north"))) < 0.01, "equal density -> equal A/B bars");
+  // Raw numbers printed (brief D); Lens B (10) longer than Lens A (5) (brief E).
+  await setComparison(page, { radii: { A: 900, B: 900 }, tourism: { a: live(5), b: live(10) } });
+  assert.equal(await valueText(page, "A", "north"), "5");
+  assert.equal(await valueText(page, "B", "north"), "10");
+  assert.ok((await fillLength(page, "B", "north")) > (await fillLength(page, "A", "north")), "same radius: larger count -> longer bar");
 });
 
-test("valid zero and unavailable evidence render distinct real SVG states", async (t) => {
-  const page = await openPage();
+// B + C (brief). Unequal radii: smaller radius = higher density = longer bar;
+// counts proportional to area = equal density = equal bars.
+test("B/C unequal radii compare by density, not raw window size", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
   t.after(() => page.close());
-  await page.evaluate(() => window.__HALO_REGRESSION__.setComparison({ ...window.__HALO_REGRESSION__.fixture }));
-  const poi = await glyph(page, "A", "north");
-  await page.evaluate(() => window.__HALO_REGRESSION__.setComparison({
-    ...window.__HALO_REGRESSION__.fixture,
-    tourism: { a: { value: 0, sourceState: "live" }, b: { value: 10, sourceState: "live" } },
-  }));
-  assert.notEqual(await poi.locator(".halo-count").evaluate((node) => getComputedStyle(node).display), "none");
-  assert.notEqual(await poi.locator(".halo-zero").evaluate((node) => getComputedStyle(node).display), "none");
-  assert.equal(await poi.locator(".halo-abstain").evaluate((node) => getComputedStyle(node).display), "none");
-  await page.evaluate(() => window.__HALO_REGRESSION__.setComparison({
-    ...window.__HALO_REGRESSION__.fixture,
-    tourism: { a: { value: null, sourceState: "unavailable" }, b: { value: 10, sourceState: "live" } },
-  }));
-  assert.notEqual(await poi.locator(".halo-abstain").evaluate((node) => getComputedStyle(node).display), "none");
-  assert.equal(await poi.locator(".halo-zero").evaluate((node) => getComputedStyle(node).display), "none");
-  assert.equal(await poi.locator(".halo-count").evaluate((node) => getComputedStyle(node).display), "none");
-  assert.match(await poi.locator(".halo-abstain").getAttribute("class"), /halo-state-unavailable/);
+  await setRadius(page, "A", 500);
+  await setRadius(page, "B", 1000);
+  // Same raw count, A's window is 4x smaller -> A denser -> A's bar is longer.
+  await setComparison(page, { radii: { A: 500, B: 1000 }, tourism: { a: live(5), b: live(5) } });
+  assert.equal(await valueText(page, "A", "north"), "5");
+  assert.equal(await valueText(page, "B", "north"), "5");
+  assert.ok((await fillLength(page, "A", "north")) > (await fillLength(page, "B", "north")) + 1, "smaller radius, same count -> longer bar");
+  // Counts proportional to area (2 in 500 m, 8 in 1000 m) -> equal density -> equal bars.
+  await setComparison(page, { radii: { A: 500, B: 1000 }, tourism: { a: live(2), b: live(8) } });
+  assert.equal(await valueText(page, "A", "north"), "2");
+  assert.equal(await valueText(page, "B", "north"), "8");
+  const la = await fillLength(page, "A", "north");
+  const lb = await fillLength(page, "B", "north");
+  assert.ok(Math.abs(la - lb) < 0.8, `area-proportional counts -> equal density bars (${la} vs ${lb})`);
 });
 
-test("compact and hidden modes respond to projected radius while Compare stays available", async (t) => {
-  const page = await openPage();
+// J(UTCI) (brief). UTCI is Celsius-band based (never area-normalized): the same
+// mean gives the same bar at any Lens radius. Tested on one lens across two radii
+// (both full layout) to avoid cross-lens slot collision.
+test("J(UTCI) UTCI bar is Celsius-band based and radius-independent", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
   t.after(() => page.close());
-  const initial = await page.evaluate(() => window.__HALO_REGRESSION__.geometry("A", "tourism"));
-  const metresPerPixel = 900 / initial.radiusPx;
-  await setRadius(page, "A", 36 * metresPerPixel);
-  const compact = await glyph(page, "A", "north");
-  assert.ok(await compact.evaluate((svg) => svg.classList.contains("halo-compact")));
-  assert.notEqual(await compact.locator(".halo-track").count(), 0);
-  assert.equal(await compact.locator(".halo-label").evaluate((node) => getComputedStyle(node).display), "none");
-  await setRadius(page, "A", 29 * metresPerPixel);
-  assert.equal((await visibleHaloSlots(page, "A")).filter((slot) => slot.visible).length, 0);
-  assert.equal(await page.locator("#comparisonRadiusReadout").count(), 1);
-  assert.notEqual(await page.locator("#cmpPoi").innerText(), "");
+  const utci = { enabled: true, timestepA: "15:00", timestepB: "15:00", a: { evidence: "MODEL-DERIVED", mean: 38, count: 2 }, b: { evidence: "MODEL-DERIVED", mean: 35, count: 2 } };
+  await setComparison(page, { radii: { A: 500, B: 500 }, utci });
+  await setRadius(page, "A", 500);
+  assert.equal(await valueText(page, "A", "west"), "38.0°C");
+  const small = await fillLength(page, "A", "west");
+  await setRadius(page, "A", 1500);
+  assert.equal(await valueText(page, "A", "west"), "38.0°C", "raw UTCI unchanged by radius");
+  const large = await fillLength(page, "A", "west");
+  assert.ok(Math.abs(small - large) < 0.8, `UTCI bar length is radius-independent (${small} vs ${large})`);
+  // And it is a real band position, not full/empty.
+  assert.ok(small > 2, "UTCI bar has a meaningful length");
 });
 
-test("Lens circles and halos keep independent radii and five-pixel attachment", async (t) => {
-  const page = await openPage();
+// H (brief). Values above the reference density saturate the bar, raw unchanged.
+test("H above-reference density saturates the bar while the raw number stays full", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
   t.after(() => page.close());
-  await page.addStyleTag({ content: ".panel,.left{display:none!important}" });
+  await setRadius(page, "A", 500);
+  await setRadius(page, "B", 900);
+  await setComparison(page, { radii: { A: 500, B: 900 }, tourism: { a: live(500), b: live(1) } });
+  assert.equal(await valueText(page, "A", "north"), "500", "raw count still printed in full");
+  assert.equal(await saturated(page, "A", "north"), "true", "saturation flagged");
+  assert.equal(await saturated(page, "B", "north"), "false", "below-reference density not flagged");
+  const full = await fillLength(page, "A", "north");
+  assert.ok(full > (await fillLength(page, "B", "north")), "saturated bar is the longer one");
+});
+
+// I (brief). Zero vs unavailable vs off stay distinct in the rendered SVG.
+test("I genuine zero, unavailable and off render distinct states", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
+  t.after(() => page.close());
+  await setComparison(page, { tourism: { a: live(0), b: live(10) } });
+  assert.equal(await valueText(page, "A", "north"), "0");
+  assert.notEqual(await groupDisplay(page, "A", "north", ".halo-zero"), "none");
+  assert.equal(await groupDisplay(page, "A", "north", ".halo-abstain"), "none");
+
+  await setComparison(page, { tourism: { a: { value: null, sourceState: "unavailable" }, b: live(10) } });
+  assert.equal(await valueText(page, "A", "north"), "N/A");
+  assert.notEqual(await groupDisplay(page, "A", "north", ".halo-abstain"), "none");
+  assert.equal(await groupDisplay(page, "A", "north", ".halo-fill"), "none");
+  assert.match(await glyph(page, "A", "north").locator(".halo-abstain").getAttribute("class"), /halo-state-unavailable/);
+
+  await setComparison(page, { utci: { enabled: false } });
+  assert.equal(await valueText(page, "A", "west"), "OFF");
+});
+
+// J (brief). Switching the active lens never removes the other lens's bars.
+test("J active-lens switching keeps both lenses' quantitative bars on the map", async (t) => {
+  const page = await openCompare();
+  t.after(() => page.close());
   await page.evaluate(() => {
-    window.__HALO_REGRESSION__.setCenterAtPoint("A", 500, 430);
-    window.__HALO_REGRESSION__.setCenterAtPoint("B", 1200, 430);
+    window.__HALO_REGRESSION__.setZoom(14);
+    window.__HALO_REGRESSION__.moveLens("A", 380, 430);
+    window.__HALO_REGRESSION__.moveLens("B", 980, 430);
   });
+  const bothPresent = async () => {
+    assert.equal((await visibleSlots(page, "A")).filter((s) => s.visible).length, 4, "Lens A keeps four bars");
+    assert.equal((await visibleSlots(page, "B")).filter((s) => s.visible).length, 4, "Lens B keeps four bars");
+    assert.match(await valueText(page, "A", "south"), VALID_TOKEN);
+    assert.match(await valueText(page, "B", "south"), VALID_TOKEN);
+  };
+  await bothPresent();
+  await page.evaluate(() => window.__HALO_REGRESSION__.setActive("B"));
+  await bothPresent();
+  await page.evaluate(() => window.__HALO_REGRESSION__.setActive("A"));
+  await bothPresent();
+});
+
+// Unequal radii remain projected 5 px beyond each lens's own boundary.
+test("unequal radii keep each lens's bars projected onto its own boundary", async (t) => {
+  const page = await openCompare();
+  t.after(() => page.close());
   await setRadius(page, "A", 500);
   await setRadius(page, "B", 1500);
-  const before = await page.evaluate(() => ({ A: window.__HALO_REGRESSION__.geometry("A", "tourism"), B: window.__HALO_REGRESSION__.geometry("B", "tourism") }));
-  const mapRect = await page.locator("#map").evaluate((map) => map.getBoundingClientRect().toJSON());
   for (const lens of ["A", "B"]) {
-    const actual = await renderedAnchor(await glyph(page, lens, "north"), "north");
-    assert.ok(Math.hypot(actual.x - mapRect.left - before[lens].anchor.x, actual.y - mapRect.top - before[lens].anchor.y) <= 1.5, `${lens} rendered SVG anchor follows its own projected Lens`);
+    const g = await geometryFor(page, lens, "tourism");
+    const distance = Math.hypot(g.anchor.x - g.center.x, g.anchor.y - g.center.y);
+    assert.ok(Math.abs(distance - g.radiusPx - 5) <= 1.5, `${lens} spoke attaches 5 px beyond its own radius`);
+    assert.ok(g.radiusPx > 0);
   }
+  const before = await geometryFor(page, "A", "tourism");
+  const beforeB = await geometryFor(page, "B", "tourism");
   await setRadius(page, "A", 1500);
-  const afterA = await page.evaluate(() => ({ A: window.__HALO_REGRESSION__.geometry("A", "tourism"), B: window.__HALO_REGRESSION__.geometry("B", "tourism") }));
-  assert.ok(afterA.A.radiusPx > before.A.radiusPx);
-  assert.ok(Math.hypot(afterA.A.anchor.x - before.A.anchor.x, afterA.A.anchor.y - before.A.anchor.y) > 20, "A spoke moves outward when A radius grows");
-  assert.ok(Math.abs(afterA.B.radiusPx - before.B.radiusPx) < 0.01);
-  assert.ok(Math.hypot(afterA.B.anchor.x - before.B.anchor.x, afterA.B.anchor.y - before.B.anchor.y) < 0.1);
-  await setRadius(page, "B", 500);
-  const afterB = await page.evaluate(() => ({ A: window.__HALO_REGRESSION__.geometry("A", "tourism"), B: window.__HALO_REGRESSION__.geometry("B", "tourism") }));
-  assert.ok(Math.abs(afterB.A.radiusPx - afterA.A.radiusPx) < 0.01);
-  assert.ok(Math.hypot(afterB.B.anchor.x - afterA.B.anchor.x, afterB.B.anchor.y - afterA.B.anchor.y) > 20, "B spoke moves when B radius changes");
-  for (const geometry of [before.A, before.B, afterA.A, afterA.B, afterB.A, afterB.B]) {
-    const distance = Math.hypot(geometry.anchor.x - geometry.center.x, geometry.anchor.y - geometry.center.y);
-    assert.ok(Math.abs(distance - geometry.radiusPx - 5) <= 1.5);
-  }
+  const after = await geometryFor(page, "A", "tourism");
+  const afterB = await geometryFor(page, "B", "tourism");
+  assert.ok(after.radiusPx > before.radiusPx);
+  assert.ok(Math.hypot(after.anchor.x - before.anchor.x, after.anchor.y - before.anchor.y) > 20);
+  assert.ok(Math.abs(afterB.radiusPx - beforeB.radiusPx) < 0.01, "B radius unchanged when A grows");
 });
 
-test("one cross-Lens slot collision suppresses slots independently", async (t) => {
-  const page = await openPage();
+// K. Pan/zoom preserves attachment.
+test("K pan and zoom preserve bar attachment to the Lens boundary", async (t) => {
+  const page = await openCompare();
   t.after(() => page.close());
-  const scale = await page.evaluate(() => {
-    const px = window.__HALO_REGRESSION__.geometry("A", "tourism").radiusPx;
-    return 900 / px;
+  await setRadius(page, "A", 900);
+  const check = async () => {
+    const g = await geometryFor(page, "A", "mobility");
+    const distance = Math.hypot(g.anchor.x - g.center.x, g.anchor.y - g.center.y);
+    assert.ok(Math.abs(distance - g.radiusPx - 5) <= 1.5, "spoke stays 5 px beyond the projected radius");
+  };
+  await check();
+  await page.evaluate(() => window.__HALO_REGRESSION__.setZoom(15));
+  await check();
+  await page.evaluate(() => window.__HALO_REGRESSION__.setZoom(12));
+  await check();
+});
+
+// L. Values stay legible and in-bounds on desktop, laptop and iPad viewports.
+for (const viewport of [
+  { name: "desktop", width: 1440, height: 900 },
+  { name: "laptop", width: 1280, height: 800 },
+  { name: "iPad landscape", width: 1024, height: 768 },
+  { name: "iPad portrait", width: 768, height: 1024 },
+]) {
+  test(`L values stay legible and in-bounds on ${viewport.name}`, async (t) => {
+    const page = await openCompare(viewport);
+    t.after(() => page.close());
+    await setComparison(page, {});
+    const mapRect = await page.locator("#map").evaluate((node) => node.getBoundingClientRect().toJSON());
+    for (const lens of ["A", "B"]) {
+      for (const { slot, visible, display } of await visibleSlots(page, lens)) {
+        if (!visible || display === "none") continue;
+        const box = await glyph(page, lens, slot).locator(".halo-value").evaluate((node) => node.getBoundingClientRect().toJSON());
+        assert.ok(box.height >= 9, `${lens} ${slot} value is legible (${box.height}px) on ${viewport.name}`);
+        assert.ok(box.right > mapRect.left && box.left < mapRect.right && box.bottom > mapRect.top && box.top < mapRect.bottom,
+          `${lens} ${slot} value stays within the map on ${viewport.name}`);
+      }
+    }
   });
+}
+
+// M. The halo never blocks pointer interaction with the map.
+test("M the halo is pointer-transparent and clicks pass through to the map", async (t) => {
+  const page = await openCompare();
+  t.after(() => page.close());
+  const cssPointerEvents = await glyph(page, "A", "north").evaluate((svg) => getComputedStyle(svg.closest(".comparison-halo-icon")).pointerEvents);
+  assert.equal(cssPointerEvents, "none");
+  const target = await page.evaluate(() => {
+    const anchor = window.__HALO_REGRESSION__.geometry("A", "tourism").anchor;
+    window.__haloMapClicks = 0;
+    document.querySelector("#map").addEventListener("click", () => { window.__haloMapClicks += 1; }, { once: true });
+    return { x: anchor.x, y: anchor.y - 30 };
+  });
+  await page.mouse.click(target.x, target.y);
+  await page.waitForFunction(() => window.__haloMapClicks === 1);
+});
+
+// Compare panel survives, collisions suppress ambiguous slots, readout stays.
+test("compare panel and collision suppression stay intact alongside the bars", async (t) => {
+  const page = await openCompare(undefined, { panels: true });
+  t.after(() => page.close());
+  const scale = await page.evaluate(() => 900 / window.__HALO_REGRESSION__.geometry("A", "tourism").radiusPx);
   const compactRadiusM = 36 * scale;
   await setRadius(page, "A", compactRadiusM);
   await setRadius(page, "B", compactRadiusM);
@@ -269,75 +358,12 @@ test("one cross-Lens slot collision suppresses slots independently", async (t) =
     window.__HALO_REGRESSION__.setCenterAtPoint("A", 350, 430);
     window.__HALO_REGRESSION__.setCenterAtPoint("B", 350 + distance, 430);
   }, 2 * (36 + 5));
-  const a = await visibleHaloSlots(page, "A");
-  const b = await visibleHaloSlots(page, "B");
-  assert.ok(a.some((slot) => slot.visible && slot.display !== "none"));
-  assert.ok(a.some((slot) => !slot.visible || slot.display === "none"));
-  assert.ok(b.some((slot) => slot.visible && slot.display !== "none"));
+  const a = await visibleSlots(page, "A");
+  assert.ok(a.some((s) => s.visible && s.display !== "none"));
+  assert.ok(a.some((s) => !s.visible || s.display === "none"));
   assert.match(await page.locator("#haloVisibilityNote").innerText(), /ambiguous Lens A\/B slot overlap/);
-  for (const [lens, slots] of [["A", a], ["B", b]]) {
-    for (const slot of slots.filter((entry) => entry.visible && entry.display !== "none")) {
-      const geometry = await page.evaluate(({ lens, metric }) => window.__HALO_REGRESSION__.geometry(lens, metric), { lens, metric: ({ north: "tourism", east: "stays", south: "pedestrian", west: "utci" })[slot.slot] });
-      const distance = Math.hypot(geometry.anchor.x - geometry.center.x, geometry.anchor.y - geometry.center.y);
-      assert.ok(Math.abs(distance - geometry.radiusPx - 5) <= 1.5, "visible collision survivors remain attached");
-    }
-  }
-});
-
-test("analysis panel and map edge suppress outward slots without relocating surviving spokes", async (t) => {
-  const page = await openPage();
-  t.after(() => page.close());
-  await setRadius(page, "A", 700);
-  await page.evaluate(() => {
-    const mapRect = document.querySelector("#map").getBoundingClientRect();
-    const panelRect = document.querySelector(".panel").getBoundingClientRect();
-    const geometry = window.__HALO_REGRESSION__.geometry("A", "tourism");
-    window.__HALO_REGRESSION__.setCenterAtPoint("A", panelRect.left - mapRect.left - geometry.radiusPx - 70, mapRect.height / 2);
-    window.__HALO_REGRESSION__.setCenterAtPoint("B", 100, mapRect.height / 2);
-  });
-  const panelSlots = await visibleHaloSlots(page, "A");
-  assert.ok(panelSlots.some((slot) => !slot.visible || slot.display === "none"));
-  assert.ok(panelSlots.some((slot) => slot.visible && slot.display !== "none"));
-  assert.match(await page.locator("#haloVisibilityNote").innerText(), /map control panel/);
-  await page.addStyleTag({ content: ".panel{display:none!important}" });
-  const edgeGeometry = await page.evaluate(() => {
-    const mapRect = document.querySelector("#map").getBoundingClientRect();
-    const radiusPx = window.__HALO_REGRESSION__.geometry("A", "tourism").radiusPx;
-    window.__HALO_REGRESSION__.setCenterAtPoint("A", mapRect.width - radiusPx - 80, mapRect.height / 2);
-    return window.__HALO_REGRESSION__.geometry("A", "tourism");
-  });
-  const edgeSlots = await visibleHaloSlots(page, "A");
-  assert.ok(edgeSlots.some((slot) => !slot.visible || slot.display === "none"));
-  assert.ok(edgeSlots.some((slot) => slot.visible && slot.display !== "none"));
-  assert.match(await page.locator("#haloVisibilityNote").innerText(), /map edge/);
-  const distance = Math.hypot(edgeGeometry.anchor.x - edgeGeometry.center.x, edgeGeometry.anchor.y - edgeGeometry.center.y);
-  assert.ok(Math.abs(distance - edgeGeometry.radiusPx - 5) <= 1.5);
   assert.equal(await page.locator("#comparisonRadiusReadout").count(), 1);
-});
-
-test("Halo remains pointer-transparent and a click through a Halo slot reaches the map", async (t) => {
-  const page = await openPage();
-  t.after(() => page.close());
-  const poi = await glyph(page, "A", "north");
-  const cssPointerEvents = await poi.evaluate((svg) => getComputedStyle(svg.closest(".comparison-halo-icon")).pointerEvents);
-  assert.equal(cssPointerEvents, "none");
-  const target = await page.evaluate(() => {
-    const anchor = window.__HALO_REGRESSION__.geometry("A", "tourism").anchor;
-    window.__haloMapClicks = 0;
-    document.querySelector("#map").addEventListener("click", () => { window.__haloMapClicks += 1; }, { once: true });
-    return { x: anchor.x, y: anchor.y - 35 };
-  });
-  await page.mouse.click(target.x, target.y);
-  await page.waitForFunction(() => window.__haloMapClicks === 1);
-});
-
-test("smaller landscape viewport keeps deterministic layout and available Compare panel", async (t) => {
-  const page = await openPage({ width: 1024, height: 768 });
-  t.after(() => page.close());
-  await page.evaluate(() => window.__HALO_REGRESSION__.setComparison({ ...window.__HALO_REGRESSION__.fixture }));
-  assert.equal(await page.locator("#comparisonRadiusReadout").count(), 1);
-  assert.ok(await page.locator(".comparison-halo-icon").count() > 0);
-  assert.equal(await page.locator(".comparison-halo-icon").first().evaluate((element) => getComputedStyle(element).pointerEvents), "none");
+  assert.notEqual(await page.locator("#cmpPoi").innerText(), "");
 });
 
 test.after(async () => {

@@ -419,8 +419,9 @@ test("administrative geometry renders below the lens and adapts to every basemap
     assert.match(app, new RegExp(`${basemap}: \\{ stroke: "#`), `${basemap} needs its own administrative stroke`);
   }
   assert.match(app, /if \(adminStyleController\) adminStyleController\(requested\)/);
-  // The lens stays visually dominant: a heavier stroke than the reference area.
-  assert.match(app, /weight: isActive \? 3\.4 : 2\.7/);
+  // The lens boundary stays heavier than the administrative reference area, but
+  // V3 quiets it so the perimeter data bars dominate.
+  assert.match(app, /weight: isActive \? 2\.6 : 1\.9/);
   assert.match(app, /weight: isActive \? 2\.3 : 1\.7/);
   assert.match(css, /\.admin-active-pane\{filter:drop-shadow/);
 });
