@@ -28,16 +28,22 @@
     "prov_dest_cod",
     "prov_dest"
   ],
-  "schema_fingerprint": "decbd3927afe6e78b2e6c302f6452cf411da7ecd69f2040b4f0f7ac344bba556",
   "temporal_contract": {
-    "workbook_year": "Container year, not the observation date.",
+    "workbook_year": "Container year, not the observation date; every discovered monthly sheet must use this year.",
     "source_month": "Each published crossing is assigned to its exact monthly worksheet.",
     "latest_source_month": "2026-07",
     "retrieved_at": "2026-10-02T09:17:53Z"
   },
   "suppression_semantics": {
     "rule": "INE publishes only origin-destination crossings with more than 30 tourists.",
-    "absent_is_not_zero": "Absent origin rows may be suppressed and are never materialised as zero or an other-origins residual."
+    "absent_is_not_zero": "Origins may be outside the source universe, including same-province travel; within the covered universe absent rows may be suppressed and are never materialised as zero or an other-origins residual."
   },
-  "interpretation_ceiling": "Source-reported resident tourists from published Spanish origin municipalities travelling to Madrid municipality in a source month. It is descriptive context, not a complete distribution of domestic tourism, a share of all domestic tourists, a market ranking, causal evidence, forecast or any barrio, district or Lens-circle measure."
+  "interpretation_ceiling": "Source-reported resident tourists from published Spanish origin municipalities travelling to Madrid municipality from another province in a source month. Same-province travel is outside the source universe. It is descriptive context, not a complete distribution of domestic tourism, a share of all domestic tourists, a market ranking, causal evidence, forecast or any barrio, district or Lens-circle measure.",
+  "source_universe": {
+    "residence": "Residents in Spain",
+    "trip_condition": "Travel to a province different from the province of residence",
+    "disaggregation": "Origin and destination municipality",
+    "same_province_travel_excluded": true
+  },
+  "schema_fingerprint": "f82de355f92d9e67fe2e1bd120a8c962bf89ff66b9621ef4a3b97724321ffb27"
 }

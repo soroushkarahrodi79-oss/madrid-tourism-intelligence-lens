@@ -212,17 +212,19 @@ at runtime. Refreshing it requires re-running the builder and reviewing the diff
 
 ### Destination Context — domestic origins
 
-The same municipality-level surface also reports published Spanish **origin
-municipalities** for resident tourists travelling to Madrid municipality in a
-selected source month. It uses INE's direct internal-tourism workbook and the
-destination code **28079**, corroborated by the workbook's Madrid destination
-and province fields.
+The same municipality-level surface also reports published **origin
+municipalities** for residents travelling to Madrid municipality **from another
+Spanish province** in a selected source month. Same-province travel, including
+travel within Madrid province, is outside the source universe. It uses INE's
+direct internal-tourism workbook and destination code **28079**, corroborated
+by the workbook's Madrid destination and province fields.
 
 **It does not establish:** a Lens, barrio or district origin; a complete
 distribution of domestic tourism; an all-origin share; unique people; market
 attractiveness; causality; or a forecast. INE publishes only origin-destination
 crossings with **more than 30 tourists**. An origin absent from the published
-table is therefore **not zero** and no residual “other origins” category is
+table may therefore be outside the source universe or, within that universe,
+suppressed; it is **not zero** and no residual “other origins” category is
 made. The source-reported `turistas` count remains a count for that published
 crossing in that month.
 

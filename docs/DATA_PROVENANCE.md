@@ -583,12 +583,18 @@ independent of barrios, districts, map coordinates and Lens state.
   `prov_dest == "Madrid"`. Codes remain zero-padded strings.
 - **Period and measure:** monthly sheets are discovered dynamically. Each row
   preserves its source month and source-reported `turistas`: resident tourists
-  for the published origin-to-Madrid crossing in that month. Workbook year,
-  retrieval time and latest actually published month are distinct fields.
+  for the published origin-to-Madrid crossing in that month. The source universe
+  is residents in Spain travelling to a **different province** from their
+  province of residence; same-province travel, including travel within Madrid
+  province, is outside it. Workbook year, retrieval time and latest actually
+  published month are distinct fields, and every sheet year must match the
+  declared workbook year.
 - **Suppression ceiling:** INE's notes state that it publishes only crossings
-  with **more than 30 tourists**. Consequently an origin absent from a month is
-  not zero, no “other origins” residual is made, and visible counts are never
-  presented as shares of all domestic tourism.
+  with **more than 30 tourists**. A published Madrid row at or below 30 fails
+  validation. Consequently an origin absent from a month may be outside the
+  source universe or, within it, suppressed; it is not zero, no “other origins”
+  residual is made, and visible counts are never presented as shares of all
+  domestic tourism.
 - **Integrity and refresh:** `scripts/build_domestic_origin_context.py` checks
   the notes, exact ten-column schema, month-sheet structure, numeric counts,
   duplicates and Madrid corroboration before atomically writing the artifact and

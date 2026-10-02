@@ -514,17 +514,20 @@
       "spatial_scope_note": "DELIBERATELY NULL because this is municipality-level origin-destination context with no coordinates or sub-municipal geometry; municipality code 28079 is the geographic gate.",
       "expected_municipality_code": "28079",
       "source_period_exposed_by_source": true,
-      "source_period_semantics": "Each record is a crossing in the monthly worksheet named by source_month. The workbook year is only an acquisition container and retrieved_at is kept separately.",
-      "suppression_rule": "Only origin-destination crossings with more than 30 tourists are published. Absent origins are not zero and no residual or all-origin share may be created.",
+      "source_period_semantics": "Each record is a crossing in the monthly worksheet named by source_month. Every sheet year must match the declared workbook year; the workbook year is only an acquisition container and retrieved_at is kept separately.",
+      "source_universe": "Residents in Spain travelling to a province different from their province of residence, disaggregated by origin and destination municipality. Same-province travel, including travel within Madrid province, is outside this statistic's universe.",
+      "suppression_rule": "Only origin-destination crossings with more than 30 tourists are published. Origins may be outside the source universe; within the universe, absent origins are not zero and no residual or all-origin share may be created.",
       "expected_source_schema": ["mes", "mun_orig_cod", "mun_orig", "dest_cod", "dest", "turistas", "prov_orig_cod", "prov_orig", "prov_dest_cod", "prov_dest"],
       "integrity_guardrail": {
-        "min_count": 8000,
+        "minimum_rows_per_published_month": 500,
         "baseline_count": 15102,
+        "baseline_months": 7,
+        "baseline_rows_per_published_month": 2157,
         "calibrated_on": "2026-10-02",
-        "rationale": "Engineering floor for a committed Madrid-only extraction, not a statement about total domestic tourism. It catches a truncated workbook or failed Madrid filter while allowing normal month-to-month publication variation."
+        "rationale": "Per-published-month engineering floor for a committed Madrid-only extraction, not a statement about total domestic tourism. It catches a truncated workbook, broken Madrid filter or incomplete parser without rejecting a legitimate early-year workbook with only one or two available monthly sheets."
       },
       "blocks_deployment_note": "BLOCKING because Destination Context publishes source-reported domestic origin crossings. A missing, malformed, wrongly scoped or suppression-erasing artifact would make an absent crossing look like zero. Runtime failure remains explicit and independent of the Lens and Area Profile.",
-      "interpretation_ceiling": "Published Spanish origin municipalities among resident tourists travelling to Madrid municipality only. Descriptive context, not a complete distribution of domestic tourism, an all-origin share, a market attractiveness ranking, causal evidence, forecast, barrio, district or Lens-circle measure. International origins are not implemented."
+      "interpretation_ceiling": "Published origin municipalities for residents travelling to Madrid municipality from another Spanish province. Same-province travel, including travel within Madrid province, is outside the statistic's universe. Within the covered universe only crossings with more than 30 tourists are published, so absent origins are not zero. Descriptive context, not a complete distribution of domestic tourism, an all-origin share, a market attractiveness ranking, causal evidence, forecast, barrio, district or Lens-circle measure. International origins are not implemented."
     }
   ]
 }

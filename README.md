@@ -59,10 +59,11 @@ including comparing two places at once.
   cannot change a single figure on it. Hotel demand is **not** total tourism
   demand.
 - Read **Domestic origins** within that same Destination Context: published
-  Spanish origin municipalities among resident tourists travelling to Madrid
-  municipality in a selected source month. INE publishes only crossings above
-  30 tourists, so an absent origin is **not zero** and the list is not a
-  complete domestic-tourism distribution. It is also independent of the Lens.
+  origin municipalities for residents travelling to Madrid municipality from
+  another Spanish province in a selected source month. Same-province travel is
+  outside the source universe; within it, INE publishes only crossings above 30
+  tourists, so an absent origin is **not zero** and the list is not a complete
+  domestic-tourism distribution. It is also independent of the Lens.
 - Optionally overlay the full lattice of **district** or **barrio** outlines;
   the containing barrio is always outlined, the lattice defaults to off.
 

@@ -2,20 +2,21 @@
 // no map, coordinates, Lens radius, barrio or district inputs can reach it.
 export const ORIGIN_STATE = { UNAVAILABLE: "unavailable", MONTH_UNAVAILABLE: "month_unavailable", AVAILABLE: "available" };
 export const ORIGIN_SCOPE_CAVEAT = "Madrid municipality — not the Lens circle.";
-export const ORIGIN_SUPPRESSION_CAVEAT = "Only crossings with more than 30 tourists are published; missing origins do not mean zero and this is not a complete domestic-tourism distribution.";
+export const ORIGIN_UNIVERSE_CAVEAT = "Published origin municipalities for residents travelling to Madrid from another Spanish province.";
+export const ORIGIN_SUPPRESSION_CAVEAT = "Origins may be outside the source universe, including travel within Madrid province; within it, only crossings with more than 30 tourists are published. Missing origins are not zero; this is not a complete domestic-tourism distribution.";
 export const ORIGIN_DICTIONARIES = {
-  en: { heading: "Domestic origins", official: "Official statistics", month: "Source month", municipality: "Madrid municipality · 28079", origin: "Origin municipality", tourists: "Source-reported tourists", unavailable: "Domestic-origin context unavailable.", periodUnavailable: "No published origin context for this month.", caveat: ORIGIN_SUPPRESSION_CAVEAT },
-  es: { heading: "Orígenes nacionales", official: "Estadísticas oficiales", month: "Mes de referencia", municipality: "Municipio de Madrid · 28079", origin: "Municipio de origen", tourists: "Turistas comunicados por la fuente", unavailable: "Contexto de orígenes nacionales no disponible.", periodUnavailable: "No hay contexto de orígenes publicado para este mes.", caveat: "Solo se publican cruces con más de 30 turistas; los orígenes ausentes no significan cero y esto no es una distribución completa del turismo nacional." },
+  en: { heading: "Domestic origins", official: "Official statistics", month: "Source month", municipality: "Madrid municipality · 28079", universe: ORIGIN_UNIVERSE_CAVEAT, origin: "Origin municipality", tourists: "Source-reported tourists", unavailable: "Domestic-origin context unavailable.", periodUnavailable: "No published origin context for this month.", caveat: ORIGIN_SUPPRESSION_CAVEAT },
+  es: { heading: "Orígenes nacionales", official: "Estadísticas oficiales", month: "Mes de referencia", municipality: "Municipio de Madrid · 28079", universe: "Municipios de origen publicados de residentes que viajan a Madrid desde otra provincia española.", origin: "Municipio de origen", tourists: "Turistas comunicados por la fuente", unavailable: "Contexto de orígenes nacionales no disponible.", periodUnavailable: "No hay contexto de orígenes publicado para este mes.", caveat: "Algunos orígenes pueden quedar fuera del universo, incluido el viaje dentro de la provincia de Madrid; dentro de él, solo se publican cruces con más de 30 turistas. Los orígenes ausentes no son cero; no es una distribución completa del turismo nacional." },
 };
 export function formatOriginCount(value) { return Number.isInteger(value) && value >= 0 ? value.toLocaleString("en-GB") : null; }
 export function createDomesticOriginIndex(artifact) {
-  if (!artifact || artifact.geography?.municipality_code !== "28079" || !Array.isArray(artifact.months) || !artifact.months.length) return null;
+  if (!artifact || artifact.geography?.municipality_code !== "28079" || artifact.source_universe?.same_province_travel_excluded !== true || !Array.isArray(artifact.months) || !artifact.months.length) return null;
   const byMonth=new Map();
   for (const month of artifact.months) {
     if (!month || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month.source_month) || !Array.isArray(month.published_origins) || byMonth.has(month.source_month)) return null;
     const seen=new Set(); const origins=[];
     for (const origin of month.published_origins) {
-      if (!origin || ["barrio", "district", "lat", "lon", "geometry", "international"].some((key) => key in origin) || !/^\d{5}$/.test(origin.origin_municipality_code || "") || !/^\d{2}$/.test(origin.origin_province_code || "") || !Number.isInteger(origin.source_reported_tourists) || origin.source_reported_tourists < 0 || seen.has(origin.origin_municipality_code)) return null;
+      if (!origin || ["barrio", "district", "lat", "lon", "geometry", "international"].some((key) => key in origin) || !/^\d{5}$/.test(origin.origin_municipality_code || "") || !/^\d{2}$/.test(origin.origin_province_code || "") || !Number.isInteger(origin.source_reported_tourists) || origin.source_reported_tourists <= 30 || seen.has(origin.origin_municipality_code)) return null;
       seen.add(origin.origin_municipality_code); origins.push({...origin});
     }
     byMonth.set(month.source_month, origins);

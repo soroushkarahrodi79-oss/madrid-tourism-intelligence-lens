@@ -27,6 +27,7 @@ function testRegistry() {
   const registry = clone(REAL_REGISTRY);
   for (const source of registry.sources) {
     if (source.integrity_guardrail) source.integrity_guardrail.min_count = 2;
+    if (source.integrity_guardrail?.minimum_rows_per_published_month) source.integrity_guardrail.minimum_rows_per_published_month = 2;
     if (source.required_modes) {
       for (const rule of Object.values(source.required_modes.modes)) rule.min_count = 1;
     }
@@ -556,8 +557,8 @@ function healthyArtifacts() {
     "accommodation/madrid_vut_licences.meta.json": vutMeta(),
     "destination/madrid_hotel_demand.json": destinationArtifact(),
     "destination/madrid_hotel_demand.meta.json": destinationMeta(),
-    "destination/madrid_domestic_origins.json": { source: { authority: "INE", source_url: "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_2026.xlsx", workbook_year: 2026, retrieved_at: GENERATED_AT }, geography: { level: "municipality", municipality_code: "28079" }, source_period: { latest: "2026-01", available_months: ["2026-01"] }, suppression: { rule: "more than 30 tourists", absent_is_not_zero: "never materialised as zero" }, source_schema: ["mes", "mun_orig_cod", "mun_orig", "dest_cod", "dest", "turistas", "prov_orig_cod", "prov_orig", "prov_dest_cod", "prov_dest"], schema_fingerprint: "a".repeat(64), months: [{ source_month: "2026-01", published_origins: [{ origin_municipality_code: "01001", origin_municipality_name: "A", origin_province_code: "01", origin_province_name: "A", source_reported_tourists: 40 }, { origin_municipality_code: "08019", origin_municipality_name: "B", origin_province_code: "08", origin_province_name: "B", source_reported_tourists: 50 }] }] },
-    "destination/madrid_domestic_origins.meta.json": { source: { authority: "INE", source_url: "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_2026.xlsx", workbook_year: 2026, retrieved_at: GENERATED_AT }, schema_fingerprint: "a".repeat(64), geography: { municipality_code: "28079", resolved_level: "municipality", destination_corroboration: { dest: "Madrid", prov_dest_cod: "28", prov_dest: "Madrid" } } },
+    "destination/madrid_domestic_origins.json": { source: { authority: "INE", source_url: "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_2026.xlsx", workbook_year: 2026, retrieved_at: GENERATED_AT }, source_universe: { residence: "Residents in Spain", trip_condition: "Travel to a province different from the province of residence", same_province_travel_excluded: true }, geography: { level: "municipality", municipality_code: "28079" }, source_period: { latest: "2026-01", available_months: ["2026-01"] }, suppression: { rule: "more than 30 tourists", absent_is_not_zero: "never materialised as zero" }, source_schema: ["mes", "mun_orig_cod", "mun_orig", "dest_cod", "dest", "turistas", "prov_orig_cod", "prov_orig", "prov_dest_cod", "prov_dest"], schema_fingerprint: "a".repeat(64), months: [{ source_month: "2026-01", published_origins: [{ origin_municipality_code: "01001", origin_municipality_name: "A", origin_province_code: "01", origin_province_name: "A", source_reported_tourists: 40 }, { origin_municipality_code: "08019", origin_municipality_name: "B", origin_province_code: "08", origin_province_name: "B", source_reported_tourists: 50 }] }] },
+    "destination/madrid_domestic_origins.meta.json": { source: { authority: "INE", source_url: "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_2026.xlsx", workbook_year: 2026, retrieved_at: GENERATED_AT }, source_universe: { residence: "Residents in Spain", trip_condition: "Travel to a province different from the province of residence", same_province_travel_excluded: true }, schema_fingerprint: "a".repeat(64), geography: { municipality_code: "28079", resolved_level: "municipality", destination_corroboration: { dest: "Madrid", prov_dest_cod: "28", prov_dest: "Madrid" } } },
     "hospitality-commercial-context.json": hospitalityArtifact(),
   };
 }
@@ -579,6 +580,41 @@ test("a healthy deployment build passes and reports every layer available", () =
   assert.equal(result.manifest.build_state, "pass");
   assert.equal(result.manifest.totals.layers_unavailable, 0);
   assert.equal(result.manifest.totals.operational_layers_available, 5);
+});
+
+test("domestic-origin integrity is progress-aware for one or seven published months", () => {
+  const oneMonth = healthyArtifacts();
+  assert.equal(errorText(run(oneMonth)), "");
+
+  const sevenMonths = healthyArtifacts();
+  const origins = sevenMonths["destination/madrid_domestic_origins.json"];
+  origins.months = Array.from({ length: 7 }, (_, index) => {
+    const source_month = `2026-${String(index + 1).padStart(2, "0")}`;
+    return { ...clone(origins.months[0]), source_month };
+  });
+  origins.source_period = {
+    latest: "2026-07",
+    available_months: origins.months.map((month) => month.source_month),
+  };
+  assert.equal(errorText(run(sevenMonths)), "");
+});
+
+test("domestic-origin guards fail a near-empty month without weakening Madrid, source-universe or suppression gates", () => {
+  const truncated = healthyArtifacts();
+  truncated["destination/madrid_domestic_origins.json"].months[0].published_origins.pop();
+  assert.match(errorText(run(truncated)), /per-published-month extraction floor/);
+
+  const suppressed = healthyArtifacts();
+  suppressed["destination/madrid_domestic_origins.json"].months[0].published_origins[0].source_reported_tourists = 30;
+  assert.match(errorText(run(suppressed)), /invalid, suppressed or duplicate origin row/);
+
+  const wrongMadrid = healthyArtifacts();
+  wrongMadrid["destination/madrid_domestic_origins.json"].geography.municipality_code = "28080";
+  assert.match(errorText(run(wrongMadrid)), /strictly Madrid municipality 28079/);
+
+  const wrongUniverse = healthyArtifacts();
+  wrongUniverse["destination/madrid_domestic_origins.json"].source_universe.same_province_travel_excluded = false;
+  assert.match(errorText(run(wrongUniverse)), /province-different source universe/);
 });
 
 // ------------------------------------------------------------------ structure
@@ -1893,6 +1929,14 @@ test("source registry is internally coherent", () => {
       );
       assert.ok(counts.calibrated_on, `${source.id} guardrail needs a calibration date`);
       assert.ok(counts.note, `${source.id} guardrail needs a stated rationale`);
+    } else if (source.shape === "destination_domestic_origins") {
+      const guard = source.integrity_guardrail;
+      assert.ok(guard, `${source.id} needs an integrity_guardrail`);
+      assert.ok(guard.rationale, `${source.id} guardrail needs a stated rationale`);
+      assert.ok(guard.calibrated_on, `${source.id} guardrail needs a calibration date`);
+      assert.ok(guard.minimum_rows_per_published_month > 0, `${source.id} needs a per-published-month floor`);
+      assert.ok(guard.baseline_months > 0, `${source.id} needs a baseline month count`);
+      assert.ok(guard.baseline_rows_per_published_month >= guard.minimum_rows_per_published_month, `${source.id} per-month floor must not exceed its calibrated baseline`);
     } else if (["admin_geography", "admin_population", "admin_licence_counts", "admin_hospitality_context"].includes(source.shape)) {
       // The administrative geography, the population denominator and the
       // licensed-VUT numerator have an exact-count contract, not a collapse

@@ -25,7 +25,7 @@ const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 // modules load identically however the page is served. They are ES modules
 // (shared with `node --test`), while the rest of the app is classic scripts.
 const MODULE_BASE = (document.currentScript && document.currentScript.src) || window.location.href;
-const AREA_ASSET_VERSION = "20261002-38";
+const AREA_ASSET_VERSION = "20261002-39";
 const moduleUrl = (name) => new URL(`${name}?v=${AREA_ASSET_VERSION}`, MODULE_BASE).href;
 
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
@@ -1747,7 +1747,7 @@ function renderDomesticOrigins() {
   const model = module.buildDomesticOriginContext({ index: originModel.index, month: originMonth });
   host.hidden = false;
   setText("domesticOriginsHeading", originT("heading")); setText("domesticOriginsOfficial", originT("official"));
-  setText("domesticOriginsMonthLabel", originT("month")); setText("domesticOriginsScope", originT("municipality"));
+  setText("domesticOriginsMonthLabel", originT("month")); setText("domesticOriginsScope", originT("municipality")); setText("domesticOriginsUniverse", originT("universe"));
   setText("domesticOriginsOrigin", originT("origin")); setText("domesticOriginsTourists", originT("tourists"));
   const select = document.getElementById("domesticOriginsMonth");
   if (select) { select.innerHTML = (model.availableMonths || []).slice().reverse().map((month) => `<option value="${month}">${month}</option>`).join(""); select.value = model.month || ""; select.disabled = model.state === module.ORIGIN_STATE.UNAVAILABLE; }

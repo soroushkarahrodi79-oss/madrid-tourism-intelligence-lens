@@ -1431,6 +1431,7 @@ function validateDomesticOrigins(source, artifact, meta, errors, warnings) {
   const expectedWorkbookUrl = Number.isInteger(artifact.source?.workbook_year) ? source.dataset_url_template?.replace("{year}", String(artifact.source.workbook_year)) : null;
   if (!isNonEmptyString(artifact.source?.authority) || artifact.source?.source_url !== expectedWorkbookUrl || !Number.isInteger(artifact.source?.workbook_year) || !isNonEmptyString(artifact.source?.retrieved_at)) sink.push(`${source.display_name}: artifact source provenance is incomplete or does not use the registered direct INE workbook`);
   if (meta?.source?.source_url !== artifact.source?.source_url || meta?.source?.workbook_year !== artifact.source?.workbook_year || meta?.source?.retrieved_at !== artifact.source?.retrieved_at) sink.push(`${source.display_name}: sidecar source provenance does not match the artifact`);
+  if (artifact.source_universe?.same_province_travel_excluded !== true || meta?.source_universe?.same_province_travel_excluded !== true || !/different from the province of residence/i.test(artifact.source_universe?.trip_condition || "") || JSON.stringify(meta?.source_universe) !== JSON.stringify(artifact.source_universe)) sink.push(`${source.display_name}: province-different source universe is absent or weakened`);
   if (artifact.geography?.municipality_code !== source.expected_municipality_code || artifact.geography?.level !== "municipality") sink.push(`${source.display_name}: artifact is not strictly Madrid municipality ${source.expected_municipality_code}`);
   if (meta?.geography?.municipality_code !== source.expected_municipality_code || meta?.geography?.resolved_level !== "municipality") sink.push(`${source.display_name}: sidecar does not corroborate Madrid municipality ${source.expected_municipality_code}`);
   if (JSON.stringify(meta?.geography?.destination_corroboration) !== JSON.stringify({ dest: "Madrid", prov_dest_cod: "28", prov_dest: "Madrid" })) sink.push(`${source.display_name}: sidecar destination corroboration drifted`);
@@ -1438,6 +1439,7 @@ function validateDomesticOrigins(source, artifact, meta, errors, warnings) {
   if (!isNonEmptyString(artifact.schema_fingerprint) || artifact.schema_fingerprint !== meta?.schema_fingerprint) sink.push(`${source.display_name}: artifact and sidecar schema fingerprints disagree`);
   if (!/more than 30 tourists/i.test(artifact.suppression?.rule || "") || !/(not zero|never materialised as zero)/i.test(artifact.suppression?.absent_is_not_zero || "")) sink.push(`${source.display_name}: suppression contract is absent or permits missing origins to become zero`);
   let previous = null; let count = 0;
+  const monthlyFloor = source.integrity_guardrail?.minimum_rows_per_published_month;
   for (const month of artifact.months) {
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month?.source_month || "") || (previous && month.source_month <= previous)) { sink.push(`${source.display_name}: monthly records are not strictly ordered`); continue; }
     previous = month.source_month;
@@ -1445,13 +1447,13 @@ function validateDomesticOrigins(source, artifact, meta, errors, warnings) {
     const seen = new Set();
     for (const origin of month.published_origins) {
       const code = origin?.origin_municipality_code;
-      if (!/^\d{5}$/.test(code || "") || !/^\d{2}$/.test(origin?.origin_province_code || "") || !isNonEmptyString(origin?.origin_municipality_name) || !isNonEmptyString(origin?.origin_province_name) || !Number.isInteger(origin?.source_reported_tourists) || origin.source_reported_tourists < 0 || seen.has(code)) sink.push(`${source.display_name}: invalid or duplicate origin row in ${month.source_month}`);
+      if (!/^\d{5}$/.test(code || "") || !/^\d{2}$/.test(origin?.origin_province_code || "") || !isNonEmptyString(origin?.origin_municipality_name) || !isNonEmptyString(origin?.origin_province_name) || !Number.isInteger(origin?.source_reported_tourists) || origin.source_reported_tourists <= 30 || seen.has(code)) sink.push(`${source.display_name}: invalid, suppressed or duplicate origin row in ${month.source_month}`);
       if (origin && ["barrio", "district", "lat", "lon", "geometry", "international"].some((key) => key in origin)) sink.push(`${source.display_name}: origin row contains prohibited non-municipal or international field`);
       seen.add(code); count += 1;
     }
+    if (Number.isInteger(monthlyFloor) && month.published_origins.length < monthlyFloor) sink.push(`${source.display_name}: ${month.source_month} has ${month.published_origins.length} published row(s), below the per-published-month extraction floor ${monthlyFloor}`);
   }
   if (artifact.source_period?.latest !== previous || JSON.stringify(artifact.source_period?.available_months) !== JSON.stringify(artifact.months.map((month) => month.source_month))) sink.push(`${source.display_name}: declared source months do not match the monthly records`);
-  if (Number.isInteger(source.integrity_guardrail?.min_count) && count < source.integrity_guardrail.min_count) sink.push(`${source.display_name}: published-row count ${count} is below the committed extraction floor ${source.integrity_guardrail.min_count}`);
   return { record_count: count, state: count ? "available" : "unavailable", source_period: artifact.source_period?.latest || null, warnings: [] };
 }
 

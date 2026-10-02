@@ -2,9 +2,10 @@
 """Build Madrid's domestic-origin Destination Context from INE's direct XLSX.
 
 The output is a compact, committed, Madrid-destination-only artifact.  It is a
-monthly list of published origin→Madrid municipality crossings, never a Lens,
-barrio or district statistic.  INE publishes only crossings with MORE THAN 30
-tourists: an absent crossing is therefore deliberately absent, not zero.
+monthly list of published origin→Madrid municipality crossings for residents
+travelling from another province, never a Lens, barrio or district statistic.
+INE publishes only crossings with MORE THAN 30 tourists: an absent crossing is
+therefore deliberately absent, not zero.
 
 Uses only the Python standard library.  XLSX is a ZIP of XML documents; reading
 the small, fixed part of that format ourselves avoids making the Pages/test
@@ -27,6 +28,12 @@ from xml.etree import ElementTree as ET
 SOURCE_URL = "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_{year}.xlsx"
 MADRID_CODE = "28079"
 EXPECTED_COLUMNS = ["mes", "mun_orig_cod", "mun_orig", "dest_cod", "dest", "turistas", "prov_orig_cod", "prov_orig", "prov_dest_cod", "prov_dest"]
+SOURCE_UNIVERSE = {
+    "residence": "Residents in Spain",
+    "trip_condition": "Travel to a province different from the province of residence",
+    "disaggregation": "Origin and destination municipality",
+    "same_province_travel_excluded": True,
+}
 MONTH_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main", "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships"}
 REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
@@ -96,6 +103,8 @@ def verify_suppression_statement(path):
             if MONTH_RE.fullmatch(name): continue
             for row in sheet_rows(archive, shared, member): notes.extend(row)
         text = norm(" ".join(notes))
+        if "provincia diferente" not in text:
+            raise BuildError("information sheet does not verify the province-different source universe")
         if "mas de 30 turistas" not in text:
             raise BuildError("information sheet does not verify the >30-tourist suppression rule")
     finally: archive.close()
@@ -109,20 +118,24 @@ def validate_code(value, width, field, period):
 def validate_count(value, period, origin):
     try: number = Decimal(str(value).strip())
     except (InvalidOperation, ValueError): raise BuildError(f"{period} {origin}: turistas is malformed")
-    if not number.is_finite() or number < 0 or number != number.to_integral_value():
-        raise BuildError(f"{period} {origin}: turistas must be a finite non-negative integer")
+    if not number.is_finite() or number != number.to_integral_value():
+        raise BuildError(f"{period} {origin}: turistas must be a finite integer")
+    if number <= 30:
+        raise BuildError(f"{period} {origin}: published turistas must be strictly greater than 30")
     return int(number)
 
 def schema_fingerprint():
-    payload = {"columns": EXPECTED_COLUMNS, "month_sheet_pattern": "YYYY-MM", "destination": {"dest_cod": MADRID_CODE, "dest": "Madrid", "prov_dest_cod": "28", "prov_dest": "Madrid"}, "suppression": ">30"}
+    payload = {"columns": EXPECTED_COLUMNS, "month_sheet_pattern": "YYYY-MM", "destination": {"dest_cod": MADRID_CODE, "dest": "Madrid", "prov_dest_cod": "28", "prov_dest": "Madrid"}, "source_universe": SOURCE_UNIVERSE, "suppression": "turistas > 30"}
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
-def build_records(path):
+def build_records(path, workbook_year):
     verify_suppression_statement(path)
     archive, shared, sheets = xlsx_parts(path)
     try:
         months = []
         for period, member in sorted((n, p) for n, p in sheets if MONTH_RE.fullmatch(n)):
+            if int(period[:4]) != workbook_year:
+                raise BuildError(f"{period}: monthly sheet year does not match declared workbook year {workbook_year}")
             rows = sheet_rows(archive, shared, member)
             header = next(rows, None)
             if header != EXPECTED_COLUMNS: raise BuildError(f"{period}: source schema changed; expected exact ten columns")
@@ -148,8 +161,8 @@ def build_records(path):
 
 def artifacts(months, year, url, retrieved_at):
     fingerprint = schema_fingerprint(); available = [m["source_month"] for m in months]
-    artifact = {"contract_version":"1.0.0","source":{"authority":"Instituto Nacional de Estadística (INE)","source_url":url,"workbook_year":year,"retrieved_at":retrieved_at},"geography":{"level":"municipality","municipality_code":MADRID_CODE,"municipality_name":"Madrid","scope_note":"Madrid municipality only; no barrio, district, coordinates or Lens-circle allocation."},"source_period":{"granularity":"month","available_months":available,"latest":available[-1],"semantics":"A source month is the observation month, distinct from the workbook year and retrieval timestamp."},"suppression":{"rule":"INE publishes only origin-destination crossings with more than 30 tourists.","absent_is_not_zero":"Absent origin rows may be suppressed and are never materialised as zero or an other-origins residual."},"source_schema":EXPECTED_COLUMNS,"schema_fingerprint":fingerprint,"months":months}
-    meta = {"contract_version":"1.0.0","artifact":"madrid_domestic_origins.json","source":artifact["source"],"geography":{"resolved_level":"municipality","municipality_code":MADRID_CODE,"destination_corroboration":{"dest":"Madrid","prov_dest_cod":"28","prov_dest":"Madrid"}},"source_schema":EXPECTED_COLUMNS,"schema_fingerprint":fingerprint,"temporal_contract":{"workbook_year":"Container year, not the observation date.","source_month":"Each published crossing is assigned to its exact monthly worksheet.","latest_source_month":available[-1],"retrieved_at":retrieved_at},"suppression_semantics":artifact["suppression"],"interpretation_ceiling":"Source-reported resident tourists from published Spanish origin municipalities travelling to Madrid municipality in a source month. It is descriptive context, not a complete distribution of domestic tourism, a share of all domestic tourists, a market ranking, causal evidence, forecast or any barrio, district or Lens-circle measure."}
+    artifact = {"contract_version":"1.0.0","source":{"authority":"Instituto Nacional de Estadística (INE)","source_url":url,"workbook_year":year,"retrieved_at":retrieved_at},"source_universe":SOURCE_UNIVERSE,"geography":{"level":"municipality","municipality_code":MADRID_CODE,"municipality_name":"Madrid","scope_note":"Madrid municipality only; no barrio, district, coordinates or Lens-circle allocation."},"source_period":{"granularity":"month","available_months":available,"latest":available[-1],"semantics":"A source month is the observation month, distinct from the workbook year and retrieval timestamp."},"suppression":{"rule":"INE publishes only origin-destination crossings with more than 30 tourists.","absent_is_not_zero":"Origins may be outside the source universe, including same-province travel; within the covered universe absent rows may be suppressed and are never materialised as zero or an other-origins residual."},"source_schema":EXPECTED_COLUMNS,"schema_fingerprint":fingerprint,"months":months}
+    meta = {"contract_version":"1.0.0","artifact":"madrid_domestic_origins.json","source":artifact["source"],"source_universe":SOURCE_UNIVERSE,"geography":{"resolved_level":"municipality","municipality_code":MADRID_CODE,"destination_corroboration":{"dest":"Madrid","prov_dest_cod":"28","prov_dest":"Madrid"}},"source_schema":EXPECTED_COLUMNS,"schema_fingerprint":fingerprint,"temporal_contract":{"workbook_year":"Container year, not the observation date; every discovered monthly sheet must use this year.","source_month":"Each published crossing is assigned to its exact monthly worksheet.","latest_source_month":available[-1],"retrieved_at":retrieved_at},"suppression_semantics":artifact["suppression"],"interpretation_ceiling":"Source-reported resident tourists from published Spanish origin municipalities travelling to Madrid municipality from another province in a source month. Same-province travel is outside the source universe. It is descriptive context, not a complete distribution of domestic tourism, a share of all domestic tourists, a market ranking, causal evidence, forecast or any barrio, district or Lens-circle measure."}
     return artifact, meta
 
 def atomic_json_outputs(outputs):
@@ -176,7 +189,7 @@ def main(argv=None):
         with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp: workbook=Path(tmp.name)
         try: urllib.request.urlretrieve(url, workbook)
         except Exception as exc: workbook.unlink(missing_ok=True); raise BuildError(f"INE workbook download failed: {exc}")
-    months=build_records(workbook); artifact, meta=artifacts(months,args.year,url,retrieved)
+    months=build_records(workbook, args.year); artifact, meta=artifacts(months,args.year,url,retrieved)
     atomic_json_outputs(((args.out_dir/"madrid_domestic_origins.json", artifact), (args.out_dir/"madrid_domestic_origins.meta.json", meta)))
     if not args.workbook: workbook.unlink(missing_ok=True)
 
