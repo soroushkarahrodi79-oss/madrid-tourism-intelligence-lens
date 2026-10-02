@@ -6,8 +6,8 @@ Every feature in this app exists to answer one question:
 
 > **What changes in the local tourism, mobility and thermal evidence when I move this lens across Madrid?**
 
-A lens (a draggable circle of adjustable radius) defines a local area. Moving
-it recomputes a small set of **descriptive** statistics over whatever data
+A lens (a draggable circle with an independently stored radius for A and B)
+defines a local area. One slider edits the active Lens. Moving it recomputes a small set of **descriptive** statistics over whatever data
 falls inside it. Nothing here ranks locations, scores "quality," or predicts
 behaviour — it answers "what is here" and "what does the evidence actually
 support here," nothing more.
@@ -17,7 +17,31 @@ support here," nothing more.
 The optional halo is active only in Compare mode and draws one halo around each
 Lens. It is a supplementary pattern cue; the panel gives the authoritative
 Lens A value, Lens B value and signed B−A difference, including units, source
-state and evidence qualifications. The shared Lens radius is unchanged.
+state and evidence qualifications. In Compare mode, both radii remain visible.
+The first enable of Lens B copies Lens A's current radius; later re-enables
+preserve B's radius. Reset remains position-only.
+
+Comparison switches automatically on exact clamped integer metre values:
+equal radii use eligible raw represented POI/stay counts, while unequal radii
+use represented records per full geometric circle km² only when both circles
+are wholly inside the canonical Madrid municipality AOI and source states are
+compatible. Raw counts remain visible; a failed AOI or source check withholds
+the normalized delta without substituting a raw delta. Stays use the exact
+wording **represented catalogue records/km²**, never accommodation density.
+Area is `Math.PI * Math.pow(radiusM / 1000, 2)` and is not rounded before
+division. Mobility retains side counts but withholds unequal-window deltas.
+Pedestrian means and UTCI remain native-unit comparisons with per-side radius
+and coverage context.
+
+The municipality polygon is the canonical artifact's derived union of the 21
+official district polygons. Whole-circle eligibility first requires the centre
+to be inside that polygon, then computes distance to every potentially nearby
+exterior and hole boundary segment in a local azimuthal-equidistant plane. The
+point-to-segment distance is conservative; a 2 m guard band makes tangent and
+near-tangent cases abstain. No boundary circumference sampling, clipping,
+bounding-envelope inference, or alternate denominator is used. The edge index
+is built with the canonical geography once and reused. If it is unavailable,
+only unequal-radius POI/stay normalization abstains.
 
 The four fixed slots proceed clockwise: Tourism POIs at 12 o'clock, Stays at
 3, Pedestrian activity at 6, and UTCI at 9. Empty or abstaining slots do not
@@ -25,13 +49,12 @@ rotate the order. Mobility stays in the comparison table only. No Category Mix,
 administrative-area, destination, hospitality, parks, or hotel-demand measure
 enters the halo.
 
-For Tourism POIs and Stays, both comparable source states are required. Each
-count bar uses `value / max(A, B)` for its metric, so A=5 and B=10 share one
-scale at 0.5 and 1.0. If both valid counts are zero, both are genuine zero
-lengths. The largest bar is only the maximum within this current A/B pair; it
-is not a Madrid benchmark, percent, target, score, or ranking. The scale resets
-when the pair or its evidence changes, so bar lengths cannot be compared across
-different Lens pairs.
+For Tourism POIs and Stays, both comparable source states are required. Equal
+windows scale raw counts; eligible unequal windows scale rates after both
+counts are divided by their own full-circle areas. A=5 and B=10 in equal mode
+share a 0.5/1.0 scale. The largest bar is only the maximum within the current
+same-unit A/B pair; it is not a Madrid benchmark, percent, target, score, or
+ranking. AOI/source abstentions show nonnumeric marks, never raw bars or zero.
 
 Pedestrian bars use the observed fixed-counter hourly means, with one shared
 local A/B maximum only when both Lenses have observed records and compatible

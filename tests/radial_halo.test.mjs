@@ -7,6 +7,9 @@ import {
   accessibleComparisonSummary,
   buildHaloComparison,
   normalizedCountPair,
+  COMPARISON_RADIUS_MODE,
+  representedRate,
+  buildCountPairState,
 } from "../js/radial-halo.js";
 
 const live = (value) => ({ value, sourceState: "live" });
@@ -36,6 +39,43 @@ test("two genuine valid count zeros stay valid without division by zero", () => 
   assert.equal(model.metrics.tourism.aMagnitude, 0);
   assert.equal(model.metrics.tourism.bMagnitude, 0);
   assert.equal(model.metrics.tourism.delta, 0);
+});
+
+test("equal windows compare raw POI/stay counts while unequal eligible windows compare represented rates", () => {
+  const equal = buildHaloComparison({ ...baseInput(), radiusMode: COMPARISON_RADIUS_MODE.EQUAL, radii: { A: 900, B: 900 }, aoiState: "not-required" });
+  assert.equal(equal.metrics.tourism.delta, 5);
+  const unequal = buildHaloComparison({
+    ...baseInput(), radiusMode: COMPARISON_RADIUS_MODE.UNEQUAL, radii: { A: 500, B: 1500 }, aoiState: "eligible",
+    tourism: { a: live(8), b: live(21) }, stays: { a: live(8), b: live(21) },
+  });
+  assert.equal(unequal.metrics.tourism.aRawValue, 8);
+  assert.equal(unequal.metrics.tourism.bRawValue, 21);
+  assert.equal(unequal.metrics.tourism.aValue, representedRate(8, 500));
+  assert.equal(unequal.metrics.tourism.delta, representedRate(21, 1500) - representedRate(8, 500));
+  assert.equal(unequal.metrics.stays.aValue, representedRate(8, 500));
+});
+
+test("unequal POI and stay comparisons withhold at AOI or source mismatch and never fall back to raw delta", () => {
+  const crossing = buildHaloComparison({ ...baseInput(), radiusMode: COMPARISON_RADIUS_MODE.UNEQUAL, radii: { A: 500, B: 1500 }, aoiState: "crosses" });
+  assert.equal(crossing.metrics.tourism.aRawValue, 5);
+  assert.equal(crossing.metrics.tourism.delta, null);
+  assert.equal(crossing.metrics.tourism.aMagnitude, null);
+  assert.match(crossing.metrics.tourism.qualifier, /crosses Madrid AOI/);
+  const incompatible = buildHaloComparison({
+    ...baseInput(), radiusMode: COMPARISON_RADIUS_MODE.UNEQUAL, radii: { A: 500, B: 1500 }, aoiState: "eligible",
+    tourism: { a: live(5), b: { value: 10, sourceState: "snapshot" } },
+  });
+  assert.equal(incompatible.metrics.tourism.delta, null);
+  assert.equal(incompatible.metrics.tourism.aRawValue, 5);
+});
+
+test("unequal mobility keeps raw side counts and withholds delta; native evidence remains native", () => {
+  const mobility = buildCountPairState(live(5), live(10), COMPARISON_RADIUS_MODE.UNEQUAL);
+  assert.equal(mobility.aValue, 5); assert.equal(mobility.bValue, 10); assert.equal(mobility.delta, null);
+  assert.match(mobility.qualifier, /different window sizes/);
+  const model = buildHaloComparison({ ...baseInput(), radiusMode: COMPARISON_RADIUS_MODE.UNEQUAL, radii: { A: 500, B: 1500 }, aoiState: "eligible" });
+  assert.equal(model.metrics.pedestrian.delta, 10);
+  assert.equal(Number(model.metrics.utci.delta.toFixed(1)), 1.7);
 });
 
 test("unavailable A or B is an abstention, never a zero comparison", () => {
@@ -153,7 +193,7 @@ test("accessible comparison summary provides A, B, difference and evidence ceili
   const oneSided = baseInput();
   oneSided.utci.b = { evidence: "NONE", mean: null, count: 0 };
   assert.match(accessibleComparisonSummary(buildHaloComparison(oneSided)), /Lens B no evidence; comparison withheld/);
-  assert.match(summary, /largest valid value in this A\/B comparison only/);
+  assert.match(summary, /pair maximum for the active same-unit comparator only/);
   assert.match(summary, /not a benchmark/);
 });
 

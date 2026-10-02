@@ -9,10 +9,17 @@
   sample points, for a single historical pilot day (21 August 2023), at three
   modelled times of day.
 - Compares two lenses' descriptive statistics side by side.
-- In shared-radius Compare mode, shows an optional supplementary halo for
+- In equal-radius Compare mode, shows an optional supplementary halo for
   Tourism POIs, represented stays, observed pedestrian activity and same-time
   HATI UTCI. Lens A, Lens B and B−A values remain in the panel; Mobility is
   panel-only.
+- Keeps Lens A and Lens B radii independent with one active-Lens slider. First
+  enable of B copies A's radius; later re-enables preserve B. Equal-radius
+  Tourism POI/stay comparisons use raw represented counts. Unequal-radius
+  comparisons retain raw counts and use represented records/km² only when both
+  complete circles fit inside Madrid's canonical municipality polygon and
+  evidence states are compatible. Mobility deltas are withheld for unequal
+  radii; pedestrian and UTCI remain in native units.
 - Names the **official barrio and district** containing the active lens's
   centre, and reports that barrio's **registered residents** from the municipal
   Padrón, with its reference date (1 January 2026).
@@ -44,6 +51,12 @@ establish, measure, or infer:
 - A zero value from absent or incompatible evidence. The halo distinguishes
   OFF, UNAVAILABLE, NO EVIDENCE and a valid observed zero; Pedestrian and HATI
   comparisons abstain unless both Lenses have compatible evidence.
+- A complete POI or accommodation inventory from a represented-record rate.
+  Unequal-radius rates are normalized to the full geometric circle area only
+  inside the canonical Madrid municipality AOI; they are not population
+  denominators, census coverage, accommodation density, or supply density.
+- Independent observations from overlapping or nested windows. Records and
+  sampled assets may be shared between Lenses.
 - Economic impact
 - Causal effects of heat on tourism, health, or behaviour
 - Real-time or current thermal conditions

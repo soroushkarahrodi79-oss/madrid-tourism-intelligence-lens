@@ -89,6 +89,44 @@ function outsideBox(lon, lat, box) {
   return lon < box.minLon || lon > box.maxLon || lat < box.minLat || lat > box.maxLat;
 }
 
+function boundarySegments(geometry) {
+  const segments = [];
+  const walkRing = (ring) => {
+    for (let i = 1; i < ring.length; i += 1) {
+      const a = ring[i - 1]; const b = ring[i];
+      segments.push({ a, b, minLon: Math.min(a[0], b[0]), maxLon: Math.max(a[0], b[0]), minLat: Math.min(a[1], b[1]), maxLat: Math.max(a[1], b[1]) });
+    }
+  };
+  const walkPolygon = (polygon) => polygon.forEach(walkRing);
+  if (geometry.type === "Polygon") walkPolygon(geometry.coordinates);
+  else if (geometry.type === "MultiPolygon") geometry.coordinates.forEach(walkPolygon);
+  return segments;
+}
+
+// Project short boundary segments into an azimuthal-equidistant plane centred
+// on the Lens. Distances from the centre are geodesically exact; segment chord
+// distances are conservative. A 2 m guard band absorbs source coordinate
+// rounding and the tiny curve/chord difference. Near-boundary uncertainty thus
+// abstains rather than incorrectly claiming full containment.
+function localMeters(lon, lat, centerLon, centerLat) {
+  const R = 6371008.8;
+  const rad = Math.PI / 180;
+  const phi = lat * rad; const phi0 = centerLat * rad;
+  const dl = (lon - centerLon) * rad;
+  const cosC = Math.sin(phi0) * Math.sin(phi) + Math.cos(phi0) * Math.cos(phi) * Math.cos(dl);
+  const c = Math.acos(Math.max(-1, Math.min(1, cosC)));
+  if (c < 1e-12) return [0, 0];
+  const k = c / Math.sin(c);
+  return [R * k * Math.cos(phi) * Math.sin(dl), R * k * (Math.cos(phi0) * Math.sin(phi) - Math.sin(phi0) * Math.cos(phi) * Math.cos(dl))];
+}
+
+function pointSegmentDistance(x, y, ax, ay, bx, by) {
+  const dx = bx - ax; const dy = by - ay;
+  const lengthSq = dx * dx + dy * dy;
+  const t = lengthSq === 0 ? 0 : Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / lengthSq));
+  return Math.hypot(x - (ax + t * dx), y - (ay + t * dy));
+}
+
 /**
  * Build a containment index over the canonical geography FeatureCollection.
  *
@@ -121,6 +159,8 @@ export function createGeographyIndex(featureCollection) {
       byId[level].set(String(entry.properties.official_id), entry);
     }
   }
+  const municipality = byLevel.municipality.length === 1 ? byLevel.municipality[0] : null;
+  const municipalityEdges = municipality ? boundarySegments(municipality.geometry) : [];
 
   const findAt = (level, lon, lat) => {
     for (const entry of byLevel[level]) {
@@ -152,6 +192,27 @@ export function createGeographyIndex(featureCollection) {
     // Is (lon, lat) inside the municipality of Madrid?
     municipalityContains(lon, lat) {
       return findAt("municipality", lon, lat) !== null;
+    },
+
+    // Conservative whole-circle check against the official municipality
+    // polygon. Every boundary segment is tested by point-to-segment distance;
+    // sparse circumference sampling and bounding-box-only guesses are avoided.
+    municipalityContainsCircle(lon, lat, radiusM) {
+      if (!municipality || !Number.isFinite(lon) || !Number.isFinite(lat) || !Number.isFinite(radiusM) || radiusM <= 0) return { state: "unavailable", eligible: false, conservativeClearanceM: null };
+      if (!pointInGeometry(lon, lat, municipality.geometry)) return { state: "outside", eligible: false, conservativeClearanceM: 0 };
+      const latPad = (radiusM + 10) / 111000;
+      const lonPad = latPad / Math.max(0.2, Math.cos(lat * Math.PI / 180));
+      // The coordinate envelope excludes all segments farther than radius+10 m;
+      // that is already a safe lower bound for the decision threshold.
+      let minimum = radiusM + 10;
+      for (const edge of municipalityEdges) {
+        if (edge.maxLat < lat - latPad || edge.minLat > lat + latPad || edge.maxLon < lon - lonPad || edge.minLon > lon + lonPad) continue;
+        const [ax, ay] = localMeters(edge.a[0], edge.a[1], lon, lat);
+        const [bx, by] = localMeters(edge.b[0], edge.b[1], lon, lat);
+        minimum = Math.min(minimum, pointSegmentDistance(0, 0, ax, ay, bx, by));
+        if (minimum < radiusM + 2) break;
+      }
+      return { state: Number.isFinite(minimum) && minimum >= radiusM + 2 ? "inside" : "crosses", eligible: Number.isFinite(minimum) && minimum >= radiusM + 2, conservativeClearanceM: Number.isFinite(minimum) ? minimum : null };
     },
 
     // One call returning the full containment for a coordinate. Each level is

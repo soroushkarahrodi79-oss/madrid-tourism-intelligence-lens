@@ -30,7 +30,7 @@ test("UI exposes bounded source-derived accommodation families", () => {
 
 test("lens statistics and stay rendering use the same active accommodation filter", () => {
   assert.match(app, /return filterPoiPointsByStayKind\(poiPoints, stayKindFilter\)/);
-  assert.match(app, /return poiStatsInLens\(visiblePoiPoints\(\), centerOf\(which\), radius\)/);
+  assert.match(app, /return poiStatsInLens\(visiblePoiPoints\(\), centerOf\(which\), radiusFor\(which\)\)/);
   assert.match(app, /const points = visiblePoiPoints\(\)\.filter\(\(p\) => p\.type === type\)/);
 });
 

@@ -32,7 +32,7 @@ test("park records stay outside analytical POI statistics", () => {
   assert.match(app, /let poiPoints = \[\];/);
   assert.match(app, /let parkPoints = \[\];/);
   assert.match(app, /parkPoints = \(runtimePOI\?\.layers\?\.park \|\| \[\]\)/);
-  assert.match(app, /return poiStatsInLens\(visiblePoiPoints\(\), centerOf\(which\), radius\)/);
+  assert.match(app, /return poiStatsInLens\(visiblePoiPoints\(\), centerOf\(which\), radiusFor\(which\)\)/);
   assert.match(app, /Park context is excluded from lens counts, category mix, nearest features and A\/B comparisons/);
 });
 

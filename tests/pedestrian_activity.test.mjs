@@ -16,8 +16,8 @@ test("observed pedestrian activity is opt-in and separate from operational POIs"
   // Separate state arrays are the contract; their adjacency in the file is not.
   assert.match(app, /let poiPoints = \[\];/);
   assert.match(app, /let pedestrianStations = \[\];/);
-  assert.match(app, /return poiStatsInLens\(visiblePoiPoints\(\), centerOf\(which\), radius\)/);
-  assert.match(app, /return pedestrianStatsInLens\(pedestrianStations, centerOf\(which\), radius\)/);
+  assert.match(app, /return poiStatsInLens\(visiblePoiPoints\(\), centerOf\(which\), radiusFor\(which\)\)/);
+  assert.match(app, /return pedestrianStatsInLens\(pedestrianStations, centerOf\(which\), radiusFor\(which\)\)/);
 });
 
 test("pedestrian KPI is directly below the active Lens control and communicates observed evidence", () => {
@@ -29,7 +29,7 @@ test("pedestrian KPI is directly below the active Lens control and communicates 
   assert.match(app, /renderPedestrianMetric\(pedestrianStatsFor\(active\)\);/);
   assert.match(app, /value\.textContent = "No sensor evidence"/);
   assert.match(app, /p\.stationCount === 1 \? "ped\/h" : "passages\/hour"/);
-  assert.match(app, /in current lens · \$\{radius\} m radius/);
+  assert.match(app, /in current lens · \$\{formatLensRadius\(radiusFor\(active\)\)\} radius/);
   assert.match(app, /pedestrianStatus === "unavailable"/);
 });
 

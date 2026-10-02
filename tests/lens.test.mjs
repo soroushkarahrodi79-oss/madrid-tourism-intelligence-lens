@@ -4,6 +4,13 @@ import test from "node:test";
 import {
   LENS_RADIUS,
   clampLensRadius,
+  LENS_COMPARISON_RADIUS_MODE,
+  radiusComparisonMode,
+  createLensRadii,
+  setLensRadiusState,
+  initializeLensBRadius,
+  circleAreaKm2,
+  representedRate,
   formatLensRadius,
   haversineMeters,
   poiStatsInLens,
@@ -20,6 +27,40 @@ test("Lens radius: shared bounds preserve local precision through the expanded r
   assert.equal(clampLensRadius(LENS_RADIUS.defaultM), 900);
   assert.equal(clampLensRadius(2500), 2500); // above the previous 1,800 m maximum
   assert.equal(clampLensRadius(LENS_RADIUS.maxM), 5000);
+});
+
+test("independent radii default equally, transition by exact clamped integer values, and mutate independently", () => {
+  const radii = createLensRadii();
+  assert.deepEqual(radii, { A: 900, B: 900 });
+  assert.equal(radiusComparisonMode(radii.A, radii.B), LENS_COMPARISON_RADIUS_MODE.EQUAL);
+  setLensRadiusState(radii, "A", 1499);
+  assert.equal(radii.A, 1500); assert.equal(radii.B, 900);
+  assert.equal(radiusComparisonMode(radii.A, radii.B), LENS_COMPARISON_RADIUS_MODE.UNEQUAL);
+  setLensRadiusState(radii, "B", 500);
+  assert.equal(radii.A, 1500); assert.equal(radii.B, 500);
+  assert.equal(radiusComparisonMode(500, 500), LENS_COMPARISON_RADIUS_MODE.EQUAL);
+});
+
+test("Lens B copies A on first enable, then its radius survives later enables", () => {
+  const radii = createLensRadii();
+  setLensRadiusState(radii, "A", 1500);
+  initializeLensBRadius(radii);
+  assert.equal(radii.B, 1500);
+  setLensRadiusState(radii, "B", 500);
+  setLensRadiusState(radii, "A", 2500);
+  // Re-enable does not call initializeLensBRadius after the explicit first-enable flag is set.
+  assert.equal(radii.B, 500);
+});
+
+test("circle area uses the full unrounded geometric circle and rates reject invalid inputs", () => {
+  for (const radius of [100, 500, 900, 1500, 5000]) {
+    assert.equal(circleAreaKm2(radius), Math.PI * Math.pow(radius / 1000, 2));
+  }
+  assert.equal(representedRate(0, 500), 0);
+  assert.equal(representedRate(8, 500), 8 / (Math.PI * 0.25));
+  assert.equal(representedRate(1, 0), null);
+  assert.equal(representedRate(Infinity, 900), null);
+  assert.equal(representedRate(-1, 900), null);
 });
 
 test("README documents the canonical Lens radius range", () => {

@@ -1,8 +1,7 @@
 // Pure, deterministic lens geometry and statistics. No Leaflet/DOM
 // dependency in this file so it can be unit-tested with plain Node.
 
-// The circular Lens has one shared radius in normal and Compare modes. Keep
-// its bounds here so the UI, geometry and tests use one source of truth.
+// Lens radius bounds are shared by the independent A and B controls.
 const LENS_RADIUS = Object.freeze({
   minM: 100,
   maxM: 5000,
@@ -17,6 +16,36 @@ function clampLensRadius(value) {
   const withinBounds = Math.min(LENS_RADIUS.maxM, Math.max(LENS_RADIUS.minM, radiusM));
   const steppedRadius = Math.round((withinBounds - LENS_RADIUS.minM) / LENS_RADIUS.stepM) * LENS_RADIUS.stepM + LENS_RADIUS.minM;
   return Math.min(LENS_RADIUS.maxM, Math.max(LENS_RADIUS.minM, steppedRadius));
+}
+
+const LENS_COMPARISON_RADIUS_MODE = Object.freeze({ EQUAL: "EQUAL_RADIUS", UNEQUAL: "UNEQUAL_RADIUS" });
+
+function radiusComparisonMode(radiusA, radiusB) {
+  const a = clampLensRadius(radiusA);
+  const b = clampLensRadius(radiusB);
+  return a === b ? LENS_COMPARISON_RADIUS_MODE.EQUAL : LENS_COMPARISON_RADIUS_MODE.UNEQUAL;
+}
+
+function createLensRadii() { return { A: LENS_RADIUS.defaultM, B: LENS_RADIUS.defaultM }; }
+function setLensRadiusState(radii, which, value) {
+  if (which !== "A" && which !== "B") throw new RangeError("Lens side must be A or B");
+  radii[which] = clampLensRadius(value);
+  return radii;
+}
+function initializeLensBRadius(radii) { radii.B = clampLensRadius(radii.A); return radii; }
+
+function circleAreaKm2(radiusM) {
+  const r = Number(radiusM);
+  if (!Number.isFinite(r) || r <= 0) return null;
+  return Math.PI * Math.pow(r / 1000, 2);
+}
+
+function representedRate(count, radiusM) {
+  const n = Number(count);
+  const area = circleAreaKm2(radiusM);
+  if (!Number.isFinite(n) || n < 0 || area == null) return null;
+  const rate = n / area;
+  return Number.isFinite(rate) ? rate : null;
 }
 
 function formatLensRadius(radiusM) {
@@ -172,6 +201,13 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     LENS_RADIUS,
     clampLensRadius,
+    LENS_COMPARISON_RADIUS_MODE,
+    radiusComparisonMode,
+    createLensRadii,
+    setLensRadiusState,
+    initializeLensBRadius,
+    circleAreaKm2,
+    representedRate,
     formatLensRadius,
     haversineMeters,
     poiStatsInLens,
