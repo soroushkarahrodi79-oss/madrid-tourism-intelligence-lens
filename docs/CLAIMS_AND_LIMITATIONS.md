@@ -9,10 +9,11 @@
   sample points, for a single historical pilot day (21 August 2023), at three
   modelled times of day.
 - Compares two lenses' descriptive statistics side by side.
-- In equal-radius Compare mode, shows an optional supplementary halo for
+- In Compare mode, shows an optional supplementary radial-spoke halo for
   Tourism POIs, represented stays, observed pedestrian activity and same-time
-  HATI UTCI. Lens A, Lens B and B−A values remain in the panel; Mobility is
-  panel-only.
+  HATI UTCI. The spokes are screen-space graphics attached outside the Lens,
+  not extensions of its analytical radius. Lens A, Lens B and B−A values remain
+  in the panel; Mobility is panel-only.
 - Keeps Lens A and Lens B radii independent with one active-Lens slider. First
   enable of B copies A's radius; later re-enables preserve B. Equal-radius
   Tourism POI/stay comparisons use raw represented counts. Unequal-radius
@@ -49,8 +50,9 @@ establish, measure, or infer:
   count-bar scale is normalized only to the largest valid value in the current
   A/B comparison and resets for another pair. It is not a percentage or target.
 - A zero value from absent or incompatible evidence. The halo distinguishes
-  OFF, UNAVAILABLE, NO EVIDENCE and a valid observed zero; Pedestrian and HATI
-  comparisons abstain unless both Lenses have compatible evidence.
+  OFF, UNAVAILABLE, NO EVIDENCE, WITHHELD and a valid observed zero (a normal
+  track with an origin mark); Pedestrian and HATI comparisons abstain unless
+  both Lenses have compatible evidence.
 - A complete POI or accommodation inventory from a represented-record rate.
   Unequal-radius rates are normalized to the full geometric circle area only
   inside the canonical Madrid municipality AOI; they are not population

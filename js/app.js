@@ -226,23 +226,32 @@ const lenses = {
 // halo. They follow their Lens through map transforms without redrawing any
 // unrelated map data. Values and abstention states update in place.
 const HALO_GLYPH_COLORS = Object.freeze({ A: "#f7fbff", B: "#43d7ff" });
-const HALO_SLOT_ROTATION = Object.freeze({ north: -90, east: 0, south: 90, west: 180 });
-const HALO_MIN_SLOT_SEPARATION_PX = 48;
+const HALO_INNER_GAP_PX = 5;
+const HALO_FULL_TRACK_PX = 44;
+const HALO_COMPACT_TRACK_PX = 30;
+const HALO_MIN_SLOT_SEPARATION_PX = 40;
+const HALO_SLOT_GEOMETRY = Object.freeze({
+  north: Object.freeze({ anchor: [68, 52], origin: [68, 52], direction: [0, -1], label: [77, 13], labelAnchor: "start" }),
+  east: Object.freeze({ anchor: [6, 28], origin: [6, 28], direction: [1, 0], label: [58, 32], labelAnchor: "start" }),
+  south: Object.freeze({ anchor: [68, 4], origin: [68, 4], direction: [0, 1], label: [77, 53], labelAnchor: "start" }),
+  west: Object.freeze({ anchor: [130, 28], origin: [130, 28], direction: [-1, 0], label: [78, 32], labelAnchor: "end" }),
+});
 const comparisonHalos = { A: {}, B: {} };
 let haloEnabled = true;
 let lastHaloComparison = null;
 let haloVisibilityReason = "";
 
 function haloIcon(which, metric) {
-  const rotation = metric.id === "utci" ? 0 : HALO_SLOT_ROTATION[metric.slot];
+  const geometry = HALO_SLOT_GEOMETRY[metric.slot];
   const color = HALO_GLYPH_COLORS[which];
-  const html = `<svg class="halo-glyph halo-${which.toLowerCase()} halo-slot-${metric.slot}" viewBox="0 0 42 14" width="42" height="14" role="presentation" aria-hidden="true" style="--halo-color:${color};--slot-rotation:${rotation}deg">
-    <g class="halo-count"><rect class="halo-track" x="7" y="4" width="28" height="6" rx="3"/><rect class="halo-fill" x="7" y="4" width="0" height="6" rx="3"/></g>
-    <g class="halo-temperature" style="display:none"><line class="halo-temperature-track" x1="6" y1="7" x2="36" y2="7"/><line class="halo-temperature-mid" x1="21" y1="2" x2="21" y2="12"/><circle class="halo-temperature-marker" cx="21" cy="7" r="3"/></g>
-    <path class="halo-state-mark" d=""/>
-    <circle class="halo-qualified-mark" cx="21" cy="7" r="1.6"/>
+  const html = `<svg class="halo-glyph halo-${which.toLowerCase()} halo-slot-${metric.slot}" viewBox="0 0 136 56" width="136" height="56" role="presentation" aria-hidden="true" style="--halo-color:${color}">
+    <g class="halo-count"><line class="halo-track"/><line class="halo-fill"/><circle class="halo-zero" r="3.6"/></g>
+    <g class="halo-temperature" style="display:none"><line class="halo-temperature-track"/><line class="halo-temperature-mid"/><circle class="halo-temperature-marker" r="4"/></g>
+    <g class="halo-abstain" style="display:none"><line class="halo-state-track"/><text class="halo-state-mark"></text></g>
+    <circle class="halo-qualified-mark" r="2"/>
+    <text class="halo-label" x="${geometry.label[0]}" y="${geometry.label[1]}" text-anchor="${geometry.labelAnchor}"></text>
   </svg>`;
-  return L.divIcon({ className: "comparison-halo-icon", html, iconSize: [42, 14], iconAnchor: [21, 7] });
+  return L.divIcon({ className: "comparison-halo-icon", html, iconSize: [136, 56], iconAnchor: geometry.anchor });
 }
 
 for (const which of ["A", "B"]) {
@@ -260,58 +269,86 @@ for (const which of ["A", "B"]) {
   }
 }
 
-const HALO_STATE_PATH = Object.freeze({
-  OFF: "M17 3 L25 11",
-  UNAVAILABLE: "M16 3 L26 11 M26 3 L16 11",
-  NO_EVIDENCE: "M21 2.5 A4.5 4.5 0 1 0 21.01 2.5",
-  INCOMPATIBLE: "M16 3 L19 7 L16 11 M23 3 L26 7 L23 11",
-});
-
 function cacheHaloNodes(marker) {
   const root = marker.getElement?.();
   if (!root) return;
   marker._haloNodes = {
+    svg: root.querySelector(".halo-glyph"),
     count: root.querySelector(".halo-count"),
+    track: root.querySelector(".halo-track"),
     fill: root.querySelector(".halo-fill"),
+    zero: root.querySelector(".halo-zero"),
     temperature: root.querySelector(".halo-temperature"),
+    temperatureTrack: root.querySelector(".halo-temperature-track"),
+    temperatureMid: root.querySelector(".halo-temperature-mid"),
     temperatureMarker: root.querySelector(".halo-temperature-marker"),
+    abstain: root.querySelector(".halo-abstain"),
+    stateTrack: root.querySelector(".halo-state-track"),
     state: root.querySelector(".halo-state-mark"),
     qualifier: root.querySelector(".halo-qualified-mark"),
+    label: root.querySelector(".halo-label"),
   };
 }
 
-function updateHaloGlyph(marker, state) {
+function haloLineEnd(geometry, length) {
+  return [geometry.origin[0] + geometry.direction[0] * length, geometry.origin[1] + geometry.direction[1] * length];
+}
+
+function setHaloLine(line, start, end) {
+  line.setAttribute("x1", String(start[0])); line.setAttribute("y1", String(start[1]));
+  line.setAttribute("x2", String(end[0])); line.setAttribute("y2", String(end[1]));
+}
+
+function haloLabelPoint(geometry, end) {
+  if (geometry.direction[0] > 0) return [end[0] + 8, end[1] + 4];
+  if (geometry.direction[0] < 0) return [end[0] - 8, end[1] + 4];
+  return [end[0] + 8, end[1] + (geometry.direction[1] < 0 ? 4 : 5)];
+}
+
+function updateHaloGlyph(marker, state, layout = "full") {
   const nodes = marker._haloNodes;
   if (!nodes) cacheHaloNodes(marker);
   const cached = marker._haloNodes;
   if (!cached) return;
-  const metricId = marker._haloMetric;
-  const valueKey = marker._haloLens === "A" ? "aValue" : "bValue";
-  const magnitudeKey = marker._haloLens === "A" ? "aMagnitude" : "bMagnitude";
-  if (metricId === "utci" && state.comparable) {
-    cached.count.style.display = "none";
-    cached.temperature.style.display = "";
-    const offset = marker._haloLens === "A" ? state.aOffsetPx : state.bOffsetPx;
-    cached.temperatureMarker.setAttribute("cx", String(21 + offset));
-    cached.state.setAttribute("d", "");
-    cached.qualifier.style.display = "none";
-    return;
+  const metric = HALO_METRICS.find((candidate) => candidate.id === marker._haloMetric);
+  const spec = buildHaloGlyphSpec(metric, state, marker._haloLens, layout);
+  const geometry = HALO_SLOT_GEOMETRY[spec.slot];
+  const trackLength = layout === "compact" ? HALO_COMPACT_TRACK_PX : HALO_FULL_TRACK_PX;
+  const outer = haloLineEnd(geometry, trackLength);
+  const midpoint = haloLineEnd(geometry, trackLength / 2);
+  cached.svg.classList.toggle("halo-compact", layout === "compact");
+  cached.svg.classList.toggle("halo-active", marker._haloLens === active);
+  cached.svg.classList.toggle("halo-inactive", marker._haloLens !== active);
+  const labelLength = spec.type === "bar" ? Math.max(8, trackLength * spec.magnitude) : spec.type === "zero" ? 8 : trackLength;
+  const labelPoint = haloLabelPoint(geometry, haloLineEnd(geometry, labelLength));
+  cached.label.textContent = spec.label;
+  cached.label.setAttribute("x", String(labelPoint[0])); cached.label.setAttribute("y", String(labelPoint[1]));
+  cached.label.style.display = layout === "compact" ? "none" : "";
+  setHaloLine(cached.track, geometry.origin, outer);
+  setHaloLine(cached.stateTrack, geometry.origin, outer);
+  cached.zero.setAttribute("cx", String(geometry.origin[0])); cached.zero.setAttribute("cy", String(geometry.origin[1]));
+  cached.qualifier.setAttribute("cx", String(outer[0])); cached.qualifier.setAttribute("cy", String(outer[1]));
+  cached.count.style.display = spec.type === "bar" || spec.type === "zero" ? "" : "none";
+  cached.temperature.style.display = spec.type === "temperature" ? "" : "none";
+  cached.abstain.style.display = spec.type === "abstain" ? "" : "none";
+  cached.zero.style.display = spec.type === "zero" ? "" : "none";
+  cached.qualifier.style.display = spec.qualified && spec.type !== "abstain" ? "" : "none";
+  if (spec.type === "bar") setHaloLine(cached.fill, geometry.origin, haloLineEnd(geometry, trackLength * spec.magnitude));
+  else setHaloLine(cached.fill, geometry.origin, geometry.origin);
+  if (spec.type === "temperature") {
+    setHaloLine(cached.temperatureTrack, geometry.origin, outer);
+    const tickStart = geometry.direction[0] === 0 ? [midpoint[0] - 5, midpoint[1]] : [midpoint[0], midpoint[1] - 5];
+    const tickEnd = geometry.direction[0] === 0 ? [midpoint[0] + 5, midpoint[1]] : [midpoint[0], midpoint[1] + 5];
+    setHaloLine(cached.temperatureMid, tickStart, tickEnd);
+    const markerPoint = [midpoint[0] + geometry.direction[0] * spec.offsetPx, midpoint[1] + geometry.direction[1] * spec.offsetPx];
+    cached.temperatureMarker.setAttribute("cx", String(markerPoint[0])); cached.temperatureMarker.setAttribute("cy", String(markerPoint[1]));
   }
-  cached.temperature.style.display = "none";
-  const isComparable = state.comparable;
-  cached.count.style.display = isComparable && metricId !== "utci" ? "" : "none";
-  if (isComparable && metricId !== "utci") {
-    cached.fill.setAttribute("width", String(28 * state[magnitudeKey]));
-    cached.state.setAttribute("d", "");
-    cached.qualifier.style.display = state.id === "valid" ? "none" : "";
-    return;
+  if (spec.type === "abstain") {
+    cached.state.textContent = spec.visualState === "no-evidence" ? "○" : spec.visualState === "unavailable" ? "∕" : "×";
+    cached.state.setAttribute("x", String(midpoint[0])); cached.state.setAttribute("y", String(midpoint[1] + 4));
+    cached.state.setAttribute("text-anchor", "middle");
+    cached.abstain.setAttribute("class", `halo-abstain halo-state-${spec.visualState}`);
   }
-  cached.fill.setAttribute("width", "0");
-  cached.qualifier.style.display = "none";
-  let displayState = marker._haloLens === "A" ? state.stateA : state.stateB;
-  if (displayState === "VALID" || displayState === "VALID_PARTIAL" || displayState === "VALID_DEPLOYMENT") displayState = "INCOMPATIBLE";
-  cached.state.setAttribute("d", HALO_STATE_PATH[displayState] || HALO_STATE_PATH.INCOMPATIBLE);
-  cached.state.setAttribute("class", `halo-state-mark halo-state-${displayState.toLowerCase()}`);
 }
 
 function haloPositionsFor(which) {
@@ -321,7 +358,7 @@ function haloPositionsFor(which) {
   const onePixelEast = map.unproject(projectedCenter.add([1, 0]));
   const metresPerPixel = map.distance(centerLatLng, onePixelEast);
   const radiusPx = metresPerPixel > 0 ? radiusFor(which) / metresPerPixel : 0;
-  const slotDistance = radiusPx + 20;
+  const slotDistance = radiusPx + HALO_INNER_GAP_PX;
   const offsets = { north: [0, -slotDistance], east: [slotDistance, 0], south: [0, slotDistance], west: [-slotDistance, 0] };
   const positions = {};
   for (const metric of HALO_METRICS) {
@@ -332,14 +369,24 @@ function haloPositionsFor(which) {
   return { center, radiusPx, positions };
 }
 
-function haloGlyphIntersects(element, point) {
+function haloGlyphIntersects(element, point, footprint) {
   if (!element || element.hidden) return false;
   const rect = element.getBoundingClientRect();
   if (rect.width === 0 || rect.height === 0) return false;
   const mapRect = map.getContainer().getBoundingClientRect();
   const x = mapRect.left + point.x;
   const y = mapRect.top + point.y;
-  return x + 23 > rect.left && x - 23 < rect.right && y + 11 > rect.top && y - 11 < rect.bottom;
+  return x + footprint.maxX > rect.left && x + footprint.minX < rect.right && y + footprint.maxY > rect.top && y + footprint.minY < rect.bottom;
+}
+
+function haloFootprint(metric, layout) {
+  const compact = layout === "compact";
+  const length = compact ? HALO_COMPACT_TRACK_PX : HALO_FULL_TRACK_PX;
+  const label = compact ? 0 : 84;
+  if (metric.slot === "north") return { minX: compact ? -18 : -68, maxX: compact ? 18 : 68, minY: -length - 4, maxY: 4 };
+  if (metric.slot === "south") return { minX: compact ? -18 : -68, maxX: compact ? 18 : 68, minY: -4, maxY: length + 4 };
+  if (metric.slot === "east") return { minX: -6, maxX: length + label, minY: compact ? -18 : -28, maxY: compact ? 18 : 28 };
+  return { minX: -length - label, maxX: 6, minY: compact ? -18 : -28, maxY: compact ? 18 : 28 };
 }
 
 function updateHaloLayout() {
@@ -355,46 +402,60 @@ function updateHaloLayout() {
     return;
   }
   const sides = { A: haloPositionsFor("A"), B: haloPositionsFor("B") };
-  const suppressed = { A: "", B: "" };
+  const layouts = { A: haloLayoutForRadius(sides.A.radiusPx), B: haloLayoutForRadius(sides.B.radiusPx) };
+  const blocked = { A: new Map(), B: new Map() };
   for (const which of ["A", "B"]) {
-    if (sides[which].radiusPx < 42) suppressed[which] = "below the 42 px minimum Lens radius";
-    else {
+    if (layouts[which] === "hidden") {
+      for (const metric of HALO_METRICS) blocked[which].set(metric.id, "below the 30 px compact Halo threshold");
+      continue;
+    }
+    for (const metric of HALO_METRICS) {
+      const point = map.latLngToContainerPoint(sides[which].positions[metric.id]);
+      const footprint = haloFootprint(metric, layouts[which]);
       for (const element of [document.querySelector(".panel"), document.querySelector(".left")]) {
-        const hit = HALO_METRICS.some((metric) => haloGlyphIntersects(element, map.latLngToContainerPoint(sides[which].positions[metric.id])));
-        if (hit) suppressed[which] = "overlapped by a map control panel";
+        if (haloGlyphIntersects(element, point, footprint)) blocked[which].set(metric.id, "overlapped by a map control panel");
       }
     }
   }
-  if (!suppressed.A && !suppressed.B) {
+  if (layouts.A !== "hidden" && layouts.B !== "hidden") {
     for (const metricA of HALO_METRICS) {
       for (const metricB of HALO_METRICS) {
         const aPoint = map.latLngToContainerPoint(sides.A.positions[metricA.id]);
         const bPoint = map.latLngToContainerPoint(sides.B.positions[metricB.id]);
         if (aPoint.distanceTo(bPoint) < HALO_MIN_SLOT_SEPARATION_PX) {
-          suppressed.A = suppressed.B = "Lens A and Lens B halo slots overlap";
-          break;
+          blocked.A.set(metricA.id, "ambiguous Lens A/B slot overlap");
+          blocked.B.set(metricB.id, "ambiguous Lens A/B slot overlap");
         }
       }
-      if (suppressed.A) break;
     }
   }
   const mapSize = map.getSize();
   for (const which of ["A", "B"]) {
-    if (!suppressed[which] && HALO_METRICS.some((metric) => {
+    if (layouts[which] === "hidden") continue;
+    for (const metric of HALO_METRICS) {
       const point = map.latLngToContainerPoint(sides[which].positions[metric.id]);
-      return point.x < 24 || point.y < 16 || point.x > mapSize.x - 24 || point.y > mapSize.y - 16;
-    })) suppressed[which] = "within 24 px of the map edge";
+      const footprint = haloFootprint(metric, layouts[which]);
+      if (point.x + footprint.minX < 0 || point.y + footprint.minY < 0 || point.x + footprint.maxX > mapSize.x || point.y + footprint.maxY > mapSize.y) {
+        blocked[which].set(metric.id, "at the map edge");
+      }
+    }
   }
   for (const which of ["A", "B"]) {
+    const visibility = resolveHaloSlotVisibility({ layout: layouts[which], blockedSlots: [...blocked[which].keys()] });
     for (const metric of HALO_METRICS) {
       const marker = comparisonHalos[which][metric.id];
-      updateHaloGlyph(marker, lastHaloComparison.metrics[metric.id]);
-      if (suppressed[which]) map.removeLayer(marker);
+      updateHaloGlyph(marker, lastHaloComparison.metrics[metric.id], layouts[which]);
+      if (!visibility[metric.id].visible) map.removeLayer(marker);
       else if (!map.hasLayer(marker)) marker.addTo(map);
     }
   }
-  haloVisibilityReason = ["A", "B"].filter((which) => suppressed[which]).map((which) => `${which}: ${suppressed[which]}`).join("; ");
-  if (note) note.textContent = haloVisibilityReason ? `Map halo hidden (${haloVisibilityReason}); full comparison stays in this panel.` : "Map halo shown. When count bars are drawn, their full length is the larger valid value in this A/B comparison only.";
+  haloVisibilityReason = ["A", "B"].flatMap((which) => [...blocked[which].entries()].map(([metric, reason]) => `${which} ${metric}: ${reason}`)).join("; ");
+  if (note) {
+    const compactCue = ["A", "B"].filter((which) => layouts[which] === "compact").map((which) => `Lens ${which} compact bars`).join("; ");
+    note.textContent = haloVisibilityReason
+      ? `Some map Halo slots are hidden (${haloVisibilityReason}); the full comparison stays in this panel.`
+      : `${compactCue ? `${compactCue}. ` : ""}Map Halo shown. Full count/rate bars use the larger valid value in this A/B comparison only.`;
+  }
 }
 
 const LENS_BASEMAP_STYLES = {
