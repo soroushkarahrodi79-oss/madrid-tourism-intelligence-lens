@@ -25,11 +25,15 @@ including comparing two places at once.
 
 - Move **Lens A** (always on) by dragging it or clicking the map.
 - Enable **Lens B** to compare two locations side by side.
-- In Compare mode, use the optional **comparison halo** around each circle for
-  a compact radial-spoke pattern cue: Tourism POIs at 12, represented stays at
-  3, observed pedestrian activity at 6, and same-timestep HATI UTCI at 9. The
-  panel remains authoritative and shows Lens A, Lens B, and B−A; Mobility stays
-  panel-only.
+- Read the **Radial Halo V3** quantitative perimeter bars around each circle:
+  Tourism POIs at 12, Hotels & stays at 3, Mobility nodes at 6, and mean HATI
+  UTCI at 9. Each bar **prints its own raw value** and its length is that lens's
+  value as a share of a fixed Madrid reference for the metric, so the map alone
+  shows which lens has more of each metric — in single-lens and Compare mode.
+  Bar lengths compare **within a metric only, never across metrics**. The panel
+  stays authoritative for exact values, provenance and interpretation; Pedestrian
+  activity is panel-only. See
+  [`docs/radial-halo-v3.md`](docs/radial-halo-v3.md).
 - Adjust one active-Lens **radius** (100 m – 5 km); Lens A and Lens B keep
   independent radii, and both are shown in Compare mode. Lens B copies A's
   current radius on its first enable in a session and remembers its own radius
@@ -147,15 +151,21 @@ is **not** total tourism demand, **not** all accommodation and **not** a count o
 unique visitors, and nothing explains **why** a figure moved. Full list in
 [`docs/CLAIMS_AND_LIMITATIONS.md`](docs/CLAIMS_AND_LIMITATIONS.md).
 
-The comparison halo is supplementary. Its screen-space spokes attach just
-outside, but do not enlarge, the analytical Lens boundary. In equal-radius mode
-its POI and stay bars use raw represented counts; in eligible unequal-radius
-mode they use represented records/km² on a shared A/B scale. Unequal-radius
-Mobility deltas are withheld. Pedestrian means remain native; UTCI uses a
-native-°C marker around the current A/B midpoint rather than a zero-based bar.
-Exact values remain panel-authoritative. The halo's local pair scale is not a
-Madrid benchmark, percentage, score, or ranking. Missing, off, no-evidence and
-withheld states are visually distinct from a genuine observed zero.
+The Radial Halo V3 makes the Lens itself a compact quantitative display. Its
+screen-space bars attach just outside, but do not enlarge, the analytical Lens
+boundary, and follow it through pan, zoom, radius and Compare-mode changes. Every
+bar prints its raw value (`12`, `1,284`, `31.6°C`); bar length is a within-metric
+magnitude — `clamp(raw / reference, 0..1)` against a deterministic Madrid
+reference (the p95 of per-feature local density in a fixed window for counts; a
+model-derived Celsius band for UTCI). The **same reference drives Lens A and
+Lens B**, so a larger valid raw value never produces a shorter bar, and bar
+lengths are comparable **within a metric only, never across metrics**. The circle
+boundary is quieter than the bars; A and B differ by hue **and** structure (B's
+fill is dashed) so colour is never the only cue. Exact values stay
+panel-authoritative; the scale is not a Madrid benchmark, percentage, score, or
+ranking. Unavailable data reads `N/A`, off reads `OFF`, and both stay visually
+distinct from a genuine observed `0`. Full contract:
+[`docs/radial-halo-v3.md`](docs/radial-halo-v3.md).
 
 ## 7. How do I run it locally?
 
@@ -244,7 +254,7 @@ See [Gate G — Decision utility and next evidence increment](docs/DECISION_UTIL
 index.html            entry point
 css/app.css            styling
 js/lens.js             pure lens geometry + POI statistics (tested)
-js/radial-halo.js      pure comparative halo states and shared scales (tested)
+js/radial-halo.js      pure Radial Halo V3 model: within-metric references, bar magnitudes, glyph specs (tested)
 js/evidence.js          pure HATI evidence statistics (tested)
 js/geography.js         pure administrative containment / point-in-polygon (tested)
 js/area-profile.js      pure Area Profile model: place, residents, licensed VUT, states (tested)
