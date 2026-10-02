@@ -53,6 +53,9 @@ map.getPane("adminActivePane").classList.add("admin-active-pane");
 map.createPane("lensPane");
 map.getPane("lensPane").style.zIndex = "460";
 map.getPane("lensPane").style.pointerEvents = "none";
+map.createPane("haloPane");
+map.getPane("haloPane").style.zIndex = "470";
+map.getPane("haloPane").style.pointerEvents = "none";
 
 const cartoBasemapKey = window.RUNTIME_CONFIG?.CARTO_BASEMAP_KEY || "";
 let activeBasemap = null;
@@ -217,6 +220,181 @@ const lenses = {
     }),
   },
 };
+
+// Eight reusable, pointer-transparent Leaflet markers form the screen-space
+// halo. They follow their Lens through map transforms without redrawing any
+// unrelated map data. Values and abstention states update in place.
+const HALO_GLYPH_COLORS = Object.freeze({ A: "#f7fbff", B: "#43d7ff" });
+const HALO_SLOT_ROTATION = Object.freeze({ north: -90, east: 0, south: 90, west: 180 });
+const HALO_MIN_SLOT_SEPARATION_PX = 48;
+const comparisonHalos = { A: {}, B: {} };
+let haloEnabled = true;
+let lastHaloComparison = null;
+let haloVisibilityReason = "";
+
+function haloIcon(which, metric) {
+  const rotation = metric.id === "utci" ? 0 : HALO_SLOT_ROTATION[metric.slot];
+  const color = HALO_GLYPH_COLORS[which];
+  const html = `<svg class="halo-glyph halo-${which.toLowerCase()} halo-slot-${metric.slot}" viewBox="0 0 42 14" width="42" height="14" role="presentation" aria-hidden="true" style="--halo-color:${color};--slot-rotation:${rotation}deg">
+    <g class="halo-count"><rect class="halo-track" x="7" y="4" width="28" height="6" rx="3"/><rect class="halo-fill" x="7" y="4" width="0" height="6" rx="3"/></g>
+    <g class="halo-temperature" style="display:none"><line class="halo-temperature-track" x1="6" y1="7" x2="36" y2="7"/><line class="halo-temperature-mid" x1="21" y1="2" x2="21" y2="12"/><circle class="halo-temperature-marker" cx="21" cy="7" r="3"/></g>
+    <path class="halo-state-mark" d=""/>
+    <circle class="halo-qualified-mark" cx="21" cy="7" r="1.6"/>
+  </svg>`;
+  return L.divIcon({ className: "comparison-halo-icon", html, iconSize: [42, 14], iconAnchor: [21, 7] });
+}
+
+for (const which of ["A", "B"]) {
+  for (const metric of HALO_METRICS) {
+    const marker = L.marker(lenses[which].marker.getLatLng(), {
+      pane: "haloPane", interactive: false, keyboard: false, icon: haloIcon(which, metric), zIndexOffset: 0,
+    });
+    marker._haloMetric = metric.id;
+    marker._haloLens = which;
+    marker.on("add", () => {
+      cacheHaloNodes(marker);
+      if (lastHaloComparison) updateHaloGlyph(marker, lastHaloComparison.metrics[marker._haloMetric]);
+    });
+    comparisonHalos[which][metric.id] = marker;
+  }
+}
+
+const HALO_STATE_PATH = Object.freeze({
+  OFF: "M17 3 L25 11",
+  UNAVAILABLE: "M16 3 L26 11 M26 3 L16 11",
+  NO_EVIDENCE: "M21 2.5 A4.5 4.5 0 1 0 21.01 2.5",
+  INCOMPATIBLE: "M16 3 L19 7 L16 11 M23 3 L26 7 L23 11",
+});
+
+function cacheHaloNodes(marker) {
+  const root = marker.getElement?.();
+  if (!root) return;
+  marker._haloNodes = {
+    count: root.querySelector(".halo-count"),
+    fill: root.querySelector(".halo-fill"),
+    temperature: root.querySelector(".halo-temperature"),
+    temperatureMarker: root.querySelector(".halo-temperature-marker"),
+    state: root.querySelector(".halo-state-mark"),
+    qualifier: root.querySelector(".halo-qualified-mark"),
+  };
+}
+
+function updateHaloGlyph(marker, state) {
+  const nodes = marker._haloNodes;
+  if (!nodes) cacheHaloNodes(marker);
+  const cached = marker._haloNodes;
+  if (!cached) return;
+  const metricId = marker._haloMetric;
+  const valueKey = marker._haloLens === "A" ? "aValue" : "bValue";
+  const magnitudeKey = marker._haloLens === "A" ? "aMagnitude" : "bMagnitude";
+  if (metricId === "utci" && state.comparable) {
+    cached.count.style.display = "none";
+    cached.temperature.style.display = "";
+    const offset = marker._haloLens === "A" ? state.aOffsetPx : state.bOffsetPx;
+    cached.temperatureMarker.setAttribute("cx", String(21 + offset));
+    cached.state.setAttribute("d", "");
+    cached.qualifier.style.display = "none";
+    return;
+  }
+  cached.temperature.style.display = "none";
+  const isComparable = state.comparable;
+  cached.count.style.display = isComparable && metricId !== "utci" ? "" : "none";
+  if (isComparable && metricId !== "utci") {
+    cached.fill.setAttribute("width", String(28 * state[magnitudeKey]));
+    cached.state.setAttribute("d", "");
+    cached.qualifier.style.display = state.id === "valid" ? "none" : "";
+    return;
+  }
+  cached.fill.setAttribute("width", "0");
+  cached.qualifier.style.display = "none";
+  let displayState = marker._haloLens === "A" ? state.stateA : state.stateB;
+  if (displayState === "VALID" || displayState === "VALID_PARTIAL" || displayState === "VALID_DEPLOYMENT") displayState = "INCOMPATIBLE";
+  cached.state.setAttribute("d", HALO_STATE_PATH[displayState] || HALO_STATE_PATH.INCOMPATIBLE);
+  cached.state.setAttribute("class", `halo-state-mark halo-state-${displayState.toLowerCase()}`);
+}
+
+function haloPositionsFor(which) {
+  const centerLatLng = lenses[which].marker.getLatLng();
+  const center = map.latLngToContainerPoint(centerLatLng);
+  const projectedCenter = map.project(centerLatLng);
+  const onePixelEast = map.unproject(projectedCenter.add([1, 0]));
+  const metresPerPixel = map.distance(centerLatLng, onePixelEast);
+  const radiusPx = metresPerPixel > 0 ? radius / metresPerPixel : 0;
+  const slotDistance = radiusPx + 20;
+  const offsets = { north: [0, -slotDistance], east: [slotDistance, 0], south: [0, slotDistance], west: [-slotDistance, 0] };
+  const positions = {};
+  for (const metric of HALO_METRICS) {
+    const offset = offsets[metric.slot];
+    positions[metric.id] = map.containerPointToLatLng(center.add(offset));
+    comparisonHalos[which][metric.id].setLatLng(positions[metric.id]);
+  }
+  return { center, radiusPx, positions };
+}
+
+function haloGlyphIntersects(element, point) {
+  if (!element || element.hidden) return false;
+  const rect = element.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return false;
+  const mapRect = map.getContainer().getBoundingClientRect();
+  const x = mapRect.left + point.x;
+  const y = mapRect.top + point.y;
+  return x + 23 > rect.left && x - 23 < rect.right && y + 11 > rect.top && y - 11 < rect.bottom;
+}
+
+function updateHaloLayout() {
+  const note = document.getElementById("haloVisibilityNote");
+  if (!bEnabled || !lastHaloComparison) {
+    for (const which of ["A", "B"]) for (const marker of Object.values(comparisonHalos[which])) map.removeLayer(marker);
+    if (note) note.textContent = "";
+    return;
+  }
+  if (!haloEnabled) {
+    for (const which of ["A", "B"]) for (const marker of Object.values(comparisonHalos[which])) map.removeLayer(marker);
+    if (note) note.textContent = "Map halo off; the full comparison remains in this panel.";
+    return;
+  }
+  const sides = { A: haloPositionsFor("A"), B: haloPositionsFor("B") };
+  const suppressed = { A: "", B: "" };
+  for (const which of ["A", "B"]) {
+    if (sides[which].radiusPx < 42) suppressed[which] = "below the 42 px minimum Lens radius";
+    else {
+      for (const element of [document.querySelector(".panel"), document.querySelector(".left")]) {
+        const hit = HALO_METRICS.some((metric) => haloGlyphIntersects(element, map.latLngToContainerPoint(sides[which].positions[metric.id])));
+        if (hit) suppressed[which] = "overlapped by a map control panel";
+      }
+    }
+  }
+  if (!suppressed.A && !suppressed.B) {
+    for (const metricA of HALO_METRICS) {
+      for (const metricB of HALO_METRICS) {
+        const aPoint = map.latLngToContainerPoint(sides.A.positions[metricA.id]);
+        const bPoint = map.latLngToContainerPoint(sides.B.positions[metricB.id]);
+        if (aPoint.distanceTo(bPoint) < HALO_MIN_SLOT_SEPARATION_PX) {
+          suppressed.A = suppressed.B = "Lens A and Lens B halo slots overlap";
+          break;
+        }
+      }
+      if (suppressed.A) break;
+    }
+  }
+  const mapSize = map.getSize();
+  for (const which of ["A", "B"]) {
+    if (!suppressed[which] && HALO_METRICS.some((metric) => {
+      const point = map.latLngToContainerPoint(sides[which].positions[metric.id]);
+      return point.x < 24 || point.y < 16 || point.x > mapSize.x - 24 || point.y > mapSize.y - 16;
+    })) suppressed[which] = "within 24 px of the map edge";
+  }
+  for (const which of ["A", "B"]) {
+    for (const metric of HALO_METRICS) {
+      const marker = comparisonHalos[which][metric.id];
+      updateHaloGlyph(marker, lastHaloComparison.metrics[metric.id]);
+      if (suppressed[which]) map.removeLayer(marker);
+      else if (!map.hasLayer(marker)) marker.addTo(map);
+    }
+  }
+  haloVisibilityReason = ["A", "B"].filter((which) => suppressed[which]).map((which) => `${which}: ${suppressed[which]}`).join("; ");
+  if (note) note.textContent = haloVisibilityReason ? `Map halo hidden (${haloVisibilityReason}); full comparison stays in this panel.` : "Map halo shown. When count bars are drawn, their full length is the larger valid value in this A/B comparison only.";
+}
 
 const LENS_BASEMAP_STYLES = {
   light: {
@@ -635,8 +813,42 @@ function renderNearest(s) {
     : "<li>No mapped points in lens.</li>";
 }
 
+function comparisonCell(value, metricId, stateCode) {
+  if (value != null) {
+    if (metricId === "utci") return `${value.toFixed(1)}°C`;
+    if (metricId === "pedestrian") return `${value.toFixed(1)} observed pedestrians/hour`;
+    return String(value);
+  }
+  return ({ OFF: "Off", UNAVAILABLE: "Unavailable", NO_EVIDENCE: "No evidence", INCOMPATIBLE: "Withheld" })[stateCode] || "—";
+}
+
+function comparisonDeltaCell(state, metricId) {
+  if (!state.comparable) return state.id === "off" ? "Off" : state.id === "unavailable" ? "Unavailable" : "Withheld";
+  if (metricId === "utci") return `${state.delta > 0 ? "+" : ""}${state.delta.toFixed(1)}°C`;
+  if (metricId === "pedestrian") {
+    const base = `${state.delta > 0 ? "+" : ""}${state.delta.toFixed(1)} observed pedestrians/hour`;
+    return state.id === "valid-partial" ? `${base} · sample` : state.id === "valid-deployment" ? `${base} · deploy` : base;
+  }
+  const base = state.delta > 0 ? `+${state.delta}` : String(state.delta);
+  return state.id === "valid-partial" ? `${base} · sample` : state.id === "valid-deployment" ? `${base} · deploy` : base;
+}
+
+function setComparisonRow(prefix, state, metricId) {
+  const aCell = document.getElementById(`${prefix}A`);
+  const bCell = document.getElementById(`${prefix}B`);
+  aCell.textContent = comparisonCell(state.aValue, metricId, state.stateA);
+  bCell.textContent = comparisonCell(state.bValue, metricId, state.stateB);
+  aCell.title = [state.aCoverage, state.qualifierA, state.qualifier].filter(Boolean).join(". ");
+  bCell.title = [state.bCoverage, state.qualifierB, state.qualifier].filter(Boolean).join(". ");
+  document.getElementById(prefix).textContent = comparisonDeltaCell(state, metricId);
+}
+
 function renderCompare() {
-  if (!bEnabled) return;
+  if (!bEnabled) {
+    lastHaloComparison = null;
+    updateHaloLayout();
+    return;
+  }
   const a = statsFor("A");
   const b = statsFor("B");
   const hatiOn = isHatiVisible();
@@ -645,35 +857,54 @@ function renderCompare() {
   const hb = hatiOn ? heatStatsFor("B") : null;
   const pa = pedestrianOn ? pedestrianStatsFor("A") : null;
   const pb = pedestrianOn ? pedestrianStatsFor("B") : null;
-  document.getElementById("cmpPoi").textContent = comparisonDelta(
-    combinedStatus(layerStatus, ["museums", "info"]),
-    a.tourism,
-    b.tourism
+  const comparison = buildHaloComparison({
+    tourism: {
+      a: { value: a.tourism, sourceState: combinedStatus(layerStatus, ["museums", "info"]) },
+      b: { value: b.tourism, sourceState: combinedStatus(layerStatus, ["museums", "info"]) },
+    },
+    stays: {
+      a: { value: a.stay, sourceState: combinedStatus(layerStatus, ["stays"]) },
+      b: { value: b.stay, sourceState: combinedStatus(layerStatus, ["stays"]) },
+    },
+    pedestrian: {
+      enabled: pedestrianOn, sourceState: pedestrianStatus,
+      a: pa, b: pb, periodKey: pedestrianMeta?.source?.year != null ? String(pedestrianMeta.source.year) : null,
+    },
+    utci: { enabled: hatiOn, timestepA: timestep, timestepB: timestep, a: ha, b: hb },
+  });
+  setComparisonRow("cmpPoi", comparison.metrics.tourism, "tourism");
+  setComparisonRow("cmpStay", comparison.metrics.stays, "stays");
+  const mobilityStatus = combinedStatus(layerStatus, ["bikes", "rail"]);
+  const mobilityState = buildCountPairState(
+    { value: a.mobility, sourceState: mobilityStatus },
+    { value: b.mobility, sourceState: mobilityStatus }
   );
-  document.getElementById("cmpStay").textContent = comparisonDelta(
-    combinedStatus(layerStatus, ["stays"]),
-    a.stay,
-    b.stay
-  );
-  document.getElementById("cmpMobility").textContent = comparisonDelta(
-    combinedStatus(layerStatus, ["bikes", "rail"]),
-    a.mobility,
-    b.mobility
-  );
-  document.getElementById("cmpPedestrian").textContent =
-    pedestrianOn && pa.evidence === "OBSERVED" && pb.evidence === "OBSERVED"
-      ? deltaOrDash(Math.round(pa.meanObserved), Math.round(pb.meanObserved), "/h")
-      : pedestrianOn
-        ? "—"
-        : "off";
-  document.getElementById("cmpHeat").textContent =
-    hatiOn && ha.evidence === "MODEL-DERIVED" && hb.evidence === "MODEL-DERIVED"
-      ? deltaOrDash(ha.mean, hb.mean, "°")
-      : "—";
-  document.getElementById("cmpEvidence").textContent = hatiOn
-    ? `${ha.evidence === "NONE" ? "A: none" : "A: ok"} / ${hb.evidence === "NONE" ? "B: none" : "B: ok"}`
-    : "HATI off";
+  setComparisonRow("cmpMobility", mobilityState, "mobility");
+  setComparisonRow("cmpPedestrian", comparison.metrics.pedestrian, "pedestrian");
+  setComparisonRow("cmpHeat", comparison.metrics.utci, "utci");
+  const mobilityA = document.getElementById("cmpMobilityA");
+  const mobilityB = document.getElementById("cmpMobilityB");
+  if (mobilityStatus !== "unavailable") {
+    mobilityA.title = mobilityStatus === "snapshot" ? "Snapshot sample; not exhaustive" : mobilityStatus === "published" ? "Deployment snapshot" : "Live source";
+    mobilityB.title = mobilityA.title;
+  }
+  const pedestrianEvidence = pedestrianStatus === "unavailable"
+    ? "Pedestrian source unavailable"
+    : pedestrianOn
+      ? `Pedestrian observations · A ${pa.stationCount} counters / ${pa.observationCount} observations${pa.dateMin && pa.dateMax ? ` (${pa.dateMin}–${pa.dateMax})` : ""}; B ${pb.stationCount} counters / ${pb.observationCount} observations${pb.dateMin && pb.dateMax ? ` (${pb.dateMin}–${pb.dateMax})` : ""}; observed pedestrians, not tourists.`
+      : "Pedestrian layer off.";
+  document.getElementById("cmpEvidence").textContent = `${hatiOn ? `HATI ${timestep} · 21 Aug 2023 · ${ha.count}/${hb.count} model samples` : "HATI off"}. ${pedestrianEvidence}`;
+  lastHaloComparison = comparison;
+  document.getElementById("comparisonHaloSummary").textContent = accessibleComparisonSummary(comparison);
+  updateHaloLayout();
 }
+
+map.on("zoomend resize", updateHaloLayout);
+document.getElementById("haloToggle").addEventListener("change", (event) => {
+  haloEnabled = event.target.checked;
+  event.target.setAttribute("aria-checked", String(haloEnabled));
+  updateHaloLayout();
+});
 
 // ---------------------------------------------------------------- area profile
 //

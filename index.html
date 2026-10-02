@@ -6,7 +6,7 @@
 <title>Madrid Tourism Intelligence Lens</title>
 <meta name="description" content="Move a spatial lens across central Madrid to explore how tourism POIs, mobility nodes and bounded HATI thermal evidence change locally.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261002-39">
+<link rel="stylesheet" href="css/app.css?v=20261002-42">
 </head>
 <body>
 <div id="map"></div>
@@ -235,14 +235,23 @@
 
   <div id="compareLine" class="compareline">
     <div class="section-head"><span>Lens A ↔ Lens B</span><small>circle measurements only</small></div>
-    <div class="comparegrid">
-      <div>POIs<b id="cmpPoi">—</b></div>
-      <div>Stays<b id="cmpStay">—</b></div>
-      <div>Mobility<b id="cmpMobility">—</b></div>
-      <div>Ped flow<b id="cmpPedestrian">—</b></div>
-      <div>UTCI<b id="cmpHeat">—</b></div>
-      <div>Evidence<b id="cmpEvidence">—</b></div>
+    <label class="halo-toggle"><input id="haloToggle" type="checkbox" checked aria-label="Show comparison halo around Lens A and Lens B" aria-checked="true"><span>Comparison halo</span><small>supplementary map marks</small></label>
+    <div class="halo-legend">Slots clockwise: 12 Tourism POIs · 3 Stays · 6 Pedestrian · 9 UTCI. Count track = current A/B maximum only; UTCI markers use the pair midpoint at 2 px/°C.</div>
+    <div class="comparetable-wrap">
+      <table class="comparetable" aria-label="Lens A and Lens B circle measurements">
+        <thead><tr><th scope="col">Metric</th><th scope="col">Lens A</th><th scope="col">Lens B</th><th scope="col">B−A</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Tourism POIs</th><td id="cmpPoiA">—</td><td id="cmpPoiB">—</td><td id="cmpPoi">—</td></tr>
+          <tr><th scope="row">Stays</th><td id="cmpStayA">—</td><td id="cmpStayB">—</td><td id="cmpStay">—</td></tr>
+          <tr class="panel-only-metric"><th scope="row">Mobility · panel only</th><td id="cmpMobilityA">—</td><td id="cmpMobilityB">—</td><td id="cmpMobility">—</td></tr>
+          <tr><th scope="row">Pedestrian</th><td id="cmpPedestrianA">—</td><td id="cmpPedestrianB">—</td><td id="cmpPedestrian">—</td></tr>
+          <tr><th scope="row">UTCI</th><td id="cmpHeatA">—</td><td id="cmpHeatB">—</td><td id="cmpHeat">—</td></tr>
+        </tbody>
+      </table>
     </div>
+    <div id="cmpEvidence" class="compare-evidence">Evidence —</div>
+    <div id="haloVisibilityNote" class="halo-visibility-note" aria-live="polite"></div>
+    <div id="comparisonHaloSummary" class="sr-only" aria-live="polite"></div>
   </div>
 
   <!-- DESTINATION CONTEXT: a THIRD analytical object, and the only one that is
@@ -312,12 +321,13 @@
 </section>
 
 <script src="assets/leaflet/leaflet.js"></script>
-<script src="js/lens.js?v=20260930-20"></script>
+<script src="js/lens.js?v=20261002-42"></script>
+<script src="js/radial-halo.js?v=20261002-42"></script>
 <script src="js/evidence.js"></script>
 <script src="js/data.js?v=20260928-15"></script>
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20261001-36"></script>
+<script src="js/app.js?v=20261002-42"></script>
 </body>
 </html>

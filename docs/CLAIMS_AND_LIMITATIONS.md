@@ -9,6 +9,10 @@
   sample points, for a single historical pilot day (21 August 2023), at three
   modelled times of day.
 - Compares two lenses' descriptive statistics side by side.
+- In shared-radius Compare mode, shows an optional supplementary halo for
+  Tourism POIs, represented stays, observed pedestrian activity and same-time
+  HATI UTCI. Lens A, Lens B and B−A values remain in the panel; Mobility is
+  panel-only.
 - Names the **official barrio and district** containing the active lens's
   centre, and reports that barrio's **registered residents** from the municipal
   Padrón, with its reference date (1 January 2026).
@@ -34,6 +38,12 @@ establish, measure, or infer:
 - Tourist-specific footfall or visitor flow from the pedestrian counters
 - Safety outcomes of any kind
 - Tourism "quality," attractiveness, or competitiveness
+- A winner, ranking, composite score, or Madrid benchmark from the halo. Its
+  count-bar scale is normalized only to the largest valid value in the current
+  A/B comparison and resets for another pair. It is not a percentage or target.
+- A zero value from absent or incompatible evidence. The halo distinguishes
+  OFF, UNAVAILABLE, NO EVIDENCE and a valid observed zero; Pedestrian and HATI
+  comparisons abstain unless both Lenses have compatible evidence.
 - Economic impact
 - Causal effects of heat on tourism, health, or behaviour
 - Real-time or current thermal conditions
