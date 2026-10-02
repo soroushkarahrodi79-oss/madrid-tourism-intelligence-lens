@@ -28,3 +28,15 @@ jobs:
       # "python" (not "python3") is the interpreter name actions/setup-python
       # puts on PATH on both runners; "python3" does not exist on Windows.
       - run: python -m unittest discover -s tests -p "test_*.py"
+
+  radial-halo-browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
