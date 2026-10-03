@@ -8,6 +8,9 @@ and normalization* that make the Lens itself quantitative.
 **Code:** `js/radial-halo.js` (pure model, unit-tested in
 `tests/radial_halo.test.mjs`), rendered by `js/app.js`, styled in `css/app.css`,
 browser-tested in `browser-tests/radial-halo.browser.mjs`.
+**See also:** the [Comparison Bridge](COMPARISON_BRIDGE_V1.md) turns a focused
+halo metric into the panel-side Lens A / B / B − A reading, over these same four
+metrics and evidence states.
 
 ## 1. Purpose
 

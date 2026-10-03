@@ -509,6 +509,110 @@ function buildCountPairState(a, b, radiusMode = COMPARISON_RADIUS_MODE.EQUAL) {
   return { ...state, id: state.comparable ? "mobility-withheld" : state.id, delta: null, comparable: false, qualifier: "Withheld · different window sizes" };
 }
 
+// --- Comparison Bridge presentation model ----------------------------------
+//
+// The Bridge is the FOCUSED reading of a single metric: Lens A's value, Lens B's
+// value and ONE relationship — the observed B − A when the comparison is valid,
+// or an explicit withheld reason when it is not. It is built from the SAME
+// authoritative comparison state objects the panel table renders (the metric
+// state from buildHaloComparison; the mobility pair state from
+// buildCountPairState), so it invents no arithmetic of its own: the difference
+// is state.delta, comparability is state.comparable, and the reason is derived
+// from the state's own id/qualifier. One metric therefore has exactly one
+// interpretation across the halo, the Bridge and the table.
+//
+// The model is INTENTIONALLY free of display language: it returns neutral codes
+// (per-side evidence, a numeric delta, a reason code, a basis code) and the view
+// layer localizes them. It never ranks, scores or judges a lens; a positive
+// B − A is arithmetic direction only, never "better".
+const BRIDGE_METRIC_IDS = Object.freeze(["tourism", "stays", "mobility", "utci"]);
+
+// Per-side evidence for the Bridge: VALID (a real value), ZERO (a genuine
+// observed zero — count metrics only), OFF (layer disabled) or N_A (unavailable
+// / no evidence). OFF and N_A never collapse into a zero value.
+function bridgeSideEvidence(metricId, state, which) {
+  if (metricId === "utci") {
+    const sideState = state[which === "A" ? "aSideState" : "bSideState"];
+    if (sideState === "VALID") return "VALID";
+    if (sideState === "OFF") return "OFF";
+    return "N_A";
+  }
+  const raw = state[which === "A" ? "aRawValue" : "bRawValue"];
+  if (!validNumber(raw) || raw < 0) return "N_A";
+  return raw === 0 ? "ZERO" : "VALID";
+}
+
+// Maps a withheld state to a concise, neutral reason code the view localizes.
+function bridgeWithheldReason(metricId, state) {
+  if (metricId === "utci") {
+    if (state.id === "off") return "layer-off";
+    if (state.id === "incompatible") return "timesteps-differ";
+    return "no-evidence";
+  }
+  if (state.id === "mobility-withheld") return "different-window-sizes";
+  if (state.id === "aoi-withheld") {
+    if (state.qualifier === "circle crosses Madrid AOI") return "aoi-crosses";
+    if (state.qualifier === "circle outside Madrid AOI") return "aoi-outside";
+    return "aoi-unavailable";
+  }
+  if (state.id === "off") return "layer-off";
+  return "source-incompatible";
+}
+
+function bridgeSideModel(metricId, state, which, radiusMode) {
+  const evidence = bridgeSideEvidence(metricId, state, which);
+  // UTCI carries its value on aValue/bValue; count metrics on aRawValue/bRawValue
+  // (the printed number is always the raw count, matching the halo glyph).
+  const raw = metricId === "utci"
+    ? (evidence === "VALID" ? state[which === "A" ? "aValue" : "bValue"] : null)
+    : state[which === "A" ? "aRawValue" : "bRawValue"];
+  const valueText = (evidence === "VALID" || evidence === "ZERO") ? formatHaloValue(metricId, raw) : null;
+  // Represented density is surfaced only for count metrics whose cross-side
+  // comparison the panel actually authorizes (tourism / stays under unequal
+  // radii). Mobility never converts to density; UTCI is a Celsius band.
+  let densityValue = null;
+  if (metricId !== "utci" && radiusMode === COMPARISON_RADIUS_MODE.UNEQUAL && state.comparable) {
+    const rate = state[which === "A" ? "aValue" : "bValue"];
+    if (validNumber(rate)) densityValue = rate;
+  }
+  return Object.freeze({ evidence, rawValue: validNumber(raw) ? raw : null, valueText, densityValue });
+}
+
+// Build the Bridge view-model for one metric from its authoritative state. The
+// `state` is exactly the object the table renders (buildHaloComparison metric or
+// buildCountPairState for mobility), so Bridge and table can never disagree.
+function buildComparisonBridgeModel({ metricId, state, radiusMode = COMPARISON_RADIUS_MODE.EQUAL, radii = null } = {}) {
+  if (!BRIDGE_METRIC_IDS.includes(metricId) || !state) return null;
+  const metric = HALO_METRICS.find((candidate) => candidate.id === metricId);
+  const a = bridgeSideModel(metricId, state, "A", radiusMode);
+  const b = bridgeSideModel(metricId, state, "B", radiusMode);
+  // A difference exists only when the panel authorizes the comparison AND both
+  // sides carry a real value: OFF / N_A never participate in a delta.
+  const comparable = Boolean(state.comparable) && validNumber(state.delta)
+    && a.evidence !== "OFF" && b.evidence !== "OFF" && a.evidence !== "N_A" && b.evidence !== "N_A";
+  const deltaKind = !comparable ? null
+    : metricId === "utci" ? "temperature"
+    : radiusMode === COMPARISON_RADIUS_MODE.UNEQUAL ? "density" : "count";
+  const basisCode = !comparable ? null
+    : metricId === "utci" ? "celsius"
+    : radiusMode === COMPARISON_RADIUS_MODE.UNEQUAL ? "density" : "raw-counts";
+  return Object.freeze({
+    metricId,
+    kind: metric.kind,
+    unitCode: metric.unit,
+    radiusMode,
+    a: Object.freeze({ ...a, radiusM: radii ? radii.A : null }),
+    b: Object.freeze({ ...b, radiusM: radii ? radii.B : null }),
+    relationship: Object.freeze({
+      comparable,
+      deltaValue: comparable ? state.delta : null,
+      deltaKind,
+      basisCode,
+      withheldReasonCode: comparable ? null : bridgeWithheldReason(metricId, state),
+    }),
+  });
+}
+
 // --- Glyph spec ------------------------------------------------------------
 
 function haloVisualState(metric, state, which) {
@@ -629,6 +733,7 @@ if (typeof module !== "undefined" && module.exports) {
     HALO_COMPACT_LABELS, HALO_LAYOUT, HALO_VISUAL_GEOMETRY, HALO_METRIC_SLOT_ANGLES, HALO_RADIAL_GEOMETRY,
     getMetricSlotAngle, getRadialUnitVector, getHaloBarGeometry, getHaloLabelGeometry,
     normalizedCountPair, positivePair, buildCountPairState, buildHaloComparison, accessibleComparisonSummary,
+    BRIDGE_METRIC_IDS, buildComparisonBridgeModel, bridgeSideEvidence, bridgeWithheldReason,
     computeHaloReferenceScales, deriveHaloUtciBand, haloDensity, haloDensityMagnitude, haloUtciMagnitude, formatHaloValue, haloQuantile, haloHaversineMeters,
     activityState, utciState, countState,
     haloLayoutForRadius, haloLabelAnchorForSlot, haloValueAnchorForSlot, haloSlotFootprint, haloFootprintsOverlap, buildHaloGlyphSpec, resolveHaloSlotVisibility,

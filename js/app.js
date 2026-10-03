@@ -237,6 +237,20 @@ let lastHaloComparison = null;
 let haloVisibilityReason = "";
 let focusedHaloMetric = null;
 let selectedHaloMetric = null;
+// Authoritative comparison state objects the Comparison Bridge reads, captured
+// by renderCompare() so the Bridge, the table and the halo all interpret one
+// metric identically. mobility uses the panel pair-state (which withholds under
+// unequal windows), never the halo's density state.
+let lastBridgeStates = null;
+let lastBridgeContext = null;
+// Query-gated browser-regression ONLY: deterministic authoritative comparison
+// evidence. Stays null in production (the gated __HALO_REGRESSION__ seam is the
+// only writer), so renderCompare() uses live stats exactly as before. When set,
+// renderCompare() feeds these {value, sourceState} pairs (and optional aoiState)
+// into the SAME production builders and renderers, so tests can exercise the
+// unequal-window Mobility contract without depending on the deploy-only
+// data/runtime_poi.json artifact. It never adds a parallel render path.
+let comparisonEvidenceOverride = null;
 
 // Deterministic reference DENSITIES for the perimeter bars, computed from the
 // loaded dataset (not the live Lens radius) so a bar's scale semantics never
@@ -340,18 +354,215 @@ function setHaloMetricFocus(metricId, sourceLens, selected = false) {
     svg.classList.toggle("halo-metric-deemphasized", Boolean(focusedHaloMetric && !focused));
     svg.setAttribute("aria-pressed", selectedHaloMetric === marker._haloMetric ? "true" : "false");
   }
-  document.querySelectorAll(".comparetable [data-halo-metric]").forEach((row) => {
+  document.querySelectorAll(".comparetable tr[data-halo-metric]").forEach((row) => {
     const focused = Boolean(focusedHaloMetric && row.dataset.haloMetric === focusedHaloMetric);
     row.classList.toggle("halo-metric-row-focused", focused);
     if (focused) row.setAttribute("aria-current", "true"); else row.removeAttribute("aria-current");
+    const button = row.querySelector(".cmp-metric-focus");
+    if (button) button.setAttribute("aria-pressed", selectedHaloMetric === row.dataset.haloMetric ? "true" : "false");
   });
+  renderComparisonBridge();
   window.dispatchEvent(new CustomEvent("halo:metricfocus", { detail: { metricId: focusedHaloMetric, lens: sourceLens || null, selected: Boolean(focusedHaloMetric && selectedHaloMetric === focusedHaloMetric) } }));
+}
+
+// --- Comparison Bridge -----------------------------------------------------
+//
+// The Bridge is the FOCUSED reading of one metric inside the Lens A ↔ Lens B
+// panel: Lens A value, Lens B value, and the single observed B − A (or an
+// explicit withheld reason). It reads buildComparisonBridgeModel() over the same
+// authoritative state objects the table renders, so the two never disagree. It
+// carries no score, rank or winner/loser language; a positive delta is only
+// arithmetic direction.
+//
+// Localization is dictionary-backed through the shared createI18n mechanism, but
+// the Bridge follows the DOCUMENT language so it stays coherent with the English
+// comparison panel it lives in. The Spanish dictionary exists (and is exercised
+// by the unit tests), ready if the document language ever changes.
+const BRIDGE_DICTIONARIES = Object.freeze({
+  en: Object.freeze({
+    empty: "Focus a halo metric to compare Lens A and Lens B",
+    lensA: "Lens A", lensB: "Lens B",
+    observedDelta: "Observed B−A", difference: "Difference",
+    comparable: "Comparable", withheld: "Withheld", locked: "Locked",
+    na: "N/A", off: "OFF",
+    "metric.tourism": "Tourism POIs", "metric.stays": "Hotels & stays",
+    "metric.mobility": "Mobility nodes", "metric.utci": "Mean UTCI",
+    "unit.tourism": "POIs", "unit.stays": "stays", "unit.mobility": "nodes",
+    "unit.density": "records/km²",
+    "basis.raw-counts": "raw represented counts",
+    "basis.density": "represented-record density",
+    "basis.celsius": "model-derived Celsius",
+    "reason.different-window-sizes": "different window sizes",
+    "reason.aoi-crosses": "circle crosses Madrid AOI",
+    "reason.aoi-outside": "circle outside Madrid AOI",
+    "reason.aoi-unavailable": "AOI unavailable",
+    "reason.source-incompatible": "source states incompatible",
+    "reason.layer-off": "layer off",
+    "reason.no-evidence": "evidence unavailable",
+    "reason.timesteps-differ": "different timesteps",
+  }),
+  es: Object.freeze({
+    empty: "Enfoca una métrica del halo para comparar la Lente A y la Lente B",
+    lensA: "Lente A", lensB: "Lente B",
+    observedDelta: "B−A observado", difference: "Diferencia",
+    comparable: "Comparable", withheld: "Retenido", locked: "Fijado",
+    na: "N/D", off: "APAG.",
+    "metric.tourism": "POI turísticos", "metric.stays": "Hoteles y alojamientos",
+    "metric.mobility": "Nodos de movilidad", "metric.utci": "UTCI media",
+    "unit.tourism": "POI", "unit.stays": "aloj.", "unit.mobility": "nodos",
+    "unit.density": "registros/km²",
+    "basis.raw-counts": "recuentos representados brutos",
+    "basis.density": "densidad de registros representados",
+    "basis.celsius": "grados Celsius derivados del modelo",
+    "reason.different-window-sizes": "tamaños de ventana distintos",
+    "reason.aoi-crosses": "el círculo cruza el AOI de Madrid",
+    "reason.aoi-outside": "círculo fuera del AOI de Madrid",
+    "reason.aoi-unavailable": "AOI no disponible",
+    "reason.source-incompatible": "estados de fuente incompatibles",
+    "reason.layer-off": "capa desactivada",
+    "reason.no-evidence": "evidencia no disponible",
+    "reason.timesteps-differ": "pasos de tiempo distintos",
+  }),
+});
+let bridgeI18n = null;
+function bridgeDocLanguage() {
+  return String(document.documentElement.lang || "en").toLowerCase().split("-")[0];
+}
+function bridgeT(key) {
+  if (bridgeI18n) return bridgeI18n.t(key);
+  const lang = bridgeDocLanguage();
+  const dict = BRIDGE_DICTIONARIES[lang] || BRIDGE_DICTIONARIES.en;
+  return dict[key] ?? BRIDGE_DICTIONARIES.en[key] ?? key;
+}
+import(moduleUrl("i18n.js")).then((module) => {
+  bridgeI18n = module.createI18n(BRIDGE_DICTIONARIES, bridgeDocLanguage());
+  renderComparisonBridge();
+}).catch(() => { /* fallback translator keeps the Bridge working */ });
+
+function bridgeDeltaText(relationship) {
+  const value = relationship.deltaValue;
+  const sign = value > 0 ? "+" : "";
+  if (relationship.deltaKind === "temperature") return `${sign}${value.toFixed(1)}°C`;
+  if (relationship.deltaKind === "density") return `${sign}${value.toFixed(1)} ${bridgeT("unit.density")}`;
+  return `${sign}${value}`;
+}
+function bridgeSideValueText(side) {
+  if (side.evidence === "OFF") return bridgeT("off");
+  if (side.evidence === "N_A") return bridgeT("na");
+  return side.valueText;
+}
+// The single authoritative "Withheld · <reason>" text, from a withheldReasonCode.
+// Both the Comparison Bridge qualifier and the table relationship cell use this,
+// so one metric state yields one reason wherever it is shown.
+function bridgeWithheldText(withheldReasonCode) {
+  return `${bridgeT("withheld")} · ${bridgeT(`reason.${withheldReasonCode}`)}`;
+}
+function bridgeSideSubText(model, side) {
+  if (model.kind === "temperature") return "";
+  if (side.evidence !== "VALID" && side.evidence !== "ZERO") return "";
+  const unit = bridgeT(`unit.${model.metricId}`);
+  if (side.densityValue != null) return `${unit} · ${side.densityValue.toFixed(1)} ${bridgeT("unit.density")}`;
+  return unit;
+}
+function bridgeRadiusText(side) {
+  return side.radiusM != null ? `r ${formatLensRadius(side.radiusM)}` : "";
+}
+function renderComparisonBridge() {
+  const host = document.getElementById("comparisonBridge");
+  if (!host) return;
+  const empty = document.getElementById("comparisonBridgeEmpty");
+  const block = document.getElementById("comparisonBridgeMetric");
+  const a11y = document.getElementById("comparisonBridgeA11y");
+  const metricId = focusedHaloMetric;
+  const state = metricId && lastBridgeStates ? lastBridgeStates[metricId] : null;
+  const model = state && lastBridgeContext
+    ? buildComparisonBridgeModel({ metricId, state, radiusMode: lastBridgeContext.radiusMode, radii: lastBridgeContext.radii })
+    : null;
+  if (!model) {
+    empty.textContent = bridgeT("empty");
+    empty.hidden = false;
+    block.hidden = true;
+    host.removeAttribute("data-locked");
+    if (a11y) a11y.textContent = "";
+    return;
+  }
+  empty.hidden = true;
+  block.hidden = false;
+  const locked = selectedHaloMetric === metricId;
+  host.setAttribute("data-locked", locked ? "true" : "false");
+  const lockEl = document.getElementById("cbLock");
+  lockEl.textContent = bridgeT("locked");
+  lockEl.hidden = !locked;
+  document.getElementById("cbMetricName").textContent = bridgeT(`metric.${metricId}`);
+  document.getElementById("cbLensALabel").textContent = bridgeT("lensA");
+  document.getElementById("cbLensBLabel").textContent = bridgeT("lensB");
+  document.getElementById("cbValueA").textContent = bridgeSideValueText(model.a);
+  document.getElementById("cbValueB").textContent = bridgeSideValueText(model.b);
+  document.getElementById("cbSubA").textContent = bridgeSideSubText(model, model.a);
+  document.getElementById("cbSubB").textContent = bridgeSideSubText(model, model.b);
+  document.getElementById("cbRadiusA").textContent = bridgeRadiusText(model.a);
+  document.getElementById("cbRadiusB").textContent = bridgeRadiusText(model.b);
+  const relLabel = document.getElementById("cbRelLabel");
+  const relValue = document.getElementById("cbRelValue");
+  const qualifier = document.getElementById("cbQualifier");
+  const rel = model.relationship;
+  let relValueText;
+  let qualifierText;
+  if (rel.comparable) {
+    relLabel.textContent = bridgeT("observedDelta");
+    relValueText = bridgeDeltaText(rel);
+    relValue.textContent = relValueText;
+    host.setAttribute("data-relationship", "comparable");
+    qualifierText = `${bridgeT("comparable")} · ${bridgeT(`basis.${rel.basisCode}`)}`;
+  } else {
+    relLabel.textContent = bridgeT("difference");
+    relValueText = bridgeT("withheld");
+    relValue.textContent = relValueText;
+    host.setAttribute("data-relationship", "withheld");
+    qualifierText = bridgeWithheldText(rel.withheldReasonCode);
+  }
+  qualifier.textContent = qualifierText;
+  if (a11y) {
+    const sideSentence = (label, side, model2) => {
+      const value = bridgeSideValueText(side);
+      const sub = bridgeSideSubText(model2, side);
+      const radius = bridgeRadiusText(side);
+      return `${label} ${value}${sub ? `, ${sub}` : ""}${radius ? `, ${radius}` : ""}`;
+    };
+    a11y.textContent = `${bridgeT(`metric.${metricId}`)}${locked ? ` (${bridgeT("locked")})` : ""}. `
+      + `${sideSentence(bridgeT("lensA"), model.a, model)}. `
+      + `${sideSentence(bridgeT("lensB"), model.b, model)}. `
+      + `${rel.comparable ? bridgeT("observedDelta") : bridgeT("difference")} ${relValueText}. ${qualifierText}.`;
+  }
 }
 
 function setHaloLine(line, start, end) {
   line.setAttribute("x1", String(start[0])); line.setAttribute("y1", String(start[1]));
   line.setAttribute("x2", String(end[0])); line.setAttribute("y2", String(end[1]));
 }
+
+// Panel → halo: each canonical table row carries an accessible focus control.
+// Hover / keyboard focus previews the metric; click (Enter / Space) locks or
+// unlocks it; Escape clears the lock. Pedestrian has no halo mark and no control.
+function bindComparisonMetricControls() {
+  for (const button of document.querySelectorAll(".cmp-metric-focus")) {
+    const metricId = button.closest("tr[data-halo-metric]")?.dataset.haloMetric;
+    if (!metricId || button._bridgeBound) continue;
+    button._bridgeBound = true;
+    button.addEventListener("mouseenter", () => setHaloMetricFocus(metricId, null));
+    button.addEventListener("mouseleave", () => setHaloMetricFocus(null, null));
+    button.addEventListener("focus", () => setHaloMetricFocus(metricId, null));
+    button.addEventListener("blur", () => setHaloMetricFocus(null, null));
+    button.addEventListener("click", () => setHaloMetricFocus(metricId, null, true));
+    button.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        selectedHaloMetric = null;
+        setHaloMetricFocus(null, null);
+      }
+    });
+  }
+}
+bindComparisonMetricControls();
 
 function updateHaloGlyph(marker, state, layout = "full") {
   const nodes = marker._haloNodes;
@@ -610,6 +821,37 @@ if (haloRegressionRequested && haloRegressionLocal) {
     },
     focusMetric(metricId, which = "A", selected = false) {
       setHaloMetricFocus(metricId, which, selected);
+    },
+    // Inject deterministic authoritative comparison evidence and re-run the REAL
+    // renderCompare() path (builders, table, Bridge, halo). Pass null to clear.
+    // Lets browser tests exercise evidence-dependent contracts (notably the
+    // unequal-window Mobility rule) without the deploy-only runtime POI artifact.
+    setComparisonOverride(override) {
+      comparisonEvidenceOverride = override;
+      renderCompare();
+    },
+    // Read-only view of the shared halo focus state, so Bridge regressions can
+    // assert the panel ↔ halo synchronization without depending on whether a
+    // given halo marker is currently on the map (it may be collision-suppressed
+    // under a panel). setHaloMetricFocus toggles the class on every cached glyph,
+    // so this count reflects the logical focus regardless of DOM attachment.
+    focusState() {
+      return { focused: focusedHaloMetric, selected: selectedHaloMetric };
+    },
+    haloFocusedCount() {
+      let count = 0;
+      for (const which of ["A", "B"]) for (const marker of Object.values(comparisonHalos[which])) {
+        if (marker._haloNodes?.svg?.classList.contains("halo-metric-focused")) count += 1;
+      }
+      return count;
+    },
+    // The raw value text a halo glyph is currently printing, read from the cached
+    // node so Bridge/halo/table coherence can be checked even when the glyph is
+    // collision-suppressed off the map.
+    haloValueText(which, metricId) {
+      const marker = comparisonHalos[which]?.[metricId];
+      const text = marker?._haloNodes?.value?.textContent;
+      return text == null ? null : text.trim();
     },
     geometry(which, metric) {
       const projected = haloPositionsFor(which);
@@ -1110,22 +1352,24 @@ function renderCompare() {
   const radiusMode = radiusComparisonMode(radii.A, radii.B);
   const aoiA = geographyIndex?.municipalityContainsCircle?.(centerOf("A").lon, centerOf("A").lat, radii.A);
   const aoiB = geographyIndex?.municipalityContainsCircle?.(centerOf("B").lon, centerOf("B").lat, radii.B);
-  const aoiState = radiusMode === "EQUAL_RADIUS" ? "not-required" : !aoiA || !aoiB || aoiA.state === "unavailable" || aoiB.state === "unavailable" ? "unavailable" : aoiA.eligible && aoiB.eligible ? "eligible" : aoiA.state === "outside" || aoiB.state === "outside" ? "outside" : "crosses";
+  // Count-metric evidence inputs. In production these are the live stats; the
+  // gated regression override (never set in production) may substitute
+  // deterministic {value, sourceState} pairs so tests run the real builders
+  // below against fixed evidence.
+  const ov = comparisonEvidenceOverride;
+  const tourismStatus = combinedStatus(layerStatus, ["museums", "info"]);
+  const stayStatus = combinedStatus(layerStatus, ["stays"]);
+  const liveMobilityStatus = combinedStatus(layerStatus, ["bikes", "rail"]);
+  const tourismInput = ov?.tourism || { a: { value: a.tourism, sourceState: tourismStatus }, b: { value: b.tourism, sourceState: tourismStatus } };
+  const stayInput = ov?.stays || { a: { value: a.stay, sourceState: stayStatus }, b: { value: b.stay, sourceState: stayStatus } };
+  const mobilityInput = ov?.mobility || { a: { value: a.mobility, sourceState: liveMobilityStatus }, b: { value: b.mobility, sourceState: liveMobilityStatus } };
+  const aoiState = ov?.aoiState ?? (radiusMode === "EQUAL_RADIUS" ? "not-required" : !aoiA || !aoiB || aoiA.state === "unavailable" || aoiB.state === "unavailable" ? "unavailable" : aoiA.eligible && aoiB.eligible ? "eligible" : aoiA.state === "outside" || aoiB.state === "outside" ? "outside" : "crosses");
   const comparison = buildHaloComparison({
     radiusMode, radii: { ...radii }, aoiState,
     references: getHaloReferences(), utciBand: getHaloUtciBand(),
-    tourism: {
-      a: { value: a.tourism, sourceState: combinedStatus(layerStatus, ["museums", "info"]) },
-      b: { value: b.tourism, sourceState: combinedStatus(layerStatus, ["museums", "info"]) },
-    },
-    stays: {
-      a: { value: a.stay, sourceState: combinedStatus(layerStatus, ["stays"]) },
-      b: { value: b.stay, sourceState: combinedStatus(layerStatus, ["stays"]) },
-    },
-    mobility: {
-      a: { value: a.mobility, sourceState: combinedStatus(layerStatus, ["bikes", "rail"]) },
-      b: { value: b.mobility, sourceState: combinedStatus(layerStatus, ["bikes", "rail"]) },
-    },
+    tourism: tourismInput,
+    stays: stayInput,
+    mobility: mobilityInput,
     utci: { enabled: hatiOn, timestepA: timestep, timestepB: timestep, a: ha, b: hb },
   });
   // Pedestrian activity is a panel-only analytical comparison (not a halo bar).
@@ -1150,17 +1394,23 @@ function renderCompare() {
     else if (radiusMode === "UNEQUAL_RADIUS") delta.textContent = `${state.delta > 0 ? "+" : ""}${state.delta.toFixed(1)} ${name}/km²`;
     else delta.textContent = comparisonDeltaCell(state, prefix === "cmpPoi" ? "tourism" : "stays");
   }
-  const mobilityStatus = combinedStatus(layerStatus, ["bikes", "rail"]);
-  const mobilityState = buildCountPairState(
-    { value: a.mobility, sourceState: mobilityStatus },
-    { value: b.mobility, sourceState: mobilityStatus }, radiusMode
-  );
+  const mobilityStatus = mobilityInput.a.sourceState;
+  const mobilityState = buildCountPairState(mobilityInput.a, mobilityInput.b, radiusMode);
   setComparisonRow("cmpMobility", mobilityState, "mobility");
   for (const side of ["A", "B"]) {
     const value = side === "A" ? mobilityState.aValue : mobilityState.bValue;
     document.getElementById(`cmpMobility${side}`).textContent = value == null ? "Unavailable" : `${value} nodes\nr ${formatLensRadius(radiusFor(side))}`;
   }
-  document.getElementById("cmpMobility").textContent = radiusMode === "UNEQUAL_RADIUS" ? "Withheld · different window sizes" : comparisonDeltaCell(mobilityState, "mobility");
+  // The Mobility relationship cell derives its withheld reason from the SAME
+  // authoritative model the Comparison Bridge uses, so the two never disagree:
+  // valid + unequal → "different window sizes"; unavailable/incompatible +
+  // unequal → the evidence reason (which takes precedence over the window
+  // mismatch, since no valid pair exists). Equal radii keep the existing numeric
+  // / honest-unavailable cell.
+  const mobilityView = buildComparisonBridgeModel({ metricId: "mobility", state: mobilityState, radiusMode, radii: { ...radii } });
+  document.getElementById("cmpMobility").textContent = radiusMode === "UNEQUAL_RADIUS"
+    ? bridgeWithheldText(mobilityView.relationship.withheldReasonCode)
+    : comparisonDeltaCell(mobilityState, "mobility");
   setComparisonRow("cmpPedestrian", pedestrianState, "pedestrian");
   setComparisonRow("cmpHeat", comparison.metrics.utci, "utci");
   const mobilityA = document.getElementById("cmpMobilityA");
@@ -1187,6 +1437,13 @@ function renderCompare() {
     : "HATI off";
   document.getElementById("cmpEvidence").textContent = `${radiusLine} ${hatiCoverage}. ${pedestrianEvidence}`;
   lastHaloComparison = comparison;
+  // Capture the authoritative per-metric states for the Comparison Bridge. The
+  // halo bar for mobility shows per-side density, but the panel (and therefore
+  // the Bridge) withholds the mobility DELTA under unequal windows, so the
+  // Bridge reads mobilityState — the same object the mobility table row uses.
+  lastBridgeStates = { tourism: comparison.metrics.tourism, stays: comparison.metrics.stays, mobility: mobilityState, utci: comparison.metrics.utci };
+  lastBridgeContext = { radiusMode, radii: { ...radii } };
+  renderComparisonBridge();
   const pointSummary = radiusMode === "EQUAL_RADIUS"
     ? `Tourism POIs raw counts ${a.tourism} and ${b.tourism}; stays raw counts ${a.stay} and ${b.stay}.`
     : `Tourism POIs raw counts ${a.tourism} and ${b.tourism}; stays raw counts ${a.stay} and ${b.stay}. ${comparison.metrics.tourism.comparable ? `Tourism rates ${comparison.metrics.tourism.aValue.toFixed(1)} and ${comparison.metrics.tourism.bValue.toFixed(1)} represented records per km²; delta ${comparison.metrics.tourism.delta.toFixed(1)}.` : comparison.metrics.tourism.qualifier}. ${comparison.metrics.stays.comparable ? `Stay rates ${comparison.metrics.stays.aValue.toFixed(1)} and ${comparison.metrics.stays.bValue.toFixed(1)} represented catalogue records per km²; delta ${comparison.metrics.stays.delta.toFixed(1)}.` : comparison.metrics.stays.qualifier} Mobility delta withheld · different window sizes.`;
@@ -2451,6 +2708,10 @@ function disableLensB() {
     bEnabled = false;
     document.getElementById("compareLine").classList.remove("show");
     document.getElementById("navCompare").classList.remove("active");
+    // Leaving compare mode clears any locked/previewed metric so the Bridge
+    // returns to its neutral state and does not resurface a stale selection.
+    selectedHaloMetric = null;
+    setHaloMetricFocus(null, null);
     activateLens("A");
     document.getElementById("lensBButton").textContent = "+ Enable Lens B";
   }

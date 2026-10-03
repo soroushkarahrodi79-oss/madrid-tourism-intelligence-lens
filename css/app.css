@@ -283,6 +283,39 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .halo-toggle input:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px}
 .halo-toggle small{margin-left:auto;font-size:8px;color:#7e93a9}
 .halo-legend{font-size:7.7px;line-height:1.4;color:#8194a9;margin:0 3px 7px}
+/* COMPARISON BRIDGE: the focused reading of one metric. An analytical
+   instrument, not a KPI card — no gauges, trophies, winner/loser arrows or
+   traffic-light colours. Lens A keeps its near-white identity and Lens B its
+   cyan one, but every meaning is carried by text as well as colour. The
+   relationship sits BETWEEN the two lenses; "Withheld" is a neutral word, never
+   a red/green verdict. */
+.comparison-bridge{margin:0 2px 7px;padding:8px 9px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.012))}
+.comparison-bridge-empty{margin:0;font-size:8.4px;line-height:1.45;color:#93a6bb;text-align:center}
+.comparison-bridge-metric[hidden]{display:none}
+.cb-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.cb-metric-name{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#dce9f6}
+.cb-lock{font-size:6.8px;font-weight:720;letter-spacing:.09em;text-transform:uppercase;color:#a9d6ff;border:1px solid rgba(120,190,255,.45);border-radius:999px;padding:1px 6px;white-space:nowrap}
+.cb-lock[hidden]{display:none}
+.cb-grid{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:stretch;gap:9px}
+.cb-side{display:flex;flex-direction:column;gap:1px;min-width:0}
+.cb-side-b{text-align:right;align-items:flex-end}
+.cb-lens{font-size:7px;font-weight:720;letter-spacing:.08em;text-transform:uppercase;color:#8ba0b7}
+.cb-side-a .cb-lens{color:#eef5fc}
+.cb-side-b .cb-lens{color:#43d7ff}
+.cb-value{font-size:15px;font-weight:760;color:#f2f8ff;font-variant-numeric:tabular-nums;line-height:1.12;overflow-wrap:anywhere}
+.cb-sub{font-size:7.4px;color:#9fb1c5;line-height:1.3;overflow-wrap:anywhere}
+.cb-radius{font-size:7.4px;color:#8296ac;font-variant-numeric:tabular-nums}
+.cb-rel{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0 7px;border-left:1px solid rgba(255,255,255,.1);border-right:1px solid rgba(255,255,255,.1)}
+.cb-rel-label{font-size:6.6px;font-weight:720;letter-spacing:.06em;text-transform:uppercase;color:#8ba0b7;text-align:center;line-height:1.25}
+.cb-rel-value{font-size:12px;font-weight:740;color:#eaf2fb;font-variant-numeric:tabular-nums;white-space:nowrap}
+.comparison-bridge[data-relationship="withheld"] .cb-rel-value{font-size:8.6px;font-weight:720;color:#b7c3d0;letter-spacing:.02em}
+.cb-qualifier{margin:7px 0 0;font-size:7.4px;line-height:1.4;color:#8ea2b8;text-align:center;overflow-wrap:anywhere}
+/* Panel → halo focus control: the metric name is an accessible button, so the
+   table keeps its row-header semantics while the panel can drive the halo. */
+.cmp-metric-focus{display:inline;margin:0;padding:0;border:0;background:none;font:inherit;color:inherit;letter-spacing:inherit;text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.22);text-underline-offset:2px}
+.cmp-metric-focus:hover{text-decoration-color:rgba(155,213,255,.8)}
+.cmp-metric-focus:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px;border-radius:3px}
+.cmp-metric-focus[aria-pressed="true"]{color:#eaf3fb;text-decoration-color:#9bd5ff}
 .comparetable-wrap{overflow-x:auto;overscroll-behavior-x:contain}
 .comparetable{width:100%;border-collapse:collapse;font-size:8.2px;font-variant-numeric:tabular-nums}
 .comparetable th,.comparetable td{padding:5px 4px;border-bottom:1px solid rgba(255,255,255,.055);text-align:right;vertical-align:top;color:#afbece;line-height:1.35}
@@ -425,6 +458,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .activity-card{grid-template-columns:1fr;padding:9px}.activity-card-note{display:none}
   .mix{display:none}.source{display:none}
   .compareline{margin-top:8px;padding-bottom:2px}.halo-toggle{min-height:40px}.comparetable{font-size:8px}.comparetable th,.comparetable td{padding:5px 3px}.comparetable th:first-child{min-width:75px}.compare-evidence,.halo-visibility-note{font-size:8px}
+  .comparison-bridge-empty{font-size:9px}.cb-metric-name{font-size:10px}.cb-value{font-size:16px}.cb-rel-value{font-size:13px}.cb-sub,.cb-radius,.cb-qualifier{font-size:8.2px}.comparison-bridge[data-relationship="withheld"] .cb-rel-value{font-size:9.4px}
   select,.smallbtn{font-size:16px}
   .basemap-control select{font-size:16px}
   .map-control select{font-size:16px}
@@ -472,6 +506,11 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .area-figure{grid-template-columns:1fr;gap:7px}
   .area-scope{border-left:0;border-top:1px solid var(--line);padding:7px 0 0}
   .area-scope p{margin-top:5px}
+  /* Narrowest phones: stack the Bridge as A / relationship / B so identity
+     stays obvious and nothing clips or overflows. */
+  .cb-grid{grid-template-columns:1fr;gap:7px}
+  .cb-side-b{text-align:left;align-items:flex-start}
+  .cb-rel{flex-direction:row;justify-content:space-between;gap:8px;padding:7px 0;border-left:0;border-right:0;border-top:1px solid rgba(255,255,255,.1);border-bottom:1px solid rgba(255,255,255,.1)}
 }
 
 @media(max-height:700px){
