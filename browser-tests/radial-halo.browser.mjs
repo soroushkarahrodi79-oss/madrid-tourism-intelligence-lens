@@ -138,6 +138,11 @@ async function lineGeometry(page, lens, slot, selector = ".halo-fill") {
     return { x1: n("x1"), y1: n("y1"), x2: n("x2"), y2: n("y2") };
   });
 }
+async function textPosition(page, lens, slot, selector) {
+  return glyph(page, lens, slot).locator(selector).evaluate((node) => ({
+    x: Number(node.getAttribute("x")), y: Number(node.getAttribute("y")),
+  }));
+}
 const live = (value) => ({ value, sourceState: "live" });
 
 // A/B/N. Single lens renders four bars that print real runtime values, honest
@@ -201,6 +206,71 @@ test("rendered SVG length is exactly the normalized value times the shared maxim
   }));
   assert.equal(styles.thickness, 4.5);
   assert.ok(Math.abs(styles.trackLength - 44) < 0.01, "the circumference gap is not added inside SVG coordinates");
+});
+
+test("value and caption anchors stay on the full-track rail across magnitudes, lenses and evidence states", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
+  t.after(() => page.close());
+  await setRadius(page, "A", 900);
+  await setRadius(page, "B", 900);
+  const input = {
+    references: { tourism: 8, stays: 8, mobility: 8 },
+    tourism: { a: live(2), b: live(10) },
+    stays: { a: live(50), b: live(2) },
+    mobility: { a: live(3), b: live(6) },
+    utci: { enabled: true, timestepA: "15:00", timestepB: "15:00", a: { evidence: "MODEL-DERIVED", mean: 36, count: 2 }, b: { evidence: "MODEL-DERIVED", mean: 39, count: 2 } },
+  };
+  await setComparison(page, input);
+  const slots = { tourism: "north", stays: "east", mobility: "south", utci: "west" };
+  const readRail = async (lens, slot) => {
+    const track = await lineGeometry(page, lens, slot, ".halo-track");
+    const value = await textPosition(page, lens, slot, ".halo-value");
+    const caption = await textPosition(page, lens, slot, ".halo-label");
+    const metric = SLOT_METRIC[slot];
+    const angle = SLOT_ANGLE[metric] * Math.PI / 180;
+    const ux = Math.cos(angle), uy = Math.sin(angle);
+    const valueDistance = (value.x - track.x2) * ux + (value.y - track.y2) * uy;
+    const captionDistance = (caption.x - value.x) * ux + (caption.y - value.y) * uy;
+    return { value, caption, valueDistance, captionDistance };
+  };
+  const tourismA = await readRail("A", "north");
+  const tourismB = await readRail("B", "north");
+  assert.ok((await fillLength(page, "A", "north")) < (await fillLength(page, "B", "north")), "different magnitudes change only fill length");
+  assert.deepEqual(tourismA.value, tourismB.value, "A/B use identical local value coordinates for the same slot");
+  assert.deepEqual(tourismA.caption, tourismB.caption, "A/B use identical local caption coordinates for the same slot");
+  assert.ok(Math.abs(tourismA.valueDistance - 7) < 0.01, "value anchor sits 7 px beyond the full track endpoint");
+  assert.ok(Math.abs(tourismA.captionDistance - 12) < 0.01, "caption sits 12 px beyond the fixed value anchor");
+  const shortFill = await lineGeometry(page, "A", "north");
+  const tipToValue = Math.hypot(tourismA.value.x - shortFill.x2, tourismA.value.y - shortFill.y2);
+  assert.ok(tipToValue > 7, "low-magnitude label stays beyond the full track, not at the fill tip");
+
+  await setComparison(page, { ...input, tourism: { a: live(10), b: live(2) }, stays: { a: live(2), b: live(50) } });
+  assert.deepEqual(await readRail("A", "north"), tourismA, "changing magnitudes does not move either text anchor");
+  assert.deepEqual(await readRail("B", "north"), tourismB);
+
+  const mobilityRail = await readRail("A", "south");
+  const mobilityBRail = await readRail("B", "south");
+  assert.deepEqual(mobilityRail.value, mobilityBRail.value);
+  assert.deepEqual(mobilityRail.caption, mobilityBRail.caption);
+  const utciRail = await readRail("A", "west");
+  const utciRailB = await readRail("B", "west");
+  assert.ok(Math.abs(utciRail.valueDistance - 7) < 0.01);
+  await setComparison(page, {
+    ...input,
+    tourism: { a: live(0), b: { value: null, sourceState: "unavailable" } },
+    mobility: { a: live(0), b: { value: null, sourceState: "unavailable" } },
+    utci: { enabled: false },
+  });
+  assert.deepEqual(await textPosition(page, "A", "north", ".halo-value"), tourismA.value, "observed zero shares the valid-value rail");
+  assert.deepEqual(await textPosition(page, "B", "north", ".halo-value"), tourismB.value, "N/A shares the valid-value rail");
+  assert.deepEqual(await textPosition(page, "A", "south", ".halo-value"), mobilityRail.value, "observed zero shares a valid-value rail");
+  assert.deepEqual(await textPosition(page, "A", "south", ".halo-label"), mobilityRail.caption);
+  assert.deepEqual(await textPosition(page, "B", "south", ".halo-value"), mobilityBRail.value, "N/A shares a valid-value rail");
+  assert.deepEqual(await textPosition(page, "B", "south", ".halo-label"), mobilityBRail.caption);
+  assert.deepEqual(await textPosition(page, "A", "west", ".halo-value"), utciRail.value, "OFF shares the valid-value rail");
+  assert.deepEqual(await textPosition(page, "A", "west", ".halo-label"), utciRail.caption, "OFF caption shares the valid-value rail");
+  assert.deepEqual(await textPosition(page, "B", "west", ".halo-value"), utciRailB.value);
+  assert.deepEqual(await textPosition(page, "B", "west", ".halo-label"), utciRailB.caption);
 });
 
 // C (brief). Monotonic within a metric and ONE shared A/B scale, at equal radius.

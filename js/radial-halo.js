@@ -72,7 +72,7 @@ const HALO_METRIC_SLOT_ANGLES = Object.freeze({
   mobility: 90, // 6 o'clock
   utci: 180, // 9 o'clock
 });
-const HALO_RADIAL_GEOMETRY = Object.freeze({ RADIAL_GAP: 5, MAX_BAR_LENGTH: 44, BAR_THICKNESS: 4.5, LABEL_GAP: 7, FULL_MIN_RADIUS_PX: 42, COMPACT_MIN_RADIUS_PX: 30 });
+const HALO_RADIAL_GEOMETRY = Object.freeze({ RADIAL_GAP: 5, MAX_BAR_LENGTH: 44, BAR_THICKNESS: 4.5, LABEL_GAP: 7, CAPTION_GAP: 12, FULL_MIN_RADIUS_PX: 42, COMPACT_MIN_RADIUS_PX: 30 });
 const HALO_LAYOUT = Object.freeze({ FULL_MIN_RADIUS_PX: HALO_RADIAL_GEOMETRY.FULL_MIN_RADIUS_PX, COMPACT_MIN_RADIUS_PX: HALO_RADIAL_GEOMETRY.COMPACT_MIN_RADIUS_PX });
 // Compatibility surface for callers that only need rendering thresholds.
 const HALO_VISUAL_GEOMETRY = HALO_RADIAL_GEOMETRY;
@@ -142,7 +142,7 @@ function haloSlotFootprint(slot, layout = "full") {
   if (angle == null) return null;
   const unit = getRadialUnitVector(angle);
   const along = HALO_RADIAL_GEOMETRY.MAX_BAR_LENGTH
-    + HALO_RADIAL_GEOMETRY.LABEL_GAP + 12 + 26;
+    + HALO_RADIAL_GEOMETRY.LABEL_GAP + HALO_RADIAL_GEOMETRY.CAPTION_GAP + 26;
   const across = layout === "compact" ? 14 : 18;
   const corners = [
     { along: -4, across: -across }, { along, across: -across },

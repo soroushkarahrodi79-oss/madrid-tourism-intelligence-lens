@@ -75,7 +75,9 @@ Bar thickness is a constant `4.5 px`. The local SVG starts at `P0` and applies
 no additional radial gap. Lens A and B calculate `P0` from their
 own currently projected radius; slot angle and data meaning remain shared.
 Pan, zoom, resize, reposition and radius changes all recompute from Leaflet's
-current projection. Labels remain upright and outside their bar tips.
+current projection. The value label uses `Pmax + u × 7 px` and the caption uses
+the value anchor plus `u × 12 px`, independent of magnitude and evidence state.
+Labels remain upright and outside the full track, never moving with the fill tip.
 
 ## 4. Bar-length semantics (normalization)
 

@@ -385,7 +385,9 @@ function updateHaloGlyph(marker, state, layout = "full") {
   // the map alone answers "how much"; it stays visible in compact layout too.
   cached.value.textContent = spec.value || "";
   cached.value.setAttribute("class", `halo-value halo-value-${spec.visualState}`);
-  const valueAnchor = getHaloLabelGeometry({ endpoint: isBar ? fillGeometry.endpoint : HALO_SVG_CENTER, angle: spec.angle, gap: HALO_RADIAL_GEOMETRY.LABEL_GAP });
+  // Text stays on a fixed rail beyond the full-length track. Only the fill
+  // endpoint follows magnitude; zero and abstention labels use the same rail.
+  const valueAnchor = getHaloLabelGeometry({ endpoint: trackGeometry.endpoint, angle: spec.angle, gap: HALO_RADIAL_GEOMETRY.LABEL_GAP });
   cached.value.setAttribute("x", String(valueAnchor.x));
   cached.value.setAttribute("y", String(valueAnchor.y));
   cached.value.setAttribute("text-anchor", valueAnchor.textAnchor);
@@ -393,7 +395,7 @@ function updateHaloGlyph(marker, state, layout = "full") {
 
   // The short metric caption (lens letter + identity) rides one line out; it is
   // a full-layout convenience and is dropped in compact layout.
-  const labelAnchor = getHaloLabelGeometry({ endpoint: { x: valueAnchor.x, y: valueAnchor.y }, angle: spec.angle, gap: 12 });
+  const labelAnchor = getHaloLabelGeometry({ endpoint: { x: valueAnchor.x, y: valueAnchor.y }, angle: spec.angle, gap: HALO_RADIAL_GEOMETRY.CAPTION_GAP });
   cached.label.textContent = `${which}·${spec.label}`;
   cached.label.setAttribute("x", String(labelAnchor.x));
   cached.label.setAttribute("y", String(labelAnchor.y));
