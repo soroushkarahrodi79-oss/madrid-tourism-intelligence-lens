@@ -451,6 +451,12 @@ function bridgeSideValueText(side) {
   if (side.evidence === "N_A") return bridgeT("na");
   return side.valueText;
 }
+// The single authoritative "Withheld · <reason>" text, from a withheldReasonCode.
+// Both the Comparison Bridge qualifier and the table relationship cell use this,
+// so one metric state yields one reason wherever it is shown.
+function bridgeWithheldText(withheldReasonCode) {
+  return `${bridgeT("withheld")} · ${bridgeT(`reason.${withheldReasonCode}`)}`;
+}
 function bridgeSideSubText(model, side) {
   if (model.kind === "temperature") return "";
   if (side.evidence !== "VALID" && side.evidence !== "ZERO") return "";
@@ -513,7 +519,7 @@ function renderComparisonBridge() {
     relValueText = bridgeT("withheld");
     relValue.textContent = relValueText;
     host.setAttribute("data-relationship", "withheld");
-    qualifierText = `${bridgeT("withheld")} · ${bridgeT(`reason.${rel.withheldReasonCode}`)}`;
+    qualifierText = bridgeWithheldText(rel.withheldReasonCode);
   }
   qualifier.textContent = qualifierText;
   if (a11y) {
@@ -1395,7 +1401,16 @@ function renderCompare() {
     const value = side === "A" ? mobilityState.aValue : mobilityState.bValue;
     document.getElementById(`cmpMobility${side}`).textContent = value == null ? "Unavailable" : `${value} nodes\nr ${formatLensRadius(radiusFor(side))}`;
   }
-  document.getElementById("cmpMobility").textContent = radiusMode === "UNEQUAL_RADIUS" ? "Withheld · different window sizes" : comparisonDeltaCell(mobilityState, "mobility");
+  // The Mobility relationship cell derives its withheld reason from the SAME
+  // authoritative model the Comparison Bridge uses, so the two never disagree:
+  // valid + unequal → "different window sizes"; unavailable/incompatible +
+  // unequal → the evidence reason (which takes precedence over the window
+  // mismatch, since no valid pair exists). Equal radii keep the existing numeric
+  // / honest-unavailable cell.
+  const mobilityView = buildComparisonBridgeModel({ metricId: "mobility", state: mobilityState, radiusMode, radii: { ...radii } });
+  document.getElementById("cmpMobility").textContent = radiusMode === "UNEQUAL_RADIUS"
+    ? bridgeWithheldText(mobilityView.relationship.withheldReasonCode)
+    : comparisonDeltaCell(mobilityState, "mobility");
   setComparisonRow("cmpPedestrian", pedestrianState, "pedestrian");
   setComparisonRow("cmpHeat", comparison.metrics.utci, "utci");
   const mobilityA = document.getElementById("cmpMobilityA");

@@ -251,6 +251,13 @@ test("the app wires the Bridge from the authoritative states and a dictionary-ba
   assert.match(app, /let comparisonEvidenceOverride = null;/);
   assert.match(app, /const ov = comparisonEvidenceOverride;/);
   assert.match(app, /const mobilityState = buildCountPairState\(mobilityInput\.a, mobilityInput\.b, radiusMode\);/);
+  // The Mobility table relationship cell derives its withheld reason from the
+  // SAME authoritative model + reason mapping the Bridge uses (one source of
+  // truth), not a hardcoded radius-only string.
+  assert.doesNotMatch(app, /cmpMobility"\)\.textContent = radiusMode === "UNEQUAL_RADIUS" \? "Withheld · different window sizes"/);
+  assert.match(app, /const mobilityView = buildComparisonBridgeModel\(\{ metricId: "mobility", state: mobilityState/);
+  assert.match(app, /bridgeWithheldText\(mobilityView\.relationship\.withheldReasonCode\)/);
+  assert.match(app, /function bridgeWithheldText\(withheldReasonCode\) \{\s*return `\$\{bridgeT\("withheld"\)\} · \$\{bridgeT\(`reason\.\$\{withheldReasonCode\}`\)\}`;/);
   // setComparisonOverride lives inside the query-gated + local-host-only seam.
   const gated = app.slice(app.indexOf("if (haloRegressionRequested && haloRegressionLocal)"));
   assert.match(gated, /setComparisonOverride\(override\) \{\s*comparisonEvidenceOverride = override;\s*renderCompare\(\);/);

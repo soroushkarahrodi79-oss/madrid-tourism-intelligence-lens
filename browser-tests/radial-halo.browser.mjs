@@ -762,9 +762,15 @@ test("13/14 CASE 1 valid Mobility + unequal radii → withheld · different wind
   // Both radii remain visible.
   assert.equal(s.radiusA, "r 700 m");
   assert.equal(s.radiusB, "r 1.6 km");
-  // Table and Bridge agree on the withheld reason for VALID evidence.
-  assert.match((await page.locator("#cmpMobility").textContent()).trim(), /Withheld · different window sizes/);
+  // Table and Bridge derive the SAME withheld reason for VALID evidence.
+  const tableDelta1 = (await page.locator("#cmpMobility").textContent()).trim();
+  assert.match(tableDelta1, /Withheld · different window sizes/);
+  assert.equal(tableDelta1, s.qualifier, "table relationship equals the Bridge withheld qualifier");
   assert.match((await page.locator("#cmpMobilityA").textContent()).trim(), /^24 nodes/);
+  // Three-surface coherence: halo, Bridge and table report the same raw per-side values.
+  const halo1 = await page.evaluate(() => ({ a: window.__HALO_REGRESSION__.haloValueText("A", "mobility"), b: window.__HALO_REGRESSION__.haloValueText("B", "mobility") }));
+  assert.equal(s.valueA, halo1.a);
+  assert.equal(s.valueB, halo1.b);
   // Halo focus stays synchronized.
   assert.ok(await haloFocusedCount(page) >= 1);
   assert.equal(await rowCurrent(page, "mobility"), "true");
@@ -801,8 +807,21 @@ test("13/14 CASE 2 unavailable Mobility + unequal radii → honest N/A, withheld
   // Both radii still visible; unequal radii do not override the evidence limitation.
   assert.equal(s.radiusA, "r 700 m");
   assert.equal(s.radiusB, "r 1.6 km");
-  // The table shows the sides as Unavailable (honest), never 0.
+  // DEFECT FIX: the table relationship cell now derives its reason from the SAME
+  // authoritative model as the Bridge — no longer the hardcoded window-size text.
+  const tableDelta = (await page.locator("#cmpMobility").textContent()).trim();
+  assert.equal(tableDelta, s.qualifier, "table relationship equals the Bridge withheld reason");
+  assert.match(tableDelta, /source states/);
+  assert.doesNotMatch(tableDelta, /different window sizes/);
+  // Three-surface coherence for UNAVAILABLE Mobility: halo + Bridge + table agree.
+  const halo = await page.evaluate(() => ({ a: window.__HALO_REGRESSION__.haloValueText("A", "mobility"), b: window.__HALO_REGRESSION__.haloValueText("B", "mobility") }));
+  assert.equal(halo.a, "N/A", "halo reads N/A");
+  assert.equal(halo.b, "N/A");
+  assert.equal(s.valueA, halo.a, "Bridge mirrors the halo N/A state");
+  assert.equal(s.valueB, halo.b);
+  // The table shows the sides as Unavailable (honest), and nothing is ever 0.
   assert.match((await page.locator("#cmpMobilityA").textContent()).trim(), /Unavailable/);
+  assert.notEqual(tableDelta, "0");
 });
 
 test("16 UTCI OFF shows OFF on both sides and withholds any delta (never zero)", async (t) => {
