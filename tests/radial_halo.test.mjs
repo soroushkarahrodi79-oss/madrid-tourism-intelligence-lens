@@ -407,7 +407,11 @@ test("compare panel keeps the four-column A/B table, Pedestrian panel-only, Mobi
   const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
   assert.match(html, /aria-label="Show comparison halo around Lens A and Lens B" aria-checked="true"/);
   assert.match(html, /Lens A<\/th><th scope="col">Lens B<\/th><th scope="col">B−A/);
-  assert.match(html, /<th scope="row">Mobility nodes<\/th>/);
-  assert.match(html, /Pedestrian · panel only/);
+  // Canonical halo rows now expose an accessible focus control inside the row
+  // header (panel → halo), while the th keeps its scope="row" semantics.
+  assert.match(html, /<th scope="row"><button type="button" class="cmp-metric-focus"[^>]*>Mobility nodes<\/button><\/th>/);
+  assert.match(html, /<th scope="row"><button type="button" class="cmp-metric-focus"[^>]*>Tourism POIs<\/button><\/th>/);
+  // Pedestrian stays panel-only: plain header text, no halo focus control.
+  assert.match(html, /<th scope="row">Pedestrian · panel only<\/th>/);
   assert.doesNotMatch(html, /Mobility · panel only/);
 });

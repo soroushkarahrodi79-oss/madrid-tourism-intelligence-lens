@@ -579,6 +579,244 @@ test("compare panel and collision suppression stay intact alongside the bars", a
   assert.notEqual(await page.locator("#cmpPoi").innerText(), "");
 });
 
+
+// --- Comparison Bridge V1 --------------------------------------------------
+//
+// The Bridge lives inside the Lens A ↔ Lens B panel, so these open compare mode
+// WITH panels visible. Halo-origin focus is driven through the focusMetric seam
+// — the exact function the halo's mouseover / focus / click DOM events call,
+// whose DOM wiring is already covered above — and panel controls are exercised
+// by dispatching real events on the real buttons (robust against the panel's
+// async content reflow). Assertions read Bridge DOM and the shared focus state;
+// the final test proves the Bridge, halo and table never disagree on one metric.
+
+async function openBridge(viewport, opts = {}) {
+  const page = await openCompare(viewport, { panels: true, zoom: 14, ...opts });
+  await page.evaluate(() => window.__HALO_REGRESSION__.recompute());
+  return page;
+}
+async function bridgeState(page) {
+  return page.evaluate(() => ({
+    hidden: document.getElementById("comparisonBridgeMetric").hasAttribute("hidden"),
+    emptyShown: !document.getElementById("comparisonBridgeEmpty").hasAttribute("hidden"),
+    name: document.getElementById("cbMetricName").textContent.trim(),
+    valueA: document.getElementById("cbValueA").textContent.trim(),
+    valueB: document.getElementById("cbValueB").textContent.trim(),
+    radiusA: document.getElementById("cbRadiusA").textContent.trim(),
+    radiusB: document.getElementById("cbRadiusB").textContent.trim(),
+    relValue: document.getElementById("cbRelValue").textContent.trim(),
+    qualifier: document.getElementById("cbQualifier").textContent.trim(),
+    relationship: document.getElementById("comparisonBridge").getAttribute("data-relationship"),
+    locked: document.getElementById("comparisonBridge").getAttribute("data-locked"),
+    lockShown: !document.getElementById("cbLock").hasAttribute("hidden"),
+  }));
+}
+const focusMetric = (page, metricId, which = "A", selected = false) =>
+  page.evaluate(({ metricId, which, selected }) => window.__HALO_REGRESSION__.focusMetric(metricId, which, selected), { metricId, which, selected });
+const focusState = (page) => page.evaluate(() => window.__HALO_REGRESSION__.focusState());
+const haloFocusedCount = (page) => page.evaluate(() => window.__HALO_REGRESSION__.haloFocusedCount());
+const rowCurrent = (page, metricId) => page.locator(`tr[data-halo-metric="${metricId}"]`).getAttribute("aria-current");
+const buttonPressed = (page, metricId) => page.locator(`tr[data-halo-metric="${metricId}"] .cmp-metric-focus`).getAttribute("aria-pressed");
+// Exercise the real button handlers via dispatched events so the panel's async
+// reflow can never make the control "unstable" for a pointer gesture.
+const buttonEvent = (page, metricId, type, init = {}) =>
+  page.evaluate(({ metricId, type, init }) => {
+    const el = document.querySelector(`tr[data-halo-metric="${metricId}"] .cmp-metric-focus`);
+    const Ctor = type.startsWith("key") ? KeyboardEvent : MouseEvent;
+    el.dispatchEvent(new Ctor(type, { bubbles: true, ...init }));
+  }, { metricId, type, init });
+const leadingNumber = (text) => (text.match(/^[+-]?\d[\d.,]*/) || [null])[0];
+
+test("1/3 Bridge is neutral until a metric is focused, then mirrors the row; mouseout returns neutral", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  let s = await bridgeState(page);
+  assert.equal(s.hidden, true, "no metric selected → metric block hidden");
+  assert.equal(s.emptyShown, true, "the neutral prompt is shown");
+  // Temporary focus (hover / keyboard focus equivalent) from Lens A.
+  await focusMetric(page, "tourism", "A", false);
+  await page.waitForFunction(() => !document.getElementById("comparisonBridgeMetric").hasAttribute("hidden"));
+  s = await bridgeState(page);
+  assert.equal(s.name, "Tourism POIs");
+  assert.equal(s.locked, "false", "a temporary focus is not a lock");
+  assert.ok(await haloFocusedCount(page) >= 1, "the focused metric's halo marks are emphasized");
+  assert.equal(await rowCurrent(page, "tourism"), "true", "the Tourism table row is marked current");
+  assert.deepEqual(await focusState(page), { focused: "tourism", selected: null });
+  // Focus leaves with nothing locked → neutral again.
+  await focusMetric(page, null, "A", false);
+  await page.waitForFunction(() => document.getElementById("comparisonBridgeMetric").hasAttribute("hidden"));
+  assert.equal((await bridgeState(page)).emptyShown, true);
+});
+
+// The temporary-preview state machine is transient and would race async halo
+// re-layout, so it is driven and read in ONE synchronous page sequence that
+// exercises the real setHaloMetricFocus + renderComparisonBridge code at each
+// step (lock → preview → return → toggle-off / Escape).
+test("4/5/6/8/9 lock, temporary preview, return, toggle-off and Escape (real focus machine)", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  const steps = await page.evaluate(() => {
+    const api = window.__HALO_REGRESSION__;
+    const name = () => document.getElementById("cbMetricName").textContent.trim();
+    const hidden = () => document.getElementById("comparisonBridgeMetric").hasAttribute("hidden");
+    const locked = () => document.getElementById("comparisonBridge").getAttribute("data-locked");
+    const clickBtn = (m) => document.querySelector(`tr[data-halo-metric="${m}"] .cmp-metric-focus`).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const escBtn = (m) => document.querySelector(`tr[data-halo-metric="${m}"] .cmp-metric-focus`).dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" }));
+    const snap = () => ({ name: name(), hidden: hidden(), locked: locked(), ...api.focusState() });
+    const out = {};
+    clickBtn("tourism"); out.lock = snap();                 // 4: click locks Tourism
+    api.focusMetric("stays", "A", false); out.preview = snap(); // 5: preview Stays, lock preserved
+    api.focusMetric(null, "A", false); out.leave = snap();  // 5: leaving preview returns to lock
+    clickBtn("tourism"); out.toggleOff = snap();            // 6: clicking the locked metric unlocks it (still previewed)
+    api.focusMetric(null, "A", false); out.afterLeave = snap(); // 6: focus leaves → neutral
+    api.focusMetric("mobility", "B", true); out.relock = snap(); // 8: Enter-equivalent locks Mobility
+    escBtn("mobility"); out.escape = snap();                // 9: Escape clears the lock
+    return out;
+  });
+  assert.deepEqual({ name: steps.lock.name, locked: steps.lock.locked, selected: steps.lock.selected }, { name: "Tourism POIs", locked: "true", selected: "tourism" });
+  assert.deepEqual({ name: steps.preview.name, selected: steps.preview.selected }, { name: "Hotels & stays", selected: "tourism" }, "preview shows Stays but the lock stays Tourism");
+  assert.deepEqual({ name: steps.leave.name, selected: steps.leave.selected }, { name: "Tourism POIs", selected: "tourism" }, "leaving the preview returns to the locked metric");
+  assert.deepEqual({ locked: steps.toggleOff.locked, selected: steps.toggleOff.selected }, { locked: "false", selected: null }, "clicking the locked metric again unlocks it (still previewed until focus leaves)");
+  assert.equal(steps.afterLeave.hidden, true, "once focus leaves, the Bridge returns to neutral");
+  assert.deepEqual({ name: steps.relock.name, locked: steps.relock.locked, selected: steps.relock.selected }, { name: "Mobility nodes", locked: "true", selected: "mobility" });
+  assert.deepEqual({ hidden: steps.escape.hidden, selected: steps.escape.selected }, { hidden: true, selected: null }, "Escape clears the lock and returns to neutral");
+});
+
+test("10 panel metric control focuses and locks the matching halo pair (panel → halo)", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  // Place both lenses in open map (clear of the panels) so BOTH halo marks render.
+  await page.evaluate(() => {
+    const a = window.__HALO_REGRESSION__;
+    a.setZoom(13); a.setRadius("A", 500); a.setRadius("B", 500);
+    a.setCenterAtPoint("A", 360, 430); a.setCenterAtPoint("B", 720, 430); a.setActive("A"); a.recompute();
+  });
+  await page.waitForFunction(() =>
+    document.querySelectorAll(".halo-glyph.halo-a.halo-slot-east").length === 1 &&
+    document.querySelectorAll(".halo-glyph.halo-b.halo-slot-east").length === 1);
+  await buttonEvent(page, "stays", "click");
+  await page.waitForFunction(() => window.__HALO_REGRESSION__.haloFocusedCount() === 2);
+  assert.equal(await haloFocusedCount(page), 2, "both A and B Stays halo marks focus from the panel control");
+  assert.deepEqual(await focusState(page), { focused: "stays", selected: "stays" });
+  assert.equal((await bridgeState(page)).name, "Hotels & stays");
+  assert.equal(await rowCurrent(page, "stays"), "true");
+  // Pedestrian is panel-only: no focus control, so it can never target a halo mark.
+  assert.equal(await page.locator("tr.panel-only-metric .cmp-metric-focus").count(), 0);
+});
+
+test("11/12/18 lock and radii survive radius changes, pan and zoom", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await focusMetric(page, "tourism", "A", true);
+  await page.waitForFunction(() => document.getElementById("comparisonBridge").getAttribute("data-locked") === "true");
+  await page.evaluate(() => { const a = window.__HALO_REGRESSION__; a.setRadius("A", 900); a.setRadius("B", 900); a.recompute(); });
+  let s = await bridgeState(page);
+  assert.equal(s.radiusA, "r 900 m");
+  assert.equal(s.radiusB, "r 900 m");
+  // Change Lens B radius → selection survives renderCompare(), both radii visible, B updates.
+  await page.evaluate(() => { const a = window.__HALO_REGRESSION__; a.setRadius("B", 1800); a.recompute(); });
+  await page.waitForFunction(() => document.getElementById("cbRadiusB").textContent.trim() === "r 1.8 km");
+  s = await bridgeState(page);
+  assert.equal(s.name, "Tourism POIs");
+  assert.equal(s.locked, "true", "renderCompare() does not reset the lock");
+  assert.equal(s.radiusA, "r 900 m", "both windows stay visible so unequal radii are never read as equivalent");
+  assert.equal(s.radiusB, "r 1.8 km");
+  // Pan + zoom must not reset the lock either.
+  await page.evaluate(() => { const a = window.__HALO_REGRESSION__; a.setCenterAtPoint("A", 500, 440); a.setZoom(15); });
+  assert.equal((await focusState(page)).selected, "tourism");
+  assert.equal((await bridgeState(page)).name, "Tourism POIs");
+});
+
+test("13/14 unequal windows: Mobility withheld; Tourism density-or-withheld, never raw counts", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await page.evaluate(() => { const a = window.__HALO_REGRESSION__; a.setRadius("A", 700); a.setRadius("B", 1600); a.recompute(); });
+  // Mobility is always explicitly withheld under unequal windows (never silent density).
+  await focusMetric(page, "mobility", "A", true);
+  await page.waitForFunction(() => document.getElementById("cbMetricName").textContent.trim() === "Mobility nodes");
+  let s = await bridgeState(page);
+  assert.equal(s.relationship, "withheld");
+  assert.equal(s.relValue, "Withheld");
+  assert.match(s.qualifier, /different window sizes/);
+  assert.equal(s.radiusA, "r 700 m");
+  assert.equal(s.radiusB, "r 1.6 km");
+  // Tourism either compares by represented-record density or is explicitly withheld.
+  await focusMetric(page, "tourism", "A", true);
+  await page.waitForFunction(() => document.getElementById("cbMetricName").textContent.trim() === "Tourism POIs");
+  s = await bridgeState(page);
+  if (s.relationship === "comparable") {
+    assert.match(s.qualifier, /represented-record density/);
+    assert.match(s.relValue, /records\/km²/);
+  } else {
+    assert.equal(s.relValue, "Withheld");
+    assert.match(s.qualifier, /AOI|source|window/);
+  }
+});
+
+test("16 UTCI OFF shows OFF on both sides and withholds any delta (never zero)", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await focusMetric(page, "utci", "A", true);
+  await page.waitForFunction(() => document.getElementById("cbMetricName").textContent.trim() === "Mean UTCI");
+  const haloA = await page.evaluate(() => window.__HALO_REGRESSION__.haloValueText("A", "utci"));
+  const s = await bridgeState(page);
+  assert.equal(s.valueA, haloA, "Bridge mirrors the halo's UTCI state exactly");
+  if (haloA === "OFF") {
+    assert.equal(s.valueA, "OFF");
+    assert.equal(s.valueB, "OFF");
+    assert.equal(s.relationship, "withheld");
+    assert.equal(s.relValue, "Withheld");
+    assert.notEqual(s.relValue, "0");
+    assert.match(s.qualifier, /layer off|evidence/);
+  }
+});
+
+test("24 Bridge, halo and table agree on one metric simultaneously (state coherence)", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await focusMetric(page, "tourism", "A", true);
+  await page.waitForFunction(() => document.getElementById("comparisonBridge").getAttribute("data-locked") === "true");
+  const halo = await page.evaluate(() => ({
+    a: window.__HALO_REGRESSION__.haloValueText("A", "tourism"),
+    b: window.__HALO_REGRESSION__.haloValueText("B", "tourism"),
+  }));
+  const s = await bridgeState(page);
+  // 1) Same displayed per-side value across halo and Bridge (one formatter, one truth).
+  assert.equal(s.valueA, halo.a, "Bridge Lens A value equals the halo's Lens A value");
+  assert.equal(s.valueB, halo.b, "Bridge Lens B value equals the halo's Lens B value");
+  // 2) Same comparable/withheld verdict as the table, same magnitude when comparable.
+  const tableDelta = (await page.locator("#cmpPoi").textContent()).trim();
+  const tableWithheld = /Withheld|Off|Unavailable/i.test(tableDelta);
+  assert.equal(s.relationship === "withheld", tableWithheld, "Bridge and table agree on whether a delta exists");
+  if (s.relationship === "comparable") {
+    assert.equal(leadingNumber(s.relValue), leadingNumber(tableDelta), "Bridge and table report the same B − A magnitude");
+  }
+  // 3) The focused table row is the same metric the Bridge shows.
+  assert.equal(await rowCurrent(page, "tourism"), "true");
+  assert.equal(s.name, "Tourism POIs");
+});
+
+for (const viewport of [{ name: "iPad landscape", width: 1024, height: 768 }, { name: "iPad portrait", width: 768, height: 1024 }]) {
+  test(`19 Bridge is readable with no horizontal overflow on ${viewport.name}`, async (t) => {
+    const page = await openBridge(viewport);
+    t.after(() => page.close());
+    await focusMetric(page, "tourism", "A", true);
+    await page.waitForFunction(() => !document.getElementById("comparisonBridgeMetric").hasAttribute("hidden"));
+    const metrics = await page.evaluate(() => {
+      const bridge = document.getElementById("comparisonBridge");
+      const rect = bridge.getBoundingClientRect();
+      return {
+        docOverflow: document.documentElement.scrollWidth - window.innerWidth,
+        bridgeOverflow: bridge.scrollWidth - bridge.clientWidth,
+        visible: rect.width > 0 && rect.height > 0,
+      };
+    });
+    assert.equal(metrics.visible, true, "Bridge is rendered");
+    assert.ok(metrics.docOverflow <= 1, `no horizontal page overflow (${metrics.docOverflow}px)`);
+    assert.ok(metrics.bridgeOverflow <= 1, `Bridge does not overflow its own box (${metrics.bridgeOverflow}px)`);
+  });
+}
+
 test.after(async () => {
   await browser.close();
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
