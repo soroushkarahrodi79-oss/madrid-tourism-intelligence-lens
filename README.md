@@ -26,13 +26,14 @@ including comparing two places at once.
 - Move **Lens A** (always on) by dragging it or clicking the map.
 - Enable **Lens B** to compare two locations side by side.
 - Read the **Radial Halo V3** quantitative perimeter bars around each circle:
-  Tourism POIs at 12, Hotels & stays at 3, Mobility nodes at 6, and mean HATI
-  UTCI at 9. Each bar **prints its own raw count**, and for the three count
+  Tourism POIs at 12, Hotels & stays at 2, Mobility nodes at 6, and mean HATI
+  UTCI at 9 o'clock. Each bar points outward and **prints its own raw value**, and for the three count
   metrics its length is that lens's **density** (count per km²) relative to a fixed
   Madrid reference, so the map shows which lens is denser — comparably even when
   the two lenses have different radii, in single-lens and Compare mode.
   Bar lengths compare **within a metric only, never across metrics**. The panel
-  stays authoritative for exact values, provenance and interpretation; Pedestrian
+  Focusing a metric highlights that same slot on both lenses and its comparison
+  row. The panel stays authoritative for exact values, provenance and interpretation; Pedestrian
   activity is panel-only. See
   [`docs/radial-halo-v3.md`](docs/radial-halo-v3.md).
 - Adjust one active-Lens **radius** (100 m – 5 km); Lens A and Lens B keep

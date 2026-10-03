@@ -9,14 +9,16 @@
   sample points, for a single historical pilot day (21 August 2023), at three
   modelled times of day.
 - Compares two lenses' descriptive statistics side by side.
-- Shows the **Radial Halo V3** quantitative perimeter bars around each Lens (in
+- Shows the **Radial Halo V3** outward radial bars around each Lens (in
   single-lens and Compare mode) for **Tourism POIs, Hotels & stays, Mobility
-  nodes and mean HATI UTCI**. Each bar prints its own **raw count** inside the
+  nodes and mean HATI UTCI**. Each bar prints its own **raw value** inside the
   Lens; for the three count metrics the bar **length** is that lens's represented
   **density** (records or nodes per km²) relative to a fixed Madrid reference
   density, so unequal A/B radii stay comparable; UTCI's bar is the mean's position
   in a model-derived Celsius band. Bar lengths are comparable within a metric
-  only, not across metrics. The bars are screen-space graphics attached outside
+  only, not across metrics. Canonical metric slots are fixed at Tourism POIs 12,
+  Stays 2, Mobility 6 and UTCI 9 o'clock on both lenses; focusing a slot highlights
+  its partner and comparison row. Bars are screen-space graphics attached outside
   the Lens, not extensions of its analytical radius. Lens A, Lens B and B−A values
   remain in the panel; **pedestrian activity is panel-only** (observed counter
   evidence, not a count). See `docs/radial-halo-v3.md`.

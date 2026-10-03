@@ -8,9 +8,9 @@ import { chromium } from "playwright";
 
 // Radial Halo V3 browser regression. Exercises the production Leaflet/SVG
 // renderer and asserts the SEMANTICS of the quantitative perimeter bars:
-// raw values printed, density-based bar length (within-metric), one shared A/B
+// raw values printed, outward radial geometry, density-based bar length (within-metric), one shared A/B
 // scale, radius-compatible comparison, unavailable-vs-zero, saturation, and
-// pointer transparency. Value-semantics tests use the deterministic query-gated
+// keyboard focus and open-map interaction. Value-semantics tests use the deterministic query-gated
 // seam so they are independent of which data layers a given checkout ships
 // (notably data/runtime_poi.json is a gitignored deploy artifact, so a clean CI
 // checkout serves only the committed snapshot and mobility is legitimately N/A).
@@ -49,6 +49,7 @@ const { port } = server.address();
 const browser = await chromium.launch({ headless: true });
 
 const SLOT_METRIC = { north: "tourism", east: "stays", south: "mobility", west: "utci" };
+const SLOT_ANGLE = { tourism: -90, stays: -30, mobility: 90, utci: 180 };
 const COUNT_TOKEN = /^\d[\d,]*$/;              // a grouped integer, including "0"
 const COUNT_OR_NA = /^(\d[\d,]*|N\/A)$/;        // integer or unavailable
 const VALID_TOKEN = /^(\d[\d,]*|N\/A|OFF|-?\d[\d.,]*°C)$/;
@@ -131,6 +132,17 @@ async function setRadius(page, which, metres) {
 async function geometryFor(page, lens, metric) {
   return page.evaluate(({ lens, metric }) => window.__HALO_REGRESSION__.geometry(lens, metric), { lens, metric });
 }
+async function lineGeometry(page, lens, slot, selector = ".halo-fill") {
+  return glyph(page, lens, slot).locator(selector).evaluate((line) => {
+    const n = (name) => Number(line.getAttribute(name));
+    return { x1: n("x1"), y1: n("y1"), x2: n("x2"), y2: n("y2") };
+  });
+}
+async function textPosition(page, lens, slot, selector) {
+  return glyph(page, lens, slot).locator(selector).evaluate((node) => ({
+    x: Number(node.getAttribute("x")), y: Number(node.getAttribute("y")),
+  }));
+}
 const live = (value) => ({ value, sourceState: "live" });
 
 // A/B/N. Single lens renders four bars that print real runtime values, honest
@@ -145,6 +157,120 @@ test("A/B/N single lens renders four perimeter bars printing honest runtime valu
   assert.match(await valueText(page, "A", "south"), COUNT_OR_NA, "Mobility prints an integer or N/A (never a fake 0)");
   assert.match(await valueText(page, "A", "west"), VALID_TOKEN, "UTCI prints a valid token");
   assert.equal(await page.locator(".halo-glyph.halo-b").count(), 0, "no Lens B markers in single-lens mode");
+});
+
+test("each rendered quantitative SVG bar points outward along its fixed canonical metric slot", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
+  t.after(() => page.close());
+  await setComparison(page, {
+    tourism: { a: live(5), b: live(10) }, stays: { a: live(2), b: live(4) }, mobility: { a: live(3), b: live(6) },
+    utci: { enabled: true, timestepA: "15:00", timestepB: "15:00", a: { evidence: "MODEL-DERIVED", mean: 38, count: 2 }, b: { evidence: "MODEL-DERIVED", mean: 35, count: 2 } },
+  });
+  for (const lens of ["A", "B"]) {
+    for (const [slot, metric] of Object.entries(SLOT_METRIC)) {
+      const { x1, y1, x2, y2 } = await lineGeometry(page, lens, slot);
+      const magnitude = Math.hypot(x2 - x1, y2 - y1);
+      assert.ok(magnitude > 0, `${lens} ${metric} has a positive rendered bar`);
+      const angle = SLOT_ANGLE[metric] * Math.PI / 180;
+      const ux = (x2 - x1) / magnitude;
+      const uy = (y2 - y1) / magnitude;
+      assert.ok(Math.abs(ux - Math.cos(angle)) < 0.015 && Math.abs(uy - Math.sin(angle)) < 0.015,
+        `${lens} ${metric} SVG axis matches its canonical outward angle`);
+      const label = await glyph(page, lens, slot).locator(".halo-value").evaluate((node) => ({
+        x: Number(node.getAttribute("x")), y: Number(node.getAttribute("y")), anchor: node.getAttribute("text-anchor"),
+      }));
+      const labelDelta = { x: label.x - x2, y: label.y - y2 };
+      assert.ok(Math.abs(labelDelta.x * uy - labelDelta.y * ux) < 0.15, `${lens} ${metric} value stays on its radial axis`);
+      assert.ok(labelDelta.x * ux + labelDelta.y * uy >= 6.9, `${lens} ${metric} value sits outside the bar tip`);
+      assert.equal(label.anchor, Math.abs(Math.cos(angle)) < 0.35 ? "middle" : Math.cos(angle) > 0 ? "start" : "end");
+    }
+  }
+});
+
+test("rendered SVG length is exactly the normalized value times the shared maximum, with the tuned thickness", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
+  t.after(() => page.close());
+  await setRadius(page, "A", 900);
+  await setRadius(page, "B", 900);
+  await setComparison(page, { tourism: { a: live(4), b: live(8) } });
+  const expectedA = 44 * Math.min(1, (4 / (Math.PI * 0.9 ** 2)) / 8);
+  assert.ok(Math.abs((await fillLength(page, "A", "north")) - expectedA) < 0.01,
+    `rendered Lens A line equals 44 px × density magnitude (${expectedA.toFixed(4)} px)`);
+  assert.ok(Math.abs((await fillLength(page, "B", "north")) - 44 * Math.min(1, (8 / (Math.PI * 0.9 ** 2)) / 8)) < 0.01);
+  const styles = await glyph(page, "A", "north").evaluate((svg) => ({
+    thickness: Number.parseFloat(getComputedStyle(svg.querySelector(".halo-fill")).strokeWidth),
+    trackLength: Math.hypot(
+      Number(svg.querySelector(".halo-track").getAttribute("x2")) - Number(svg.querySelector(".halo-track").getAttribute("x1")),
+      Number(svg.querySelector(".halo-track").getAttribute("y2")) - Number(svg.querySelector(".halo-track").getAttribute("y1")),
+    ),
+  }));
+  assert.equal(styles.thickness, 4.5);
+  assert.ok(Math.abs(styles.trackLength - 44) < 0.01, "the circumference gap is not added inside SVG coordinates");
+});
+
+test("value and caption anchors stay on the full-track rail across magnitudes, lenses and evidence states", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
+  t.after(() => page.close());
+  await setRadius(page, "A", 900);
+  await setRadius(page, "B", 900);
+  const input = {
+    references: { tourism: 8, stays: 8, mobility: 8 },
+    tourism: { a: live(2), b: live(10) },
+    stays: { a: live(50), b: live(2) },
+    mobility: { a: live(3), b: live(6) },
+    utci: { enabled: true, timestepA: "15:00", timestepB: "15:00", a: { evidence: "MODEL-DERIVED", mean: 36, count: 2 }, b: { evidence: "MODEL-DERIVED", mean: 39, count: 2 } },
+  };
+  await setComparison(page, input);
+  const slots = { tourism: "north", stays: "east", mobility: "south", utci: "west" };
+  const readRail = async (lens, slot) => {
+    const track = await lineGeometry(page, lens, slot, ".halo-track");
+    const value = await textPosition(page, lens, slot, ".halo-value");
+    const caption = await textPosition(page, lens, slot, ".halo-label");
+    const metric = SLOT_METRIC[slot];
+    const angle = SLOT_ANGLE[metric] * Math.PI / 180;
+    const ux = Math.cos(angle), uy = Math.sin(angle);
+    const valueDistance = (value.x - track.x2) * ux + (value.y - track.y2) * uy;
+    const captionDistance = (caption.x - value.x) * ux + (caption.y - value.y) * uy;
+    return { value, caption, valueDistance, captionDistance };
+  };
+  const tourismA = await readRail("A", "north");
+  const tourismB = await readRail("B", "north");
+  assert.ok((await fillLength(page, "A", "north")) < (await fillLength(page, "B", "north")), "different magnitudes change only fill length");
+  assert.deepEqual(tourismA.value, tourismB.value, "A/B use identical local value coordinates for the same slot");
+  assert.deepEqual(tourismA.caption, tourismB.caption, "A/B use identical local caption coordinates for the same slot");
+  assert.ok(Math.abs(tourismA.valueDistance - 7) < 0.01, "value anchor sits 7 px beyond the full track endpoint");
+  assert.ok(Math.abs(tourismA.captionDistance - 12) < 0.01, "caption sits 12 px beyond the fixed value anchor");
+  const shortFill = await lineGeometry(page, "A", "north");
+  const tipToValue = Math.hypot(tourismA.value.x - shortFill.x2, tourismA.value.y - shortFill.y2);
+  assert.ok(tipToValue > 7, "low-magnitude label stays beyond the full track, not at the fill tip");
+
+  await setComparison(page, { ...input, tourism: { a: live(10), b: live(2) }, stays: { a: live(2), b: live(50) } });
+  assert.deepEqual(await readRail("A", "north"), tourismA, "changing magnitudes does not move either text anchor");
+  assert.deepEqual(await readRail("B", "north"), tourismB);
+
+  const mobilityRail = await readRail("A", "south");
+  const mobilityBRail = await readRail("B", "south");
+  assert.deepEqual(mobilityRail.value, mobilityBRail.value);
+  assert.deepEqual(mobilityRail.caption, mobilityBRail.caption);
+  const utciRail = await readRail("A", "west");
+  const utciRailB = await readRail("B", "west");
+  assert.ok(Math.abs(utciRail.valueDistance - 7) < 0.01);
+  await setComparison(page, {
+    ...input,
+    tourism: { a: live(0), b: { value: null, sourceState: "unavailable" } },
+    mobility: { a: live(0), b: { value: null, sourceState: "unavailable" } },
+    utci: { enabled: false },
+  });
+  assert.deepEqual(await textPosition(page, "A", "north", ".halo-value"), tourismA.value, "observed zero shares the valid-value rail");
+  assert.deepEqual(await textPosition(page, "B", "north", ".halo-value"), tourismB.value, "N/A shares the valid-value rail");
+  assert.deepEqual(await textPosition(page, "A", "south", ".halo-value"), mobilityRail.value, "observed zero shares a valid-value rail");
+  assert.deepEqual(await textPosition(page, "A", "south", ".halo-label"), mobilityRail.caption);
+  assert.deepEqual(await textPosition(page, "B", "south", ".halo-value"), mobilityBRail.value, "N/A shares a valid-value rail");
+  assert.deepEqual(await textPosition(page, "B", "south", ".halo-label"), mobilityBRail.caption);
+  assert.deepEqual(await textPosition(page, "A", "west", ".halo-value"), utciRail.value, "OFF shares the valid-value rail");
+  assert.deepEqual(await textPosition(page, "A", "west", ".halo-label"), utciRail.caption, "OFF caption shares the valid-value rail");
+  assert.deepEqual(await textPosition(page, "B", "west", ".halo-value"), utciRailB.value);
+  assert.deepEqual(await textPosition(page, "B", "west", ".halo-label"), utciRailB.caption);
 });
 
 // C (brief). Monotonic within a metric and ONE shared A/B scale, at equal radius.
@@ -234,15 +360,20 @@ test("I genuine zero, unavailable and off render distinct states", async (t) => 
   assert.equal(await valueText(page, "A", "north"), "0");
   assert.notEqual(await groupDisplay(page, "A", "north", ".halo-zero"), "none");
   assert.equal(await groupDisplay(page, "A", "north", ".halo-abstain"), "none");
+  assert.equal(await groupDisplay(page, "A", "north", ".halo-fill"), "none", "observed zero has no quantitative bar");
+  assert.equal(await groupDisplay(page, "A", "north", ".halo-track"), "none", "observed zero has no positive-looking track");
 
   await setComparison(page, { tourism: { a: { value: null, sourceState: "unavailable" }, b: live(10) } });
   assert.equal(await valueText(page, "A", "north"), "N/A");
   assert.notEqual(await groupDisplay(page, "A", "north", ".halo-abstain"), "none");
   assert.equal(await groupDisplay(page, "A", "north", ".halo-fill"), "none");
+  assert.equal(await groupDisplay(page, "A", "north", ".halo-track"), "none");
   assert.match(await glyph(page, "A", "north").locator(".halo-abstain").getAttribute("class"), /halo-state-unavailable/);
 
   await setComparison(page, { utci: { enabled: false } });
   assert.equal(await valueText(page, "A", "west"), "OFF");
+  assert.equal(await groupDisplay(page, "A", "west", ".halo-fill"), "none", "OFF has no quantitative bar");
+  assert.match(await glyph(page, "A", "west").locator(".halo-abstain").getAttribute("class"), /halo-state-off/);
 });
 
 // J (brief). Switching the active lens never removes the other lens's bars.
@@ -289,6 +420,23 @@ test("unequal radii keep each lens's bars projected onto its own boundary", asyn
   assert.ok(Math.abs(afterB.radiusPx - beforeB.radiusPx) < 0.01, "B radius unchanged when A grows");
 });
 
+test("minimum and maximum supported lens radii keep their radial origins attached independently", async (t) => {
+  const page = await openCompare({ width: 1440, height: 1000 }, { zoom: 12 });
+  t.after(() => page.close());
+  await page.evaluate(() => {
+    window.__HALO_REGRESSION__.setCenterAtPoint("A", 480, 500);
+    window.__HALO_REGRESSION__.setCenterAtPoint("B", 1050, 500);
+  });
+  await setRadius(page, "A", 100);
+  await setRadius(page, "B", 5000);
+  for (const lens of ["A", "B"]) {
+    const g = await geometryFor(page, lens, "tourism");
+    const distance = Math.hypot(g.anchor.x - g.center.x, g.anchor.y - g.center.y);
+    assert.ok(Math.abs(distance - g.radiusPx - 5) < 1.8, `${lens} origin follows actual projected radius plus 5 px gap`);
+    assert.equal(g.angle, -90);
+  }
+});
+
 // K. Pan/zoom preserves attachment.
 test("K pan and zoom preserve bar attachment to the Lens boundary", async (t) => {
   const page = await openCompare();
@@ -331,19 +479,84 @@ for (const viewport of [
 }
 
 // M. The halo never blocks pointer interaction with the map.
-test("M the halo is pointer-transparent and clicks pass through to the map", async (t) => {
+test("M the halo exposes keyboard metric focus while open map space remains clickable", async (t) => {
   const page = await openCompare();
   t.after(() => page.close());
-  const cssPointerEvents = await glyph(page, "A", "north").evaluate((svg) => getComputedStyle(svg.closest(".comparison-halo-icon")).pointerEvents);
-  assert.equal(cssPointerEvents, "none");
+  const interaction = await glyph(page, "A", "north").evaluate((svg) => ({
+    pointerEvents: getComputedStyle(svg.closest(".comparison-halo-icon")).pointerEvents,
+    role: svg.getAttribute("role"), tabIndex: svg.getAttribute("tabindex"),
+    ariaLabel: svg.getAttribute("aria-label"),
+    svgPointerEvents: getComputedStyle(svg).pointerEvents,
+    markerTabIndex: svg.closest(".comparison-halo-icon").getAttribute("tabindex"),
+  }));
+  assert.equal(interaction.pointerEvents, "none");
+  assert.equal(interaction.role, "button");
+  assert.equal(interaction.tabIndex, "0");
+  assert.match(interaction.ariaLabel, /Lens A, Tourism POIs/);
+  assert.equal(interaction.svgPointerEvents, "none", "the transparent SVG root is not a pointer target");
+  assert.equal(interaction.markerTabIndex, null, "Leaflet does not add a second keyboard target");
+  await glyph(page, "A", "north").focus();
+  await page.waitForFunction(() => document.querySelectorAll(".halo-metric-focused").length === 2);
+  assert.notEqual(await page.locator('[data-halo-metric="tourism"]').getAttribute("aria-current"), null);
+  await glyph(page, "A", "north").press("Escape");
+  await page.waitForFunction(() => document.querySelectorAll(".halo-metric-focused").length === 0);
   const target = await page.evaluate(() => {
-    const anchor = window.__HALO_REGRESSION__.geometry("A", "tourism").anchor;
+    const root = document.querySelector(".halo-glyph.halo-a.halo-slot-north").closest(".comparison-halo-icon");
+    const rect = root.getBoundingClientRect();
+    const point = { x: rect.left + 12, y: rect.top + 12 };
     window.__haloMapClicks = 0;
     document.querySelector("#map").addEventListener("click", () => { window.__haloMapClicks += 1; }, { once: true });
-    return { x: anchor.x, y: anchor.y - 30 };
+    return { ...point, inside: point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom,
+      hit: document.elementFromPoint(point.x, point.y)?.closest(".comparison-halo-icon") != null };
   });
+  assert.equal(target.inside, true, "test point lies inside the large transparent DivIcon box");
+  assert.equal(target.hit, false, "transparent DivIcon space is absent from pointer hit testing");
   await page.mouse.click(target.x, target.y);
   await page.waitForFunction(() => window.__haloMapClicks === 1);
+  await page.evaluate(() => window.__HALO_REGRESSION__.setCenterAtPoint("A", 460, 430));
+  const dragTarget = await page.evaluate(() => {
+    const root = document.querySelector(".halo-glyph.halo-a.halo-slot-north").closest(".comparison-halo-icon");
+    const rect = root.getBoundingClientRect();
+    return { x: rect.left + 12, y: rect.top + 12, center: window.__HALO_REGRESSION__.mapCenter() };
+  });
+  await page.mouse.move(dragTarget.x, dragTarget.y);
+  await page.mouse.down();
+  await page.mouse.move(dragTarget.x + 70, dragTarget.y + 20, { steps: 6 });
+  await page.mouse.up();
+  await page.waitForFunction((before) => {
+    const after = window.__HALO_REGRESSION__.mapCenter();
+    return Math.abs(after.lat - before.lat) + Math.abs(after.lng - before.lng) > 1e-6;
+  }, dragTarget.center);
+});
+
+test("metric focus started at either lens synchronizes its partner and the comparison row", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
+  t.after(() => page.close());
+  for (const lens of ["A", "B"]) {
+    await glyph(page, lens, "east").focus();
+    await page.waitForFunction(() => document.querySelectorAll(".halo-metric-focused").length === 2);
+    assert.equal(await glyph(page, "A", "east").evaluate((el) => el.classList.contains("halo-metric-focused")), true);
+    assert.equal(await glyph(page, "B", "east").evaluate((el) => el.classList.contains("halo-metric-focused")), true);
+    assert.equal(await page.locator('[data-halo-metric="stays"]').getAttribute("aria-current"), "true");
+    assert.equal(await page.locator('[data-halo-metric="tourism"]').getAttribute("aria-current"), null);
+    await glyph(page, lens, "east").evaluate((svg) => svg.blur());
+    await page.waitForFunction(() => document.querySelectorAll(".halo-metric-focused").length === 0);
+  }
+});
+
+test("selecting a metric keeps the paired highlight until it is toggled off", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
+  t.after(() => page.close());
+  await glyph(page, "B", "east").locator(".halo-value").click();
+  for (const lens of ["A", "B"]) {
+    assert.equal(await glyph(page, lens, "east").getAttribute("aria-pressed"), "true");
+    assert.equal(await glyph(page, lens, "east").evaluate((svg) => svg.classList.contains("halo-metric-focused")), true);
+  }
+  await glyph(page, "B", "east").locator(".halo-value").click();
+  assert.equal(await glyph(page, "A", "east").getAttribute("aria-pressed"), "false");
+  await glyph(page, "B", "east").evaluate((svg) => svg.blur());
+  assert.equal(await page.locator(".halo-metric-focused").count(), 0);
+  assert.equal(await page.locator('[data-halo-metric="stays"]').getAttribute("aria-current"), null);
 });
 
 // Compare panel survives, collisions suppress ambiguous slots, readout stays.
