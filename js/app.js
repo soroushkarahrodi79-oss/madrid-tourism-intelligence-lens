@@ -243,6 +243,14 @@ let selectedHaloMetric = null;
 // unequal windows), never the halo's density state.
 let lastBridgeStates = null;
 let lastBridgeContext = null;
+// Query-gated browser-regression ONLY: deterministic authoritative comparison
+// evidence. Stays null in production (the gated __HALO_REGRESSION__ seam is the
+// only writer), so renderCompare() uses live stats exactly as before. When set,
+// renderCompare() feeds these {value, sourceState} pairs (and optional aoiState)
+// into the SAME production builders and renderers, so tests can exercise the
+// unequal-window Mobility contract without depending on the deploy-only
+// data/runtime_poi.json artifact. It never adds a parallel render path.
+let comparisonEvidenceOverride = null;
 
 // Deterministic reference DENSITIES for the perimeter bars, computed from the
 // loaded dataset (not the live Lens radius) so a bar's scale semantics never
@@ -808,6 +816,14 @@ if (haloRegressionRequested && haloRegressionLocal) {
     focusMetric(metricId, which = "A", selected = false) {
       setHaloMetricFocus(metricId, which, selected);
     },
+    // Inject deterministic authoritative comparison evidence and re-run the REAL
+    // renderCompare() path (builders, table, Bridge, halo). Pass null to clear.
+    // Lets browser tests exercise evidence-dependent contracts (notably the
+    // unequal-window Mobility rule) without the deploy-only runtime POI artifact.
+    setComparisonOverride(override) {
+      comparisonEvidenceOverride = override;
+      renderCompare();
+    },
     // Read-only view of the shared halo focus state, so Bridge regressions can
     // assert the panel ↔ halo synchronization without depending on whether a
     // given halo marker is currently on the map (it may be collision-suppressed
@@ -1330,22 +1346,24 @@ function renderCompare() {
   const radiusMode = radiusComparisonMode(radii.A, radii.B);
   const aoiA = geographyIndex?.municipalityContainsCircle?.(centerOf("A").lon, centerOf("A").lat, radii.A);
   const aoiB = geographyIndex?.municipalityContainsCircle?.(centerOf("B").lon, centerOf("B").lat, radii.B);
-  const aoiState = radiusMode === "EQUAL_RADIUS" ? "not-required" : !aoiA || !aoiB || aoiA.state === "unavailable" || aoiB.state === "unavailable" ? "unavailable" : aoiA.eligible && aoiB.eligible ? "eligible" : aoiA.state === "outside" || aoiB.state === "outside" ? "outside" : "crosses";
+  // Count-metric evidence inputs. In production these are the live stats; the
+  // gated regression override (never set in production) may substitute
+  // deterministic {value, sourceState} pairs so tests run the real builders
+  // below against fixed evidence.
+  const ov = comparisonEvidenceOverride;
+  const tourismStatus = combinedStatus(layerStatus, ["museums", "info"]);
+  const stayStatus = combinedStatus(layerStatus, ["stays"]);
+  const liveMobilityStatus = combinedStatus(layerStatus, ["bikes", "rail"]);
+  const tourismInput = ov?.tourism || { a: { value: a.tourism, sourceState: tourismStatus }, b: { value: b.tourism, sourceState: tourismStatus } };
+  const stayInput = ov?.stays || { a: { value: a.stay, sourceState: stayStatus }, b: { value: b.stay, sourceState: stayStatus } };
+  const mobilityInput = ov?.mobility || { a: { value: a.mobility, sourceState: liveMobilityStatus }, b: { value: b.mobility, sourceState: liveMobilityStatus } };
+  const aoiState = ov?.aoiState ?? (radiusMode === "EQUAL_RADIUS" ? "not-required" : !aoiA || !aoiB || aoiA.state === "unavailable" || aoiB.state === "unavailable" ? "unavailable" : aoiA.eligible && aoiB.eligible ? "eligible" : aoiA.state === "outside" || aoiB.state === "outside" ? "outside" : "crosses");
   const comparison = buildHaloComparison({
     radiusMode, radii: { ...radii }, aoiState,
     references: getHaloReferences(), utciBand: getHaloUtciBand(),
-    tourism: {
-      a: { value: a.tourism, sourceState: combinedStatus(layerStatus, ["museums", "info"]) },
-      b: { value: b.tourism, sourceState: combinedStatus(layerStatus, ["museums", "info"]) },
-    },
-    stays: {
-      a: { value: a.stay, sourceState: combinedStatus(layerStatus, ["stays"]) },
-      b: { value: b.stay, sourceState: combinedStatus(layerStatus, ["stays"]) },
-    },
-    mobility: {
-      a: { value: a.mobility, sourceState: combinedStatus(layerStatus, ["bikes", "rail"]) },
-      b: { value: b.mobility, sourceState: combinedStatus(layerStatus, ["bikes", "rail"]) },
-    },
+    tourism: tourismInput,
+    stays: stayInput,
+    mobility: mobilityInput,
     utci: { enabled: hatiOn, timestepA: timestep, timestepB: timestep, a: ha, b: hb },
   });
   // Pedestrian activity is a panel-only analytical comparison (not a halo bar).
@@ -1370,11 +1388,8 @@ function renderCompare() {
     else if (radiusMode === "UNEQUAL_RADIUS") delta.textContent = `${state.delta > 0 ? "+" : ""}${state.delta.toFixed(1)} ${name}/km²`;
     else delta.textContent = comparisonDeltaCell(state, prefix === "cmpPoi" ? "tourism" : "stays");
   }
-  const mobilityStatus = combinedStatus(layerStatus, ["bikes", "rail"]);
-  const mobilityState = buildCountPairState(
-    { value: a.mobility, sourceState: mobilityStatus },
-    { value: b.mobility, sourceState: mobilityStatus }, radiusMode
-  );
+  const mobilityStatus = mobilityInput.a.sourceState;
+  const mobilityState = buildCountPairState(mobilityInput.a, mobilityInput.b, radiusMode);
   setComparisonRow("cmpMobility", mobilityState, "mobility");
   for (const side of ["A", "B"]) {
     const value = side === "A" ? mobilityState.aValue : mobilityState.bValue;

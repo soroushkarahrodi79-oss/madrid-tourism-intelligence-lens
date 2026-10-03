@@ -245,6 +245,15 @@ test("the app wires the Bridge from the authoritative states and a dictionary-ba
   assert.match(app, /lastBridgeStates = \{ tourism:[^;]*mobility: mobilityState/);
   assert.match(app, /createI18n\(BRIDGE_DICTIONARIES/);
   assert.match(app, /bindComparisonMetricControls\(/);
+  // The deterministic comparison-evidence override is inert in production
+  // (defaults null; only the gated regression seam writes it) and feeds the
+  // real renderCompare() builders — it never adds a parallel render path.
+  assert.match(app, /let comparisonEvidenceOverride = null;/);
+  assert.match(app, /const ov = comparisonEvidenceOverride;/);
+  assert.match(app, /const mobilityState = buildCountPairState\(mobilityInput\.a, mobilityInput\.b, radiusMode\);/);
+  // setComparisonOverride lives inside the query-gated + local-host-only seam.
+  const gated = app.slice(app.indexOf("if (haloRegressionRequested && haloRegressionLocal)"));
+  assert.match(gated, /setComparisonOverride\(override\) \{\s*comparisonEvidenceOverride = override;\s*renderCompare\(\);/);
   assert.match(html, /id="comparisonBridge"/);
   assert.match(html, /id="comparisonBridgeMetric"/);
   assert.match(html, /class="cmp-metric-focus"/);

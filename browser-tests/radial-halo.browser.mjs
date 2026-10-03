@@ -727,30 +727,82 @@ test("11/12/18 lock and radii survive radius changes, pan and zoom", async (t) =
   assert.equal((await bridgeState(page)).name, "Tourism POIs");
 });
 
-test("13/14 unequal windows: Mobility withheld; Tourism density-or-withheld, never raw counts", async (t) => {
+// Mobility's unequal-window contract is EVIDENCE-DEPENDENT, so these two cases
+// inject deterministic authoritative evidence through the gated regression
+// override and run the REAL renderCompare() path. They never depend on the
+// deploy-only data/runtime_poi.json artifact, so local and CI agree.
+const UNEQUAL = (mobility) => ({
+  aoiState: "eligible",
+  tourism: { a: { value: 17, sourceState: "live" }, b: { value: 26, sourceState: "live" } },
+  stays: { a: { value: 2, sourceState: "live" }, b: { value: 4, sourceState: "live" } },
+  mobility,
+});
+const applyOverride = (page, override) => page.evaluate((ov) => {
+  const api = window.__HALO_REGRESSION__;
+  api.setRadius("A", 700); api.setRadius("B", 1600);
+  api.setComparisonOverride(ov);
+}, override);
+
+// CASE 1: valid Mobility evidence + unequal radii → withheld · different window sizes.
+test("13/14 CASE 1 valid Mobility + unequal radii → withheld · different window sizes (deterministic)", async (t) => {
   const page = await openBridge();
   t.after(() => page.close());
-  await page.evaluate(() => { const a = window.__HALO_REGRESSION__; a.setRadius("A", 700); a.setRadius("B", 1600); a.recompute(); });
-  // Mobility is always explicitly withheld under unequal windows (never silent density).
+  await applyOverride(page, UNEQUAL({ a: { value: 24, sourceState: "live" }, b: { value: 147, sourceState: "live" } }));
   await focusMetric(page, "mobility", "A", true);
   await page.waitForFunction(() => document.getElementById("cbMetricName").textContent.trim() === "Mobility nodes");
-  let s = await bridgeState(page);
+  const s = await bridgeState(page);
   assert.equal(s.relationship, "withheld");
   assert.equal(s.relValue, "Withheld");
   assert.match(s.qualifier, /different window sizes/);
+  assert.doesNotMatch(s.qualifier, /source states/);
+  // Raw Mobility counts for both lenses remain visible; no density is invented.
+  assert.equal(s.valueA, "24");
+  assert.equal(s.valueB, "147");
+  assert.doesNotMatch((await page.locator("#cbSubA").textContent()).trim(), /km²/);
+  // Both radii remain visible.
   assert.equal(s.radiusA, "r 700 m");
   assert.equal(s.radiusB, "r 1.6 km");
-  // Tourism either compares by represented-record density or is explicitly withheld.
+  // Table and Bridge agree on the withheld reason for VALID evidence.
+  assert.match((await page.locator("#cmpMobility").textContent()).trim(), /Withheld · different window sizes/);
+  assert.match((await page.locator("#cmpMobilityA").textContent()).trim(), /^24 nodes/);
+  // Halo focus stays synchronized.
+  assert.ok(await haloFocusedCount(page) >= 1);
+  assert.equal(await rowCurrent(page, "mobility"), "true");
+  // Tourism under the SAME unequal windows compares by represented-record density
+  // (deterministic because AOI is injected eligible) — never a raw-count delta.
   await focusMetric(page, "tourism", "A", true);
   await page.waitForFunction(() => document.getElementById("cbMetricName").textContent.trim() === "Tourism POIs");
-  s = await bridgeState(page);
-  if (s.relationship === "comparable") {
-    assert.match(s.qualifier, /represented-record density/);
-    assert.match(s.relValue, /records\/km²/);
-  } else {
-    assert.equal(s.relValue, "Withheld");
-    assert.match(s.qualifier, /AOI|source|window/);
-  }
+  const ts = await bridgeState(page);
+  assert.equal(ts.relationship, "comparable");
+  assert.match(ts.qualifier, /represented-record density/);
+  assert.match(ts.relValue, /records\/km²/);
+  assert.equal(ts.valueA, "17");
+  assert.equal(ts.valueB, "26");
+});
+
+// CASE 2: unavailable Mobility evidence + unequal radii → honest N/A, never a delta,
+// never zero; the evidence limitation is more fundamental than the window mismatch.
+test("13/14 CASE 2 unavailable Mobility + unequal radii → honest N/A, withheld, never zero (deterministic)", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyOverride(page, UNEQUAL({ a: { value: null, sourceState: "unavailable" }, b: { value: null, sourceState: "unavailable" } }));
+  await focusMetric(page, "mobility", "A", true);
+  await page.waitForFunction(() => document.getElementById("cbMetricName").textContent.trim() === "Mobility nodes");
+  const s = await bridgeState(page);
+  assert.equal(s.relationship, "withheld");
+  assert.equal(s.relValue, "Withheld");
+  assert.notEqual(s.relValue, "0", "unavailable is never turned into zero");
+  // Each side honestly reads N/A, not 0.
+  assert.equal(s.valueA, "N/A");
+  assert.equal(s.valueB, "N/A");
+  // The authoritative withheld reason reflects the evidence limitation, not the window size.
+  assert.match(s.qualifier, /source states|unavailable/);
+  assert.doesNotMatch(s.qualifier, /different window sizes/);
+  // Both radii still visible; unequal radii do not override the evidence limitation.
+  assert.equal(s.radiusA, "r 700 m");
+  assert.equal(s.radiusB, "r 1.6 km");
+  // The table shows the sides as Unavailable (honest), never 0.
+  assert.match((await page.locator("#cmpMobilityA").textContent()).trim(), /Unavailable/);
 });
 
 test("16 UTCI OFF shows OFF on both sides and withholds any delta (never zero)", async (t) => {
