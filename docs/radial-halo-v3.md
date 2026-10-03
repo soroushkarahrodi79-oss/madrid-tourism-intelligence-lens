@@ -62,7 +62,7 @@ positive angle clockwise): tourism `−90°` (12 o'clock), stays `−30°` (2),
 mobility `90°` (6), and UTCI `180°` (9). The same canonical metric angle is
 used on both lenses. For projected Lens center `C`, its actual projected radius
 `r`, slot angle `θ`, unit vector `u = (cos θ, sin θ)`, radial gap `g = 5 px`,
-maximum bar length `M = 32 px`, and normalized magnitude `m`:
+maximum bar length `M = 44 px`, and normalized magnitude `m`:
 
 ```
 P0 = C + u × (r + g)           // bar origin just outside this Lens boundary
@@ -71,7 +71,8 @@ P1 = P0 + u × L               // bar endpoint grows directly outward
 label = P1 + u × 7 px          // upright text, hemisphere-aligned
 ```
 
-Bar thickness is a constant `2.6 px`. Lens A and B calculate `P0` from their
+Bar thickness is a constant `4.5 px`. The local SVG starts at `P0` and applies
+no additional radial gap. Lens A and B calculate `P0` from their
 own currently projected radius; slot angle and data meaning remain shared.
 Pan, zoom, resize, reposition and radius changes all recompute from Leaflet's
 current projection. Labels remain upright and outside their bar tips.

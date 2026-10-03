@@ -295,8 +295,9 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .halo-visibility-note{color:#a7b8c9}
 .halo-visibility-note:empty{display:none}
 .panel-only-metric th:after{content:""}
-.comparison-halo-icon{background:transparent!important;border:0!important;pointer-events:auto!important;overflow:visible}
-.halo-glyph{overflow:visible;filter:drop-shadow(0 0 1.2px rgba(0,0,0,.98));font-family:Inter,ui-sans-serif,system-ui,sans-serif;transition:opacity .12s ease,filter .12s ease;outline:none}
+.comparison-halo-icon{background:transparent!important;border:0!important;pointer-events:none!important;overflow:visible}
+.halo-glyph{overflow:visible;pointer-events:none;filter:drop-shadow(0 0 1.2px rgba(0,0,0,.98));font-family:Inter,ui-sans-serif,system-ui,sans-serif;transition:opacity .12s ease,filter .12s ease;outline:none}
+.halo-glyph .halo-track,.halo-glyph .halo-fill,.halo-glyph .halo-zero,.halo-glyph .halo-state-track,.halo-glyph .halo-state-mark,.halo-glyph .halo-qualified-mark,.halo-glyph .halo-value,.halo-glyph .halo-label{pointer-events:visiblePainted}
 .halo-glyph.halo-inactive{opacity:.82}.halo-glyph.halo-active{opacity:1}
 .halo-glyph:focus-visible{filter:drop-shadow(0 0 2px #fff);outline:2px solid #fff;outline-offset:2px}
 .halo-glyph.halo-metric-deemphasized{opacity:.3}.halo-glyph.halo-metric-focused{opacity:1;filter:drop-shadow(0 0 2px rgba(255,255,255,.85))}

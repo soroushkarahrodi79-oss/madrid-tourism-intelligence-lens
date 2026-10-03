@@ -182,6 +182,27 @@ test("each rendered quantitative SVG bar points outward along its fixed canonica
   }
 });
 
+test("rendered SVG length is exactly the normalized value times the shared maximum, with the tuned thickness", async (t) => {
+  const page = await openCompare(undefined, { zoom: 14 });
+  t.after(() => page.close());
+  await setRadius(page, "A", 900);
+  await setRadius(page, "B", 900);
+  await setComparison(page, { tourism: { a: live(4), b: live(8) } });
+  const expectedA = 44 * Math.min(1, (4 / (Math.PI * 0.9 ** 2)) / 8);
+  assert.ok(Math.abs((await fillLength(page, "A", "north")) - expectedA) < 0.01,
+    `rendered Lens A line equals 44 px × density magnitude (${expectedA.toFixed(4)} px)`);
+  assert.ok(Math.abs((await fillLength(page, "B", "north")) - 44 * Math.min(1, (8 / (Math.PI * 0.9 ** 2)) / 8)) < 0.01);
+  const styles = await glyph(page, "A", "north").evaluate((svg) => ({
+    thickness: Number.parseFloat(getComputedStyle(svg.querySelector(".halo-fill")).strokeWidth),
+    trackLength: Math.hypot(
+      Number(svg.querySelector(".halo-track").getAttribute("x2")) - Number(svg.querySelector(".halo-track").getAttribute("x1")),
+      Number(svg.querySelector(".halo-track").getAttribute("y2")) - Number(svg.querySelector(".halo-track").getAttribute("y1")),
+    ),
+  }));
+  assert.equal(styles.thickness, 4.5);
+  assert.ok(Math.abs(styles.trackLength - 44) < 0.01, "the circumference gap is not added inside SVG coordinates");
+});
+
 // C (brief). Monotonic within a metric and ONE shared A/B scale, at equal radius.
 test("C/D/E density bar is monotonic and shares one A/B scale at equal radius", async (t) => {
   const page = await openCompare(undefined, { zoom: 14 });
@@ -395,24 +416,47 @@ test("M the halo exposes keyboard metric focus while open map space remains clic
     pointerEvents: getComputedStyle(svg.closest(".comparison-halo-icon")).pointerEvents,
     role: svg.getAttribute("role"), tabIndex: svg.getAttribute("tabindex"),
     ariaLabel: svg.getAttribute("aria-label"),
+    svgPointerEvents: getComputedStyle(svg).pointerEvents,
+    markerTabIndex: svg.closest(".comparison-halo-icon").getAttribute("tabindex"),
   }));
-  assert.equal(interaction.pointerEvents, "auto");
+  assert.equal(interaction.pointerEvents, "none");
   assert.equal(interaction.role, "button");
   assert.equal(interaction.tabIndex, "0");
   assert.match(interaction.ariaLabel, /Lens A, Tourism POIs/);
+  assert.equal(interaction.svgPointerEvents, "none", "the transparent SVG root is not a pointer target");
+  assert.equal(interaction.markerTabIndex, null, "Leaflet does not add a second keyboard target");
   await glyph(page, "A", "north").focus();
   await page.waitForFunction(() => document.querySelectorAll(".halo-metric-focused").length === 2);
   assert.notEqual(await page.locator('[data-halo-metric="tourism"]').getAttribute("aria-current"), null);
   await glyph(page, "A", "north").press("Escape");
   await page.waitForFunction(() => document.querySelectorAll(".halo-metric-focused").length === 0);
   const target = await page.evaluate(() => {
-    const anchor = window.__HALO_REGRESSION__.geometry("A", "tourism").anchor;
+    const root = document.querySelector(".halo-glyph.halo-a.halo-slot-north").closest(".comparison-halo-icon");
+    const rect = root.getBoundingClientRect();
+    const point = { x: rect.left + 12, y: rect.top + 12 };
     window.__haloMapClicks = 0;
     document.querySelector("#map").addEventListener("click", () => { window.__haloMapClicks += 1; }, { once: true });
-    return { x: anchor.x, y: anchor.y - 30 };
+    return { ...point, inside: point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom,
+      hit: document.elementFromPoint(point.x, point.y)?.closest(".comparison-halo-icon") != null };
   });
+  assert.equal(target.inside, true, "test point lies inside the large transparent DivIcon box");
+  assert.equal(target.hit, false, "transparent DivIcon space is absent from pointer hit testing");
   await page.mouse.click(target.x, target.y);
   await page.waitForFunction(() => window.__haloMapClicks === 1);
+  await page.evaluate(() => window.__HALO_REGRESSION__.setCenterAtPoint("A", 460, 430));
+  const dragTarget = await page.evaluate(() => {
+    const root = document.querySelector(".halo-glyph.halo-a.halo-slot-north").closest(".comparison-halo-icon");
+    const rect = root.getBoundingClientRect();
+    return { x: rect.left + 12, y: rect.top + 12, center: window.__HALO_REGRESSION__.mapCenter() };
+  });
+  await page.mouse.move(dragTarget.x, dragTarget.y);
+  await page.mouse.down();
+  await page.mouse.move(dragTarget.x + 70, dragTarget.y + 20, { steps: 6 });
+  await page.mouse.up();
+  await page.waitForFunction((before) => {
+    const after = window.__HALO_REGRESSION__.mapCenter();
+    return Math.abs(after.lat - before.lat) + Math.abs(after.lng - before.lng) > 1e-6;
+  }, dragTarget.center);
 });
 
 test("metric focus started at either lens synchronizes its partner and the comparison row", async (t) => {
@@ -433,16 +477,16 @@ test("metric focus started at either lens synchronizes its partner and the compa
 test("selecting a metric keeps the paired highlight until it is toggled off", async (t) => {
   const page = await openCompare(undefined, { zoom: 14 });
   t.after(() => page.close());
-  await page.evaluate(() => window.__HALO_REGRESSION__.focusMetric("mobility", "B", true));
+  await glyph(page, "B", "east").locator(".halo-value").click();
   for (const lens of ["A", "B"]) {
-    assert.equal(await glyph(page, lens, "south").getAttribute("aria-pressed"), "true");
-    assert.equal(await glyph(page, lens, "south").evaluate((svg) => svg.classList.contains("halo-metric-focused")), true);
+    assert.equal(await glyph(page, lens, "east").getAttribute("aria-pressed"), "true");
+    assert.equal(await glyph(page, lens, "east").evaluate((svg) => svg.classList.contains("halo-metric-focused")), true);
   }
-  await page.evaluate(() => window.__HALO_REGRESSION__.focusMetric("mobility", "B", true));
-  assert.equal(await glyph(page, "A", "south").getAttribute("aria-pressed"), "false");
-  await page.evaluate(() => window.__HALO_REGRESSION__.focusMetric(null, "B"));
+  await glyph(page, "B", "east").locator(".halo-value").click();
+  assert.equal(await glyph(page, "A", "east").getAttribute("aria-pressed"), "false");
+  await glyph(page, "B", "east").evaluate((svg) => svg.blur());
   assert.equal(await page.locator(".halo-metric-focused").count(), 0);
-  assert.equal(await page.locator('[data-halo-metric="mobility"]').getAttribute("aria-current"), null);
+  assert.equal(await page.locator('[data-halo-metric="stays"]').getAttribute("aria-current"), null);
 });
 
 // Compare panel survives, collisions suppress ambiguous slots, readout stays.

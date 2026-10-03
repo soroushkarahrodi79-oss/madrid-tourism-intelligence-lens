@@ -98,6 +98,14 @@ test("radial bars originate beyond each lens and point outward at the shared met
   assert.ok(Math.abs((a.endpoint.y - a.origin.y) / a.length - a.unit.y) < 1e-9);
 });
 
+test("SVG-local radial geometry starts at the bar origin and applies no second circumference gap", () => {
+  const localCenter = { x: 110, y: 70 };
+  const local = getHaloBarGeometry({ center: localCenter, renderedRadius: 0, radialGap: 0, angle: 0, magnitude: 0.5 });
+  assert.deepEqual(local.origin, localCenter);
+  assert.equal(local.length, HALO_RADIAL_GEOMETRY.MAX_BAR_LENGTH * 0.5);
+  assert.equal(Math.hypot(local.endpoint.x - local.origin.x, local.endpoint.y - local.origin.y), local.length);
+});
+
 test("bar magnitudes clamp, zero has no quantitative length, and invalid states have no geometry", () => {
   const geometry = (magnitude) => getHaloBarGeometry({ center: { x: 0, y: 0 }, renderedRadius: 20, angle: -90, magnitude });
   assert.equal(geometry(0.25).length, HALO_RADIAL_GEOMETRY.MAX_BAR_LENGTH * 0.25);
@@ -376,8 +384,9 @@ test("accessible summary states raw counts, density-bar meaning, and within-metr
 test("the renderer prints raw values, uses shared references, and supports metric keyboard focus", () => {
   const app = fs.readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
   const css = fs.readFileSync(new URL("../css/app.css", import.meta.url), "utf8");
-  assert.match(app, /interactive: true, keyboard: true/);
-  assert.match(css, /\.comparison-halo-icon\{[^}]*pointer-events:auto!important/);
+  assert.match(app, /interactive: true, keyboard: false/);
+  assert.match(css, /\.comparison-halo-icon\{[^}]*pointer-events:none!important/);
+  assert.match(css, /\.halo-glyph \.halo-fill[^}]*pointer-events:visiblePainted/);
   assert.match(app, /class="halo-value"/);
   assert.match(css, /\.halo-value\{/);
   assert.match(app, /getHaloReferences\(\)/);

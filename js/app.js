@@ -276,7 +276,7 @@ function haloIcon(which, metric) {
 for (const which of ["A", "B"]) {
   for (const metric of HALO_METRICS) {
     const marker = L.marker(lenses[which].marker.getLatLng(), {
-      pane: "haloPane", interactive: true, keyboard: true, bubblingMouseEvents: false,
+      pane: "haloPane", interactive: true, keyboard: false, bubblingMouseEvents: false,
       title: `Lens ${which}, ${metric.label}`, icon: haloIcon(which, metric), zIndexOffset: 0,
     });
     marker._haloMetric = metric.id;
@@ -362,8 +362,10 @@ function updateHaloGlyph(marker, state, layout = "full") {
   const metric = HALO_METRICS.find((candidate) => candidate.id === marker._haloMetric);
   const spec = buildHaloGlyphSpec(metric, state, which, layout);
   const trackLength = layout === "compact" ? HALO_COMPACT_TRACK_PX : HALO_FULL_TRACK_PX;
-  const trackGeometry = getHaloBarGeometry({ center: HALO_SVG_CENTER, renderedRadius: 0, angle: spec.angle, magnitude: 1, maxLength: trackLength });
-  const fillGeometry = getHaloBarGeometry({ center: HALO_SVG_CENTER, renderedRadius: 0, angle: spec.angle, magnitude: spec.magnitude ?? 0, maxLength: trackLength });
+  // These are local SVG coordinates whose origin is already P0. Apply the
+  // geographic radial gap once in haloPositionsFor(), never again in the glyph.
+  const trackGeometry = getHaloBarGeometry({ center: HALO_SVG_CENTER, renderedRadius: 0, angle: spec.angle, magnitude: 1, maxLength: trackLength, radialGap: 0 });
+  const fillGeometry = getHaloBarGeometry({ center: HALO_SVG_CENTER, renderedRadius: 0, angle: spec.angle, magnitude: spec.magnitude ?? 0, maxLength: trackLength, radialGap: 0 });
   const origin = [HALO_SVG_CENTER.x, HALO_SVG_CENTER.y];
   const outer = [trackGeometry.endpoint.x, trackGeometry.endpoint.y];
   const midpoint = [(origin[0] + outer[0]) / 2, (origin[1] + outer[1]) / 2];
@@ -619,6 +621,10 @@ if (haloRegressionRequested && haloRegressionLocal) {
         unit: radial.unit,
         origin: radial.origin,
       };
+    },
+    mapCenter() {
+      const center = map.getCenter();
+      return { lat: center.lat, lng: center.lng };
     },
   });
 }
