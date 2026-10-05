@@ -47,6 +47,47 @@ enforced as a hard failure: an "unavailable" pedestrian layer that still carries
 station counts, observation totals or a date range fails the build, because that
 is fabricated evidence rather than a missing one.
 
+## The four dates around a source (freshness contract 1.1.0)
+
+A single source can carry up to four different, simultaneously-true dates, and
+collapsing them into one "updated" field is how "current" silently becomes "real
+time". The registry's freshness contract (`source_registry.json` `1.1.0`) keeps
+them apart. Worked example, the January 2026 planning-ámbito edition audited at
+Gate K:
+
+| Date | Value | What it means | Where it lives |
+|---|---|---|---|
+| **reference date** | January 2026 | the state the data describes (`Estado del desarrollo a fecha …`, inside the file) | `reference_date` |
+| **publication date** | 9 April 2026 | the edition file's own creation timestamp | `published_at` |
+| **catalogue update date** | 23 July 2026 | when the portal record last changed | **its own name, never `reference_date`/`published_at`** |
+| **retrieval date** | 5 October 2026 | when this project fetched it | `retrieved_at` |
+
+All four are accurate at once. The data describes January 2026; the publisher
+issued the edition in April; the catalogue record was touched in July; we fetched
+it in October. None is derived from another: `published_at` is never inferred from
+`reference_date`, and the catalogue date is never written into either.
+
+**The catalogue update date is the trap.** The portal's `Fecha de actualización`
+is a *catalogue-record* date, not a data date. The decisive proof found at Gate K
+is `PGOUM 97. Plano de ordenación`, which reports `Fecha de actualización =
+29/07/2026` while its temporal coverage ends **17 April 1997**. Surfacing that
+catalogue date as currency would claim a 1997 dataset is current to 2026. So the
+rule is absolute: **the latest catalogue update is not the latest evidence**, and
+the contract has no field that would let a catalogue date become `reference_date`
+or `published_at`.
+
+The same discipline already holds for the committed sources in this repository.
+The canonical geography's catalogue record was last modified `2026-07-27`
+(`geography/madrid_admin.meta.json` → `catalog_metadata_modified`), yet the
+geometry publishes no edition date, so its `reference_date` and `published_at` are
+both `null` — the catalogue date is kept out. The licensed-VUT source declares no
+reference or effective date at all, so both are `null` and the HTTP `Last-Modified`
+header is recorded only as a file-server state, never as a publication date: *no
+reference date is not the latest date we found.* A regression test
+(`tests/deployment_validation.test.mjs`) pins the `Plano de ordenación` case and
+the geography case so a future change cannot quietly map a catalogue date onto
+evidence currency.
+
 **Guardrails against silent collapse.** A non-empty response is not automatically
 valid evidence: a truncated download or an upstream schema change can produce
 parseable JSON that is analytically degraded. Each source therefore declares a

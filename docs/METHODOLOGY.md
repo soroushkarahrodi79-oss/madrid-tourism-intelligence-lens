@@ -530,6 +530,116 @@ POI count or UTCI is reported as a fact, not an evaluation. If a layer is
 delta is shown as "—" rather than a computed difference, since both sides
 would otherwise show a meaningless "0 vs 0."
 
+## Scope and freshness — the evidence contract (K2)
+
+K2 makes two properties of every source machine-enforceable, so that no value
+can be read, compared or rendered without knowing **what geometry it describes**
+and **what each of its dates means**. The contract lives in
+`data/source_registry.json` (bumped to `1.1.0`), is enforced by
+`scripts/validate_deployment.mjs`, carried per layer into
+`data/deployment_manifest.json`, and modelled purely in `js/evidence-scope.js`
+(`scopeOf`, `freshnessOf`, `oldestReferenceDate`, `crossScopeArithmeticAllowed`).
+This section is the contract; the rail that renders it is built in K4 (#66) and
+nothing visual ships here.
+
+### Analytical scope vs integrity envelope — two different things
+
+Each source declares an enumerated **analytical `scope`**: what one of its values
+*means* geometrically. This is **not** the same field as `expected_spatial_scope`,
+which is and remains a loose bounding box used only to catch a build that leaks
+null-island, swapped or projected coordinates. The two are carried side by side
+and never merged: a value can mean "the whole municipality" while its integrity
+envelope is a generous box around Madrid.
+
+Scope describes meaning, never storage or rendering. A point dataset may be a
+`POINT_OBSERVATION`, an `ADDRESS_POINT`, or a source later aggregated into a
+`LENS_CIRCLE` — these are not interchangeable. Municipality-level hotel demand
+stays `MUNICIPALITY` even while a Lens is active; an administrative population
+stays `OFFICIAL_BARRIO` even when selected through a Lens centre.
+
+The closed scope enum (Gate K §8): `LENS_CIRCLE`, `OFFICIAL_BARRIO`,
+`OFFICIAL_DISTRICT`, `MUNICIPALITY`, `POINT_OBSERVATION`, `BOUNDED_STUDY_AREA`,
+`PLANNING_AMBITO`, `EXECUTION_UNIT`, `DEVELOPMENT_STAGE_AREA`, `PARCEL`,
+`ADDRESS_POINT`, `WORK_GEOMETRY`, `LENS_INTERSECT_AMBITO`. The planning scopes
+are defined because Gate K authorised the enum; **no planning production evidence
+ships until Gate L closes**.
+
+`scopeOf(value)` returns the single scope of a value or **throws** — an unscoped
+value is a contract violation, never defaulted to `LENS_CIRCLE` and never inferred
+from coordinates or a source name. `crossScopeArithmeticAllowed(a, b, basis?)`
+returns `false` for every differing-scope pair unless an explicit documented basis
+is supplied; geometric overlap is never a basis, so there is no area-weighting and
+no apportionment of a whole-area quantity to a part.
+
+### The five-field freshness contract
+
+Every source declares five fields, with closed vocabularies and no silent
+defaults:
+
+- **`reference_date`** — the period/state the evidence describes. `ISO date | ISO
+  month | null`. Month precision is kept as a month and never promoted to a day.
+- **`published_at`** — when the publisher issued this edition. `ISO date | null`.
+  **Never inferred** from `reference_date`, from the catalogue record date, or
+  from a file timestamp.
+- **`retrieved_at`** — when this project obtained the evidence. An ISO datetime
+  (or ISO date where that is the only recorded precision). For a rebuilt-at-deploy
+  source it is `null` in the registry and resolved at deploy from the artifact's
+  own `generatedAt`; for a committed source it is the real retrieval time.
+- **`update_frequency`** — the publisher-declared expected cadence, one of
+  `DAILY | WEEKLY | MONTHLY | BIMONTHLY | QUARTERLY | SEMESTRAL | ANNUAL |
+  IRREGULAR | DECLARED_UNDEFINED | NONE_DECLARED`. **`DECLARED_UNDEFINED`**
+  (publisher wrote "Sin definir") and **`NONE_DECLARED`** (publisher said nothing)
+  are different publisher facts and are never collapsed into one "UNKNOWN".
+- **`source_state`** — the publisher's own status, one of `DEFINITIVE |
+  PROVISIONAL | WITHHELD_BY_PUBLISHER | NOT_DECLARED_BY_PUBLISHER`. It is the
+  publisher's status, never our opinion of quality.
+- **`observed_cadence`** *(optional)* — the empirical cadence, published only
+  where it defensibly differs from the declared one.
+
+**Null is data.** A missing publisher date is written as an explicit `null` and
+rendered as a fact, never back-filled with another date — the rule the
+licensed-VUT surface already follows: *no reference date ≠ latest date we found.*
+**Freshness is not a quality score:** an annual register is not inferior to a
+daily one.
+
+**The catalogue date is not a data date.** The portal's `Fecha de actualización`
+is a catalogue-record date and is **never** written into `reference_date` or
+`published_at`. The decisive proof (Gate K §7) is `PGOUM 97. Plano de ordenación`,
+whose catalogue update date is `29/07/2026` while its coverage ends `17 April
+1997`; and in this repository the geography's catalogue `catalog_metadata_modified`
+(`2026-07-27`) is kept out of its `reference_date`/`published_at`, both of which
+are `null`.
+
+### The persistent scope / freshness rail — contract for K4
+
+K4 renders one compact, always-visible element from this contract. It needs no
+further methodological decision; the rules are:
+
+- **Analytical scope label** — the scope of whatever is currently on screen,
+  shown as a **distinct glyph plus a distinct text label**, never colour alone.
+  Examples: `Lens · 900 m`, `Official barrio · Jerónimos`, `Madrid municipality`.
+- **Source / evidence context** — tapping the scope or a value reaches the
+  source (authority, unit, transformation, interpretation ceiling); the rail
+  names which geometry and which source a reading belongs to.
+- **Temporal label** — the **oldest contributing `reference_date`** for what is on
+  screen, computed by `oldestReferenceDate(values)`, plus the contributing
+  `source_state`. Shown with its original precision: `Reference · 2026-01`
+  (a month stays a month).
+- **Oldest-contributing-reference-date behaviour** — the rail reports the oldest
+  reference date among the contributing values. If **any** contributor has a
+  `null` reference date, `oldestReferenceDate` returns `null` and the rail must
+  **not** claim a shared "as of" date: it says the reference is not published
+  (`Reference · not published`) rather than inventing one.
+- **Null-date behaviour** — a null reference or publication date is stated, never
+  hidden and never styled as missing/broken.
+- **Source state** — shown as text (e.g. `provisional`, `definitive`,
+  `not declared`), never as a colour on its own.
+- **No freshness score, no grade, no green/yellow/red traffic light, ever** —
+  that would be an unsupported composite judgement. Stale is *stated*, not styled.
+- **Never hidden at any breakpoint.** The rail is the one element that must remain
+  visible at every screen size; provenance is never the first thing a responsive
+  layout drops.
+
 ## Data resilience strategy
 
 Public APIs (Madrid Open Data, EMT Madrid, Overpass) can fail from a static

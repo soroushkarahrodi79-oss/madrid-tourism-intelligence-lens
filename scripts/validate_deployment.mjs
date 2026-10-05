@@ -21,9 +21,137 @@ import path from "node:path";
 import process from "node:process";
 import { execFileSync } from "node:child_process";
 
+// The analytical-scope and freshness vocabulary is defined once, in the pure
+// model, so the deployment gate and the renderer (K4) can never drift apart.
+import {
+  ANALYTICAL_SCOPES,
+  UPDATE_FREQUENCIES,
+  SOURCE_STATES,
+  FRESHNESS_FIELDS,
+  isReferenceDate,
+  isUpdateFrequency,
+  isSourceState,
+} from "../js/evidence-scope.js";
+
 export const CONTRACT_VERSION = "1.0.0";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+// retrieved_at is a point in time: an ISO datetime, or an ISO date where that is
+// the only precision the evidence recorded (e.g. a research extraction logged as
+// a day). It is never a bare year or a catalogue timestamp dressed up as one.
+const ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/;
+
+// published_at is an ISO date or an explicit null — never inferred from a
+// reference date, a catalogue record date or a file timestamp.
+function isPublishedAt(value) {
+  return value === null || (typeof value === "string" && ISO_DATE.test(value));
+}
+
+// retrieved_at is normally a mandatory ISO datetime. The one documented
+// exception is a rebuilt-at-deploy layer that is currently unavailable (the
+// opt-in pedestrian snapshot, not built in this checkout): it carries an
+// explicit null, because no retrieval has happened, exactly as it already
+// carries a null source_period. A null is NEVER accepted for a committed source
+// or for an available layer.
+function isRetrievedAt(value) {
+  return typeof value === "string" && (ISO_DATETIME.test(value) || ISO_DATE.test(value));
+}
+
+// The five-field freshness contract plus the enumerated analytical scope, checked
+// against the closed vocabularies in the pure model. Every failure here is a
+// build error: a malformed freshness record or an undeclared scope is a registry
+// defect, not a data-availability condition, so it blocks whatever the source's
+// role. The only availability-sensitive rule is the retrieved_at carve-out below.
+// `layerState` is the state the per-shape validator computed for this source in
+// THIS build, and `effectiveRetrievedAt` is the retrieval timestamp that will
+// actually ship for it: the built artifact's generatedAt for a rebuilt-at-deploy
+// source, the committed registry value for a committed source.
+function validateSourceFreshness(source, layerState, effectiveRetrievedAt, scopes, errors) {
+  const label = source.display_name ?? source.id;
+
+  // 1. Analytical scope: declared, and declared in the registry's analytical
+  // scope enum. Distinct from expected_spatial_scope (the integrity envelope).
+  const analytical = scopes?.analytical_scopes;
+  if (!Object.prototype.hasOwnProperty.call(source, "scope")) {
+    errors.push(`${label}: declares no analytical scope; every source must name exactly one`);
+  } else if (!ANALYTICAL_SCOPES.includes(source.scope) || !analytical || !analytical[source.scope]) {
+    errors.push(
+      `${label}: analytical scope "${source.scope}" is not declared in spatial_scopes.analytical_scopes`
+    );
+  }
+
+  // 2. All five freshness fields must be present as own properties. A missing
+  // property is a contract violation, distinct from an explicit null.
+  for (const field of FRESHNESS_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(source, field)) {
+      errors.push(`${label}: missing mandatory freshness field "${field}"`);
+    }
+  }
+
+  // 3. reference_date and published_at: ISO month/date or explicit null.
+  if ("reference_date" in source && !isReferenceDate(source.reference_date)) {
+    errors.push(`${label}: reference_date "${source.reference_date}" is not an ISO month, ISO date, or null`);
+  }
+  if ("published_at" in source && !isPublishedAt(source.published_at)) {
+    errors.push(`${label}: published_at "${source.published_at}" is not an ISO date or null`);
+  }
+
+  // 4. retrieved_at. The value that ships is effectiveRetrievedAt: an available
+  // source must record when it was obtained; an unavailable one may carry null
+  // (the opt-in pedestrian snapshot not built in this checkout), but never a
+  // malformed value.
+  if (layerState === "available") {
+    if (!isRetrievedAt(effectiveRetrievedAt)) {
+      errors.push(
+        `${label}: no usable retrieved_at; an available source must record when it was obtained ` +
+          `(a rebuilt-at-deploy source takes it from the built artifact's generatedAt)`
+      );
+    }
+  } else if (effectiveRetrievedAt !== null && !isRetrievedAt(effectiveRetrievedAt)) {
+    errors.push(`${label}: retrieved_at "${effectiveRetrievedAt}" is not an ISO datetime or date`);
+  }
+  // Registry hygiene: a rebuilt-at-deploy source resolves retrieved_at at deploy
+  // from its artifact, so its static registry value must be null — never a stale
+  // committed date that would misreport a live-fetched layer's currency. A
+  // committed source must carry a real ISO datetime/date in the registry.
+  if (source.rebuilt_at_deploy === true) {
+    if (source.retrieved_at !== null) {
+      errors.push(
+        `${label}: a rebuilt-at-deploy source must carry retrieved_at: null in the registry ` +
+          `(it is resolved at deploy from the artifact generatedAt)`
+      );
+    }
+  } else if (!isRetrievedAt(source.retrieved_at)) {
+    errors.push(`${label}: retrieved_at "${source.retrieved_at}" is not an ISO datetime or date in the registry`);
+  }
+
+  // 5. Closed vocabularies for cadence and state.
+  if ("update_frequency" in source && !isUpdateFrequency(source.update_frequency)) {
+    errors.push(
+      `${label}: update_frequency "${source.update_frequency}" is not one of ${UPDATE_FREQUENCIES.join(", ")}`
+    );
+  }
+  if ("source_state" in source && !isSourceState(source.source_state)) {
+    errors.push(`${label}: source_state "${source.source_state}" is not one of ${SOURCE_STATES.join(", ")}`);
+  }
+  // observed_cadence is optional, but if present must be in the cadence vocabulary.
+  if ("observed_cadence" in source && !isUpdateFrequency(source.observed_cadence)) {
+    errors.push(
+      `${label}: observed_cadence "${source.observed_cadence}" is not one of ${UPDATE_FREQUENCIES.join(", ")}`
+    );
+  }
+
+  // 6. Cadence must never overstate a committed artifact. A source whose evidence
+  // is a committed snapshot (not fetched at deploy) cannot claim a DAILY cadence
+  // as freshness: the publisher may update daily, but our bundled artifact is a
+  // fixed snapshot, and cadence must never read as a currency badge.
+  if (source.rebuilt_at_deploy === false && source.update_frequency === "DAILY") {
+    errors.push(
+      `${label}: declares update_frequency DAILY while shipping a committed snapshot ` +
+        `(rebuilt_at_deploy is false). Publisher cadence is not artifact currency`
+    );
+  }
+}
 
 // ---------------------------------------------------------------- helpers
 
@@ -1596,6 +1724,19 @@ export function validateDeployment({
         result = { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
     }
 
+    // The retrieval timestamp that actually ships: for a rebuilt-at-deploy source
+    // it is the built artifact's own generatedAt (the real fetch), not a static
+    // registry date; for a committed source it is the registry value.
+    const effectiveRetrievedAt =
+      source.rebuilt_at_deploy === true
+        ? artifacts[source.artifact]?.generatedAt ?? null
+        : source.retrieved_at ?? null;
+
+    // K2 freshness + analytical-scope contract. Checked with the state THIS build
+    // computed, so the retrieved_at null carve-out only ever applies to a
+    // rebuilt-at-deploy layer that is genuinely unavailable here.
+    validateSourceFreshness(source, result.state, effectiveRetrievedAt, scopes, errors);
+
     layers.push({
       source_id: source.id,
       display_name: source.display_name,
@@ -1614,7 +1755,11 @@ export function validateDeployment({
       role: source.role,
       blocks_deployment: source.blocks_deployment === true,
       evidence_type: source.evidence_type,
+      // spatial_scope remains the integrity envelope (a loose bounding box for
+      // build validation). analytical_scope is the distinct K2 concept: WHAT THE
+      // VALUE MEANS geometrically. The two are carried side by side and never merged.
       spatial_scope: source.expected_spatial_scope,
+      analytical_scope: source.scope ?? null,
       record_count: result.record_count,
       state: result.state,
       // generated_at is when WE built; source_period is what the data describes.
@@ -1623,6 +1768,21 @@ export function validateDeployment({
       source_period: result.source_period,
       source_period_known: result.source_period !== null,
       source_period_semantics: source.source_period_semantics,
+      // The five-field freshness contract (K2), carried verbatim from the registry
+      // so a consumer reads reference date, publication date, retrieval date,
+      // cadence and publisher state without collapsing any of them into "updated".
+      // For a rebuilt-at-deploy source the registry retrieved_at records the
+      // committed snapshot; a live deploy fetch supersedes it at build time.
+      freshness: {
+        reference_date: source.reference_date ?? null,
+        published_at: source.published_at ?? null,
+        retrieved_at: effectiveRetrievedAt,
+        update_frequency: source.update_frequency ?? null,
+        source_state: source.source_state ?? null,
+        ...(Object.prototype.hasOwnProperty.call(source, "observed_cadence")
+          ? { observed_cadence: source.observed_cadence }
+          : {}),
+      },
       interpretation_ceiling: source.interpretation_ceiling,
       warnings: result.warnings,
     });
