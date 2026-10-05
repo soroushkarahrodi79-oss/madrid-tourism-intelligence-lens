@@ -36,6 +36,14 @@ including comparing two places at once.
   row. The panel stays authoritative for exact values, provenance and interpretation; Pedestrian
   activity is panel-only. See
   [`docs/radial-halo-v3.md`](docs/radial-halo-v3.md).
+- Use the **Comparison Bridge** in the Lens A ↔ Lens B panel: focus (hover /
+  keyboard) or lock (click / Enter) one of the four canonical metrics — from a
+  halo mark or from the metric name in the table — to read Lens A, Lens B and the
+  observed **B − A** in one place, with both radii shown. Unequal windows compare
+  by **represented-record density** or are explicitly **withheld** (e.g. mobility
+  under different window sizes); zero, N/A and OFF stay distinct and never become
+  a delta. It is a focused reading, not a score or ranking. See
+  [`docs/COMPARISON_BRIDGE_V1.md`](docs/COMPARISON_BRIDGE_V1.md).
 - Adjust one active-Lens **radius** (100 m – 5 km); Lens A and Lens B keep
   independent radii, and both are shown in Compare mode. Lens B copies A's
   current radius on its first enable in a session and remembers its own radius
