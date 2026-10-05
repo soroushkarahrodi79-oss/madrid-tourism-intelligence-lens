@@ -310,6 +310,33 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .cb-rel-value{font-size:12px;font-weight:740;color:#eaf2fb;font-variant-numeric:tabular-nums;white-space:nowrap}
 .comparison-bridge[data-relationship="withheld"] .cb-rel-value{font-size:8.6px;font-weight:720;color:#b7c3d0;letter-spacing:.02em}
 .cb-qualifier{margin:7px 0 0;font-size:7.4px;line-height:1.4;color:#8ea2b8;text-align:center;overflow-wrap:anywhere}
+/* DECISION INSIGHT V1 — the compact deterministic synthesis of the canonical
+   comparison set, directly beneath the Comparison Bridge. Deliberately quiet:
+   no KPI typography, no traffic-light colours, no winner badges, no trophies,
+   no arrows and no direction-based colouring, because a signed B − A is
+   arithmetic direction and never success or failure. Evidence states are
+   carried by WORDS (OFF, N/A, Withheld · reason), so nothing the reader needs
+   depends on colour or hover. */
+.decision-insight{margin:0 2px 7px;padding:8px 9px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.022)}
+.decision-insight[hidden]{display:none}
+.di-head{display:flex;flex-direction:column;gap:2px;margin:0 0 7px}
+.decision-insight .di-title{font-size:8.6px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#cfe0f0;margin:0}
+.di-status{font-size:7.2px;line-height:1.35;color:#8ba0b7;overflow-wrap:anywhere}
+.di-items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+.di-item{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);align-items:baseline;gap:8px;padding:3px 5px;border-left:2px solid transparent;border-radius:5px}
+.di-metric{font-size:8px;font-weight:650;color:#c2d3e4;overflow-wrap:anywhere}
+.di-rel{font-size:8.4px;font-weight:700;color:#eaf2fb;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+/* A non-comparable state reads quieter than an observed difference but stays at
+   readable contrast. The distinction is evidence strength, never judgment. */
+.di-item[data-state="withheld"] .di-rel,.di-item[data-state="unavailable"] .di-rel,.di-item[data-state="off"] .di-rel{font-size:8px;font-weight:620;color:#b2bfcd}
+/* Focused metric: SUBTLE emphasis only. No item is ever hidden and the others
+   keep readable contrast, so the Insight never becomes a second metric
+   selector — the halo and table controls stay authoritative for focus. */
+.di-items[data-has-focus="true"] .di-item[data-focused="false"]{opacity:.78}
+.di-item[data-focused="true"]{border-left-color:rgba(120,190,255,.55);background:rgba(120,190,255,.07)}
+.di-item[data-focused="true"] .di-metric{color:#dfecf8}
+.di-item[data-focused="true"] .di-rel{color:#f2f8ff}
+.di-guard{margin:7px 0 0;padding-top:5px;border-top:1px solid rgba(255,255,255,.07);font-size:7.2px;line-height:1.4;color:#8296ac;text-align:center;overflow-wrap:anywhere}
 /* Panel → halo focus control: the metric name is an accessible button, so the
    table keeps its row-header semantics while the panel can drive the halo. */
 .cmp-metric-focus{display:inline;margin:0;padding:0;border:0;background:none;font:inherit;color:inherit;letter-spacing:inherit;text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.22);text-underline-offset:2px}
@@ -459,6 +486,8 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .mix{display:none}.source{display:none}
   .compareline{margin-top:8px;padding-bottom:2px}.halo-toggle{min-height:40px}.comparetable{font-size:8px}.comparetable th,.comparetable td{padding:5px 3px}.comparetable th:first-child{min-width:75px}.compare-evidence,.halo-visibility-note{font-size:8px}
   .comparison-bridge-empty{font-size:9px}.cb-metric-name{font-size:10px}.cb-value{font-size:16px}.cb-rel-value{font-size:13px}.cb-sub,.cb-radius,.cb-qualifier{font-size:8.2px}.comparison-bridge[data-relationship="withheld"] .cb-rel-value{font-size:9.4px}
+  .decision-insight .di-title{font-size:9.4px}.di-status{font-size:7.9px}.di-metric{font-size:8.8px}.di-rel{font-size:9.2px}.di-guard{font-size:8px}
+  .di-item[data-state="withheld"] .di-rel,.di-item[data-state="unavailable"] .di-rel,.di-item[data-state="off"] .di-rel{font-size:8.4px}
   select,.smallbtn{font-size:16px}
   .basemap-control select{font-size:16px}
   .map-control select{font-size:16px}
@@ -511,6 +540,10 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .cb-grid{grid-template-columns:1fr;gap:7px}
   .cb-side-b{text-align:left;align-items:flex-start}
   .cb-rel{flex-direction:row;justify-content:space-between;gap:8px;padding:7px 0;border-left:0;border-right:0;border-top:1px solid rgba(255,255,255,.1);border-bottom:1px solid rgba(255,255,255,.1)}
+  /* Narrowest phones: stack each Insight item as metric identity above its
+     relationship clause, so neither can clip or overflow. */
+  .di-item{grid-template-columns:1fr;gap:1px}
+  .di-rel{text-align:left}
 }
 
 @media(max-height:700px){

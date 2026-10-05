@@ -6,7 +6,7 @@
 <title>Madrid Tourism Intelligence Lens</title>
 <meta name="description" content="Move a spatial lens across central Madrid to explore how tourism POIs, mobility nodes and bounded HATI thermal evidence change locally.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261003-50">
+<link rel="stylesheet" href="css/app.css?v=20261005-51">
 </head>
 <body>
 <div id="map"></div>
@@ -266,6 +266,19 @@
       </div>
       <p id="comparisonBridgeA11y" class="sr-only" aria-live="polite"></p>
     </div>
+    <!-- DECISION INSIGHT V1: the deterministic synthesis of the SAME authoritative
+         comparison state the Bridge and the table read. Descriptive contrasts
+         only: no score, ordering, preferred-lens selection, composite index,
+         recommendation or causal claim, and no runtime LLM. Canonical order is
+         fixed and never sorted by magnitude. See docs/DECISION_INSIGHT_V1.md. -->
+    <section id="decisionInsight" class="decision-insight" aria-labelledby="decisionInsightHeading" hidden>
+      <div class="di-head">
+        <h3 id="decisionInsightHeading" class="di-title">Decision Insight</h3>
+        <span id="decisionInsightStatus" class="di-status"></span>
+      </div>
+      <ul id="decisionInsightItems" class="di-items"></ul>
+      <p id="decisionInsightGuard" class="di-guard">Observed comparison only · no ordering or recommendation</p>
+    </section>
     <label class="halo-toggle"><input id="haloToggle" type="checkbox" checked aria-label="Show comparison halo around Lens A and Lens B" aria-checked="true"><span>Comparison halo</span><small>supplementary map marks</small></label>
     <div class="halo-legend">Fixed slots: Tourism POIs at 12 · Stays at 2 · Mobility nodes at 6 · Mean UTCI at 9 o’clock. Thin bars extend outward from each lens; the number is the raw value and length is density against a fixed Madrid reference (UTCI uses its model Celsius band). Lengths compare within the same metric only, never across metrics. Unavailable is N/A, never zero.</div>
     <div class="comparetable-wrap">
@@ -353,12 +366,12 @@
 
 <script src="assets/leaflet/leaflet.js"></script>
 <script src="js/lens.js?v=20261002-43"></script>
-<script src="js/radial-halo.js?v=20261003-50"></script>
+<script src="js/radial-halo.js?v=20261005-51"></script>
 <script src="js/evidence.js"></script>
 <script src="js/data.js?v=20260928-15"></script>
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20261003-50"></script>
+<script src="js/app.js?v=20261005-51"></script>
 </body>
 </html>

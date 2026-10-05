@@ -362,6 +362,7 @@ function setHaloMetricFocus(metricId, sourceLens, selected = false) {
     if (button) button.setAttribute("aria-pressed", selectedHaloMetric === row.dataset.haloMetric ? "true" : "false");
   });
   renderComparisonBridge();
+  applyDecisionInsightFocus();
   window.dispatchEvent(new CustomEvent("halo:metricfocus", { detail: { metricId: focusedHaloMetric, lens: sourceLens || null, selected: Boolean(focusedHaloMetric && selectedHaloMetric === focusedHaloMetric) } }));
 }
 
@@ -400,6 +401,23 @@ const BRIDGE_DICTIONARIES = Object.freeze({
     "reason.layer-off": "layer off",
     "reason.no-evidence": "evidence unavailable",
     "reason.timesteps-differ": "different timesteps",
+    // --- Decision Insight V1 ---
+    // The Insight shares this dictionary with the Bridge on purpose: a withheld
+    // reason, a metric name and a unit resolve through the SAME key on both
+    // surfaces, so their wording can never drift apart.
+    "insight.title": "Decision Insight",
+    "insight.status.available": "Observed contrasts",
+    "insight.status.limited": "Limited comparable evidence",
+    "insight.status.unavailable": "No comparable evidence",
+    "insight.subtitle": "descriptive evidence only",
+    "insight.guard.descriptive-only": "Observed comparison only · no ordering or recommendation",
+    "insight.bMinusA": "B − A",
+    "insight.qualifier.model-derived": "model-derived",
+    "insight.unit.count.tourism": "records",
+    "insight.unit.count.stays": "catalogue records",
+    "insight.unit.count.mobility": "nodes",
+    "insight.unit.density.tourism": "records/km²",
+    "insight.unit.density.stays": "catalogue records/km²",
   }),
   es: Object.freeze({
     empty: "Enfoca una métrica del halo para comparar la Lente A y la Lente B",
@@ -422,6 +440,20 @@ const BRIDGE_DICTIONARIES = Object.freeze({
     "reason.layer-off": "capa desactivada",
     "reason.no-evidence": "evidencia no disponible",
     "reason.timesteps-differ": "pasos de tiempo distintos",
+    // --- Decision Insight V1 ---
+    "insight.title": "Lectura de decisión",
+    "insight.status.available": "Contrastes observados",
+    "insight.status.limited": "Evidencia comparable limitada",
+    "insight.status.unavailable": "Sin evidencia comparable",
+    "insight.subtitle": "solo evidencia descriptiva",
+    "insight.guard.descriptive-only": "Comparación observada · sin ordenación ni recomendación",
+    "insight.bMinusA": "B − A",
+    "insight.qualifier.model-derived": "derivado del modelo",
+    "insight.unit.count.tourism": "registros",
+    "insight.unit.count.stays": "registros de catálogo",
+    "insight.unit.count.mobility": "nodos",
+    "insight.unit.density.tourism": "registros/km²",
+    "insight.unit.density.stays": "registros de catálogo/km²",
   }),
 });
 let bridgeI18n = null;
@@ -437,6 +469,7 @@ function bridgeT(key) {
 import(moduleUrl("i18n.js")).then((module) => {
   bridgeI18n = module.createI18n(BRIDGE_DICTIONARIES, bridgeDocLanguage());
   renderComparisonBridge();
+  renderDecisionInsight();
 }).catch(() => { /* fallback translator keeps the Bridge working */ });
 
 function bridgeDeltaText(relationship) {
@@ -534,6 +567,126 @@ function renderComparisonBridge() {
       + `${sideSentence(bridgeT("lensB"), model.b, model)}. `
       + `${rel.comparable ? bridgeT("observedDelta") : bridgeT("difference")} ${relValueText}. ${qualifierText}.`;
   }
+}
+
+// --- Decision Insight ------------------------------------------------------
+//
+// Decision Insight is the deterministic SYNTHESIS of the canonical comparison
+// set: four short analytical clauses answering "what are the main observed
+// contrasts between these two windows?" without the reader reconciling four
+// table rows, two radii and the evidence limitations themselves.
+//
+// It renders buildDecisionInsightModel() over the SAME authoritative Bridge
+// models the focused Bridge reads, so Halo, Bridge, Insight and table always
+// agree. NO analytical branching and NO arithmetic live in this view layer:
+// these functions turn model codes into localized text and nothing else.
+//
+// There is NO runtime LLM, generative service or network call anywhere in this
+// path — every line is a dictionary template filled from an evidence state, so
+// each rendered sentence is traceable to exactly one authoritative state.
+//
+// The copy is deliberately neutral: a signed B − A is arithmetic direction only.
+// No ranking, no winner, no score, no composite, no causal claim.
+
+// The numeric difference, with the unit the metric's own basis requires. Count
+// basis prints the metric's records/nodes; density basis prints the represented
+// per-km² unit the panel authorizes; UTCI prints Celsius.
+function decisionInsightDeltaText(item) {
+  const value = item.deltaValue;
+  const sign = value > 0 ? "+" : "";
+  if (item.deltaKind === "temperature") return `${sign}${value.toFixed(1)}°C`;
+  if (item.deltaKind === "density") return `${sign}${value.toFixed(1)} ${bridgeT(`insight.unit.density.${item.metricId}`)}`;
+  return `${sign}${value} ${bridgeT(`insight.unit.count.${item.metricId}`)}`;
+}
+
+// One relationship clause per metric. The WITHHELD clause reuses the Bridge's
+// single authoritative bridgeWithheldText(), so a withheld Insight line and the
+// focused Bridge qualifier are literally the same string. OFF, N/A and WITHHELD
+// stay semantically distinct and none of them is ever rendered as a zero.
+function decisionInsightRelationshipText(item) {
+  if (item.state === "comparable") {
+    const qualifier = item.evidenceQualifier ? ` · ${bridgeT(`insight.qualifier.${item.evidenceQualifier}`)}` : "";
+    return `${bridgeT("insight.bMinusA")} ${decisionInsightDeltaText(item)}${qualifier}`;
+  }
+  if (item.state === "off") return bridgeT("off");
+  if (item.state === "unavailable") return `${bridgeT("na")} · ${bridgeT(`reason.${item.withheldReasonCode}`)}`;
+  return bridgeWithheldText(item.withheldReasonCode);
+}
+
+// The four canonical Bridge models for the current comparison state. The Insight
+// consumes Bridge-level semantics; it never re-derives comparison rules.
+function buildBridgeMetricModels() {
+  if (!lastBridgeStates || !lastBridgeContext) return null;
+  const models = {};
+  for (const metricId of BRIDGE_METRIC_IDS) {
+    models[metricId] = buildComparisonBridgeModel({
+      metricId, state: lastBridgeStates[metricId],
+      radiusMode: lastBridgeContext.radiusMode, radii: lastBridgeContext.radii,
+    });
+  }
+  return models;
+}
+
+// Metric focus gives the matching item SUBTLE emphasis. Nothing is ever hidden
+// and the other items stay fully readable: the Insight is not a second metric
+// selector. It is informational, so it adds no tab stop, no interactive control
+// and no aria-live chatter on pointer hover — the Bridge already owns the
+// focused-metric announcement.
+function applyDecisionInsightFocus() {
+  const list = document.getElementById("decisionInsightItems");
+  if (!list) return;
+  list.dataset.hasFocus = focusedHaloMetric ? "true" : "false";
+  for (const item of list.querySelectorAll(".di-item")) {
+    const focused = Boolean(focusedHaloMetric && item.dataset.metricId === focusedHaloMetric);
+    item.dataset.focused = focused ? "true" : "false";
+    if (focused) item.setAttribute("aria-current", "true"); else item.removeAttribute("aria-current");
+  }
+}
+
+function renderDecisionInsight() {
+  const host = document.getElementById("decisionInsight");
+  if (!host) return;
+  const model = buildDecisionInsightModel({
+    metricModels: buildBridgeMetricModels(),
+    radiusMode: lastBridgeContext?.radiusMode,
+    radii: lastBridgeContext?.radii,
+  });
+  if (!model) {
+    host.hidden = true;
+    return;
+  }
+  host.hidden = false;
+  // Informational status only: it describes what comparative evidence exists,
+  // never how "good" a lens is, and carries no number.
+  host.dataset.status = model.status;
+  document.getElementById("decisionInsightHeading").textContent = bridgeT("insight.title");
+  document.getElementById("decisionInsightStatus").textContent = `${bridgeT(`insight.status.${model.status}`)} · ${bridgeT("insight.subtitle")}`;
+  // Keyed by the model's own guardCode, so the safeguard copy is traceable to
+  // the model rather than hardcoded in the view.
+  document.getElementById("decisionInsightGuard").textContent = bridgeT(`insight.guard.${model.guardCode}`);
+  const list = document.getElementById("decisionInsightItems");
+  list.textContent = "";
+  // model.items is already in FIXED canonical order and is never sorted by
+  // magnitude; this loop must not reorder it.
+  for (const item of model.items) {
+    const row = document.createElement("li");
+    row.className = "di-item";
+    row.dataset.metricId = item.metricId;
+    row.dataset.state = item.state;
+    // Arithmetic direction, exposed for traceability only. It is deliberately
+    // NOT colour-coded: a sign is not success or failure.
+    row.dataset.direction = item.direction || "none";
+    const name = document.createElement("span");
+    name.className = "di-metric";
+    // Same dictionary key the Bridge and the table use for this metric.
+    name.textContent = bridgeT(`metric.${item.metricId}`);
+    const relationship = document.createElement("span");
+    relationship.className = "di-rel";
+    relationship.textContent = decisionInsightRelationshipText(item);
+    row.append(name, relationship);
+    list.append(row);
+  }
+  applyDecisionInsightFocus();
 }
 
 function setHaloLine(line, start, end) {
@@ -837,6 +990,52 @@ if (haloRegressionRequested && haloRegressionLocal) {
     // so this count reflects the logical focus regardless of DOM attachment.
     focusState() {
       return { focused: focusedHaloMetric, selected: selectedHaloMetric };
+    },
+    // Read-only view of the rendered Decision Insight, so four-surface
+    // coherence regressions can compare it against the Bridge, the halo and the
+    // table without scraping layout. It reports what the DOM actually prints.
+    decisionInsight() {
+      const host = document.getElementById("decisionInsight");
+      return {
+        hidden: host.hasAttribute("hidden"),
+        status: host.dataset.status || null,
+        heading: document.getElementById("decisionInsightHeading").textContent.trim(),
+        statusText: document.getElementById("decisionInsightStatus").textContent.trim(),
+        guard: document.getElementById("decisionInsightGuard").textContent.trim(),
+        items: [...document.querySelectorAll("#decisionInsightItems .di-item")].map((row) => ({
+          metricId: row.dataset.metricId,
+          state: row.dataset.state,
+          direction: row.dataset.direction,
+          focused: row.dataset.focused,
+          ariaCurrent: row.getAttribute("aria-current"),
+          metric: row.querySelector(".di-metric").textContent.trim(),
+          relationship: row.querySelector(".di-rel").textContent.trim(),
+        })),
+      };
+    },
+    // The authoritative Insight MODEL for the current comparison state, so a
+    // regression can assert the rendered text never drifts from the model and
+    // that the model never drifts from the Bridge.
+    decisionInsightModel() {
+      return buildDecisionInsightModel({
+        metricModels: buildBridgeMetricModels(),
+        radiusMode: lastBridgeContext?.radiusMode,
+        radii: lastBridgeContext?.radii,
+      });
+    },
+    bridgeModel(metricId) {
+      const models = buildBridgeMetricModels();
+      return models ? models[metricId] : null;
+    },
+    // Drive the SHARED Bridge/Insight translator so both languages can be
+    // asserted against the real render path. Test seam only: production keeps
+    // following the document language, which this seam deliberately does NOT
+    // touch — the document language is owned by the page, and the separate
+    // hospitality context selector stays scoped to its own panel.
+    setComparisonLanguage(language) {
+      if (bridgeI18n) bridgeI18n.setLanguage(language);
+      renderComparisonBridge();
+      renderDecisionInsight();
     },
     haloFocusedCount() {
       let count = 0;
@@ -1370,7 +1569,11 @@ function renderCompare() {
     tourism: tourismInput,
     stays: stayInput,
     mobility: mobilityInput,
-    utci: { enabled: hatiOn, timestepA: timestep, timestepB: timestep, a: ha, b: hb },
+    // Same deterministic-override pattern as the three count metrics above: the
+    // gated regression seam may substitute fixed UTCI evidence so tests exercise
+    // the real utciState()/Bridge/Insight builders without depending on which
+    // HATI samples happen to fall inside a lens. Null in production.
+    utci: ov?.utci || { enabled: hatiOn, timestepA: timestep, timestepB: timestep, a: ha, b: hb },
   });
   // Pedestrian activity is a panel-only analytical comparison (not a halo bar).
   const pedestrianState = activityState({
@@ -1444,6 +1647,7 @@ function renderCompare() {
   lastBridgeStates = { tourism: comparison.metrics.tourism, stays: comparison.metrics.stays, mobility: mobilityState, utci: comparison.metrics.utci };
   lastBridgeContext = { radiusMode, radii: { ...radii } };
   renderComparisonBridge();
+  renderDecisionInsight();
   // Accessible Mobility relationship: same authoritative view-model as the Bridge and table.
   const mobilityRel = mobilityView.relationship;
   const mobilityAccessibleSentence = mobilityRel.comparable ? "" : `Mobility comparison ${bridgeT("withheld").toLowerCase()} · ${bridgeT(`reason.${mobilityRel.withheldReasonCode}`)}.`;

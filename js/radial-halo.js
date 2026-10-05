@@ -613,6 +613,124 @@ function buildComparisonBridgeModel({ metricId, state, radiusMode = COMPARISON_R
   });
 }
 
+// --- Decision Insight presentation model -----------------------------------
+//
+// Decision Insight is the SYNTHESIS layer. The halo answers "what is locally
+// present around each lens?" and the Bridge answers "what is the detailed
+// comparison for THIS metric?"; Decision Insight answers "what are the main
+// OBSERVED contrasts across the canonical comparison set?" in one pass, so a
+// reader no longer has to hold four table rows, two unequal radii and the
+// evidence limitations in their head and compose the reading themselves.
+//
+// It is a DERIVED layer, not a new analysis. Every item reads the authoritative
+// Comparison Bridge model THROUGH — comparability is `relationship.comparable`,
+// the difference IS `relationship.deltaValue`, the reason IS
+// `relationship.withheldReasonCode` — and it performs no arithmetic of its own.
+// Halo, Bridge, Insight and table therefore cannot develop different
+// interpretations of one comparison state.
+//
+// It is deterministic and rule-based: NO runtime LLM, no generative service, no
+// network call. The same comparison state always yields the same structured
+// output, so every rendered sentence is traceable to an evidence state. The
+// model returns CODES only; the view layer localizes them.
+//
+// What it is NOT: a score, a ranking, a winner selector, a composite index, a
+// recommendation, a causal claim. A positive B − A is arithmetic direction and
+// nothing else: it carries no quality, preference, ranking or success claim.
+//
+// Canonical order is FIXED and never sorted by magnitude: the four metrics have
+// different units and meanings, so ordering by |delta| would falsely imply
+// cross-metric comparability or importance. Pedestrian is deliberately absent
+// (panel-only observational contract — see docs/DECISION_INSIGHT_V1.md).
+const DECISION_INSIGHT_METRIC_IDS = BRIDGE_METRIC_IDS;
+const DECISION_INSIGHT_GUARD_CODE = "descriptive-only";
+
+// Per-metric descriptive state. The four stay SEMANTICALLY DISTINCT and never
+// collapse into one generic "no data":
+//   comparable  — the authoritative model authorizes a B − A difference
+//   withheld    — both sides carry real values, but no direct comparison is
+//                 authorized (different window sizes, AOI condition, …)
+//   unavailable — at least one side has no evidence (N/A). NOT zero.
+//   off         — the layer is intentionally disabled. NOT zero, NOT N/A.
+function decisionInsightItemState(model) {
+  if (model.relationship.comparable) return "comparable";
+  if (model.a.evidence === "OFF" || model.b.evidence === "OFF") return "off";
+  if (model.a.evidence === "N_A" || model.b.evidence === "N_A") return "unavailable";
+  return "withheld";
+}
+
+// Arithmetic direction of B − A only.
+function decisionInsightDirection(deltaValue) {
+  if (!validNumber(deltaValue)) return null;
+  if (deltaValue > 0) return "B_MINUS_A_POSITIVE";
+  if (deltaValue < 0) return "B_MINUS_A_NEGATIVE";
+  return "B_MINUS_A_ZERO";
+}
+
+// A side carries real observed evidence when it has a value — including a
+// genuine observed ZERO, which is evidence, not absence.
+function decisionInsightSideHasEvidence(evidence) {
+  return evidence === "VALID" || evidence === "ZERO";
+}
+
+function decisionInsightItem(metricId, model) {
+  if (!model) {
+    return Object.freeze({
+      metricId, state: "unavailable", direction: null, deltaValue: null, deltaKind: null,
+      basisCode: null, unitCode: null, evidenceQualifier: null, withheldReasonCode: "no-evidence",
+      aEvidence: "N_A", bEvidence: "N_A",
+    });
+  }
+  const rel = model.relationship;
+  const state = decisionInsightItemState(model);
+  const comparable = state === "comparable";
+  return Object.freeze({
+    metricId,
+    state,
+    // Read THROUGH from the authoritative Bridge relationship, never recomputed.
+    direction: comparable ? decisionInsightDirection(rel.deltaValue) : null,
+    deltaValue: comparable ? rel.deltaValue : null,
+    deltaKind: comparable ? rel.deltaKind : null,
+    basisCode: comparable ? rel.basisCode : null,
+    unitCode: model.unitCode,
+    // UTCI is model-derived evidence, so a comparable Celsius difference always
+    // carries that limitation with it. V1 adds no categorical interpretation.
+    evidenceQualifier: comparable && model.kind === "temperature" ? "model-derived" : null,
+    withheldReasonCode: comparable ? null : rel.withheldReasonCode,
+    aEvidence: model.a.evidence,
+    bEvidence: model.b.evidence,
+  });
+}
+
+// Overall DESCRIPTIVE status, informational only. It describes what comparative
+// evidence exists — never how "good" either lens is — and carries no number, so
+// it can never be read as a confidence score.
+//   available   — at least one metric has a valid comparable relationship
+//   limited     — nothing is comparable, but at least one side carries a real
+//                 observed value somewhere in the canonical set
+//   unavailable — no canonical metric can provide comparative evidence at all
+function decisionInsightStatus(items) {
+  if (items.some((item) => item.state === "comparable")) return "available";
+  const anyEvidence = items.some((item) =>
+    decisionInsightSideHasEvidence(item.aEvidence) || decisionInsightSideHasEvidence(item.bEvidence));
+  return anyEvidence ? "limited" : "unavailable";
+}
+
+// `metricModels` maps each canonical metric id to its buildComparisonBridgeModel
+// output. The Insight consumes Bridge-level authoritative semantics; it never
+// re-derives comparison rules from raw evidence.
+function buildDecisionInsightModel({ metricModels, radiusMode = COMPARISON_RADIUS_MODE.EQUAL, radii = null } = {}) {
+  if (!metricModels) return null;
+  const items = DECISION_INSIGHT_METRIC_IDS.map((metricId) => decisionInsightItem(metricId, metricModels[metricId] || null));
+  return Object.freeze({
+    status: decisionInsightStatus(items),
+    radiusMode,
+    radii: radii ? Object.freeze({ A: radii.A, B: radii.B }) : null,
+    items: Object.freeze(items),
+    guardCode: DECISION_INSIGHT_GUARD_CODE,
+  });
+}
+
 // --- Glyph spec ------------------------------------------------------------
 
 function haloVisualState(metric, state, which) {
@@ -734,6 +852,8 @@ if (typeof module !== "undefined" && module.exports) {
     getMetricSlotAngle, getRadialUnitVector, getHaloBarGeometry, getHaloLabelGeometry,
     normalizedCountPair, positivePair, buildCountPairState, buildHaloComparison, accessibleComparisonSummary,
     BRIDGE_METRIC_IDS, buildComparisonBridgeModel, bridgeSideEvidence, bridgeWithheldReason,
+    DECISION_INSIGHT_METRIC_IDS, DECISION_INSIGHT_GUARD_CODE, buildDecisionInsightModel,
+    decisionInsightItemState, decisionInsightDirection, decisionInsightStatus,
     computeHaloReferenceScales, deriveHaloUtciBand, haloDensity, haloDensityMagnitude, haloUtciMagnitude, formatHaloValue, haloQuantile, haloHaversineMeters,
     activityState, utciState, countState,
     haloLayoutForRadius, haloLabelAnchorForSlot, haloValueAnchorForSlot, haloSlotFootprint, haloFootprintsOverlap, buildHaloGlyphSpec, resolveHaloSlotVisibility,
