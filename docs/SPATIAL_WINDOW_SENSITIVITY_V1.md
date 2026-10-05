@@ -279,12 +279,15 @@ for the window rule to withhold). Mobility **never** converts to a density under
 any window change. The most useful state this layer exposes is therefore
 baseline *comparable* → scenario *withheld · different window sizes*.
 
-**UTCI.** Remains model-derived Celsius and is radius-independent, so changing the
-radii does not change its basis the way it does for the count metrics. Two valid
-Celsius readings under the same timestep contract compare, carrying the
-`model-derived` limitation. Differing timesteps stay incomparable. If a lens loses
-its sample under the scenario radius the comparison becomes non-comparable — no
-value is manufactured. A Celsius change is descriptive, never a thermal impact.
+**UTCI.** Remains model-derived Celsius. Its comparison basis remains Celsius
+under radius changes, although the mean itself may change because a different
+radius can include a different set of HATI assets. Two valid Celsius readings
+under the same timestep contract can therefore be compared on the same basis,
+carrying the `model-derived` limitation — unlike the count metrics, whose basis
+itself switches from raw counts to density when the windows become unequal.
+Differing timesteps stay incomparable. If a lens loses its sample under the
+scenario radius the comparison becomes non-comparable — no value is manufactured.
+A Celsius change is descriptive, never a thermal impact.
 
 **Pedestrian** remains excluded: it is a panel-only observational comparison and
 is absent from the canonical set.
