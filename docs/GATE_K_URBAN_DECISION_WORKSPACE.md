@@ -1106,6 +1106,15 @@ K1  Product boundary & semantic contract                  (docs)
 | K12 | **[SPIKE]** Runtime decision — MapLibre / PMTiles / DuckDB-WASM | spike | K6 |
 | K13 | Evidence Registry query contract for a future assistant (design only) | contract | K2, K6 |
 
+**Delivery status**
+
+- **K1 — delivered.** Product boundary and semantic contract. Product renamed to
+  *Madrid Urban Evidence Lens* in the README H1, the `index.html` `<title>` and
+  the header brand block; `docs/PRODUCT_SEMANTICS.md` added, defining the seven
+  terms and copying the §3.3 boundary table verbatim; the two permanent urban
+  ceilings recorded in `docs/CLAIMS_AND_LIMITATIONS.md`. Docs and product wording
+  only — no dataset, no production JS, no CSS, no dependency.
+
 ---
 
 ## 20. GO / MODIFY / STOP decisions

@@ -1,24 +1,49 @@
-# Madrid Tourism Intelligence Lens
+# Madrid Urban Evidence Lens
 
-A spatial-lens web app for exploring **Tourism × Mobility × Urban Climate**
-in central Madrid: move a draggable lens across the map and watch local
-tourism POIs, mobility nodes, observed pedestrian activity, and bounded thermal evidence recalculate.
+A place-first, source-disciplined geospatial workspace for reading what official
+sources document about **urban development in Madrid** — and what that evidence
+does **not** permit you to conclude. The next architecture (Gate K / #64)
+formalizes **scope, freshness and interpretation ceiling** as explicit, uniform
+properties of every evidence object; today they are documented per source rather
+than guaranteed on every value.
 
-## 1. What is this?
+## 1. What question does it answer?
 
-A small, static, portfolio-grade geospatial web app. Move a circular "lens"
-over central Madrid; it recalculates local counts of museums, tourist
-information points, accommodation, BiciMAD stations, and Metro/Cercanías
-stations; it can also opt into observed pedestrian-counter evidence and — where
-HATI evidence exists — the mean UTCI (a thermal-stress index) from a bounded
-research dataset.
+It starts from a place and a question about it, not from a dataset. For a point
+on the map it is built to answer, in plain terms:
 
-## 2. What problem does the spatial lens solve?
+- *Which official area am I looking at, and who lives there?*
+- *What do official sources document about this place?*
+- *How does this place compare with another, at a spatial window I control?*
+- *Which source supports each statement, and what can it **not** be used to claim?*
 
-Static maps and dashboards force you to look at a whole city at once, or at
-one predefined zone. The lens lets you ask a **local, comparative** question
-— "what is represented within this exact spatial window, given the evidence
-currently loaded?" — and move that question around the map interactively,
+The reading is designed for two audiences over the **same** evidence: a Madrid
+resident or local stakeholder as the primary reader, and a planner, researcher
+or assessor who verifies it. A citizen reading may omit detail; it never makes a
+different claim. The vocabulary that keeps those two readings honest is defined
+in [`docs/PRODUCT_SEMANTICS.md`](docs/PRODUCT_SEMANTICS.md).
+
+## 2. What is shipped today, and what is the authorized next direction?
+
+**Currently shipped** is the tourism-and-context evidence the sections below
+describe in full: a draggable spatial lens over central Madrid that recalculates
+local counts of museums, tourist information, accommodation and mobility nodes;
+optional observed pedestrian-counter activity and bounded HATI thermal research;
+the whole-barrio Area Profile, licensed-VUT and city hotel-demand context; and
+the comparison, halo and sensitivity machinery. None of that changes with this
+reframing.
+
+**The authorized next direction**, set by
+[Gate K](docs/GATE_K_URBAN_DECISION_WORKSPACE.md), is to make urban-development
+evidence the organising frame, with tourism **retained as one documented
+domain** rather than the headline. That is a change of emphasis and vocabulary,
+not of data: it ships **no new dataset**, and there is **no production planning
+or ámbito layer today**. The first such increment is gated behind Gate L and the
+scope- and freshness-contracts that precede it (§11). The spatial lens itself
+solves a real problem the next direction keeps: static maps force you to look at
+a whole city at once, or at one predefined zone, while the lens lets you ask a
+**local, comparative** question — "what is represented within this exact spatial
+window, given the evidence currently loaded?" — and move it around the map,
 including comparing two places at once.
 
 ## 3. What can the user explore?

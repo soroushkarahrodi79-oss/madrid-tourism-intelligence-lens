@@ -279,6 +279,33 @@ the source publishes both monthly values. This is descriptive, not causal or
 predictive, and it does not establish visitor retention, all-origin shares,
 province totals, international origins or any geography within Madrid.
 
+### Permanent ceilings for urban-development evidence
+
+Gate K reframed the product around urban-development evidence (see
+[`PRODUCT_SEMANTICS.md`](PRODUCT_SEMANTICS.md)). Two ceilings it established are
+**methodological rules**, binding on every present and future surface, not
+one-off disclaimers about a dataset that happens to ship. They apply now, before
+any planning or ámbito layer exists, so that no later increment can quietly
+breach them.
+
+- **No dwelling or protected-dwelling counts from non-unit quantities.** Where
+  an official source publishes buildability (m² by use class) or any other
+  quantity that is not itself a count of dwelling units, the application must
+  **not** derive, estimate or imply a number of dwellings, protected dwellings,
+  homes or households from it. Buildability is floor area the plan permits, not
+  housing delivered; the two are different indicators and are never converted
+  into one another. Madrid's audited machine-readable planning sources publish
+  no dwelling count, so none is claimed (Gate K §6.6, §20).
+- **No apportionment of a whole-area quantity to a part of it.** A value whose
+  **scope** is a whole official area — a barrio, a district, an ámbito, the
+  municipality — must **never** be scaled, weighted or redistributed into a
+  smaller area merely because their geometries overlap or intersect. Overlap is
+  not evidence of how a whole-area total is distributed inside the area. This
+  generalises the existing rule that a barrio's registered-resident and
+  licensed-VUT figures are never apportioned to the lens circle that sits inside
+  the barrio: the same prohibition binds every whole-area quantity the product
+  may ever read, including planning quantities reported per ámbito.
+
 ## Evidence states shown in the UI
 
 - **MODEL-DERIVED** — one or more HATI samples fall inside the active lens;
