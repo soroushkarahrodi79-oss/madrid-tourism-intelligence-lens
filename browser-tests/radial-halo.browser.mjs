@@ -1839,9 +1839,14 @@ test("SS 14(3) the category transition is driven by one production helper, reach
   assert.match(app, /const haloRegressionLocal = window\.location\.hostname === "127\.0\.0\.1" \|\| window\.location\.hostname === "localhost";/);
   assert.match(app, /if \(haloRegressionRequested && haloRegressionLocal\) \{\s*window\.__HALO_REGRESSION__ = Object\.freeze\(\{/);
   const seamStart = app.indexOf("if (haloRegressionRequested && haloRegressionLocal) {");
-  const seamEnd = app.indexOf("const LENS_BASEMAP_STYLES");
-  assert.ok(seamStart > 0 && seamEnd > seamStart, "the gated seam block was located");
+  // The boundary is the gate's own CLOSING BRACE, not the next statement:
+  // slicing to the following `const` would count anything inserted just above
+  // it as "inside the seam", which is exactly the leak this guard must catch.
+  const seamClose = app.indexOf("\n  });\n}\n", seamStart);
+  assert.ok(seamStart > 0 && seamClose > seamStart, "the gated seam block was located");
+  const seamEnd = seamClose + "\n  });\n}".length;
   const seamBlock = app.slice(seamStart, seamEnd);
+  assert.ok(seamBlock.trimEnd().endsWith("});\n}"), "the slice ends at the gate's closing brace");
   // Unambiguous test-only identifiers: each must live inside the gated block and
   // appear NOWHERE else in the file.
   for (const member of ["setStayKindFilterForTest", "stayKindFilterValue", "lensCenters", "spatialSensitivityModel", "spatialBaselineSnapshot"]) {
@@ -1863,7 +1868,11 @@ test("SS 14(4) the seam is absent, and the category filter keeps its production 
     return route.continue();
   });
   await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
-  await page.waitForFunction(() => Boolean(document.querySelector("#stayKindFilter option")));
+  // Wait for the production availability rule to have actually RUN. The options
+  // and the <select> ship in static markup, so waiting for them resolves
+  // immediately and would race the rule; the `title` is set only by that rule,
+  // so a non-empty title is the deterministic signal that it has applied.
+  await page.waitForFunction(() => document.getElementById("stayKindFilter").title.length > 0);
   assert.equal(await page.evaluate(() => typeof window.__HALO_REGRESSION__), "undefined",
     "no test-only code is reachable during normal production use");
   // Every test-only ENTRY POINT is gone with it. (setStayKindFilter itself is
