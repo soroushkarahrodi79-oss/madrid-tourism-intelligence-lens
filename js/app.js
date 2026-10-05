@@ -363,6 +363,7 @@ function setHaloMetricFocus(metricId, sourceLens, selected = false) {
   });
   renderComparisonBridge();
   applyDecisionInsightFocus();
+  applySpatialSensitivityFocus();
   window.dispatchEvent(new CustomEvent("halo:metricfocus", { detail: { metricId: focusedHaloMetric, lens: sourceLens || null, selected: Boolean(focusedHaloMetric && selectedHaloMetric === focusedHaloMetric) } }));
 }
 
@@ -418,6 +419,49 @@ const BRIDGE_DICTIONARIES = Object.freeze({
     "insight.unit.count.mobility": "nodes",
     "insight.unit.density.tourism": "records/km²",
     "insight.unit.density.stays": "catalogue records/km²",
+    // --- Spatial Window Sensitivity V1 ---
+    // Shares this dictionary with the Bridge and the Insight on purpose: a
+    // metric name, a unit and a withheld reason resolve through the SAME key on
+    // every surface, so the baseline reading, the scenario reading and the
+    // focused Bridge can never word the same state differently.
+    //
+    // The copy deliberately avoids forecast vocabulary. A scenario is an
+    // ALTERNATIVE ANALYTICAL WINDOW, never a predicted, expected, projected or
+    // future Madrid, and a transition is an observed sensitivity of the reading,
+    // never an impact, effect or cause.
+    "ss.title": "Spatial sensitivity",
+    "ss.subtitle": "alternative analytical window",
+    "ss.empty": "No baseline captured. Capture the current comparison, then change a Lens radius to see whether the reading holds.",
+    "ss.capture": "Capture current comparison",
+    "ss.recapture": "Capture current as new baseline",
+    "ss.reset": "Reset baseline",
+    "ss.baseline": "Baseline window",
+    "ss.scenario": "Scenario window",
+    "ss.readingBaseline": "Baseline",
+    "ss.readingScenario": "Scenario",
+    "ss.windowUnchanged": "Scenario window matches the baseline window",
+    "ss.notice.center-changed": "Baseline invalidated · Lens location changed",
+    "ss.notice.evidence-changed": "Baseline invalidated · evidence configuration changed",
+    // "Stable under this window change" is deliberately NOT "robust": the
+    // project defines no statistical robustness test, so the wording claims only
+    // what was observed between these two selected windows.
+    "ss.status.STABLE": "Stable under this window change",
+    "ss.status.MIXED": "Sensitive to window choice",
+    "ss.status.LIMITED": "Insufficient comparable evidence",
+    "ss.status.EVIDENCE_CHANGED": "Evidence configuration changed",
+    "ss.transition.UNCHANGED_COMPARABLE": "Relationship unchanged",
+    "ss.transition.DIRECTION_CHANGED": "B − A direction changed",
+    "ss.transition.BASIS_CHANGED": "Basis changed",
+    "ss.transition.BECAME_WITHHELD": "Comparison became withheld",
+    "ss.transition.BECAME_COMPARABLE": "Comparison became available",
+    "ss.transition.WITHHELD_UNCHANGED": "Comparison withheld in both windows",
+    "ss.transition.WITHHELD_REASON_CHANGED": "Withheld reason changed",
+    "ss.transition.EVIDENCE_CHANGED": "Evidence configuration changed",
+    "ss.changedBy": "Observed comparison changed by",
+    "ss.noNumericChange": "numeric change withheld · different comparison bases",
+    "ss.guard.window-sensitivity-only": "Alternative analytical window · not a forecast and not a causal effect",
+    "ss.a11y.captured": "Baseline window captured.",
+    "ss.a11y.reset": "Baseline removed. No baseline captured.",
   }),
   es: Object.freeze({
     empty: "Enfoca una métrica del halo para comparar la Lente A y la Lente B",
@@ -454,6 +498,37 @@ const BRIDGE_DICTIONARIES = Object.freeze({
     "insight.unit.count.mobility": "nodos",
     "insight.unit.density.tourism": "registros/km²",
     "insight.unit.density.stays": "registros de catálogo/km²",
+    // --- Spatial Window Sensitivity V1 ---
+    "ss.title": "Sensibilidad espacial",
+    "ss.subtitle": "ventana analítica alternativa",
+    "ss.empty": "Sin línea base capturada. Captura la comparación actual y después cambia el radio de una lente para ver si la lectura se mantiene.",
+    "ss.capture": "Capturar la comparación actual",
+    "ss.recapture": "Capturar la actual como nueva línea base",
+    "ss.reset": "Restablecer la línea base",
+    "ss.baseline": "Ventana de línea base",
+    "ss.scenario": "Ventana de escenario",
+    "ss.readingBaseline": "Línea base",
+    "ss.readingScenario": "Escenario",
+    "ss.windowUnchanged": "La ventana del escenario coincide con la de la línea base",
+    "ss.notice.center-changed": "Línea base invalidada · la ubicación de la lente cambió",
+    "ss.notice.evidence-changed": "Línea base invalidada · la configuración de evidencia cambió",
+    "ss.status.STABLE": "Estable ante este cambio de ventana",
+    "ss.status.MIXED": "Sensible a la elección de ventana",
+    "ss.status.LIMITED": "Evidencia comparable insuficiente",
+    "ss.status.EVIDENCE_CHANGED": "La configuración de evidencia cambió",
+    "ss.transition.UNCHANGED_COMPARABLE": "Relación sin cambios",
+    "ss.transition.DIRECTION_CHANGED": "El signo de B − A cambió",
+    "ss.transition.BASIS_CHANGED": "La base de comparación cambió",
+    "ss.transition.BECAME_WITHHELD": "La comparación pasó a retenida",
+    "ss.transition.BECAME_COMPARABLE": "La comparación pasó a disponible",
+    "ss.transition.WITHHELD_UNCHANGED": "Comparación retenida en ambas ventanas",
+    "ss.transition.WITHHELD_REASON_CHANGED": "El motivo de retención cambió",
+    "ss.transition.EVIDENCE_CHANGED": "La configuración de evidencia cambió",
+    "ss.changedBy": "La comparación observada cambió en",
+    "ss.noNumericChange": "cambio numérico retenido · bases de comparación distintas",
+    "ss.guard.window-sensitivity-only": "Ventana analítica alternativa · no es una previsión ni un efecto causal",
+    "ss.a11y.captured": "Ventana de línea base capturada.",
+    "ss.a11y.reset": "Línea base eliminada. Sin línea base capturada.",
   }),
 });
 let bridgeI18n = null;
@@ -470,6 +545,7 @@ import(moduleUrl("i18n.js")).then((module) => {
   bridgeI18n = module.createI18n(BRIDGE_DICTIONARIES, bridgeDocLanguage());
   renderComparisonBridge();
   renderDecisionInsight();
+  renderSpatialSensitivity();
 }).catch(() => { /* fallback translator keeps the Bridge working */ });
 
 function bridgeDeltaText(relationship) {
@@ -689,6 +765,301 @@ function renderDecisionInsight() {
   applyDecisionInsightFocus();
 }
 
+// --- Spatial Window Sensitivity --------------------------------------------
+//
+// A SENSITIVITY CHECK ON THE METHOD, not another view of the values.
+//
+// The user freezes the current configuration as the BASELINE window; the live
+// configuration then becomes the SCENARIO window as they change Lens radii.
+// This section reports how the EXISTING authoritative reading responded — stayed
+// the same, changed B − A direction, changed comparison basis, became withheld
+// or became available — for each canonical metric.
+//
+// Changing a radius changes which geography, and therefore which records, each
+// Lens includes. It does NOT change Madrid. So nothing here is predicted,
+// expected, projected or future, and no transition is an impact, an effect or a
+// cause: a different reading under a different radius means the interpretation
+// is SENSITIVE TO THE CHOSEN SPATIAL WINDOW. See
+// docs/SPATIAL_WINDOW_SENSITIVITY_V1.md.
+//
+// V1 SCOPE IS RADII ONLY. A Lens CENTRE move is a different place, and an
+// evidence-configuration change (HATI timestep, accommodation filter, source
+// availability) is a different evidence universe; neither is radius
+// sensitivity, so both INVALIDATE the baseline rather than being silently
+// folded into it.
+//
+// The scenario side is rendered from the SAME authoritative Bridge models the
+// Decision Insight reads, so it can never become an independent fifth
+// interpretation of the current state. The baseline side is a frozen historical
+// snapshot of structured MODEL state — never scraped DOM text.
+
+// The captured baseline: an immutable structural snapshot, or null. Session/UI
+// state only — there is deliberately no backend, no account and no storage
+// infrastructure, so a page reload starts again with no baseline.
+let spatialBaseline = null;
+// Why a captured baseline was dropped ("center-changed" / "evidence-changed"),
+// shown once until the user captures again. Null when there is nothing to say.
+let spatialBaselineNotice = null;
+
+// A fingerprint of the EVIDENCE CONTRACT behind the four canonical metrics. It
+// changes when the evidence universe changes — not when a radius does — so the
+// scenario layer can tell a spatial-window change apart from an
+// evidence-configuration change. Lens radii and centres are deliberately ABSENT:
+// the radius is the scenario, and the centre has its own invalidation rule.
+function spatialEvidenceKey() {
+  return [
+    isHatiVisible() ? `hati:${timestep}` : "hati:off",
+    `stay:${stayKindFilter}`,
+    `tourismSource:${combinedStatus(layerStatus, ["museums", "info"])}`,
+    `staySource:${combinedStatus(layerStatus, ["stays"])}`,
+    `mobilitySource:${combinedStatus(layerStatus, ["bikes", "rail"])}`,
+    // The gated regression seam substitutes the comparison evidence universe,
+    // so switching it on or off is an evidence-configuration change too.
+    `override:${comparisonEvidenceOverride ? "on" : "off"}`,
+  ].join("|");
+}
+
+function spatialCurrentCenters() {
+  return { A: centerOf("A"), B: centerOf("B") };
+}
+
+// Drop the baseline because it no longer describes the same analysis. This is
+// not an error: it is the honest alternative to comparing two different places
+// (or two different evidence universes) as if only the radius had changed.
+function invalidateSpatialBaseline(reasonCode) {
+  if (!spatialBaseline) return false;
+  spatialBaseline = null;
+  spatialBaselineNotice = reasonCode;
+  return true;
+}
+
+// Guard run on every comparison render, BEFORE the model is built. V1 policy is
+// INVALIDATE (not "mark incompatible") for both conditions, because a baseline
+// that survived either change could be misread as pure radius sensitivity.
+function enforceSpatialBaselineValidity() {
+  if (!spatialBaseline) return;
+  if (spatialBaselineCenterChanged(spatialBaseline.centers, spatialCurrentCenters())) {
+    invalidateSpatialBaseline("center-changed");
+    return;
+  }
+  if (spatialBaseline.evidenceKey !== spatialEvidenceKey()) invalidateSpatialBaseline("evidence-changed");
+}
+
+function spatialRadiiText(radii) {
+  return radii
+    ? `${bridgeT("lensA")} · ${formatLensRadius(radii.A)}  |  ${bridgeT("lensB")} · ${formatLensRadius(radii.B)}`
+    : "";
+}
+
+// One side's reading, worded EXACTLY as the Bridge and the Insight word it: a
+// comparable side reuses the Insight's own relationship clause, and a
+// non-comparable side reuses the Bridge's single authoritative withheld text.
+// OFF, N/A and WITHHELD therefore stay distinct here too, and none is ever
+// rendered as a zero.
+function spatialSideReadingText(side) {
+  if (side.state === "comparable") return decisionInsightRelationshipText(side);
+  if (side.state === "off") return bridgeT("off");
+  if (side.state === "unavailable") return `${bridgeT("na")} · ${bridgeT(`reason.${side.withheldReasonCode}`)}`;
+  return bridgeWithheldText(side.withheldReasonCode);
+}
+
+// The signed change in the OBSERVED comparison between the two windows, with the
+// unit the shared basis requires. Only rendered where the model authorized it,
+// and worded as an observation ("changed by"), never as an effect or a cause.
+function spatialDeltaChangeText(item) {
+  const value = item.deltaChange;
+  const sign = value > 0 ? "+" : "";
+  if (item.deltaChangeKind === "temperature") return `${sign}${value.toFixed(1)}°C`;
+  if (item.deltaChangeKind === "density") return `${sign}${value.toFixed(1)} ${bridgeT(`insight.unit.density.${item.metricId}`)}`;
+  return `${sign}${value} ${bridgeT(`insight.unit.count.${item.metricId}`)}`;
+}
+
+// The supporting line under a transition. BASIS_CHANGED names the two bases so
+// the abstention is explainable ("raw represented counts → represented-record
+// density") and explicitly says the numeric change is withheld; a compatible
+// transition reports the observed change with correct units. Everything else
+// adds nothing, because the transition label already said it.
+function spatialTransitionDetailText(item) {
+  if (item.transitionCode === "BASIS_CHANGED") {
+    return `${bridgeT(`basis.${item.baseline.basisCode}`)} → ${bridgeT(`basis.${item.scenario.basisCode}`)} · ${bridgeT("ss.noNumericChange")}`;
+  }
+  // A zero change needs no sentence: the transition label already says the
+  // relationship is unchanged, and the two readings are printed side by side,
+  // so "changed by 0" would only add noise.
+  if (item.deltaChange == null || item.deltaChange === 0) return "";
+  const qualifier = item.scenario.evidenceQualifier ? ` · ${bridgeT(`insight.qualifier.${item.scenario.evidenceQualifier}`)}` : "";
+  return `${bridgeT("ss.changedBy")} ${spatialDeltaChangeText(item)}${qualifier}`;
+}
+
+// Metric focus gives the matching item SUBTLE emphasis, reusing the existing
+// shared focus state. Nothing is hidden and no item becomes interactive: this
+// section is informational, not a second metric selector.
+function applySpatialSensitivityFocus() {
+  const list = document.getElementById("spatialSensitivityItems");
+  if (!list) return;
+  list.dataset.hasFocus = focusedHaloMetric ? "true" : "false";
+  for (const item of list.querySelectorAll(".ss-item")) {
+    const focused = Boolean(focusedHaloMetric && item.dataset.metricId === focusedHaloMetric);
+    item.dataset.focused = focused ? "true" : "false";
+    if (focused) item.setAttribute("aria-current", "true"); else item.removeAttribute("aria-current");
+  }
+}
+
+// Announcements are DISCRETE ONLY. Capture, reset and invalidation are single
+// user actions and are announced; the per-metric values stay visually live but
+// are never announced, so dragging a radius slider cannot flood assistive
+// technology with a stream of partial readings.
+function announceSpatialSensitivity(message) {
+  const region = document.getElementById("spatialSensitivityA11y");
+  if (region) region.textContent = message;
+}
+
+function spatialSensitivityRow(item) {
+  const row = document.createElement("li");
+  row.className = "ss-item";
+  row.dataset.metricId = item.metricId;
+  row.dataset.transition = item.transitionCode;
+  // Exposed as data for traceability only, and never styled: a sign is not
+  // success or failure, and a transition is not good or bad news.
+  row.dataset.baselineDirection = item.baseline.direction || "none";
+  row.dataset.scenarioDirection = item.scenario.direction || "none";
+  const name = document.createElement("span");
+  name.className = "ss-metric";
+  // The same dictionary key the halo, the Bridge, the Insight and the table use.
+  name.textContent = bridgeT(`metric.${item.metricId}`);
+  row.append(name);
+  // BASELINE then SCENARIO, in that fixed reading order at every width.
+  for (const [labelKey, side] of [["ss.readingBaseline", item.baseline], ["ss.readingScenario", item.scenario]]) {
+    const reading = document.createElement("span");
+    reading.className = "ss-reading";
+    reading.dataset.side = labelKey === "ss.readingBaseline" ? "baseline" : "scenario";
+    reading.dataset.comparable = side.comparable ? "true" : "false";
+    const label = document.createElement("span");
+    label.className = "ss-reading-label";
+    label.textContent = bridgeT(labelKey);
+    const value = document.createElement("span");
+    value.className = "ss-reading-value";
+    value.textContent = spatialSideReadingText(side);
+    reading.append(label, value);
+    row.append(reading);
+  }
+  const transition = document.createElement("span");
+  transition.className = "ss-transition";
+  transition.textContent = bridgeT(`ss.transition.${item.transitionCode}`);
+  const detailText = spatialTransitionDetailText(item);
+  if (detailText) {
+    const detail = document.createElement("span");
+    detail.className = "ss-transition-detail";
+    detail.textContent = detailText;
+    transition.append(detail);
+  }
+  row.append(transition);
+  return row;
+}
+
+// The authoritative sensitivity model for the current state, or null when there
+// is no baseline. The SCENARIO side is built from buildBridgeMetricModels() —
+// the very models Decision Insight and the focused Bridge consume.
+function buildSpatialSensitivityState() {
+  if (!spatialBaseline) return null;
+  const scenarioMetricModels = buildBridgeMetricModels();
+  if (!scenarioMetricModels) return null;
+  return buildSpatialSensitivityModel({
+    baseline: spatialBaseline,
+    scenarioMetricModels,
+    scenarioRadii: lastBridgeContext?.radii || null,
+    scenarioEvidenceKey: spatialEvidenceKey(),
+  });
+}
+
+function renderSpatialSensitivity() {
+  const host = document.getElementById("spatialSensitivity");
+  if (!host) return;
+  // The section is a COMPARISON of two window configurations, so it exists only
+  // in compare mode: with one lens there is no A ↔ B reading to be sensitive.
+  if (!bEnabled || !lastBridgeContext) {
+    host.hidden = true;
+    return;
+  }
+  host.hidden = false;
+  document.getElementById("spatialSensitivityHeading").textContent = bridgeT("ss.title");
+  document.getElementById("spatialSensitivityGuard").textContent = bridgeT(`ss.guard.${SPATIAL_SENSITIVITY_GUARD_CODE}`);
+  const notice = document.getElementById("spatialSensitivityNotice");
+  notice.textContent = spatialBaselineNotice ? bridgeT(`ss.notice.${spatialBaselineNotice}`) : "";
+  notice.hidden = !spatialBaselineNotice;
+  const empty = document.getElementById("spatialSensitivityEmpty");
+  const windows = document.getElementById("spatialSensitivityWindows");
+  const list = document.getElementById("spatialSensitivityItems");
+  const capture = document.getElementById("spatialSensitivityCapture");
+  const reset = document.getElementById("spatialSensitivityReset");
+  const status = document.getElementById("spatialSensitivityStatus");
+  const model = buildSpatialSensitivityState();
+  list.textContent = "";
+  if (!model) {
+    host.dataset.status = "no-baseline";
+    status.textContent = bridgeT("ss.subtitle");
+    empty.textContent = bridgeT("ss.empty");
+    empty.hidden = false;
+    windows.hidden = true;
+    // Cleared, not just hidden: a dropped baseline must leave no stale radii
+    // behind that a later render could resurrect.
+    document.getElementById("ssBaselineRadii").textContent = "";
+    document.getElementById("ssScenarioRadii").textContent = "";
+    capture.textContent = bridgeT("ss.capture");
+    reset.hidden = true;
+    applySpatialSensitivityFocus();
+    return;
+  }
+  host.dataset.status = model.status;
+  empty.hidden = true;
+  windows.hidden = false;
+  // Categorical summary only — never a robustness percentage, confidence value,
+  // stability score or sensitivity index.
+  status.textContent = `${bridgeT(`ss.status.${model.status}`)} · ${bridgeT("ss.subtitle")}`;
+  document.getElementById("ssBaselineLabel").textContent = bridgeT("ss.baseline");
+  document.getElementById("ssScenarioLabel").textContent = bridgeT("ss.scenario");
+  document.getElementById("ssBaselineRadii").textContent = spatialRadiiText(model.baseline.radii);
+  document.getElementById("ssScenarioRadii").textContent = model.windowUnchanged
+    ? `${spatialRadiiText(model.scenario.radii)} · ${bridgeT("ss.windowUnchanged")}`
+    : spatialRadiiText(model.scenario.radii);
+  // model.items is already in FIXED canonical order and is never sorted by
+  // magnitude, change size, importance or availability; this loop must not
+  // reorder it. There is no "top sensitivity".
+  for (const item of model.items) list.append(spatialSensitivityRow(item));
+  // Replacing the baseline must be EXPLICIT, never automatic after a radius
+  // change: a silently moving baseline would destroy the whole comparison.
+  capture.textContent = bridgeT("ss.recapture");
+  reset.hidden = false;
+  reset.textContent = bridgeT("ss.reset");
+  applySpatialSensitivityFocus();
+}
+
+function captureSpatialBaseline() {
+  const metricModels = buildBridgeMetricModels();
+  if (!metricModels || !lastBridgeContext || !bEnabled) return;
+  spatialBaseline = captureSpatialSensitivityBaseline({
+    metricModels,
+    radii: lastBridgeContext.radii,
+    centers: spatialCurrentCenters(),
+    radiusMode: lastBridgeContext.radiusMode,
+    evidenceKey: spatialEvidenceKey(),
+  });
+  // A fresh capture answers whatever invalidated the previous baseline.
+  spatialBaselineNotice = null;
+  renderSpatialSensitivity();
+  announceSpatialSensitivity(`${bridgeT("ss.a11y.captured")} ${spatialRadiiText(spatialBaseline.radii)}.`);
+}
+
+// Deterministic reset: it removes the stored baseline AND NOTHING ELSE. The
+// lenses, the current radii, the active lens, the layers, the Comparison Bridge
+// and Decision Insight are all left exactly as they are.
+function resetSpatialBaseline() {
+  spatialBaseline = null;
+  spatialBaselineNotice = null;
+  renderSpatialSensitivity();
+  announceSpatialSensitivity(bridgeT("ss.a11y.reset"));
+}
+
 function setHaloLine(line, start, end) {
   line.setAttribute("x1", String(start[0])); line.setAttribute("y1", String(start[1]));
   line.setAttribute("x2", String(end[0])); line.setAttribute("y2", String(end[1]));
@@ -716,6 +1087,18 @@ function bindComparisonMetricControls() {
   }
 }
 bindComparisonMetricControls();
+
+// Two explicit controls, both real buttons: capturing and replacing the
+// baseline is always a deliberate act, and resetting removes only the stored
+// baseline. Nothing here is pointer-only and nothing adds a tab stop beyond
+// these two.
+function bindSpatialSensitivityControls() {
+  const capture = document.getElementById("spatialSensitivityCapture");
+  const reset = document.getElementById("spatialSensitivityReset");
+  if (capture) capture.addEventListener("click", captureSpatialBaseline);
+  if (reset) reset.addEventListener("click", resetSpatialBaseline);
+}
+bindSpatialSensitivityControls();
 
 function updateHaloGlyph(marker, state, layout = "full") {
   const nodes = marker._haloNodes;
@@ -1027,6 +1410,67 @@ if (haloRegressionRequested && haloRegressionLocal) {
       const models = buildBridgeMetricModels();
       return models ? models[metricId] : null;
     },
+    // --- Spatial Window Sensitivity seam ---
+    // Drives the REAL capture/reset controls and reports what the DOM actually
+    // prints, so five-surface coherence regressions can compare the rendered
+    // scenario side against the halo, the Bridge, the Insight and the table.
+    captureSpatialBaseline() {
+      document.getElementById("spatialSensitivityCapture").click();
+    },
+    resetSpatialBaseline() {
+      document.getElementById("spatialSensitivityReset").click();
+    },
+    spatialSensitivity() {
+      const host = document.getElementById("spatialSensitivity");
+      const notice = document.getElementById("spatialSensitivityNotice");
+      const reset = document.getElementById("spatialSensitivityReset");
+      return {
+        hidden: host.hasAttribute("hidden"),
+        status: host.dataset.status || null,
+        heading: document.getElementById("spatialSensitivityHeading").textContent.trim(),
+        statusText: document.getElementById("spatialSensitivityStatus").textContent.trim(),
+        guard: document.getElementById("spatialSensitivityGuard").textContent.trim(),
+        emptyHidden: document.getElementById("spatialSensitivityEmpty").hasAttribute("hidden"),
+        emptyText: document.getElementById("spatialSensitivityEmpty").textContent.trim(),
+        noticeHidden: notice.hasAttribute("hidden"),
+        noticeText: notice.textContent.trim(),
+        windowsHidden: document.getElementById("spatialSensitivityWindows").hasAttribute("hidden"),
+        baselineLabel: document.getElementById("ssBaselineLabel").textContent.trim(),
+        baselineRadii: document.getElementById("ssBaselineRadii").textContent.trim(),
+        scenarioLabel: document.getElementById("ssScenarioLabel").textContent.trim(),
+        scenarioRadii: document.getElementById("ssScenarioRadii").textContent.trim(),
+        captureLabel: document.getElementById("spatialSensitivityCapture").textContent.trim(),
+        resetHidden: reset.hasAttribute("hidden"),
+        resetLabel: reset.textContent.trim(),
+        announcement: document.getElementById("spatialSensitivityA11y").textContent.trim(),
+        items: [...document.querySelectorAll("#spatialSensitivityItems .ss-item")].map((row) => ({
+          metricId: row.dataset.metricId,
+          transition: row.dataset.transition,
+          baselineDirection: row.dataset.baselineDirection,
+          scenarioDirection: row.dataset.scenarioDirection,
+          focused: row.dataset.focused,
+          ariaCurrent: row.getAttribute("aria-current"),
+          metric: row.querySelector(".ss-metric").textContent.trim(),
+          baseline: row.querySelector('.ss-reading[data-side="baseline"] .ss-reading-value').textContent.trim(),
+          baselineComparable: row.querySelector('.ss-reading[data-side="baseline"]').dataset.comparable,
+          scenario: row.querySelector('.ss-reading[data-side="scenario"] .ss-reading-value').textContent.trim(),
+          scenarioComparable: row.querySelector('.ss-reading[data-side="scenario"]').dataset.comparable,
+          // The transition LABEL alone, read from its own text node, so a test
+          // never conflates the conclusion with its supporting detail line.
+          transitionText: row.querySelector(".ss-transition").firstChild.textContent.trim(),
+          detail: row.querySelector(".ss-transition-detail")?.textContent.trim() || null,
+        })),
+      };
+    },
+    // The authoritative sensitivity MODEL for the current state, so a regression
+    // can assert the rendered text never drifts from the model and that the
+    // scenario side never drifts from the Bridge/Insight it is derived from.
+    spatialSensitivityModel() {
+      return buildSpatialSensitivityState();
+    },
+    spatialBaselineSnapshot() {
+      return spatialBaseline;
+    },
     // Drive the SHARED Bridge/Insight translator so both languages can be
     // asserted against the real render path. Test seam only: production keeps
     // following the document language, which this seam deliberately does NOT
@@ -1036,6 +1480,7 @@ if (haloRegressionRequested && haloRegressionLocal) {
       if (bridgeI18n) bridgeI18n.setLanguage(language);
       renderComparisonBridge();
       renderDecisionInsight();
+      renderSpatialSensitivity();
     },
     haloFocusedCount() {
       let count = 0;
@@ -1537,6 +1982,11 @@ function setComparisonRow(prefix, state, metricId) {
 function renderCompare() {
   if (!bEnabled) {
     // Single-lens: the halo still renders Lens A's four perimeter bars.
+    // Spatial Sensitivity compares two A ↔ B window configurations, so turning
+    // Lens B off removes the comparison the baseline described: the baseline is
+    // dropped rather than kept against a reading that no longer exists.
+    invalidateSpatialBaseline("evidence-changed");
+    renderSpatialSensitivity();
     updateHalo();
     return;
   }
@@ -1648,6 +2098,11 @@ function renderCompare() {
   lastBridgeContext = { radiusMode, radii: { ...radii } };
   renderComparisonBridge();
   renderDecisionInsight();
+  // Validity is enforced BEFORE the sensitivity model is built, so a baseline
+  // whose lens centre or evidence configuration has changed is dropped rather
+  // than compared as if only the radius had changed.
+  enforceSpatialBaselineValidity();
+  renderSpatialSensitivity();
   // Accessible Mobility relationship: same authoritative view-model as the Bridge and table.
   const mobilityRel = mobilityView.relationship;
   const mobilityAccessibleSentence = mobilityRel.comparable ? "" : `Mobility comparison ${bridgeT("withheld").toLowerCase()} · ${bridgeT(`reason.${mobilityRel.withheldReasonCode}`)}.`;

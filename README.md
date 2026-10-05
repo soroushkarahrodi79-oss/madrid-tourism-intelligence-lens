@@ -44,6 +44,18 @@ including comparing two places at once.
   under different window sizes); zero, N/A and OFF stay distinct and never become
   a delta. It is a focused reading, not a score or ranking. See
   [`docs/COMPARISON_BRIDGE_V1.md`](docs/COMPARISON_BRIDGE_V1.md).
+- Check **spatial sensitivity** of that reading: freeze the current comparison as
+  a **baseline window**, then change the Lens radii to make the live
+  configuration a **scenario window**. Each canonical metric reports whether its
+  relationship stayed the same, changed **B − A** direction, changed comparison
+  **basis** (raw counts → represented-record density, where the numeric change is
+  withheld because the two are not comparable), became **withheld** (mobility
+  under different window sizes) or became available. Changing a radius changes
+  which geography each Lens includes — it is **not** a forecast and not a causal
+  effect, and there is no score or ranking. Moving a Lens centre or changing the
+  evidence configuration invalidates the baseline rather than posing as radius
+  sensitivity. See
+  [`docs/SPATIAL_WINDOW_SENSITIVITY_V1.md`](docs/SPATIAL_WINDOW_SENSITIVITY_V1.md).
 - Adjust one active-Lens **radius** (100 m – 5 km); Lens A and Lens B keep
   independent radii, and both are shown in Compare mode. Lens B copies A's
   current radius on its first enable in a session and remembers its own radius

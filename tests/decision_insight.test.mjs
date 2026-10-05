@@ -464,8 +464,17 @@ test("the app renders the Insight from the authoritative models, in both languag
   // It is rebuilt from the authoritative states renderCompare() captured.
   assert.match(app, /lastBridgeContext = \{ radiusMode, radii: \{ \.\.\.radii \} \};\s*renderComparisonBridge\(\);\s*renderDecisionInsight\(\);/);
   // Metric focus only re-applies emphasis; it never rebuilds or hides items.
-  assert.match(app, /applyDecisionInsightFocus\(\);\s*window\.dispatchEvent\(new CustomEvent\("halo:metricfocus"/);
+  // Sibling derived surfaces may re-apply their own emphasis at the same point
+  // (Spatial Sensitivity does), so the gap allows further `apply…Focus()` calls
+  // and nothing else — the next assertion proves no surface is REBUILT here.
+  assert.match(app, /applyDecisionInsightFocus\(\);\s*(?:apply\w+Focus\(\);\s*)*window\.dispatchEvent\(new CustomEvent\("halo:metricfocus"/);
   assert.match(app, /function applyDecisionInsightFocus\(\)/);
+  // The focus machine must never call a render* rebuild: focus changes emphasis
+  // only, so no derived surface can lose or recompute its items on hover.
+  const focusMachine = app.slice(app.indexOf("function setHaloMetricFocus("), app.indexOf('new CustomEvent("halo:metricfocus"'));
+  assert.ok(focusMachine.length > 200, "the focus machine was located");
+  assert.ok(!/\brenderDecisionInsight\(/.test(focusMachine), "metric focus never rebuilds the Insight");
+  assert.ok(!/\brenderSpatialSensitivity\(/.test(focusMachine), "metric focus never rebuilds Spatial Sensitivity");
 
   // 2) The withheld clause reuses the Bridge's single authoritative text, so a
   //    withheld Insight line and the Bridge qualifier can never diverge.
@@ -477,7 +486,10 @@ test("the app renders the Insight from the authoritative models, in both languag
   //    on the Insight path. The whole surface is dictionary templates over codes.
   //    Comments are stripped first, so the scan judges EXECUTABLE code — a
   //    comment documenting the prohibition must not read as a violation of it.
-  const insightSection = app.slice(app.indexOf("// --- Decision Insight ---"), app.indexOf("function setHaloLine("));
+  // The slice ends at the next surface's banner, so this scan judges the
+  // Decision Insight renderer itself. Spatial Sensitivity carries its own
+  // equivalent no-runtime-LLM scan in tests/spatial_sensitivity.test.mjs.
+  const insightSection = app.slice(app.indexOf("// --- Decision Insight ---"), app.indexOf("// --- Spatial Window Sensitivity ---"));
   assert.ok(insightSection.length > 500, "the Insight renderer section was located");
   const insightCode = insightSection.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
   assert.ok(!/\/\//.test(insightCode.replace(/https?:\/\//g, "")), "all comments were stripped before scanning");

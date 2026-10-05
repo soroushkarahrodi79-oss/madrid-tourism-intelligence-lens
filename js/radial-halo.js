@@ -731,6 +731,303 @@ function buildDecisionInsightModel({ metricModels, radiusMode = COMPARISON_RADIU
   });
 }
 
+// --- Spatial Window Sensitivity V1 presentation model ----------------------
+//
+// SENSITIVITY ANALYSIS, NOT FORECASTING.
+//
+// Every other surface answers a question about ONE analytical window pair: the
+// halo asks "what is locally present?", the Bridge "what is the detailed
+// comparison for this metric?", Decision Insight "what are the observed
+// contrasts across the canonical set?". This layer asks a question ABOUT THE
+// METHOD instead:
+//
+//   "If I change the spatial windows used for this comparison, does the
+//    analytical reading stay the same, change direction, change basis, become
+//    non-comparable, or become comparable?"
+//
+// The user freezes the current configuration as the BASELINE window and then
+// deliberately changes the Lens radii; the live configuration becomes the
+// SCENARIO window. The model reports how the EXISTING comparison responded to
+// that change of analytical window.
+//
+// WHAT THE SCENARIO IS: an alternative ANALYTICAL WINDOW CONFIGURATION over the
+// same evidence. Changing a radius changes which geography — and therefore which
+// records — each Lens includes. It does NOT change Madrid.
+//
+// WHAT THE SCENARIO IS NOT: a forecast, a prediction, a projection, a future
+// state, a simulation, a policy scenario, an intervention estimate, a causal
+// model, a recommendation, a score or an LLM-generated narrative. A different
+// B − A under a different radius does not mean the destination changed; it means
+// the interpretation is SENSITIVE TO THE CHOSEN SPATIAL WINDOW. See
+// docs/SPATIAL_WINDOW_SENSITIVITY_V1.md.
+//
+// DERIVED, NEVER RE-DERIVED. The model compares two snapshots of the
+// AUTHORITATIVE interpretation: each side is decisionInsightItem() over a
+// buildComparisonBridgeModel() output — the very same objects the halo, the
+// Bridge, Decision Insight and the table read. Comparability, the delta,
+// density normalization, the Mobility unequal-window rule, the UTCI timestep
+// contract and the AOI conditions are all read THROUGH. This layer compares
+// interpretations; it never recreates them, so the scenario side can never
+// become an independent fifth interpretation of the current state.
+//
+// It is deterministic and rule-based: NO runtime LLM, no generative service, no
+// network call. It returns CODES only; the view layer localizes them.
+const SPATIAL_SENSITIVITY_METRIC_IDS = BRIDGE_METRIC_IDS;
+const SPATIAL_SENSITIVITY_GUARD_CODE = "window-sensitivity-only";
+
+// Transition taxonomy — deliberately SMALL. Each code answers "what happened to
+// the analytical reading?", never "what happened to Madrid?".
+//
+//   UNCHANGED_COMPARABLE    both windows comparable, same basis, same B − A sign
+//   DIRECTION_CHANGED       both comparable, same basis, B − A sign changed
+//   BASIS_CHANGED           both comparable, but the comparison BASIS differs
+//                           (e.g. raw counts to represented-record density), so
+//                           the two differences are not numerically comparable
+//   BECAME_WITHHELD         baseline comparable, scenario not comparable
+//   BECAME_COMPARABLE       baseline not comparable, scenario comparable
+//   WITHHELD_UNCHANGED      neither comparable, equivalent authoritative reason
+//   WITHHELD_REASON_CHANGED neither comparable, authoritative reason changed
+//   EVIDENCE_CHANGED        the evidence contract itself differs between the two
+//                           snapshots, so no window-sensitivity reading is valid
+//
+// EVIDENCE_CHANGED is a MODEL-LEVEL GUARD, not a normal V1 state: the UI policy
+// invalidates the baseline as soon as the evidence configuration changes, so a
+// surviving baseline always shares the scenario's evidence contract. The code
+// exists so the pure model can never silently present an evidence-configuration
+// difference as pure spatial sensitivity.
+const SENSITIVITY_TRANSITION = Object.freeze({
+  UNCHANGED_COMPARABLE: "UNCHANGED_COMPARABLE",
+  DIRECTION_CHANGED: "DIRECTION_CHANGED",
+  BASIS_CHANGED: "BASIS_CHANGED",
+  BECAME_WITHHELD: "BECAME_WITHHELD",
+  BECAME_COMPARABLE: "BECAME_COMPARABLE",
+  WITHHELD_UNCHANGED: "WITHHELD_UNCHANGED",
+  WITHHELD_REASON_CHANGED: "WITHHELD_REASON_CHANGED",
+  EVIDENCE_CHANGED: "EVIDENCE_CHANGED",
+});
+
+// Overall summary — CATEGORICAL AND CONSERVATIVE. There is deliberately NO
+// number: no robustness percentage, no confidence, no stability score, no
+// sensitivity index, because the project defines no statistical robustness test
+// and a number here would invite exactly that misreading.
+//
+//   STABLE   at least one metric is comparable in BOTH windows, and no metric
+//            changed state, direction, basis or withheld reason
+//   MIXED    at least one metric is comparable in both windows, and something
+//            changed
+//   LIMITED  no metric is comparable in both windows, so there is not enough
+//            comparable evidence to read window sensitivity at all
+//   EVIDENCE_CHANGED  the evidence contract differs (see above)
+const SENSITIVITY_STATUS = Object.freeze({
+  STABLE: "STABLE",
+  MIXED: "MIXED",
+  LIMITED: "LIMITED",
+  EVIDENCE_CHANGED: "EVIDENCE_CHANGED",
+});
+
+// Deep-freeze a captured baseline so a later radius drag, lens move or refresh
+// can never mutate it. The baseline is the HISTORICAL snapshot: if it could
+// drift with the live state, the whole comparison would be meaningless.
+function freezeSpatialSnapshot(value) {
+  if (value == null || typeof value !== "object") return value;
+  if (Array.isArray(value)) return Object.freeze(value.map(freezeSpatialSnapshot));
+  const copy = {};
+  for (const key of Object.keys(value)) copy[key] = freezeSpatialSnapshot(value[key]);
+  return Object.freeze(copy);
+}
+
+// Capture an immutable BASELINE snapshot. It stores STRUCTURED MODEL STATE —
+// the authoritative per-metric interpretation, the radii, the lens centres and
+// the evidence-contract key — never rendered text: text is rendering, the model
+// is truth, so the baseline reading is reproducible without reading old DOM.
+function captureSpatialSensitivityBaseline({ metricModels, radii, centers, radiusMode, evidenceKey } = {}) {
+  if (!metricModels) return null;
+  const items = {};
+  for (const metricId of SPATIAL_SENSITIVITY_METRIC_IDS) {
+    // Snapshot the AUTHORITATIVE interpretation, not raw evidence: the baseline
+    // reading can then be reproduced exactly as it was read at capture time.
+    items[metricId] = decisionInsightItem(metricId, metricModels[metricId] || null);
+  }
+  return freezeSpatialSnapshot({
+    radii: radii ? { A: radii.A, B: radii.B } : null,
+    centers: centers ? { A: { lat: centers.A.lat, lon: centers.A.lon }, B: { lat: centers.B.lat, lon: centers.B.lon } } : null,
+    radiusMode: radiusMode || null,
+    evidenceKey: evidenceKey == null ? null : String(evidenceKey),
+    items,
+  });
+}
+
+// Has a Lens CENTRE moved materially since capture? Radius changes are the
+// scenario; a centre change is a DIFFERENT PLACE, so comparing it as if it were
+// radius sensitivity would be wrong and the UI invalidates the baseline instead.
+// Map pan and zoom never move a centre and therefore never invalidate.
+// The tolerance absorbs floating-point jitter only, not a deliberate move.
+function spatialBaselineCenterChanged(baselineCenters, currentCenters, toleranceM = 1) {
+  if (!baselineCenters || !currentCenters) return false;
+  for (const which of ["A", "B"]) {
+    const from = baselineCenters[which];
+    const to = currentCenters[which];
+    if (!from || !to) return true;
+    if (haloHaversineMeters(from, to) > toleranceM) return true;
+  }
+  return false;
+}
+
+// Two differences may be subtracted ONLY when they mean the same thing. At
+// minimum: both comparable, same metric, same deltaKind, same basisCode and the
+// same evidence contract. Raw counts and represented-record density are NOT
+// numerically comparable and are never unit-converted to force a comparison.
+function spatialBasisCompatible(baselineItem, scenarioItem, evidenceCompatible) {
+  return Boolean(evidenceCompatible)
+    && baselineItem.state === "comparable" && scenarioItem.state === "comparable"
+    && baselineItem.metricId === scenarioItem.metricId
+    && baselineItem.deltaKind === scenarioItem.deltaKind
+    && baselineItem.basisCode === scenarioItem.basisCode;
+}
+
+// Non-comparable states are EQUIVALENT only when both the descriptive state and
+// the authoritative reason match, so "off" never reads as "unavailable" and a
+// changed reason is always surfaced as a change.
+function spatialWithheldEquivalent(baselineItem, scenarioItem) {
+  return baselineItem.state === scenarioItem.state
+    && baselineItem.withheldReasonCode === scenarioItem.withheldReasonCode;
+}
+
+function spatialTransitionCode(baselineItem, scenarioItem, evidenceCompatible) {
+  if (!evidenceCompatible) return SENSITIVITY_TRANSITION.EVIDENCE_CHANGED;
+  const baselineComparable = baselineItem.state === "comparable";
+  const scenarioComparable = scenarioItem.state === "comparable";
+  if (baselineComparable && scenarioComparable) {
+    // Basis is checked BEFORE direction: when the basis differs the two signs
+    // describe different quantities, so "direction changed" would be a false
+    // reading of an incomparable pair.
+    if (baselineItem.deltaKind !== scenarioItem.deltaKind || baselineItem.basisCode !== scenarioItem.basisCode) {
+      return SENSITIVITY_TRANSITION.BASIS_CHANGED;
+    }
+    return baselineItem.direction === scenarioItem.direction
+      ? SENSITIVITY_TRANSITION.UNCHANGED_COMPARABLE
+      : SENSITIVITY_TRANSITION.DIRECTION_CHANGED;
+  }
+  if (baselineComparable && !scenarioComparable) return SENSITIVITY_TRANSITION.BECAME_WITHHELD;
+  if (!baselineComparable && scenarioComparable) return SENSITIVITY_TRANSITION.BECAME_COMPARABLE;
+  return spatialWithheldEquivalent(baselineItem, scenarioItem)
+    ? SENSITIVITY_TRANSITION.WITHHELD_UNCHANGED
+    : SENSITIVITY_TRANSITION.WITHHELD_REASON_CHANGED;
+}
+
+// The per-side reading, read THROUGH from the authoritative Insight item. No
+// arithmetic and no comparison rule lives here.
+function spatialSensitivitySide(item) {
+  return {
+    // Carried so the view can resolve this metric's unit through the SAME
+    // dictionary key the Insight uses, and reuse the Insight's own relationship
+    // clause verbatim rather than re-wording the reading.
+    metricId: item.metricId,
+    state: item.state,
+    comparable: item.state === "comparable",
+    direction: item.direction,
+    deltaValue: item.deltaValue,
+    deltaKind: item.deltaKind,
+    basisCode: item.basisCode,
+    withheldReasonCode: item.withheldReasonCode,
+    evidenceQualifier: item.evidenceQualifier,
+    aEvidence: item.aEvidence,
+    bEvidence: item.bEvidence,
+  };
+}
+
+function spatialSensitivityItem(metricId, baselineItem, scenarioItem, evidenceCompatible) {
+  const transitionCode = spatialTransitionCode(baselineItem, scenarioItem, evidenceCompatible);
+  const basisCompatible = spatialBasisCompatible(baselineItem, scenarioItem, evidenceCompatible);
+  // The CHANGE IN THE OBSERVED COMPARISON under the alternative window — and
+  // only where the two differences are semantically compatible. Any ambiguity
+  // withholds it: a number that cannot be interpreted is worse than no number.
+  //
+  // This is an OBSERVED SENSITIVITY OF THE ANALYTICAL WINDOW. It is not an
+  // impact, an effect, a causal change or a future change: the radius change did
+  // not make records exist, it changed which geography is included.
+  const deltaChange = basisCompatible ? scenarioItem.deltaValue - baselineItem.deltaValue : null;
+  return {
+    metricId,
+    baseline: spatialSensitivitySide(baselineItem),
+    scenario: spatialSensitivitySide(scenarioItem),
+    transitionCode,
+    basisCompatible,
+    deltaChange,
+    // Correct units always travel with the number, taken from the shared basis.
+    deltaChangeKind: basisCompatible ? scenarioItem.deltaKind : null,
+    deltaChangeBasisCode: basisCompatible ? scenarioItem.basisCode : null,
+  };
+}
+
+function spatialSensitivityStatus(items, evidenceCompatible) {
+  if (!evidenceCompatible) return SENSITIVITY_STATUS.EVIDENCE_CHANGED;
+  const bothComparable = items.filter((item) => item.baseline.comparable && item.scenario.comparable);
+  // Without a single metric comparable in BOTH windows there is nothing whose
+  // stability could be assessed, so the summary abstains rather than implying
+  // a stable reading from absent evidence.
+  if (bothComparable.length === 0) return SENSITIVITY_STATUS.LIMITED;
+  const unchanged = items.every((item) =>
+    item.transitionCode === SENSITIVITY_TRANSITION.UNCHANGED_COMPARABLE
+    || item.transitionCode === SENSITIVITY_TRANSITION.WITHHELD_UNCHANGED);
+  return unchanged ? SENSITIVITY_STATUS.STABLE : SENSITIVITY_STATUS.MIXED;
+}
+
+// Compare a captured BASELINE snapshot against the CURRENT (scenario) Bridge
+// models. `scenarioMetricModels` maps each canonical metric id to its
+// buildComparisonBridgeModel output — exactly what Decision Insight consumes —
+// so the scenario side of this model and the rendered Decision Insight are the
+// same interpretation by construction.
+//
+// Canonical order is FIXED (tourism, stays, mobility, utci) and is NEVER sorted
+// by magnitude, absolute change, importance or availability: the four metrics
+// have different units and meanings, so any ordering would falsely imply
+// cross-metric comparability. There is no "top sensitivity".
+function buildSpatialSensitivityModel({
+  baseline = null, baselineMetricModels = null, scenarioMetricModels = null,
+  baselineRadii = null, scenarioRadii = null,
+  baselineEvidenceKey = null, scenarioEvidenceKey = null,
+} = {}) {
+  // Accept either a captured baseline snapshot or raw baseline Bridge models.
+  const baselineSnapshot = baseline
+    || (baselineMetricModels
+      ? captureSpatialSensitivityBaseline({ metricModels: baselineMetricModels, radii: baselineRadii, radiusMode: null, evidenceKey: baselineEvidenceKey })
+      : null);
+  if (!baselineSnapshot || !scenarioMetricModels) return null;
+  const effectiveBaselineKey = baselineEvidenceKey == null ? baselineSnapshot.evidenceKey : String(baselineEvidenceKey);
+  const effectiveScenarioKey = scenarioEvidenceKey == null ? null : String(scenarioEvidenceKey);
+  // Unknown keys on both sides mean the caller does not track an evidence
+  // contract; only a KNOWN DIFFERENCE marks the snapshots incompatible.
+  const evidenceCompatible = effectiveBaselineKey == null || effectiveScenarioKey == null
+    ? true
+    : effectiveBaselineKey === effectiveScenarioKey;
+  const items = SPATIAL_SENSITIVITY_METRIC_IDS.map((metricId) => {
+    const baselineItem = baselineSnapshot.items[metricId] || decisionInsightItem(metricId, null);
+    const scenarioItem = decisionInsightItem(metricId, scenarioMetricModels[metricId] || null);
+    return freezeSpatialSnapshot(spatialSensitivityItem(metricId, baselineItem, scenarioItem, evidenceCompatible));
+  });
+  const effectiveScenarioRadii = scenarioRadii || null;
+  return Object.freeze({
+    status: spatialSensitivityStatus(items, evidenceCompatible),
+    evidenceCompatible,
+    baseline: Object.freeze({
+      radii: baselineSnapshot.radii ? Object.freeze({ A: baselineSnapshot.radii.A, B: baselineSnapshot.radii.B }) : null,
+      radiusMode: baselineSnapshot.radiusMode,
+    }),
+    scenario: Object.freeze({
+      radii: effectiveScenarioRadii ? Object.freeze({ A: effectiveScenarioRadii.A, B: effectiveScenarioRadii.B }) : null,
+      radiusMode: scenarioMetricModels.tourism ? scenarioMetricModels.tourism.radiusMode : null,
+    }),
+    // True when the scenario window is identical to the captured baseline
+    // window, so the view can say so instead of implying a change was made.
+    windowUnchanged: Boolean(baselineSnapshot.radii && effectiveScenarioRadii
+      && baselineSnapshot.radii.A === effectiveScenarioRadii.A
+      && baselineSnapshot.radii.B === effectiveScenarioRadii.B),
+    items: Object.freeze(items),
+    guardCode: SPATIAL_SENSITIVITY_GUARD_CODE,
+  });
+}
+
 // --- Glyph spec ------------------------------------------------------------
 
 function haloVisualState(metric, state, which) {
@@ -854,6 +1151,10 @@ if (typeof module !== "undefined" && module.exports) {
     BRIDGE_METRIC_IDS, buildComparisonBridgeModel, bridgeSideEvidence, bridgeWithheldReason,
     DECISION_INSIGHT_METRIC_IDS, DECISION_INSIGHT_GUARD_CODE, buildDecisionInsightModel,
     decisionInsightItemState, decisionInsightDirection, decisionInsightStatus,
+    SPATIAL_SENSITIVITY_METRIC_IDS, SPATIAL_SENSITIVITY_GUARD_CODE,
+    SENSITIVITY_TRANSITION, SENSITIVITY_STATUS,
+    buildSpatialSensitivityModel, captureSpatialSensitivityBaseline,
+    spatialBaselineCenterChanged, spatialBasisCompatible, spatialSensitivityStatus,
     computeHaloReferenceScales, deriveHaloUtciBand, haloDensity, haloDensityMagnitude, haloUtciMagnitude, formatHaloValue, haloQuantile, haloHaversineMeters,
     activityState, utciState, countState,
     haloLayoutForRadius, haloLabelAnchorForSlot, haloValueAnchorForSlot, haloSlotFootprint, haloFootprintsOverlap, buildHaloGlyphSpec, resolveHaloSlotVisibility,

@@ -337,6 +337,63 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .di-item[data-focused="true"] .di-metric{color:#dfecf8}
 .di-item[data-focused="true"] .di-rel{color:#f2f8ff}
 .di-guard{margin:7px 0 0;padding-top:5px;border-top:1px solid rgba(255,255,255,.07);font-size:7.2px;line-height:1.4;color:#8296ac;text-align:center;overflow-wrap:anywhere}
+/* SPATIAL WINDOW SENSITIVITY V1 — a METHOD check, styled as one.
+   Baseline and scenario are two readings of the same evidence under different
+   analytical windows, so neither side is ever styled as the better one: no
+   traffic-light colours, no winner badge, no arrows, no direction-based
+   colouring and no progress/score bar. Every state is carried by WORDS
+   (Relationship unchanged, Basis changed, Comparison became withheld, …), so
+   nothing a reader needs depends on colour, hover or pointer input. The
+   baseline column is tinted only to mark it as the FROZEN historical snapshot,
+   never as a judgment. */
+.spatial-sensitivity{margin:0 2px 7px;padding:8px 9px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.022)}
+.spatial-sensitivity[hidden]{display:none}
+.ss-head{display:flex;flex-direction:column;gap:2px;margin:0 0 7px}
+.spatial-sensitivity .ss-title{font-size:8.6px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#cfe0f0;margin:0}
+.ss-status{font-size:7.2px;line-height:1.35;color:#8ba0b7;overflow-wrap:anywhere}
+.ss-empty{margin:0 0 7px;font-size:7.8px;line-height:1.4;color:#93a7bd;overflow-wrap:anywhere}
+.ss-empty[hidden]{display:none}
+/* The invalidation notice is a plain, quiet statement of fact — the baseline no
+   longer describes the same place or the same evidence — not an error state. */
+.ss-notice{margin:0 0 6px;padding:4px 6px;border-left:2px solid rgba(155,213,255,.45);border-radius:4px;background:rgba(120,190,255,.06);font-size:7.5px;line-height:1.4;color:#c0d2e4;overflow-wrap:anywhere}
+.ss-notice[hidden]{display:none}
+/* Baseline ↔ scenario windows. Two rows, never three cramped columns. */
+.ss-windows{display:flex;flex-direction:column;gap:3px;margin:0 0 6px;padding:0}
+.ss-windows[hidden]{display:none}
+.ss-window{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);align-items:baseline;gap:8px;padding:3px 5px;border-radius:5px;background:rgba(255,255,255,.02)}
+.ss-window-label{margin:0;font-size:7.4px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#9fb4ca;overflow-wrap:anywhere}
+.ss-window-radii{margin:0;font-size:8.2px;font-weight:700;color:#eaf2fb;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.ss-items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+/* Each metric stacks BASELINE → SCENARIO → TRANSITION. The order is the reading
+   order of the analysis and is identical at every width, so a narrow layout
+   never reshuffles the meaning. */
+.ss-item{display:flex;flex-direction:column;gap:2px;padding:4px 5px;border-left:2px solid transparent;border-radius:5px;background:rgba(255,255,255,.018)}
+.ss-metric{font-size:8px;font-weight:650;color:#c2d3e4;overflow-wrap:anywhere}
+.ss-reading{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);align-items:baseline;gap:8px}
+.ss-reading-label{font-size:7.2px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:#8ba0b7;overflow-wrap:anywhere}
+.ss-reading-value{font-size:8.2px;font-weight:700;color:#eaf2fb;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+/* A non-comparable reading is quieter than an observed difference but stays at
+   readable contrast. The distinction is evidence strength, never judgment. */
+.ss-reading[data-comparable="false"] .ss-reading-value{font-size:8px;font-weight:620;color:#b2bfcd}
+/* The transition is the ANSWER of this layer, so it reads as the row's
+   conclusion — emphasis by weight and position only, never by hue. */
+.ss-transition{margin-top:1px;font-size:7.8px;line-height:1.4;font-weight:700;color:#d6e4f2;overflow-wrap:anywhere}
+.ss-transition-detail{display:block;margin-top:1px;font-size:7.2px;line-height:1.4;font-weight:500;color:#93a7bd;overflow-wrap:anywhere}
+/* Focused metric: SUBTLE emphasis only, reusing the existing halo/table focus
+   state. Nothing is hidden and the others stay fully readable — Spatial
+   Sensitivity is informational and never becomes another metric selector. */
+.ss-items[data-has-focus="true"] .ss-item[data-focused="false"]{opacity:.78}
+.ss-item[data-focused="true"]{border-left-color:rgba(120,190,255,.55);background:rgba(120,190,255,.07)}
+.ss-item[data-focused="true"] .ss-metric{color:#dfecf8}
+.ss-item[data-focused="true"] .ss-transition{color:#f2f8ff}
+.ss-actions{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0 0}
+.ss-button{flex:1 1 auto;min-width:0;min-height:24px;padding:4px 8px;border:1px solid rgba(155,213,255,.35);border-radius:6px;background:rgba(120,190,255,.1);color:#dfecf8;font:inherit;font-size:7.8px;font-weight:650;letter-spacing:.02em;text-align:center;cursor:pointer;overflow-wrap:anywhere}
+.ss-button:hover{background:rgba(120,190,255,.18);border-color:rgba(155,213,255,.6)}
+.ss-button:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px}
+.ss-button-quiet{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.035);color:#bdcbd9}
+.ss-button-quiet:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.3)}
+.ss-button[hidden]{display:none}
+.ss-guard{margin:7px 0 0;padding-top:5px;border-top:1px solid rgba(255,255,255,.07);font-size:7.2px;line-height:1.4;color:#8296ac;text-align:center;overflow-wrap:anywhere}
 /* Panel → halo focus control: the metric name is an accessible button, so the
    table keeps its row-header semantics while the panel can drive the halo. */
 .cmp-metric-focus{display:inline;margin:0;padding:0;border:0;background:none;font:inherit;color:inherit;letter-spacing:inherit;text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.22);text-underline-offset:2px}
@@ -488,6 +545,14 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .comparison-bridge-empty{font-size:9px}.cb-metric-name{font-size:10px}.cb-value{font-size:16px}.cb-rel-value{font-size:13px}.cb-sub,.cb-radius,.cb-qualifier{font-size:8.2px}.comparison-bridge[data-relationship="withheld"] .cb-rel-value{font-size:9.4px}
   .decision-insight .di-title{font-size:9.4px}.di-status{font-size:7.9px}.di-metric{font-size:8.8px}.di-rel{font-size:9.2px}.di-guard{font-size:8px}
   .di-item[data-state="withheld"] .di-rel,.di-item[data-state="unavailable"] .di-rel,.di-item[data-state="off"] .di-rel{font-size:8.4px}
+  /* Touch/tablet typography for the sensitivity check. Sizes grow, the stacked
+     baseline → scenario → transition order never changes, and the buttons reach
+     a comfortable touch target. */
+  .spatial-sensitivity .ss-title{font-size:9.4px}.ss-status{font-size:7.9px}.ss-empty,.ss-notice{font-size:8.4px}
+  .ss-metric{font-size:8.8px}.ss-window-label,.ss-reading-label{font-size:7.9px}.ss-window-radii,.ss-reading-value{font-size:9.2px}
+  .ss-reading[data-comparable="false"] .ss-reading-value{font-size:8.4px}
+  .ss-transition{font-size:8.6px}.ss-transition-detail{font-size:8px}.ss-guard{font-size:8px}
+  .ss-button{min-height:40px;font-size:8.8px}
   select,.smallbtn{font-size:16px}
   .basemap-control select{font-size:16px}
   .map-control select{font-size:16px}
@@ -511,6 +576,10 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .switch span:after{width:20px;height:20px;left:2px;top:2px}
   .switch input:checked+span:after{left:20px}
   .leaflet-control-zoom a{width:42px!important;height:42px!important;line-height:42px!important;font-size:22px!important}
+  /* Baseline capture/reset are touch targets wherever the pointer is coarse —
+     including an iPad in landscape, which is far too wide for the width-based
+     typography query above. */
+  .ss-button{min-height:44px;font-size:8.6px}
 }
 
 @media(max-width:560px){
