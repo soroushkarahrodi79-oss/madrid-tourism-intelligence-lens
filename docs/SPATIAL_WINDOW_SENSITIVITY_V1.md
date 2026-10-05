@@ -149,6 +149,18 @@ regression-seam evidence override. Lens radii and centres are deliberately
 Turning Lens B off also drops the baseline, since the A ↔ B comparison it
 described no longer exists.
 
+The accommodation-category transition lives in a single production helper,
+`setStayKindFilter(nextKind)`, which the real `#stayKindFilter` handler and the
+gated regression seam both call. That matters for testability: the `<select>` is
+correctly **disabled** whenever the packaged fallback carries no accommodation
+type metadata (true of a clean CI checkout), so a regression driving the control
+would assert the deployment's data shape rather than the invalidation contract.
+Routing both through one helper lets the test exercise the real state transition
+— evidence key, layer rebuild and re-render — while bypassing only the disabled
+control. The production availability rule is untouched, and source-guard tests
+pin that the handler and the seam share that one helper and that the seam stays
+query-gated and localhost-only.
+
 The pure model keeps `EVIDENCE_CHANGED` as a second line of defence: if it is
 ever handed two snapshots with differing evidence keys it refuses every numeric
 change rather than presenting the difference as spatial sensitivity. Under the UI

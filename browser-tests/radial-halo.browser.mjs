@@ -1752,15 +1752,149 @@ test("SS 14 an evidence-configuration change invalidates the baseline rather tha
 test("SS 14(2) an accommodation-category change also invalidates the baseline", async (t) => {
   const page = await openBridge();
   t.after(() => page.close());
-  // No evidence override here: the stay filter must affect the REAL evidence key.
-  await page.evaluate(() => window.__HALO_REGRESSION__.setComparisonOverride(null));
+  // DETERMINISTIC REGARDLESS OF PACKAGED DATA. The #stayKindFilter <select> is
+  // legitimately DISABLED whenever the packaged fallback carries no
+  // accommodation type metadata (true of a clean CI checkout), so driving the
+  // control would test the deployment's data shape instead of the invalidation
+  // contract. This drives the SAME setStayKindFilter() production helper the
+  // real onchange handler calls, through the gated seam, so the evidence-key
+  // change, the stay-layer rebuild and the re-render are all production code.
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  const before = await page.evaluate(() => ({
+    kind: window.__HALO_REGRESSION__.stayKindFilterValue(),
+    radii: { A: document.getElementById("cmpPoiA").textContent, B: document.getElementById("cmpPoiB").textContent },
+    readout: document.getElementById("comparisonRadiusReadout").textContent.trim(),
+    centers: window.__HALO_REGRESSION__.lensCenters(),
+  }));
+  assert.equal(before.kind, "all", "the session starts on the all-accommodation category");
   await ssCapture(page);
-  assert.ok((await ssModel(page)) !== null, "a baseline was captured from the real data path");
-  await page.selectOption("#stayKindFilter", { index: 1 });
-  await page.evaluate(() => window.__HALO_REGRESSION__.recompute());
+  const captured = await ssModel(page);
+  assert.ok(captured !== null, "a valid baseline was captured");
+  assert.deepEqual(captured.baseline.radii, { A: 900, B: 900 });
+
+  // A REAL category change, to a different known Madrid Destino category.
+  await page.evaluate(() => window.__HALO_REGRESSION__.setStayKindFilterForTest("hotel"));
+  assert.equal(await page.evaluate(() => window.__HALO_REGRESSION__.stayKindFilterValue()), "hotel",
+    "the production helper actually changed the category state");
+
   const state = await ssState(page);
-  assert.equal(await ssModel(page), null);
-  assert.match(state.noticeText, /evidence configuration changed/);
+  // The baseline is dropped, not silently compared as radius sensitivity.
+  assert.equal(await ssModel(page), null, "an evidence-configuration change invalidates the baseline");
+  assert.equal(state.status, "no-baseline");
+  assert.equal(state.emptyHidden, false, "the UI returned to the no-baseline state");
+  assert.equal(state.windowsHidden, true);
+  assert.equal(state.items.length, 0, "no stale readings survive");
+  assert.equal(state.resetHidden, true);
+  assert.match(state.captureLabel, /Capture current comparison/);
+  // The notice is visible and names the evidence configuration, not the window.
+  assert.equal(state.noticeHidden, false);
+  assert.match(state.noticeText, /Baseline invalidated · evidence configuration changed/);
+  assert.doesNotMatch(state.noticeText, /location changed/, "this is not a centre change");
+
+  // Invalidation must not disturb the live Lens geometry at all.
+  const after = await page.evaluate(() => ({
+    readout: document.getElementById("comparisonRadiusReadout").textContent.trim(),
+    centers: window.__HALO_REGRESSION__.lensCenters(),
+  }));
+  assert.equal(after.readout, before.readout, "the current Lens radii are untouched");
+  assert.deepEqual(after.centers, before.centers, "the current Lens centres are untouched");
+
+  // The user can capture a fresh baseline under the new category, which clears
+  // the notice — the contract is invalidation, not a dead end.
+  await ssCapture(page);
+  const recaptured = await ssState(page);
+  assert.equal(recaptured.noticeHidden, true);
+  assert.equal(recaptured.status, "STABLE");
+  assert.deepEqual((await ssModel(page)).baseline.radii, { A: 900, B: 900 });
+});
+
+test("SS 14(3) the category transition is driven by one production helper, reachable only through the gated seam", async (t) => {
+  // A SOURCE GUARD, so the architecture cannot drift back to a test-only path.
+  const app = fs.readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
+  // 1) The real <select> handler delegates to the shared production helper and
+  //    performs no state transition of its own.
+  assert.match(app, /function setStayKindFilter\(nextKind\)\s*\{\s*stayKindFilter = nextKind;\s*rebuildDenseLayer\("stay"\);\s*refresh\(\);\s*\}/,
+    "one named production helper owns the transition");
+  assert.match(app, /document\.getElementById\("stayKindFilter"\)\.onchange = \(e\) => \{\s*setStayKindFilter\(e\.target\.value\);\s*\};/,
+    "the real UI handler delegates to that helper");
+  // The old inline duplication must be gone: assigning stayKindFilter directly
+  // from an event is exactly the drift this guard prevents.
+  assert.ok(!/stayKindFilter = e\.target\.value/.test(app), "no inline duplicate of the transition");
+  // stayKindFilter is only ever reassigned inside the one helper.
+  const assignments = [...app.matchAll(/^\s*stayKindFilter = /gm)];
+  assert.equal(assignments.length, 1, "the category state has exactly one writer");
+
+  // 2) The regression seam delegates to the SAME helper — no duplicated filter
+  //    or invalidation logic, and no separate scenario render path.
+  assert.match(app, /setStayKindFilterForTest\(kind\)\s*\{\s*setStayKindFilter\(kind\);\s*\}/,
+    "the seam calls the production helper and nothing else");
+  for (const forbidden of ["rebuildDenseLayer", "renderSpatialSensitivity", "invalidateSpatialBaseline", "disabled"]) {
+    const seamFn = app.slice(app.indexOf("setStayKindFilterForTest(kind)"), app.indexOf("stayKindFilterValue()"));
+    assert.ok(!seamFn.includes(forbidden), `the seam must not itself call ${forbidden}`);
+  }
+
+  // 3) Every seam member, including the new ones, stays inside the query-gated
+  //    AND localhost-only block. Nothing test-only is reachable in production.
+  assert.match(app, /const haloRegressionRequested = new URLSearchParams\(window\.location\.search\)\.get\("haloRegressionTest"\) === "1";/);
+  assert.match(app, /const haloRegressionLocal = window\.location\.hostname === "127\.0\.0\.1" \|\| window\.location\.hostname === "localhost";/);
+  assert.match(app, /if \(haloRegressionRequested && haloRegressionLocal\) \{\s*window\.__HALO_REGRESSION__ = Object\.freeze\(\{/);
+  const seamStart = app.indexOf("if (haloRegressionRequested && haloRegressionLocal) {");
+  const seamEnd = app.indexOf("const LENS_BASEMAP_STYLES");
+  assert.ok(seamStart > 0 && seamEnd > seamStart, "the gated seam block was located");
+  const seamBlock = app.slice(seamStart, seamEnd);
+  // Unambiguous test-only identifiers: each must live inside the gated block and
+  // appear NOWHERE else in the file.
+  for (const member of ["setStayKindFilterForTest", "stayKindFilterValue", "lensCenters", "spatialSensitivityModel", "spatialBaselineSnapshot"]) {
+    assert.ok(seamBlock.includes(member), `${member} lives inside the gated seam`);
+    assert.equal(app.split(member).length - 1, seamBlock.split(member).length - 1,
+      `${member} appears nowhere outside the gated seam`);
+  }
+  // There is exactly one seam assignment, and it is the gated one.
+  assert.equal((app.match(/window\.__HALO_REGRESSION__ =/g) || []).length, 1);
+});
+
+test("SS 14(4) the seam is absent, and the category filter keeps its production availability rule, without the query gate", async (t) => {
+  // Served from 127.0.0.1 but WITHOUT haloRegressionTest=1: the seam must not exist.
+  const page = await browser.newPage({ viewport: { width: 1366, height: 1024 } });
+  t.after(() => page.close());
+  await page.route("**/*", (route) => {
+    const url = new URL(route.request().url());
+    if (url.hostname !== "127.0.0.1" && url.hostname !== "localhost") return route.abort();
+    return route.continue();
+  });
+  await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => Boolean(document.querySelector("#stayKindFilter option")));
+  assert.equal(await page.evaluate(() => typeof window.__HALO_REGRESSION__), "undefined",
+    "no test-only code is reachable during normal production use");
+  // Every test-only ENTRY POINT is gone with it. (setStayKindFilter itself is
+  // ordinary production code at script scope, exactly like refresh() and
+  // renderCompare() already are — js/app.js is a classic script, so that is
+  // pre-existing architecture and not a seam leak. What must never be reachable
+  // is a test-only shortcut, and the seam is the only one.)
+  const seamMembers = await page.evaluate(() => ({
+    seam: typeof window.__HALO_REGRESSION__,
+    forTest: typeof window.setStayKindFilterForTest,
+    model: typeof window.spatialSensitivityModel,
+    snapshot: typeof window.spatialBaselineSnapshot,
+  }));
+  assert.deepEqual(seamMembers, { seam: "undefined", forTest: "undefined", model: "undefined", snapshot: "undefined" },
+    "no test-only entry point exists without the query gate");
+  // The production availability rule is intact and is driven ONLY by whether the
+  // packaged data carries accommodation type metadata — this fix did not change
+  // it, and the test above never needed it to be enabled.
+  const filter = await page.evaluate(() => {
+    const select = document.getElementById("stayKindFilter");
+    const kinds = new Set([...document.querySelectorAll("#stayKindFilter option[data-kind]")]
+      .filter((option) => !option.disabled).map((option) => option.dataset.kind));
+    return { disabled: select.disabled, title: select.title, enabledKinds: kinds.size };
+  });
+  // Either state is legitimate depending on the packaged fallback; what must
+  // hold is that `disabled` agrees with the presence of category metadata.
+  assert.equal(filter.disabled, filter.enabledKinds === 0,
+    "the filter is disabled exactly when no accommodation category metadata is present");
+  assert.match(filter.title, filter.disabled
+    ? /Accommodation type metadata unavailable in the current fallback/
+    : /Filter the official accommodation layer by Madrid Destino category/);
 });
 
 test("SS 15 metric focus emphasizes the matching sensitivity item without hiding the others", async (t) => {

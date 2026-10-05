@@ -1471,6 +1471,25 @@ if (haloRegressionRequested && haloRegressionLocal) {
     spatialBaselineSnapshot() {
       return spatialBaseline;
     },
+    // Drive the REAL accommodation-category transition. This exists because the
+    // <select> is legitimately DISABLED whenever the packaged fallback carries
+    // no accommodation type metadata — true of a clean CI checkout — so a test
+    // that clicked the control would assert the deployment's data shape rather
+    // than the invalidation contract. It calls the same setStayKindFilter()
+    // production helper the real onchange handler calls, so the evidence-key
+    // change, the layer rebuild and the re-render are the production ones; only
+    // the disabled control is bypassed, never the state transition.
+    setStayKindFilterForTest(kind) {
+      setStayKindFilter(kind);
+    },
+    stayKindFilterValue() {
+      return stayKindFilter;
+    },
+    // Both Lens centres, so an invalidation regression can prove the live
+    // analytical geography was left untouched.
+    lensCenters() {
+      return { A: centerOf("A"), B: centerOf("B") };
+    },
     // Drive the SHARED Bridge/Insight translator so both languages can be
     // asserted against the real render path. Test seam only: production keeps
     // following the document language, which this seam deliberately does NOT
@@ -3467,10 +3486,26 @@ destinationSourceToggle.onclick = () => {
   details.hidden = !open;
   destinationSourceToggle.setAttribute("aria-expanded", String(open));
 };
-document.getElementById("stayKindFilter").onchange = (e) => {
-  stayKindFilter = e.target.value;
+// THE accommodation-category state transition. Changing the category changes
+// which stay records every downstream count is drawn from, so it is an EVIDENCE
+// CONFIGURATION change: it feeds spatialEvidenceKey() and therefore invalidates
+// a captured Spatial Sensitivity baseline (see docs/SPATIAL_WINDOW_SENSITIVITY_V1.md).
+//
+// It lives in one named helper so the real <select> handler and the gated
+// regression seam drive the IDENTICAL transition. The seam must never be able to
+// reach a shortcut the UI does not take, or a passing test would prove nothing
+// about production.
+//
+// This helper deliberately does NOT touch the select's own disabled state: when
+// the packaged fallback carries no accommodation type metadata, production
+// correctly disables the control, and that availability rule stays untouched.
+function setStayKindFilter(nextKind) {
+  stayKindFilter = nextKind;
   rebuildDenseLayer("stay");
   refresh();
+}
+document.getElementById("stayKindFilter").onchange = (e) => {
+  setStayKindFilter(e.target.value);
 };
 document.getElementById("timeSelect").onchange = (e) => {
   timestep = e.target.value;
