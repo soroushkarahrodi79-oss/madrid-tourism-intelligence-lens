@@ -2,8 +2,10 @@
 
 A place-first, source-disciplined geospatial workspace for reading what official
 sources document about **urban development in Madrid** — and what that evidence
-does **not** permit you to conclude. Every value carries the geometry it
-describes, the date it was published, and its interpretation ceiling.
+does **not** permit you to conclude. The next architecture (Gate K / #64)
+formalizes **scope, freshness and interpretation ceiling** as explicit, uniform
+properties of every evidence object; today they are documented per source rather
+than guaranteed on every value.
 
 ## 1. What question does it answer?
 

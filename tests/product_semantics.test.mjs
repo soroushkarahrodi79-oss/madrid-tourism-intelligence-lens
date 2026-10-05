@@ -73,6 +73,20 @@ test("the meta description reframes away from the tourism headline", () => {
   assert.doesNotMatch(metaDescription, /intelligence/i);
 });
 
+test("the opening wording does not claim the K2 contract on every current value", () => {
+  // The uniform scope/freshness/ceiling contract is K2 (#64), not yet shipped.
+  // The product wording must frame it as the next architecture, never assert
+  // that every value already carries it. Guard against the present-tense
+  // universal guarantee this correction removed.
+  const universalGuarantee = /\b(every|each)\b[^.]*\bvalue\b[^.]*\bcarr(y|ies|ying)\b/i;
+  assert.doesNotMatch(readme, universalGuarantee);
+  assert.doesNotMatch(metaDescription, universalGuarantee);
+
+  // The distinction (current framing ≠ future K2 guarantee) must be present.
+  assert.match(readme, /next architecture/i);
+  assert.match(metaDescription, /next organising frame/i);
+});
+
 test("PRODUCT_SEMANTICS.md defines all seven terms as headings", () => {
   const terms = [
     "Evidence object",
