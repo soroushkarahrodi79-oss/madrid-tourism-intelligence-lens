@@ -256,9 +256,19 @@ See [Gate G — Decision utility and next evidence increment](docs/DECISION_UTIL
 
 ## 11. What is next?
 
-**Next authorized gate: Gate H — Destination Origin Context source contract.** Gate C0 already marked domestic municipality→Madrid and international country→Madrid origin evidence as USE candidates. Gate H must verify the exact source unit, Madrid geography, temporal semantics, missing/zero handling, origin identifiers and reproducible retrieval before any production UI is authorized.
+**Gate K has closed and set the next product direction.** Gates H, I and J are closed and
+shipped (Destination Origin Context, the spatial comparison contract and the independent-radius
+contract). [Gate K — Madrid Urban Decision Workspace](docs/GATE_K_URBAN_DECISION_WORKSPACE.md)
+decided the product boundary: this becomes an **urban development evidence lens** for Madrid,
+with tourism retained as one documented domain rather than the organising frame. The first
+authorized production increment is an **ámbito evidence layer at ámbito scope** — official
+geometry, the four published development phases (Planeamiento / Gestión / Urbanización /
+Edificación) and remaining buildability in m² by use class — and it is gated behind
+**Gate L (official urban-planning source contract)** plus the spatial-scope and source-freshness
+contracts that precede it. No urban-planning dataset, mode system, visual rebuild, 3D surface or
+assistant is authorized until those gates close.
 
-- After Gate H, continue hardening reproducible AOI snapshots for operational POI layers and verify exact BiciMAD coordinates against the official EMT Madrid source before any BiciMAD fallback is reintroduced.
+- Continue hardening reproducible AOI snapshots for operational POI layers and verify exact BiciMAD coordinates against the official EMT Madrid source before any BiciMAD fallback is reintroduced.
 - Add automated visual regression checks for the map UI.
 - Decide, explicitly and separately, whether the **Madrid Destino accommodation
   catalogue** can ever carry a per-resident measure. It still cannot: Gate A
