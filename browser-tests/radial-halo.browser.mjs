@@ -897,6 +897,496 @@ for (const viewport of [{ name: "iPad landscape", width: 1024, height: 768 }, { 
   });
 }
 
+// ---------------------------------------------------------------------------
+// DECISION INSIGHT V1 — browser regressions.
+//
+// These exercise the REAL production render path: comparison evidence ->
+// comparison states -> buildComparisonBridgeModel -> buildDecisionInsightModel
+// -> rendered DOM. Evidence-dependent contracts use the existing query-gated,
+// local-host-only regression seam so local and CI agree regardless of which
+// deploy-only data artifacts a checkout ships.
+//
+// The four-surface coherence tests are the point of the layer: HALO + BRIDGE +
+// DECISION INSIGHT + TABLE must agree on metric identity, per-side values,
+// comparability, delta meaning and evidence interpretation.
+
+const insightState = (page) => page.evaluate(() => window.__HALO_REGRESSION__.decisionInsight());
+const insightModel = (page) => page.evaluate(() => window.__HALO_REGRESSION__.decisionInsightModel());
+const bridgeModelFor = (page, metricId) => page.evaluate((m) => window.__HALO_REGRESSION__.bridgeModel(m), metricId);
+const insightItem = (state, metricId) => state.items.find((item) => item.metricId === metricId);
+// First signed number anywhere in a rendered clause ("B − A +7.4 records/km²" -> "+7.4").
+const signedNumber = (text) => (text.match(/[+-]?\d[\d.,]*/) || [null])[0];
+const tableDelta = (page, id) => page.locator(`#${id}`).textContent().then((t) => t.trim());
+const CANONICAL = ["tourism", "stays", "mobility", "utci"];
+
+// Deterministic evidence for the Insight scenarios. Equal radii by default; the
+// helper leaves the radii alone so each test owns its window relationship.
+const INSIGHT_EVIDENCE = (overrides = {}) => ({
+  aoiState: "eligible",
+  tourism: { a: { value: 17, sourceState: "live" }, b: { value: 26, sourceState: "live" } },
+  stays: { a: { value: 2, sourceState: "live" }, b: { value: 4, sourceState: "live" } },
+  mobility: { a: { value: 3, sourceState: "live" }, b: { value: 6, sourceState: "live" } },
+  utci: {
+    enabled: true, timestepA: "15:00", timestepB: "15:00",
+    a: { evidence: "MODEL-DERIVED", mean: 36.4, count: 2 },
+    b: { evidence: "MODEL-DERIVED", mean: 38.1, count: 3 },
+  },
+  ...overrides,
+});
+const applyInsight = (page, override, radii = null) => page.evaluate(({ override, radii }) => {
+  const api = window.__HALO_REGRESSION__;
+  if (radii) { api.setRadius("A", radii.A); api.setRadius("B", radii.B); }
+  api.setComparisonOverride(override);
+}, { override, radii });
+
+test("DI 1 compare mode renders Decision Insight from the real production comparison state", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  // No override: this is whatever the real data path produced for this checkout.
+  const state = await insightState(page);
+  const model = await insightModel(page);
+  assert.equal(state.hidden, false, "the Insight renders as soon as compare mode has a comparison state");
+  assert.deepEqual(state.items.map((item) => item.metricId), CANONICAL, "fixed canonical order");
+  assert.equal(state.items.length, 4);
+  // Pedestrian is panel-only and must never appear in the Insight.
+  assert.ok(!state.items.some((item) => item.metricId === "pedestrian"));
+  assert.ok(await page.locator("tr.panel-only-metric").count() === 1, "Pedestrian still has its table row");
+  // The rendered status, guard and every item state come from the model.
+  assert.equal(state.status, model.status);
+  assert.ok(["available", "limited", "unavailable"].includes(state.status));
+  assert.deepEqual(state.items.map((item) => item.state), model.items.map((item) => item.state));
+  assert.ok(state.guard.length > 0, "the descriptive guard is always present");
+  assert.match(state.guard, /no ordering or recommendation/);
+  // Each item names its metric and states a relationship; nothing is blank.
+  for (const item of state.items) {
+    assert.ok(item.metric.length > 0, `${item.metricId} exposes its identity`);
+    assert.ok(item.relationship.length > 0, `${item.metricId} exposes a relationship`);
+  }
+});
+
+test("DI 2 equal radii: Insight Tourism/Stays agree with the Bridge and the table", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  const state = await insightState(page);
+  for (const [metricId, cellId, expected] of [["tourism", "cmpPoi", "+9"], ["stays", "cmpStay", "+2"]]) {
+    const item = insightItem(state, metricId);
+    const model = await bridgeModelFor(page, metricId);
+    assert.equal(item.state, "comparable", `${metricId} is comparable at equal radii`);
+    // Equal windows compare RAW COUNTS, so no km² unit appears.
+    assert.doesNotMatch(item.relationship, /km²/, `${metricId} uses raw counts at equal radii`);
+    assert.equal(signedNumber(item.relationship), expected, `${metricId} shows the authoritative count delta`);
+    assert.equal(Number(signedNumber(item.relationship)), model.relationship.deltaValue, "Insight number IS the Bridge delta");
+    // ...and the same number the table prints.
+    assert.equal(signedNumber(await tableDelta(page, cellId)), expected, `${metricId} table agrees`);
+    // ...and the same number the focused Bridge prints.
+    await focusMetric(page, metricId, "A", true);
+    await page.waitForFunction((m) => document.getElementById("cbMetricName").textContent.trim().length > 0 && window.__HALO_REGRESSION__.focusState().focused === m, metricId);
+    assert.equal(signedNumber((await bridgeState(page)).relValue), expected, `${metricId} Bridge agrees`);
+  }
+});
+
+test("DI 3 unequal radii: Insight shows the density relationship, never a raw-count delta", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 700, B: 1600 });
+  const state = await insightState(page);
+  for (const [metricId, cellId, rawDelta] of [["tourism", "cmpPoi", "+9"], ["stays", "cmpStay", "+2"]]) {
+    const item = insightItem(state, metricId);
+    const model = await bridgeModelFor(page, metricId);
+    assert.equal(item.state, "comparable", `${metricId} compares by density under unequal windows`);
+    assert.match(item.relationship, /km²/, `${metricId} states the per-km² basis`);
+    assert.equal(model.relationship.deltaKind, "density");
+    // The raw-count difference must NOT be what the Insight reports.
+    assert.notEqual(signedNumber(item.relationship), rawDelta, `${metricId} is not the raw-count delta`);
+    assert.equal(signedNumber(item.relationship), `${model.relationship.deltaValue > 0 ? "+" : ""}${model.relationship.deltaValue.toFixed(1)}`);
+    // The table's density figure carries the same number.
+    assert.equal(signedNumber(await tableDelta(page, cellId)), signedNumber(item.relationship), `${metricId} table agrees`);
+  }
+  // Stays keeps its own catalogue-record wording, matching the table's noun.
+  assert.match(insightItem(state, "stays").relationship, /catalogue records\/km²/);
+  assert.match((await tableDelta(page, "cmpStay")), /catalogue records\/km²/);
+});
+
+test("DI 4 Mobility valid + unequal radii: Insight is withheld for different window sizes", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE({ mobility: { a: { value: 24, sourceState: "live" }, b: { value: 147, sourceState: "live" } } }), { A: 700, B: 1600 });
+  const item = insightItem(await insightState(page), "mobility");
+  assert.equal(item.state, "withheld", "values exist on both sides; the comparison is not authorized");
+  assert.match(item.relationship, /different window sizes/);
+  assert.doesNotMatch(item.relationship, /source states/, "the window mismatch is the reason here");
+  assert.doesNotMatch(item.relationship, /km²/, "Mobility is never converted into a density comparator");
+  assert.equal(item.direction, "none", "a withheld comparison has no direction");
+  // The table relationship cell says exactly the same thing.
+  assert.equal(item.relationship, await tableDelta(page, "cmpMobility"), "Insight and table share one authoritative reason");
+  // Tourism under the SAME unequal windows still compares: withholding is per-metric.
+  assert.equal(insightItem(await insightState(page), "tourism").state, "comparable");
+});
+
+test("DI 5 Mobility unavailable + unequal radii: the evidence reason, never the window size", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE({ mobility: { a: { value: null, sourceState: "unavailable" }, b: { value: null, sourceState: "unavailable" } } }), { A: 700, B: 1600 });
+  const item = insightItem(await insightState(page), "mobility");
+  assert.equal(item.state, "unavailable", "missing evidence is unavailable, not merely withheld");
+  assert.match(item.relationship, /N\/A/, "each side honestly reads unavailable");
+  assert.match(item.relationship, /source states/, "the authoritative evidence reason");
+  assert.doesNotMatch(item.relationship, /different window sizes/, "the evidence limitation is more fundamental");
+  assert.notEqual(item.relationship.trim(), "0", "unavailable is never turned into zero");
+  assert.equal(signedNumber(item.relationship), null, "no number is implied at all");
+  // Same reason on the table relationship cell and in the accessible summary.
+  assert.match(await tableDelta(page, "cmpMobility"), /source states/);
+  const sr = await page.locator("#comparisonHaloSummary").textContent();
+  assert.match(sr, /Mobility comparison withheld · source states incompatible\./);
+});
+
+test("DI 6 UTCI OFF: the Insight says OFF, never zero and never a delta", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE({ utci: { enabled: false } }), { A: 900, B: 900 });
+  const state = await insightState(page);
+  const item = insightItem(state, "utci");
+  assert.equal(item.state, "off", "OFF is its own state, distinct from N/A and from withheld");
+  assert.equal(item.relationship, "OFF");
+  assert.notEqual(item.relationship, "0", "OFF is not zero");
+  assert.doesNotMatch(item.relationship, /^[+-]?0/, "OFF never renders as a zero value");
+  assert.equal(signedNumber(item.relationship), null);
+  assert.equal(item.direction, "none");
+  // The halo, Bridge and table agree that UTCI is off.
+  assert.equal(await page.evaluate(() => window.__HALO_REGRESSION__.haloValueText("A", "utci")), "OFF");
+  assert.equal(await tableDelta(page, "cmpHeat"), "Off");
+  await focusMetric(page, "utci", "A", true);
+  await page.waitForFunction(() => window.__HALO_REGRESSION__.focusState().focused === "utci");
+  assert.equal((await bridgeState(page)).valueA, "OFF");
+  // The other metrics are unaffected: OFF is per-metric, not a global state.
+  assert.equal(insightItem(state, "tourism").state, "comparable");
+  assert.equal(state.status, "available");
+});
+
+test("DI 7 UTCI valid: the Insight Celsius B − A matches the Bridge and the table", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  const item = insightItem(await insightState(page), "utci");
+  const model = await bridgeModelFor(page, "utci");
+  assert.equal(item.state, "comparable");
+  assert.equal(signedNumber(item.relationship), "+1.7");
+  assert.match(item.relationship, /\+1\.7°C/);
+  // Model-derived evidence always carries that limitation.
+  assert.match(item.relationship, /model-derived/);
+  assert.equal(model.relationship.deltaKind, "temperature");
+  assert.ok(Math.abs(model.relationship.deltaValue - 1.7) < 1e-9);
+  // Table and Bridge report the same Celsius difference.
+  assert.equal(signedNumber(await tableDelta(page, "cmpHeat")), "+1.7");
+  await focusMetric(page, "utci", "A", true);
+  await page.waitForFunction(() => window.__HALO_REGRESSION__.focusState().focused === "utci");
+  assert.equal(signedNumber((await bridgeState(page)).relValue), "+1.7");
+  // V1 stays descriptive: no categorical thermal-stress claim is made.
+  assert.doesNotMatch(item.relationship, /hot|warm|danger|risk|stress|comfort/i);
+});
+
+test("DI 8 an observed zero stays zero and participates where the comparison is valid", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE({
+    tourism: { a: { value: 0, sourceState: "live" }, b: { value: 4, sourceState: "live" } },
+    stays: { a: { value: 0, sourceState: "live" }, b: { value: 0, sourceState: "live" } },
+  }), { A: 900, B: 900 });
+  const state = await insightState(page);
+  // Zero against a positive value: a real comparison.
+  const tourism = insightItem(state, "tourism");
+  assert.equal(tourism.state, "comparable", "a zero side is evidence, not absence");
+  assert.equal(signedNumber(tourism.relationship), "+4");
+  assert.equal(tourism.direction, "B_MINUS_A_POSITIVE");
+  // Both sides zero: a real zero difference, not "unavailable".
+  const stays = insightItem(state, "stays");
+  assert.equal(stays.state, "comparable");
+  assert.equal(signedNumber(stays.relationship), "0");
+  assert.equal(stays.direction, "B_MINUS_A_ZERO");
+  assert.notEqual(stays.state, "unavailable");
+  assert.doesNotMatch(stays.relationship, /N\/A|OFF|Withheld/);
+  // The halo and Bridge print the same honest zero for Lens A.
+  assert.equal(await page.evaluate(() => window.__HALO_REGRESSION__.haloValueText("A", "tourism")), "0");
+  await focusMetric(page, "tourism", "A", true);
+  await page.waitForFunction(() => window.__HALO_REGRESSION__.focusState().focused === "tourism");
+  assert.equal((await bridgeState(page)).valueA, "0", "zero prints as 0, distinct from N/A");
+});
+
+test("DI 9 metric focus emphasizes the matching item without hiding the others", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  // Nothing focused: no item is emphasized and none is de-emphasized.
+  let state = await insightState(page);
+  assert.ok(state.items.every((item) => item.focused === "false"));
+  assert.equal(await page.locator("#decisionInsightItems").getAttribute("data-has-focus"), "false");
+  for (const metricId of CANONICAL) {
+    await focusMetric(page, metricId, "A", true);
+    await page.waitForFunction((m) => window.__HALO_REGRESSION__.focusState().focused === m, metricId);
+    state = await insightState(page);
+    // The focused Bridge metric and the emphasized Insight item are the same one.
+    assert.equal((await bridgeState(page)).name, insightItem(state, metricId).metric, `${metricId}: Bridge and Insight name one metric`);
+    assert.equal(insightItem(state, metricId).focused, "true");
+    assert.equal(insightItem(state, metricId).ariaCurrent, "true", "emphasis is exposed accessibly");
+    // Every other item is still rendered, readable and non-empty.
+    assert.equal(state.items.length, 4, "focus never hides an item");
+    const visibility = await page.evaluate(() => [...document.querySelectorAll("#decisionInsightItems .di-item")].map((row) => {
+      const style = getComputedStyle(row);
+      const rect = row.getBoundingClientRect();
+      return { display: style.display, visibility: style.visibility, opacity: Number(style.opacity), height: rect.height };
+    }));
+    for (const box of visibility) {
+      assert.notEqual(box.display, "none");
+      assert.notEqual(box.visibility, "hidden");
+      assert.ok(box.opacity >= 0.7, `unfocused items stay readable (opacity ${box.opacity})`);
+      assert.ok(box.height > 0);
+    }
+    for (const other of state.items.filter((item) => item.metricId !== metricId)) {
+      assert.equal(other.focused, "false");
+      assert.equal(other.ariaCurrent, null, "only the focused item is aria-current");
+      assert.ok(other.relationship.length > 0, `${other.metricId} stays readable while another metric is focused`);
+    }
+  }
+  // The Insight is informational: it adds no focusable control of its own.
+  assert.equal(await page.locator("#decisionInsight button, #decisionInsight a, #decisionInsight [tabindex]").count(), 0);
+});
+
+test("DI 10 lock survives radius changes, lens movement, pan and zoom while values recompute", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  await focusMetric(page, "tourism", "A", true);
+  await page.waitForFunction(() => window.__HALO_REGRESSION__.focusState().selected === "tourism");
+  const equal = insightItem(await insightState(page), "tourism");
+  assert.equal(equal.state, "comparable");
+  assert.doesNotMatch(equal.relationship, /km²/, "equal windows: raw counts");
+
+  // 1) Radius change -> the Insight recomputes to the density basis, lock intact.
+  await page.evaluate(() => { const a = window.__HALO_REGRESSION__; a.setRadius("B", 1800); a.recompute(); });
+  await page.waitForFunction(() => /km²/.test(document.querySelector('#decisionInsightItems .di-item[data-metric-id="tourism"] .di-rel').textContent));
+  let state = await insightState(page);
+  assert.match(insightItem(state, "tourism").relationship, /km²/, "unequal windows: density basis");
+  assert.equal(insightItem(state, "tourism").focused, "true", "the lock is not reset by a radius change");
+  assert.deepEqual(await focusState(page), { focused: "tourism", selected: "tourism" });
+
+  // 2) Lens movement (real data recompute), 3) pan and 4) zoom.
+  for (const step of ["move", "pan", "zoom"]) {
+    await page.evaluate((s) => {
+      const a = window.__HALO_REGRESSION__;
+      if (s === "move") a.moveLens("B", 820, 450);
+      if (s === "pan") a.setCenterAtPoint("A", 420, 400);
+      if (s === "zoom") a.setZoom(15);
+    }, step);
+    state = await insightState(page);
+    assert.equal(state.hidden, false, `${step}: the Insight stays rendered`);
+    assert.deepEqual(state.items.map((item) => item.metricId), CANONICAL, `${step}: canonical order survives`);
+    assert.deepEqual(await focusState(page), { focused: "tourism", selected: "tourism" }, `${step}: the lock survives`);
+    assert.equal(insightItem(state, "tourism").focused, "true");
+  }
+  // The recomputed values still agree with the authoritative Bridge model.
+  const model = await bridgeModelFor(page, "tourism");
+  const item = insightItem(await insightState(page), "tourism");
+  assert.equal(item.state === "comparable", model.relationship.comparable, "one comparability verdict after recompute");
+  if (model.relationship.comparable) {
+    assert.equal(signedNumber(item.relationship), `${model.relationship.deltaValue > 0 ? "+" : ""}${model.relationship.deltaKind === "count" ? model.relationship.deltaValue : model.relationship.deltaValue.toFixed(1)}`);
+  }
+});
+
+test("DI 11/12 the Insight copy switches between Spanish and English", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE({ mobility: { a: { value: 24, sourceState: "live" }, b: { value: 147, sourceState: "live" } } }), { A: 700, B: 1600 });
+  const setLanguage = (language) => page.evaluate((l) => window.__HALO_REGRESSION__.setComparisonLanguage(l), language);
+
+  // --- English ---
+  await setLanguage("en");
+  const en = await insightState(page);
+  assert.equal(en.heading, "Decision Insight");
+  assert.match(en.statusText, /Observed contrasts · descriptive evidence only/);
+  assert.equal(en.guard, "Observed comparison only · no ordering or recommendation");
+  assert.equal(insightItem(en, "tourism").metric, "Tourism POIs");
+  assert.match(insightItem(en, "tourism").relationship, /^B − A [+-]?\d/, "B − A notation with a real minus sign");
+  assert.match(insightItem(en, "tourism").relationship, /records\/km²/);
+  assert.match(insightItem(en, "mobility").relationship, /Withheld · different window sizes/);
+  assert.match(insightItem(en, "utci").relationship, /°C · model-derived/);
+
+  // --- Spanish ---
+  await setLanguage("es");
+  const es = await insightState(page);
+  assert.equal(es.heading, "Lectura de decisión");
+  assert.match(es.statusText, /Contrastes observados · solo evidencia descriptiva/);
+  assert.equal(es.guard, "Comparación observada · sin ordenación ni recomendación");
+  assert.equal(insightItem(es, "tourism").metric, "POI turísticos");
+  assert.match(insightItem(es, "tourism").relationship, /^B − A [+-]?\d/, "B − A notation is identical in both languages");
+  assert.match(insightItem(es, "tourism").relationship, /registros\/km²/);
+  assert.match(insightItem(es, "stays").relationship, /registros de catálogo/);
+  assert.match(insightItem(es, "mobility").relationship, /Retenido · tamaños de ventana distintos/);
+  assert.match(insightItem(es, "utci").relationship, /°C · derivado del modelo/);
+  // Nothing is left untranslated and no raw dictionary key leaks through.
+  for (const item of es.items) {
+    assert.ok(!item.metric.includes("."), `${item.metricId}: no raw key in the metric name`);
+    assert.ok(!/insight\.|reason\.|unit\./.test(item.relationship), `${item.metricId}: no raw key in the relationship`);
+  }
+  // The NUMBERS are language-independent: only the words change.
+  for (const metricId of ["tourism", "stays", "utci"]) {
+    assert.equal(signedNumber(insightItem(es, metricId).relationship), signedNumber(insightItem(en, metricId).relationship), `${metricId}: same number in both languages`);
+  }
+  // Back to English, so the state machine is reversible.
+  await setLanguage("en");
+  assert.equal((await insightState(page)).heading, "Decision Insight");
+});
+
+// --- §28 FOUR-SURFACE COHERENCE -------------------------------------------
+// HALO + COMPARISON BRIDGE + DECISION INSIGHT + TABLE, on one live page.
+
+test("DI four-surface coherence: a VALID metric reads identically on halo, Bridge, Insight and table", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE({ tourism: { a: { value: 17, sourceState: "live" }, b: { value: 26, sourceState: "live" } } }), { A: 900, B: 900 });
+  await focusMetric(page, "tourism", "A", true);
+  await page.waitForFunction(() => window.__HALO_REGRESSION__.focusState().selected === "tourism");
+
+  const halo = await page.evaluate(() => ({
+    a: window.__HALO_REGRESSION__.haloValueText("A", "tourism"),
+    b: window.__HALO_REGRESSION__.haloValueText("B", "tourism"),
+  }));
+  const bridge = await bridgeState(page);
+  const model = await bridgeModelFor(page, "tourism");
+  const item = insightItem(await insightState(page), "tourism");
+  const table = { a: (await page.locator("#cmpPoiA").textContent()).trim(), b: (await page.locator("#cmpPoiB").textContent()).trim(), delta: await tableDelta(page, "cmpPoi") };
+
+  // 1) SAME METRIC IDENTITY on all four surfaces.
+  assert.equal(bridge.name, "Tourism POIs");
+  assert.equal(item.metric, "Tourism POIs");
+  assert.equal(await rowCurrent(page, "tourism"), "true", "the table row is the same metric");
+  assert.equal(item.focused, "true", "the Insight emphasizes the same metric");
+  assert.ok(await haloFocusedCount(page) >= 1, "the halo emphasizes the same metric");
+
+  // 2) SAME SIDE VALUES.
+  assert.equal(halo.a, "17");
+  assert.equal(halo.b, "26");
+  assert.equal(bridge.valueA, halo.a, "Bridge mirrors the halo");
+  assert.equal(bridge.valueB, halo.b);
+  assert.match(table.a, /^17 records/, "the table prints the same raw count");
+  assert.match(table.b, /^26 records/);
+  assert.equal(model.a.rawValue, 17, "the authoritative model carries the same values");
+  assert.equal(model.b.rawValue, 26);
+
+  // 3) SAME COMPARABILITY verdict.
+  assert.equal(bridge.relationship, "comparable");
+  assert.equal(item.state, "comparable");
+  assert.equal(model.relationship.comparable, true);
+  assert.doesNotMatch(table.delta, /Withheld|Unavailable|Off/i);
+
+  // 4) SAME DELTA MEANING: one number, read through the whole chain.
+  assert.equal(model.relationship.deltaValue, 9);
+  assert.equal(signedNumber(bridge.relValue), "+9");
+  assert.equal(signedNumber(item.relationship), "+9");
+  assert.equal(signedNumber(table.delta), "+9");
+  assert.equal(item.direction, "B_MINUS_A_POSITIVE", "direction is B − A arithmetic only");
+
+  // 5) SAME EVIDENCE INTERPRETATION: a raw-count basis at equal windows.
+  assert.equal(model.relationship.basisCode, "raw-counts");
+  assert.match(bridge.qualifier, /raw represented counts/);
+  assert.doesNotMatch(item.relationship, /km²/);
+  assert.doesNotMatch(table.delta, /km²/);
+  assert.match((await page.locator("#comparisonModeCue").textContent()), /Equal windows · raw represented counts/);
+});
+
+test("DI four-surface coherence: a WITHHELD metric (Mobility unavailable + unequal radii) agrees everywhere", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE({ mobility: { a: { value: null, sourceState: "unavailable" }, b: { value: null, sourceState: "unavailable" } } }), { A: 700, B: 1600 });
+  await focusMetric(page, "mobility", "A", true);
+  await page.waitForFunction(() => window.__HALO_REGRESSION__.focusState().selected === "mobility");
+
+  const halo = await page.evaluate(() => ({
+    a: window.__HALO_REGRESSION__.haloValueText("A", "mobility"),
+    b: window.__HALO_REGRESSION__.haloValueText("B", "mobility"),
+  }));
+  const bridge = await bridgeState(page);
+  const model = await bridgeModelFor(page, "mobility");
+  const item = insightItem(await insightState(page), "mobility");
+  const table = { a: (await page.locator("#cmpMobilityA").textContent()).trim(), delta: await tableDelta(page, "cmpMobility") };
+  const summary = await page.locator("#comparisonHaloSummary").textContent();
+
+  // 1) EVIDENCE IS UNAVAILABLE on every surface.
+  assert.equal(halo.a, "N/A", "the halo reads N/A");
+  assert.equal(halo.b, "N/A");
+  assert.equal(bridge.valueA, "N/A");
+  assert.equal(bridge.valueB, "N/A");
+  assert.match(item.relationship, /N\/A/);
+  assert.match(table.a, /Unavailable/);
+  assert.equal(model.a.evidence, "N_A");
+  assert.equal(model.b.evidence, "N_A");
+  assert.equal(item.state, "unavailable");
+
+  // 2) NO NUMERIC DELTA EXISTS anywhere.
+  assert.equal(model.relationship.deltaValue, null);
+  assert.equal(signedNumber(item.relationship), null);
+  assert.equal(bridge.relValue, "Withheld");
+  assert.equal(bridge.relationship, "withheld");
+  assert.equal(item.direction, "none");
+
+  // 3) ZERO IS NEVER IMPLIED.
+  for (const text of [halo.a, halo.b, bridge.valueA, bridge.relValue, item.relationship, table.delta]) {
+    assert.notEqual(text.trim(), "0");
+    assert.doesNotMatch(text, /(^|\s)[+-]?0(\s|$)/, `"${text}" never reads as zero`);
+  }
+
+  // 4) THE AUTHORITATIVE REASON IS THE EVIDENCE LIMITATION, not the window mismatch.
+  assert.equal(model.relationship.withheldReasonCode, "source-incompatible");
+  assert.match(item.relationship, /source states incompatible/);
+  assert.match(bridge.qualifier, /source states incompatible/);
+  assert.match(table.delta, /source states incompatible/);
+  assert.match(summary, /Mobility comparison withheld · source states incompatible\./);
+  for (const text of [item.relationship, bridge.qualifier, table.delta]) {
+    assert.doesNotMatch(text, /different window sizes/, "the evidence limitation takes precedence");
+  }
+  // The unequal windows are still honestly visible, so nothing reads as equivalent.
+  assert.equal(bridge.radiusA, "r 700 m");
+  assert.equal(bridge.radiusB, "r 1.6 km");
+  assert.match((await page.locator("#comparisonRadiusReadout").textContent()), /700 m \| Lens B · 1\.6 km/);
+});
+
+for (const viewport of [{ name: "iPad landscape", width: 1024, height: 768 }, { name: "iPad portrait", width: 768, height: 1024 }]) {
+  test(`DI 13/14 Decision Insight is readable with no horizontal overflow on ${viewport.name}`, async (t) => {
+    const page = await openBridge(viewport);
+    t.after(() => page.close());
+    await applyInsight(page, INSIGHT_EVIDENCE({ mobility: { a: { value: 24, sourceState: "live" }, b: { value: 147, sourceState: "live" } } }), { A: 700, B: 1600 });
+    await focusMetric(page, "tourism", "A", true);
+    await page.waitForFunction(() => document.getElementById("decisionInsight").hasAttribute("hidden") === false);
+    const metrics = await page.evaluate(() => {
+      const section = document.getElementById("decisionInsight");
+      const rect = section.getBoundingClientRect();
+      const rows = [...section.querySelectorAll(".di-item")].map((row) => ({
+        overflow: row.scrollWidth - row.clientWidth,
+        height: row.getBoundingClientRect().height,
+        fontSize: Number.parseFloat(getComputedStyle(row.querySelector(".di-rel")).fontSize),
+      }));
+      return {
+        docOverflow: document.documentElement.scrollWidth - window.innerWidth,
+        sectionOverflow: section.scrollWidth - section.clientWidth,
+        visible: rect.width > 0 && rect.height > 0,
+        withinPanel: rect.right <= window.innerWidth + 1,
+        rows,
+      };
+    });
+    assert.equal(metrics.visible, true, "the Insight is rendered");
+    assert.equal(metrics.rows.length, 4);
+    assert.ok(metrics.docOverflow <= 1, `no horizontal page overflow (${metrics.docOverflow}px)`);
+    assert.ok(metrics.sectionOverflow <= 1, `the Insight does not overflow its own box (${metrics.sectionOverflow}px)`);
+    assert.ok(metrics.withinPanel, "the Insight stays inside the viewport");
+    for (const row of metrics.rows) {
+      assert.ok(row.overflow <= 1, `an item does not overflow its row (${row.overflow}px)`);
+      assert.ok(row.height > 0, "each item has layout");
+      assert.ok(row.fontSize >= 8, `text is not shrunk to illegibility (${row.fontSize}px)`);
+    }
+  });
+}
+
+
 test.after(async () => {
   await browser.close();
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
