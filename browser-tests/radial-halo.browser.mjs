@@ -771,6 +771,10 @@ test("13/14 CASE 1 valid Mobility + unequal radii → withheld · different wind
   const halo1 = await page.evaluate(() => ({ a: window.__HALO_REGRESSION__.haloValueText("A", "mobility"), b: window.__HALO_REGRESSION__.haloValueText("B", "mobility") }));
   assert.equal(s.valueA, halo1.a);
   assert.equal(s.valueB, halo1.b);
+  // Accessible summary derives the same reason from the authoritative model.
+  const sr1 = (await page.locator("#comparisonHaloSummary").textContent());
+  assert.match(sr1, /Mobility comparison withheld · different window sizes\./);
+  assert.doesNotMatch(sr1, /source states incompatible/);
   // Halo focus stays synchronized.
   assert.ok(await haloFocusedCount(page) >= 1);
   assert.equal(await rowCurrent(page, "mobility"), "true");
@@ -822,6 +826,11 @@ test("13/14 CASE 2 unavailable Mobility + unequal radii → honest N/A, withheld
   // The table shows the sides as Unavailable (honest), and nothing is ever 0.
   assert.match((await page.locator("#cmpMobilityA").textContent()).trim(), /Unavailable/);
   assert.notEqual(tableDelta, "0");
+  // Accessible summary agrees with Bridge + table: evidence reason, never window size.
+  const sr2 = (await page.locator("#comparisonHaloSummary").textContent());
+  assert.match(sr2, /Mobility comparison withheld · source states incompatible\./);
+  assert.doesNotMatch(sr2, /Mobility[^.]*different window sizes/);
+  assert.doesNotMatch(sr2, /Mobility delta withheld/);
 });
 
 test("16 UTCI OFF shows OFF on both sides and withholds any delta (never zero)", async (t) => {

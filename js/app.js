@@ -1444,9 +1444,12 @@ function renderCompare() {
   lastBridgeStates = { tourism: comparison.metrics.tourism, stays: comparison.metrics.stays, mobility: mobilityState, utci: comparison.metrics.utci };
   lastBridgeContext = { radiusMode, radii: { ...radii } };
   renderComparisonBridge();
+  // Accessible Mobility relationship: same authoritative view-model as the Bridge and table.
+  const mobilityRel = mobilityView.relationship;
+  const mobilityAccessibleSentence = mobilityRel.comparable ? "" : `Mobility comparison ${bridgeT("withheld").toLowerCase()} · ${bridgeT(`reason.${mobilityRel.withheldReasonCode}`)}.`;
   const pointSummary = radiusMode === "EQUAL_RADIUS"
     ? `Tourism POIs raw counts ${a.tourism} and ${b.tourism}; stays raw counts ${a.stay} and ${b.stay}.`
-    : `Tourism POIs raw counts ${a.tourism} and ${b.tourism}; stays raw counts ${a.stay} and ${b.stay}. ${comparison.metrics.tourism.comparable ? `Tourism rates ${comparison.metrics.tourism.aValue.toFixed(1)} and ${comparison.metrics.tourism.bValue.toFixed(1)} represented records per km²; delta ${comparison.metrics.tourism.delta.toFixed(1)}.` : comparison.metrics.tourism.qualifier}. ${comparison.metrics.stays.comparable ? `Stay rates ${comparison.metrics.stays.aValue.toFixed(1)} and ${comparison.metrics.stays.bValue.toFixed(1)} represented catalogue records per km²; delta ${comparison.metrics.stays.delta.toFixed(1)}.` : comparison.metrics.stays.qualifier} Mobility delta withheld · different window sizes.`;
+    : `Tourism POIs raw counts ${a.tourism} and ${b.tourism}; stays raw counts ${a.stay} and ${b.stay}. ${comparison.metrics.tourism.comparable ? `Tourism rates ${comparison.metrics.tourism.aValue.toFixed(1)} and ${comparison.metrics.tourism.bValue.toFixed(1)} represented records per km²; delta ${comparison.metrics.tourism.delta.toFixed(1)}.` : comparison.metrics.tourism.qualifier}. ${comparison.metrics.stays.comparable ? `Stay rates ${comparison.metrics.stays.aValue.toFixed(1)} and ${comparison.metrics.stays.bValue.toFixed(1)} represented catalogue records per km²; delta ${comparison.metrics.stays.delta.toFixed(1)}.` : comparison.metrics.stays.qualifier} ${mobilityAccessibleSentence}`;
   const nestedSummary = relationship ? `${relationship}.` : "Windows are disjoint.";
   document.getElementById("comparisonHaloSummary").textContent = `${accessibleComparisonSummary(comparison)} ${pointSummary} ${nestedSummary}`;
   updateHaloLayout();
