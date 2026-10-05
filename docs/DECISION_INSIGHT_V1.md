@@ -222,6 +222,7 @@ comparison radius readout
 comparison mode cue
 Comparison Bridge
 → Decision Insight          ← here
+Spatial Sensitivity
 full comparison table
 evidence / provenance
 ```
@@ -306,8 +307,14 @@ panel is not widened, so the map keeps its role as the primary spatial view.
 | **Halo** | What is locally present around each lens? |
 | **Bridge** | What is the detailed comparison for *this* metric? |
 | **Decision Insight** | What are the observed contrasts across the canonical set? |
+| **Spatial Sensitivity** | Does that reading hold if the spatial windows change? |
 | **Table** | What is the full analytical inventory? |
 | **Evidence** | What supports / limits interpretation? |
 
 These responsibilities stay separate. Decision Insight adds no data, no metric
 and no arithmetic of its own — only the synthesis.
+
+Decision Insight always describes the **current** comparison state. The separate
+[Spatial Window Sensitivity V1](SPATIAL_WINDOW_SENSITIVITY_V1.md) layer compares
+a frozen baseline window against that current state; it consumes these Insight
+items unchanged and never replaces them with baseline values.

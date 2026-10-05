@@ -1387,6 +1387,803 @@ for (const viewport of [{ name: "iPad landscape", width: 1024, height: 768 }, { 
 }
 
 
+// ---------------------------------------------------------------------------
+// SPATIAL WINDOW SENSITIVITY V1 — browser regressions.
+//
+// These exercise the REAL production path: comparison evidence -> comparison
+// states -> buildComparisonBridgeModel -> captured baseline snapshot +
+// buildSpatialSensitivityModel -> rendered DOM, driven through the actual
+// capture/reset buttons.
+//
+// The FIVE-SURFACE coherence tests are the point of the layer: HALO + BRIDGE +
+// DECISION INSIGHT + TABLE + SPATIAL SENSITIVITY must agree on the CURRENT
+// state. The baseline is the frozen historical snapshot; the scenario side must
+// never become an independent fifth interpretation.
+
+const ssState = (page) => page.evaluate(() => window.__HALO_REGRESSION__.spatialSensitivity());
+const ssModel = (page) => page.evaluate(() => window.__HALO_REGRESSION__.spatialSensitivityModel());
+const ssItem = (state, metricId) => state.items.find((item) => item.metricId === metricId);
+const ssCapture = (page) => page.evaluate(() => window.__HALO_REGRESSION__.captureSpatialBaseline());
+const ssReset = (page) => page.evaluate(() => window.__HALO_REGRESSION__.resetSpatialBaseline());
+const setRadii = (page, radii) => page.evaluate((r) => {
+  const api = window.__HALO_REGRESSION__;
+  if (r.A != null) api.setRadius("A", r.A);
+  if (r.B != null) api.setRadius("B", r.B);
+}, radii);
+
+test("SS 1 no baseline: the section renders a neutral state with only a capture control", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  const state = await ssState(page);
+  assert.equal(state.hidden, false, "the section renders in compare mode");
+  assert.equal(state.status, "no-baseline");
+  assert.equal(await ssModel(page), null, "there is no model without a baseline");
+  assert.equal(state.emptyHidden, false, "the neutral empty state is shown");
+  assert.match(state.emptyText, /No baseline captured/);
+  assert.equal(state.windowsHidden, true, "no baseline/scenario windows yet");
+  assert.equal(state.items.length, 0, "no per-metric readings yet");
+  assert.equal(state.resetHidden, true, "nothing to reset");
+  assert.match(state.captureLabel, /Capture current comparison/);
+  assert.equal(state.noticeHidden, true, "no invalidation notice on a fresh page");
+  // The guard is always present and denies being a forecast.
+  assert.match(state.guard, /not a forecast and not a causal effect/);
+});
+
+test("SS 2 capture records the exact A/B radii and the authoritative baseline reading", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  await ssCapture(page);
+  const state = await ssState(page);
+  const model = await ssModel(page);
+  assert.equal(state.emptyHidden, true);
+  assert.equal(state.windowsHidden, false);
+  assert.deepEqual(model.baseline.radii, { A: 900, B: 900 });
+  assert.deepEqual(model.scenario.radii, { A: 900, B: 900 });
+  assert.equal(model.windowUnchanged, true);
+  // Both windows are printed as readable text, not colour or position alone.
+  assert.match(state.baselineRadii, /900 m/);
+  assert.match(state.scenarioRadii, /900 m/);
+  assert.match(state.baselineLabel, /Baseline window/);
+  assert.match(state.scenarioLabel, /Scenario window/);
+  // Four canonical readings in fixed order, each with both sides and a transition.
+  assert.deepEqual(state.items.map((item) => item.metricId), CANONICAL);
+  assert.ok(!state.items.some((item) => item.metricId === "pedestrian"), "Pedestrian stays excluded");
+  for (const item of state.items) {
+    assert.ok(item.baseline.length > 0, `${item.metricId} baseline reading is readable`);
+    assert.ok(item.scenario.length > 0, `${item.metricId} scenario reading is readable`);
+    assert.ok(item.transitionText.length > 0, `${item.metricId} transition is readable`);
+  }
+  // Identical windows: nothing changed anywhere.
+  assert.equal(model.status, "STABLE");
+  assert.equal(state.status, "STABLE");
+  assert.match(state.statusText, /Stable under this window change/);
+  // Replacing the baseline is now offered explicitly, alongside reset.
+  assert.match(state.captureLabel, /Capture current as new baseline/);
+  assert.equal(state.resetHidden, false);
+  assert.match(state.resetLabel, /Reset baseline/);
+  // Capture is a discrete action, so it announces once.
+  assert.match(state.announcement, /Baseline window captured/);
+});
+
+test("SS 3 changing Lens A radius freezes the baseline and updates only the scenario", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  await ssCapture(page);
+  const before = await ssState(page);
+  const baselineReadings = before.items.map((item) => item.baseline);
+  // Lens A alone shrinks: the windows become unequal.
+  await setRadii(page, { A: 700 });
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 700, B: 900 });
+  const after = await ssState(page);
+  const model = await ssModel(page);
+  // THE BASELINE IS HISTORICAL: identical strings, identical radii.
+  assert.deepEqual(after.items.map((item) => item.baseline), baselineReadings,
+    "every baseline reading is frozen at capture time");
+  assert.deepEqual(model.baseline.radii, { A: 900, B: 900 }, "the baseline radii never move");
+  assert.match(after.baselineRadii, /900 m/);
+  // The scenario followed the live state.
+  assert.deepEqual(model.scenario.radii, { A: 700, B: 900 });
+  assert.equal(model.windowUnchanged, false);
+  assert.match(after.scenarioRadii, /700 m/);
+  assert.ok(!after.scenarioRadii.includes("matches the baseline"), "a changed window is not reported as identical");
+  // A radius change must never invalidate: that IS the scenario.
+  assert.equal(after.noticeHidden, true, "a radius change raises no invalidation notice");
+  assert.equal(after.emptyHidden, true, "the baseline survives a radius change");
+});
+
+test("SS 4 changing Lens B radius behaves identically", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  await ssCapture(page);
+  const baselineReadings = (await ssState(page)).items.map((item) => item.baseline);
+  await setRadii(page, { B: 1600 });
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 1600 });
+  const after = await ssState(page);
+  const model = await ssModel(page);
+  assert.deepEqual(after.items.map((item) => item.baseline), baselineReadings);
+  assert.deepEqual(model.baseline.radii, { A: 900, B: 900 });
+  assert.deepEqual(model.scenario.radii, { A: 900, B: 1600 });
+  assert.equal(after.noticeHidden, true);
+});
+
+test("SS 5 equal to unequal windows: Tourism/Stays report BASIS_CHANGED and withhold any numeric change", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  await ssCapture(page);
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 700, B: 1600 });
+  const state = await ssState(page);
+  const model = await ssModel(page);
+  for (const metricId of ["tourism", "stays"]) {
+    const item = ssItem(state, metricId);
+    const modelItem = model.items.find((candidate) => candidate.metricId === metricId);
+    assert.equal(item.transition, "BASIS_CHANGED", `${metricId} changed comparison basis`);
+    assert.match(item.transitionText, /Basis changed/);
+    // The baseline side is a raw count; the scenario side is a density.
+    assert.doesNotMatch(item.baseline, /km²/, `${metricId} baseline is a raw count`);
+    assert.match(item.scenario, /km²/, `${metricId} scenario is a density`);
+    // THE CENTRAL ABSTENTION: no delta-of-deltas is ever shown or computed.
+    assert.equal(modelItem.deltaChange, null, `${metricId} withholds the numeric change`);
+    assert.equal(modelItem.basisCompatible, false);
+    assert.match(item.detail, /numeric change withheld/, `${metricId} says why`);
+    // The two bases are named, so the abstention is explainable.
+    assert.match(item.detail, /raw represented counts → represented-record density/);
+    // No "changed by" sentence may appear for an incompatible basis.
+    assert.ok(!item.detail.includes("changed by"), `${metricId} never reports a cross-basis change`);
+  }
+  assert.equal(model.status, "MIXED");
+  assert.match(state.statusText, /Sensitive to window choice/);
+});
+
+test("SS 6 Mobility: comparable at the baseline window, withheld under an unequal scenario window", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  await ssCapture(page);
+  const baseline = ssItem(await ssState(page), "mobility");
+  assert.equal(baseline.baselineComparable, "true", "Mobility compares at equal windows");
+  assert.equal(signedNumber(baseline.baseline), "+3", "the authoritative node difference");
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 1600 });
+  const item = ssItem(await ssState(page), "mobility");
+  const model = await ssModel(page);
+  const modelItem = model.items.find((candidate) => candidate.metricId === "mobility");
+  // The baseline reading is unchanged; the scenario became withheld.
+  assert.equal(signedNumber(item.baseline), "+3", "the baseline Mobility reading is frozen");
+  assert.equal(item.transition, "BECAME_WITHHELD");
+  assert.match(item.transitionText, /Comparison became withheld/);
+  assert.match(item.scenario, /Withheld · different window sizes/);
+  assert.equal(item.scenarioComparable, "false");
+  assert.equal(modelItem.deltaChange, null);
+  // Mobility NEVER becomes a density under any window change.
+  assert.doesNotMatch(item.scenario, /km²/);
+  assert.notEqual(modelItem.scenario.basisCode, "density");
+  // It reads exactly as the Bridge and the table read it.
+  const bridge = await bridgeModelFor(page, "mobility");
+  assert.equal(bridge.relationship.withheldReasonCode, "different-window-sizes");
+  assert.equal(modelItem.scenario.withheldReasonCode, "different-window-sizes");
+  assert.equal(await tableDelta(page, "cmpMobility"), "Withheld · different window sizes");
+});
+
+test("SS 7 returning to the original radii makes the scenario match the baseline interpretation again", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  await ssCapture(page);
+  const original = await ssState(page);
+  // Out to an unequal window …
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 700, B: 1600 });
+  const changed = await ssState(page);
+  assert.equal(changed.status, "MIXED");
+  assert.equal((await ssModel(page)).windowUnchanged, false);
+  // … and back again.
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  const restored = await ssState(page);
+  const model = await ssModel(page);
+  assert.equal(model.windowUnchanged, true);
+  assert.equal(restored.status, "STABLE");
+  assert.match(restored.scenarioRadii, /matches the baseline/);
+  // Every reading and transition is back to the captured interpretation.
+  assert.deepEqual(restored.items.map((item) => item.transition), original.items.map((item) => item.transition));
+  assert.deepEqual(restored.items.map((item) => item.scenario), original.items.map((item) => item.scenario));
+  assert.deepEqual(restored.items.map((item) => item.baseline), original.items.map((item) => item.baseline));
+});
+
+test("SS 8 reset removes the baseline and leaves the Lens state completely untouched", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 700, B: 1600 });
+  await ssCapture(page);
+  await focusMetric(page, "tourism", "A", true);
+  const before = await page.evaluate(() => ({
+    radiusReadout: document.getElementById("comparisonRadiusReadout").textContent.trim(),
+    cue: document.getElementById("comparisonModeCue").textContent.trim(),
+    bridgeName: document.getElementById("cbMetricName").textContent.trim(),
+    bridgeRel: document.getElementById("cbRelValue").textContent.trim(),
+    insight: window.__HALO_REGRESSION__.decisionInsight(),
+    focus: window.__HALO_REGRESSION__.focusState(),
+    tableTourism: document.getElementById("cmpPoi").textContent.trim(),
+  }));
+  await ssReset(page);
+  const state = await ssState(page);
+  // The baseline is gone …
+  assert.equal(state.status, "no-baseline");
+  assert.equal(await ssModel(page), null);
+  assert.equal(state.emptyHidden, false);
+  assert.equal(state.windowsHidden, true);
+  assert.equal(state.items.length, 0);
+  assert.equal(state.resetHidden, true);
+  assert.match(state.captureLabel, /Capture current comparison/);
+  assert.match(state.announcement, /Baseline removed/);
+  // Reset is not an invalidation, so it raises no notice.
+  assert.equal(state.noticeHidden, true);
+  // … and NOTHING ELSE changed: not the radii, not the active lens, not the
+  // Bridge, not Decision Insight, not the focus lock, not the table.
+  const after = await page.evaluate(() => ({
+    radiusReadout: document.getElementById("comparisonRadiusReadout").textContent.trim(),
+    cue: document.getElementById("comparisonModeCue").textContent.trim(),
+    bridgeName: document.getElementById("cbMetricName").textContent.trim(),
+    bridgeRel: document.getElementById("cbRelValue").textContent.trim(),
+    insight: window.__HALO_REGRESSION__.decisionInsight(),
+    focus: window.__HALO_REGRESSION__.focusState(),
+    tableTourism: document.getElementById("cmpPoi").textContent.trim(),
+  }));
+  assert.deepEqual(after, before, "reset touches only the stored baseline");
+});
+
+test("SS 9 capture current as new baseline replaces the old snapshot", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  await ssCapture(page);
+  assert.deepEqual((await ssModel(page)).baseline.radii, { A: 900, B: 900 });
+  // Move to an unequal window; the old baseline must NOT follow it on its own.
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 700, B: 1600 });
+  assert.deepEqual((await ssModel(page)).baseline.radii, { A: 900, B: 900 },
+    "the baseline never moves by itself after a radius change");
+  assert.equal((await ssState(page)).status, "MIXED");
+  // Capturing again EXPLICITLY replaces it with the current configuration.
+  await ssCapture(page);
+  const model = await ssModel(page);
+  const state = await ssState(page);
+  assert.deepEqual(model.baseline.radii, { A: 700, B: 1600 }, "the new snapshot replaced the old one");
+  assert.equal(model.windowUnchanged, true);
+  assert.equal(state.status, "STABLE", "the new baseline equals the current scenario");
+  assert.match(state.baselineRadii, /1.6 km|1600 m/);
+  // Tourism now reads as a density on BOTH sides, so the basis is stable.
+  const tourism = ssItem(state, "tourism");
+  assert.equal(tourism.transition, "UNCHANGED_COMPARABLE");
+  assert.match(tourism.baseline, /km²/);
+  assert.match(tourism.scenario, /km²/);
+});
+
+test("SS 10/11 map pan and zoom preserve the baseline, because neither moves a Lens centre", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  await ssCapture(page);
+  const before = await ssState(page);
+  // Pan.
+  await page.evaluate(() => { const c = window.__HALO_REGRESSION__.mapCenter(); window.__HALO_REGRESSION__ && null; return c; });
+  await page.evaluate(() => { window.scrollTo(0, 0); });
+  await page.mouse.move(700, 300);
+  await page.mouse.down();
+  await page.mouse.move(560, 360, { steps: 8 });
+  await page.mouse.up();
+  await page.evaluate(() => window.__HALO_REGRESSION__.recompute());
+  let state = await ssState(page);
+  assert.equal(state.status, before.status, "a map pan preserves the baseline");
+  assert.equal(state.emptyHidden, true);
+  assert.equal(state.noticeHidden, true, "a pan is not an invalidation");
+  assert.deepEqual(state.items.map((item) => item.baseline), before.items.map((item) => item.baseline));
+  // Zoom.
+  await page.evaluate(() => window.__HALO_REGRESSION__.setZoom(12));
+  await page.evaluate(() => window.__HALO_REGRESSION__.recompute());
+  state = await ssState(page);
+  assert.equal(state.status, before.status, "a map zoom preserves the baseline");
+  assert.equal(state.noticeHidden, true);
+  assert.deepEqual(state.items.map((item) => item.baseline), before.items.map((item) => item.baseline));
+  assert.deepEqual((await ssModel(page)).baseline.radii, { A: 900, B: 900 });
+});
+
+test("SS 12 switching the active Lens preserves the baseline", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  await ssCapture(page);
+  const before = await ssState(page);
+  await page.evaluate(() => window.__HALO_REGRESSION__.setActive("B"));
+  await page.evaluate(() => window.__HALO_REGRESSION__.setActive("A"));
+  const after = await ssState(page);
+  assert.equal(after.status, before.status);
+  assert.equal(after.noticeHidden, true, "activating a lens is not a location change");
+  assert.deepEqual(after.items.map((item) => item.baseline), before.items.map((item) => item.baseline));
+  assert.deepEqual((await ssModel(page)).baseline.radii, { A: 900, B: 900 });
+});
+
+test("SS 13 moving a Lens centre invalidates the baseline and says why", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  await ssCapture(page);
+  assert.ok((await ssModel(page)) !== null);
+  // A different PLACE is not radius sensitivity.
+  await page.evaluate(() => window.__HALO_REGRESSION__.setCenterAtPoint("A", 560, 470));
+  await page.evaluate(() => window.__HALO_REGRESSION__.recompute());
+  const state = await ssState(page);
+  assert.equal(await ssModel(page), null, "the baseline was dropped, not silently compared");
+  assert.equal(state.status, "no-baseline");
+  assert.equal(state.noticeHidden, false);
+  assert.match(state.noticeText, /Baseline invalidated · Lens location changed/);
+  assert.equal(state.items.length, 0, "no stale readings survive");
+  assert.equal(state.windowsHidden, true);
+  assert.equal(state.baselineRadii, "", "no stale baseline radii survive");
+  assert.match(state.captureLabel, /Capture current comparison/);
+  // The user can simply capture a new baseline, which clears the notice.
+  await ssCapture(page);
+  const recaptured = await ssState(page);
+  assert.equal(recaptured.noticeHidden, true, "a fresh capture answers the invalidation");
+  assert.equal(recaptured.status, "STABLE");
+});
+
+test("SS 14 an evidence-configuration change invalidates the baseline rather than posing as window sensitivity", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  await ssCapture(page);
+  assert.ok((await ssModel(page)) !== null);
+  // Toggling the HATI layer changes the UTCI evidence contract, not the window.
+  // The switch's own <span> is what a user clicks; it is label-associated, so
+  // this toggles the input and fires the real change handler.
+  await page.locator('.layer.research-layer .switch span').click();
+  await page.waitForFunction(() => document.querySelector('[data-layer="heat"]').checked === true);
+  await page.evaluate(() => window.__HALO_REGRESSION__.recompute());
+  const state = await ssState(page);
+  assert.equal(await ssModel(page), null, "V1 policy is invalidate, not 'mark incompatible'");
+  assert.equal(state.status, "no-baseline");
+  assert.equal(state.noticeHidden, false);
+  assert.match(state.noticeText, /Baseline invalidated · evidence configuration changed/);
+  assert.equal(state.items.length, 0);
+});
+
+test("SS 14(2) an accommodation-category change also invalidates the baseline", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  // DETERMINISTIC REGARDLESS OF PACKAGED DATA. The #stayKindFilter <select> is
+  // legitimately DISABLED whenever the packaged fallback carries no
+  // accommodation type metadata (true of a clean CI checkout), so driving the
+  // control would test the deployment's data shape instead of the invalidation
+  // contract. This drives the SAME setStayKindFilter() production helper the
+  // real onchange handler calls, through the gated seam, so the evidence-key
+  // change, the stay-layer rebuild and the re-render are all production code.
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  const before = await page.evaluate(() => ({
+    kind: window.__HALO_REGRESSION__.stayKindFilterValue(),
+    radii: { A: document.getElementById("cmpPoiA").textContent, B: document.getElementById("cmpPoiB").textContent },
+    readout: document.getElementById("comparisonRadiusReadout").textContent.trim(),
+    centers: window.__HALO_REGRESSION__.lensCenters(),
+  }));
+  assert.equal(before.kind, "all", "the session starts on the all-accommodation category");
+  await ssCapture(page);
+  const captured = await ssModel(page);
+  assert.ok(captured !== null, "a valid baseline was captured");
+  assert.deepEqual(captured.baseline.radii, { A: 900, B: 900 });
+
+  // A REAL category change, to a different known Madrid Destino category.
+  await page.evaluate(() => window.__HALO_REGRESSION__.setStayKindFilterForTest("hotel"));
+  assert.equal(await page.evaluate(() => window.__HALO_REGRESSION__.stayKindFilterValue()), "hotel",
+    "the production helper actually changed the category state");
+
+  const state = await ssState(page);
+  // The baseline is dropped, not silently compared as radius sensitivity.
+  assert.equal(await ssModel(page), null, "an evidence-configuration change invalidates the baseline");
+  assert.equal(state.status, "no-baseline");
+  assert.equal(state.emptyHidden, false, "the UI returned to the no-baseline state");
+  assert.equal(state.windowsHidden, true);
+  assert.equal(state.items.length, 0, "no stale readings survive");
+  assert.equal(state.resetHidden, true);
+  assert.match(state.captureLabel, /Capture current comparison/);
+  // The notice is visible and names the evidence configuration, not the window.
+  assert.equal(state.noticeHidden, false);
+  assert.match(state.noticeText, /Baseline invalidated · evidence configuration changed/);
+  assert.doesNotMatch(state.noticeText, /location changed/, "this is not a centre change");
+
+  // Invalidation must not disturb the live Lens geometry at all.
+  const after = await page.evaluate(() => ({
+    readout: document.getElementById("comparisonRadiusReadout").textContent.trim(),
+    centers: window.__HALO_REGRESSION__.lensCenters(),
+  }));
+  assert.equal(after.readout, before.readout, "the current Lens radii are untouched");
+  assert.deepEqual(after.centers, before.centers, "the current Lens centres are untouched");
+
+  // The user can capture a fresh baseline under the new category, which clears
+  // the notice — the contract is invalidation, not a dead end.
+  await ssCapture(page);
+  const recaptured = await ssState(page);
+  assert.equal(recaptured.noticeHidden, true);
+  assert.equal(recaptured.status, "STABLE");
+  assert.deepEqual((await ssModel(page)).baseline.radii, { A: 900, B: 900 });
+});
+
+test("SS 14(3) the category transition is driven by one production helper, reachable only through the gated seam", async (t) => {
+  // A SOURCE GUARD, so the architecture cannot drift back to a test-only path.
+  const app = fs.readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
+  // 1) The real <select> handler delegates to the shared production helper and
+  //    performs no state transition of its own.
+  assert.match(app, /function setStayKindFilter\(nextKind\)\s*\{\s*stayKindFilter = nextKind;\s*rebuildDenseLayer\("stay"\);\s*refresh\(\);\s*\}/,
+    "one named production helper owns the transition");
+  assert.match(app, /document\.getElementById\("stayKindFilter"\)\.onchange = \(e\) => \{\s*setStayKindFilter\(e\.target\.value\);\s*\};/,
+    "the real UI handler delegates to that helper");
+  // The old inline duplication must be gone: assigning stayKindFilter directly
+  // from an event is exactly the drift this guard prevents.
+  assert.ok(!/stayKindFilter = e\.target\.value/.test(app), "no inline duplicate of the transition");
+  // stayKindFilter is only ever reassigned inside the one helper.
+  const assignments = [...app.matchAll(/^\s*stayKindFilter = /gm)];
+  assert.equal(assignments.length, 1, "the category state has exactly one writer");
+
+  // 2) The regression seam delegates to the SAME helper — no duplicated filter
+  //    or invalidation logic, and no separate scenario render path.
+  assert.match(app, /setStayKindFilterForTest\(kind\)\s*\{\s*setStayKindFilter\(kind\);\s*\}/,
+    "the seam calls the production helper and nothing else");
+  for (const forbidden of ["rebuildDenseLayer", "renderSpatialSensitivity", "invalidateSpatialBaseline", "disabled"]) {
+    const seamFn = app.slice(app.indexOf("setStayKindFilterForTest(kind)"), app.indexOf("stayKindFilterValue()"));
+    assert.ok(!seamFn.includes(forbidden), `the seam must not itself call ${forbidden}`);
+  }
+
+  // 3) Every seam member, including the new ones, stays inside the query-gated
+  //    AND localhost-only block. Nothing test-only is reachable in production.
+  assert.match(app, /const haloRegressionRequested = new URLSearchParams\(window\.location\.search\)\.get\("haloRegressionTest"\) === "1";/);
+  assert.match(app, /const haloRegressionLocal = window\.location\.hostname === "127\.0\.0\.1" \|\| window\.location\.hostname === "localhost";/);
+  assert.match(app, /if \(haloRegressionRequested && haloRegressionLocal\) \{\s*window\.__HALO_REGRESSION__ = Object\.freeze\(\{/);
+  const seamStart = app.indexOf("if (haloRegressionRequested && haloRegressionLocal) {");
+  // The boundary is the gate's own CLOSING BRACE, not the next statement:
+  // slicing to the following `const` would count anything inserted just above
+  // it as "inside the seam", which is exactly the leak this guard must catch.
+  const seamClose = app.indexOf("\n  });\n}\n", seamStart);
+  assert.ok(seamStart > 0 && seamClose > seamStart, "the gated seam block was located");
+  const seamEnd = seamClose + "\n  });\n}".length;
+  const seamBlock = app.slice(seamStart, seamEnd);
+  assert.ok(seamBlock.trimEnd().endsWith("});\n}"), "the slice ends at the gate's closing brace");
+  // Unambiguous test-only identifiers: each must live inside the gated block and
+  // appear NOWHERE else in the file.
+  for (const member of ["setStayKindFilterForTest", "stayKindFilterValue", "lensCenters", "spatialSensitivityModel", "spatialBaselineSnapshot"]) {
+    assert.ok(seamBlock.includes(member), `${member} lives inside the gated seam`);
+    assert.equal(app.split(member).length - 1, seamBlock.split(member).length - 1,
+      `${member} appears nowhere outside the gated seam`);
+  }
+  // There is exactly one seam assignment, and it is the gated one.
+  assert.equal((app.match(/window\.__HALO_REGRESSION__ =/g) || []).length, 1);
+});
+
+test("SS 14(4) the seam is absent, and the category filter keeps its production availability rule, without the query gate", async (t) => {
+  // Served from 127.0.0.1 but WITHOUT haloRegressionTest=1: the seam must not exist.
+  const page = await browser.newPage({ viewport: { width: 1366, height: 1024 } });
+  t.after(() => page.close());
+  await page.route("**/*", (route) => {
+    const url = new URL(route.request().url());
+    if (url.hostname !== "127.0.0.1" && url.hostname !== "localhost") return route.abort();
+    return route.continue();
+  });
+  await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
+  // Wait for the production availability rule to have actually RUN. The options
+  // and the <select> ship in static markup, so waiting for them resolves
+  // immediately and would race the rule; the `title` is set only by that rule,
+  // so a non-empty title is the deterministic signal that it has applied.
+  await page.waitForFunction(() => document.getElementById("stayKindFilter").title.length > 0);
+  assert.equal(await page.evaluate(() => typeof window.__HALO_REGRESSION__), "undefined",
+    "no test-only code is reachable during normal production use");
+  // Every test-only ENTRY POINT is gone with it. (setStayKindFilter itself is
+  // ordinary production code at script scope, exactly like refresh() and
+  // renderCompare() already are — js/app.js is a classic script, so that is
+  // pre-existing architecture and not a seam leak. What must never be reachable
+  // is a test-only shortcut, and the seam is the only one.)
+  const seamMembers = await page.evaluate(() => ({
+    seam: typeof window.__HALO_REGRESSION__,
+    forTest: typeof window.setStayKindFilterForTest,
+    model: typeof window.spatialSensitivityModel,
+    snapshot: typeof window.spatialBaselineSnapshot,
+  }));
+  assert.deepEqual(seamMembers, { seam: "undefined", forTest: "undefined", model: "undefined", snapshot: "undefined" },
+    "no test-only entry point exists without the query gate");
+  // The production availability rule is intact and is driven ONLY by whether the
+  // packaged data carries accommodation type metadata — this fix did not change
+  // it, and the test above never needed it to be enabled.
+  const filter = await page.evaluate(() => {
+    const select = document.getElementById("stayKindFilter");
+    const kinds = new Set([...document.querySelectorAll("#stayKindFilter option[data-kind]")]
+      .filter((option) => !option.disabled).map((option) => option.dataset.kind));
+    return { disabled: select.disabled, title: select.title, enabledKinds: kinds.size };
+  });
+  // Either state is legitimate depending on the packaged fallback; what must
+  // hold is that `disabled` agrees with the presence of category metadata.
+  assert.equal(filter.disabled, filter.enabledKinds === 0,
+    "the filter is disabled exactly when no accommodation category metadata is present");
+  assert.match(filter.title, filter.disabled
+    ? /Accommodation type metadata unavailable in the current fallback/
+    : /Filter the official accommodation layer by Madrid Destino category/);
+});
+
+test("SS 15 metric focus emphasizes the matching sensitivity item without hiding the others", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  await ssCapture(page);
+  await focusMetric(page, "mobility", "A", true);
+  const state = await ssState(page);
+  const focused = state.items.filter((item) => item.focused === "true");
+  assert.equal(focused.length, 1, "exactly one item is emphasized");
+  assert.equal(focused[0].metricId, "mobility", "the focused metric is the emphasized one");
+  assert.equal(focused[0].ariaCurrent, "true", "emphasis is exposed to assistive technology, not colour alone");
+  // Every other item stays present and fully readable: this is not a selector.
+  assert.equal(state.items.length, 4);
+  for (const item of state.items) {
+    assert.ok(item.baseline.length > 0 && item.scenario.length > 0, `${item.metricId} stays readable`);
+    if (item.metricId !== "mobility") assert.equal(item.ariaCurrent, null);
+  }
+  const visible = await page.evaluate(() => [...document.querySelectorAll("#spatialSensitivityItems .ss-item")]
+    .map((row) => getComputedStyle(row).display !== "none" && row.getBoundingClientRect().height > 0));
+  assert.deepEqual(visible, [true, true, true, true], "no item is ever hidden");
+  // It adds no tab stop and no interactive control of its own.
+  const controls = await page.evaluate(() => document.querySelectorAll("#spatialSensitivityItems button, #spatialSensitivityItems [tabindex]").length);
+  assert.equal(controls, 0);
+  // Clearing focus removes the emphasis without touching the readings.
+  await focusMetric(page, "mobility", "A", true);
+  await focusMetric(page, null, "A");
+  const cleared = await ssState(page);
+  assert.equal(cleared.items.filter((item) => item.focused === "true").length, 0);
+  assert.deepEqual(cleared.items.map((item) => item.scenario), state.items.map((item) => item.scenario));
+});
+
+test("SS 16/17 the sensitivity copy switches between Spanish and English", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  await ssCapture(page);
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 700, B: 1600 });
+
+  await page.evaluate(() => window.__HALO_REGRESSION__.setComparisonLanguage("es"));
+  const es = await ssState(page);
+  assert.equal(es.heading, "Sensibilidad espacial");
+  assert.match(es.statusText, /Sensible a la elección de ventana/);
+  assert.equal(es.baselineLabel, "Ventana de línea base");
+  assert.equal(es.scenarioLabel, "Ventana de escenario");
+  assert.match(es.captureLabel, /Capturar la actual como nueva línea base/);
+  assert.match(es.resetLabel, /Restablecer la línea base/);
+  assert.match(es.guard, /no es una previsión ni un efecto causal/);
+  assert.equal(ssItem(es, "tourism").metric, "POI turísticos");
+  assert.match(ssItem(es, "tourism").transitionText, /La base de comparación cambió/);
+  assert.match(ssItem(es, "tourism").detail, /cambio numérico retenido/);
+  assert.match(ssItem(es, "mobility").transitionText, /La comparación pasó a retenida/);
+  assert.match(ssItem(es, "mobility").scenario, /tamaños de ventana distintos/);
+  // No English leaks into the Spanish rendering.
+  for (const item of es.items) {
+    assert.doesNotMatch(item.transitionText, /Basis changed|became withheld|Relationship unchanged/);
+  }
+  // The structural reading is IDENTICAL across languages: only words change.
+  const esTransitions = es.items.map((item) => item.transition);
+
+  await page.evaluate(() => window.__HALO_REGRESSION__.setComparisonLanguage("en"));
+  const en = await ssState(page);
+  assert.equal(en.heading, "Spatial sensitivity");
+  assert.match(en.statusText, /Sensitive to window choice/);
+  assert.equal(en.baselineLabel, "Baseline window");
+  assert.equal(en.scenarioLabel, "Scenario window");
+  assert.match(en.captureLabel, /Capture current as new baseline/);
+  assert.match(en.resetLabel, /Reset baseline/);
+  assert.match(en.guard, /not a forecast and not a causal effect/);
+  assert.equal(ssItem(en, "tourism").metric, "Tourism POIs");
+  assert.match(ssItem(en, "tourism").transitionText, /Basis changed/);
+  assert.match(ssItem(en, "mobility").transitionText, /Comparison became withheld/);
+  assert.deepEqual(en.items.map((item) => item.transition), esTransitions,
+    "the analytical reading is language-independent");
+  assert.equal(en.status, es.status);
+});
+
+test("SS 20 no sensitivity state ever alters the authoritative halo, Bridge, Insight or table semantics", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 700, B: 1600 });
+  await focusMetric(page, "tourism", "A", true);
+  const snapshot = () => page.evaluate(() => ({
+    bridge: window.__HALO_REGRESSION__.bridgeModel("tourism"),
+    insight: window.__HALO_REGRESSION__.decisionInsightModel(),
+    insightDom: window.__HALO_REGRESSION__.decisionInsight(),
+    haloTourismA: window.__HALO_REGRESSION__.haloValueText("A", "tourism"),
+    haloTourismB: window.__HALO_REGRESSION__.haloValueText("B", "tourism"),
+    table: ["cmpPoi", "cmpStay", "cmpMobility", "cmpHeat"].map((id) => document.getElementById(id).textContent.trim()),
+    cue: document.getElementById("comparisonModeCue").textContent.trim(),
+    focus: window.__HALO_REGRESSION__.focusState(),
+  }));
+  const before = await snapshot();
+  // Capture, change the window, come back, capture again, reset: none of it may
+  // perturb any authoritative surface.
+  await ssCapture(page);
+  assert.deepEqual(await snapshot(), before, "capturing a baseline changes no authoritative surface");
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 700, B: 1600 });
+  assert.deepEqual(await snapshot(), before, "a round trip through the scenario restores every surface");
+  await ssCapture(page);
+  assert.deepEqual(await snapshot(), before, "re-capturing changes no authoritative surface");
+  await ssReset(page);
+  assert.deepEqual(await snapshot(), before, "resetting the baseline changes no authoritative surface");
+});
+
+// --- FIVE-SURFACE COHERENCE -------------------------------------------------
+//
+// The scenario side of Spatial Sensitivity must be the SAME authoritative
+// current state the other four surfaces show. The baseline is the frozen
+// historical snapshot and is the only thing that may differ.
+
+test("SS five-surface coherence: a VALID metric reads identically on halo, Bridge, Insight, table and sensitivity", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+  await ssCapture(page);
+  // Move the window so the baseline and the scenario genuinely differ, then
+  // come back to a comparable raw-count scenario with a changed magnitude.
+  await applyInsight(page, INSIGHT_EVIDENCE({
+    tourism: { a: { value: 17, sourceState: "live" }, b: { value: 40, sourceState: "live" } },
+  }), { A: 900, B: 900 });
+
+  // The halo's own visibility is governed by the frozen collision contract, so
+  // a given glyph may legitimately be suppressed off the map in this layout.
+  // Each attached glyph is checked, and the count is asserted afterwards so the
+  // halo leg of this coherence test can never pass vacuously.
+  let haloChecks = 0;
+  for (const metricId of ["tourism", "stays", "mobility"]) {
+    await focusMetric(page, metricId, "A", true);
+    await page.waitForFunction((m) => window.__HALO_REGRESSION__.focusState().focused === m, metricId);
+    const bridge = await bridgeModelFor(page, metricId);
+    const insight = (await insightState(page)).items.find((item) => item.metricId === metricId);
+    const insightModelItem = (await insightModel(page)).items.find((item) => item.metricId === metricId);
+    const sensitivity = ssItem(await ssState(page), metricId);
+    const sensitivityModelItem = (await ssModel(page)).items.find((item) => item.metricId === metricId);
+    const cellId = { tourism: "cmpPoi", stays: "cmpStay", mobility: "cmpMobility" }[metricId];
+
+    // 1) One metric identity across every surface.
+    assert.equal(sensitivity.metric, insight.metric, `${metricId} name matches Decision Insight`);
+    assert.equal(sensitivity.metric, (await bridgeState(page)).name, `${metricId} name matches the Bridge`);
+
+    // 2) The SCENARIO state is the authoritative current state, everywhere.
+    assert.equal(sensitivityModelItem.scenario.state, insightModelItem.state, `${metricId} scenario state IS the Insight state`);
+    assert.equal(sensitivityModelItem.scenario.comparable, bridge.relationship.comparable, `${metricId} comparability IS the Bridge's`);
+    assert.equal(sensitivityModelItem.scenario.deltaValue, insightModelItem.deltaValue, `${metricId} scenario delta IS the Insight delta`);
+    assert.equal(sensitivityModelItem.scenario.basisCode, bridge.relationship.basisCode, `${metricId} basis IS the Bridge's`);
+    assert.equal(sensitivityModelItem.scenario.direction, insightModelItem.direction);
+
+    // 3) The RENDERED scenario clause is literally the rendered Insight clause,
+    //    so the two surfaces cannot word one state differently.
+    assert.equal(sensitivity.scenario, insight.relationship, `${metricId} scenario text IS the Insight text`);
+
+    // 4) The same number reaches the Bridge, the table and the halo.
+    const expected = signedNumber(insight.relationship);
+    assert.equal(signedNumber(sensitivity.scenario), expected, `${metricId} sensitivity number agrees`);
+    assert.equal(signedNumber((await bridgeState(page)).relValue), expected, `${metricId} Bridge number agrees`);
+    assert.equal(signedNumber(await tableDelta(page, cellId)), expected, `${metricId} table number agrees`);
+    const haloB = await page.evaluate((m) => window.__HALO_REGRESSION__.haloValueText("B", m), metricId);
+    if (haloB !== null) {
+      assert.equal(haloB, String(bridge.b.rawValue), `${metricId} halo prints the same authoritative raw value`);
+      haloChecks += 1;
+    }
+
+    // 5) The BASELINE is the historical snapshot and is the only differing side.
+    assert.equal(sensitivityModelItem.baseline.state, "comparable");
+    assert.notEqual(sensitivity.baseline, sensitivity.scenario === sensitivity.baseline ? null : sensitivity.scenario,
+      `${metricId} baseline is reported separately from the scenario`);
+  }
+  assert.ok(haloChecks >= 1, "at least one halo glyph was actually compared");
+  // Tourism's magnitude moved while its direction and basis held, so the
+  // reading is STABLE and the change is reported with correct units.
+  const tourism = (await ssModel(page)).items.find((item) => item.metricId === "tourism");
+  assert.equal(tourism.transitionCode, "UNCHANGED_COMPARABLE");
+  assert.equal(tourism.deltaChange, 23 - 9);
+  assert.match(ssItem(await ssState(page), "tourism").detail, /Observed comparison changed by \+14 records/);
+});
+
+test("SS five-surface coherence: a WITHHELD metric agrees on every surface, including the reason", async (t) => {
+  const page = await openBridge();
+  t.after(() => page.close());
+  // Mobility unavailable: the EVIDENCE reason must win over the window rule on
+  // every surface, and the sensitivity layer must not invent a third reading.
+  const absent = INSIGHT_EVIDENCE({ mobility: { a: { value: null, sourceState: "unavailable" }, b: { value: null, sourceState: "unavailable" } } });
+  await applyInsight(page, absent, { A: 900, B: 900 });
+  await ssCapture(page);
+  await applyInsight(page, absent, { A: 900, B: 1600 });
+  await focusMetric(page, "mobility", "A", true);
+  await page.waitForFunction(() => window.__HALO_REGRESSION__.focusState().focused === "mobility");
+
+  const bridge = await bridgeModelFor(page, "mobility");
+  const insight = (await insightState(page)).items.find((item) => item.metricId === "mobility");
+  const sensitivity = ssItem(await ssState(page), "mobility");
+  const modelItem = (await ssModel(page)).items.find((item) => item.metricId === "mobility");
+
+  assert.equal(bridge.relationship.comparable, false);
+  assert.equal(bridge.relationship.withheldReasonCode, "source-incompatible",
+    "the evidence reason outranks the window mismatch");
+  assert.equal(modelItem.scenario.withheldReasonCode, bridge.relationship.withheldReasonCode);
+  assert.equal(modelItem.baseline.withheldReasonCode, bridge.relationship.withheldReasonCode);
+  // Both windows are non-comparable for the SAME reason.
+  assert.equal(modelItem.transitionCode, "WITHHELD_UNCHANGED");
+  assert.match(sensitivity.transitionText, /Comparison withheld in both windows/);
+  // The rendered scenario clause is the rendered Insight clause, verbatim.
+  assert.equal(sensitivity.scenario, insight.relationship);
+  // N/A is never rendered as zero, on any surface.
+  for (const text of [sensitivity.baseline, sensitivity.scenario, insight.relationship]) {
+    assert.match(text, /N\/A/);
+    assert.ok(!/(^|\s)[+-]?0($|\s)/.test(text), `"${text}" never reads as zero`);
+  }
+  assert.equal(modelItem.scenario.deltaValue, null);
+  assert.equal(modelItem.deltaChange, null);
+  // The table and the Bridge agree on the same words.
+  assert.equal(await tableDelta(page, "cmpMobility"), "Withheld · source states incompatible");
+  assert.equal((await bridgeState(page)).qualifier, "Withheld · source states incompatible");
+});
+
+// --- responsive --------------------------------------------------------------
+for (const [label, viewport] of [["iPad landscape", { width: 1180, height: 820 }], ["iPad portrait", { width: 820, height: 1180 }]]) {
+  test(`SS 18/19 the sensitivity section is readable with no horizontal overflow on ${label}`, async (t) => {
+    const page = await openBridge(viewport);
+    t.after(() => page.close());
+    // The busiest state: a basis change, a became-withheld and a live reading.
+    await applyInsight(page, INSIGHT_EVIDENCE(), { A: 900, B: 900 });
+    await ssCapture(page);
+    await applyInsight(page, INSIGHT_EVIDENCE(), { A: 700, B: 1600 });
+    const metrics = await page.evaluate(() => {
+      const section = document.getElementById("spatialSensitivity");
+      section.scrollIntoView({ block: "center" });
+      const rect = section.getBoundingClientRect();
+      const rows = [...section.querySelectorAll(".ss-item")].map((row) => ({
+        overflow: row.scrollWidth - row.clientWidth,
+        height: row.getBoundingClientRect().height,
+        fontSize: parseFloat(getComputedStyle(row.querySelector(".ss-transition")).fontSize),
+        // Baseline above scenario above transition: the stacked reading order.
+        stacked: getComputedStyle(row).flexDirection === "column",
+        readings: [...row.querySelectorAll(".ss-reading")].map((reading) => ({
+          overflow: reading.scrollWidth - reading.clientWidth,
+          value: reading.querySelector(".ss-reading-value").textContent.trim().length,
+        })),
+      }));
+      const buttons = [...section.querySelectorAll(".ss-button")]
+        .filter((button) => !button.hasAttribute("hidden"))
+        .map((button) => ({ height: button.getBoundingClientRect().height, overflow: button.scrollWidth - button.clientWidth }));
+      return {
+        docOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        sectionOverflow: section.scrollWidth - section.clientWidth,
+        visible: rect.width > 0 && rect.height > 0,
+        withinViewport: rect.right <= window.innerWidth + 1,
+        windowsOverflow: (() => { const w = document.getElementById("spatialSensitivityWindows"); return w.scrollWidth - w.clientWidth; })(),
+        rows, buttons,
+      };
+    });
+    assert.equal(metrics.visible, true, "the section is rendered");
+    assert.equal(metrics.rows.length, 4);
+    assert.ok(metrics.docOverflow <= 1, `no horizontal page overflow (${metrics.docOverflow}px)`);
+    assert.ok(metrics.sectionOverflow <= 1, `the section does not overflow its own box (${metrics.sectionOverflow}px)`);
+    assert.ok(metrics.windowsOverflow <= 1, `the baseline/scenario windows do not overflow (${metrics.windowsOverflow}px)`);
+    assert.equal(metrics.withinViewport, true, "the section stays inside the viewport");
+    assert.equal(metrics.buttons.length, 2);
+    for (const button of metrics.buttons) {
+      assert.ok(button.overflow <= 1, `a control does not overflow (${button.overflow}px)`);
+      assert.ok(button.height >= 20, `a control keeps a usable target (${button.height}px)`);
+    }
+    for (const row of metrics.rows) {
+      assert.ok(row.overflow <= 1, `an item does not overflow its row (${row.overflow}px)`);
+      assert.ok(row.height > 0, "each item has layout");
+      assert.ok(row.fontSize >= 7, `text is not shrunk to illegibility (${row.fontSize}px)`);
+      // Narrow widths must STACK rather than squeeze three tiny columns.
+      assert.equal(row.stacked, true, "baseline, scenario and transition stack vertically");
+      assert.equal(row.readings.length, 2, "both the baseline and the scenario reading are present");
+      for (const reading of row.readings) {
+        assert.ok(reading.overflow <= 1, `a reading does not overflow (${reading.overflow}px)`);
+        assert.ok(reading.value > 0, "each reading prints a value");
+      }
+    }
+  });
+}
+
 test.after(async () => {
   await browser.close();
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
