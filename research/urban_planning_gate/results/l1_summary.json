@@ -1,0 +1,486 @@
+{
+  "gate": "L1",
+  "question": "Edition identity and the snapshot contract for datasets 203200 and 203182.",
+  "audit_finished_at": "2026-10-06T08:39:30Z",
+  "reader": {
+    "library": "xlrd",
+    "version": "2.0.2",
+    "why": "xlrd 2.0 reads ONLY legacy BIFF .xls OLE2 compound documents, which is exactly what these editions are; openpyxl (OOXML/ZIP) cannot read them.",
+    "limitation": "xlrd does not read .xlsx; it exposes no cell comments and no chart objects. Neither is needed here."
+  },
+  "families": {
+    "S1": {
+      "package": "203200-0-desarrollo-ambitos",
+      "title": "PGOUM 97. Estado de desarrollo de los ámbitos",
+      "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+      "declared_cadence_machine": "https://publications.europa.eu/resource/authority/frequency/ANNUAL_2",
+      "declared_cadence_note": "EU authority frequency ANNUAL_2 = twice a year = the portal's prose 'Semestral'.",
+      "catalogue_metadata_modified": "2026-07-23T00:00:00",
+      "xls_edition_count": 15,
+      "chronological_reference_dates": [
+        "2013-01",
+        "2014-01",
+        "2015-01",
+        "2016-01",
+        "2017-01",
+        "2018-01",
+        "2019-01",
+        "2020-01",
+        "2021-01",
+        "2022-01",
+        "2023-01",
+        "2024-01",
+        "2025-01",
+        "2025-07",
+        "2026-01"
+      ],
+      "schema_eras": {
+        "S1_SINGLE_STATE_PER_DISTRICT": [
+          "2013-01",
+          "2014-01",
+          "2015-01",
+          "2016-01",
+          "2017-01",
+          "2018-01",
+          "2019-01",
+          "2020-01",
+          "2021-01",
+          "2022-01",
+          "2023-01",
+          "2024-01"
+        ],
+        "S1_FOUR_PHASE_FLAT": [
+          "2025-01",
+          "2025-07",
+          "2026-01"
+        ]
+      },
+      "schema_era_count": 2,
+      "snapshot_identities": [
+        "S1:2013-01:ff9bab90a1ff",
+        "S1:2014-01:0e14f63b2a9e",
+        "S1:2015-01:41e492da0c76",
+        "S1:2016-01:abf91aecbf10",
+        "S1:2017-01:17108f91b574",
+        "S1:2018-01:0ae01c6a3278",
+        "S1:2019-01:2b19af37a38d",
+        "S1:2020-01:d53d83145861",
+        "S1:2021-01:f06cba4d3bca",
+        "S1:2022-01:d1b92d40d808",
+        "S1:2023-01:ea45b18fd22c",
+        "S1:2024-01:36f38295473a",
+        "S1:2025-01:83ab3dbc0c15",
+        "S1:2025-07:e1ff3e0e0f63",
+        "S1:2026-01:585db074c122"
+      ],
+      "snapshot_identities_unique": true,
+      "non_chronological_proof": {
+        "id_order_vs_reference_date": [
+          {
+            "resource_id": "203200-0-desarrollo-ambitos-xls",
+            "resource_id_num": 0,
+            "reference_date": "2024-01",
+            "description": "PGOUM 97. Estado de desarrollo de los ámbitos. 2024"
+          },
+          {
+            "resource_id": "203200-1-desarrollo-ambitos-xls",
+            "resource_id_num": 1,
+            "reference_date": "2023-01",
+            "description": "PGOUM 97. Estado de desarrollo de los ámbitos. 2023"
+          },
+          {
+            "resource_id": "203200-2-desarrollo-ambitos-xls",
+            "resource_id_num": 2,
+            "reference_date": "2025-07",
+            "description": "PGOUM 97. Estado de desarrollo de los ámbitos. Julio 2025."
+          },
+          {
+            "resource_id": "203200-3-desarrollo-ambitos-xls",
+            "resource_id_num": 3,
+            "reference_date": "2022-01",
+            "description": "PGOUM 97. Estado de desarrollo de los ámbitos. 2022"
+          },
+          {
+            "resource_id": "203200-4-desarrollo-ambitos-xls",
+            "resource_id_num": 4,
+            "reference_date": "2021-01",
+            "description": "PGOUM 97. Estado de desarrollo de los ámbitos. 2021"
+          },
+          {
+            "resource_id": "203200-5-desarrollo-ambitos-xls",
+            "resource_id_num": 5,
+            "reference_date": "2020-01",
+            "description": "PGOUM 97. Estado de desarrollo de los ámbitos. 2020"
+          },
+          {
+            "resource_id": "203200-6-desarrollo-ambitos-xls",
+            "resource_id_num": 6,
+            "reference_date": "2019-01",
+            "description": "PGOUM 97. Estado de desarrollo de los ámbitos. 2019"
+          },
+          {
+            "resource_id": "203200-7-desarrollo-ambitos-xls",
+            "resource_id_num": 7,
+            "reference_date": "2018-01",
+            "description": "PGOUM 97. Estado de desarrollo de los ámbitos. 2018"
+          },
+          {
+            "resource_id": "203200-8-desarrollo-ambitos-xls",
+            "resource_id_num": 8,
+            "reference_date": "2015-01",
+            "description": "PGOUM 97. Estado de desarrollo de los ámbitos. 2015"
+          },
+          {
+            "resource_id": "203200-9-desarrollo-ambitos-xls",
+            "resource_id_num": 9,
+            "reference_date": "2014-01",
+            "description": "PGOUM 97. Estado de desarrollo de los ámbitos. 2014"
+          },
+          {
+            "resource_id": "203200-10-desarrollo-ambitos-xls",
+            "resource_id_num": 10,
+            "reference_date": "2013-01",
+            "description": "PGOUM 97. Estado de desarrollo de los ámbitos. 2013"
+          },
+          {
+            "resource_id": "203200-11-desarrollo-ambitos-xls",
+            "resource_id_num": 11,
+            "reference_date": "2017-01",
+            "description": "PGOUM 97. Estado de desarrollo de los ámbitos. 2017"
+          },
+          {
+            "resource_id": "203200-12-desarrollo-ambitos-xls",
+            "resource_id_num": 12,
+            "reference_date": "2016-01",
+            "description": "PGOUM 97. Estado de desarrollo de los ámbitos. 2016"
+          },
+          {
+            "resource_id": "203200-15-desarrollo-ambitos",
+            "resource_id_num": 15,
+            "reference_date": "2026-01",
+            "description": "PGOUM 97. Estado de desarrollo de los ámbitos. Enero 2026."
+          },
+          {
+            "resource_id": "203200-16-desarrollo-ambitos",
+            "resource_id_num": 16,
+            "reference_date": "2025-01",
+            "description": "PGOUM 97. Estado de desarrollo de los ámbitos. Enero 2025."
+          }
+        ],
+        "is_chronological_by_id": false,
+        "inversion_count": 72,
+        "inversions_sample": [
+          {
+            "higher_evidence": "id 0 (PGOUM 97. Estado de desarrollo de los ámbitos. 2024) = 2024-01",
+            "but_later_id": "id 1 (PGOUM 97. Estado de desarrollo de los ámbitos. 2023) = 2023-01"
+          },
+          {
+            "higher_evidence": "id 0 (PGOUM 97. Estado de desarrollo de los ámbitos. 2024) = 2024-01",
+            "but_later_id": "id 3 (PGOUM 97. Estado de desarrollo de los ámbitos. 2022) = 2022-01"
+          },
+          {
+            "higher_evidence": "id 0 (PGOUM 97. Estado de desarrollo de los ámbitos. 2024) = 2024-01",
+            "but_later_id": "id 4 (PGOUM 97. Estado de desarrollo de los ámbitos. 2021) = 2021-01"
+          },
+          {
+            "higher_evidence": "id 0 (PGOUM 97. Estado de desarrollo de los ámbitos. 2024) = 2024-01",
+            "but_later_id": "id 5 (PGOUM 97. Estado de desarrollo de los ámbitos. 2020) = 2020-01"
+          },
+          {
+            "higher_evidence": "id 0 (PGOUM 97. Estado de desarrollo de los ámbitos. 2024) = 2024-01",
+            "but_later_id": "id 6 (PGOUM 97. Estado de desarrollo de los ámbitos. 2019) = 2019-01"
+          },
+          {
+            "higher_evidence": "id 0 (PGOUM 97. Estado de desarrollo de los ámbitos. 2024) = 2024-01",
+            "but_later_id": "id 7 (PGOUM 97. Estado de desarrollo de los ámbitos. 2018) = 2018-01"
+          }
+        ]
+      },
+      "observed_cadence": {
+        "reference_dates": [
+          "2013-01",
+          "2014-01",
+          "2015-01",
+          "2016-01",
+          "2017-01",
+          "2018-01",
+          "2019-01",
+          "2020-01",
+          "2021-01",
+          "2022-01",
+          "2023-01",
+          "2024-01",
+          "2025-01",
+          "2025-07",
+          "2026-01"
+        ],
+        "month_gaps": [
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          6,
+          6
+        ],
+        "note": "Annual 12-month gaps through 2024, then 6-month gaps from 2025 (Enero 2025 / Julio 2025 / Enero 2026). The declared ANNUAL_2 (semestral) cadence is correct only for the recent period."
+      },
+      "pdf_docs": [
+        {
+          "resource_id": "203200-13-desarrollo-ambitos",
+          "description": "PGOUM 97. Estado de desarrollo de los ámbitos. Contenido y estructura del fichero",
+          "url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos/resource/203200-13-desarrollo-ambitos/download/estructuradspgoumdesarrolloambitos.pdf"
+        },
+        {
+          "resource_id": "203200-14-desarrollo-ambitos",
+          "description": "Ámbitos del PGOUM que no son objeto de seguimiento",
+          "url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos/resource/203200-14-desarrollo-ambitos/download/ambitosnoseguimiento.pdf"
+        }
+      ]
+    },
+    "S2": {
+      "package": "203182-0-ambitos-remanente",
+      "title": "PGOUM 97. Edificabilidad remanente en ámbitos",
+      "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+      "declared_cadence_machine": "https://publications.europa.eu/resource/authority/frequency/ANNUAL_2",
+      "declared_cadence_note": "EU authority frequency ANNUAL_2 = twice a year = the portal's prose 'Semestral'.",
+      "catalogue_metadata_modified": "2026-07-23T00:00:00",
+      "xls_edition_count": 15,
+      "chronological_reference_dates": [
+        "2013-01",
+        "2014-01",
+        "2015-01",
+        "2016-01",
+        "2017-01",
+        "2018-01",
+        "2019-01",
+        "2020-01",
+        "2021-01",
+        "2022-01",
+        "2023-01",
+        "2024-01",
+        "2025-01",
+        "2025-07",
+        "2026-01"
+      ],
+      "schema_eras": {
+        "S2_VAC_CODORD": [
+          "2013-01",
+          "2014-01"
+        ],
+        "S2_SINGLE_RESIDENTIAL": [
+          "2015-01",
+          "2016-01",
+          "2017-01",
+          "2018-01",
+          "2019-01"
+        ],
+        "S2_COLECTIVA_UNIFAMILIAR": [
+          "2020-01",
+          "2021-01",
+          "2022-01",
+          "2023-01",
+          "2024-01"
+        ],
+        "S2_SPLIT_RESIDENTIAL_FLAT": [
+          "2025-01",
+          "2025-07",
+          "2026-01"
+        ]
+      },
+      "schema_era_count": 4,
+      "snapshot_identities": [
+        "S2:2013-01:b3e21099b3e2",
+        "S2:2014-01:f04e27b74fec",
+        "S2:2015-01:1451e6e4ec25",
+        "S2:2016-01:acaaed581a81",
+        "S2:2017-01:a6f38a68fab6",
+        "S2:2018-01:db564aa00888",
+        "S2:2019-01:62cec928f37d",
+        "S2:2020-01:017435d59036",
+        "S2:2021-01:4bd082184149",
+        "S2:2022-01:f0a211d47e6a",
+        "S2:2023-01:9b9898f66823",
+        "S2:2024-01:8722b1a7e1d2",
+        "S2:2025-01:df25b7ce6493",
+        "S2:2025-07:09f6859a2541",
+        "S2:2026-01:326edf48d221"
+      ],
+      "snapshot_identities_unique": true,
+      "non_chronological_proof": {
+        "id_order_vs_reference_date": [
+          {
+            "resource_id": "203182-0-ambitos-remanente-xls",
+            "resource_id_num": 0,
+            "reference_date": "2022-01",
+            "description": "PGOUM 97. Edificabilidad remanente en ámbitos. 2022"
+          },
+          {
+            "resource_id": "203182-1-ambitos-remanente-xls",
+            "resource_id_num": 1,
+            "reference_date": "2024-01",
+            "description": "PGOUM 97. Edificabilidad remanente en ámbitos. 2024"
+          },
+          {
+            "resource_id": "203182-2-ambitos-remanente-xls",
+            "resource_id_num": 2,
+            "reference_date": "2021-01",
+            "description": "PGOUM 97. Edificabilidad remanente en ámbitos. 2021"
+          },
+          {
+            "resource_id": "203182-3-ambitos-remanente-xls",
+            "resource_id_num": 3,
+            "reference_date": "2018-01",
+            "description": "PGOUM 97. Edificabilidad remanente en ámbitos. 2018"
+          },
+          {
+            "resource_id": "203182-4-ambitos-remanente-xls",
+            "resource_id_num": 4,
+            "reference_date": "2016-01",
+            "description": "PGOUM 97. Edificabilidad remanente en ámbitos. 2016"
+          },
+          {
+            "resource_id": "203182-5-ambitos-remanente-xls",
+            "resource_id_num": 5,
+            "reference_date": "2013-01",
+            "description": "PGOUM 97. Edificabilidad remanente en ámbitos. 2013"
+          },
+          {
+            "resource_id": "203182-6-ambitos-remanente-xls",
+            "resource_id_num": 6,
+            "reference_date": "2014-01",
+            "description": "PGOUM 97. Edificabilidad remanente en ámbitos. 2014"
+          },
+          {
+            "resource_id": "203182-8-ambitos-remanente-xls",
+            "resource_id_num": 8,
+            "reference_date": "2015-01",
+            "description": "PGOUM 97. Edificabilidad remanente en ámbitos. 2015"
+          },
+          {
+            "resource_id": "203182-9-ambitos-remanente-xls",
+            "resource_id_num": 9,
+            "reference_date": "2019-01",
+            "description": "PGOUM 97. Edificabilidad remanente en ámbitos. 2019"
+          },
+          {
+            "resource_id": "203182-10-ambitos-remanente-xls",
+            "resource_id_num": 10,
+            "reference_date": "2025-07",
+            "description": "PGOUM 97. Edificabilidad remanente en ámbitos.  Julio 2025"
+          },
+          {
+            "resource_id": "203182-11-ambitos-remanente-xls",
+            "resource_id_num": 11,
+            "reference_date": "2020-01",
+            "description": "PGOUM 97. Edificabilidad remanente en ámbitos. 2020"
+          },
+          {
+            "resource_id": "203182-12-ambitos-remanente-xls",
+            "resource_id_num": 12,
+            "reference_date": "2017-01",
+            "description": "PGOUM 97. Edificabilidad remanente en ámbitos. 2017"
+          },
+          {
+            "resource_id": "203182-13-ambitos-remanente-xls",
+            "resource_id_num": 13,
+            "reference_date": "2023-01",
+            "description": "PGOUM 97. Edificabilidad remanente en ámbitos. 2023"
+          },
+          {
+            "resource_id": "203182-14-ambitos-remanente",
+            "resource_id_num": 14,
+            "reference_date": "2026-01",
+            "description": "PGOUM 97. Edificabilidad remanente en ámbitos. Enero 2026."
+          },
+          {
+            "resource_id": "203182-15-ambitos-remanente",
+            "resource_id_num": 15,
+            "reference_date": "2025-01",
+            "description": "PGOUM 97. Edificabilidad remanente en ámbitos. Enero 2025."
+          }
+        ],
+        "is_chronological_by_id": false,
+        "inversion_count": 42,
+        "inversions_sample": [
+          {
+            "higher_evidence": "id 0 (PGOUM 97. Edificabilidad remanente en ámbitos. 2022) = 2022-01",
+            "but_later_id": "id 2 (PGOUM 97. Edificabilidad remanente en ámbitos. 2021) = 2021-01"
+          },
+          {
+            "higher_evidence": "id 0 (PGOUM 97. Edificabilidad remanente en ámbitos. 2022) = 2022-01",
+            "but_later_id": "id 3 (PGOUM 97. Edificabilidad remanente en ámbitos. 2018) = 2018-01"
+          },
+          {
+            "higher_evidence": "id 0 (PGOUM 97. Edificabilidad remanente en ámbitos. 2022) = 2022-01",
+            "but_later_id": "id 4 (PGOUM 97. Edificabilidad remanente en ámbitos. 2016) = 2016-01"
+          },
+          {
+            "higher_evidence": "id 0 (PGOUM 97. Edificabilidad remanente en ámbitos. 2022) = 2022-01",
+            "but_later_id": "id 5 (PGOUM 97. Edificabilidad remanente en ámbitos. 2013) = 2013-01"
+          },
+          {
+            "higher_evidence": "id 0 (PGOUM 97. Edificabilidad remanente en ámbitos. 2022) = 2022-01",
+            "but_later_id": "id 6 (PGOUM 97. Edificabilidad remanente en ámbitos. 2014) = 2014-01"
+          },
+          {
+            "higher_evidence": "id 0 (PGOUM 97. Edificabilidad remanente en ámbitos. 2022) = 2022-01",
+            "but_later_id": "id 8 (PGOUM 97. Edificabilidad remanente en ámbitos. 2015) = 2015-01"
+          }
+        ]
+      },
+      "observed_cadence": {
+        "reference_dates": [
+          "2013-01",
+          "2014-01",
+          "2015-01",
+          "2016-01",
+          "2017-01",
+          "2018-01",
+          "2019-01",
+          "2020-01",
+          "2021-01",
+          "2022-01",
+          "2023-01",
+          "2024-01",
+          "2025-01",
+          "2025-07",
+          "2026-01"
+        ],
+        "month_gaps": [
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          6,
+          6
+        ],
+        "note": "Annual 12-month gaps through 2024, then 6-month gaps from 2025 (Enero 2025 / Julio 2025 / Enero 2026). The declared ANNUAL_2 (semestral) cadence is correct only for the recent period."
+      },
+      "pdf_docs": [
+        {
+          "resource_id": "203182-7-ambitos-remanente",
+          "description": "PGOUM 97. Edificabilidad remanente en ámbitos. Contenido y estructura del fichero",
+          "url": "https://datos.madrid.es/dataset/203182-0-ambitos-remanente/resource/203182-7-ambitos-remanente/download/estructuradspgoumremanente.pdf"
+        }
+      ]
+    }
+  },
+  "single_comparable_series": false,
+  "single_comparable_series_note": "Neither family is one comparable 2013→2026 series. S1 has two schema eras (per-district single-state 2013–2024; flat four-phase 2025–2026). S2 passes through four distinct column schemas. Cross-era differencing is barred; the honest change surface is confined to within-era pairs."
+}

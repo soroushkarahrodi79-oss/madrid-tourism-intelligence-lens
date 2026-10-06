@@ -18,3 +18,10 @@ data/deployment_manifest.json
 __pycache__/
 *.py[cod]
 node_modules/
+
+# Gate L (#65) research cache. The audit scripts stream the official legacy
+# BIFF8 .xls editions and the ArcGIS geometry into this directory to fingerprint
+# and parse them. Raw third-party files are never committed; only the compact
+# normalized JSON reports under research/urban_planning_gate/results/ are. See
+# research/urban_planning_gate/README.md.
+research/urban_planning_gate/cache/

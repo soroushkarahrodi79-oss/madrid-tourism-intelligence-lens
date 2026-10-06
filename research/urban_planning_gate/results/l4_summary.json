@@ -1,0 +1,15 @@
+{
+  "gate": "L4",
+  "buildability_unit": "m2",
+  "remanente_meaning": "AVAILABLE_BUILDABILITY_M2_UNDER_PLAN",
+  "n_viviendas_is_m2_over_100": [
+    1.0,
+    1.0
+  ],
+  "n_viviendas_fractional": [
+    113,
+    40
+  ],
+  "no_dwelling_ceiling": "BINDING",
+  "cross_era_buildability_delta": "BARRED (fields change across eras); within-era delta is OBSERVED_PUBLISHED_DIFFERENCE with cause unresolved."
+}
