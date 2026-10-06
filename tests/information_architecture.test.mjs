@@ -353,7 +353,10 @@ test("H: every evidence record carries source, authority, scope, unit, the five 
         assert.ok(source.displayName && source.authority, `${record.surface}/${source.id}`);
         for (const field of FRESHNESS_FIELDS) {
           assert.ok(Object.prototype.hasOwnProperty.call(source.freshness, field), `${source.id}.${field}`);
-          assert.deepEqual(source.freshness[field], original[field], `${source.id}.${field} is the registry value`);
+          const expected = record.surface === "place.planning.change" && field === "reference_date"
+            ? original.change_detection.oldest_contributor_reference_date
+            : original[field];
+          assert.deepEqual(source.freshness[field], expected, `${source.id}.${field} follows the surface freshness rule`);
         }
         assert.equal(source.interpretationCeiling, original.interpretation_ceiling, "the ceiling is verbatim");
         assert.ok(source.interpretationCeiling.length > 20);

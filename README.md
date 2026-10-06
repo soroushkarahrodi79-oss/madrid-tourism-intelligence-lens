@@ -39,10 +39,11 @@ reframing.
 [Gate K](docs/GATE_K_URBAN_DECISION_WORKSPACE.md), is to make urban-development
 evidence the organising frame, with tourism **retained as one documented
 domain** rather than the headline. That is a change of emphasis and vocabulary,
-not of data in itself. The **first production planning increment has now
-shipped**: K6 (#68) reads the official planning ámbito that contains a Lens
-centre and what one dated official edition publishes about that whole ámbito -
-see [Planning-ámbito evidence V1](docs/PLANNING_AMBITO_EVIDENCE_V1.md). The spatial lens itself
+not of data in itself. K6 (#68) reads the current official edition for the
+planning ámbito that contains a Lens centre, and K7 (#69) adds a two-edition
+comparison for the named 2025-07 and 2026-01 publications. See
+[Planning-ámbito evidence V1](docs/PLANNING_AMBITO_EVIDENCE_V1.md) and
+[Official edition change detection V1](docs/AMBITO_CHANGE_DETECTION_V1.md). The spatial lens itself
 solves a real problem the next direction keeps: static maps force you to look at
 a whole city at once, or at one predefined zone, while the lens lets you ask a
 **local, comparative** question — "what is represented within this exact spatial
@@ -154,10 +155,12 @@ including comparing two places at once.
   reference date next to it. `No Necesita` keeps its own label and the note that
   the publisher never defines it; `PGOUM-85`/`PGOUM-97` stay verbatim as
   plan-of-origin markers. There is no overall stage, no percentage and no
-  progress. A point outside every ámbito says so explicitly. The PLACE detail
-  also lists **which** ámbitos the Lens circle touches - membership only, with no
-  share of their quantities. See
-  [Planning-ámbito evidence V1](docs/PLANNING_AMBITO_EVIDENCE_V1.md).
+  progress. A point outside every ámbito says so explicitly. A secondary
+  **Official edition comparison** names the 2025-07 and 2026-01 reference dates
+  and compares only their published tabular evidence. The PLACE detail also lists
+  **which** ámbitos the Lens circle touches - membership only, with no share of
+  their quantities. See [Planning-ámbito evidence V1](docs/PLANNING_AMBITO_EVIDENCE_V1.md)
+  and [Official edition change detection V1](docs/AMBITO_CHANGE_DETECTION_V1.md).
 
 - Optionally overlay the full lattice of **district** or **barrio** outlines;
   the containing barrio is always outlined, the lattice defaults to off.
@@ -199,10 +202,11 @@ including comparing two places at once.
 - **Published ámbito development state and available buildability** —
   Ayuntamiento de Madrid, DG de Planificación Estratégica, datasets *PGOUM 97.
   Estado de desarrollo de los ámbitos* and *PGOUM 97. Edificabilidad remanente en
-  ámbitos* (CC BY 4.0). One dated edition of each, selected by the date the
-  edition states about itself: four independent published phase values and
-  available buildability in m² edificable, for the whole ámbito. No dwelling
-  count, no overall stage, no edition-to-edition change
+  ámbitos* (CC BY 4.0). K6 reads each current edition by its source-stated date.
+  K7 compares only the named 2025-07 and 2026-01 editions within their current
+  schema eras. The row-preserving method and reconciliation are documented in
+  [Official edition change detection V1](docs/AMBITO_CHANGE_DETECTION_V1.md).
+  No dwelling count or overall stage is derived
 - **Monthly hotel demand for the city of Madrid** — Instituto Nacional de
   Estadística, *Encuesta de Ocupación Hotelera* (statistical operation 238), read
   through INE's Tempus3 API. A committed statistical snapshot: 104 contiguous
@@ -333,8 +337,8 @@ authorized production increment is an **ámbito evidence layer at ámbito scope*
 geometry, the four published development phases (Planeamiento / Gestión / Urbanización /
 Edificación) and remaining buildability in m² by use class — and it is gated behind
 **Gate L (official urban-planning source contract)** plus the spatial-scope and source-freshness
-contracts that precede it. No urban-planning dataset is shipped, and no visual rebuild, 3D surface
-or assistant is authorized until those gates close. The panel's reading architecture
+contracts that precede it. K6 and K7 ship the bounded tabular evidence and
+two-edition comparison; they add no geometry history. The panel's reading architecture
 (PLACE / COMPARE / CITY modes, the scope-and-freshness rail and the evidence drawer) is described
 in [Information architecture V2](docs/INFORMATION_ARCHITECTURE_V2.md); it reorganizes existing
 evidence and does not add planning evidence.

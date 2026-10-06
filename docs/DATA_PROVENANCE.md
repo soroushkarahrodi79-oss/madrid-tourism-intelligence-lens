@@ -819,6 +819,47 @@ Both rows are preserved verbatim and classified `CAUSE_UNRESOLVED`; no row is
 preferred, merged or corrected, and no single figure is published for those codes.
 District attribution is read from S1 only, which carries no such anomaly.
 
+### K7 two-edition comparison
+
+The separate K7 comparison is pinned to the source-stated references
+**2025-07-01 → 2026-01-01**, selected by date plus full file fingerprint:
+
+- S1 July: `S1:2025-07:e1ff3e0e0f63`,
+  `e1ff3e0e0f63fe59dbe64d10b319026917c34d9086f395e9787b6fe3661cf49d`;
+  S1 January: `S1:2026-01:585db074c122`,
+  `585db074c122caec3293137e56742b5c9d77189205050aab328520a2dd1ec677`.
+- S2 July: `S2:2025-07:09f6859a2541`,
+  `09f6859a2541ea8c31eb3ce47464ca5fbec64d38f57a7b3b435bb65e4a5cb286`;
+  S2 January: `S2:2026-01:326edf48d221`,
+  `326edf48d2214e73175256777fd5083a3f656a05d0bcf0bec36b63ac6cc899e8`.
+
+Both pairs use their current schema eras. K7 stores edition resource identity,
+schema fingerprint, URL and retrieval provenance separately for each family
+and date. The current K6 edition object remains unchanged and primary. S1
+production reproduces **655 NO_CHANGE, 10 STATE_TRANSITION and 2 NEW_AMBITO**.
+The Gate L S2 first-row result is a separately labelled audit baseline:
+**220 NO_CHANGE, 9 STATE_TRANSITION, 9 ABSENT_FROM_EDITION and 1
+CAUSE_UNRESOLVED**, with 54 cosmetic-only observations. Production S2 retains
+all rows and reports **212 NO_CHANGE, 8 STATE_TRANSITION, 9
+ABSENT_FROM_EDITION and 10 CAUSE_UNRESOLVED**. The artifact's reconciliation
+enumerates each exact-code divergence, including both UZPp `-RP` examples, row
+matches, unmatched rows and whether numeric buildability comparison is
+permitted.
+
+K7 numeric differences are reported as observed published differences. A
+numeric result requires exact-code identity, defensible situation-row
+correspondence, the same documented use class, numeric values on both dates,
+and no applicable instrument event across the pair. Otherwise the value is
+withheld with its reason. The detailed counts and all divergence evidence are
+in the committed artifact and
+[Official edition change detection V1](AMBITO_CHANGE_DETECTION_V1.md).
+
+For absent S2 codes, K7 checks the official annex [Ámbitos del PGOUM que no son
+objeto de seguimiento](https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos/resource/203200-14-desarrollo-ambitos/download/203200-14-desarrollo-ambitos.pdf).
+A reason is attached only when the exact published code is documented there;
+otherwise the comparison keeps `ABSENT_FROM_EDITION` and marks its cause as
+`CAUSE_UNRESOLVED`.
+
 Full contract: [Planning-ámbito evidence V1](PLANNING_AMBITO_EVIDENCE_V1.md).
 
 ## Base maps

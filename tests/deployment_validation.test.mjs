@@ -11,6 +11,12 @@ import { ANALYTICAL_SCOPES, UPDATE_FREQUENCIES, SOURCE_STATES, freshnessOf } fro
 const REAL_REGISTRY = JSON.parse(
   fs.readFileSync(new URL("../data/source_registry.json", import.meta.url), "utf8")
 );
+const REAL_PLANNING_STATE = JSON.parse(
+  fs.readFileSync(new URL("../data/planning/madrid_ambito_state.json", import.meta.url), "utf8")
+);
+const REAL_PLANNING_STATE_META = JSON.parse(
+  fs.readFileSync(new URL("../data/planning/madrid_ambito_state.meta.json", import.meta.url), "utf8")
+);
 
 const GENERATED_AT = "2026-09-29T09:00:00.000Z";
 
@@ -526,10 +532,10 @@ function destinationMeta() {
 // meant to satisfy.
 const PLANNING_FIXTURE = {
   referenceDate: "2026-01-01",
-  s1Identity: "S1:2026-01:fixturefixtu",
-  s1Sha: `fixturefixtu${"0".repeat(52)}`,
-  s2Identity: "S2:2026-01:fixturefixt2",
-  s2Sha: `fixturefixt2${"0".repeat(52)}`,
+  s1Identity: "S1:2026-01:585db074c122",
+  s1Sha: "585db074c122caec3293137e56742b5c9d77189205050aab328520a2dd1ec677",
+  s2Identity: "S2:2026-01:326edf48d221",
+  s2Sha: "326edf48d2214e73175256777fd5083a3f656a05d0bcf0bec36b63ac6cc899e8",
 };
 
 function planningSquare(lon, lat, size = 0.004) {
@@ -673,6 +679,10 @@ function planningStateArtifact(registry = REAL_REGISTRY) {
       development_state: planningEdition("S1", PLANNING_FIXTURE.s1Identity, PLANNING_FIXTURE.s1Sha),
       available_buildability: planningEdition("S2", PLANNING_FIXTURE.s2Identity, PLANNING_FIXTURE.s2Sha),
     },
+    // K7's paired source editions are independent of this small K6 geometry
+    // fixture. They are copied from the committed pair so the deployment gate
+    // runs the real classifier/audit logic in the healthy-fixture path too.
+    change_detection: clone(REAL_PLANNING_STATE.change_detection),
     ambitos: {
       "APE.01.01": {
         ambito_code: "APE.01.01",
@@ -756,6 +766,7 @@ function planningStateMeta(artifact = planningStateArtifact()) {
       S2: { matching: "EXACT", normalisation: "NONE", matched: 1, table_codes: 1, unmatched_in_table: [] },
     },
     fingerprint: { algorithm: "sha256", value: planningFingerprint(artifact) },
+    change_detection: clone(REAL_PLANNING_STATE_META.change_detection),
     interpretation_ceiling: "Four independent published administrative phase values. No overall stage.",
   };
 }
@@ -2655,6 +2666,52 @@ test("K6 a silently changed edition identity fails the build", () => {
   artifacts["planning/madrid_ambito_state.json"].editions.available_buildability.snapshot_identity = "S2:2026-07:deadbeefcafe";
   artifacts["planning/madrid_ambito_state.meta.json"] = planningStateMeta(artifacts["planning/madrid_ambito_state.json"]);
   assert.match(errorText(run(artifacts)), /does not match the registry's pinned/);
+});
+
+test("K7 a missing edition or a pair with duplicate editions fails deployment validation", () => {
+  let artifacts = healthyArtifacts();
+  delete artifacts["planning/madrid_ambito_state.json"].change_detection.current.families.S2;
+  assert.match(errorText(run(artifacts)), /K7 current S2 edition is missing/);
+
+  artifacts = healthyArtifacts();
+  const state = artifacts["planning/madrid_ambito_state.json"];
+  state.change_detection.current.families.S2 = clone(state.change_detection.previous.families.S2);
+  artifacts["planning/madrid_ambito_state.meta.json"].fingerprint.value = planningFingerprint(state);
+  const result = run(artifacts);
+  assert.match(errorText(result), /K7 current edition is missing or has an unexpected source-stated reference date|K7 S2 supplies the same edition twice/);
+});
+
+test("K7 pair drift, missing fingerprint, cross-era presentation and row collapse fail deployment validation", () => {
+  let artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambito_state.json"].change_detection.pair_id = "2025-01__2026-01";
+  artifacts["planning/madrid_ambito_state.meta.json"].fingerprint.value = planningFingerprint(artifacts["planning/madrid_ambito_state.json"]);
+  assert.match(errorText(run(artifacts)), /K7 comparison pair drifted/);
+
+  artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambito_state.json"].change_detection.previous.families.S1.sha256 = "";
+  artifacts["planning/madrid_ambito_state.meta.json"].fingerprint.value = planningFingerprint(artifacts["planning/madrid_ambito_state.json"]);
+  assert.match(errorText(run(artifacts)), /K7 previous S1 full fingerprint is missing/);
+
+  artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambito_state.json"].change_detection.previous.families.S2.schema_era = "S2_COLECTIVA_UNIFAMILIAR";
+  artifacts["planning/madrid_ambito_state.meta.json"].fingerprint.value = planningFingerprint(artifacts["planning/madrid_ambito_state.json"]);
+  assert.match(errorText(run(artifacts)), /K7 S2 presents a cross-era pair as comparable/);
+
+  artifacts = healthyArtifacts();
+  const state = artifacts["planning/madrid_ambito_state.json"];
+  const duplicated = Object.entries(state.change_detection.current.families.S2.records).find(([, rows]) => rows.length > 1);
+  duplicated[1].pop();
+  artifacts["planning/madrid_ambito_state.meta.json"].fingerprint.value = planningFingerprint(state);
+  assert.match(errorText(run(artifacts)), /K7 current S2 published row multiplicity does not match the retained rows|K7 current S2 row multiplicity collapsed/);
+});
+
+test("K7 source strings remain verbatim in both pinned edition snapshots", () => {
+  const artifacts = healthyArtifacts();
+  const state = artifacts["planning/madrid_ambito_state.json"];
+  const record = Object.values(state.change_detection.previous.families.S2.records).find((rows) => rows.length)[0];
+  delete record.source_verbatim.situacion;
+  artifacts["planning/madrid_ambito_state.meta.json"].fingerprint.value = planningFingerprint(state);
+  assert.match(errorText(run(artifacts)), /K7 previous S2 .* lost its verbatim situacion value/);
 });
 
 test("K6 a scalar stage, a dwelling count or an aggregate Total row fails the build", () => {

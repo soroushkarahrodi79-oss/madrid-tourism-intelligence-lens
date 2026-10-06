@@ -6,19 +6,58 @@
   "spatial_scopes": {
     "analytical_scopes_note": "The entries under analytical_scopes are the closed enum of ANALYTICAL scopes (what a value means), each source declares exactly one as its `scope`. The sibling entries that carry lat/lon bounds (madrid_city_area, central_madrid_area, madrid_city_and_surroundings_feed_area) are INTEGRITY ENVELOPES referenced by `expected_spatial_scope`; they are a different concept and the two must never be merged. Planning scopes (PLANNING_AMBITO, EXECUTION_UNIT, DEVELOPMENT_STAGE_AREA, PARCEL, ADDRESS_POINT, WORK_GEOMETRY, LENS_INTERSECT_AMBITO) are defined because Gate K authorised the enum; no planning production evidence ships until Gate L closes.",
     "analytical_scopes": {
-      "LENS_CIRCLE": { "kind": "analytical_scope", "definition": "A user-positioned circle (100 m to 5 km). A value counted or measured inside the circle; it is user state, never a source-native geometry." },
-      "OFFICIAL_BARRIO": { "kind": "analytical_scope", "definition": "One of the 131 current-era official barrio polygons. A value that belongs to the whole barrio and is never apportioned to a part of it." },
-      "OFFICIAL_DISTRICT": { "kind": "analytical_scope", "definition": "One of the 21 official district polygons. A value that belongs to the whole district." },
-      "MUNICIPALITY": { "kind": "analytical_scope", "definition": "The municipality of Madrid, INE code 28079. A citywide value describing no district, barrio or Lens circle." },
-      "POINT_OBSERVATION": { "kind": "analytical_scope", "definition": "A single located record or reading at a point — a counter, sensor, station, asset or register entry. The value describes that point, not an area; it is never interpolated between points." },
-      "BOUNDED_STUDY_AREA": { "kind": "analytical_scope", "definition": "An explicit bounded study-area polygon (e.g. the HATI pilot rectangle). Boundary context only; point-bounded evidence inside it keeps its own POINT_OBSERVATION scope." },
-      "PLANNING_AMBITO": { "kind": "analytical_scope", "definition": "One whole official planning ambito of the PGOUM 97 planning instrument, identified by its exact official code. Every value at this scope describes the WHOLE ambito and is never apportioned, area-weighted or population-weighted into a Lens circle, a barrio, a district or any sub-area. Shipped by #68 (K6) under the Gate L source contract." },
-      "EXECUTION_UNIT": { "kind": "analytical_scope", "definition": "An execution unit (UE) sub-area of a planning ámbito. Deferred; defined but unused." },
-      "DEVELOPMENT_STAGE_AREA": { "kind": "analytical_scope", "definition": "A development-stage polygon (e.g. south-east development etapas). Deferred; defined but unused." },
-      "PARCEL": { "kind": "analytical_scope", "definition": "A single cadastral/planning parcel polygon. Deferred; defined but unused." },
-      "ADDRESS_POINT": { "kind": "analytical_scope", "definition": "An official address point resolved via the callejero (NDP). Blocked on Gate M; defined but unused." },
-      "WORK_GEOMETRY": { "kind": "analytical_scope", "definition": "A public-work geometry. Not adopted; defined but unused." },
-      "LENS_INTERSECT_AMBITO": { "kind": "analytical_scope", "definition": "The MEMBERSHIP relation between a Lens circle and the planning ambitos it touches: it answers WHICH ambitos a circle touches and carries no ambito quantity, no overlap area, no overlapping fraction and no weight. It never answers what share of an ambito's published state, surface or available buildability lies inside the circle. Shipped by #68 (K6)." }
+      "LENS_CIRCLE": {
+        "kind": "analytical_scope",
+        "definition": "A user-positioned circle (100 m to 5 km). A value counted or measured inside the circle; it is user state, never a source-native geometry."
+      },
+      "OFFICIAL_BARRIO": {
+        "kind": "analytical_scope",
+        "definition": "One of the 131 current-era official barrio polygons. A value that belongs to the whole barrio and is never apportioned to a part of it."
+      },
+      "OFFICIAL_DISTRICT": {
+        "kind": "analytical_scope",
+        "definition": "One of the 21 official district polygons. A value that belongs to the whole district."
+      },
+      "MUNICIPALITY": {
+        "kind": "analytical_scope",
+        "definition": "The municipality of Madrid, INE code 28079. A citywide value describing no district, barrio or Lens circle."
+      },
+      "POINT_OBSERVATION": {
+        "kind": "analytical_scope",
+        "definition": "A single located record or reading at a point — a counter, sensor, station, asset or register entry. The value describes that point, not an area; it is never interpolated between points."
+      },
+      "BOUNDED_STUDY_AREA": {
+        "kind": "analytical_scope",
+        "definition": "An explicit bounded study-area polygon (e.g. the HATI pilot rectangle). Boundary context only; point-bounded evidence inside it keeps its own POINT_OBSERVATION scope."
+      },
+      "PLANNING_AMBITO": {
+        "kind": "analytical_scope",
+        "definition": "One whole official planning ambito of the PGOUM 97 planning instrument, identified by its exact official code. Every value at this scope describes the WHOLE ambito and is never apportioned, area-weighted or population-weighted into a Lens circle, a barrio, a district or any sub-area. Shipped by #68 (K6) under the Gate L source contract."
+      },
+      "EXECUTION_UNIT": {
+        "kind": "analytical_scope",
+        "definition": "An execution unit (UE) sub-area of a planning ámbito. Deferred; defined but unused."
+      },
+      "DEVELOPMENT_STAGE_AREA": {
+        "kind": "analytical_scope",
+        "definition": "A development-stage polygon (e.g. south-east development etapas). Deferred; defined but unused."
+      },
+      "PARCEL": {
+        "kind": "analytical_scope",
+        "definition": "A single cadastral/planning parcel polygon. Deferred; defined but unused."
+      },
+      "ADDRESS_POINT": {
+        "kind": "analytical_scope",
+        "definition": "An official address point resolved via the callejero (NDP). Blocked on Gate M; defined but unused."
+      },
+      "WORK_GEOMETRY": {
+        "kind": "analytical_scope",
+        "definition": "A public-work geometry. Not adopted; defined but unused."
+      },
+      "LENS_INTERSECT_AMBITO": {
+        "kind": "analytical_scope",
+        "definition": "The MEMBERSHIP relation between a Lens circle and the planning ambitos it touches: it answers WHICH ambitos a circle touches and carries no ambito quantity, no overlap area, no overlapping fraction and no weight. It never answers what share of an ambito's published state, surface or available buildability lies inside the circle. Shipped by #68 (K6)."
+      }
     },
     "madrid_city_area": {
       "lat_min": 40.25,
@@ -216,8 +255,15 @@
       "unique_ids": true,
       "authoritative_builder": {
         "status_field": "source",
-        "must_include_any": ["esmadrid", "Madrid Destino"],
-        "must_not_include_any": ["OpenStreetMap", "Overpass", "OSM"],
+        "must_include_any": [
+          "esmadrid",
+          "Madrid Destino"
+        ],
+        "must_not_include_any": [
+          "OpenStreetMap",
+          "Overpass",
+          "OSM"
+        ],
         "note": "Guards the owner ruling that the Madrid Destino / esMADRID published catalogue remains the canonical source for this operational accommodation layer. A deployment artifact whose accommodation layer was produced by the browser's OpenStreetMap/Overpass fallback must not be published as if it came from the Madrid Destino catalogue. This check inspects the artifact only; the browser-side runtime fallback in js/data.js is a separate behaviour change and is untouched here."
       },
       "taxonomy": {
@@ -639,7 +685,18 @@
       "source_period_semantics": "Each record is a crossing in the monthly worksheet named by source_month. Every sheet year must match the declared workbook year; the workbook year is only an acquisition container and retrieved_at is kept separately.",
       "source_universe": "Residents in Spain travelling to a province different from their province of residence, disaggregated by origin and destination municipality. Same-province travel, including travel within Madrid province, is outside this statistic's universe.",
       "suppression_rule": "Only origin-destination crossings with more than 30 tourists are published. Origins may be outside the source universe; within the universe, absent origins are not zero and no residual or all-origin share may be created.",
-      "expected_source_schema": ["mes", "mun_orig_cod", "mun_orig", "dest_cod", "dest", "turistas", "prov_orig_cod", "prov_orig", "prov_dest_cod", "prov_dest"],
+      "expected_source_schema": [
+        "mes",
+        "mun_orig_cod",
+        "mun_orig",
+        "dest_cod",
+        "dest",
+        "turistas",
+        "prov_orig_cod",
+        "prov_orig",
+        "prov_dest_cod",
+        "prov_dest"
+      ],
       "integrity_guardrail": {
         "minimum_rows_per_published_month": 500,
         "baseline_count": 15102,
@@ -715,7 +772,7 @@
       "update_frequency": "SEMESTRAL",
       "source_state": "DEFINITIVE",
       "observed_cadence": "SEMESTRAL",
-      "freshness_evidence": "reference_date 2026-01-01 is the date EACH SELECTED EDITION STATES ABOUT ITSELF, read from inside the file: the 'Estado del desarrollo a fecha' column, an Excel serial converted with the workbook's own datemode, confirmed by the publisher's structure document as the Fecha recogida de los datos. Both selected editions state the same reference date, so the two families share one date without any date being manufactured. published_at is the OLE2 compound-document root-entry creation FILETIME of the selected .xls, a property of the file itself rather than of HTTP or the catalogue. retrieved_at is the builder's own retrieval timestamp. update_frequency SEMESTRAL is the catalogue's machine-readable ANNUAL_2 (twice a year), which the portal prose and the structure document both state; observed_cadence records that the publisher actually published annually from 2013 to 2024 and semestrally only from 2025, so the declared cadence is correct for the recent period only - both are recorded and neither is corrected. source_state DEFINITIVE: these are published definitive editions, not provisional releases. The resource id is recorded in the artifact but NEVER used to select or order an edition: Gate L section 6 proved the id order is not chronological. scope PLANNING_AMBITO: every value describes the whole ambito.",
+      "freshness_evidence": "K6 current-edition reference_date 2026-01-01 is stated inside each selected source file. K7 separately compares the source-stated 2025-07-01 and 2026-01-01 editions, each with its own resource identity and full fingerprint in change_detection.editions. The K7 surface and drawer show both dates; its single K2 rail date uses the oldest-contributor rule and therefore displays 2025-07-01 for the comparison surface. published_at is the OLE2 compound-document root-entry creation FILETIME, retrieved_at is the builder retrieval timestamp, and HTTP Last-Modified remains separate source provenance. The edition resource ID is retained as provenance and is never used for selection or ordering.",
       "display_name": "Published ambito development state and available buildability (PGOUM 97)",
       "authority": "Ayuntamiento de Madrid. Área de Gobierno de Urbanismo, Medio Ambiente y Movilidad. Dirección General de Planificación Estratégica",
       "dataset_url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos",
@@ -749,10 +806,10 @@
         },
         "selection_rule": "The newest STATED REFERENCE DATE within the current schema era. Never by resource id, resource name, filename or catalogue position: the id order is not chronological (203200-15 is Enero 2026 while 203200-16 is Enero 2025), so selecting by id returns the wrong edition.",
         "snapshot_identity_form": "family : reference_date : sha256[:12]",
-        "note": "ONE edition per family is pinned. Refreshing to a newer edition is a deliberate act: it re-runs scripts/build_ambito_development_state.py and updates these identities, the reference date and the pinned counts in the same reviewed pull request. Nothing about this layer is live data, and no edition-to-edition difference is published here (#69)."
+        "note": "K6 keeps one current edition per family as its primary evidence. K7 stores a separate, fixed comparison pair: the source-stated 2025-07-01 and 2026-01-01 editions. The pair is selected by reference date plus full SHA-256, and does not mutate the K6 current-edition object. A later edition requires an independent comparability gate before any pair change."
       },
       "source_period_exposed_by_source": true,
-      "source_period_semantics": "Each edition states its own reference date inside the file, so this layer HAS a source period: 2026-01-01 for both selected editions. Four distinct dates exist around this artifact and are never collapsed. (1) The edition's stated reference date - the publisher's Fecha recogida de los datos - which is the only one the interface presents as a reference. (2) The file's own OLE2 creation timestamp, used as published_at. (3) The HTTP Last-Modified header on the resource, a file-server state that is never presented as a publication or reference date. (4) The builder's retrieved_at clock. The GEOMETRY that resolves the place is a DIFFERENT source (planning_ambito_geometry) which declares NO date at all, and the two are never shown as one shared period.",
+      "source_period_semantics": "K6 current evidence has the source-stated reference date 2026-01-01. K7 compares exactly two source-stated tabular editions, 2025-07-01 and 2026-01-01, within the current S1_FOUR_PHASE_FLAT and S2_SPLIT_RESIDENTIAL_FLAT schema eras. The K7 surface shows both dates. Where the K2 rail requires one date, it applies the existing oldest-contributor rule and uses 2025-07-01. Each edition separately records its source URL, resource identity, full fingerprint, schema era and retrieval provenance. Geometry is a separate source with no declared date.",
       "integrity_guardrail": {
         "min_development_state_rows": 500,
         "min_buildability_rows": 150,
@@ -795,7 +852,66 @@
       "zero_semantics": "The edition itself distinguishes a blank cell from a published 0, and so does this layer: a blank buildability cell is NOT_PUBLISHED with a null value, and a published 0 is a real zero meaning the edition publishes no available buildability of that use class for that ambito. Neither is ever substituted for the other, nothing falls back to 0, and an ambito the edition carries no row for is NOT_PUBLISHED_IN_EDITION rather than zero. A published 0 is NOT an assertion that nothing can ever be built there: it is what the selected edition publishes for that use class, under that situacion, on its stated reference date.",
       "blocks_deployment_note": "BLOCKING from the moment K6 (#68) began publishing the four official development-phase values and available buildability in m2 edificable to the reader. A deployment must not publish official planning evidence that is missing, mis-joined, schema-drifted or detached from its edition identity, because the failure mode is a confident wrong state - or a plausible-looking zero where the publisher published nothing - rather than a visibly empty panel. The browser degrades to explicit unavailable states when a runtime fetch fails; that is a separate concern from this gate, which verifies the COMMITTED artifact at publication time.",
       "deployment_source_role": "COMMITTED EDITION SNAPSHOT. Not rebuilt during the Pages deployment (rebuilt_at_deploy is false): a successful deployment does NOT mean the official editions were re-fetched. Refreshing requires re-running scripts/build_ambito_development_state.py - which re-resolves the catalogue, re-selects by stated reference date and FAILS on schema drift rather than shifting a column - and reviewing the diff, including the pinned edition identities above.",
-      "interpretation_ceiling": "Four INDEPENDENT published administrative development-phase values per planning ámbito, and available planning buildability (edificabilidad disponible) by use class in m² edificable, as published in ONE dated edition of each official family. The four phase fields do NOT form one overall completion stage: they are multi-dimensional, the publisher documents no ordering, and no stage, stage number, progression, percentage, completion, advancement, delay or timeline is derivable from them. A published phase state is an ADMINISTRATIVE state, never proof of physical construction progress (PLANNING_STATE_TRANSITION != PHYSICAL_URBAN_CHANGE). 'No Necesita' is a distinct published value whose precise meaning the audited documentation does not define; it does not mean not applicable, skipped, complete, zero or unavailable. 'PGOUM-85' and 'PGOUM-97' are plan-of-origin markers occupying phase cells, not progress states. Available buildability is what the plan makes available, NOT what remains to be physically built and NOT an estimate of what will be built. NO dwelling count is published or derivable: the source's Nº Viviendas columns are residential buildability ÷ 100 with fractional values and are excluded. Every figure describes the WHOLE ámbito and is never apportioned into a Lens circle, a barrio or any sub-area, and never combined with a value of another analytical scope. One edition only: no edition-to-edition difference, trend or change is published here. Geometry and identifiers come through a separate official route; every quantity and state here comes from the dated CC BY 4.0 editions."
+      "interpretation_ceiling": "Four INDEPENDENT published administrative development-phase values per planning ámbito, and available planning buildability (edificabilidad disponible) by use class in m² edificable, as published in ONE dated edition of each official family. The four phase fields do NOT form one overall completion stage: they are multi-dimensional, the publisher documents no ordering, and no stage, stage number, progression, percentage, completion, advancement, delay or timeline is derivable from them. A published phase state is an ADMINISTRATIVE state, never proof of physical construction progress (PLANNING_STATE_TRANSITION != PHYSICAL_URBAN_CHANGE). 'No Necesita' is a distinct published value whose precise meaning the audited documentation does not define; it does not mean not applicable, skipped, complete, zero or unavailable. 'PGOUM-85' and 'PGOUM-97' are plan-of-origin markers occupying phase cells, not progress states. Available buildability is what the plan makes available, NOT what remains to be physically built and NOT an estimate of what will be built. NO dwelling count is published or derivable: the source's Nº Viviendas columns are residential buildability ÷ 100 with fractional values and are excluded. Every figure describes the WHOLE ámbito and is never apportioned into a Lens circle, a barrio or any sub-area, and never combined with a value of another analytical scope. K6 shows one current edition per family. K7 separately compares the pinned 2025-07-01 and 2026-01-01 tabular editions within the matching current schema eras; the comparison does not cover geometry. Geometry and identifiers come through a separate official route; every quantity and state here comes from the dated CC BY 4.0 editions.",
+      "change_detection": {
+        "pair_id": "2025-07__2026-01",
+        "comparison_basis": "Two explicitly named editions selected by source-stated reference date plus full SHA-256; comparison is within one schema era. Entity identity is {edition}:{exact_code}.",
+        "absence_reason_reference": {
+          "resource_id": "203200-14-desarrollo-ambitos",
+          "title": "Ámbitos del PGOUM que no son objeto de seguimiento",
+          "resource_url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos/resource/203200-14-desarrollo-ambitos/download/203200-14-desarrollo-ambitos.pdf",
+          "matching_rule": "Attach a documented reason only to its exact published code; do not infer one from a prefix, name or near-code match."
+        },
+        "absence_reason_policy": "ABSENT_FROM_EDITION remains the primary outcome. Each record carries SOURCE_DOCUMENTED only with an exact-code annex reason; otherwise it carries CAUSE_UNRESOLVED.",
+        "comparability_verdict": "COMPARABLE_WITHIN_SCHEMA_ERA",
+        "oldest_contributor_reference_date": "2025-07-01",
+        "editions": {
+          "previous": {
+            "S1": {
+              "reference_date": "2025-07-01",
+              "resource_id": "203200-2-desarrollo-ambitos-xls",
+              "sha256": "e1ff3e0e0f63fe59dbe64d10b319026917c34d9086f395e9787b6fe3661cf49d",
+              "schema_era": "S1_FOUR_PHASE_FLAT",
+              "schema_fingerprint": "1206336af6b4176d",
+              "resource_url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos/resource/203200-2-desarrollo-ambitos-xls/download/203200-2-desarrollo-ambitos-xls.xls",
+              "retrieved_at": "2026-10-06T08:30:07Z",
+              "published_at": null
+            },
+            "S2": {
+              "reference_date": "2025-07-01",
+              "resource_id": "203182-10-ambitos-remanente-xls",
+              "sha256": "09f6859a2541ea8c31eb3ce47464ca5fbec64d38f57a7b3b435bb65e4a5cb286",
+              "schema_era": "S2_SPLIT_RESIDENTIAL_FLAT",
+              "schema_fingerprint": "475e4c2bf290ca1e",
+              "resource_url": "https://datos.madrid.es/dataset/203182-0-ambitos-remanente/resource/203182-10-ambitos-remanente-xls/download/203182-10-ambitos-remanente-xls.xls",
+              "retrieved_at": "2026-10-06T08:30:45Z",
+              "published_at": null
+            }
+          },
+          "current": {
+            "S1": {
+              "reference_date": "2026-01-01",
+              "resource_id": "203200-15-desarrollo-ambitos",
+              "sha256": "585db074c122caec3293137e56742b5c9d77189205050aab328520a2dd1ec677",
+              "schema_era": "S1_FOUR_PHASE_FLAT",
+              "schema_fingerprint": "1206336af6b4176d",
+              "resource_url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos/resource/203200-15-desarrollo-ambitos/download/situacionambitos_01_01_2026distritos.xls",
+              "retrieved_at": "2026-10-06T08:30:32Z",
+              "published_at": "2026-03-24"
+            },
+            "S2": {
+              "reference_date": "2026-01-01",
+              "resource_id": "203182-14-ambitos-remanente",
+              "sha256": "326edf48d2214e73175256777fd5083a3f656a05d0bcf0bec36b63ac6cc899e8",
+              "schema_era": "S2_SPLIT_RESIDENTIAL_FLAT",
+              "schema_fingerprint": "475e4c2bf290ca1e",
+              "resource_url": "https://datos.madrid.es/dataset/203182-0-ambitos-remanente/resource/203182-14-ambitos-remanente/download/edificabilidad-remanente-01_01_2026_datos-abiertos.xls",
+              "retrieved_at": "2026-10-06T08:30:50Z",
+              "published_at": "2026-03-24"
+            }
+          }
+        }
+      }
     }
   ]
 }
