@@ -219,16 +219,21 @@ principle.
 
 ## 7. Navigation status (documentation only)
 
-The header carries three nav buttons: `Explore`, `Compare`, `Evidence`. As of
-K1 the **`Explore` button is inert** — it is marked active in the markup but
-wired to no handler. K1 does **not** touch the nav markup in `index.html` or any
-handler in `js/app.js`.
+**Resolved by K4 (#66).** Historical record: the header carried three nav
+buttons, `Explore`, `Compare`, `Evidence`. As of K1 the
+**`Explore` button is inert** — it was marked active in the markup but wired to no
+handler (K1 touched no markup and no handler). K4 deleted it. `Compare` and `Evidence` were not
+modes either: one toggled Lens B, the other enabled the HATI layer and flew the
+camera.
 
 The three-mode information architecture that replaces this nav —
 **PLACE / COMPARE / CITY**, derived from the user questions rather than from
-dataset families — is defined and owned by **#66 (K4)**. `EXPLORE`, `PLANNING`
-and `CHANGE` were all rejected as modes in Gate K §20 (not a user intent, a
-dataset name, and a time control inside PLACE/CITY respectively).
+dataset families — now exists as explicit application state (`js/modes.js`), and no
+mode button performs a camera, dataset or layer action. The HATI framing action
+moved to the HATI layer control. `EXPLORE`, `PLANNING`, `EVIDENCE` and `CHANGE`
+were all rejected as modes (not a user intent; a dataset name; a camera action
+whose word is now the evidence drawer; and a time control inside PLACE/CITY
+respectively). See [Information architecture V2](INFORMATION_ARCHITECTURE_V2.md).
 
 ## 8. Relationship to the boundary issues
 

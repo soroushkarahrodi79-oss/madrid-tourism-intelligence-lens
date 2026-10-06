@@ -90,6 +90,20 @@ including comparing two places at once.
   records/km² only when both full circles fit inside Madrid's official
   municipality polygon and source states are compatible. The single active
   radius slider never changes the inactive Lens.
+- Read the panel in one of three **modes** (the control at the top of the panel):
+  **Place** (what the evidence says about this place: the barrio the Lens sits in, the four
+  Lens-circle figures, and a Detail disclosure), **Compare** (Lens A against Lens B: the
+  Comparison Bridge, Decision Insight, Spatial Window Sensitivity and the comparison table) and
+  **City** (municipality-wide hotel demand and domestic-origin context). A mode changes how
+  existing evidence is read; it never flies the camera, switches a layer or moves a Lens.
+  Entering Compare enables Lens B and leaving it follows the previous cleanup.
+- Check, at any width, what the evidence on screen describes and how old it is: the always-visible
+  **scope and freshness rail** names the scope (glyph and label) and the oldest contributing
+  reference date, or says the date is not published. The **Evidence & limits** drawer shows, for
+  any value, its source, authority, scope, unit, the five date and state fields and the
+  interpretation ceiling verbatim, in a citizen or an analyst reading.
+- Switch the document language (English / Español) with one control; the shell, rail, drawer,
+  comparison reading, hospitality and domestic-origin surfaces follow it.
 - Toggle each operational data layer on/off.
 - Opt into **observed pedestrian activity** from Madrid's permanent counters;
   the lens reports the mean published hourly count for counters inside the
@@ -290,8 +304,11 @@ authorized production increment is an **ámbito evidence layer at ámbito scope*
 geometry, the four published development phases (Planeamiento / Gestión / Urbanización /
 Edificación) and remaining buildability in m² by use class — and it is gated behind
 **Gate L (official urban-planning source contract)** plus the spatial-scope and source-freshness
-contracts that precede it. No urban-planning dataset, mode system, visual rebuild, 3D surface or
-assistant is authorized until those gates close.
+contracts that precede it. No urban-planning dataset is shipped, and no visual rebuild, 3D surface
+or assistant is authorized until those gates close. The panel's reading architecture
+(PLACE / COMPARE / CITY modes, the scope-and-freshness rail and the evidence drawer) is described
+in [Information architecture V2](docs/INFORMATION_ARCHITECTURE_V2.md); it reorganizes existing
+evidence and does not add planning evidence.
 
 - Continue hardening reproducible AOI snapshots for operational POI layers and verify exact BiciMAD coordinates against the official EMT Madrid source before any BiciMAD fallback is reintroduced.
 - Add automated visual regression checks for the map UI.
@@ -318,6 +335,11 @@ css/app.css            styling
 js/lens.js             pure lens geometry + POI statistics (tested)
 js/radial-halo.js      pure Radial Halo V3 model: within-metric references, bar magnitudes, glyph specs (tested)
 js/evidence.js          pure HATI evidence statistics (tested)
+js/evidence-scope.js    pure scope & freshness contract: analytical scopes, five-field freshness (tested)
+js/modes.js             pure PLACE / COMPARE / CITY mode state and transition plans (tested)
+js/scope-rail.js        pure scope-and-freshness rail model, evidence-drawer records, citizen/analyst projections (tested)
+js/shell-copy.js        ES/EN dictionaries for the shell, rail and drawer (tested)
+js/legacy-copy.js       product-copy catalogue (ES) for surfaces built before the shared i18n layer (tested)
 js/geography.js         pure administrative containment / point-in-polygon (tested)
 js/area-profile.js      pure Area Profile model: place, residents, licensed VUT, states (tested)
 js/destination-context.js  pure citywide hotel-demand model: period, YoY, trend, states (tested)

@@ -14,6 +14,7 @@ base ref), the diff-based checks are skipped and only the static invariant — t
 gate's own artifacts live solely under research/, docs/ and tests/ — is asserted.
 """
 
+import os
 import pathlib
 import subprocess
 import unittest
@@ -39,7 +40,28 @@ def _base_ref():
     return None
 
 
+# These invariants describe the Gate L change ITSELF. Once it is merged, every later
+# feature branch also differs from origin/main, so applying them to an arbitrary
+# branch would forbid all production work (K4 was the first to hit this). They are
+# therefore enforced on the Gate L research branch (or when GATE_L_GUARD=1 forces
+# them) and skipped everywhere else; the diff base and invariants are unchanged.
+GATE_L_BRANCH = "research/urban-planning-source-gate-l"
+
+
+def _current_branch():
+    head_ref = os.environ.get("GITHUB_HEAD_REF", "").strip()
+    if head_ref:
+        return head_ref
+    return _git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+
+
+def _guard_applies():
+    return os.environ.get("GATE_L_GUARD") == "1" or _current_branch() == GATE_L_BRANCH
+
+
 def _changed_paths():
+    if not _guard_applies():
+        return None
     base = _base_ref()
     if base is None:
         return None
@@ -56,32 +78,32 @@ class TestGateLGuards(unittest.TestCase):
 
     def test_L_no_production_data_added(self):
         if self.changed is None:
-            self.skipTest("origin/main not available locally")
+            self.skipTest("Gate L guard applies to the Gate L branch only, or origin/main is unavailable")
         offenders = [p for p in self.changed if p.startswith("data/")]
         self.assertEqual(offenders, [], f"Gate L must add nothing under data/: {offenders}")
 
     def test_M_no_production_scripts_added(self):
         if self.changed is None:
-            self.skipTest("origin/main not available locally")
+            self.skipTest("Gate L guard applies to the Gate L branch only, or origin/main is unavailable")
         offenders = [p for p in self.changed if p.startswith("scripts/")]
         self.assertEqual(offenders, [], f"Gate L must add nothing under scripts/: {offenders}")
 
     def test_N_package_json_unchanged(self):
         if self.changed is None:
-            self.skipTest("origin/main not available locally")
+            self.skipTest("Gate L guard applies to the Gate L branch only, or origin/main is unavailable")
         offenders = [p for p in self.changed if p in ("package.json", "package-lock.json")]
         self.assertEqual(offenders, [], f"Gate L must not change package manifests: {offenders}")
 
     def test_O_no_ui_change(self):
         if self.changed is None:
-            self.skipTest("origin/main not available locally")
+            self.skipTest("Gate L guard applies to the Gate L branch only, or origin/main is unavailable")
         offenders = [p for p in self.changed
                      if p.startswith(("css/", "js/", "browser-tests/", "assets/")) or p == "index.html"]
         self.assertEqual(offenders, [], f"Gate L must not change UI/CSS/index/app-JS: {offenders}")
 
     def test_all_changes_within_allowed_surface(self):
         if self.changed is None:
-            self.skipTest("origin/main not available locally")
+            self.skipTest("Gate L guard applies to the Gate L branch only, or origin/main is unavailable")
         offenders = [p for p in self.changed if not p.startswith(ALLOWED_PREFIXES)]
         self.assertEqual(offenders, [],
                          f"Gate L changed a path outside its allowed surface: {offenders}")

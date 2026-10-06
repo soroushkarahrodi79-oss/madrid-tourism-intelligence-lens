@@ -177,6 +177,9 @@ let stayKindFilter = "all";
 const radii = createLensRadii();
 let active = "A";
 let bEnabled = false;
+// K4 shell state (modes, rail, drawer). Declared here, populated by the K4 block
+// below, so refresh() can call renderScopeRail() without a temporal-dead-zone hazard.
+const shell = { modes: null, i18n: null, registry: null, registryFailed: false, signature: "", reading: "citizen", drawerFilter: null, drawerOpener: null };
 let lensBHasBeenInitialized = false;
 let timestep = "15:00";
 
@@ -1802,6 +1805,8 @@ function syncPedestrianUi(on) {
     toggle.checked = on;
     toggle.setAttribute("aria-checked", String(on));
   }
+  // The pedestrian reading lives in PLACE Detail: switching its layer on opens it.
+  if (on) openPlaceDetail();
 }
 
 function setLayerVisible(name, on) {
@@ -2567,7 +2572,7 @@ function renderAreaSourceDetails() {
     .map(
       (group) =>
         `<div class="area-source-group"><h2 class="area-source-group-title">${group.title}</h2>` +
-        group.lines.map((line) => `<span>${line}</span>`).join("") +
+        group.lines.map((line) => `<span data-provenance-line>${line}</span>`).join("") +
         `</div>`
     )
     .join("");
@@ -2608,6 +2613,8 @@ function updateAreaContext() {
   lastAreaRenderKey = key;
   renderAreaProfile(shown);
   renderOtherLensArea(areaProfiles.A, areaProfiles.B);
+  // The rail names the resolved barrio and knows whether the VUT figure is shown.
+  renderScopeRail();
 }
 
 function disableBoundaryControl() {
@@ -2854,7 +2861,6 @@ function renderHospitalityScale() {
 function applyHospitalityCopy() {
   const module = hospitalityModel.module;
   if (!module || !hospitalityModel.i18n) return;
-  setText("hospitalityLanguageLabel", hospitalityT("languageLabel"));
   setText("hospitalityLayerName", hospitalityT("layerName"));
   setText("hospitalityMetricLabel", hospitalityT("metricLabel"));
   setText("hospitalityContextHeading", hospitalityT("contextHeading"));
@@ -2871,6 +2877,7 @@ function applyHospitalityCopy() {
   const select = document.getElementById("hospitalityMetricSelect");
   for (const option of select.options) option.textContent = hospitalityT(option.value);
   setText("hospitalityMetricSelectValue", hospitalityT(hospitalityMetric));
+  renderHospitalityScale();
   rebuildHospitalityLayer();
   renderHospitalityContext();
 }
@@ -2944,6 +2951,8 @@ function syncHospitalityUi(on) {
   controls.hidden = !hospitalityVisible;
   rebuildHospitalityLayer();
   renderHospitalityContext();
+  if (hospitalityVisible) openPlaceDetail();
+  renderScopeRail();
 }
 
 function setHospitalityVisible(on) {
@@ -3168,7 +3177,7 @@ function renderDestinationSourceDetails(model) {
   const lines = destinationModel.meta
     ? module.buildDestinationProvenanceLines({ meta: destinationModel.meta, model })
     : [];
-  host.innerHTML = lines.map((line) => `<span>${line}</span>`).join("");
+  host.innerHTML = lines.map((line) => `<span data-provenance-line>${line}</span>`).join("");
   toggle.hidden = lines.length === 0;
 }
 
@@ -3349,6 +3358,7 @@ function refresh() {
   renderCompare();
   updateAreaContext();
   shadeMarkersOutsideActiveLens();
+  renderScopeRail();
 }
 
 function activateLens(which) {
@@ -3375,7 +3385,6 @@ function enableLensB() {
     lenses.B.marker.addTo(map);
     lenses.B.circle.addTo(map);
     document.getElementById("compareLine").classList.add("show");
-    document.getElementById("navCompare").classList.add("active");
     activateLens("B");
   } else {
     activateLens("B");
@@ -3388,7 +3397,6 @@ function disableLensB() {
     map.removeLayer(lenses.B.circle);
     bEnabled = false;
     document.getElementById("compareLine").classList.remove("show");
-    document.getElementById("navCompare").classList.remove("active");
     // Leaving compare mode clears any locked/previewed metric so the Bridge
     // returns to its neutral state and does not resurface a stale selection.
     selectedHaloMetric = null;
@@ -3407,9 +3415,10 @@ map.on("click", (e) => {
 map.on("zoomend", rebuildDenseLayers);
 
 document.getElementById("lensAButton").onclick = () => activateLens("A");
-document.getElementById("lensBButton").onclick = () => (bEnabled ? activateLens("B") : enableLensB());
-document.getElementById("navCompare").onclick = () => (bEnabled ? disableLensB() : enableLensB());
-document.getElementById("navEvidence").onclick = () => {
+// Lens B is enabled THROUGH the COMPARE mode, which owns enableLensB/disableLensB.
+document.getElementById("lensBButton").onclick = () => (bEnabled ? activateLens("B") : shell.modes.setMode("COMPARE"));
+// The HATI layer control (not the navigation) enables the layer and frames the pilot.
+document.getElementById("hatiFrameButton").onclick = () => {
   setLayerVisible("heat", true);
   const bounds = hatiStudyArea?.bounds
     ? [
@@ -3451,12 +3460,27 @@ radiusSlider.oninput = (e) => {
 };
 document.getElementById("basemapSelect").onchange = (e) => setBasemap(e.target.value);
 document.getElementById("boundarySelect").onchange = (e) => setBoundaryMode(e.target.value);
+// ONE document language at a time (docs/INFORMATION_ARCHITECTURE_V2.md §Language):
+// this control sets the document language and every dictionary-backed surface
+// follows it — shell, Bridge/Insight/Sensitivity, hospitality and domestic origins.
 document.getElementById("languageSelect").onchange = (event) => {
-  hospitalityModel.i18n?.setLanguage(event.target.value);
+  const language = event.target.value;
+  document.documentElement.setAttribute("lang", language);
+  shell.i18n?.setLanguage(language);
+  bridgeI18n?.setLanguage(language);
+  hospitalityModel.i18n?.setLanguage(language);
   applyHospitalityCopy();
-  originModel.i18n?.setLanguage(event.target.value);
-  originModel.dynamicsI18n?.setLanguage(event.target.value);
+  originModel.i18n?.setLanguage(language);
+  originModel.dynamicsI18n?.setLanguage(language);
   renderDomesticOrigins();
+  renderComparisonBridge();
+  renderDecisionInsight();
+  renderSpatialSensitivity();
+  restoreCopy();
+  applyShellCopy();
+  renderModeUi();
+  if (document.getElementById("evidenceDrawer").open) renderDrawerBody();
+  applyCopyLanguage();
 };
 document.getElementById("domesticOriginsMonth").onchange = (event) => { originMonth = event.target.value; renderDomesticOrigins(); };
 document.getElementById("hospitalityMetricSelect").onchange = (event) => {
@@ -3472,20 +3496,12 @@ document.getElementById("hospitalityClearSelection").onclick = () => {
   applyHospitalityStyles();
   renderHospitalityContext();
 };
+// The per-section "Source & interpretation" toggles are openers for the ONE
+// evidence drawer, which holds the generated provenance lines at every breakpoint.
 const areaSourceToggle = document.getElementById("areaSourceToggle");
-areaSourceToggle.onclick = () => {
-  const details = document.getElementById("areaSourceDetails");
-  const open = details.hidden;
-  details.hidden = !open;
-  areaSourceToggle.setAttribute("aria-expanded", String(open));
-};
+areaSourceToggle.onclick = () => openEvidenceDrawer({ opener: areaSourceToggle, focusSection: "drawerAreaNotes" });
 const destinationSourceToggle = document.getElementById("destinationSourceToggle");
-destinationSourceToggle.onclick = () => {
-  const details = document.getElementById("destinationSourceDetails");
-  const open = details.hidden;
-  details.hidden = !open;
-  destinationSourceToggle.setAttribute("aria-expanded", String(open));
-};
+destinationSourceToggle.onclick = () => openEvidenceDrawer({ opener: destinationSourceToggle, focusSection: "drawerDestinationNotes" });
 // THE accommodation-category state transition. Changing the category changes
 // which stay records every downstream count is drawn from, so it is an EVIDENCE
 // CONFIGURATION change: it feeds spatialEvidenceKey() and therefore invalidates
@@ -3520,6 +3536,455 @@ document.querySelectorAll("[data-layer]").forEach((x) => (x.onchange = () => set
 syncHatiUi(false);
 syncPedestrianUi(false);
 syncHospitalityUi(false);
+
+// ===========================================================================
+// INFORMATION ARCHITECTURE V2 (K4, #66): modes, scope & freshness rail, evidence
+// drawer. The pure models live in js/modes.js, js/scope-rail.js and
+// js/evidence-scope.js; this block only renders them and wires events. Nothing
+// here computes an analytical value, and no mode button touches the camera, a
+// dataset or a layer — a mode change only changes mode (plus the existing Lens B
+// enable/disable path that COMPARE owns). See docs/INFORMATION_ARCHITECTURE_V2.md.
+// ===========================================================================
+function shellLanguage() {
+  return String(document.documentElement.lang || "en").toLowerCase().split("-")[0] === "es" ? "es" : "en";
+}
+function shellT(key) {
+  if (shell.i18n) return shell.i18n.t(key);
+  const dictionary = SHELL_DICTIONARIES[shellLanguage()] || SHELL_DICTIONARIES.en;
+  return dictionary[key] ?? SHELL_DICTIONARIES.en[key] ?? key;
+}
+import(moduleUrl("i18n.js")).then((module) => {
+  shell.i18n = module.createI18n(SHELL_DICTIONARIES, shellLanguage());
+  applyShellCopy();
+  renderModeUi();
+}).catch(() => { /* the direct dictionary lookup in shellT keeps the shell working */ });
+
+// Static labels that tests pin as literal <span> text are bound by selector so the
+// markup keeps its English source text; everything else carries data-i18n.
+const SHELL_BINDINGS = [
+  ["#areaProfile .section-head > span", "sec.area"],
+  ["#modePlace > .section-head > span", "sec.withinLens"],
+  ["#compareLine > .section-head > span", "sec.compare"],
+  ["#compareLine > .section-head > small", "sec.circleOnly"],
+  [".brand-sub", "brand.sub"],
+  [".left > h3:nth-of-type(1)", "aside.map"],
+  [".left > h3:nth-of-type(2)", "aside.layers"],
+  [".activity-divider > span", "aside.observed"],
+  [".activity-divider > small", "aside.observedNote"],
+  [".context-divider > span", "aside.context"],
+  [".context-divider > small", "aside.contextNote"],
+  [".research-divider > span", "aside.research"],
+  [".research-divider > small", "aside.researchNote"],
+];
+function applyShellCopy() {
+  for (const el of document.querySelectorAll("[data-i18n]")) el.textContent = shellT(el.dataset.i18n);
+  // Trusted, static dictionary HTML only (never source data or user input).
+  for (const el of document.querySelectorAll("[data-i18n-html]")) el.innerHTML = shellT(el.dataset.i18nHtml);
+  for (const el of document.querySelectorAll("[data-i18n-attr]")) {
+    const [attribute, key] = el.dataset.i18nAttr.split(":");
+    el.setAttribute(attribute, shellT(key));
+  }
+  for (const [selector, key] of SHELL_BINDINGS) {
+    const el = document.querySelector(selector);
+    if (el) el.textContent = shellT(key);
+  }
+  for (const button of document.querySelectorAll(".evidence-link")) {
+    button.setAttribute("aria-label", `${shellT("rail.open")} ${shellT(button.dataset.evidenceName)}`);
+  }
+  document.getElementById("hospitalityLanguageLabel").textContent = "Idioma / Language";
+}
+
+// ------------------------------------------------------------------- modes
+const MODE_SECTIONS = { PLACE: "modePlace", COMPARE: "compareLine", CITY: "modeCity" };
+const MODE_BUTTONS = { PLACE: "modePlaceButton", COMPARE: "modeCompareButton", CITY: "modeCityButton" };
+
+function openPlaceDetail() {
+  const detail = document.getElementById("placeDetail");
+  if (detail) detail.open = true;
+}
+
+function currentFlags() {
+  return {
+    vut: !document.getElementById("areaVut").hidden,
+    hospitality: hospitalityVisible,
+    hati: isHatiVisible(),
+    pedestrian: isPedestrianVisible(),
+  };
+}
+
+function renderModeUi() {
+  if (!shell.modes) return;
+  const mode = shell.modes.currentMode();
+  const panel = document.getElementById("analysisPanel");
+  panel.dataset.mode = mode;
+  for (const name of MODES) {
+    document.getElementById(MODE_SECTIONS[name]).hidden = name !== mode;
+    const button = document.getElementById(MODE_BUTTONS[name]);
+    button.setAttribute("aria-pressed", String(name === mode));
+    if (name === mode) button.setAttribute("aria-current", "true");
+    else button.removeAttribute("aria-current");
+  }
+  document.getElementById("modeQuestion").textContent = shellT(`mode.q.${mode.toLowerCase()}`);
+  for (const el of document.querySelectorAll("[data-controls-for]")) {
+    el.hidden = !el.dataset.controlsFor.split(" ").includes(mode);
+  }
+  const origins = document.getElementById("domesticOrigins");
+  document.getElementById("cityControls").hidden = mode !== "CITY" || !origins || origins.hidden;
+  for (const el of document.querySelectorAll("[data-drawer-mode]")) {
+    el.hidden = !el.dataset.drawerMode.split(" ").includes(mode);
+  }
+  // The Administrative-area block is the PLACE lead; in COMPARE it stays reachable
+  // as the first thing in Detail, so each lens's barrio remains legible.
+  const area = document.getElementById("areaProfile");
+  const placeSection = document.getElementById("modePlace");
+  const compareHost = document.getElementById("compareAreaHost");
+  if (mode === "COMPARE") compareHost.appendChild(area);
+  else if (area.parentElement !== placeSection) placeSection.insertBefore(area, placeSection.firstElementChild);
+  shell.signature = "";
+  renderScopeRail();
+}
+
+// A mode change performs only the plan's Lens B path; the app supplies it so the
+// pure controller never reaches into Leaflet.
+shell.modes = createModeController({
+  lensBEnabled: () => bEnabled,
+  apply(plan) {
+    if (plan.enableLensB) enableLensB();
+    if (plan.disableLensB) disableLensB();
+  },
+});
+shell.modes.subscribe((mode, plan) => {
+  renderModeUi();
+  if (plan.changed) {
+    document.getElementById("modeAnnouncer").textContent =
+      `${shellT("mode.announce")}: ${shellT(`mode.${mode.toLowerCase()}`)}. ${shellT(`mode.q.${mode.toLowerCase()}`)}`;
+  }
+});
+for (const button of document.querySelectorAll(".mode-btn")) {
+  button.onclick = () => shell.modes.setMode(button.dataset.mode);
+}
+
+// -------------------------------------------------------------------- rail
+fetchAreaJson("data/source_registry.json")
+  .then((registry) => { shell.registry = registry; shell.signature = ""; renderScopeRail(); if (document.getElementById("evidenceDrawer").open) renderDrawerBody(); })
+  .catch((error) => { shell.registryFailed = true; console.warn("source registry unavailable", error); shell.signature = ""; renderScopeRail(); });
+
+function railInstances(mode) {
+  const lensLabel = (which) => `${which} · ${formatLensRadius(radiusFor(which))}`;
+  const shown = areaProfiles[active] || areaProfiles.A;
+  const resolved = shown && AREA_STATE && shown.state === AREA_STATE.RESOLVED;
+  return {
+    LENS_CIRCLE: mode === "COMPARE" ? [lensLabel("A"), lensLabel("B")] : [lensLabel(active)],
+    OFFICIAL_BARRIO: [resolved ? shown.headline : shellT("rail.locating")],
+    MUNICIPALITY: ["Madrid"],
+  };
+}
+
+function freshnessLine(model) {
+  if (!model) return `${shellT("rail.reference")} · ${shellT(shell.registryFailed ? "rail.unavailable" : "date.loading")}`;
+  const { referenceDate, sourceStates } = model.freshness;
+  const date = referenceDate === null ? shellT("rail.notPublished") : referenceDate;
+  const states = sourceStates.map((state) => shellT(`state.${state}`)).join(" / ");
+  return `${shellT("rail.reference")} · ${date} · ${shellT("rail.state")} · ${states}`;
+}
+
+function renderScopeRail() {
+  if (!shell.modes) return;
+  const mode = shell.modes.currentMode();
+  const flags = currentFlags();
+  const instances = railInstances(mode);
+  const model = shell.registry ? railModel({ mode, flags, registry: shell.registry, instances }) : null;
+  const entries = model
+    ? model.entries
+    : [...new Set(surfaceKeysFor(mode, flags).map((key) => SURFACES[key].scope))].map((scope) => ({
+        scope, glyph: SCOPE_GLYPHS[scope], instances: instances[scope] || [], surfaces: [],
+      }));
+  const line = freshnessLine(model);
+  const signature = JSON.stringify([shellLanguage(), mode, entries.map((e) => [e.scope, e.instances]), line]);
+  if (signature === shell.signature) return;
+  shell.signature = signature;
+
+  const list = document.getElementById("scopeRailList");
+  // Data arrives asynchronously and re-renders the rail; keep keyboard focus on the
+  // same entry so a reader tabbing through the rail is never dropped onto <body>.
+  const focused = document.activeElement && list.contains(document.activeElement)
+    ? [document.activeElement.dataset.scope, [...list.querySelectorAll("button")].indexOf(document.activeElement)]
+    : null;
+  list.textContent = "";
+  for (const entry of entries) {
+    const labels = entry.instances.length ? entry.instances : [null];
+    for (const instance of labels) {
+      const item = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "scope-rail-item";
+      button.dataset.scope = entry.scope;
+      button.setAttribute("aria-haspopup", "dialog");
+      const name = shellT(`scope.${entry.scope}`);
+      button.setAttribute("aria-label", `${shellT("rail.open")} ${name}${instance ? ` ${instance}` : ""}`);
+      const glyph = document.createElement("span");
+      glyph.className = "scope-glyph";
+      glyph.setAttribute("aria-hidden", "true");
+      glyph.textContent = entry.glyph;
+      const label = document.createElement("span");
+      label.className = "scope-name";
+      label.textContent = name;
+      button.append(glyph, label);
+      if (instance) {
+        const detail = document.createElement("span");
+        detail.className = "scope-instance";
+        detail.textContent = instance;
+        button.append(detail);
+      }
+      button.onclick = () => openEvidenceDrawer({ opener: button, scope: entry.scope });
+      item.append(button);
+      list.append(item);
+    }
+  }
+  if (focused) {
+    const buttons = [...list.querySelectorAll("button")];
+    (buttons.find((node, index) => node.dataset.scope === focused[0] && index === focused[1]) || buttons.find((node) => node.dataset.scope === focused[0]))?.focus();
+  }
+  const freshness = document.getElementById("scopeRailFreshness");
+  freshness.textContent = line;
+  freshness.title = shellT("rail.oldest");
+  freshness.onclick = () => openEvidenceDrawer({ opener: freshness });
+}
+
+// ------------------------------------------------------------------ drawer
+function drawerDateText(field, value) {
+  if (value !== null && value !== undefined) return String(value);
+  return shellT(field === "retrieved_at" ? "date.notRecorded" : "date.notPublished");
+}
+
+// `verbatim` marks registry/publisher text: never translated, and annotated with
+// its real language ("en" for English registry prose) so assistive tech reads it right.
+function drawerRow(list, label, value, verbatim = null) {
+  const dt = document.createElement("dt");
+  dt.textContent = label;
+  const dd = document.createElement("dd");
+  if (value instanceof Node) dd.append(value);
+  else dd.textContent = value;
+  if (verbatim !== null) {
+    dd.dataset.verbatim = "";
+    if (verbatim) dd.lang = verbatim;
+  }
+  list.append(dt, dd);
+}
+
+function renderDrawerBody() {
+  const body = document.getElementById("evidenceDrawerBody");
+  const filter = shell.drawerFilter || {};
+  body.textContent = "";
+  const filterLine = document.getElementById("evidenceDrawerFilter");
+  filterLine.textContent = filter.scope
+    ? `${shellT("drawer.filter.scope")}: ${shellT(`scope.${filter.scope}`)}`
+    : shellT("drawer.filter.all");
+  if (!shell.registry) {
+    const note = document.createElement("p");
+    note.textContent = shellT(shell.registryFailed ? "rail.unavailable" : "date.loading");
+    body.append(note);
+    return;
+  }
+  const mode = shell.modes.currentMode();
+  let surfaces = surfaceKeysFor(mode, currentFlags());
+  if (filter.prefix) surfaces = surfaces.filter((key) => key.startsWith(filter.prefix));
+  const records = buildEvidenceRecords({ surfaces, registry: shell.registry, scope: filter.scope || null });
+  if (records.length === 0) {
+    const empty = document.createElement("p");
+    empty.textContent = shellT("drawer.empty");
+    body.append(empty);
+    return;
+  }
+  const analyst = shell.reading === "analyst";
+  for (const frozen of records) {
+    const record = projectReading(frozen, shell.reading);
+    const card = document.createElement("section");
+    card.className = "drawer-record";
+    card.dataset.surface = record.surface;
+    card.dataset.scope = record.scope;
+    const heading = document.createElement("h3");
+    const glyph = document.createElement("span");
+    glyph.className = "scope-glyph";
+    glyph.setAttribute("aria-hidden", "true");
+    glyph.textContent = SCOPE_GLYPHS[record.scope];
+    heading.append(glyph, document.createTextNode(shellT(`surface.${record.surface}`)));
+    card.append(heading);
+    const facts = document.createElement("dl");
+    facts.className = "drawer-fields";
+    drawerRow(facts, shellT("f.scope"), shellT(`scope.${record.scope}`));
+    if (analyst && record.scopeDefinition) drawerRow(facts, shellT("f.scopeDefinition"), record.scopeDefinition, "en");
+    drawerRow(facts, shellT("f.unit"), shellT(record.unit));
+    drawerRow(facts, shellT("f.derivation"), shellT(record.derivation));
+    card.append(facts);
+    for (const source of record.sources) {
+      const block = document.createElement("div");
+      block.className = "drawer-source";
+      block.dataset.source = source.id;
+      const title = document.createElement("h4");
+      title.textContent = source.displayName; // our label: localised; the authority beside it is verbatim
+      block.append(title);
+      const fields = document.createElement("dl");
+      fields.className = "drawer-fields";
+      drawerRow(fields, shellT("f.authority"), source.authority || shellT("date.notPublished"), source.authority ? "" : null);
+      drawerRow(fields, shellT("f.reference"), drawerDateText("reference_date", source.freshness.reference_date));
+      drawerRow(fields, shellT("f.published"), drawerDateText("published_at", source.freshness.published_at));
+      drawerRow(fields, shellT("f.retrieved"), drawerDateText("retrieved_at", source.freshness.retrieved_at));
+      drawerRow(fields, shellT("f.frequency"), shellT(`freq.${source.freshness.update_frequency}`));
+      drawerRow(fields, shellT("f.state"), shellT(`state.${source.freshness.source_state}`));
+      if (analyst) {
+        if (source.freshness.observed_cadence) drawerRow(fields, shellT("f.cadence"), source.freshness.observed_cadence);
+        const route = [source.datasetUrl, source.artifact, source.builder].filter(Boolean).join(" · ");
+        if (route) drawerRow(fields, shellT("f.route"), route, "");
+        if (source.periodSemantics) drawerRow(fields, shellT("f.period"), source.periodSemantics, "en");
+        if (source.freshnessEvidence) drawerRow(fields, shellT("f.freshnessEvidence"), source.freshnessEvidence, "en");
+      }
+      block.append(fields);
+      // The ceiling is registry text carried VERBATIM, in both readings and in both
+      // document languages: only our label around it is localised.
+      const ceiling = document.createElement("p");
+      ceiling.className = "drawer-ceiling";
+      const label = document.createElement("b");
+      label.textContent = shellT("f.ceiling");
+      const ceilingText = document.createElement("span");
+      ceilingText.lang = "en";
+      ceilingText.dataset.verbatim = "";
+      ceilingText.textContent = source.interpretationCeiling;
+      ceiling.append(label, ceilingText);
+      block.append(ceiling);
+      card.append(block);
+    }
+    body.append(card);
+  }
+}
+
+function openEvidenceDrawer({ opener = document.activeElement, scope = null, prefix = null, focusSection = null } = {}) {
+  const dialog = document.getElementById("evidenceDrawer");
+  shell.drawerFilter = { scope, prefix };
+  shell.drawerOpener = opener;
+  renderDrawerBody();
+  for (const button of dialog.querySelectorAll(".reading-btn")) {
+    button.setAttribute("aria-pressed", String(button.dataset.reading === shell.reading));
+  }
+  if (!dialog.open) dialog.showModal();
+  if (focusSection) document.getElementById(focusSection).scrollIntoView({ block: "start" });
+  else dialog.scrollTop = 0;
+}
+
+const evidenceDrawer = document.getElementById("evidenceDrawer");
+document.getElementById("evidenceDrawerClose").onclick = () => evidenceDrawer.close();
+// Backdrop click closes; Escape is native <dialog> behaviour.
+evidenceDrawer.addEventListener("click", (event) => { if (event.target === evidenceDrawer) evidenceDrawer.close(); });
+// Focus returns to the opener — or, if a re-render replaced it, to the nearest
+// equivalent control — so keyboard users never land on <body>.
+evidenceDrawer.addEventListener("close", () => {
+  let target = shell.drawerOpener;
+  if (!target || !document.contains(target)) {
+    target = document.getElementById("scopeRailFreshness");
+  }
+  shell.drawerOpener = null;
+  if (target && typeof target.focus === "function") target.focus();
+});
+for (const button of evidenceDrawer.querySelectorAll(".reading-btn")) {
+  button.onclick = () => {
+    shell.reading = button.dataset.reading;
+    for (const other of evidenceDrawer.querySelectorAll(".reading-btn")) {
+      other.setAttribute("aria-pressed", String(other === button));
+    }
+    renderDrawerBody();
+  };
+}
+for (const button of document.querySelectorAll(".evidence-route")) {
+  button.onclick = () => openEvidenceDrawer({ opener: button });
+}
+for (const button of document.querySelectorAll(".evidence-link")) {
+  button.onclick = () => openEvidenceDrawer({ opener: button, prefix: button.dataset.evidencePrefix });
+}
+
+// ---------------------------------------------------- product-authored copy
+// Surfaces that predate the shared i18n layer build their English inside pure,
+// tested models. js/legacy-copy.js maps each PRODUCT-AUTHORED phrase to Spanish;
+// this applier is the single place that mapping meets the DOM, for visible text
+// AND accessibility copy (aria-label, title, ...). English is the source text:
+// every translated node remembers it, so switching back restores it exactly.
+// Official / publisher values live under [data-verbatim] and are never touched.
+const COPY_ATTRIBUTES = ["aria-label", "aria-description", "title", "placeholder", "alt"];
+const copyState = { observer: null };
+
+function copyRejects(el) {
+  return el.closest("script,style,[data-verbatim]") !== null;
+}
+function localizeTextNode(node) {
+  const parent = node.parentElement;
+  // Map internals (cluster counts, POI names, halo numerals) are data, not UI copy.
+  if (!parent || copyRejects(parent)) return;
+  if (parent.closest(".leaflet-pane") && !parent.closest(".leaflet-tooltip,.leaflet-popup")) return;
+  const current = node.nodeValue;
+  if (node.__es !== undefined && current === node.__es) return;
+  const translated = localizeCopyEs(current);
+  if (translated !== current) { node.__en = current; node.__es = translated; node.nodeValue = translated; }
+  else { delete node.__en; delete node.__es; }
+  // A provenance line our catalogue left alone is publisher / registry wording: it
+  // keeps its own language, and says so. (Sentences we author are translated.)
+  if (parent.hasAttribute("data-provenance-line")) {
+    if (translated === current && /[A-Za-z]{4}/.test(current)) parent.setAttribute("lang", "en");
+    else parent.removeAttribute("lang");
+  }
+}
+function localizeAttribute(el, name) {
+  if (!el.hasAttribute(name) || copyRejects(el)) return;
+  const current = el.getAttribute(name);
+  const store = (el.__attr ||= {});
+  if (store[name] && current === store[name].es) return;
+  const translated = localizeCopyEs(current);
+  if (translated !== current) { store[name] = { en: current, es: translated }; el.setAttribute(name, translated); }
+  else delete store[name];
+}
+function localizeTree(root) {
+  if (root.nodeType === 3) { localizeTextNode(root); return; }
+  if (root.nodeType !== 1 || copyRejects(root)) return;
+  for (const name of COPY_ATTRIBUTES) localizeAttribute(root, name);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
+    acceptNode: (node) => (node.nodeType === 1 && copyRejects(node) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+  });
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (node.nodeType === 3) localizeTextNode(node);
+    else for (const name of COPY_ATTRIBUTES) localizeAttribute(node, name);
+  }
+}
+function restoreCopy() {
+  for (const line of document.querySelectorAll("[data-provenance-line][lang]")) line.removeAttribute("lang");
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (node.nodeType === 3 && node.__en !== undefined) {
+      if (node.nodeValue === node.__es) node.nodeValue = node.__en;
+      delete node.__en; delete node.__es;
+    } else if (node.nodeType === 1 && node.__attr) {
+      for (const [name, pair] of Object.entries(node.__attr)) {
+        if (node.getAttribute(name) === pair.es) node.setAttribute(name, pair.en);
+      }
+      delete node.__attr;
+    }
+  }
+}
+function applyCopyLanguage() {
+  copyState.observer?.disconnect();
+  copyState.observer = null;
+  if (shellLanguage() !== "es") { restoreCopy(); return; }
+  localizeTree(document.body);
+  copyState.observer = new MutationObserver((records) => {
+    for (const record of records) {
+      if (record.type === "childList") record.addedNodes.forEach(localizeTree);
+      else if (record.type === "characterData") localizeTextNode(record.target);
+      else if (record.type === "attributes") localizeAttribute(record.target, record.attributeName);
+    }
+  });
+  copyState.observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: COPY_ATTRIBUTES });
+}
+
+applyShellCopy();
+renderModeUi();
+applyCopyLanguage();
 
 const PANEL_SIZE_STORAGE_KEY = "madrid-tourism-intelligence-lens:analysis-panel-size:v1";
 const analysisPanel = document.querySelector(".panel");

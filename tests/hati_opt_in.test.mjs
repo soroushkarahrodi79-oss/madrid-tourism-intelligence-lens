@@ -22,13 +22,13 @@ test("HATI metric abstains while research evidence is off", () => {
   assert.match(app, /hf\.textContent = "enable HATI research evidence"/);
 });
 
-test("Evidence navigation explicitly enables HATI before framing the pilot", () => {
+test("The HATI layer control (moved out of navigation by K4) explicitly enables HATI before framing the pilot", () => {
   // Assert the ordering contract rather than the handler's exact source layout:
   // the layer must be switched on before the map frames the pilot study area.
   const handler = app.match(
-    /document\.getElementById\("navEvidence"\)\.onclick = \(\) => \{([\s\S]*?)^\};/m
+    /document\.getElementById\("hatiFrameButton"\)\.onclick = \(\) => \{([\s\S]*?)^\};/m
   )?.[1];
-  assert.ok(handler, "navEvidence click handler not found");
+  assert.ok(handler, "hatiFrameButton click handler not found");
 
   const enablesHati = handler.indexOf('setLayerVisible("heat", true)');
   const framesPilot = handler.indexOf("map.fitBounds(");

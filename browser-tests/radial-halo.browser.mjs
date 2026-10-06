@@ -72,6 +72,9 @@ async function newPage(viewport = { width: 1366, height: 1024 }) {
 async function openCompare(viewport, { panels = false, zoom = 13 } = {}) {
   const page = await newPage(viewport);
   await page.locator("#lensBButton").click();
+  // K4: the full table and the sensitivity check live in COMPARE Detail, one
+  // disclosure. Opening it is a locator-level change; no assertion changes.
+  await page.locator("#compareDetail > summary").click();
   await page.waitForFunction(() => document.querySelectorAll(".comparison-halo-icon").length > 0);
   if (!panels) await page.addStyleTag({ content: ".panel,.left{display:none!important}" });
   await page.evaluate((z) => {

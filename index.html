@@ -6,7 +6,7 @@
 <title>Madrid Urban Evidence Lens</title>
 <meta name="description" content="A place-first, source-disciplined lens for Madrid: read what official sources document about the city and the limits of that evidence. Urban development is the authorized next organising frame; tourism remains a documented domain. Not real-time; not a recommendation engine.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261005-52">
+<link rel="stylesheet" href="css/app.css?v=20261006-54">
 </head>
 <body>
 <div id="map"></div>
@@ -16,10 +16,12 @@
     <div class="logo"></div>
     <div><div class="brand-title">Madrid Urban Evidence Lens</div><div class="brand-sub">Madrid · Urban development · Official evidence</div></div>
   </div>
-  <div class="nav">
-    <button class="active">Explore</button>
-    <button id="navCompare">Compare</button>
-    <button id="navEvidence">Evidence</button>
+  <div class="header-tools">
+    <label id="hospitalityLanguageLabel" for="languageSelect" class="sr-only">Idioma / Language</label>
+    <select id="languageSelect" aria-labelledby="hospitalityLanguageLabel">
+      <option value="en" selected>English</option>
+      <option value="es">Español</option>
+    </select>
   </div>
 </header>
 
@@ -27,7 +29,7 @@
   <h3>Map display</h3>
   <div class="map-display">
     <div class="basemap-control">
-      <label for="basemapSelect">Base map</label>
+      <label for="basemapSelect" data-i18n="aside.basemap">Base map</label>
       <select id="basemapSelect" aria-label="Base map">
         <option value="light" selected>Light · CARTO Positron</option>
         <option value="satellite">Satellite + labels · Esri</option>
@@ -35,26 +37,19 @@
       </select>
     </div>
     <div class="map-control">
-      <label for="boundarySelect">Administrative boundaries</label>
+      <label for="boundarySelect" data-i18n="aside.boundaries">Administrative boundaries</label>
       <select id="boundarySelect" aria-label="Administrative boundaries">
         <option value="off" selected>Off · active area only</option>
         <option value="district">All district outlines</option>
         <option value="barrio">All barrio outlines</option>
       </select>
     </div>
-    <div class="language-control">
-      <label id="hospitalityLanguageLabel" for="languageSelect">Idioma del contexto</label>
-      <select id="languageSelect" aria-labelledby="hospitalityLanguageLabel">
-        <option value="es" selected>Español</option>
-        <option value="en">English</option>
-      </select>
-    </div>
   </div>
   <h3>Operational layers</h3>
-  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--museum);background:var(--museum)"></i>Museums</div><label class="switch"><input data-layer="museum" type="checkbox" checked><span></span></label></div>
-  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--stay);background:var(--stay)"></i>Hotels & stays</div><label class="switch"><input data-layer="stay" type="checkbox" checked><span></span></label></div>
+  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--museum);background:var(--museum)"></i><span data-i18n="layer.museum">Museums</span></div><label class="switch"><input data-layer="museum" type="checkbox" checked><span></span></label></div>
+  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--stay);background:var(--stay)"></i><span data-i18n="layer.stay">Hotels & stays</span></div><label class="switch"><input data-layer="stay" type="checkbox" checked><span></span></label></div>
   <div class="stay-filter">
-    <label for="stayKindFilter">Accommodation category</label>
+    <label for="stayKindFilter" data-i18n="aside.accommodation">Accommodation category</label>
     <select id="stayKindFilter" aria-label="Accommodation category">
       <option value="all" data-label="All accommodation" selected>All accommodation</option>
       <option value="hotel" data-kind="hotel" data-label="Hotels">Hotels</option>
@@ -69,62 +64,79 @@
   </div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--bike);background:var(--bike)"></i>BiciMAD</div><label class="switch"><input data-layer="bike" type="checkbox" checked><span></span></label></div>
   <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--rail);background:var(--rail)"></i>Metro & Cercanías</div><label class="switch"><input data-layer="rail" type="checkbox" checked><span></span></label></div>
-  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--info);background:var(--info)"></i>Tourist info</div><label class="switch"><input data-layer="info" type="checkbox" checked><span></span></label></div>
+  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--info);background:var(--info)"></i><span data-i18n="layer.info">Tourist info</span></div><label class="switch"><input data-layer="info" type="checkbox" checked><span></span></label></div>
 
   <div class="activity-divider">
     <span>Observed activity</span>
     <small>not tourism-specific</small>
   </div>
-  <div class="layer activity-layer"><div class="layer-left"><i class="dot" style="color:var(--activity);background:var(--activity)"></i>Pedestrian counters</div><label class="switch"><input data-layer="pedestrian" type="checkbox" aria-label="Toggle observed pedestrian activity" aria-checked="false"><span></span></label></div>
+  <div class="layer activity-layer"><div class="layer-left"><i class="dot" style="color:var(--activity);background:var(--activity)"></i><span data-i18n="layer.pedestrian">Pedestrian counters</span></div><label class="switch"><input data-layer="pedestrian" type="checkbox" aria-label="Toggle observed pedestrian activity" aria-checked="false"><span></span></label></div>
 
   <div class="context-divider">
     <span>Context</span>
     <small>not in metrics</small>
   </div>
-  <div class="layer context-layer"><div class="layer-left"><i class="dot" style="color:var(--park);background:var(--park)"></i>Principal parks</div><label class="switch"><input data-layer="park" type="checkbox" aria-label="Toggle principal municipal parks"><span></span></label></div>
+  <div class="layer context-layer"><div class="layer-left"><i class="dot" style="color:var(--park);background:var(--park)"></i><span data-i18n="layer.park">Principal parks</span></div><label class="switch"><input data-layer="park" type="checkbox" aria-label="Toggle principal municipal parks"><span></span></label></div>
   <div id="hospitalityLayerRow" class="layer context-layer hospitality-layer"><div class="layer-left"><i class="dot hospitality-dot"></i><span id="hospitalityLayerName">Contexto de hostelería y actividad comercial</span></div><label class="switch"><input id="hospitalityToggle" data-layer="hospitality" type="checkbox" aria-label="Mostrar contexto de hostelería y actividad comercial" aria-checked="false"><span></span></label></div>
+  <div class="layer-panel">
+    <div id="hospitalityControls" class="hospitality-controls" hidden>
+      <label id="hospitalityMetricLabel" for="hospitalityMetricSelect">Métrica</label>
+      <div class="hospitality-select-wrap">
+        <span id="hospitalityMetricSelectValue" class="hospitality-select-value" aria-hidden="true"></span>
+        <select id="hospitalityMetricSelect" aria-labelledby="hospitalityMetricLabel"></select>
+      </div>
+      <div id="hospitalityScale" class="hospitality-scale" aria-live="polite"></div>
+      <p id="hospitalitySelectorHint" class="hospitality-selector-hint">Polígonos oficiales de barrio · no se calcula dentro del círculo Lens</p>
+    </div>
+  </div>
 
   <div class="research-divider">
     <span>Research evidence</span>
     <small>bounded pilot</small>
   </div>
-  <div class="layer research-layer"><div class="layer-left"><i class="dot" style="color:var(--heat);background:var(--heat)"></i>HATI · thermal pilot</div><label class="switch"><input data-layer="heat" type="checkbox" aria-label="Toggle HATI thermal pilot" aria-checked="false"><span></span></label></div>
+  <div class="layer research-layer"><div class="layer-left"><i class="dot" style="color:var(--heat);background:var(--heat)"></i><span data-i18n="layer.hati">HATI · thermal pilot</span></div><label class="switch"><input data-layer="heat" type="checkbox" aria-label="Toggle HATI thermal pilot" aria-checked="false"><span></span></label></div>
+  <button type="button" id="hatiFrameButton" class="layer-action" data-i18n="hati.frame">Show HATI pilot on the map</button>
 
   <div id="layerSourceNote" class="layer-source-note"></div>
   <div id="hatiEvidenceDetails" hidden>
     <div class="heat-scale"></div>
     <div class="scale-labels"><span>32°C</span><span>38</span><span>46+</span></div>
-    <div class="evidence-note">
+    <div class="evidence-note" data-i18n-html="hati.note">
       <b>Evidence ceiling</b><br>
       HATI UTCI is <b>model-derived</b> (SOLWEIG), not measured comfort. Bounded to the locked 21 Aug 2023 Madrid pilot; no interpolation beyond the 14 sampled outdoor assets.<br><br>The dashed orange rectangle marks the original ≈3.5 km² HATI study-area boundary. It is <b>not</b> a continuous heat surface.
     </div>
   </div>
 </aside>
 
-<section class="panel" aria-label="Spatial analysis panel">
+<section class="panel" id="analysisPanel" data-mode="PLACE" aria-label="Spatial analysis panel">
   <button id="panelResizeHandle" class="panel-resize-handle" type="button" aria-label="Resize analysis panel" title="Drag to resize · double-click to reset"></button>
   <div class="status"><span id="liveBadge" class="live"><i></i><span>Loading spatial sources…</span></span><small>Central Madrid<br>v0.1</small></div>
 
-  <div class="lensbar">
-    <button id="lensAButton" class="lensbtn active a">Lens A · active</button>
-    <button id="lensBButton" class="lensbtn b">+ Enable Lens B</button>
+  <!-- READING ORDER (docs/INFORMATION_ARCHITECTURE_V2.md): the mode control and the
+       scope & freshness rail are ONE sticky head that no breakpoint may hide.
+       Below it exactly one mode section is shown: LEAD ANSWER, SUPPORTING
+       EVIDENCE (at most four figures), one Detail disclosure, one route into
+       Evidence & limits. Controls come LAST, never between results. -->
+  <div class="panel-head" id="panelHead">
+    <nav id="modeNav" class="mode-nav" aria-label="Mode">
+      <button type="button" id="modePlaceButton" class="mode-btn" data-mode="PLACE" aria-pressed="true" aria-current="true"><span class="mode-glyph" aria-hidden="true">◎</span><span class="mode-name" data-i18n="mode.place">Place</span></button>
+      <button type="button" id="modeCompareButton" class="mode-btn" data-mode="COMPARE" aria-pressed="false"><span class="mode-glyph" aria-hidden="true">⇄</span><span class="mode-name" data-i18n="mode.compare">Compare</span></button>
+      <button type="button" id="modeCityButton" class="mode-btn" data-mode="CITY" aria-pressed="false"><span class="mode-glyph" aria-hidden="true">▦</span><span class="mode-name" data-i18n="mode.city">City</span></button>
+    </nav>
+    <p id="modeAnnouncer" class="sr-only" aria-live="polite"></p>
+    <section id="scopeRail" class="scope-rail" aria-label="Scope and freshness of the evidence on screen">
+      <ul id="scopeRailList" class="scope-rail-list"></ul>
+      <button type="button" id="scopeRailFreshness" class="scope-rail-freshness" aria-haspopup="dialog"></button>
+    </section>
   </div>
+  <p id="modeQuestion" class="mode-question" data-i18n="mode.q.place">What does the evidence say about this place?</p>
 
-  <div id="pedestrianCard" class="activity-card" hidden>
-    <div>
-      <div class="activity-card-title"><i class="dot" style="background:var(--activity);color:var(--activity)"></i>Pedestrian flow <span class="badge observed">observed</span></div>
-      <div id="pedestrianValue" class="activity-card-value">—</div>
-      <div id="pedestrianFoot" class="activity-card-foot">Madrid permanent counters</div>
-    </div>
-    <div class="activity-card-note">Counts are observed pedestrians, not tourists. No interpolation between counters.</div>
-  </div>
-
-  <!-- WHERE IS THIS LENS? Official administrative geography of the lens centre.
-       Deliberately the first thing in the panel and visually separated from the
-       lens metrics below: the barrio is a different analytical object from the
-       circle, and the layout is what makes that legible. -->
+  <!-- ============================== PLACE ============================== -->
+  <div id="modePlace" class="mode-section" data-mode-section="PLACE">
+    <!-- LEAD ANSWER: the place the Lens centre sits in, and what the official
+         registers say about that whole barrio. -->
   <section id="areaProfile" class="area" aria-label="Administrative area of the active lens">
-    <div class="section-head"><span>Administrative area</span><small id="areaScopeHint">official barrio</small></div>
+    <div class="section-head"><span>Administrative area</span><small id="areaScopeHint">official barrio</small><button type="button" class="evidence-link" data-evidence-prefix="place.area." data-evidence-name="sec.area" aria-haspopup="dialog"><span aria-hidden="true">i</span></button></div>
     <div id="areaLive" aria-live="polite">
       <h1 id="areaHeadline" class="title">Locating…</h1>
       <div class="area-identity"><span id="areaContext" class="area-context"></span><span id="areaCodes" class="area-codes"></span></div>
@@ -163,21 +175,52 @@
            without scrolling and without a second full profile card. -->
       <div id="areaOther" class="area-other"></div>
     </div>
-    <button id="areaSourceToggle" class="area-source-toggle" type="button" aria-expanded="false" aria-controls="areaSourceDetails" hidden>Source &amp; interpretation</button>
-    <div id="areaSourceDetails" class="area-source-details" hidden></div>
+    <button id="areaSourceToggle" class="area-source-toggle" type="button" aria-haspopup="dialog" hidden>Source &amp; interpretation</button>
   </section>
+
+
+    <!-- SUPPORTING EVIDENCE: at most four Lens-circle figures. -->
+  <div class="section-head"><span>Within the Lens</span><small id="lensScopeHint">—</small><button type="button" class="evidence-link" data-evidence-prefix="place.metric." data-evidence-name="sec.withinLens" aria-haspopup="dialog"><span aria-hidden="true">i</span></button></div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--museum);color:var(--museum)"></i><span data-i18n="metric.tourism">Tourism POIs</span></div><div id="tourismValue" class="metric-value">—</div><div id="tourismFoot" class="metric-foot">within lens</div></div>
+    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--stay);color:var(--stay)"></i><span data-i18n="metric.stays">Hotels & stays</span></div><div id="stayValue" class="metric-value">—</div><div id="stayFoot" class="metric-foot">within lens</div></div>
+    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--bike);color:var(--bike)"></i><span data-i18n="metric.mobility">Mobility nodes</span></div><div id="mobilityValue" class="metric-value">—</div><div id="mobilityFoot" class="metric-foot">BiciMAD + rail stations</div></div>
+    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--heat);color:var(--heat)"></i><span data-i18n="metric.utci">Mean UTCI</span> <span class="badge model">model</span></div><div id="heatValue" class="metric-value abstain">—</div><div id="heatFoot" class="metric-foot">HATI outdoor samples</div></div>
+  </div>
+
+
+    <!-- DETAIL: one disclosure. Category mix, Nearest, the optional pedestrian
+         reading and the optional hospitality context live here. -->
+    <details id="placeDetail" class="detail-disclosure">
+      <summary><span data-i18n="sec.detail">Detail</span></summary>
+  <div class="mix">
+    <div class="card">
+      <div class="card-title" data-i18n="mix.title">Category mix</div>
+      <div id="mixLabel" class="mix-label"></div>
+      <div class="mixrow"><span data-i18n="mix.museums">Museums</span><div class="bar"><i id="barMuseum" style="background:var(--museum);width:0%"></i></div><b id="pctMuseum">0%</b></div>
+      <div class="mixrow"><span data-i18n="mix.stays">Stays</span><div class="bar"><i id="barStay" style="background:var(--stay);width:0%"></i></div><b id="pctStay">0%</b></div>
+      <div class="mixrow"><span data-i18n="mix.mobility">Mobility</span><div class="bar"><i id="barBike" style="background:var(--bike);width:0%"></i></div><b id="pctBike">0%</b></div>
+      <div class="mixrow"><span data-i18n="mix.info">Info</span><div class="bar"><i id="barInfo" style="background:var(--info);width:0%"></i></div><b id="pctInfo">0%</b></div>
+    </div>
+    <div class="card">
+      <div class="card-title" data-i18n="mix.nearest">Nearest in active lens</div>
+      <ul id="nearestList" class="nearest"><li>Loading…</li></ul>
+    </div>
+  </div>
+
+
+  <div id="pedestrianCard" class="activity-card" hidden>
+    <div>
+      <div class="activity-card-title"><i class="dot" style="background:var(--activity);color:var(--activity)"></i>Pedestrian flow <span class="badge observed">observed</span></div>
+      <div id="pedestrianValue" class="activity-card-value">—</div>
+      <div id="pedestrianFoot" class="activity-card-foot">Madrid permanent counters</div>
+    </div>
+    <div class="activity-card-note">Counts are observed pedestrians, not tourists. No interpolation between counters.</div>
+  </div>
+
 
   <section id="hospitalityContext" class="hospitality-context" aria-labelledby="hospitalityContextHeading" hidden>
     <div class="section-head"><span id="hospitalityContextHeading">Contexto administrativo</span><small id="hospitalityContextScope">geografía oficial</small></div>
-    <div id="hospitalityControls" class="hospitality-controls" hidden>
-      <label id="hospitalityMetricLabel" for="hospitalityMetricSelect">Métrica</label>
-      <div class="hospitality-select-wrap">
-        <span id="hospitalityMetricSelectValue" class="hospitality-select-value" aria-hidden="true"></span>
-        <select id="hospitalityMetricSelect" aria-labelledby="hospitalityMetricLabel"></select>
-      </div>
-      <div id="hospitalityScale" class="hospitality-scale" aria-live="polite"></div>
-      <p id="hospitalitySelectorHint" class="hospitality-selector-hint">Polígonos oficiales de barrio · no se calcula dentro del círculo Lens</p>
-    </div>
     <div id="hospitalityContextLive" class="hospitality-context-card" aria-live="polite">
       <div class="hospitality-context-top">
         <div><span id="hospitalityAreaLabel" class="hospitality-field-label">Área</span><h2 id="hospitalityAreaName" class="hospitality-area-name">Municipio de Madrid</h2></div>
@@ -197,44 +240,15 @@
     </div>
   </section>
 
-  <div class="section-head"><span>Within the Lens</span><small id="lensScopeHint">—</small></div>
-  <div class="metrics">
-    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--museum);color:var(--museum)"></i>Tourism POIs</div><div id="tourismValue" class="metric-value">—</div><div id="tourismFoot" class="metric-foot">within lens</div></div>
-    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--stay);color:var(--stay)"></i>Hotels & stays</div><div id="stayValue" class="metric-value">—</div><div id="stayFoot" class="metric-foot">within lens</div></div>
-    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--bike);color:var(--bike)"></i>Mobility nodes</div><div id="mobilityValue" class="metric-value">—</div><div id="mobilityFoot" class="metric-foot">BiciMAD + rail stations</div></div>
-    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--heat);color:var(--heat)"></i>Mean UTCI <span class="badge model">model</span></div><div id="heatValue" class="metric-value abstain">—</div><div id="heatFoot" class="metric-foot">HATI outdoor samples</div></div>
+
+    </details>
+    <div class="evidence-route-row"><button type="button" class="evidence-route" data-evidence-mode="PLACE" aria-haspopup="dialog"><span aria-hidden="true">▸</span> <span data-i18n="sec.evidence">Evidence &amp; limits</span></button></div>
   </div>
 
-  <div class="controlbox">
-    <div class="controltop"><span id="radiusControlLabel">Lens A radius</span><b id="radiusText">—</b></div>
-    <input id="radiusSlider" type="range" aria-label="Lens A radius">
-    <div class="row-controls">
-      <select id="timeSelect" aria-label="HATI model time">
-        <option value="12:00">HATI · 12:00</option>
-        <option value="15:00" selected>HATI · 15:00</option>
-        <option value="18:00">HATI · 18:00</option>
-      </select>
-      <button id="resetButton" class="smallbtn">Reset active lens</button>
-    </div>
-  </div>
-
-  <div class="mix">
-    <div class="card">
-      <div class="card-title">Category mix</div>
-      <div id="mixLabel" class="mix-label"></div>
-      <div class="mixrow"><span>Museums</span><div class="bar"><i id="barMuseum" style="background:var(--museum);width:0%"></i></div><b id="pctMuseum">0%</b></div>
-      <div class="mixrow"><span>Stays</span><div class="bar"><i id="barStay" style="background:var(--stay);width:0%"></i></div><b id="pctStay">0%</b></div>
-      <div class="mixrow"><span>Mobility</span><div class="bar"><i id="barBike" style="background:var(--bike);width:0%"></i></div><b id="pctBike">0%</b></div>
-      <div class="mixrow"><span>Info</span><div class="bar"><i id="barInfo" style="background:var(--info);width:0%"></i></div><b id="pctInfo">0%</b></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Nearest in active lens</div>
-      <ul id="nearestList" class="nearest"><li>Loading…</li></ul>
-    </div>
-  </div>
-
-  <div id="compareLine" class="compareline">
-    <div class="section-head"><span>Lens A ↔ Lens B</span><small>circle measurements only</small></div>
+  <!-- ============================== COMPARE ============================ -->
+  <div id="compareLine" class="compareline mode-section" data-mode-section="COMPARE" hidden>
+    <!-- LEAD ANSWER: the focused metric reading (Comparison Bridge). -->
+    <div class="section-head"><span>Lens A ↔ Lens B</span><small>circle measurements only</small><button type="button" class="evidence-link" data-evidence-prefix="compare." data-evidence-name="sec.compare" aria-haspopup="dialog"><span aria-hidden="true">i</span></button></div>
     <div id="comparisonRadiusReadout" class="comparison-radius-readout" aria-label="Lens radii">Lens A · 900 m | Lens B · 900 m</div>
     <div id="comparisonModeCue" class="comparison-mode-cue" aria-live="polite">Equal windows · raw represented counts</div>
     <div id="comparisonBridge" class="comparison-bridge" role="group" aria-label="Focused metric comparison">
@@ -266,6 +280,7 @@
       </div>
       <p id="comparisonBridgeA11y" class="sr-only" aria-live="polite"></p>
     </div>
+    <!-- SUPPORTING EVIDENCE: Decision Insight (four canonical metrics, fixed order). -->
     <!-- DECISION INSIGHT V1: the deterministic synthesis of the SAME authoritative
          comparison state the Bridge and the table read. Descriptive contrasts
          only: no score, ordering, preferred-lens selection, composite index,
@@ -279,6 +294,10 @@
       <ul id="decisionInsightItems" class="di-items"></ul>
       <p id="decisionInsightGuard" class="di-guard">Observed comparison only · no ordering or recommendation</p>
     </section>
+    <!-- DETAIL: baseline sensitivity, the full table, the evidence line. -->
+    <details id="compareDetail" class="detail-disclosure">
+      <summary><span data-i18n="sec.detail">Detail</span></summary>
+      <div id="compareAreaHost" class="compare-area-host"></div>
     <!-- SPATIAL WINDOW SENSITIVITY V1: an analytical SENSITIVITY CHECK, not a
          forecast. The user freezes the current comparison as the BASELINE
          window, then changes the Lens radii; the live configuration is the
@@ -314,8 +333,6 @@
       <p id="spatialSensitivityGuard" class="ss-guard">Alternative analytical window · not a forecast and not a causal effect</p>
       <p id="spatialSensitivityA11y" class="sr-only" aria-live="polite"></p>
     </section>
-    <label class="halo-toggle"><input id="haloToggle" type="checkbox" checked aria-label="Show comparison halo around Lens A and Lens B" aria-checked="true"><span>Comparison halo</span><small>supplementary map marks</small></label>
-    <div class="halo-legend">Fixed slots: Tourism POIs at 12 · Stays at 2 · Mobility nodes at 6 · Mean UTCI at 9 o’clock. Thin bars extend outward from each lens; the number is the raw value and length is density against a fixed Madrid reference (UTCI uses its model Celsius band). Lengths compare within the same metric only, never across metrics. Unavailable is N/A, never zero.</div>
     <div class="comparetable-wrap">
       <table class="comparetable" aria-label="Lens A and Lens B circle measurements">
         <thead><tr><th scope="col">Metric</th><th scope="col">Lens A</th><th scope="col">Lens B</th><th scope="col">B−A</th></tr></thead>
@@ -331,8 +348,12 @@
     <div id="cmpEvidence" class="compare-evidence">Evidence —</div>
     <div id="haloVisibilityNote" class="halo-visibility-note" aria-live="polite"></div>
     <div id="comparisonHaloSummary" class="sr-only" aria-live="polite"></div>
+    </details>
+    <div class="evidence-route-row"><button type="button" class="evidence-route" data-evidence-mode="COMPARE" aria-haspopup="dialog"><span aria-hidden="true">▸</span> <span data-i18n="sec.evidence">Evidence &amp; limits</span></button></div>
   </div>
 
+  <!-- ============================== CITY =============================== -->
+  <div id="modeCity" class="mode-section" data-mode-section="CITY" hidden>
   <!-- DESTINATION CONTEXT: a THIRD analytical object, and the only one that is
        not about the Lens at all.
 
@@ -351,6 +372,7 @@
     <div class="section-head">
       <span>Destination context</span>
       <small id="destinationScopeHint">whole municipality</small>
+      <button type="button" class="evidence-link" data-evidence-prefix="city." data-evidence-name="mode.city" aria-haspopup="dialog"><span aria-hidden="true">i</span></button>
     </div>
     <div id="destinationLive" aria-live="polite">
       <div class="destination-identity">
@@ -367,7 +389,6 @@
       <p id="destinationCeiling" class="destination-ceiling">Hotel establishments only &mdash; not all tourism, not all accommodation.</p>
       <section id="domesticOrigins" class="domestic-origins" aria-live="polite" hidden>
         <div class="domestic-origins-head"><strong id="domesticOriginsHeading">Domestic origins</strong><span id="domesticOriginsOfficial" class="badge statistics">Official statistics</span></div>
-        <div class="domestic-origin-controls"><label id="domesticOriginsMonthLabel" for="domesticOriginsMonth">Source month</label><select id="domesticOriginsMonth"></select></div>
         <div id="domesticOriginsScope" class="domestic-origin-scope">Madrid municipality · 28079</div>
         <div id="domesticOriginsUniverse" class="domestic-origin-universe">Published origin municipalities for residents travelling to Madrid from another Spanish province.</div>
         <div class="domestic-origin-table-wrap"><table><thead><tr><th id="domesticOriginsOrigin">Origin municipality</th><th id="domesticOriginsTourists">Source-reported tourists</th></tr></thead><tbody id="domesticOriginsRows"></tbody></table></div>
@@ -390,23 +411,91 @@
         </section>
       </section>
     </div>
-    <button id="destinationSourceToggle" class="area-source-toggle" type="button" aria-expanded="false" aria-controls="destinationSourceDetails" hidden>Source &amp; interpretation</button>
-    <div id="destinationSourceDetails" class="area-source-details" hidden></div>
   </section>
 
-  <div class="source">
+
+    <div class="evidence-route-row"><button type="button" class="evidence-route" data-evidence-mode="CITY" aria-haspopup="dialog"><span aria-hidden="true">▸</span> <span data-i18n="sec.evidence">Evidence &amp; limits</span></button><button id="destinationSourceToggle" class="area-source-toggle" type="button" aria-haspopup="dialog" hidden>Source &amp; interpretation</button></div>
+  </div>
+
+  <!-- ============================== CONTROLS =========================== -->
+  <!-- Separated from every result. Mode-relevant only: Lens controls in PLACE and
+       COMPARE; the source-month control in CITY. -->
+  <section id="panelControls" class="controls-region" aria-label="Controls">
+    <div class="section-head"><span data-i18n="sec.controls">Controls</span></div>
+    <div id="lensControls" data-controls-for="PLACE COMPARE">
+      <div class="lensbar">
+        <button id="lensAButton" class="lensbtn active a">Lens A · active</button>
+        <button id="lensBButton" class="lensbtn b">+ Enable Lens B</button>
+      </div>
+  <div class="controlbox">
+    <div class="controltop"><span id="radiusControlLabel">Lens A radius</span><b id="radiusText">—</b></div>
+    <input id="radiusSlider" type="range" aria-label="Lens A radius">
+    <div class="row-controls">
+      <select id="timeSelect" aria-label="HATI model time">
+        <option value="12:00">HATI · 12:00</option>
+        <option value="15:00" selected>HATI · 15:00</option>
+        <option value="18:00">HATI · 18:00</option>
+      </select>
+      <button id="resetButton" class="smallbtn" data-i18n="controls.reset">Reset active lens</button>
+    </div>
+  </div>
+
+    <label class="halo-toggle" data-controls-for="COMPARE"><input id="haloToggle" type="checkbox" checked aria-label="Show comparison halo around Lens A and Lens B" aria-checked="true"><span data-i18n="controls.halo">Comparison halo</span><small data-i18n="controls.haloNote">supplementary map marks</small></label>
+    </div>
+    <div data-controls-for="CITY" id="cityControls" hidden>
+        <div class="domestic-origin-controls"><label id="domesticOriginsMonthLabel" for="domesticOriginsMonth">Source month</label><select id="domesticOriginsMonth"></select></div>
+    </div>
+  </section>
+</section>
+
+<!-- ONE evidence drawer: replaces the scattered provenance footers, the long halo
+     legend, the sources paragraph and the per-section source toggles. -->
+<dialog id="evidenceDrawer" class="evidence-drawer" aria-labelledby="evidenceDrawerTitle">
+  <div class="drawer-head">
+    <h2 id="evidenceDrawerTitle" data-i18n="drawer.title">Evidence &amp; limits</h2>
+    <button type="button" id="evidenceDrawerClose" class="drawer-close" data-i18n="drawer.close">Close</button>
+  </div>
+  <div class="drawer-tools">
+    <div class="drawer-reading" role="group" aria-label="Reading" data-i18n-attr="aria-label:reading.label">
+      <button type="button" class="reading-btn" data-reading="citizen" aria-pressed="true" data-i18n="reading.citizen">Citizen</button>
+      <button type="button" class="reading-btn" data-reading="analyst" aria-pressed="false" data-i18n="reading.analyst">Analyst</button>
+    </div>
+    <p id="evidenceDrawerFilter" class="drawer-filter"></p>
+  </div>
+  <div id="evidenceDrawerBody" class="drawer-body"></div>
+  <section class="drawer-notes" id="drawerAreaNotes" data-drawer-mode="PLACE COMPARE">
+    <h3 data-i18n="drawer.notes.area">Source &amp; interpretation · Administrative area</h3>
+    <div id="areaSourceDetails" class="area-source-details"></div>
+  </section>
+  <section class="drawer-notes" id="drawerDestinationNotes" data-drawer-mode="CITY">
+    <h3 data-i18n="drawer.notes.destination">Source &amp; interpretation · Destination context</h3>
+    <div id="destinationSourceDetails" class="area-source-details"></div>
+  </section>
+  <section class="drawer-notes" id="drawerHaloLegend" data-drawer-mode="COMPARE">
+    <h3 data-i18n="drawer.legend">Comparison halo legend</h3>
+    <p id="haloLegend" class="halo-legend" data-i18n="legend.halo">Fixed slots: Tourism POIs at 12 · Stays at 2 · Mobility nodes at 6 · Mean UTCI at 9 o’clock. Thin bars extend outward from each lens; the number is the raw value and length is density against a fixed Madrid reference (UTCI uses its model Celsius band). Lengths compare within the same metric only, never across metrics. Unavailable is N/A, never zero.</p>
+  </section>
+  <section class="drawer-notes" id="drawerSources">
+    <h3 data-i18n="drawer.sources">Sources</h3>
+  <div id="sourcesBody" class="source" data-i18n-html="sources.body">
     Sources: Ayuntamiento de Madrid — IDEAM (administrative geography: districts, barrios), Subdirección General de Estadística / Padrón Municipal (registered residents), and Censo de Locales (Hospitality &amp; Commercial Context, Sep 2026 fingerprinted snapshot); Madrid Open Data (museums, tourist information, principal parks, permanent pedestrian counters); EMT Madrid (BiciMAD); CRTM (Metro and Cercanías stations); and Madrid Destino / esmadrid.com (hotels and other accommodation). The accommodation catalogue remains separate from the administrative Division-55 premises class. GitHub Pages uses the latest deployment-time POI snapshot first so markers render immediately; a small curated repository sample is the final packaged fallback when a deployment source is unavailable. HATI-Madrid locked pilot evidence (21 Aug 2023; UTCI is model output, not field observation). Destination context: Instituto Nacional de Estadística — hotel occupancy survey and direct internal-tourism municipality workbook (Madrid municipality only; domestic origin crossings published only above 30 tourists) — see <a href="docs/DATA_PROVENANCE.md">data provenance</a> and <a href="docs/CLAIMS_AND_LIMITATIONS.md">claims &amp; limitations</a>. Base maps: OpenStreetMap/CARTO or Esri World Imagery, depending on selection.
   </div>
-</section>
+  </section>
+</dialog>
 
 <script src="assets/leaflet/leaflet.js"></script>
 <script src="js/lens.js?v=20261002-43"></script>
 <script src="js/radial-halo.js?v=20261005-52"></script>
 <script src="js/evidence.js"></script>
+<script src="js/evidence-scope.js?v=20261006-1"></script>
+<script src="js/modes.js?v=20261006-1"></script>
+<script src="js/scope-rail.js?v=20261006-1"></script>
+<script src="js/shell-copy.js?v=20261006-1"></script>
+<script src="js/legacy-copy.js?v=20261006-2"></script>
 <script src="js/data.js?v=20260928-15"></script>
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20261005-53"></script>
+<script src="js/app.js?v=20261006-55"></script>
 </body>
 </html>

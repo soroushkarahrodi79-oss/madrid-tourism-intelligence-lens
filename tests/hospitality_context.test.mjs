@@ -109,10 +109,10 @@ test("choropleth normalization is linear and does not hide a square-root transfo
   assert.equal(normalizedMetricValue(100, domain), 1);
 });
 
-test("the hospitality language selector is explicitly scoped to this context", () => {
+test("the language selector is the ONE document-language control (K4 policy, replaces the old hospitality-only scope)", () => {
   assert.match(html, /<html lang="en">/);
-  assert.match(html, /id="hospitalityLanguageLabel"[^>]*>Idioma del contexto<\/label>/);
-  assert.doesNotMatch(appSource, /document\.documentElement\.lang\s*=/);
+  assert.match(html, /id="hospitalityLanguageLabel"[^>]*>Idioma \/ Language<\/label>/);
+  assert.match(appSource, /document\.documentElement\.setAttribute\("lang", language\)/);
   assert.match(
     appSource,
     /createI18n\([\s\S]*?document\.getElementById\("languageSelect"\)\.value/
