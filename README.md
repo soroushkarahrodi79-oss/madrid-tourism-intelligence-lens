@@ -339,6 +339,7 @@ js/evidence-scope.js    pure scope & freshness contract: analytical scopes, five
 js/modes.js             pure PLACE / COMPARE / CITY mode state and transition plans (tested)
 js/scope-rail.js        pure scope-and-freshness rail model, evidence-drawer records, citizen/analyst projections (tested)
 js/shell-copy.js        ES/EN dictionaries for the shell, rail and drawer (tested)
+js/legacy-copy.js       product-copy catalogue (ES) for surfaces built before the shared i18n layer (tested)
 js/geography.js         pure administrative containment / point-in-polygon (tested)
 js/area-profile.js      pure Area Profile model: place, residents, licensed VUT, states (tested)
 js/destination-context.js  pure citywide hotel-demand model: period, YoY, trend, states (tested)

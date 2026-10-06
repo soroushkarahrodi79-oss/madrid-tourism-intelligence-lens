@@ -325,7 +325,8 @@ function pick(freshness) {
 
 test("I: the app renders both readings from the same records and carries the ceiling in both", () => {
   assert.match(app, /projectReading\(frozen, shell\.reading\)/);
-  assert.match(app, /document\.createTextNode\(source\.interpretationCeiling\)/);
+  assert.match(app, /ceilingText\.textContent = source\.interpretationCeiling;/);
+  assert.match(app, /ceilingText\.lang = "en";/);
   assert.doesNotMatch(app.slice(app.indexOf("function renderDrawerBody"), app.indexOf("function openEvidenceDrawer")), /if \(analyst\)[^}]*interpretationCeiling/);
 });
 

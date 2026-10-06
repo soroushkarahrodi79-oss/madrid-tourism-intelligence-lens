@@ -193,31 +193,67 @@ provenance-bearing selector. The panel's viewport share is unchanged.
 ## 7. Language policy
 
 **One active document language at a time, switched by one control**
-(`#languageSelect`, in the header). The switch sets `document.documentElement.lang`
-and every dictionary-backed surface follows it through the shared `createI18n`
-layer (`js/i18n.js`): the shell dictionaries in `js/shell-copy.js` (mode control,
-rail, drawer, section structure, layer-scoped controls, the static labels K4
-re-homed), the Bridge / Decision Insight / Spatial Sensitivity dictionaries,
-Hospitality & Commercial Context and Domestic Origins. The previous
-hospitality-only language selector is retired: a Spanish Hospitality context
-inside an English panel was not a policy.
+(`#languageSelect`, in the header). **English is the default**; Spanish-first is
+not required. The invariant is:
 
-- New surfaces hold **no literal strings in render functions**; they read keys.
-- **Official source values are never translated.** Interpretation ceilings and
-  publisher wording are carried verbatim from the registry in both languages; only
-  our labels around them change.
-- `en` and `es` shell dictionaries must have identical keys (tested).
+> With EN selected, all **product-authored** interface copy is English. With ES
+> selected, all product-authored interface copy is Spanish. This covers visible
+> labels **and** accessibility copy (`aria-label`, `aria-description`, `title`,
+> live-region announcements, dialog labels, screen-reader-only text).
 
-**Known gap, reported rather than hidden.** Several surfaces predate the shared
-i18n layer and build English strings inside their render path (Area Profile
-headlines and notes, Destination Context cards and ceilings, metric footers,
-Nearest list, comparison table captions, activity-card prose, and the static
-labels of the Area/VUT blocks). Translating them is content work on analytical
-copy, not information architecture, and it would have to be reviewed against the
-interpretation ceilings. K4 therefore ships the complete mechanism and the
-Spanish label set for everything it owns, and keeps `en` as the document default.
-Spanish-first as the *default* needs those surfaces translated first and is
-recorded as follow-up, not claimed here.
+The switch sets `document.documentElement.lang` and there is one translation path
+in three layers, none of which holds a second language state:
+
+1. **Dictionaries through the shared `createI18n`** (`js/i18n.js`) for the
+   surfaces that own their copy: the shell dictionaries in `js/shell-copy.js`
+   (mode control, rail, drawer, section structure, layer-scoped controls), the
+   Bridge / Decision Insight / Spatial Sensitivity dictionaries, Hospitality &
+   Commercial Context and Domestic Origins / Dynamics.
+2. **The product-copy catalogue** (`js/legacy-copy.js`) for the surfaces that
+   predate the shared layer and build English sentences inside pure, tested model
+   modules whose English output is a contract of its own: Area Profile (headline,
+   scope and context prose, resident / VUT notes), Destination Context (cards,
+   footnotes, states, scope notes), the four metric footers, Nearest, pedestrian
+   activity, the comparison table, captions and screen-reader summaries, the map
+   tooltips, the layer panel (headings, dividers, select labels and options,
+   notes), the Lens and halo controls, and every loading / unavailable / empty
+   state. It maps each English source phrase to its Spanish rendering (phrases
+   with `{a}` placeholders are patterns; numbers, units and symbols are carried
+   through untouched). English is the source text and is never altered.
+3. **One applier** (`applyCopyLanguage` in `js/app.js`) is the only place the
+   catalogue meets the DOM. It walks the document and observes mutations, so
+   freshly rendered copy is localised too, for text **and** for
+   `aria-label` / `aria-description` / `title` / `placeholder` / `alt`. Every
+   translated node remembers its English source, so switching back restores it
+   exactly (a browser test round-trips ES → EN).
+
+No render function branches on the language; new surfaces read dictionary keys.
+
+### Verbatim evidence language
+
+The product distinguishes **UI language** from **verbatim evidence language**.
+
+- Official / publisher values stay verbatim: barrio, district and municipality
+  names, source terms, registry authority strings, registry
+  `interpretation_ceiling`, `source_period_semantics` and date provenance, the
+  canonical licence caveat the claims document requires verbatim, and
+  publisher-defined survey definitions. They are never translated to make the
+  screen look monolingual.
+- Such content sits under `data-verbatim`, so the applier never touches it, and is
+  annotated with its real language (`lang="en"`) where it is English prose: drawer
+  ceilings, scope definitions and period semantics, and provenance lines the
+  catalogue leaves alone. Sentences we author (for example "Reference date …")
+  are translated and carry no English tag.
+- Our own labels around such content (field names, units, derivations, registry
+  *display* names) are product-authored and do localise.
+- A phrase is never half-translated: a placeholder never spans a sentence break
+  and a prose sentence with no catalogue entry is left whole.
+- Digit grouping and decimal marks are left as published (a number's
+  presentation is not rewritten by a language switch).
+
+`en` and `es` shell dictionaries must have identical keys, every catalogue entry
+has a Spanish rendering with the same placeholders, and no registry wording is
+ever matched by the catalogue (all tested).
 
 ## 8. Citizen and analyst readings
 

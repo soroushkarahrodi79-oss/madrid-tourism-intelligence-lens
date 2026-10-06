@@ -451,3 +451,157 @@ test.after(async () => {
   await browser.close();
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 });
+
+// ------------------------------------------- language policy: product copy
+
+// Visible product-authored copy under a root: text nodes and accessibility
+// attributes of visible elements, excluding verbatim source/registry content
+// (data-verbatim / lang="en" provenance), map internals and SVG numerals.
+async function productCopy(page, rootSelector) {
+  return page.evaluate((selector) => {
+    const root = document.querySelector(selector);
+    const out = [];
+    const visible = (el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (node.nodeType === 3) {
+        const parent = node.parentElement;
+        if (!node.nodeValue.trim() || !visible(parent) || parent.closest("script,style,[data-verbatim],[lang=en],.leaflet-pane,svg")) continue;
+        out.push(node.nodeValue.replace(/\s+/g, " ").trim());
+      } else if (visible(node) && !node.closest("[data-verbatim],[lang=en],svg")) {
+        for (const name of ["aria-label", "title", "aria-description"]) if (node.hasAttribute(name)) out.push(node.getAttribute(name));
+      }
+    }
+    return out;
+  }, rootSelector);
+}
+
+// PRODUCT-AUTHORED legacy English that must be gone when ES is selected. This is
+// an explicit list, not an "English words" heuristic: proper nouns, source names,
+// BiciMAD / HATI / Metro and verbatim source wording are legitimately unchanged.
+const FORBIDDEN_ENGLISH = [
+  "Locating", "Registered residents", "Administrative area", "Within the Lens", "Category mix", "Nearest in active lens",
+  "within lens", "deployment snapshot", "Reset active lens", "Enable Lens B", "Lens A radius", "Pedestrian flow", "Map display",
+  "Operational layers", "Observed activity", "Research evidence", "Source & interpretation", "Whole official barrio",
+  "circle measurements only", "Equal windows", "Destination context", "overnight stays", "travellers", "Decision Insight",
+  "Spatial sensitivity", "Baseline window", "Capture current", "Evidence & limits", "Comparison halo", "Show HATI pilot",
+  "Unavailable", "No data", "Hotels & stays", "Tourism POIs", "Mobility nodes", "Mean UTCI", "Official register", "Licensed VUT",
+  "Whole municipality", "Official statistics", "Controls", "Source month", "Domestic origins", "Monthly origin dynamics",
+  "Origin municipality", "Metric", "Reference date", "Nearest", "Base map", "Administrative boundaries", "Accommodation category",
+  "All accommodation", "Reading the", "Lens A", "Lens B", "records", "samples", "Madrid municipality — not the Lens circle",
+];
+const SPANISH_MARKERS = ["Lente A", "Dentro de la Lente", "Mezcla de categorías", "Residentes empadronados", "Visualización del mapa", "Controles", "Evidencia y límites"];
+const escapePhrase = (phrase) => phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const hasPhrase = (lines, phrase) => lines.some((line) => new RegExp(`(^|[^\\p{L}])${escapePhrase(phrase)}([^\\p{L}]|$)`, "u").test(line));
+function assertNoEnglish(lines, surface) {
+  const found = FORBIDDEN_ENGLISH.filter((phrase) => hasPhrase(lines, phrase));
+  assert.deepEqual(found, [], `${surface}: product-authored English left in ES: ${found.join(" | ")}\n${lines.filter((l) => found.some((f) => l.includes(f))).slice(0, 14).map((l) => l.slice(0, 170)).join("\n")}`);
+}
+
+test("IA 20 ES: representative real surfaces in PLACE, COMPARE and CITY carry no product-authored English", async (t) => {
+  const page = await newPage({ width: 1366, height: 900 });
+  t.after(() => closePage(page));
+  await page.locator("#languageSelect").selectOption("es");
+  await page.waitForFunction(() => /Orígenes nacionales/.test(document.getElementById("domesticOriginsHeading").textContent));
+  // Everything on: the layers whose copy only renders when enabled.
+  for (const layer of ["pedestrian", "hospitality", "heat", "park"]) {
+    await page.locator(`[data-layer="${layer}"]`).evaluate((node) => { node.checked = true; node.dispatchEvent(new Event("change", { bubbles: true })); });
+  }
+  await page.waitForFunction(() => !/Locating|Localizando/.test(document.getElementById("areaHeadline").textContent));
+  await page.locator("#placeDetail > summary").click();
+  await page.waitForTimeout(400);
+
+  // ---- PLACE
+  assert.equal(await page.locator("html").getAttribute("lang"), "es");
+  assert.match(await page.locator("#areaScopeNote").textContent(), /Barrio oficial completo, no el círculo de la Lente\./);
+  assert.match(await page.locator(".area-value-label").textContent(), /Residentes empadronados/);
+  assert.match(await page.locator("#areaScopeHint").textContent(), /barrio oficial/);
+  const feet = await page.locator("#tourismFoot, #stayFoot, #mobilityFoot, #heatFoot").allTextContents();
+  assert.equal(feet.length, 4);
+  for (const foot of feet) assert.doesNotMatch(foot, /within lens|deployment snapshot|enable HATI|sample|in lens|not exhaustive/, `metric foot still English: ${foot}`);
+  assert.ok(feet.some((foot) => /dentro de la Lente|instantánea|muestra|BiciMAD/.test(foot)), feet.join(" | "));
+  assert.match(await page.locator("#pedestrianCard").textContent(), /Flujo peatonal/);
+  assert.match(await page.locator(".activity-card-note").textContent(), /peatones observados, no turistas/);
+  assert.match(await page.locator("#placeDetail .mix .card-title").first().textContent(), /Mezcla de categorías/);
+  assert.equal(await page.locator("#resetButton").textContent(), "Restablecer la Lente activa");
+  assert.equal(await page.locator("#lensBButton").textContent(), "+ Activar Lente B");
+  assert.equal(await page.locator("#radiusControlLabel").textContent(), "Radio de la Lente A");
+  assert.equal(await page.locator("#radiusSlider").getAttribute("aria-label"), "Radio de la Lente A");
+  assert.equal(await page.locator("#timeSelect").getAttribute("aria-label"), "Hora del modelo HATI");
+  assert.match(await page.locator("#layerSourceNote").textContent(), /Museos:/);
+  assert.equal(await page.locator(".left h3").first().textContent(), "Visualización del mapa");
+  assert.match(await page.locator("#stayKindFilter option").first().textContent(), /Todo el alojamiento/, "select option copy is localised");
+  for (const selector of ["header", ".left", "#analysisPanel"]) assertNoEnglish(await productCopy(page, selector), `PLACE ${selector}`);
+
+  // ---- COMPARE
+  await setMode(page, "COMPARE");
+  await page.evaluate(() => window.__HALO_REGRESSION__.focusMetric("stays", "A", true));
+  await page.locator("#compareDetail > summary").click();
+  await page.locator("#spatialSensitivityCapture").click();
+  await page.waitForTimeout(400);
+  assert.match(await page.locator("#decisionInsightHeading").textContent(), /Lectura de decisión/);
+  assert.match(await page.locator("#spatialSensitivityHeading").textContent(), /Sensibilidad espacial/);
+  assert.match(await page.locator("#comparisonRadiusReadout").textContent(), /Lente A · .* \| Lente B · /);
+  assert.match(await page.locator("#comparisonModeCue").textContent(), /Ventanas/);
+  assert.equal(await page.locator(".comparetable").getAttribute("aria-label"), "Mediciones de los círculos de la Lente A y la Lente B");
+  assert.equal(await page.locator(".comparetable thead th").first().textContent(), "Métrica");
+  assert.match(await page.locator(".halo-toggle").textContent(), /Halo de comparación/);
+  assert.match(await page.locator("#comparisonHaloSummary").textContent(), /Halo de comparación\./, "the screen-reader comparison summary is Spanish too");
+  assert.match(await page.locator("#modeAnnouncer").textContent(), /Modo: Comparar/);
+  for (const selector of ["#analysisPanel", ".left"]) assertNoEnglish(await productCopy(page, selector), `COMPARE ${selector}`);
+
+  // ---- CITY
+  await setMode(page, "CITY");
+  assert.match(await page.locator("#destinationContext .section-head span").first().textContent(), /Contexto del destino/);
+  assert.match(await page.locator("#destinationScopeHint").textContent(), /municipio completo/);
+  assert.match(await page.locator(".destination-metric-exact").first().textContent(), /viajeros|pernoctaciones/);
+  assert.match(await page.locator("#destinationCeiling").textContent(), /Solo establecimientos hoteleros/);
+  assert.match(await page.locator("#domesticOriginsHeading").textContent(), /Orígenes nacionales/);
+  assert.match(await page.locator("#domesticOriginDynamicsHeading").textContent(), /din[aá]mica/i);
+  assert.match(await page.locator("#domesticOriginsMonthLabel").textContent(), /Mes de referencia/);
+  assert.equal(await page.locator("#destinationContext").getAttribute("aria-label"), "Contexto del destino: demanda hotelera de la ciudad de Madrid");
+  assert.match(await page.locator("#destinationPeriod").textContent(), /de \d{4}$/, "the period month is Spanish");
+  for (const selector of ["#analysisPanel", ".left"]) assertNoEnglish(await productCopy(page, selector), `CITY ${selector}`);
+
+  // ---- drawer (our labels localise; registry wording is verbatim and marked)
+  await page.locator('[data-evidence-mode="CITY"]').click();
+  assertNoEnglish(await productCopy(page, "#evidenceDrawer"), "CITY drawer");
+  const ceiling = page.locator("#evidenceDrawerBody .drawer-ceiling [lang=en]").first();
+  assert.equal(await ceiling.getAttribute("lang"), "en", "verbatim registry ceilings are annotated with their real language");
+  assert.ok((await ceiling.textContent()).includes(sourceById("hotel_demand").interpretation_ceiling.slice(0, 40)));
+  await page.keyboard.press("Escape");
+
+  // ---- EN regression, same page: nothing is one-way
+  await page.locator("#languageSelect").selectOption("en");
+  await page.waitForFunction(() => /Domestic origins/.test(document.getElementById("domesticOriginsHeading").textContent));
+  await setMode(page, "PLACE");
+  const english = [...(await productCopy(page, "#analysisPanel")), ...(await productCopy(page, ".left")), ...(await productCopy(page, "header"))];
+  const stray = SPANISH_MARKERS.filter((phrase) => hasPhrase(english, phrase));
+  assert.deepEqual(stray, [], `Spanish left after switching back to EN: ${stray.join(" | ")}`);
+  assert.equal(await page.locator("#resetButton").textContent(), "Reset active lens");
+  assert.equal(await page.locator("#lensBButton").textContent(), "+ Enable Lens B");
+  assert.match(await page.locator("#areaScopeNote").textContent(), /Whole official barrio — not the Lens circle\./);
+  assert.equal(await page.locator(".left h3").first().textContent(), "Map display");
+  assert.equal(await page.locator("#radiusSlider").getAttribute("aria-label"), "Lens A radius");
+  assert.match(await page.locator("#tourismFoot").textContent(), /within lens|deployment snapshot|sample/);
+  assert.equal(await page.locator("#timeSelect").getAttribute("aria-label"), "HATI model time");
+  await setMode(page, "CITY");
+  assert.match(await page.locator("#destinationCeiling").textContent(), /Hotel establishments only/);
+  assert.match(await page.locator("#destinationPeriod").textContent(), /^[A-Z][a-z]+ \d{4}$/);
+});
+
+test("IA 21 verbatim provenance keeps its own language and says so; sentences we author are translated", async (t) => {
+  const page = await newPage();
+  t.after(() => closePage(page));
+  await page.waitForFunction(() => document.querySelectorAll("#areaSourceDetails [data-provenance-line]").length > 0);
+  await page.locator("#languageSelect").selectOption("es");
+  await page.waitForFunction(() => document.querySelector("#areaSourceDetails [data-provenance-line][lang=en]"));
+  const lines = await page.locator("#areaSourceDetails [data-provenance-line]").evaluateAll((nodes) => nodes.map((n) => ({ text: n.textContent, lang: n.getAttribute("lang") })));
+  const caveat = lines.find((line) => /Granted licences only/.test(line.text));
+  assert.ok(caveat && caveat.lang === "en", "the canonical licence caveat stays verbatim and is annotated lang=en");
+  const authored = lines.filter((line) => /^(Fecha de referencia|Estado de la fuente|Geografía de barrio)/.test(line.text));
+  assert.ok(authored.length >= 1 && authored.every((line) => line.lang === null), "project-authored provenance sentences are Spanish and carry no English tag");
+  await page.locator("#languageSelect").selectOption("en");
+  await page.waitForFunction(() => !document.querySelector("#areaSourceDetails [lang]"));
+  assert.match(await page.locator("#areaSourceDetails").textContent(), /Reference date/);
+});

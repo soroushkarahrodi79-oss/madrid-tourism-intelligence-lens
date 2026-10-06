@@ -2572,7 +2572,7 @@ function renderAreaSourceDetails() {
     .map(
       (group) =>
         `<div class="area-source-group"><h2 class="area-source-group-title">${group.title}</h2>` +
-        group.lines.map((line) => `<span>${line}</span>`).join("") +
+        group.lines.map((line) => `<span data-provenance-line>${line}</span>`).join("") +
         `</div>`
     )
     .join("");
@@ -2877,6 +2877,7 @@ function applyHospitalityCopy() {
   const select = document.getElementById("hospitalityMetricSelect");
   for (const option of select.options) option.textContent = hospitalityT(option.value);
   setText("hospitalityMetricSelectValue", hospitalityT(hospitalityMetric));
+  renderHospitalityScale();
   rebuildHospitalityLayer();
   renderHospitalityContext();
 }
@@ -3176,7 +3177,7 @@ function renderDestinationSourceDetails(model) {
   const lines = destinationModel.meta
     ? module.buildDestinationProvenanceLines({ meta: destinationModel.meta, model })
     : [];
-  host.innerHTML = lines.map((line) => `<span>${line}</span>`).join("");
+  host.innerHTML = lines.map((line) => `<span data-provenance-line>${line}</span>`).join("");
   toggle.hidden = lines.length === 0;
 }
 
@@ -3475,9 +3476,11 @@ document.getElementById("languageSelect").onchange = (event) => {
   renderComparisonBridge();
   renderDecisionInsight();
   renderSpatialSensitivity();
+  restoreCopy();
   applyShellCopy();
   renderModeUi();
   if (document.getElementById("evidenceDrawer").open) renderDrawerBody();
+  applyCopyLanguage();
 };
 document.getElementById("domesticOriginsMonth").onchange = (event) => { originMonth = event.target.value; renderDomesticOrigins(); };
 document.getElementById("hospitalityMetricSelect").onchange = (event) => {
@@ -3754,12 +3757,18 @@ function drawerDateText(field, value) {
   return shellT(field === "retrieved_at" ? "date.notRecorded" : "date.notPublished");
 }
 
-function drawerRow(list, label, value) {
+// `verbatim` marks registry/publisher text: never translated, and annotated with
+// its real language ("en" for English registry prose) so assistive tech reads it right.
+function drawerRow(list, label, value, verbatim = null) {
   const dt = document.createElement("dt");
   dt.textContent = label;
   const dd = document.createElement("dd");
   if (value instanceof Node) dd.append(value);
   else dd.textContent = value;
+  if (verbatim !== null) {
+    dd.dataset.verbatim = "";
+    if (verbatim) dd.lang = verbatim;
+  }
   list.append(dt, dd);
 }
 
@@ -3804,7 +3813,7 @@ function renderDrawerBody() {
     const facts = document.createElement("dl");
     facts.className = "drawer-fields";
     drawerRow(facts, shellT("f.scope"), shellT(`scope.${record.scope}`));
-    if (analyst && record.scopeDefinition) drawerRow(facts, shellT("f.scopeDefinition"), record.scopeDefinition);
+    if (analyst && record.scopeDefinition) drawerRow(facts, shellT("f.scopeDefinition"), record.scopeDefinition, "en");
     drawerRow(facts, shellT("f.unit"), shellT(record.unit));
     drawerRow(facts, shellT("f.derivation"), shellT(record.derivation));
     card.append(facts);
@@ -3813,11 +3822,11 @@ function renderDrawerBody() {
       block.className = "drawer-source";
       block.dataset.source = source.id;
       const title = document.createElement("h4");
-      title.textContent = source.displayName;
+      title.textContent = source.displayName; // our label: localised; the authority beside it is verbatim
       block.append(title);
       const fields = document.createElement("dl");
       fields.className = "drawer-fields";
-      drawerRow(fields, shellT("f.authority"), source.authority || shellT("date.notPublished"));
+      drawerRow(fields, shellT("f.authority"), source.authority || shellT("date.notPublished"), source.authority ? "" : null);
       drawerRow(fields, shellT("f.reference"), drawerDateText("reference_date", source.freshness.reference_date));
       drawerRow(fields, shellT("f.published"), drawerDateText("published_at", source.freshness.published_at));
       drawerRow(fields, shellT("f.retrieved"), drawerDateText("retrieved_at", source.freshness.retrieved_at));
@@ -3826,9 +3835,9 @@ function renderDrawerBody() {
       if (analyst) {
         if (source.freshness.observed_cadence) drawerRow(fields, shellT("f.cadence"), source.freshness.observed_cadence);
         const route = [source.datasetUrl, source.artifact, source.builder].filter(Boolean).join(" · ");
-        if (route) drawerRow(fields, shellT("f.route"), route);
-        if (source.periodSemantics) drawerRow(fields, shellT("f.period"), source.periodSemantics);
-        if (source.freshnessEvidence) drawerRow(fields, shellT("f.freshnessEvidence"), source.freshnessEvidence);
+        if (route) drawerRow(fields, shellT("f.route"), route, "");
+        if (source.periodSemantics) drawerRow(fields, shellT("f.period"), source.periodSemantics, "en");
+        if (source.freshnessEvidence) drawerRow(fields, shellT("f.freshnessEvidence"), source.freshnessEvidence, "en");
       }
       block.append(fields);
       // The ceiling is registry text carried VERBATIM, in both readings and in both
@@ -3837,7 +3846,11 @@ function renderDrawerBody() {
       ceiling.className = "drawer-ceiling";
       const label = document.createElement("b");
       label.textContent = shellT("f.ceiling");
-      ceiling.append(label, document.createTextNode(source.interpretationCeiling));
+      const ceilingText = document.createElement("span");
+      ceilingText.lang = "en";
+      ceilingText.dataset.verbatim = "";
+      ceilingText.textContent = source.interpretationCeiling;
+      ceiling.append(label, ceilingText);
       block.append(ceiling);
       card.append(block);
     }
@@ -3888,8 +3901,90 @@ for (const button of document.querySelectorAll(".evidence-link")) {
   button.onclick = () => openEvidenceDrawer({ opener: button, prefix: button.dataset.evidencePrefix });
 }
 
+// ---------------------------------------------------- product-authored copy
+// Surfaces that predate the shared i18n layer build their English inside pure,
+// tested models. js/legacy-copy.js maps each PRODUCT-AUTHORED phrase to Spanish;
+// this applier is the single place that mapping meets the DOM, for visible text
+// AND accessibility copy (aria-label, title, ...). English is the source text:
+// every translated node remembers it, so switching back restores it exactly.
+// Official / publisher values live under [data-verbatim] and are never touched.
+const COPY_ATTRIBUTES = ["aria-label", "aria-description", "title", "placeholder", "alt"];
+const copyState = { observer: null };
+
+function copyRejects(el) {
+  return el.closest("script,style,[data-verbatim]") !== null;
+}
+function localizeTextNode(node) {
+  const parent = node.parentElement;
+  // Map internals (cluster counts, POI names, halo numerals) are data, not UI copy.
+  if (!parent || copyRejects(parent)) return;
+  if (parent.closest(".leaflet-pane") && !parent.closest(".leaflet-tooltip,.leaflet-popup")) return;
+  const current = node.nodeValue;
+  if (node.__es !== undefined && current === node.__es) return;
+  const translated = localizeCopyEs(current);
+  if (translated !== current) { node.__en = current; node.__es = translated; node.nodeValue = translated; }
+  else { delete node.__en; delete node.__es; }
+  // A provenance line our catalogue left alone is publisher / registry wording: it
+  // keeps its own language, and says so. (Sentences we author are translated.)
+  if (parent.hasAttribute("data-provenance-line")) {
+    if (translated === current && /[A-Za-z]{4}/.test(current)) parent.setAttribute("lang", "en");
+    else parent.removeAttribute("lang");
+  }
+}
+function localizeAttribute(el, name) {
+  if (!el.hasAttribute(name) || copyRejects(el)) return;
+  const current = el.getAttribute(name);
+  const store = (el.__attr ||= {});
+  if (store[name] && current === store[name].es) return;
+  const translated = localizeCopyEs(current);
+  if (translated !== current) { store[name] = { en: current, es: translated }; el.setAttribute(name, translated); }
+  else delete store[name];
+}
+function localizeTree(root) {
+  if (root.nodeType === 3) { localizeTextNode(root); return; }
+  if (root.nodeType !== 1 || copyRejects(root)) return;
+  for (const name of COPY_ATTRIBUTES) localizeAttribute(root, name);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
+    acceptNode: (node) => (node.nodeType === 1 && copyRejects(node) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+  });
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (node.nodeType === 3) localizeTextNode(node);
+    else for (const name of COPY_ATTRIBUTES) localizeAttribute(node, name);
+  }
+}
+function restoreCopy() {
+  for (const line of document.querySelectorAll("[data-provenance-line][lang]")) line.removeAttribute("lang");
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (node.nodeType === 3 && node.__en !== undefined) {
+      if (node.nodeValue === node.__es) node.nodeValue = node.__en;
+      delete node.__en; delete node.__es;
+    } else if (node.nodeType === 1 && node.__attr) {
+      for (const [name, pair] of Object.entries(node.__attr)) {
+        if (node.getAttribute(name) === pair.es) node.setAttribute(name, pair.en);
+      }
+      delete node.__attr;
+    }
+  }
+}
+function applyCopyLanguage() {
+  copyState.observer?.disconnect();
+  copyState.observer = null;
+  if (shellLanguage() !== "es") { restoreCopy(); return; }
+  localizeTree(document.body);
+  copyState.observer = new MutationObserver((records) => {
+    for (const record of records) {
+      if (record.type === "childList") record.addedNodes.forEach(localizeTree);
+      else if (record.type === "characterData") localizeTextNode(record.target);
+      else if (record.type === "attributes") localizeAttribute(record.target, record.attributeName);
+    }
+  });
+  copyState.observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: COPY_ATTRIBUTES });
+}
+
 applyShellCopy();
 renderModeUi();
+applyCopyLanguage();
 
 const PANEL_SIZE_STORAGE_KEY = "madrid-tourism-intelligence-lens:analysis-panel-size:v1";
 const analysisPanel = document.querySelector(".panel");
