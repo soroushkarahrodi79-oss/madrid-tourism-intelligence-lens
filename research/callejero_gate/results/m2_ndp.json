@@ -1,0 +1,46 @@
+{
+  "authoritative_field": {
+    "callejero_field": "COD_NDP",
+    "leading_zero_count_current": 0,
+    "licence_field": "NDP",
+    "null_count_current": 0,
+    "null_count_historical": 0,
+    "null_count_licence": 0,
+    "observed_lengths_current": {
+      "8": 214301
+    },
+    "observed_type": "digit-only text after CSV decoding",
+    "source_documented_relationship": "Both are the official internal identifier/code for the address (número de policía); the join preserves their exact text representation."
+  },
+  "current": {
+    "distinct_nonempty_ndps": 214301,
+    "duplicate_ndps": 76,
+    "duplicate_rows": 472,
+    "rows": 214697,
+    "same_ndp_different_address": 76
+  },
+  "gate": "M2",
+  "historical": {
+    "completeness_ceiling": "The publisher warns that historical digitisation is incomplete.",
+    "distinct_nonempty_ndps": 258481,
+    "has_dated_validity": true,
+    "ndps_mapping_to_multiple_address_signatures": 81664,
+    "ndps_with_multiple_versions": 81885,
+    "rows": 379297,
+    "validity_fields": [
+      "FECHA_DE_ALTA",
+      "FECHA_DE_BAJA"
+    ]
+  },
+  "identity_policy": "Use exact COD_NDP for current records. Historical records require COD_NDP plus dated validity/version provenance; bare NDP alone is insufficient when address signatures vary over time.",
+  "licence": {
+    "distinct_ndps": 7938,
+    "distinct_ndps_affected_by_current_duplicates": 0,
+    "malformed_ndp_rows": 0,
+    "ndps_absent_current": 196,
+    "rows": 11498,
+    "rows_absent_current": 319
+  },
+  "required_identity_key": "{callejero_resource_sha256}:{COD_NDP}:{FECHA_DE_ALTA}:{FECHA_DE_BAJA} for historical versions; exact COD_NDP is sufficient only within the pinned current edition.",
+  "verdict": "GO_WITH_CONDITIONS"
+}

@@ -1,0 +1,469 @@
+{
+  "authoritative_callejero": {
+    "change_webservice": {
+      "authority": "Ayuntamiento de Madrid — CADMA",
+      "cadence_mapping_basis": "Mapped to the K2 DAILY vocabulary from the official callejero documentation's daily changes/publication mechanics; raw CKAN cadence remains UPDATE_CONT.",
+      "dataset_id": "300274-0-callejero-oficial-webservice",
+      "declared_cadence": "UPDATE_CONT",
+      "declared_crs": "Coordinates returned by the CADMA service; CRS is not declared in the service catalogue record",
+      "encoding": "XML-declared",
+      "format": "SOAP/WSDL XML",
+      "licence": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+      "observed_cadence": null,
+      "observed_resource_state": {
+        "catalogue_metadata_modified": "2026-07-30T00:00:00"
+      },
+      "published_at": null,
+      "publisher": "Ayuntamiento de Madrid",
+      "reference_date": null,
+      "resource_id": "300274-0-callejero-oficial-webservice",
+      "retrieval_route": "https://servpub.madrid.es/CADMA_WSUPD/services/ConsultasCadmaService?wsdl",
+      "retrieved_at": "2026-10-06T20:31:36Z",
+      "role": "change feed by date/range; not the reproducible bulk crosswalk route",
+      "row_count": null,
+      "source_state": "NOT_DECLARED_BY_PUBLISHER",
+      "update_frequency": "DAILY"
+    },
+    "current_coordinates_and_admin_codes": {
+      "authority": "Ayuntamiento de Madrid",
+      "dataset_id": "213605-0-callejero-oficial-madrid",
+      "declared_cadence": "WEEKLY",
+      "declared_crs": "EPSG:25830 (UTM ETRS89, zone 30)",
+      "delimiter": ";",
+      "download_url": "https://datos.madrid.es/dataset/213605-0-callejero-oficial-madrid/resource/213605-4-callejero-oficial-madrid-csv/download/direccionesvigentes_20261004.csv",
+      "encoding": "Windows-1252",
+      "format": "CSV",
+      "licence": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+      "observed_cadence": "WEEKLY",
+      "observed_cadence_basis": "The repository's prior official resource was dated 2026-09-27; this pinned resource is dated 2026-10-04.",
+      "observed_resource_state": {
+        "bytes": 34712120,
+        "catalogue_metadata_modified": "2026-10-05T00:00:00",
+        "http_content_length": "34712120",
+        "http_etag": "\"1791188492.522087-34712120-2903512525\"",
+        "http_last_modified": "Mon, 05 Oct 2026 08:21:32 GMT",
+        "sha256": "28b2ca7db810e23c0d5921ea2d3f79dceab3cad2d8d3947743476068960fbb28"
+      },
+      "published_at": null,
+      "publisher": "Ayuntamiento de Madrid",
+      "reference_date": null,
+      "resource_description": "Callejero vigente. Relación de direcciones vigentes, con coordenadas",
+      "resource_id": "213605-4-callejero-oficial-madrid-csv",
+      "retrieved_at": "2026-10-06T20:31:36Z",
+      "row_count": 214697,
+      "source_state": "NOT_DECLARED_BY_PUBLISHER",
+      "update_frequency": "WEEKLY"
+    },
+    "geoportal_companion": {
+      "authority": "Ayuntamiento de Madrid — CADMA / Departamento de Cartografía",
+      "dataset_id": "9be44652-2490-11e9-a99c-ecb1d752b636",
+      "declared_cadence": "continuous CADMA maintenance; daily database load",
+      "declared_crs": "EPSG:25830",
+      "download_url": "https://geoportal.madrid.es/fsdescargas/IDEAM_WBGEOPORTAL/CALLEJERO/NDPS_VIGENTES_HISTORICOS/NDPS_VIG_HIS_SHP.zip",
+      "encoding": null,
+      "format": "service plus SHP/CSV bulk downloads",
+      "format_routes": [
+        "ESRI REST",
+        "WMS",
+        "WFS",
+        "OGC API Features",
+        "SHP",
+        "CSV"
+      ],
+      "licence": "CC BY 4.0",
+      "observed_cadence": null,
+      "observed_resource_state": "The official portal displayed Fecha datos 06/10/2026 and states continuous CADMA maintenance with a daily database load; this dates the service state, not any individual address's validity.",
+      "published_at": null,
+      "publisher": "Ayuntamiento de Madrid — Geoportal / IDEAM",
+      "reference_date": "2026-10-06",
+      "resource_id": "CALLEJERO_NDPS_VIGENTES_HISTORICOS",
+      "retrieval_route": "https://geoportal.madrid.es/IDEAM_WBGEOPORTAL/dataset.iam?id=9be44652-2490-11e9-a99c-ecb1d752b636",
+      "retrieved_at": "2026-10-06T20:31:36Z",
+      "row_count": null,
+      "source_state": "NOT_DECLARED_BY_PUBLISHER",
+      "update_frequency": "DAILY"
+    },
+    "historical_identity_coordinates_and_validity": {
+      "authority": "Ayuntamiento de Madrid",
+      "dataset_id": "213605-0-callejero-oficial-madrid",
+      "declared_cadence": "WEEKLY",
+      "declared_crs": "EPSG:25830 (UTM ETRS89, zone 30)",
+      "delimiter": ";",
+      "download_url": "https://datos.madrid.es/dataset/213605-0-callejero-oficial-madrid/resource/213605-1-callejero-oficial-madrid-csv/download/direccionesevolucionhistorica_20261004.csv",
+      "encoding": "Windows-1252",
+      "format": "CSV",
+      "licence": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+      "observed_cadence": "WEEKLY",
+      "observed_cadence_basis": "The resource is issued in the same dated weekly Callejero package as the current-address file.",
+      "observed_resource_state": {
+        "bytes": 62676776,
+        "catalogue_metadata_modified": "2026-10-05T00:00:00",
+        "http_content_length": "62676776",
+        "http_etag": "\"1791188675.617289-62676776-2897614282\"",
+        "http_last_modified": "Mon, 05 Oct 2026 08:24:35 GMT",
+        "sha256": "5e67975fdf066f76521308e702bab98620122b497133eda72526eaed80bebea5"
+      },
+      "published_at": null,
+      "publisher": "Ayuntamiento de Madrid",
+      "reference_date": null,
+      "resource_description": "Callejero con evolución histórica. Relación de direcciones con su evolución histórica",
+      "resource_id": "213605-1-callejero-oficial-madrid-csv",
+      "retrieved_at": "2026-10-06T20:31:36Z",
+      "row_count": 379297,
+      "source_state": "NOT_DECLARED_BY_PUBLISHER",
+      "update_frequency": "WEEKLY"
+    },
+    "identity_field": "COD_NDP",
+    "register_of_record": "Ayuntamiento de Madrid CADMA / Callejero Oficial",
+    "schema_current": [
+      {
+        "name": "COD_VIA",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "VIA_CLASE",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "VIA_PAR",
+        "non_empty": 210899,
+        "observed_as_text": true
+      },
+      {
+        "name": "VIA_NOMBRE",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "VIA_NOMBRE_ACENTOS",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "CLASE_APP",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "NUMERO",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "CALIFICADOR",
+        "non_empty": 29624,
+        "observed_as_text": true
+      },
+      {
+        "name": "TIPO_NDP",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "COD_NDP",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "DISTRITO",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "BARRIO",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "COD_POSTAL",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "UTMX_ED",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "UTMY_ED",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "UTMX_ETRS",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "UTMY_ETRS",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "LATITUD",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "LONGITUD",
+        "non_empty": 214697,
+        "observed_as_text": true
+      },
+      {
+        "name": "ANGULO_ROTULACION",
+        "non_empty": 214697,
+        "observed_as_text": true
+      }
+    ],
+    "schema_historical": [
+      {
+        "name": "COD_VIA",
+        "non_empty": 379297,
+        "observed_as_text": true
+      },
+      {
+        "name": "VIA_SQC",
+        "non_empty": 0,
+        "observed_as_text": true
+      },
+      {
+        "name": "VIA_CLASE",
+        "non_empty": 379297,
+        "observed_as_text": true
+      },
+      {
+        "name": "VIA_PAR",
+        "non_empty": 358811,
+        "observed_as_text": true
+      },
+      {
+        "name": "VIA_NOMBRE",
+        "non_empty": 379297,
+        "observed_as_text": true
+      },
+      {
+        "name": "VIA_NOMBRE_ACENTOS",
+        "non_empty": 379297,
+        "observed_as_text": true
+      },
+      {
+        "name": "COD_NDP",
+        "non_empty": 379297,
+        "observed_as_text": true
+      },
+      {
+        "name": "CLASE_NDP",
+        "non_empty": 379297,
+        "observed_as_text": true
+      },
+      {
+        "name": "NÚMERO",
+        "non_empty": 379297,
+        "observed_as_text": true
+      },
+      {
+        "name": "CALIFICADOR",
+        "non_empty": 51308,
+        "observed_as_text": true
+      },
+      {
+        "name": "FECHA_DE_ALTA",
+        "non_empty": 379297,
+        "observed_as_text": true
+      },
+      {
+        "name": "FECHA_DE_BAJA",
+        "non_empty": 163595,
+        "observed_as_text": true
+      },
+      {
+        "name": "TIPO_NDP",
+        "non_empty": 363065,
+        "observed_as_text": true
+      },
+      {
+        "name": "UTMX_ED",
+        "non_empty": 379297,
+        "observed_as_text": true
+      },
+      {
+        "name": "UTMY_ED",
+        "non_empty": 379297,
+        "observed_as_text": true
+      },
+      {
+        "name": "UTMX_ETRS",
+        "non_empty": 379297,
+        "observed_as_text": true
+      },
+      {
+        "name": "UTMY_ETRS",
+        "non_empty": 379297,
+        "observed_as_text": true
+      },
+      {
+        "name": "LATITUD",
+        "non_empty": 379297,
+        "observed_as_text": true
+      },
+      {
+        "name": "LONGITUD",
+        "non_empty": 379297,
+        "observed_as_text": true
+      },
+      {
+        "name": "ANGULO_ROTULACION",
+        "non_empty": 379297,
+        "observed_as_text": true
+      }
+    ]
+  },
+  "gate": "M1",
+  "licence_register": {
+    "authority": "Ayuntamiento de Madrid",
+    "dataset_id": "640505-0-licencias-urbanisticas-otorgadas",
+    "declared_cadence": "MONTHLY",
+    "declared_crs": null,
+    "delimiter": ";",
+    "download_url": "https://datos.madrid.es/dataset/640505-0-licencias-urbanisticas-otorgadas/resource/640505-1-licencias-urbanisticas-otorgadas/download/licencias.csv",
+    "encoding": "UTF-8 with BOM",
+    "format": "CSV",
+    "licence": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+    "observed_cadence": null,
+    "observed_resource_state": {
+      "bytes": 2921075,
+      "catalogue_metadata_modified": "2026-10-05T00:00:00",
+      "http_content_length": "2921075",
+      "http_etag": "\"1791196814.107552-2921075-240064466\"",
+      "http_last_modified": "Mon, 05 Oct 2026 10:40:14 GMT",
+      "sha256": "0f1009e3cfab7f3d02e180d9bda07e50b5539ffdccae70b941672f1046d0a8a0"
+    },
+    "published_at": null,
+    "publisher": "Ayuntamiento de Madrid",
+    "reference_date": null,
+    "resource_description": "Licencias urbanísticas",
+    "resource_id": "640505-1-licencias-urbanisticas-otorgadas",
+    "retrieved_at": "2026-10-06T20:31:36Z",
+    "row_count": 11498,
+    "schema": [
+      {
+        "name": "Nº_EXPEDIENTE",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "TIPO",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "ORGANO_COMPETENTE",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "NORMA_ZONAL",
+        "non_empty": 8993,
+        "observed_as_text": true
+      },
+      {
+        "name": "NIVEL_PROTECCION",
+        "non_empty": 8991,
+        "observed_as_text": true
+      },
+      {
+        "name": "PERSONA_INTERESADA",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "FECHA_ALTA",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "FECHA_ALTA - Año",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "FECHA_ALTA - Trimestre",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "FECHA_ALTA - Mes",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "FECHA_ALTA - Día",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "VIA",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "DIRECCION",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "Nº",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "NDP",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "RESOLUCION",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "FECHA_FIRMA_RESOLUCION",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "FECHA_FIRMA_RESOLUCION - Año",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "FECHA_FIRMA_RESOLUCION - Trimestre",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "FECHA_FIRMA_RESOLUCION - Mes",
+        "non_empty": 11498,
+        "observed_as_text": true
+      },
+      {
+        "name": "FECHA_FIRMA_RESOLUCION - Día",
+        "non_empty": 11498,
+        "observed_as_text": true
+      }
+    ],
+    "source_state": "NOT_DECLARED_BY_PUBLISHER",
+    "update_frequency": "MONTHLY"
+  },
+  "publisher_documentation": {
+    "callejero_structure_version": "3.0 (2016-04-27)",
+    "historical_completeness_ceiling": "Historical digitisation is explicitly documented as incomplete and continuing.",
+    "licence_row_unit": "one administrative expediente",
+    "licence_structure_version": "May 2026; updated 2026-05-22",
+    "personal_data_statement": "Publisher states the file is aggregated and anonymised and contains no personal data; PERSONA_INTERESADA is a person-type category, not a name."
+  },
+  "retrieved_at": "2026-10-06T20:31:36Z",
+  "verdict": "GO"
+}
