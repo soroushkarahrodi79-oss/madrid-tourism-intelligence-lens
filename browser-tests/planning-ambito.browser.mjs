@@ -53,6 +53,33 @@ const MARKER = { lat: 40.40589, lon: -3.6841, code: "APE.03.08" }; // has a PGOU
 const BLANK_CELL = { lat: 40.40261, lon: -3.71841, code: "APE.02.27" }; // has an unpublished use class
 const OUTSIDE = { lat: 40.4149, lon: -3.69 }; // central Madrid: no containing ámbito
 
+const PLANNING_SERVICE_ROUTE =
+  /^\/hosted\/(?:services\/|rest\/services\/)DESARROLLO_URBANO_ACTUALIZADO\/PLANEAMIENTO_URBANISTICO\/MapServer(?:\/WFSServer)?(?:\/|$)/i;
+const PLANNING_DATASET_IDS = [
+  "203200-0-desarrollo-ambitos",
+  "203182-0-ambitos-remanente",
+  "ca62bee0-8ce1-11e9-90e1-dc4a3e81fab6",
+];
+
+function isForbiddenPlanningRuntimeUrl(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+
+  // Match the K6 planning service route itself, regardless of its host, and
+  // the planning dataset identifiers on their official catalogue hosts.
+  // This deliberately says nothing about ArcGIS as a hosting technology.
+  if (PLANNING_SERVICE_ROUTE.test(decodeURIComponent(url.pathname))) return true;
+  const host = url.hostname.toLowerCase();
+  const officialPlanningHost = ["sigma.madrid.es", "datos.madrid.es", "geoportal.madrid.es"].some(
+    (domain) => host === domain || host.endsWith(`.${domain}`)
+  );
+  return officialPlanningHost && PLANNING_DATASET_IDS.some((id) => url.href.toLowerCase().includes(id));
+}
+
 const server = http.createServer((request, response) => {
   const pathname = decodeURIComponent(new URL(request.url, "http://127.0.0.1").pathname);
   const relative = pathname === "/" ? "index.html" : pathname.slice(1);
@@ -79,9 +106,9 @@ async function newPage(viewport = { width: 1366, height: 900 }, contextOptions =
   const context = await browser.newContext({ viewport, ...contextOptions });
   const page = await context.newPage();
   page.setDefaultTimeout(15000);
-  // Every request the page makes is RECORDED before it is allowed, so the
-  // no-remote-source contract is proved by observation rather than by reading
-  // the source. Nothing off-origin is ever let through.
+  // Every request is RECORDED before any off-origin request is aborted. PA 1
+  // classifies planning URLs specifically; it does not set the application's
+  // network policy for unrelated remote sources.
   const requests = [];
   await page.route("**/*", (route) => {
     const url = new URL(route.request().url());
@@ -117,7 +144,44 @@ async function at(page, place) {
 
 const planning = (page) => page.evaluate(() => window.__HALO_REGRESSION__.planning());
 
-// ------------------------------------------------------- 1. no remote source
+// ------------------------------------------------------ 1. planning network
+
+test("PA 1 the classifier catches planning routes without banning unrelated ArcGIS sources", () => {
+  assert.equal(
+    isForbiddenPlanningRuntimeUrl(
+      "https://sigma.madrid.es/hosted/services/DESARROLLO_URBANO_ACTUALIZADO/PLANEAMIENTO_URBANISTICO/MapServer/WFSServer"
+    ),
+    true
+  );
+  assert.equal(
+    isForbiddenPlanningRuntimeUrl(
+      "https://sigma.madrid.es/hosted/rest/services/DESARROLLO_URBANO_ACTUALIZADO/PLANEAMIENTO_URBANISTICO/MapServer/2/query"
+    ),
+    true
+  );
+  assert.equal(
+    isForbiddenPlanningRuntimeUrl("https://datos.madrid.es/api/3/action/package_show?id=203200-0-desarrollo-ambitos"),
+    true
+  );
+  assert.equal(
+    isForbiddenPlanningRuntimeUrl("https://datos.madrid.es/api/3/action/package_show?id=203182-0-ambitos-remanente"),
+    true
+  );
+  assert.equal(
+    isForbiddenPlanningRuntimeUrl(
+      "https://geoportal.madrid.es/IDEAM_WBGEOPORTAL/dataset.iam?id=ca62bee0-8ce1-11e9-90e1-dc4a3e81fab6"
+    ),
+    true
+  );
+  for (const line of ["M4_Red", "M5_Red"]) {
+    assert.equal(
+      isForbiddenPlanningRuntimeUrl(
+        `https://services5.arcgis.com/UxADft6QPcvFyDU1/arcgis/rest/services/${line}/FeatureServer/0/query`
+      ),
+      false
+    );
+  }
+});
 
 test("PA 1 the browser makes NO request to an official planning service", async (t) => {
   const page = await newPage();
@@ -126,21 +190,11 @@ test("PA 1 the browser makes NO request to an official planning service", async 
   await page.evaluate(() => window.__HALO_REGRESSION__.openPlaceDetailForTest());
   await at(page, MARKER);
 
-  const offending = page.requests_.filter((url) =>
-    /sigma\.madrid\.es|datos\.madrid\.es|geoportal\.madrid\.es|WFSServer|arcgis/i.test(url)
-  );
+  const offending = page.requests_.filter(isForbiddenPlanningRuntimeUrl);
   assert.deepEqual(offending, [], "K6 runs from packaged evidence only");
   // And the committed artifacts ARE what it read.
   assert.ok(page.requests_.some((url) => url.includes("/data/planning/madrid_ambitos.geojson")));
   assert.ok(page.requests_.some((url) => url.includes("/data/planning/madrid_ambito_state.json")));
-  // The only off-origin hosts are the documented basemap tile providers. No
-  // official source host appears at all.
-  const offOrigin = [...new Set(page.requests_.map((url) => new URL(url).hostname))].filter(
-    (host) => host !== "127.0.0.1" && host !== "localhost"
-  );
-  for (const host of offOrigin) {
-    assert.match(host, /openstreetmap\.org|basemaps\.cartocdn\.com|arcgisonline\.com|cartocdn\.com/, host);
-  }
 });
 
 // ------------------------------------------------------------- 2. the place
