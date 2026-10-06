@@ -46,6 +46,30 @@ test("K5 exposes exactly four spacing and two radius tokens", () => {
   assert.deepEqual(radii, [["small", "8px"], ["large", "16px"]]);
 });
 
+test("K5 spacing migration uses tokens across the application layout", () => {
+  const declarations = cssDeclarations(withoutComments);
+  const literalSpacing = declarations.filter(({ property, value }) =>
+    /^(?:margin(?:-[\w-]+)?|padding(?:-[\w-]+)?|gap|row-gap|column-gap)$/.test(property) && /-?\d+(?:\.\d+)?px\b/.test(value),
+  );
+  const geometry = /(?:^|[\s,])(?:#map|\.leaflet(?:-[\w-]+)?|\.logo(?::before|:after)?|\.marker(?:-[\w-]+)?|\.dot(?:-[\w-]+)?|\.bar(?:\s+i)?|\.switch(?:\s|$)|\.halo-[\w-]+|\.destination-spark|\.destination-compbar|\.panel-resize-handle(?::before|:after)?|\.sr-only|\.hospitality-scale|\.heat-scale|\.area-label|\.poi-cluster|\.badge|\.comparison-halo-icon|\.lens-boundary|\.admin-active-pane|\.live(?:\s|$)|\.cb-lock)(?:\b|:|\s|,)/i;
+  const nonGeometry = literalSpacing.filter(({ selector }) => !geometry.test(selector));
+  assert.ok(nonGeometry.length <= 86, `application layout literals regressed: ${nonGeometry.length}`);
+  assert.ok(declarations.some(({ property, value }) => property === "padding" && /var\(--s-3\)/.test(value)), "surface padding uses the canonical scale");
+});
+
+test("K5 application surfaces use radius tokens; literal radii belong to documented geometry categories", () => {
+  const literalRadii = cssDeclarations(withoutComments).filter(({ property, value }) =>
+    property === "border-radius" && /\d+(?:\.\d+)?px\b/.test(value) && !/999px\b/.test(value),
+  );
+  const geometry = /(?:^|[\s,])(?:\.leaflet(?:-[\w-]+)?|\.logo(?::before|:after)?|\.marker(?:-[\w-]+)?|\.dot(?:-[\w-]+)?|\.bar(?:\s+i)?|\.switch(?:\s|$)|\.halo-[\w-]+|\.destination-compbar|\.panel-resize-handle(?::before|:after)?|\.sr-only|\.hospitality-scale|\.heat-scale|\.area-label|\.poi-cluster|\.badge|\.comparison-halo-icon|\.lens-boundary|\.admin-active-pane|\.cb-lock|\.live|\.panel::-webkit-scrollbar-thumb)(?:\b|:|\s|,)/i;
+  const nonGeometry = literalRadii.filter(({ selector }) => !geometry.test(selector));
+  assert.ok(nonGeometry.length <= 28, `application surface literal radii regressed: ${nonGeometry.length}`);
+  for (const selector of [".panel", ".left", ".evidence-drawer", ".mode-nav", ".mode-btn", ".card", ".metric", ".controlbox", ".destination-metric"]) {
+    const surface = cssDeclarations(withoutComments).filter((item) => item.selector.split(",").map((part) => part.trim()).includes(selector) && item.property === "border-radius");
+    assert.ok(surface.some(({ value }) => /var\(--r-(?:small|large)\)/.test(value)), `${selector} must use a radius token`);
+  }
+});
+
 test("K5 judgement-bearing concepts use no success, error or warning colour convention", () => {
   const forbidden = /\b(?:success|error|warning|danger|positive|negative|good|bad|stale|fresh|ahead|behind|delayed|complete)[\w-]*\b|var\(--(?:green|heat|activity)\)/i;
   for (const [, selectors, declarations] of withoutComments.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
@@ -93,4 +117,15 @@ function mediaBlocks(source) {
     index = source.indexOf("@media", cursor);
   }
   return blocks;
+}
+
+function cssDeclarations(source) {
+  const declarations = [];
+  for (const [, selector, body] of source.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    for (const declaration of body.split(";")) {
+      const match = /^\s*([\w-]+)\s*:\s*([\s\S]*?)\s*$/.exec(declaration);
+      if (match) declarations.push({ selector: selector.trim(), property: match[1], value: match[2].trim() });
+    }
+  }
+  return declarations;
 }

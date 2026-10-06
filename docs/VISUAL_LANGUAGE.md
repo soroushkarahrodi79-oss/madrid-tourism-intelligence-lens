@@ -56,10 +56,22 @@ The four layout-spacing tokens follow the product's existing 4px rhythm:
 | `--s-3` | 12px | card padding |
 | `--s-4` | 16px | section separation |
 
-The two surface radii are `--r-small: 8px` for controls/cards/grouped surfaces
-and `--r-large: 16px` for primary panels and drawers. Circles, pills, map-marker
-geometry and other shapes with independent meaning remain geometric values; they
-are not forced into the radius scale.
+Spacing tokens describe recurring application layout rhythm: gaps, padding and
+separation between semantic blocks. Choose a step by role (tight relation,
+control/row, card surface, or section), preserving hierarchy when rounding.
+Literal dimensions describe meaningful geometry: map and viewport positioning,
+icon/marker size, stroke and track shape, safe-area offsets, resize handles and
+SVG coordinates. Those measurements do not become spacing tokens just because
+they are expressed in pixels.
+
+The two radius tokens are the application surface language: `--r-small: 8px`
+for controls, cards and grouped field surfaces, and `--r-large: 16px` for
+primary panels, drawers and large floating chrome. An application card therefore
+uses a surface token rather than retaining an arbitrary 13px corner. Literal
+radii express independent geometry: 50% circles, 999px pills, switches/tracks,
+markers, chart/halo marks, logos, scrollbars and provider-owned Leaflet shapes.
+These categories are enumerated in the visual-language tests; a geometric
+exception must be recognizable by its role, not by a historical pixel value.
 
 ## Contrast
 
