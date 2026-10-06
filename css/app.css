@@ -234,6 +234,101 @@ header{
    the quantity a compact figure leaves implicit. */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
+/* ===== PLANNING ÁMBITO EVIDENCE (K6, #68) ===================================
+   A second lead-level evidence object in PLACE, deliberately distinct from the
+   administrative-area surface above it: the ámbito, the barrio and the Lens
+   circle are three different analytical objects.
+
+   The four published phase fields receive NEUTRAL CATEGORICAL distinctions only
+   (K5). They never form a light-to-dark, red/amber/green, cold-to-warm or
+   progressively-heavier sequence, carry no ordinal number, no arrow and no
+   completion bar, and no single element summarises the four. The three
+   reserved planning hues are paired with a distinct border STYLE and a text
+   label, so colour alone never carries a distinction. */
+.planning{margin:var(--s-3) 0 0;padding-top:var(--s-2);border-top:1px solid var(--line)}
+.planning[hidden]{display:none}
+.planning .section-head{margin-top:0}
+.planning-identity[hidden]{display:none}
+.planning-denomination{margin:0;font-size:var(--t-title);font-weight:760;letter-spacing:-.03em;line-height:1.18;color:#f3f7ff}
+.planning-identity-row{display:flex;align-items:baseline;gap:var(--s-2);flex-wrap:wrap;margin-top:var(--s-2)}
+/* The kind label is what stops a reader taking this for the barrio. */
+.planning-kind{flex:0 0 auto;padding:var(--s-1) var(--s-2);border:1px solid rgba(174,184,196,.3);border-radius:var(--r-small);background:rgba(174,184,196,.1);color:#d4dde7;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:650}
+.planning-code-wrap{min-width:0;display:flex;align-items:baseline;gap:var(--s-1);flex-wrap:wrap}
+.planning-code-label{font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:#8ba0b7}
+/* The EXACT official code, including any -RP suffix. Never abbreviated. */
+.planning-code{font-size:var(--t-meta);font-weight:700;letter-spacing:.05em;color:#e3ecf6;font-variant-numeric:tabular-nums;word-break:break-word}
+.planning-distinction{margin:var(--s-2) 0 0;font-size:var(--t-body);line-height:1.5;color:#9fb1c5}
+/* The edition reference date sits with the evidence, not only in the drawer. */
+.planning-edition{margin:var(--s-2) 0 0;padding-left:var(--s-2);border-left:2px solid var(--planning-neutral);font-size:var(--t-meta);line-height:1.5;color:#bccddf;font-variant-numeric:tabular-nums}
+.planning-edition:empty{display:none}
+.planning-outside{margin:var(--s-2) 0 0;padding:var(--s-3);border:1px dashed var(--line2);border-radius:var(--r-small);font-size:var(--t-body);line-height:1.55;color:#a9bbcf}
+.planning-outside[hidden]{display:none}
+.planning-block{margin-top:var(--s-3);padding:var(--s-3);border:1px solid var(--line);border-radius:var(--r-small);background:rgba(255,255,255,.022)}
+.planning-block[hidden]{display:none}
+.planning-block-head{font-size:var(--t-label);letter-spacing:.1em;text-transform:uppercase;color:#8ba0b7;font-weight:620}
+.planning-block-note{margin:var(--s-2) 0 0;font-size:var(--t-body);line-height:1.5;color:#95a9be}
+.planning-absent{margin:var(--s-2) 0 0;padding:var(--s-2) var(--s-3);border-left:2px dashed var(--planning-unresolved);font-size:var(--t-meta);line-height:1.5;color:#a9bbcf}
+.planning-absent[hidden]{display:none}
+
+/* Four independent rows. No numbering, no arrows, no bar, no shared summary. */
+.planning-phases{list-style:none;margin:var(--s-2) 0 0;padding:0;display:grid;gap:var(--s-2)}
+.planning-phases>li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--s-1) var(--s-2);align-items:baseline;padding-left:var(--s-2);border-left:3px solid var(--planning-neutral)}
+.planning-phase-field{min-width:0;font-size:var(--t-label);line-height:1.4;color:#9fb1c5}
+.planning-phase-value{font-size:var(--t-body);font-weight:700;line-height:1.4;color:#eaf1fa;text-align:right}
+.planning-phase-mark{margin-right:var(--s-1);color:#cfdae6}
+.planning-phase-note{grid-column:1/-1;margin:0;font-size:var(--t-meta);line-height:1.45;color:#9cb0c4}
+/* Structure, not only hue: a dashed rule and a marked label for the value whose
+   meaning the publisher never defined, a dotted rule for a plan-of-origin
+   marker. Neither is an ordering cue and neither sits in a sequence. */
+.planning-phases>li[data-kind="UNRESOLVED_MEANING"]{border-left-style:dashed;border-left-color:var(--planning-unresolved)}
+.planning-phases>li[data-kind="PLAN_ORIGIN_MARKER"]{border-left-style:dotted;border-left-color:var(--planning-origin)}
+
+/* Characteristic use, published surface and the edition's own district. Named
+   fields, not a concatenated place string. */
+.planning-attributes{display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--s-1) var(--s-3);margin:var(--s-3) 0 0}
+.planning-attributes[hidden]{display:none}
+.planning-attributes dt{font-size:var(--t-label);letter-spacing:.06em;color:#9fb1c5}
+.planning-attributes dd{margin:0;font-size:var(--t-body);line-height:1.4;color:#e3ecf6;font-variant-numeric:tabular-nums}
+
+/* Available buildability. Every figure carries its unit and its whole-ámbito
+   scope, so it can never be read as a Lens-circle or barrio quantity. */
+.planning-scope-note{display:flex;align-items:baseline;gap:var(--s-2);flex-wrap:wrap;margin:var(--s-2) 0 0;font-size:var(--t-meta);line-height:1.5;color:#a9bbcf}
+.badge.planning-scope-badge{flex:0 0 auto;margin-left:0;background:rgba(174,184,196,.1);color:#d4dde7;border:1px solid rgba(174,184,196,.3)}
+.planning-build-row{margin-top:var(--s-2);padding-top:var(--s-2);border-top:1px solid var(--line)}
+.planning-build-row:first-child{margin-top:var(--s-2);padding-top:0;border-top:0}
+.planning-situacion{margin:0 0 var(--s-1);font-size:var(--t-meta);line-height:1.45;color:#9cb0c4}
+.planning-uses{list-style:none;margin:0;padding:0;display:grid;gap:var(--s-1)}
+.planning-uses>li{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s-2);flex-wrap:wrap}
+.planning-use-label{min-width:0;font-size:var(--t-label);color:#9fb1c5}
+.planning-use-figure{display:flex;align-items:baseline;gap:var(--s-1);flex-wrap:wrap;text-align:right}
+.planning-use-value{font-size:var(--t-figure);font-weight:740;letter-spacing:-.02em;color:#eaf1fa;font-variant-numeric:tabular-nums}
+.planning-use-unit{font-size:var(--t-meta);color:#a4b7cb}
+/* A blank published cell and a published 0 are different facts, and read
+   differently: the absent value says so in words and never shows a number. */
+.planning-uses>li[data-value-state="NOT_PUBLISHED"] .planning-use-value,
+.planning-uses>li[data-value-state="NOT_PUBLISHED_NON_NUMERIC"] .planning-use-value{font-size:var(--t-meta);font-weight:600;color:#a9bbcf;letter-spacing:0}
+
+.planning-citizen{margin-top:var(--s-3);border:1px solid var(--line);border-radius:var(--r-small);background:rgba(255,255,255,.02)}
+.planning-citizen>summary{padding:var(--s-2) var(--s-3);font-size:var(--t-label);letter-spacing:.06em;color:#cfe0f0;cursor:pointer}
+.planning-citizen>p{margin:0;padding:0 var(--s-3) var(--s-2);font-size:var(--t-body);line-height:1.55;color:#a9bbcf}
+.planning-citizen>p:first-of-type{padding-top:var(--s-1)}
+.planning-cannot{border-top:1px solid var(--line)}
+.planning-citizen>p.planning-cannot{padding-top:var(--s-2);color:#b7c8da}
+.planning-ceiling{margin:var(--s-3) 0 0;font-size:var(--t-body);line-height:1.55;color:#9fb1c5}
+.planning-source-toggle{margin-top:var(--s-2);padding:0;border:0;background:transparent;color:#7d92a9;font-size:var(--t-micro);letter-spacing:.05em;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(125,146,169,.45)}
+.planning-source-toggle:hover{color:#b3c5d8}
+
+/* Lens ∩ ámbito: a MEMBERSHIP list. It carries no quantity, so there is no
+   number here that could be read as a share of an ámbito's figures. */
+.planning-touched{list-style:none;margin:var(--s-2) 0 0;padding:0;display:grid;gap:var(--s-1);font-size:var(--t-body);line-height:1.5;color:#a9bbcf}
+.planning-touched>li{display:flex;align-items:baseline;gap:var(--s-2);flex-wrap:wrap}
+.planning-touched-code{font-size:var(--t-meta);font-weight:700;letter-spacing:.04em;color:#e3ecf6;font-variant-numeric:tabular-nums}
+.planning-touched-centre{font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:#8ba0b7}
+
+/* The containing ámbito on the map: its own reserved neutral family, never a
+   Lens hue, and never a hue that encodes a phase. */
+.admin-active-pane .planning-ambito-label,.planning-ambito-label{background:rgba(8,16,27,.9);border:1px solid var(--planning-neutral);color:#e6eef8;font-size:var(--t-micro);letter-spacing:.05em}
+
 /* Hospitality & Commercial is a selectable administrative choropleth. Its
    card is text-complete without the fill, and its purple scale deliberately
    avoids evaluative red/amber/green semantics. */
@@ -748,7 +843,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .mode-btn{gap:var(--s-1);padding:var(--s-1)}
 }
 @media(pointer:coarse){
-  .mode-btn,.scope-rail-item,.scope-rail-freshness,.evidence-route,.detail-disclosure>summary,.layer-action,.drawer-close,.reading-btn,.header-tools select{min-height:44px}
+  .mode-btn,.scope-rail-item,.scope-rail-freshness,.evidence-route,.detail-disclosure>summary,.planning-citizen>summary,.planning-source-toggle,.layer-action,.drawer-close,.reading-btn,.header-tools select{min-height:44px}
   .evidence-link{width:44px;height:44px;}
   .reading-btn{min-width:44px}
 }

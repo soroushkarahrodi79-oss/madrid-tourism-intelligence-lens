@@ -174,11 +174,92 @@ test("D: every evidence control in the markup resolves to at least one scoped su
   }
 });
 
-test("D: no planning evidence ships — K4 only creates the place for #68", () => {
-  for (const surface of Object.values(SURFACES)) {
-    assert.ok(!["PLANNING_AMBITO", "EXECUTION_UNIT", "DEVELOPMENT_STAGE_AREA", "PARCEL", "ADDRESS_POINT", "WORK_GEOMETRY", "LENS_INTERSECT_AMBITO"].includes(surface.scope));
+// K4's rule here was "no planning evidence ships — K4 only creates the place for
+// #68". K6 (#68) fills that place, so the rule becomes: planning evidence ships
+// at exactly two scopes, and the scopes K4 reserved for LATER increments still
+// ship nothing.
+test("D: K6 ships planning evidence at exactly two scopes; the deferred planning scopes still ship nothing", () => {
+  const planning = Object.entries(SURFACES).filter(([key]) => key.startsWith("place.planning."));
+  assert.ok(planning.length >= 4, "the planning surfaces are declared");
+  for (const [key, surface] of planning) {
+    assert.ok(
+      ["PLANNING_AMBITO", "LENS_INTERSECT_AMBITO"].includes(surface.scope),
+      `${key} must be whole-ámbito evidence or the Lens∩ámbito membership reading`
+    );
+    assert.equal(surface.sources.length >= 1, true, key);
   }
-  assert.doesNotMatch(html, /ámbito|ambito|UZP|planeamiento/i);
+  // Every whole-ámbito quantity is PLANNING_AMBITO. The membership reading is
+  // the ONLY LENS_INTERSECT_AMBITO surface, and it carries no quantity: its
+  // unit names a count of areas, never a share of their figures.
+  const intersect = planning.filter(([, surface]) => surface.scope === "LENS_INTERSECT_AMBITO");
+  assert.equal(intersect.length, 1);
+  assert.equal(intersect[0][0], "place.planning.touched");
+  assert.equal(intersect[0][1].derivation, "derive.ambitoMembership");
+
+  // The scopes K4 defined for later increments are still unused: #68 ships the
+  // ámbito layer only, not execution units, stage areas, parcels, address points
+  // or public works.
+  for (const surface of Object.values(SURFACES)) {
+    assert.ok(
+      !["EXECUTION_UNIT", "DEVELOPMENT_STAGE_AREA", "PARCEL", "ADDRESS_POINT", "WORK_GEOMETRY"].includes(surface.scope),
+      `${surface.scope} is reserved for a later increment and ships no surface`
+    );
+  }
+});
+
+test("D: the planning surface derives no stage, no progress and no dwelling count", () => {
+  const planningMarkup = html.slice(html.indexOf('id="planningAmbito"'), html.indexOf('id="placeDetail"'));
+  assert.ok(planningMarkup.length > 1000, "the planning section was located");
+
+  // A forbidden concept may appear in the DENIAL copy — a ceiling that says "no
+  // number of homes is published" has to use the word. So the claim scan runs
+  // over the markup with the designated denial elements removed: the block
+  // notes, the ceiling and the citizen reading's "what it does not say" line.
+  // Anything outside those is a surface that would be ASSERTING the concept.
+  const claiming = planningMarkup
+    .replace(/<p class="planning-block-note"[\s\S]*?<\/p>/g, "")
+    .replace(/<p class="planning-ceiling"[\s\S]*?<\/p>/g, "")
+    .replace(/<details id="planningCitizen"[\s\S]*?<\/details>/g, "");
+  const forbidden = [
+    /overall stage/i,
+    /\bstage\b/i,
+    /\bprogress/i,
+    /\bavance\b/i,
+    /fase actual/i,
+    /porcentaje/i,
+    /percent/i,
+    /completion/i,
+    /\bviviendas?\b/i,
+    /\bdwellings?\b/i,
+    /\bhomes?\b/i,
+    /remaining to be built/i,
+    /yet to be constructed/i,
+    /timeline/i,
+  ];
+  for (const pattern of forbidden) {
+    assert.doesNotMatch(claiming, pattern, `forbidden planning claim: ${pattern}`);
+  }
+
+  // Structurally, too: no progress element, no percentage, no ordinal numbering
+  // of the four fields and no sequence arrow between them.
+  assert.doesNotMatch(planningMarkup, /<progress|role="progressbar"|aria-valuenow/i);
+  assert.doesNotMatch(planningMarkup, /[→➔⟶⇒]|&(?:r|R)arr;/);
+  assert.doesNotMatch(planningMarkup, /%/);
+
+  // `No Necesita` is never rendered as "no aplica" anywhere in the product.
+  assert.doesNotMatch(html, /no aplica/i);
+
+  // And the denial copy that the scan above excluded must actually be there, in
+  // both languages, rather than simply absent.
+  for (const language of ["en", "es"]) {
+    assert.ok(SHELL_DICTIONARIES[language]["planning.ceiling"].length > 200, `${language} ceiling is stated in full`);
+    assert.match(SHELL_DICTIONARIES[language]["planning.phasesNote"], /\S/);
+  }
+  assert.match(SHELL_DICTIONARIES.en["planning.ceiling"], /No overall stage, progress, percentage or timeline exists/);
+  assert.match(SHELL_DICTIONARIES.en["planning.ceiling"], /No dwelling count is published or derivable/);
+  assert.match(SHELL_DICTIONARIES.en["planning.note.unresolved"], /not defined in the audited documentation/);
+  assert.match(SHELL_DICTIONARIES.en["planning.buildNote"], /Not what remains to be physically built/);
+  assert.match(SHELL_DICTIONARIES.en["planning.touchedNote"], /No share, proportion or part/);
 });
 
 // ---------------------------------------------- E. same-scope comparison guard
@@ -243,7 +324,13 @@ test("G: the rail never turns a source state into a grade, score or colour", () 
 
 test("F/G: the rail is derived from the surfaces on screen, one entry per distinct scope", () => {
   const place = rail("PLACE", {});
-  assert.deepEqual(place.entries.map((e) => e.scope), ["OFFICIAL_BARRIO", "LENS_CIRCLE"]);
+  // Three distinct scopes with no optional layer on: the barrio registers, the
+  // Lens-circle counts, and K6's whole-ámbito planning evidence.
+  assert.deepEqual(place.entries.map((e) => e.scope), ["OFFICIAL_BARRIO", "LENS_CIRCLE", "PLANNING_AMBITO"]);
+  // The Lens∩ámbito membership scope appears only while its surface is on
+  // screen, so the rail never names a scope nothing is rendering.
+  assert.ok(!place.entries.some((e) => e.scope === "LENS_INTERSECT_AMBITO"));
+  assert.ok(rail("PLACE", { planningDetail: true }).entries.some((e) => e.scope === "LENS_INTERSECT_AMBITO"));
   const placeAll = rail("PLACE", FLAGS_ALL);
   assert.ok(placeAll.entries.some((e) => e.scope === "BOUNDED_STUDY_AREA"));
   assert.ok(placeAll.entries.some((e) => e.scope === "POINT_OBSERVATION"));

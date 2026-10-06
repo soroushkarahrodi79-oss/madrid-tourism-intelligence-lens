@@ -20,6 +20,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 
 // The analytical-scope and freshness vocabulary is defined once, in the pure
 // model, so the deployment gate and the renderer (K4) can never drift apart.
@@ -1235,6 +1236,502 @@ function validateLicenceCounts(source, artifact, meta, geography, geographyMeta,
   };
 }
 
+// ================= PLANNING ÁMBITO EVIDENCE (K6, #68) ========================
+
+// Canonical serialisation, byte-identical to the builders': sorted keys, compact
+// separators, UTF-8. It is what makes the committed fingerprint a real integrity
+// check rather than a recorded string — the validator RECOMPUTES it here and
+// fails on a mismatch, so an artifact edited by hand, truncated by a bad merge or
+// regenerated without its sidecar cannot reach a deployment.
+export function canonicalJson(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  const keys = Object.keys(value).sort();
+  return `{${keys.map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+}
+
+function sha256Hex(text) {
+  return createHash("sha256").update(text, "utf8").digest("hex");
+}
+
+function countVertices(geometry) {
+  let total = 0;
+  const stack = [geometry.coordinates];
+  while (stack.length) {
+    const item = stack.pop();
+    if (item.length && typeof item[0] === "number") total += 1;
+    else for (const child of item) stack.push(child);
+  }
+  return total;
+}
+
+// Official planning-ámbito geometry. BLOCKING because the interface names the
+// containing ámbito, with its exact official code, as a place.
+//
+// The failure mode this gate exists for is A CONFIDENT WRONG PLACE — or a
+// plausible-looking "no ámbito here". Six specific ways that could happen:
+//
+//   1. A COLLAPSED or truncated geometry, which would report every coordinate as
+//      outside every ámbito.
+//   2. A PROJECTION LEAK: coordinates still in EPSG:25830, or lat/lon swapped,
+//      which would silently move every boundary.
+//   3. The MIXED UNIVERSE leaking in: a Norma Zonal grade or a non-developable
+//      land class rendered as a planning ámbito.
+//   4. An UNCLASSIFIED source record silently admitted to the production universe.
+//   5. The geometry substituted from a route whose reuse basis was never
+//      established — the Gate L MODIFY finding this gate must not let through.
+//   6. A back-filled reference date, giving undated geometry a false vintage.
+function validatePlanningGeometry(source, geojson, meta, scopes, errors, warnings) {
+  const label = source.display_name;
+  const sink = source.blocks_deployment ? errors : warnings;
+
+  if (!geojson || typeof geojson !== "object" || !Array.isArray(geojson.features)) {
+    sink.push(`${label}: ${source.artifact} is missing or is not a GeoJSON FeatureCollection`);
+    return { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
+  }
+  if (geojson.features.length === 0) {
+    sink.push(`${label}: ${source.artifact} carries no features`);
+    return { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
+  }
+  const guardrail = source.integrity_guardrail ?? {};
+  if (typeof guardrail.min_count === "number" && geojson.features.length < guardrail.min_count) {
+    sink.push(
+      `${label}: ${geojson.features.length} ámbito feature(s), below the ingestion guardrail ` +
+        `of ${guardrail.min_count}. This is a collapse, not a change in the official universe.`
+    );
+  }
+
+  const box = scopes[source.expected_spatial_scope];
+  const seen = new Set();
+  let badGeometry = 0;
+  let emptyCode = 0;
+  let emptyDenomination = 0;
+  let outOfScope = 0;
+  let collapsedRings = 0;
+  let wrongClass = 0;
+  let vertices = 0;
+  for (const feature of geojson.features) {
+    const properties = feature?.properties ?? {};
+    const code = properties.ambito_code;
+    if (!isNonEmptyString(code)) {
+      emptyCode += 1;
+    } else if (seen.has(code)) {
+      sink.push(`${label}: duplicate ámbito_code "${code}" — the production universe keys on the exact official code`);
+    } else {
+      seen.add(code);
+    }
+    if (!isNonEmptyString(properties.ambito_denomination)) emptyDenomination += 1;
+    // The mixed universe must not leak in: only the ámbito-like class ships.
+    if (properties.source_record_class !== "PLANNING_AMBITO") wrongClass += 1;
+
+    const geometry = feature?.geometry;
+    if (!geometry || (geometry.type !== "Polygon" && geometry.type !== "MultiPolygon") || !Array.isArray(geometry.coordinates)) {
+      badGeometry += 1;
+      continue;
+    }
+    const featureVertices = countVertices(geometry);
+    vertices += featureVertices;
+    // A ring with fewer than four positions is not a closed polygon: it cannot
+    // contain a point, so a containment answer built from it is meaningless.
+    if (featureVertices < 4) collapsedRings += 1;
+    if (box) {
+      for (const [lon, lat] of iterCoords(geometry)) {
+        if (!isFiniteNumber(lon) || !isFiniteNumber(lat) || !inScope({ lat, lon }, box)) {
+          outOfScope += 1;
+          break;
+        }
+      }
+    }
+  }
+  if (emptyCode) sink.push(`${label}: ${emptyCode} feature(s) carry no ambito_code, so they cannot join an edition`);
+  if (emptyDenomination) sink.push(`${label}: ${emptyDenomination} feature(s) carry no ambito_denomination`);
+  if (wrongClass) {
+    sink.push(
+      `${label}: ${wrongClass} feature(s) are not classified PLANNING_AMBITO. The official layer is ` +
+        `a mixed universe and only the ámbito-like class may ship as a planning ámbito.`
+    );
+  }
+  if (badGeometry) sink.push(`${label}: ${badGeometry} feature(s) have missing or non-polygon geometry`);
+  if (collapsedRings) {
+    sink.push(
+      `${label}: ${collapsedRings} feature(s) have fewer than four positions, so their geometry has ` +
+        `collapsed and cannot answer containment`
+    );
+  }
+  if (outOfScope) {
+    sink.push(
+      `${label}: ${outOfScope} feature(s) have coordinates outside ${source.expected_spatial_scope}, ` +
+        `which would indicate a projection leak (EPSG:25830 not reprojected) or swapped lat/lon`
+    );
+  }
+
+  // ---- the metadata sidecar is part of the feature, not an optional extra ----
+  if (!meta || typeof meta !== "object") {
+    sink.push(`${label}: ${source.meta_artifact} is missing, so the geometry's provenance cannot be stated`);
+    return { record_count: geojson.features.length, state: "available", source_period: null, warnings: [] };
+  }
+  for (const [field, read, why] of PLANNING_GEOMETRY_META_FIELDS) {
+    if (!read(meta)) sink.push(`${label}: ${source.meta_artifact} has no ${field}, which ${why}`);
+  }
+  // The fingerprint is RECOMPUTED, not trusted.
+  const recomputed = sha256Hex(canonicalJson(geojson));
+  if (meta.fingerprint?.value && meta.fingerprint.value !== recomputed) {
+    sink.push(
+      `${label}: the committed fingerprint ${String(meta.fingerprint.value).slice(0, 16)} does not match the ` +
+        `artifact's recomputed ${recomputed.slice(0, 16)}. The artifact and its provenance record disagree.`
+    );
+  }
+  // Route equivalence is the issue's STOP condition. An artifact whose builder
+  // could not establish it must never reach a deployment.
+  if (meta.route_equivalence?.equivalent !== true) {
+    sink.push(
+      `${label}: route equivalence is "${meta.route_equivalence?.verdict ?? "absent"}". The catalogued ` +
+        `reuse route and the audited geometry were not proven to be the same authoritative geometry, ` +
+        `so the reuse basis for the committed geometry is unresolved.`
+    );
+  }
+  if (meta.crs?.source !== "EPSG:25830" || meta.crs?.target !== "EPSG:4326") {
+    sink.push(`${label}: the recorded CRS transformation is not EPSG:25830 -> EPSG:4326`);
+  }
+  if (meta.crs?.verification?.within_tolerance !== true) {
+    sink.push(
+      `${label}: the EPSG:25830 -> EPSG:4326 transformation was not verified against the publisher's own ` +
+        `server-side reprojection, so the committed coordinates are unchecked`
+    );
+  }
+  if (meta.crs?.simplification !== "NONE") {
+    sink.push(`${label}: the geometry records simplification "${meta.crs?.simplification}"; K6 ships unsimplified geometry`);
+  }
+  const unclassified = meta.universe?.excluded_by_class?.UNCLASSIFIED_SOURCE_RECORD?.count;
+  if (unclassified !== 0) {
+    sink.push(
+      `${label}: ${unclassified} unclassified source record(s) were recorded. A record the builder could ` +
+        `not classify is never silently admitted to or discarded from the production universe.`
+    );
+  }
+  const included = meta.universe?.included_feature_count;
+  if (included !== geojson.features.length) {
+    sink.push(
+      `${label}: the sidecar records ${included} included feature(s) but the artifact carries ` +
+        `${geojson.features.length}`
+    );
+  }
+  // The publisher declares no date for this geometry. A non-null reference date
+  // here would mean a catalogue or header date had been promoted into one.
+  if (meta.freshness?.reference_date !== null) {
+    sink.push(
+      `${label}: the sidecar records a reference_date for geometry the publisher dates nowhere. ` +
+        `The null is known absence and is never back-filled.`
+    );
+  }
+  if (source.reference_date !== null || source.published_at !== null) {
+    sink.push(`${label}: the registry must carry explicit nulls for this undated geometry`);
+  }
+  if (source.scope !== "PLANNING_AMBITO") {
+    sink.push(`${label}: registry scope is "${source.scope}", but each feature is one whole planning ámbito`);
+  }
+
+  const excluded = meta.universe?.excluded_by_class ?? {};
+  return {
+    record_count: geojson.features.length,
+    state: "available",
+    // No period: the publisher declares none, and the catalogue record's own
+    // creation date is a metadata date, never the geometry's vintage.
+    source_period: null,
+    warnings: [
+      `${geojson.features.length} planning ámbitos, ${vertices} vertices`,
+      `excluded: ${Object.entries(excluded).map(([name, record]) => `${record.count} ${name}`).join(", ")}`,
+      `reuse: ${meta.reuse?.basis ?? "unrecorded"}`,
+    ],
+  };
+}
+
+const PLANNING_GEOMETRY_META_FIELDS = [
+  ["source.catalogue_record_url", (m) => m.source?.catalogue_record_url, "names the catalogue record that states the reuse conditions"],
+  ["source.authority", (m) => m.source?.authority, "names the authority that publishes the geometry"],
+  ["retrieval.request_url", (m) => m.retrieval?.request_url, "records the exact retrieval route"],
+  ["retrieval.retrieved_at", (m) => m.retrieval?.retrieved_at, "separates when the geometry was fetched from any date the publisher states"],
+  ["retrieval.response_sha256", (m) => m.retrieval?.response_sha256, "identifies the exact bytes the artifact was built from"],
+  ["reuse.conditions_url", (m) => m.reuse?.conditions_url, "is the reuse basis itself, not an assumption from public reachability"],
+  ["reuse.attribution", (m) => m.reuse?.attribution, "is an obligation of those reuse conditions"],
+  ["freshness.source_state", (m) => m.freshness?.source_state, "records that the publisher declares no status"],
+  ["crs.transformation", (m) => m.crs?.transformation, "states the transformation explicitly rather than leaving a CRS to be guessed"],
+  ["universe.classification_rule", (m) => m.universe?.classification_rule, "states how the mixed universe was filtered"],
+  ["fingerprint.value", (m) => m.fingerprint?.value, "is what makes a hand-edited or truncated artifact a visible failure"],
+  ["interpretation_ceiling", (m) => m.interpretation_ceiling, "states what the geometry is not"],
+];
+
+// Published ámbito development state and available buildability. BLOCKING
+// because these are official figures published to the reader.
+//
+// The failure modes this gate exists for:
+//
+//   1. A SCALAR STAGE appearing — any key or field that collapses the four
+//      independent published phase fields into one progression.
+//   2. A DWELLING COUNT appearing — the source's Nº Viviendas proxy published as
+//      a count of homes.
+//   3. A BARE NUMBER — a buildability figure without its unit.
+//   4. MISSING BECOMING ZERO — a blank published cell turned into a 0.
+//   5. A CROSS-ERA edition parsed as if it were comparable four-phase evidence.
+//   6. AN AGGREGATE TOTAL ROW entering a per-ámbito artifact, publishing a city
+//      total as one place's figure.
+//   7. A JOIN COLLAPSE, leaving the published states attached to the wrong places
+//      or to nothing.
+function validatePlanningState(source, artifact, meta, geometry, errors, warnings) {
+  const label = source.display_name;
+  const sink = source.blocks_deployment ? errors : warnings;
+
+  if (!artifact || typeof artifact !== "object" || !artifact.ambitos || typeof artifact.ambitos !== "object") {
+    sink.push(`${label}: ${source.artifact} is missing or carries no ámbitos object`);
+    return { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
+  }
+  const codes = Object.keys(artifact.ambitos);
+  if (codes.length === 0) {
+    sink.push(`${label}: ${source.artifact} carries no ámbito records`);
+    return { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
+  }
+  if (artifact.scope !== source.scope) {
+    sink.push(`${label}: artifact scope "${artifact.scope}" does not match the registry scope "${source.scope}"`);
+  }
+
+  // ---- four independent fields, four use classes ----------------------------
+  const phaseFields = Array.isArray(artifact.phase_fields) ? artifact.phase_fields : [];
+  if (phaseFields.length !== 4) {
+    sink.push(`${label}: ${phaseFields.length} phase field(s) declared; the published contract is exactly four`);
+  }
+  const registryPhases = source.published_fields?.phase_fields ?? [];
+  if (JSON.stringify(phaseFields.map((field) => field.source_column)) !== JSON.stringify(registryPhases)) {
+    sink.push(`${label}: the artifact's phase source columns differ from the registry's pinned list`);
+  }
+  const useClasses = Array.isArray(artifact.use_classes) ? artifact.use_classes : [];
+  if (JSON.stringify(useClasses.map((entry) => entry.source_column)) !== JSON.stringify(source.published_fields?.use_classes ?? [])) {
+    sink.push(`${label}: the artifact's buildability use classes differ from the registry's pinned list`);
+  }
+
+  // ---- no scalar stage, no dwelling count, anywhere in the artifact ----------
+  const forbiddenKey = /stage|progress|percent|completion|advance|delay|timeline|viviend|dwelling|\bhomes?\b|housing/i;
+  const offendingKeys = new Set();
+  const walk = (value) => {
+    if (Array.isArray(value)) {
+      for (const item of value) walk(item);
+      return;
+    }
+    if (value === null || typeof value !== "object") return;
+    for (const [key, child] of Object.entries(value)) {
+      if (forbiddenKey.test(key)) offendingKeys.add(key);
+      walk(child);
+    }
+  };
+  walk(artifact);
+  if (offendingKeys.size) {
+    sink.push(
+      `${label}: forbidden key(s) ${[...offendingKeys].join(", ")} in the published artifact. The four phase ` +
+        `fields never collapse into a stage, progression or percentage, and no dwelling count may be published.`
+    );
+  }
+  for (const column of source.published_fields?.excluded_columns ?? []) {
+    if (JSON.stringify(artifact).includes(column)) {
+      sink.push(`${label}: the excluded dwelling-proxy column "${column}" appears in the published artifact`);
+    }
+  }
+
+  // ---- editions: current era, stated reference date, one edition each --------
+  const editions = artifact.editions ?? {};
+  for (const [family, expectedEra] of [
+    ["development_state", "S1_FOUR_PHASE_FLAT"],
+    ["available_buildability", "S2_SPLIT_RESIDENTIAL_FLAT"],
+  ]) {
+    const edition = editions[family];
+    if (!edition) {
+      sink.push(`${label}: no ${family} edition recorded in the artifact`);
+      continue;
+    }
+    if (!ISO_DATE.test(String(edition.reference_date))) {
+      sink.push(
+        `${label}: the ${family} edition states no ISO reference date. Edition selection reads the date the ` +
+          `edition states about itself, and a missing one is never replaced by a resource id or a build clock.`
+      );
+    }
+    if (edition.schema_era !== expectedEra) {
+      sink.push(
+        `${label}: the ${family} edition is schema era "${edition.schema_era}", not the current comparable ` +
+          `era "${expectedEra}". A superseded era is not equivalent four-phase evidence.`
+      );
+    }
+    const pinned = source.editions?.[family];
+    if (pinned && pinned.snapshot_identity !== edition.snapshot_identity) {
+      sink.push(
+        `${label}: the ${family} snapshot identity "${edition.snapshot_identity}" does not match the registry's ` +
+          `pinned "${pinned.snapshot_identity}". A silent edition change must not reach a deployment.`
+      );
+    }
+    if (pinned && pinned.sha256 !== edition.sha256) {
+      sink.push(`${label}: the ${family} edition fingerprint does not match the registry's pinned value`);
+    }
+  }
+  if (editions.development_state?.reference_date !== source.reference_date) {
+    sink.push(
+      `${label}: the registry reference_date "${source.reference_date}" does not match the selected edition's ` +
+        `stated "${editions.development_state?.reference_date}"`
+    );
+  }
+
+  // ---- per-record contract --------------------------------------------------
+  let totalRows = 0;
+  let publishedState = 0;
+  let publishedBuildability = 0;
+  let aggregateRows = 0;
+  let bareNumbers = 0;
+  let missingBecameZero = 0;
+  let phaseCountWrong = 0;
+  let emptyPhaseValue = 0;
+  const phaseKeys = phaseFields.map((field) => field.key);
+  const useKeys = useClasses.map((entry) => entry.key);
+  for (const [code, record] of Object.entries(artifact.ambitos)) {
+    // An aggregate row would publish a city total as one place's figure.
+    if (/^total/i.test(code.trim())) aggregateRows += 1;
+    if (record.ambito_code !== code) {
+      sink.push(`${label}: record keyed "${code}" declares ambito_code "${record.ambito_code}"`);
+    }
+    const state = record.development_state ?? {};
+    if (state.availability === "PUBLISHED") {
+      publishedState += 1;
+      const phases = state.phases ?? {};
+      if (Object.keys(phases).length !== phaseKeys.length) phaseCountWrong += 1;
+      for (const key of phaseKeys) {
+        const phase = phases[key];
+        if (!phase) {
+          phaseCountWrong += 1;
+          continue;
+        }
+        // The publisher's string is the authoritative value; a published phase
+        // with no source value would be a state the publisher never issued.
+        if (phase.state === "PUBLISHED" && !isNonEmptyString(phase.source_value)) emptyPhaseValue += 1;
+      }
+    }
+    const buildability = record.available_buildability ?? {};
+    if (buildability.availability === "PUBLISHED") {
+      publishedBuildability += 1;
+      for (const row of buildability.rows ?? []) {
+        totalRows += 1;
+        if (/^total/i.test(String(row.denomination ?? "").trim())) aggregateRows += 1;
+        for (const key of useKeys) {
+          const cell = (row.use_classes ?? {})[key];
+          if (!cell) {
+            bareNumbers += 1;
+            continue;
+          }
+          // Every value carries its unit, in the same object. There is no shape
+          // in this artifact that can hold a number without one.
+          if (!isNonEmptyString(cell.unit)) bareNumbers += 1;
+          if (cell.state === "PUBLISHED" && !isFiniteNumber(cell.value)) bareNumbers += 1;
+          // Missing never becomes zero.
+          if (cell.state !== "PUBLISHED" && cell.value !== null) missingBecameZero += 1;
+        }
+      }
+    }
+  }
+  if (aggregateRows) sink.push(`${label}: ${aggregateRows} aggregate Total row(s) entered the per-ámbito artifact`);
+  if (phaseCountWrong) sink.push(`${label}: ${phaseCountWrong} published record(s) do not carry exactly the four phase fields`);
+  if (emptyPhaseValue) sink.push(`${label}: ${emptyPhaseValue} phase value(s) are marked PUBLISHED but carry no source value`);
+  if (bareNumbers) sink.push(`${label}: ${bareNumbers} buildability cell(s) carry a value without its unit, or no value where one is published`);
+  if (missingBecameZero) {
+    sink.push(
+      `${label}: ${missingBecameZero} unpublished buildability cell(s) carry a value. A blank published cell ` +
+        `stays null: missing never becomes zero.`
+    );
+  }
+
+  const guardrail = source.integrity_guardrail ?? {};
+  if (typeof guardrail.min_development_state_rows === "number" && publishedState < guardrail.min_development_state_rows) {
+    sink.push(`${label}: ${publishedState} published development-state record(s), below the guardrail of ${guardrail.min_development_state_rows}`);
+  }
+  if (typeof guardrail.min_buildability_rows === "number" && totalRows < guardrail.min_buildability_rows) {
+    sink.push(`${label}: ${totalRows} published buildability row(s), below the guardrail of ${guardrail.min_buildability_rows}`);
+  }
+
+  // ---- the sidecar, the fingerprint and the joins ---------------------------
+  if (!meta || typeof meta !== "object") {
+    sink.push(`${label}: ${source.meta_artifact} is missing, so the editions' provenance cannot be stated`);
+    return { record_count: codes.length, state: "available", source_period: source.reference_date ?? null, warnings: [] };
+  }
+  for (const [field, read, why] of PLANNING_STATE_META_FIELDS) {
+    if (!read(meta)) sink.push(`${label}: ${source.meta_artifact} has no ${field}, which ${why}`);
+  }
+  const recomputed = sha256Hex(canonicalJson(artifact));
+  if (meta.fingerprint?.value && meta.fingerprint.value !== recomputed) {
+    sink.push(
+      `${label}: the committed fingerprint ${String(meta.fingerprint.value).slice(0, 16)} does not match the ` +
+        `artifact's recomputed ${recomputed.slice(0, 16)}`
+    );
+  }
+  for (const [family, expected] of [
+    ["S1", source.expected_joins?.development_state_matched],
+    ["S2", source.expected_joins?.buildability_matched],
+  ]) {
+    const join = meta.joins?.[family];
+    if (!join) {
+      sink.push(`${label}: no ${family} join report in ${source.meta_artifact}; a join must be stated, not assumed`);
+      continue;
+    }
+    if (join.matching !== "EXACT" || join.normalisation !== "NONE") {
+      sink.push(
+        `${label}: the ${family} join is "${join.matching}"/"${join.normalisation}". Codes join exactly and are ` +
+          `never normalised: a -RP suffix marks a distinct Revisión Parcial ámbito.`
+      );
+    }
+    if (typeof expected === "number" && join.matched < expected) {
+      sink.push(
+        `${label}: the ${family} join matched ${join.matched} of ${join.table_codes} published codes, below the ` +
+          `registry's expected ${expected}. A join collapse would attach published states to the wrong places.`
+      );
+    }
+    if (!Array.isArray(join.unmatched_in_table)) {
+      sink.push(`${label}: the ${family} join does not list its unmatched records; nothing may disappear silently`);
+    }
+  }
+  // The geometry universe is what the state artifact is keyed on, so a disagreement
+  // means one of the two artifacts was regenerated without the other.
+  const geometryCodes = Array.isArray(geometry?.features)
+    ? geometry.features.map((feature) => feature?.properties?.ambito_code)
+    : null;
+  if (geometryCodes && geometryCodes.length !== codes.length) {
+    sink.push(
+      `${label}: ${codes.length} ámbito record(s) against ${geometryCodes.length} committed geometry feature(s). ` +
+        `The two planning artifacts were not built from the same universe.`
+    );
+  }
+  if (meta.buildability?.dwelling_proxy_exclusion?.published_in_artifact !== false) {
+    sink.push(`${label}: the sidecar does not record the Nº Viviendas proxy columns as excluded from the artifact`);
+  }
+
+  return {
+    record_count: codes.length,
+    state: "available",
+    source_period: editions.development_state?.reference_date ?? null,
+    warnings: [
+      `${publishedState} published development states, ${publishedBuildability} published buildability records (${totalRows} rows)`,
+      `editions: ${editions.development_state?.snapshot_identity} + ${editions.available_buildability?.snapshot_identity}`,
+      `joins: S1 ${meta.joins?.S1?.matched}/${meta.joins?.S1?.table_codes}, S2 ${meta.joins?.S2?.matched}/${meta.joins?.S2?.table_codes}`,
+    ],
+  };
+}
+
+const PLANNING_STATE_META_FIELDS = [
+  ["authority", (m) => m.authority, "names the authority that publishes the editions"],
+  ["retrieval_route or families", (m) => m.families, "records which official families the figures come from"],
+  ["edition_selection.rule", (m) => m.edition_selection?.rule, "states how 'latest' was chosen, which is the central protection against the non-chronological resource ids"],
+  ["schema_assertion.mode", (m) => m.schema_assertion?.mode, "records that the parser fails closed on schema drift"],
+  ["phase_vocabulary.no_scalar_stage", (m) => m.phase_vocabulary?.no_scalar_stage, "records that no overall stage is derived from the four fields"],
+  ["phase_vocabulary.no_necesita.status", (m) => m.phase_vocabulary?.no_necesita?.status, "records that No Necesita has no official definition"],
+  ["buildability.unit", (m) => m.buildability?.unit, "states the unit every figure carries"],
+  ["buildability.dwelling_proxy_exclusion.reason", (m) => m.buildability?.dwelling_proxy_exclusion?.reason, "records why the Nº Viviendas columns are not a dwelling count"],
+  ["aggregate_total_rows.rule", (m) => m.aggregate_total_rows?.rule, "records that an aggregate Total row never enters the artifact"],
+  ["joins", (m) => m.joins, "states the exact-identifier join evidence"],
+  ["fingerprint.value", (m) => m.fingerprint?.value, "is what makes a hand-edited or truncated artifact a visible failure"],
+  ["interpretation_ceiling", (m) => m.interpretation_ceiling, "states what the figures are not"],
+];
+
 // ---------------------------------------------------------------- top level
 
 // Committed Destination Context series: monthly hotel demand for the municipality
@@ -1710,6 +2207,26 @@ export function validateDeployment({
       case "destination_domestic_origins":
         result = validateDomesticOrigins(source, artifacts[source.artifact], artifacts[source.meta_artifact], errors, warnings);
         break;
+      case "planning_ambito_geometry":
+        result = validatePlanningGeometry(
+          source,
+          artifacts[source.artifact],
+          artifacts[source.meta_artifact],
+          scopes,
+          errors,
+          warnings
+        );
+        break;
+      case "planning_ambito_state":
+        result = validatePlanningState(
+          source,
+          artifacts[source.artifact],
+          artifacts[source.meta_artifact],
+          artifacts["planning/madrid_ambitos.geojson"],
+          errors,
+          warnings
+        );
+        break;
       case "admin_hospitality_context":
         result = validateHospitalityContext(
           source,
@@ -1842,6 +2359,12 @@ const ARTIFACT_FILES = [
   "destination/madrid_domestic_origins.meta.json",
   // Committed Gate F Hospitality & Commercial aggregate (not rebuilt at deploy).
   "hospitality-commercial-context.json",
+  // Committed official planning-ambito geometry and the dated edition snapshot
+  // of development state and available buildability (not rebuilt at deploy).
+  "planning/madrid_ambitos.geojson",
+  "planning/madrid_ambitos.meta.json",
+  "planning/madrid_ambito_state.json",
+  "planning/madrid_ambito_state.meta.json",
 ];
 
 export function readArtifacts(dataDir) {

@@ -3,8 +3,12 @@
 Status: binding product contract established by K5 (#67), after the K4
 information architecture and the Gate L source audit. This document changes
 presentation only. It does not change a metric, state, scope, date, rounding
-rule, withholding rule or interpretation ceiling, and it does not ship planning
-evidence.
+rule, withholding rule or interpretation ceiling.
+
+**K5 itself shipped no planning evidence**; it reserved the planning visual
+family in advance. **K6 (#68)** is the increment that renders under this
+contract — see the Gate L phase contract below and
+[Planning-ámbito evidence V1](PLANNING_AMBITO_EVIDENCE_V1.md).
 
 ## Direction: an urban instrument
 
@@ -112,8 +116,10 @@ glyph, stroke/dash, shape, label or pattern; colour alone is never sufficient.
 Lens A (`--a`) and Lens B (`--b`) retain their reserved identities. Lens B also
 retains its structural dashed distinction. The future planning family is
 reserved separately as `--planning-neutral`, `--planning-origin` and
-`--planning-unresolved`; none reuses either Lens hue. K5 renders no planning
-geometry or planning surface.
+`--planning-unresolved`; none reuses either Lens hue. K5 rendered no planning
+geometry or planning surface; **K6 (#68) renders both under exactly these
+tokens** — the containing ámbito polygon in `--planning-neutral`, on its own map
+pane, with a stroke that never encodes a phase.
 
 ## Gate L phase contract
 
@@ -124,6 +130,14 @@ They must not form light-to-dark, red/amber/green, cold-to-warm or increasing
 saturation sequences and must not use ordinal numbers, progress arrows or
 completion bars. A test-only greyscale fixture distinguishes them with label,
 glyph and border structure. No fixture content is shipped in production.
+
+**As rendered by K6**, each phase row pairs its hue with a border STYLE and a
+text label, so no distinction rests on colour alone: a **solid** rule for a phase
+value, a **dashed** rule plus the unresolved-meaning note for `No Necesita`, and
+a **dotted** rule plus the marker note for `PGOUM-85` / `PGOUM-97`. A browser
+regression asserts the rendered border style of each, not only the stylesheet
+text, and asserts the absence of a `<progress>` element, an `aria-valuenow`, a
+percent sign, an ordinal number and a sequence arrow.
 
 `No Necesita` uses the separately reserved unresolved treatment and an explicit
 label/outline. It is distinct from `Sin Iniciar`, but it does not mean skipped,

@@ -1,0 +1,748 @@
+{
+  "contract_version": "1.0.0",
+  "artifact": "madrid_ambito_state.json",
+  "generated_at": "2026-10-06T14:17:59Z",
+  "builder": "scripts/build_ambito_development_state.py",
+  "gate": "Gate L (#65) source contract; issue #68 (K6) production increment",
+  "what_this_is": "Per planning ámbito, for ONE selected edition of each official family: the four independent published development-phase values, the characteristic use, the published surface, and available buildability (edificabilidad disponible) by documented use class in m² edificable. Whole-ámbito scope throughout.",
+  "scope": "PLANNING_AMBITO",
+  "scope_note": "Every value describes the WHOLE planning ámbito. No value is apportioned, area-weighted, population-weighted or otherwise distributed into a Lens circle, a barrio, a district or any sub-area, and no value is combined with a value of another analytical scope.",
+  "license": "CC BY 4.0",
+  "authority": "Ayuntamiento de Madrid. Área de Gobierno de Urbanismo, Medio Ambiente y Movilidad. Dirección General de Planificación Estratégica",
+  "families": {
+    "S1": {
+      "package": "203200-0-desarrollo-ambitos",
+      "dataset_url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos",
+      "title": "PGOUM 97. Estado de desarrollo de los ámbitos",
+      "role": "the four independent published development-phase fields",
+      "current_schema_era": "S1_FOUR_PHASE_FLAT"
+    },
+    "S2": {
+      "package": "203182-0-ambitos-remanente",
+      "dataset_url": "https://datos.madrid.es/dataset/203182-0-ambitos-remanente",
+      "title": "PGOUM 97. Edificabilidad remanente en ámbitos",
+      "role": "available buildability (edificabilidad disponible) by use class, in m²",
+      "current_schema_era": "S2_SPLIT_RESIDENTIAL_FLAT"
+    }
+  },
+  "edition_selection": {
+    "rule": "The newest STATED REFERENCE DATE among the editions whose schema era is the current one. The reference date is read from inside the file, from the edition's own 'Estado del desarrollo a fecha' column.",
+    "never_by": [
+      "resource id",
+      "resource name",
+      "filename",
+      "catalogue position"
+    ],
+    "why": "Gate L §6 proved the resource-id order is not chronological: S1 shows 72 and S2 42 id/date inversions, and 203200-15 is Enero 2026 while 203200-16 is Enero 2025. Selecting 'latest' by id returns the wrong edition.",
+    "resource_id_heuristic_would_select": {
+      "S1": {
+        "resource_id": "203200-16-desarrollo-ambitos",
+        "reference_date": "2025-01",
+        "description": "PGOUM 97. Estado de desarrollo de los ámbitos. Enero 2025.",
+        "is_the_selected_edition": false,
+        "note": "Recorded to show that the discredited resource-id heuristic does not agree with the reference-date rule. The builder never uses it; a regression test asserts it would pick the wrong edition."
+      },
+      "S2": {
+        "resource_id": "203182-15-ambitos-remanente",
+        "reference_date": "2025-01",
+        "description": "PGOUM 97. Edificabilidad remanente en ámbitos. Enero 2025.",
+        "is_the_selected_edition": false,
+        "note": "Recorded to show that the discredited resource-id heuristic does not agree with the reference-date rule. The builder never uses it; a regression test asserts it would pick the wrong edition."
+      }
+    },
+    "schema_era_boundary": "The four-phase flat S1 schema and the split-residential flat S2 schema exist only in the three most recent editions (2025-01, 2025-07, 2026-01). The 2013–2024 editions use superseded schemas — S1 a per-district single-state layout, S2 three earlier column sets — and are NOT one comparable series with the current era. The builder refuses an out-of-era edition rather than parsing it as equivalent.",
+    "editions_rejected_as_other_era": {
+      "S1": [
+        "S1_SINGLE_STATE_PER_DISTRICT"
+      ],
+      "S2": [
+        "S2_COLECTIVA_UNIFAMILIAR",
+        "S2_SINGLE_RESIDENTIAL",
+        "S2_VAC_CODORD"
+      ],
+      "S1_count": 12,
+      "S2_count": 12
+    }
+  },
+  "schema_assertion": {
+    "mode": "FAIL_CLOSED",
+    "s1_expected_columns": [
+      "Codigo_Distrito",
+      "Distrito",
+      "Ámbito",
+      "Nombre",
+      "Uso Característico",
+      "Superficie (m²)",
+      "Estado de desarrollo. Planeamiento",
+      "Estado de desarrollo. Gestión",
+      "Estado de desarrollo.Urbanización. Proyecto",
+      "Estado de desarrollo. Urbanización. Obras",
+      "Estado del desarrollo a fecha"
+    ],
+    "s2_expected_columns": [
+      "COD_DISTRITO",
+      "DISTRITO",
+      "COD_AMBITO",
+      "AMBITO",
+      "SITUACION DEL ÁMBITO",
+      "Colectiva. Edif. Residencial",
+      "Colectiva. Nº Viviendas",
+      "Unifamiliar. Edif. Residencial",
+      "Unifamiliar. Nº Viviendas",
+      "Edif. Industrial",
+      "Edif. Terciario",
+      "ESTADO DEL DESARROLLO A FECHA",
+      "OBSERVACIONES"
+    ],
+    "note": "The selected edition's header must equal the pinned tuple exactly, in order, and the sheet count must be 1. No fuzzy header matching, no index shifting and no silent field drop: a column that moves, disappears or changes incompatibly FAILS the build so a reviewer sees it."
+  },
+  "reader": {
+    "library": "xlrd",
+    "minimum_version": "2.0.2",
+    "why": "These editions are legacy BIFF8 .xls OLE2 compound documents. xlrd 2.0 reads only that format, which is exactly what is needed; openpyxl is an Office-Open-XML/ZIP reader and cannot open them.",
+    "scope": "BUILD ONLY — pinned in scripts/requirements-build.txt, absent from package.json"
+  },
+  "phase_vocabulary": {
+    "fields": [
+      {
+        "key": "planeamiento",
+        "source_column": "Estado de desarrollo. Planeamiento"
+      },
+      {
+        "key": "gestion",
+        "source_column": "Estado de desarrollo. Gestión"
+      },
+      {
+        "key": "urbanizacion_proyecto",
+        "source_column": "Estado de desarrollo.Urbanización. Proyecto"
+      },
+      {
+        "key": "urbanizacion_obras",
+        "source_column": "Estado de desarrollo. Urbanización. Obras"
+      }
+    ],
+    "independent_fields": true,
+    "no_scalar_stage": "MULTI_DIMENSIONAL_NO_SCALAR_STAGE (Gate L §12). No overall stage, stage number, progression, percentage, completion, advancement, delay or timeline is derived.",
+    "source_documented_values": [
+      "Sin Iniciar",
+      "En Tramitación",
+      "Finalizado",
+      "No necesita",
+      "PGOUM 85",
+      "PGOUM 97"
+    ],
+    "source_documented_by": "the publisher's structure document, v. November 2025",
+    "observed_values": {
+      "Finalizado": {
+        "count": 1035,
+        "kind": "PHASE_VALUE",
+        "vocabulary": "SOURCE_DOCUMENTED",
+        "documented_as": "Finalizado"
+      },
+      "Sin Iniciar": {
+        "count": 255,
+        "kind": "PHASE_VALUE",
+        "vocabulary": "SOURCE_DOCUMENTED",
+        "documented_as": "Sin Iniciar"
+      },
+      "No Necesita": {
+        "count": 195,
+        "kind": "UNRESOLVED_MEANING",
+        "vocabulary": "SOURCE_DOCUMENTED",
+        "documented_as": "No necesita"
+      },
+      "En Ejecución": {
+        "count": 41,
+        "kind": "PHASE_VALUE",
+        "vocabulary": "SOURCE_OBSERVED_NOT_DOCUMENTED",
+        "documented_as": null
+      },
+      "PGOUM-97": {
+        "count": 201,
+        "kind": "PLAN_ORIGIN_MARKER",
+        "vocabulary": "SOURCE_DOCUMENTED",
+        "documented_as": "PGOUM 97"
+      },
+      "PGOUM-85": {
+        "count": 927,
+        "kind": "PLAN_ORIGIN_MARKER",
+        "vocabulary": "SOURCE_DOCUMENTED",
+        "documented_as": "PGOUM 85"
+      },
+      "En tramitación": {
+        "count": 10,
+        "kind": "PHASE_VALUE",
+        "vocabulary": "SOURCE_DOCUMENTED",
+        "documented_as": "En Tramitación"
+      }
+    },
+    "plan_origin_markers": {
+      "values": [
+        "PGOUM 85",
+        "PGOUM 97"
+      ],
+      "handling": "Carried verbatim. They are plan-of-origin markers occupying phase cells (42.4 % of all phase cells per Gate L §11), not progress states, not ordered states and not errors."
+    },
+    "no_necesita": {
+      "values": [
+        "No necesita"
+      ],
+      "status": "SOURCE_OBSERVED_INTERPRETATION_UNRESOLVED",
+      "handling": "Carried verbatim and kept structurally distinct from Sin Iniciar. The publisher lists it as an expected value but never defines it (Gate L §13), so it is never rendered as, mapped to or equated with 'no aplica', 'not applicable', Sin Iniciar, zero, unavailable, complete or skipped."
+    },
+    "spelling_variants": "The publisher's own punctuation and spelling drift (En  Tramitación, Finalizada, Finalizadas, PGOUM-85) is recognised as a variant of a DOCUMENTED value for presentation metadata only; the verbatim source_value is always preserved and is what the artifact and the interface carry.",
+    "undocumented_observed": "En Ejecución is observed in the data but is NOT listed by the November-2025 structure document. It is published verbatim and labelled SOURCE_OBSERVED_NOT_DOCUMENTED rather than quietly promoted to a documented value."
+  },
+  "buildability": {
+    "publisher_term": "edificabilidad remanente (dataset title) / edificabilidad disponible (structure document)",
+    "product_term_es": "edificabilidad disponible",
+    "product_term_en": "available buildability",
+    "unit": "m² edificable",
+    "unit_is_mandatory": true,
+    "definition_verbatim": "edificabilidad disponible para los usos lucrativos Residencial, Servicios Terciarios e Industrial en los ámbitos de ordenación vigentes … según la situación del ámbito",
+    "not": "NOT 'remaining to be built', NOT 'yet to be constructed', NOT construction remaining, NOT development remaining, NOT remaining unallocated and NOT an estimate of what will be built. It is available planning buildability under the plan, for currently-valid ámbitos, according to situación.",
+    "use_classes": [
+      {
+        "key": "colectiva_residencial",
+        "source_column": "Colectiva. Edif. Residencial",
+        "unit": "m² edificable"
+      },
+      {
+        "key": "unifamiliar_residencial",
+        "source_column": "Unifamiliar. Edif. Residencial",
+        "unit": "m² edificable"
+      },
+      {
+        "key": "industrial",
+        "source_column": "Edif. Industrial",
+        "unit": "m² edificable"
+      },
+      {
+        "key": "terciario",
+        "source_column": "Edif. Terciario",
+        "unit": "m² edificable"
+      }
+    ],
+    "value_states": [
+      "PUBLISHED",
+      "NOT_PUBLISHED",
+      "NOT_PUBLISHED_NON_NUMERIC"
+    ],
+    "value_state_counts": {
+      "PUBLISHED": 620,
+      "NOT_PUBLISHED": 336,
+      "NOT_PUBLISHED_NON_NUMERIC": 0
+    },
+    "missing_is_not_zero": "The edition itself distinguishes a blank cell from a published 0, and so does this artifact: a blank cell is NOT_PUBLISHED and a published 0 is a real zero. Neither is ever substituted for the other, and no value falls back to 0.",
+    "blank_cell_observation": "The 2026-01 and 2025-01 editions publish blank cells where the 2025-07 edition publishes 0, within the same schema era. This is recorded as an observed publisher difference with cause unresolved; it is NOT normalised away.",
+    "multiple_published_rows": {
+      "rule": "Every published row for a code is preserved and presented separately. Rows are NEVER summed, averaged, reconciled or otherwise combined: an ámbito total across published rows is a derived quantity the sources do not state.",
+      "states": [
+        "SINGLE_PUBLISHED_ROW",
+        "MULTIPLE_PUBLISHED_ROWS_NOT_COMBINED"
+      ],
+      "counts": {
+        "NOT_PUBLISHED_IN_EDITION": 494,
+        "PUBLISHED": 221,
+        "CAUSE_UNRESOLVED": 7,
+        "DISTINCT_PUBLISHED_SITUACION": 2
+      }
+    },
+    "dwelling_proxy_exclusion": {
+      "columns": [
+        "Colectiva. Nº Viviendas",
+        "Unifamiliar. Nº Viviendas"
+      ],
+      "cells_read": 478,
+      "published_fractional_values": 153,
+      "published_in_artifact": false,
+      "reason": "Gate L §16 measured these values as exactly residential buildability ÷ 100, with fractional results, at a match rate of 1.0 across every row. They are a mechanical m²/100 proxy at an assumed 100 m² per dwelling, not a count of dwelling units, and no protected-housing count column exists. The product publishes buildability in m² only and exposes no dwelling count."
+    }
+  },
+  "aggregate_total_rows": {
+    "rule": "An aggregate Total row never enters the artifact.",
+    "s1_excluded": [],
+    "s2_excluded": [],
+    "observation": "The selected current-era editions carry NO aggregate Total row: the exclusion found nothing to exclude. The guard is kept and tested anyway, because an aggregate row entering a per-ámbito artifact would publish a city total as one place's figure."
+  },
+  "identifier": {
+    "join_key": "the exact official ámbito code",
+    "matching": "EXACT",
+    "normalisation": "NONE",
+    "rp_suffix": "A -RP suffix is never stripped: Gate L §21 established that it marks a distinct Revisión Parcial ámbito (UZP.3.01 annulled by court sentence, UZPp.03.01-RP its active replacement) and measured that normalising codes REDUCES exact matches."
+  },
+  "joins": {
+    "S1": {
+      "family": "S1",
+      "matching": "EXACT",
+      "normalisation": "NONE",
+      "table_codes": 667,
+      "geometry_codes": 724,
+      "matched": 666,
+      "match_rate_of_table": 0.998501,
+      "unmatched_in_table_count": 1,
+      "unmatched_in_table": [
+        "APE.21.10"
+      ],
+      "geometry_only_count": 58,
+      "geometry_only_sample": [
+        "AOE.00.08",
+        "AOE.00.08/M",
+        "APE.03.03",
+        "APE.04.01",
+        "APE.04.02",
+        "APE.04.03",
+        "APE.05.09",
+        "APE.05.10",
+        "APE.05.11",
+        "APE.05.12",
+        "APE.05.13",
+        "APE.05.14",
+        "APE.05.15",
+        "APE.05.16",
+        "APE.05.17",
+        "APE.05.18",
+        "APE.05.19",
+        "APE.05.20",
+        "APE.05.21",
+        "APE.05.22"
+      ],
+      "note": "Geometry-only ámbitos are real published ámbitos that the selected edition does not carry a row for — the published annex 'Ámbitos del PGOUM que no son objeto de seguimiento' names court annulment, MPG re-ordering, cession to other municipalities, deadline prescription and historic colonies as reasons. They stay in the production universe with an explicit NOT_PUBLISHED_IN_EDITION state; they are never dropped and never shown as zero."
+    },
+    "S2": {
+      "family": "S2",
+      "matching": "EXACT",
+      "normalisation": "NONE",
+      "table_codes": 230,
+      "geometry_codes": 724,
+      "matched": 230,
+      "match_rate_of_table": 1.0,
+      "unmatched_in_table_count": 0,
+      "unmatched_in_table": [],
+      "geometry_only_count": 494,
+      "geometry_only_sample": [
+        "AOE.00.02-RP",
+        "AOE.00.04",
+        "AOE.00.07",
+        "AOE.00.08",
+        "AOE.00.08/M",
+        "AOE.00.09",
+        "APE.01.01",
+        "APE.01.03/M",
+        "APE.01.04",
+        "APE.01.05/M",
+        "APE.01.06",
+        "APE.01.07/M",
+        "APE.01.08",
+        "APE.01.09",
+        "APE.01.10",
+        "APE.01.11",
+        "APE.02.01",
+        "APE.02.02",
+        "APE.02.03",
+        "APE.02.04"
+      ],
+      "note": "Geometry-only ámbitos are real published ámbitos that the selected edition does not carry a row for — the published annex 'Ámbitos del PGOUM que no son objeto de seguimiento' names court annulment, MPG re-ordering, cession to other municipalities, deadline prescription and historic colonies as reasons. They stay in the production universe with an explicit NOT_PUBLISHED_IN_EDITION state; they are never dropped and never shown as zero."
+    }
+  },
+  "production_universe": {
+    "keyed_on": "the geometry artifact's ámbito universe",
+    "ambito_count": 724,
+    "development_state_published": 666,
+    "development_state_not_published": 58,
+    "buildability_published": 230,
+    "buildability_not_published": 494
+  },
+  "denomination_differences": {
+    "count": 72,
+    "records": [
+      {
+        "code": "APE.01.07/M",
+        "edition": "PLAZA DE LA CEBADA - CARRERA DE SAN FRANCISCO",
+        "geometry": "PZA. DE LA CEBADA - CRA. SAN FCO."
+      },
+      {
+        "code": "APE.02.103",
+        "edition": "C/ COBRE - P.V.F.",
+        "geometry": "C/ COBRE/ P.V.F."
+      },
+      {
+        "code": "APE.02.104",
+        "edition": "AVDA. PLANETARIO C/V C/ MENESES",
+        "geometry": "AVENIDA DEL PLANETARIO C/V CALLE MENESES"
+      },
+      {
+        "code": "APE.02.25",
+        "edition": "EMBAJADORES 185 - DOTACIÓN INSALUD",
+        "geometry": "EMBAJADORES 185, DOTACION INSALUD"
+      },
+      {
+        "code": "APE.02.27",
+        "edition": "MAHOU - VICENTE CALDERÓN",
+        "geometry": "NUEVO MAHOU-CALDERÓN"
+      },
+      {
+        "code": "APE.04.11",
+        "edition": "C/ AZCONA",
+        "geometry": "CALLE AZCONA"
+      },
+      {
+        "code": "APE.04.12",
+        "edition": "ABN SERRANO 55",
+        "geometry": "ABN, SERRANO 55"
+      },
+      {
+        "code": "APE.04.16",
+        "edition": "C/ VILLANUEVA, 16",
+        "geometry": "CALLE VILLANUEVA 18"
+      },
+      {
+        "code": "APE.06.06",
+        "edition": "C/ LAS MATAS",
+        "geometry": "CALLE LAS MATAS"
+      },
+      {
+        "code": "APE.07.02",
+        "edition": "SANTA ENGRACIA 69",
+        "geometry": "SANTA ENGRACIA, 69"
+      },
+      {
+        "code": "APE.08.20",
+        "edition": "MALMEA - TRES OLIVOS - SAN ROQUE",
+        "geometry": "MALMEA - SAN ROQUE - TRES OLIVOS"
+      },
+      {
+        "code": "APE.09.01",
+        "edition": "C/ TORREADRADA",
+        "geometry": "CALLE TORREADRADA"
+      },
+      {
+        "code": "APE.09.03-RP",
+        "edition": "C/ PORTILLO DE EL PARDO",
+        "geometry": "CALLE PORTILLO DE EL PARDO"
+      },
+      {
+        "code": "APE.09.25",
+        "edition": "KM. 10 A-6",
+        "geometry": "KM 10 A-6"
+      },
+      {
+        "code": "APE.09.25/M",
+        "edition": "C/ PLÉYADES 23",
+        "geometry": "CALLE PLÉYADES, 23"
+      },
+      {
+        "code": "APE.09.27",
+        "edition": "PARCELAS 29, 30, 31, 32, 34 y 35 EXPROPIACIÓN M-40",
+        "geometry": "PARCELAS 29,30,31,32,34 Y 35 EXPROPIACIÓN M-40"
+      },
+      {
+        "code": "APE.10.03",
+        "edition": "INDUSTRIAL AVDA. DE LA AVIACIÓN",
+        "geometry": "INDUSTRIAL AVENIDA DE LA AVIACIÓN"
+      },
+      {
+        "code": "APE.10.15",
+        "edition": "C/ DANIEL SEGOVIA",
+        "geometry": "CALLE DANIEL SEGOVIA"
+      },
+      {
+        "code": "APE.10.16",
+        "edition": "C/ HIGUERAS",
+        "geometry": "CALLE HIGUERAS"
+      },
+      {
+        "code": "APE.10.19",
+        "edition": "C/ OCAÑA",
+        "geometry": "CALLE OCAÑA"
+      },
+      {
+        "code": "APE.10.20",
+        "edition": "C/ SESEÑA",
+        "geometry": "CALLE SESEÑA"
+      },
+      {
+        "code": "APE.10.21",
+        "edition": "C/ ESCALONA",
+        "geometry": "CALLE ESCALONA"
+      },
+      {
+        "code": "APE.10.22",
+        "edition": "C/ CAMARENA",
+        "geometry": "CALLE CAMARENA"
+      },
+      {
+        "code": "APE.11.02",
+        "edition": "C/ ANTONIO LEYVA",
+        "geometry": "CALLE ANTONIO LEYVA"
+      },
+      {
+        "code": "APE.11.11",
+        "edition": "C/ ALGORTA",
+        "geometry": "CALLE ALGORTA"
+      },
+      {
+        "code": "APE.12.06",
+        "edition": "C/ MERCEDES MANJÓN",
+        "geometry": "CALLE MERCEDES MANJÓN"
+      },
+      {
+        "code": "APE.12.07",
+        "edition": "C/ SAN SERAPIO",
+        "geometry": "CALLE SAN SERAPIO"
+      },
+      {
+        "code": "APE.12.10",
+        "edition": "C/ ANTONIO LÓPEZ - AVDA. DE CÓRDOBA",
+        "geometry": "CALLE ANTONIO LÓPEZ - AVDA. DE CÓRDOBA"
+      },
+      {
+        "code": "APE.13.10",
+        "edition": "NIII / CTRA. VALLECAS A VICÁLVARO",
+        "geometry": "NIII / CARRETERA VALLECAS VICÁLVARO"
+      },
+      {
+        "code": "APE.15.10",
+        "edition": "C/ ELFO - C/ SIENA",
+        "geometry": "CALLE ELFO - CALLE SIENA"
+      },
+      {
+        "code": "APE.15.17",
+        "edition": "EQUIPAMIENTO DE SALUD ARTURO SORIA,82",
+        "geometry": "EQUIPAMIENTO SALUD ARTURO SORIA, 82"
+      },
+      {
+        "code": "APE.17.03",
+        "edition": "C/ MIGUEL SOLAS",
+        "geometry": "CALLE MIGUEL SOLAS"
+      },
+      {
+        "code": "APE.17.06",
+        "edition": "CTRA. VILLAVERDE - C/ JOSÉ PÉREZ",
+        "geometry": "CTRA. VILLAVERDE - CALLE JOSÉ PÉREZ"
+      },
+      {
+        "code": "APE.17.07",
+        "edition": "C/ ANOETA - CTRA. DE VILLAVERDE",
+        "geometry": "CALLE ANOETA - CTRA. DE VILLAVERDE"
+      },
+      {
+        "code": "APE.17.09",
+        "edition": "C/ SAN GERVASIO",
+        "geometry": "CALLE SAN GERVASIO"
+      },
+      {
+        "code": "APE.17.13",
+        "edition": "C/ LENGUAS OESTE",
+        "geometry": "CALLE LENGUAS OESTE"
+      },
+      {
+        "code": "APE.17.18",
+        "edition": "GRAN VIA DE VILLAVERDE - C/ SAN DALMACIO",
+        "geometry": "GRAN VIA VILLAVERDE-C/ SAN DALMACIO"
+      },
+      {
+        "code": "APE.18.04",
+        "edition": "ESTACIÓN DE VALLECAS",
+        "geometry": "ESTACIÓNDE VALLECAS"
+      },
+      {
+        "code": "APE.19.09",
+        "edition": "C/ VILLABLANCA",
+        "geometry": "CALLE VILLABLANCA"
+      },
+      {
+        "code": "APE.20.02",
+        "edition": "C/ ESFINGE",
+        "geometry": "CALLE ESFINGE"
+      },
+      {
+        "code": "APE.20.04",
+        "edition": "C/ MEQUINENZA",
+        "geometry": "CALLE MEQUINENZA"
+      },
+      {
+        "code": "APE.20.08",
+        "edition": "C/ PILAR CAVERO",
+        "geometry": "CALLE PILAR CAVERO"
+      },
+      {
+        "code": "APE.20.09",
+        "edition": "C/ JOSEFA VALCÁRCEL",
+        "geometry": "CALLE JOSEFA VALCÁRCEL"
+      },
+      {
+        "code": "APE.21.05",
+        "edition": "C/ ALAR DEL REY",
+        "geometry": "CALLE ALAR DEL REY"
+      },
+      {
+        "code": "APE.21.06",
+        "edition": "C/ JÚPITER",
+        "geometry": "CALLE JÚPITER"
+      },
+      {
+        "code": "API.02.09/M",
+        "edition": "MANZANA PASEO PONTONES, IMPERIAL Y ALEJANDRO DUMAS",
+        "geometry": "MANZANA Pº PONTONES, IMPERIAL Y ALEJANDRO DUMAS"
+      },
+      {
+        "code": "API.04.01",
+        "edition": "FUENTE DEL BERRO - O'DONNELL",
+        "geometry": "FUENTE DEL BERRO - O`DONNELL"
+      },
+      {
+        "code": "API.05.04",
+        "edition": "ROMERO GIRÓN 10 Y CONDES DEL VAL 15",
+        "geometry": "ROMERO GIRÓN, 10 Y CONDES DEL VAL, 15"
+      },
+      {
+        "code": "API.05.06",
+        "edition": "PASEO DE LOS JACINTOS M-30",
+        "geometry": "Pº DE LOS JACINTOS M-30"
+      },
+      {
+        "code": "API.06.01",
+        "edition": "C/ ALMORTAS",
+        "geometry": "CALLE ALMORTAS"
+      },
+      {
+        "code": "API.06.12",
+        "edition": "C/ BRAVO MURILLO - PENSAMIENTO",
+        "geometry": "CALLE BRAVO MURILLO - PENSAMIENTO"
+      },
+      {
+        "code": "API.08.11",
+        "edition": "C/ RAMÓN CAMARERO",
+        "geometry": "CALLE RAMÓN CAMARERO"
+      },
+      {
+        "code": "API.11.18",
+        "edition": "MANZANA ENTRE GRAL.RICARDOS, CLARA CAMPOAMOR, ÁLVAREZ ABELLANEDA, ALEGRÍA",
+        "geometry": "MANZANA ENTRE G.RICARDOS, C.CAMPOAMOR, A.ABELLÁN, ALE"
+      },
+      {
+        "code": "API.17.11",
+        "edition": "AVDA. REAL DE PINTO - C/ ASFALTO",
+        "geometry": "AVDA. REAL DE PINTO - CALLE ASFALTO"
+      },
+      {
+        "code": "API.18.13",
+        "edition": "C/ SIERRA VIEJA",
+        "geometry": "CALLE SIERRA VIEJA"
+      },
+      {
+        "code": "API.20.04",
+        "edition": "CTRA. AJALVIR VICÁLVARO",
+        "geometry": "CARRETERA AJALVIR VICÁLVARO"
+      },
+      {
+        "code": "APR.01.10",
+        "edition": "ATOCHA 123",
+        "geometry": "ATOCHA, 123"
+      },
+      {
+        "code": "APR.02.13",
+        "edition": "C/ JOSÉ ANTONIO ZAPATA",
+        "geometry": "C/JOSÉ ANTONIO ZAPATA"
+      },
+      {
+        "code": "APR.04.01",
+        "edition": "C/ PEYRE",
+        "geometry": "CALLE PEYRE"
+      },
+      {
+        "code": "APR.04.05",
+        "edition": "VELÁZQUEZ 5",
+        "geometry": "VELÁZQUEZ, 5"
+      },
+      {
+        "code": "APR.04.08",
+        "edition": "CONSEJERÍA SANIDAD O'DONNELL",
+        "geometry": "CONSEJERÍA SANIDAD O`DONNELL"
+      },
+      {
+        "code": "APR.04.12",
+        "edition": "GOYA 24",
+        "geometry": "GOYA, 24"
+      },
+      {
+        "code": "APR.06.05",
+        "edition": "C/ MATADERO",
+        "geometry": "CALLE MATADERO"
+      },
+      {
+        "code": "APR.12.02",
+        "edition": "C/ ANTONIO LÓPEZ",
+        "geometry": "CALLE ANTONIO LÓPEZ"
+      },
+      {
+        "code": "APR.12.03",
+        "edition": "C/ AÑAFIL",
+        "geometry": "CALLE AÑAFIL"
+      },
+      {
+        "code": "APR.17.02",
+        "edition": "C/ LENGUAS ESTE",
+        "geometry": "CALLE LENGUAS ESTE"
+      },
+      {
+        "code": "APR.17.09",
+        "edition": "BARRIO DE \"EXPERIMENTALES\"",
+        "geometry": "BARRIO DE EXPERIMENTALES"
+      },
+      {
+        "code": "APR.17.10",
+        "edition": "LOS ROSALES - C/ CALCIO",
+        "geometry": "LOS ROSALES - CALLE CALCIO"
+      },
+      {
+        "code": "UNS.04.05-RP",
+        "edition": "DESARROLLO DEL ESTE - ENSANCHE DE SAN FERNANDO DE HENARES",
+        "geometry": "DESARROLLO DEL ESTE - ENSANCHE DE SAN FERNANDO"
+      },
+      {
+        "code": "UNS.04.07-RP",
+        "edition": "REMATE DEL SUROESTE - CAMPAMENTO",
+        "geometry": "REMATE SUROESTE - CAMPAMENTO"
+      },
+      {
+        "code": "UZI.0./C",
+        "edition": "TERRENOS PROCEDENTES DE COSLADA",
+        "geometry": "UZI PROCEDENTE DE COSLADA"
+      },
+      {
+        "code": "UZI.0.07",
+        "edition": "MONTECARMELO",
+        "geometry": "MONTE CARMELO"
+      }
+    ],
+    "note": "Where the edition and the geometry name the same code differently, BOTH names are kept verbatim and the difference is recorded. Neither is corrected and neither is treated as authoritative over the other."
+  },
+  "district_attribution": {
+    "source": "the S1 estado edition's own Codigo_Distrito / Distrito columns",
+    "observed_anomaly": "The selected S2 edition publishes seven Barajas ámbitos twice, once with COD_DISTRITO 20 and once with 21, while naming the district BARAJAS in both rows (Barajas is official district 21). Some of those row pairs also disagree numerically. The S1 edition carries no such anomaly. The duplicated rows are preserved verbatim and classified CAUSE_UNRESOLVED; no row is preferred, merged or corrected, and district attribution is read from S1 only."
+  },
+  "baseline": {
+    "s1_reference_date": "2026-01-01",
+    "s2_reference_date": "2026-01-01",
+    "s1_rows": 667,
+    "s2_rows": 239,
+    "s2_distinct_codes": 230,
+    "s1_geometry_matched": 666,
+    "s2_geometry_matched": 230,
+    "calibrated_on": "2026-10-06",
+    "note": "Observations of the calibration run, pinned so a change in the published universe is a visible diff in a reviewed pull request. They are recorded, not asserted."
+  },
+  "engineering_guardrails": {
+    "min_s1_rows": 500,
+    "min_s2_rows": 150
+  },
+  "fingerprint": {
+    "algorithm": "sha256",
+    "scope": "canonical JSON (sorted keys, compact separators, UTF-8) of the artifact",
+    "value": "e6cc5e52533f2f20b5c9d596b44c8d4cfdfc868fa57256367ace21c0b0294c98"
+  },
+  "runtime_policy": "BUILD TIME ONLY. The browser never requests datos.madrid.es: it reads this committed, fingerprinted artifact.",
+  "interpretation_ceiling": "Four INDEPENDENT published administrative development-phase values per planning ámbito, and available planning buildability (edificabilidad disponible) by use class in m² edificable, as published in ONE dated edition of each official family. The four phase fields do NOT form one overall completion stage: they are multi-dimensional, the publisher documents no ordering, and no stage, stage number, progression, percentage, completion, advancement, delay or timeline is derivable from them. A published phase state is an ADMINISTRATIVE state, never proof of physical construction progress (PLANNING_STATE_TRANSITION != PHYSICAL_URBAN_CHANGE). 'No Necesita' is a distinct published value whose precise meaning the audited documentation does not define; it does not mean not applicable, skipped, complete, zero or unavailable. 'PGOUM-85' and 'PGOUM-97' are plan-of-origin markers occupying phase cells, not progress states. Available buildability is what the plan makes available, NOT what remains to be physically built and NOT an estimate of what will be built. NO dwelling count is published or derivable: the source's Nº Viviendas columns are residential buildability ÷ 100 with fractional values and are excluded. Every figure describes the WHOLE ámbito and is never apportioned into a Lens circle, a barrio or any sub-area, and never combined with a value of another analytical scope. One edition only: no edition-to-edition difference, trend or change is published here. Geometry and identifiers come through a separate official route; every quantity and state here comes from the dated CC BY 4.0 editions."
+}

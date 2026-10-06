@@ -25,7 +25,7 @@ const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 // modules load identically however the page is served. They are ES modules
 // (shared with `node --test`), while the rest of the app is classic scripts.
 const MODULE_BASE = (document.currentScript && document.currentScript.src) || window.location.href;
-const AREA_ASSET_VERSION = "20261002-43";
+const AREA_ASSET_VERSION = "20261006-68";
 const moduleUrl = (name) => new URL(`${name}?v=${AREA_ASSET_VERSION}`, MODULE_BASE).href;
 
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
@@ -40,6 +40,16 @@ map.getPane("adminPane").style.pointerEvents = "none";
 // active-area and Lens panes. It is the only interactive polygon surface.
 map.createPane("hospitalityPane");
 map.getPane("hospitalityPane").style.zIndex = "365";
+
+// The containing planning ámbito (K6, #68) has its own pane above the
+// administrative reference lattice and below the thematic administrative fill,
+// so the ámbito and the barrio stay visibly different geometries. Its hue is the
+// reserved neutral planning family — never a Lens identity colour — and it never
+// encodes a phase, an order or a judgement.
+map.createPane("planningPane");
+map.getPane("planningPane").style.zIndex = "360";
+map.getPane("planningPane").style.pointerEvents = "none";
+const PLANNING_STROKE = "#aeb8c4"; // --planning-neutral
 
 // The area containing a lens centre is the one administrative shape that has to
 // stay readable, so it sits just below the lens itself — visible over the POIs,
@@ -1493,6 +1503,90 @@ if (haloRegressionRequested && haloRegressionLocal) {
     lensCenters() {
       return { A: centerOf("A"), B: centerOf("B") };
     },
+    // Move a Lens to a GEOGRAPHIC coordinate and recompute from real data. The
+    // pixel-based moveLens() above depends on the current map view, which is the
+    // wrong seam for a planning regression: an ámbito is a fixed place on the
+    // ground, so the test has to be able to name it in degrees.
+    moveLensToLatLng(which, lat, lon) {
+      const latlng = L.latLng(Number(lat), Number(lon));
+      lenses[which].marker.setLatLng(latlng);
+      lenses[which].circle.setLatLng(latlng);
+      refresh();
+    },
+    // Read-only view of the rendered planning-ámbito surface and of the model
+    // behind it, so a regression can prove the DOM never drifts from the
+    // evidence — and that the four published fields stay four, verbatim.
+    planning() {
+      const section = document.getElementById("planningAmbito");
+      const phases = [...document.querySelectorAll("#planningPhases > li")].map((item) => ({
+        kind: item.dataset.kind || null,
+        field: item.querySelector(".planning-phase-field").textContent.trim(),
+        value: item.querySelector(".planning-phase-value").textContent.trim(),
+        note: item.querySelector(".planning-phase-note")?.textContent.trim() || null,
+        borderStyle: getComputedStyle(item).borderLeftStyle,
+      }));
+      const uses = [...document.querySelectorAll("#planningBuildRows .planning-uses > li")].map((item) => ({
+        valueState: item.dataset.valueState,
+        label: item.querySelector(".planning-use-label").textContent.trim(),
+        value: item.querySelector(".planning-use-value").textContent.trim(),
+        unit: item.querySelector(".planning-use-unit")?.textContent.trim() || null,
+      }));
+      const containing = planningModel.index
+        ? planningModel.index.ambitoContaining(centerOf(active).lon, centerOf(active).lat)
+        : null;
+      return {
+        state: section.dataset.state || null,
+        hidden: section.hasAttribute("hidden"),
+        identityHidden: document.getElementById("planningIdentity").hasAttribute("hidden"),
+        denomination: document.getElementById("planningDenomination").textContent.trim(),
+        code: document.getElementById("planningCode").textContent.trim(),
+        kindLabel: document.querySelector("#planningIdentity .planning-kind").textContent.trim(),
+        distinction: document.querySelector("#planningIdentity .planning-distinction").textContent.trim(),
+        edition: document.getElementById("planningEdition").textContent.trim(),
+        outsideHidden: document.getElementById("planningOutside").hasAttribute("hidden"),
+        outsideText: document.getElementById("planningOutside").textContent.trim(),
+        phasesHidden: document.getElementById("planningPhasesBlock").hasAttribute("hidden"),
+        phases,
+        attributes: [...document.querySelectorAll("#planningAttributes dt")].map((dt, i) => ({
+          label: dt.textContent.trim(),
+          value: document.querySelectorAll("#planningAttributes dd")[i].textContent.trim(),
+        })),
+        buildHidden: document.getElementById("planningBuildBlock").hasAttribute("hidden"),
+        buildScope: document.querySelector("#planningBuildBlock .planning-scope-note")?.textContent.trim() || null,
+        uses,
+        stateAbsent: document.getElementById("planningStateAbsent").hasAttribute("hidden")
+          ? null
+          : document.getElementById("planningStateAbsent").textContent.trim(),
+        buildAbsent: document.getElementById("planningBuildAbsent").hasAttribute("hidden")
+          ? null
+          : document.getElementById("planningBuildAbsent").textContent.trim(),
+        ceiling: document.querySelector("#planningAmbito .planning-ceiling").textContent.trim(),
+        touched: [...document.querySelectorAll("#planningTouchedList > li")].map((item) => item.textContent.trim()),
+        touchedCardHidden: document.getElementById("planningTouchedCard").hasAttribute("hidden"),
+        // The MODEL, so the test can assert the DOM against it rather than
+        // against a hand-written expectation.
+        model: containing
+          ? {
+              containing,
+              developmentState: planningModel.index.developmentState(containing.ambitoCode),
+              availableBuildability: planningModel.index.availableBuildability(containing.ambitoCode),
+              membership: planningModel.index.ambitosIntersecting(
+                centerOf(active).lon,
+                centerOf(active).lat,
+                radiusFor(active)
+              ),
+            }
+          : null,
+        mapLayerCode: planningLayer ? planningLayer.code : null,
+        mapPane: planningLayer ? planningLayer.layer.options.pane : null,
+      };
+    },
+    openPlaceDetailForTest() {
+      const detail = document.getElementById("placeDetail");
+      if (detail) detail.open = true;
+      renderPlanningTouched();
+      renderScopeRail();
+    },
     // Drive the SHARED Bridge/Insight translator so both languages can be
     // asserted against the real render path. Test seam only: production keeps
     // following the document language, which this seam deliberately does NOT
@@ -2624,6 +2718,416 @@ function disableBoundaryControl() {
   select.title = "Administrative geography unavailable in this deployment";
 }
 
+// ============================ PLANNING ÁMBITO EVIDENCE (K6, #68) =============
+//
+// The official planning ámbito containing the active Lens centre, and what ONE
+// dated official edition publishes about that WHOLE ámbito. The model and every
+// rule live in js/planning-ambito.js; this section only loads the two committed
+// artifacts, renders what the model returns, and draws the containing polygon.
+//
+// It never computes a quantity, never combines a planning figure with a Lens or
+// barrio figure, and never asks the model for a share of an ámbito.
+
+const planningModel = { module: null, index: null };
+let planningState = "loading";
+let planningHint = null;
+let lastPlanningRenderKey = null;
+let planningLayer = null;
+let planningRenderer = null;
+
+async function loadPlanningContext() {
+  let module;
+  try {
+    module = await import(moduleUrl("planning-ambito.js"));
+  } catch (error) {
+    planningState = "unavailable";
+    console.warn("planning-ámbito module unavailable", error);
+    renderPlanningContext();
+    return;
+  }
+  planningModel.module = module;
+
+  // Settled, not all-or-nothing, and both artifacts are fetched ONCE: moving a
+  // Lens performs an in-memory bounding-box scan and never a fetch. No official
+  // planning service is contacted from the browser at any point.
+  const [geometry, state] = await Promise.allSettled([
+    fetchAreaJson("data/planning/madrid_ambitos.geojson"),
+    fetchAreaJson("data/planning/madrid_ambito_state.json"),
+  ]);
+  const index = module.createPlanningIndex({
+    geometry: settledValue(geometry),
+    state: settledValue(state),
+  });
+  if (!index) {
+    planningState = "unavailable";
+    console.warn("planning ámbito geometry unavailable", geometry.reason || "no ámbito features");
+  } else {
+    planningModel.index = index;
+    planningState = "ready";
+    if (state.status !== "fulfilled") {
+      // The geometry resolves the place; the edition supplies the published
+      // state. An absent edition leaves the identity standing and the states
+      // explicitly not published, rather than losing the ámbito as well.
+      console.warn("planning ámbito published state unavailable", state.reason);
+    }
+  }
+  renderPlanningContext();
+  renderScopeRail();
+}
+
+function planningContaining() {
+  if (planningState !== "ready" || !planningModel.index) return null;
+  const centre = centerOf(active);
+  const result = planningModel.index.ambitoContaining(centre.lon, centre.lat, planningHint);
+  planningHint = result.ambitoCode;
+  return result;
+}
+
+// "2026-01-01" -> "1 Jan 2026" / "1 ene. 2026". Localised through the shell
+// dictionary so the planning surface follows the document language like the
+// rest of K6's product-authored copy. Official VALUES are never localised.
+function planningDate(isoDate) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(isoDate || ""));
+  if (match) return `${Number(match[3])} ${shellT(`month.${Number(match[2])}`)} ${match[1]}`;
+  const month = /^(\d{4})-(\d{2})$/.exec(String(isoDate || ""));
+  if (month) return `${shellT(`month.${Number(month[2])}`)} ${month[1]}`;
+  return null;
+}
+
+// Displayed figures are rounded; each published value is carried in full in the
+// artifact and reachable through Evidence & limits. Buildability keeps two
+// decimal places because the publisher states some figures to that precision;
+// an ámbito surface is land area and reads in whole square metres. Neither rule
+// invents precision and neither turns a missing value into a number.
+function planningFigure(value, maximumFractionDigits) {
+  if (!Number.isFinite(value)) return null;
+  return value.toLocaleString("en-GB", { maximumFractionDigits });
+}
+
+function renderPlanningContext() {
+  const section = document.getElementById("planningAmbito");
+  if (!section) return;
+  const containing = planningContaining();
+  const key = [
+    planningState,
+    active,
+    containing && containing.state,
+    containing && containing.ambitoCode,
+    document.documentElement.lang,
+  ].join("|");
+
+  renderPlanningPolygon(containing);
+  // The membership list depends on the Lens position and radius, not on which
+  // ámbito contains the centre, so it is refreshed on every render — and it
+  // does its own cheap signature check before touching the DOM.
+  renderPlanningTouched();
+  if (key === lastPlanningRenderKey) return;
+  lastPlanningRenderKey = key;
+
+  section.hidden = false;
+  section.dataset.state = planningState === "ready" ? (containing ? containing.state : "unavailable") : planningState;
+
+  const identity = document.getElementById("planningIdentity");
+  const outside = document.getElementById("planningOutside");
+  const phasesBlock = document.getElementById("planningPhasesBlock");
+  const stateAbsent = document.getElementById("planningStateAbsent");
+  const attributes = document.getElementById("planningAttributes");
+  const buildBlock = document.getElementById("planningBuildBlock");
+  const buildAbsent = document.getElementById("planningBuildAbsent");
+  const citizen = document.getElementById("planningCitizen");
+  const toggle = document.getElementById("planningSourceToggle");
+
+  const resolved = containing && containing.state === planningModel.module.AMBITO_STATE.RESOLVED;
+  identity.hidden = !resolved;
+  phasesBlock.hidden = true;
+  buildBlock.hidden = true;
+  attributes.hidden = true;
+  stateAbsent.hidden = true;
+  buildAbsent.hidden = true;
+  citizen.hidden = !resolved;
+  toggle.hidden = false;
+
+  if (!resolved) {
+    // An explicit state in words, and the three absences stay three different
+    // facts: still loading, unavailable in this deployment, and genuinely
+    // outside every production ámbito. Never a blank, never a zero, never the
+    // nearest ámbito.
+    outside.hidden = false;
+    if (planningState === "loading") outside.textContent = shellT("planning.loading");
+    else if (planningState !== "ready" || !containing) outside.textContent = shellT("planning.unavailable");
+    else outside.textContent = shellT("planning.outside");
+    // The identity is cleared, not merely hidden: a stale official code left in
+    // the DOM is a code attached to the wrong place, even unseen.
+    setText("planningDenomination", "");
+    setText("planningCode", "");
+    setText("planningEdition", "");
+    document.getElementById("planningPhases").replaceChildren();
+    document.getElementById("planningBuildRows").replaceChildren();
+    document.getElementById("planningAttributes").replaceChildren();
+    return;
+  }
+  outside.hidden = true;
+
+  setText("planningDenomination", containing.denomination);
+  setText("planningCode", containing.ambitoCode);
+
+  const state = planningModel.index.developmentState(containing.ambitoCode);
+  const buildability = planningModel.index.availableBuildability(containing.ambitoCode);
+  const { AVAILABILITY, VALUE_STATE, PHASE_KIND, PHASE_VOCABULARY } = planningModel.module;
+
+  // The edition reference date, next to the evidence it dates.
+  const editionDate = planningDate(state.edition && state.edition.referenceDate);
+  setText(
+    "planningEdition",
+    editionDate ? `${shellT("planning.editionLabel")} ${editionDate} · ${shellT("planning.editionSuffix")}` : ""
+  );
+
+  // ---- four independent published fields -----------------------------------
+  if (state.availability === AVAILABILITY.PUBLISHED) {
+    phasesBlock.hidden = false;
+    const list = document.getElementById("planningPhases");
+    list.replaceChildren();
+    for (const phase of state.phases) {
+      const item = document.createElement("li");
+      item.dataset.kind = phase.kind || "";
+      const field = document.createElement("span");
+      field.className = "planning-phase-field";
+      field.textContent = shellT(`planning.phase.${phase.key}`);
+      const value = document.createElement("span");
+      value.className = "planning-phase-value";
+      // A structural mark, so the distinction never rests on colour alone. The
+      // glyph is decorative; the screen-reader text names what it marks.
+      if (phase.kind === PHASE_KIND.UNRESOLVED_MEANING || phase.kind === PHASE_KIND.PLAN_ORIGIN_MARKER) {
+        const mark = document.createElement("span");
+        mark.className = "planning-phase-mark";
+        mark.setAttribute("aria-hidden", "true");
+        mark.textContent = phase.kind === PHASE_KIND.UNRESOLVED_MEANING ? "?" : "§";
+        const label = document.createElement("span");
+        label.className = "sr-only";
+        label.textContent = `${shellT(
+          phase.kind === PHASE_KIND.UNRESOLVED_MEANING ? "planning.glyph.unresolved" : "planning.glyph.marker"
+        )}: `;
+        value.append(label, mark);
+      }
+      // The publisher's string, VERBATIM. data-verbatim keeps the language
+      // applier away from it: `No Necesita` stays `No Necesita`, and a PGOUM
+      // marker survives exactly as published.
+      const verbatim = document.createElement("span");
+      verbatim.dataset.verbatim = "";
+      verbatim.textContent = phase.state === VALUE_STATE.PUBLISHED ? phase.sourceValue : "";
+      if (phase.state !== VALUE_STATE.PUBLISHED) {
+        verbatim.removeAttribute("data-verbatim");
+        verbatim.textContent = shellT("planning.notPublished");
+      }
+      value.append(verbatim);
+      item.append(field, value);
+      const notes = [];
+      if (phase.kind === PHASE_KIND.UNRESOLVED_MEANING) notes.push(shellT("planning.note.unresolved"));
+      if (phase.kind === PHASE_KIND.PLAN_ORIGIN_MARKER) notes.push(shellT("planning.note.marker"));
+      if (phase.vocabulary === PHASE_VOCABULARY.SOURCE_OBSERVED_NOT_DOCUMENTED) {
+        notes.push(shellT("planning.note.undocumented"));
+      }
+      if (notes.length) {
+        const note = document.createElement("p");
+        note.className = "planning-phase-note";
+        note.textContent = notes.join(" ");
+        item.append(note);
+      }
+      list.append(item);
+    }
+
+    // Characteristic use, published surface and the edition's district.
+    attributes.replaceChildren();
+    const addAttribute = (labelKey, text, verbatim) => {
+      if (!text) return;
+      const dt = document.createElement("dt");
+      dt.textContent = shellT(labelKey);
+      const dd = document.createElement("dd");
+      if (verbatim) dd.dataset.verbatim = "";
+      dd.textContent = text;
+      attributes.append(dt, dd);
+    };
+    addAttribute("planning.useLabel", state.characteristicUse, true);
+    const surface =
+      state.surface && state.surface.state === VALUE_STATE.PUBLISHED
+        ? planningFigure(state.surface.value, 0)
+        : null;
+    addAttribute("planning.surfaceLabel", surface ? `${surface} ${state.surface.unit}` : null, false);
+    addAttribute(
+      "planning.districtLabel",
+      state.district && state.district.name ? `${state.district.name} (${state.district.code})` : null,
+      true
+    );
+    attributes.hidden = attributes.childElementCount === 0;
+  } else {
+    stateAbsent.hidden = false;
+    stateAbsent.textContent = `${shellT("planning.stateNotPublished")} ${shellT("planning.absenceNote")}`;
+  }
+
+  // ---- available buildability ----------------------------------------------
+  if (buildability.availability === AVAILABILITY.PUBLISHED) {
+    buildBlock.hidden = false;
+    const rows = document.getElementById("planningBuildRows");
+    rows.replaceChildren();
+    if (buildability.publication === planningModel.module.BUILDABILITY_PUBLICATION.MULTIPLE_PUBLISHED_ROWS_NOT_COMBINED) {
+      const note = document.createElement("p");
+      note.className = "planning-block-note";
+      note.textContent = shellT("planning.multipleRows");
+      rows.append(note);
+    }
+    for (const row of buildability.rows) {
+      const wrap = document.createElement("div");
+      wrap.className = "planning-build-row";
+      if (row.situacion) {
+        const situacion = document.createElement("p");
+        situacion.className = "planning-situacion";
+        const label = document.createElement("span");
+        label.textContent = `${shellT("planning.situacionLabel")}: `;
+        const verbatim = document.createElement("span");
+        verbatim.dataset.verbatim = "";
+        verbatim.textContent = row.situacion;
+        situacion.append(label, verbatim);
+        wrap.append(situacion);
+      }
+      const list = document.createElement("ul");
+      list.className = "planning-uses";
+      for (const useClass of row.useClasses) {
+        const item = document.createElement("li");
+        item.dataset.valueState = useClass.state;
+        const label = document.createElement("span");
+        label.className = "planning-use-label";
+        label.textContent = shellT(`planning.use.${useClass.key}`);
+        const figure = document.createElement("span");
+        figure.className = "planning-use-figure";
+        const value = document.createElement("span");
+        value.className = "planning-use-value";
+        if (useClass.state === VALUE_STATE.PUBLISHED) {
+          // The value and its unit are rendered together, always. There is no
+          // code path here that emits a bare number.
+          value.textContent = planningFigure(useClass.value, 2);
+          const unit = document.createElement("span");
+          unit.className = "planning-use-unit";
+          unit.dataset.verbatim = "";
+          unit.textContent = useClass.unit;
+          figure.append(value, unit);
+        } else {
+          // Not published. A distinct state, in words, and never a 0.
+          value.textContent = shellT("planning.notPublished");
+          figure.append(value);
+        }
+        item.append(label, figure);
+        list.append(item);
+      }
+      wrap.append(list);
+      rows.append(wrap);
+    }
+  } else {
+    buildAbsent.hidden = false;
+    buildAbsent.textContent = `${shellT("planning.buildNotPublished")} ${shellT("planning.absenceNote")}`;
+  }
+}
+
+// LENS_INTERSECT_AMBITO. Computed only while the PLACE detail disclosure is
+// open, so dragging a Lens with the detail closed costs nothing, and it reports
+// MEMBERSHIP only: which ámbitos the circle touches, with no quantity attached.
+function renderPlanningTouched() {
+  const list = document.getElementById("planningTouchedList");
+  const card = document.getElementById("planningTouchedCard");
+  if (!list || !card) return;
+  const detail = document.getElementById("placeDetail");
+  const open = Boolean(detail && detail.open);
+  card.hidden = !open;
+  if (!open || planningState !== "ready" || !planningModel.index) {
+    list.replaceChildren();
+    return;
+  }
+  const centre = centerOf(active);
+  const membership = planningModel.index.ambitosIntersecting(centre.lon, centre.lat, radiusFor(active));
+  const signature = `${membership.touched.map((entry) => entry.ambitoCode).join(",")}|${document.documentElement.lang}`;
+  if (list.dataset.signature === signature) return;
+  list.dataset.signature = signature;
+  list.replaceChildren();
+  if (membership.count === 0) {
+    const item = document.createElement("li");
+    item.textContent = shellT("planning.touchedNone");
+    list.append(item);
+    return;
+  }
+  for (const entry of membership.touched) {
+    const item = document.createElement("li");
+    const code = document.createElement("span");
+    code.className = "planning-touched-code";
+    code.dataset.verbatim = "";
+    code.textContent = entry.ambitoCode;
+    const name = document.createElement("span");
+    name.dataset.verbatim = "";
+    name.textContent = entry.denomination || "";
+    item.append(code, name);
+    if (entry.containsCentre) {
+      const centreMark = document.createElement("span");
+      centreMark.className = "planning-touched-centre";
+      centreMark.textContent = shellT("planning.touchedCentre");
+      item.append(centreMark);
+    }
+    list.append(item);
+  }
+}
+
+// The containing ámbito on the map, on its own pane, in its own reserved
+// neutral family. The stroke never encodes a phase and never reuses a Lens hue,
+// and the layer is rebuilt only when the containing ámbito actually changes.
+// Only the containing ámbito is drawn: 724 polygons at once would be wallpaper,
+// not orientation.
+function renderPlanningPolygon(containing) {
+  const resolved =
+    containing &&
+    planningModel.module &&
+    containing.state === planningModel.module.AMBITO_STATE.RESOLVED &&
+    planningModel.index;
+  if (!resolved) {
+    if (planningLayer) {
+      map.removeLayer(planningLayer.layer);
+      if (planningLayer.label) map.removeLayer(planningLayer.label);
+      planningLayer = null;
+    }
+    return;
+  }
+  if (planningLayer && planningLayer.code === containing.ambitoCode) return;
+  if (planningLayer) {
+    map.removeLayer(planningLayer.layer);
+    if (planningLayer.label) map.removeLayer(planningLayer.label);
+    planningLayer = null;
+  }
+  const feature = planningModel.index.featureFor(containing.ambitoCode);
+  if (!feature) return;
+  if (!planningRenderer) planningRenderer = L.canvas({ pane: "planningPane", padding: 0.3 });
+  const layer = L.geoJSON(feature, {
+    pane: "planningPane",
+    renderer: planningRenderer,
+    interactive: false,
+    style: () => ({
+      color: PLANNING_STROKE,
+      weight: 2,
+      opacity: 0.95,
+      dashArray: "7 4",
+      fill: true,
+      fillColor: PLANNING_STROKE,
+      fillOpacity: 0.07,
+    }),
+  }).addTo(map);
+  const label = L.tooltip({
+    permanent: true,
+    direction: "center",
+    className: "planning-ambito-label",
+    interactive: false,
+    opacity: 1,
+  })
+    .setLatLng(layer.getBounds().getCenter())
+    .setContent(`${containing.ambitoCode}`)
+    .addTo(map);
+  planningLayer = { layer, label, code: containing.ambitoCode };
+}
+
 function fetchAreaJson(url) {
   return fetch(`${url}?v=${AREA_ASSET_VERSION}`).then((response) => {
     if (!response.ok) throw new Error(`${url}: ${response.status}`);
@@ -3361,6 +3865,7 @@ function refresh() {
   renderNearest(s);
   renderCompare();
   updateAreaContext();
+  renderPlanningContext();
   shadeMarkersOutsideActiveLens();
   renderScopeRail();
 }
@@ -3480,6 +3985,11 @@ document.getElementById("languageSelect").onchange = (event) => {
   renderComparisonBridge();
   renderDecisionInsight();
   renderSpatialSensitivity();
+  // The planning surface builds its product-authored copy from the shell
+  // dictionary at render time, so a language switch re-renders it. Official
+  // values inside it sit under data-verbatim and are never touched.
+  lastPlanningRenderKey = null;
+  renderPlanningContext();
   restoreCopy();
   applyShellCopy();
   renderModeUi();
@@ -3504,6 +4014,8 @@ document.getElementById("hospitalityClearSelection").onclick = () => {
 // evidence drawer, which holds the generated provenance lines at every breakpoint.
 const areaSourceToggle = document.getElementById("areaSourceToggle");
 areaSourceToggle.onclick = () => openEvidenceDrawer({ opener: areaSourceToggle, focusSection: "drawerAreaNotes" });
+const planningSourceToggle = document.getElementById("planningSourceToggle");
+planningSourceToggle.onclick = () => openEvidenceDrawer({ opener: planningSourceToggle, scope: "PLANNING_AMBITO" });
 const destinationSourceToggle = document.getElementById("destinationSourceToggle");
 destinationSourceToggle.onclick = () => openEvidenceDrawer({ opener: destinationSourceToggle, focusSection: "drawerDestinationNotes" });
 // THE accommodation-category state transition. Changing the category changes
@@ -3607,12 +4119,25 @@ function openPlaceDetail() {
   if (detail) detail.open = true;
 }
 
+const placeDetailDisclosure = document.getElementById("placeDetail");
+if (placeDetailDisclosure) {
+  placeDetailDisclosure.addEventListener("toggle", () => {
+    renderPlanningTouched();
+    renderScopeRail();
+  });
+}
+
 function currentFlags() {
+  const placeDetail = document.getElementById("placeDetail");
   return {
     vut: !document.getElementById("areaVut").hidden,
     hospitality: hospitalityVisible,
     hati: isHatiVisible(),
     pedestrian: isPedestrianVisible(),
+    // LENS_INTERSECT_AMBITO is on screen only while the PLACE detail is open and
+    // the planning artifacts actually loaded, so the rail never claims a scope
+    // whose surface is not rendered.
+    planningDetail: planningState === "ready" && Boolean(placeDetail && placeDetail.open),
   };
 }
 
@@ -3681,7 +4206,24 @@ function railInstances(mode) {
     LENS_CIRCLE: mode === "COMPARE" ? [lensLabel("A"), lensLabel("B")] : [lensLabel(active)],
     OFFICIAL_BARRIO: [resolved ? shown.headline : shellT("rail.locating")],
     MUNICIPALITY: ["Madrid"],
+    // The rail states the real planning scope: the exact official code when an
+    // ambito contains the centre, and the explicit absence when none does.
+    PLANNING_AMBITO: [planningRailInstance()],
+    LENS_INTERSECT_AMBITO: [lensLabel(active)],
   };
+}
+
+// What the rail prints for PLANNING_AMBITO: the exact official code when an
+// ambito contains the active Lens centre, and an explicit absence otherwise.
+// Never a blank and never a barrio name standing in for an ambito.
+function planningRailInstance() {
+  if (planningState === "loading") return shellT("rail.locating");
+  if (planningState !== "ready" || !planningModel.module) return shellT("rail.unavailable");
+  const containing = planningModel.index
+    ? planningModel.index.ambitoContaining(centerOf(active).lon, centerOf(active).lat, planningHint)
+    : null;
+  if (containing && containing.state === planningModel.module.AMBITO_STATE.RESOLVED) return containing.ambitoCode;
+  return shellT("planning.touchedNone");
 }
 
 function freshnessLine(model) {
@@ -4211,6 +4753,10 @@ async function boot() {
   // the canonical geography is ~2.5 MB and must never delay the first paint of
   // the map. It is parsed and indexed exactly once, then reused.
   loadAreaContext().finally(loadHospitalityContext);
+  // The planning artifacts load on their own track, for the same reason: the
+  // ambito evidence and the administrative registers are different publishers
+  // with different universes, and one must never cost the other.
+  loadPlanningContext();
   // Started separately and never awaited together with the area context: the two
   // surfaces describe different things, from different publishers, and must fail
   // independently of each other.

@@ -6,7 +6,7 @@
 <title>Madrid Urban Evidence Lens</title>
 <meta name="description" content="A place-first, source-disciplined lens for Madrid: read what official sources document about the city and the limits of that evidence. Urban development is the authorized next organising frame; tourism remains a documented domain. Not real-time; not a recommendation engine.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261006-55">
+<link rel="stylesheet" href="css/app.css?v=20261006-56">
 </head>
 <body>
 <div id="map"></div>
@@ -178,6 +178,73 @@
     <button id="areaSourceToggle" class="area-source-toggle" type="button" aria-haspopup="dialog" hidden>Source &amp; interpretation</button>
   </section>
 
+    <!-- LEAD ANSWER, SECOND EVIDENCE OBJECT (K6, #68): the official planning
+         ámbito that contains the Lens centre, and what ONE dated official
+         edition publishes about that whole ámbito.
+
+         The ámbito, the barrio and the Lens circle are three different
+         analytical objects and are never concatenated into one place string.
+         The four phase fields render as four independent published values: no
+         overall stage, no ordering, no percentage, no progress line and no
+         single summarising badge. Available buildability always carries its
+         unit and its whole-ámbito scope. No dwelling count exists anywhere. -->
+  <section id="planningAmbito" class="planning" aria-labelledby="planningSectionHeading" hidden>
+    <div class="section-head"><span id="planningSectionHeading" data-i18n="sec.planning">Planning ámbito</span><small id="planningScopeHint" data-i18n="planning.scopeHint">whole planning ámbito</small><button type="button" class="evidence-link" data-evidence-prefix="place.planning." data-evidence-name="sec.planning" aria-haspopup="dialog"><span aria-hidden="true">i</span></button></div>
+    <div id="planningLive" aria-live="polite">
+      <!-- Identity. The denomination and the exact official code, with an
+           explicit kind label so the reader cannot mistake this for the barrio. -->
+      <div id="planningIdentity" class="planning-identity" hidden>
+        <h2 id="planningDenomination" class="planning-denomination" data-verbatim></h2>
+        <div class="planning-identity-row">
+          <span class="planning-kind" data-i18n="planning.kind">Planning ámbito</span>
+          <span class="planning-code-wrap"><span class="planning-code-label" data-i18n="planning.codeLabel">Official code</span> <span id="planningCode" class="planning-code" data-verbatim></span></span>
+        </div>
+        <p class="planning-distinction" data-i18n="planning.distinction">An official planning area. It is not the barrio, not the district and not the Lens circle.</p>
+        <!-- The edition reference date sits WITH the evidence, not only in the
+             drawer: a reader must not have to open a dialog to find out which
+             dated edition the states below come from. -->
+        <p id="planningEdition" class="planning-edition"></p>
+      </div>
+
+      <!-- Explicit outside / unavailable states. Never a blank and never a zero. -->
+      <p id="planningOutside" class="planning-outside" hidden></p>
+
+      <!-- FOUR INDEPENDENT PUBLISHED FIELDS. -->
+      <div id="planningPhasesBlock" class="planning-block" hidden>
+        <div class="planning-block-head"><span data-i18n="planning.phasesTitle">Four published development phases</span></div>
+        <ul id="planningPhases" class="planning-phases"></ul>
+        <p class="planning-block-note" data-i18n="planning.phasesNote">Four independent published fields. The publisher documents no order between them, so they do not form one overall stage and no progress, percentage, completion or timeline figure is derived.</p>
+      </div>
+      <p id="planningStateAbsent" class="planning-absent" hidden></p>
+
+      <!-- Characteristic use, surface and the edition's district attribution. -->
+      <dl id="planningAttributes" class="planning-attributes" hidden></dl>
+
+      <!-- AVAILABLE BUILDABILITY · edificabilidad disponible. -->
+      <div id="planningBuildBlock" class="planning-block planning-build" hidden>
+        <div class="planning-block-head"><span data-i18n="planning.buildTitle">Available buildability · edificabilidad disponible</span></div>
+        <p class="planning-scope-note"><span class="badge planning-scope-badge" data-i18n="planning.scopeHint">whole planning ámbito</span> <span data-i18n="planning.buildScope">Whole planning ámbito — not the Lens circle.</span></p>
+        <div id="planningBuildRows"></div>
+        <p class="planning-block-note" data-i18n="planning.buildNote">What the plan makes available, by use class. Not what remains to be physically built, and not an estimate of what will be built.</p>
+        <p class="planning-block-note" data-i18n="planning.rounding">Displayed figures are rounded; each published value is carried in full under Evidence &amp; limits.</p>
+      </div>
+      <p id="planningBuildAbsent" class="planning-absent" hidden></p>
+
+      <!-- Citizen reading. It foregrounds; it never changes a value, a unit, a
+           state, a scope or a ceiling. -->
+      <details id="planningCitizen" class="planning-citizen">
+        <summary data-i18n="planning.citizen.title">What this means</summary>
+        <p data-i18n="planning.citizen.what">This place sits inside an official planning ámbito — the area in which Madrid's general plan records development state and available buildability.</p>
+        <p data-i18n="planning.citizen.states">The plan publishes four separate development values for it, shown below exactly as published.</p>
+        <p data-i18n="planning.citizen.build">It also publishes how much buildability the plan makes available there, by use class, in m² edificable.</p>
+        <p data-i18n="planning.citizen.date">All of it comes from one dated official edition, whose reference date is shown with the figures.</p>
+        <p class="planning-cannot" data-i18n="planning.citizen.cannot">What it does not say: nothing here measures physical construction, the four values do not combine into one stage or percentage, no number of homes is published or derivable, and no figure is a share of the Lens circle.</p>
+      </details>
+      <p class="planning-ceiling" data-i18n="planning.ceiling">Four independent published administrative phase values and available planning buildability in m² edificable, from one dated official edition, for the whole ámbito. A published phase state is an administrative state, never proof of physical construction. No overall stage, progress, percentage or timeline exists. No dwelling count is published or derivable. No figure is apportioned into the Lens circle, the barrio or any sub-area.</p>
+    </div>
+    <button id="planningSourceToggle" class="planning-source-toggle" type="button" aria-haspopup="dialog" data-i18n="planning.source">Source &amp; interpretation</button>
+  </section>
+
 
     <!-- SUPPORTING EVIDENCE: at most four Lens-circle figures. -->
   <div class="section-head"><span>Within the Lens</span><small id="lensScopeHint">—</small><button type="button" class="evidence-link" data-evidence-prefix="place.metric." data-evidence-name="sec.withinLens" aria-haspopup="dialog"><span aria-hidden="true">i</span></button></div>
@@ -205,6 +272,16 @@
     <div class="card">
       <div class="card-title" data-i18n="mix.nearest">Nearest in active lens</div>
       <ul id="nearestList" class="nearest"><li>Loading…</li></ul>
+    </div>
+    <!-- LENS_INTERSECT_AMBITO: a MEMBERSHIP list, computed only while this
+         disclosure is open. It names which ámbitos the circle touches and
+         carries no quantity, so no share of an ámbito figure can be read from
+         it. The ámbitos' own published quantities stay in the whole-ámbito
+         section above, at PLANNING_AMBITO scope. -->
+    <div class="card" id="planningTouchedCard" hidden>
+      <div class="card-title" data-i18n="planning.touchedTitle">Planning ámbitos touched by the Lens</div>
+      <ul id="planningTouchedList" class="planning-touched"></ul>
+      <p class="planning-block-note" data-i18n="planning.touchedNote">Which ámbitos the Lens circle touches. No share, proportion or part of their published quantities is computed or implied.</p>
     </div>
   </div>
 
@@ -489,13 +566,13 @@
 <script src="js/evidence.js"></script>
 <script src="js/evidence-scope.js?v=20261006-1"></script>
 <script src="js/modes.js?v=20261006-1"></script>
-<script src="js/scope-rail.js?v=20261006-1"></script>
-<script src="js/shell-copy.js?v=20261006-1"></script>
+<script src="js/scope-rail.js?v=20261006-2"></script>
+<script src="js/shell-copy.js?v=20261006-2"></script>
 <script src="js/legacy-copy.js?v=20261006-2"></script>
 <script src="js/data.js?v=20260928-15"></script>
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20261006-56"></script>
+<script src="js/app.js?v=20261006-57"></script>
 </body>
 </html>

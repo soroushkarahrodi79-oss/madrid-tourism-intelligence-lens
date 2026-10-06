@@ -1,0 +1,42 @@
+# Python BUILD-TIME dependencies for the committed data artifacts.
+#
+# NOT runtime dependencies. Nothing in the browser, in index.html, in js/ or in
+# package.json imports any of these: the application reads committed,
+# fingerprinted JSON artifacts and makes no request to an official service.
+#
+# NOT test dependencies either. The Python suite (`python -m unittest discover -s
+# tests -p "test_*.py"`) is standard-library only and installs nothing in CI, so
+# every builder keeps its third-party imports inside a `_require_*()` helper and
+# stays importable — and its pure logic stays testable — without this file.
+#
+# Install only to REGENERATE an artifact:
+#     pip install -r scripts/requirements-build.txt
+#
+# Each artifact's own .meta.json records which builder produced it, with what
+# library version, from which official route.
+
+# HTTP retrieval of the official catalogue, editions and geometry services.
+# Used by: build_planning_ambitos.py, build_ambito_development_state.py (through
+# the Gate L research helpers), and the earlier gate audits.
+requests==2.34.2
+
+# BIFF8 reader for the planning editions. PINNED to the version Gate L audited.
+# These editions are legacy BIFF8 .xls OLE2 compound documents; xlrd 2.0
+# deliberately dropped XLSX/XLSM support and reads only that legacy format, which
+# is exactly what is needed here. openpyxl is an Office-Open-XML/ZIP reader and
+# cannot open them. Parsing fails closed on schema drift
+# (assert_current_era_schema), so a newer xlrd cannot silently shift a column.
+# Used by: build_ambito_development_state.py.
+xlrd==2.0.2
+
+# The explicit, deterministic EPSG:25830 -> EPSG:4326 transformation for the
+# planning geometry. The builder verifies its output against the publisher's own
+# server-side reprojection and fails on disagreement, so the transformation is
+# checked rather than merely declared.
+# Used by: build_planning_ambitos.py.
+pyproj==3.7.2
+
+# Topological union of the 21 official district polygons into the municipality
+# boundary, and real geometry validity at build time (no silent repair).
+# Used by: build_madrid_geography.py.
+shapely==2.1.2

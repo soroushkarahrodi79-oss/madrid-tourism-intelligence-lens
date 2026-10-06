@@ -39,9 +39,10 @@ reframing.
 [Gate K](docs/GATE_K_URBAN_DECISION_WORKSPACE.md), is to make urban-development
 evidence the organising frame, with tourism **retained as one documented
 domain** rather than the headline. That is a change of emphasis and vocabulary,
-not of data: it ships **no new dataset**, and there is **no production planning
-or ámbito layer today**. The first such increment is gated behind Gate L and the
-scope- and freshness-contracts that precede it (§11). The spatial lens itself
+not of data in itself. The **first production planning increment has now
+shipped**: K6 (#68) reads the official planning ámbito that contains a Lens
+centre and what one dated official edition publishes about that whole ámbito -
+see [Planning-ámbito evidence V1](docs/PLANNING_AMBITO_EVIDENCE_V1.md). The spatial lens itself
 solves a real problem the next direction keeps: static maps force you to look at
 a whole city at once, or at one predefined zone, while the lens lets you ask a
 **local, comparative** question — "what is represented within this exact spatial
@@ -144,6 +145,20 @@ including comparing two places at once.
   outside the source universe; within it, INE publishes only crossings above 30
   tourists, so an absent origin is **not zero** and the list is not a complete
   domestic-tourism distribution. It is also independent of the Lens.
+- Read the **planning ámbito** that contains the active Lens centre: its official
+  denomination and **exact official code** (labelled a planning ámbito - not the
+  barrio, not the district, not the Lens circle), the **four independent published
+  development-phase values** verbatim, the characteristic use, the published
+  surface, and the **available buildability** by use class in **m² edificable**,
+  each figure carrying its unit, its whole-ámbito scope and the edition's
+  reference date next to it. `No Necesita` keeps its own label and the note that
+  the publisher never defines it; `PGOUM-85`/`PGOUM-97` stay verbatim as
+  plan-of-origin markers. There is no overall stage, no percentage and no
+  progress. A point outside every ámbito says so explicitly. The PLACE detail
+  also lists **which** ámbitos the Lens circle touches - membership only, with no
+  share of their quantities. See
+  [Planning-ámbito evidence V1](docs/PLANNING_AMBITO_EVIDENCE_V1.md).
+
 - Optionally overlay the full lattice of **district** or **barrio** outlines;
   the containing barrio is always outlined, the lattice defaults to off.
 
@@ -176,6 +191,18 @@ including comparing two places at once.
   1,483 tourist-dwelling units across the 131 barrios. The source declares no
   reference date, so the interface reports the resource file's observed state
   (September 2026) and never calls it a reference date
+- **Official planning ámbitos** (724 polygons with their exact official codes) —
+  Ayuntamiento de Madrid, DG de Planeamiento, through the Geoportal-catalogued
+  planning WFS, under the municipality's general reuse conditions with
+  attribution. Geometry and identifier only: no quantity is taken from it, and
+  the publisher declares no date for it
+- **Published ámbito development state and available buildability** —
+  Ayuntamiento de Madrid, DG de Planificación Estratégica, datasets *PGOUM 97.
+  Estado de desarrollo de los ámbitos* and *PGOUM 97. Edificabilidad remanente en
+  ámbitos* (CC BY 4.0). One dated edition of each, selected by the date the
+  edition states about itself: four independent published phase values and
+  available buildability in m² edificable, for the whole ámbito. No dwelling
+  count, no overall stage, no edition-to-edition change
 - **Monthly hotel demand for the city of Madrid** — Instituto Nacional de
   Estadística, *Encuesta de Ocupación Hotelera* (statistical operation 238), read
   through INE's Tempus3 API. A committed statistical snapshot: 104 contiguous

@@ -95,5 +95,8 @@ test("accessibility copy is part of the same policy", () => {
   }
   // Every K4 shell string has a Spanish twin (already tested for keys) and differs where it is words.
   const same = Object.keys(SHELL_DICTIONARIES.en).filter((key) => SHELL_DICTIONARIES.en[key] === SHELL_DICTIONARIES.es[key]);
-  for (const key of same) assert.match(SHELL_DICTIONARIES.en[key], /^(Reference|—|BiciMAD|barrio|Provisional|Parcel|Semestral|Irregular|Municipio|.*\d.*)$|^[A-Z]+$/, `identical EN/ES string: ${key}`);
+  // "Industrial" and "Terciario" are the planning use classes' own words, and
+  // the first is spelled identically in both languages: a translation would have
+  // to invent a different Spanish word for a term that has none.
+  for (const key of same) assert.match(SHELL_DICTIONARIES.en[key], /^(Reference|—|BiciMAD|barrio|Provisional|Parcel|Semestral|Irregular|Municipio|Industrial|.*\d.*)$|^[A-Z]+$/, `identical EN/ES string: ${key}`);
 });

@@ -3,7 +3,9 @@ import fs from "node:fs";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { validateDeployment, readArtifacts } from "../scripts/validate_deployment.mjs";
+import { createHash } from "node:crypto";
+
+import { validateDeployment, readArtifacts, canonicalJson } from "../scripts/validate_deployment.mjs";
 import { ANALYTICAL_SCOPES, UPDATE_FREQUENCIES, SOURCE_STATES, freshnessOf } from "../js/evidence-scope.js";
 
 const REAL_REGISTRY = JSON.parse(
@@ -28,6 +30,29 @@ function testRegistry() {
   const registry = clone(REAL_REGISTRY);
   for (const source of registry.sources) {
     if (source.integrity_guardrail) source.integrity_guardrail.min_count = 2;
+    // The planning floors and the join baselines describe the real committed
+    // editions (666 and 230 exact matches against 724 polygons), so they are
+    // re-aimed at the fixture's own small universe here. Their behaviour is
+    // asserted on its own below, and the real numbers are asserted in
+    // "source registry is internally coherent" and against the real artifacts.
+    if (source.integrity_guardrail?.min_development_state_rows) {
+      source.integrity_guardrail.min_development_state_rows = 1;
+      source.integrity_guardrail.min_buildability_rows = 1;
+    }
+    if (source.expected_joins) {
+      source.expected_joins.development_state_matched = 1;
+      source.expected_joins.buildability_matched = 1;
+    }
+    // The pinned edition identities and the reference date describe the real
+    // committed editions, so they are re-aimed at the fixture's editions. The
+    // pin's behaviour is asserted on its own below.
+    if (source.id === "planning_ambito_state") {
+      source.editions.development_state.snapshot_identity = PLANNING_FIXTURE.s1Identity;
+      source.editions.development_state.sha256 = PLANNING_FIXTURE.s1Sha;
+      source.editions.available_buildability.snapshot_identity = PLANNING_FIXTURE.s2Identity;
+      source.editions.available_buildability.sha256 = PLANNING_FIXTURE.s2Sha;
+      source.reference_date = PLANNING_FIXTURE.referenceDate;
+    }
     if (source.integrity_guardrail?.minimum_rows_per_published_month) source.integrity_guardrail.minimum_rows_per_published_month = 2;
     if (source.required_modes) {
       for (const rule of Object.values(source.required_modes.modes)) rule.min_count = 1;
@@ -490,6 +515,251 @@ function destinationMeta() {
   };
 }
 
+// ---------------------------------------------------------- planning fixtures
+//
+// Small but CONTRACT-COMPLETE planning artifacts: two ámbitos, one with both
+// published records and one with geometry but no published row, so one fixture
+// exercises the PUBLISHED and NOT_PUBLISHED_IN_EDITION paths, a published zero,
+// a blank published cell, a plan-of-origin marker, `No Necesita` and a `-RP`
+// code. The fingerprints are computed with the validator's own canonical
+// serialisation, so the fixture can never drift from the integrity check it is
+// meant to satisfy.
+const PLANNING_FIXTURE = {
+  referenceDate: "2026-01-01",
+  s1Identity: "S1:2026-01:fixturefixtu",
+  s1Sha: `fixturefixtu${"0".repeat(52)}`,
+  s2Identity: "S2:2026-01:fixturefixt2",
+  s2Sha: `fixturefixt2${"0".repeat(52)}`,
+};
+
+function planningSquare(lon, lat, size = 0.004) {
+  return {
+    type: "MultiPolygon",
+    coordinates: [
+      [
+        [
+          [lon, lat],
+          [lon + size, lat],
+          [lon + size, lat + size],
+          [lon, lat + size],
+          [lon, lat],
+        ],
+      ],
+    ],
+  };
+}
+
+function planningGeometryArtifact() {
+  return {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        properties: {
+          ambito_code: "APE.01.01",
+          ambito_denomination: "FIXTURE AMBITO",
+          source_record_class: "PLANNING_AMBITO",
+        },
+        geometry: planningSquare(LON, LAT),
+      },
+      {
+        type: "Feature",
+        properties: {
+          // A Revisión Parcial code, so the fixture carries the exact identifier
+          // that must never be normalised.
+          ambito_code: "UZPp.03.01-RP",
+          ambito_denomination: "FIXTURE AMBITO NOT MONITORED",
+          source_record_class: "PLANNING_AMBITO",
+        },
+        geometry: planningSquare(LON + 0.01, LAT),
+      },
+    ],
+  };
+}
+
+function planningFingerprint(artifact) {
+  return createHash("sha256").update(canonicalJson(artifact), "utf8").digest("hex");
+}
+
+function planningGeometryMeta(artifact = planningGeometryArtifact()) {
+  return {
+    source: {
+      catalogue_record_url: "https://geoportal.madrid.es/IDEAM_WBGEOPORTAL/dataset.iam?id=fixture",
+      authority: "Ayuntamiento de Madrid",
+    },
+    retrieval: {
+      request_url: "https://sigma.madrid.es/hosted/services/fixture/WFSServer?request=GetFeature",
+      retrieved_at: GENERATED_AT,
+      response_sha256: "b".repeat(64),
+      http_last_modified: null,
+      etag: null,
+    },
+    reuse: {
+      basis: "AYUNTAMIENTO_DE_MADRID_GENERAL_REUSE_CONDITIONS",
+      conditions_url: "https://datos.madrid.es/pages/condiciones-generales-ayuntamiento-de-madrid",
+      attribution: "Origen de los datos: Ayuntamiento de Madrid",
+    },
+    freshness: { reference_date: null, published_at: null, source_state: "NOT_DECLARED_BY_PUBLISHER" },
+    crs: {
+      source: "EPSG:25830",
+      target: "EPSG:4326",
+      transformation: "EPSG:25830 -> EPSG:4326 (pyproj Transformer, always_xy=True)",
+      verification: { within_tolerance: true, max_deviation_deg: 1e-9 },
+      simplification: "NONE",
+    },
+    route_equivalence: { equivalent: true, verdict: "AUTHORITATIVE_EQUIVALENCE_ESTABLISHED" },
+    universe: {
+      included_feature_count: artifact.features.length,
+      classification_rule: "classified by exact official code",
+      excluded_by_class: {
+        NORMA_ZONAL_GRADE: { count: 1 },
+        NON_DEVELOPABLE_LAND_CLASS: { count: 1 },
+        UNCLASSIFIED_SOURCE_RECORD: { count: 0 },
+      },
+    },
+    fingerprint: { algorithm: "sha256", value: planningFingerprint(artifact) },
+    interpretation_ceiling: "Official planning-ámbito boundaries and codes. Not evidence of development state.",
+  };
+}
+
+function planningPhase(sourceValue, kind, vocabulary, column) {
+  return {
+    source_value: sourceValue,
+    state: "PUBLISHED",
+    kind,
+    vocabulary,
+    documented_as: vocabulary === "SOURCE_DOCUMENTED" ? sourceValue : null,
+    source_column: column,
+  };
+}
+
+function planningEdition(family, identity, sha) {
+  return {
+    family,
+    title: "Fixture edition",
+    dataset_url: "https://datos.madrid.es/dataset/fixture",
+    snapshot_identity: identity,
+    snapshot_identity_form: "family : reference_date : sha256[:12]",
+    resource_id: "fixture-0",
+    schema_era: family === "S1" ? "S1_FOUR_PHASE_FLAT" : "S2_SPLIT_RESIDENTIAL_FLAT",
+    schema_fingerprint: "fixture",
+    reference_date: PLANNING_FIXTURE.referenceDate,
+    reference_date_month: "2026-01",
+    reference_date_method: "IN_FILE_EXCEL_SERIAL",
+    reference_date_source_column: "Estado del desarrollo a fecha",
+    published_at: "2026-03-24",
+    published_at_timestamp: "2026-03-24T07:44:00Z",
+    retrieved_at: GENERATED_AT,
+    sha256: sha,
+    license: "CC BY 4.0",
+    update_frequency: "SEMESTRAL",
+    source_state: "DEFINITIVE",
+  };
+}
+
+function planningStateArtifact(registry = REAL_REGISTRY) {
+  const source = registry.sources.find((s) => s.id === "planning_ambito_state");
+  const phaseColumns = source.published_fields.phase_fields;
+  const useColumns = source.published_fields.use_classes;
+  const phaseKeys = ["planeamiento", "gestion", "urbanizacion_proyecto", "urbanizacion_obras"];
+  const useKeys = ["colectiva_residencial", "unifamiliar_residencial", "industrial", "terciario"];
+  return {
+    contract_version: "1.0.0",
+    scope: "PLANNING_AMBITO",
+    phase_fields: phaseKeys.map((key, index) => ({ key, source_column: phaseColumns[index], independent: true })),
+    phase_fields_note: "FOUR INDEPENDENT PUBLISHED FIELDS.",
+    use_classes: useKeys.map((key, index) => ({ key, source_column: useColumns[index], unit: "m² edificable" })),
+    editions: {
+      development_state: planningEdition("S1", PLANNING_FIXTURE.s1Identity, PLANNING_FIXTURE.s1Sha),
+      available_buildability: planningEdition("S2", PLANNING_FIXTURE.s2Identity, PLANNING_FIXTURE.s2Sha),
+    },
+    ambitos: {
+      "APE.01.01": {
+        ambito_code: "APE.01.01",
+        geometry_denomination: "FIXTURE AMBITO",
+        development_state: {
+          availability: "PUBLISHED",
+          denomination: "FIXTURE AMBITO",
+          district: { code: "1", name: "CENTRO" },
+          characteristic_use: "Residencial",
+          surface: { state: "PUBLISHED", value: 12000, unit: "m²", source_column: "Superficie (m²)" },
+          phases: {
+            planeamiento: planningPhase("Finalizado", "PHASE_VALUE", "SOURCE_DOCUMENTED", phaseColumns[0]),
+            // `No Necesita` stays its own state: structurally distinct, with no
+            // official definition.
+            gestion: planningPhase("No Necesita", "UNRESOLVED_MEANING", "SOURCE_DOCUMENTED", phaseColumns[1]),
+            // A plan-of-origin marker occupying a phase cell, verbatim.
+            urbanizacion_proyecto: planningPhase("PGOUM-85", "PLAN_ORIGIN_MARKER", "SOURCE_DOCUMENTED", phaseColumns[2]),
+            // Observed in the data, absent from the structure document.
+            urbanizacion_obras: planningPhase("En Ejecución", "PHASE_VALUE", "SOURCE_OBSERVED_NOT_DOCUMENTED", phaseColumns[3]),
+          },
+          source_row: 1,
+        },
+        available_buildability: {
+          availability: "PUBLISHED",
+          publication: "SINGLE_PUBLISHED_ROW",
+          row_count: 1,
+          cause: null,
+          detail: null,
+          rows: [
+            {
+              source_row: 1,
+              denomination: "FIXTURE AMBITO",
+              district_code: "1",
+              district_name: "CENTRO",
+              situacion: "FASE DE EDIFICACION",
+              observaciones: null,
+              use_classes: {
+                colectiva_residencial: { state: "PUBLISHED", value: 1749, unit: "m² edificable", source_column: useColumns[0] },
+                // A published zero: a real zero, never a missing value.
+                unifamiliar_residencial: { state: "PUBLISHED", value: 0, unit: "m² edificable", source_column: useColumns[1] },
+                // A blank published cell: missing, and never a zero.
+                industrial: { state: "NOT_PUBLISHED", value: null, unit: "m² edificable", source_column: useColumns[2] },
+                terciario: { state: "PUBLISHED", value: 2569.25, unit: "m² edificable", source_column: useColumns[3] },
+              },
+            },
+          ],
+        },
+      },
+      "UZPp.03.01-RP": {
+        ambito_code: "UZPp.03.01-RP",
+        geometry_denomination: "FIXTURE AMBITO NOT MONITORED",
+        // Geometry but no published row: an absence of evidence, never a zero.
+        development_state: { availability: "NOT_PUBLISHED_IN_EDITION", note: "no row in this edition" },
+        available_buildability: { availability: "NOT_PUBLISHED_IN_EDITION", note: "no row in this edition" },
+      },
+    },
+  };
+}
+
+function planningStateMeta(artifact = planningStateArtifact()) {
+  return {
+    authority: "Ayuntamiento de Madrid",
+    families: { S1: { package: "203200-0-desarrollo-ambitos" }, S2: { package: "203182-0-ambitos-remanente" } },
+    edition_selection: { rule: "newest stated reference date within the current schema era" },
+    schema_assertion: { mode: "FAIL_CLOSED" },
+    phase_vocabulary: {
+      no_scalar_stage: "MULTI_DIMENSIONAL_NO_SCALAR_STAGE",
+      no_necesita: { status: "SOURCE_OBSERVED_INTERPRETATION_UNRESOLVED" },
+    },
+    buildability: {
+      unit: "m² edificable",
+      dwelling_proxy_exclusion: {
+        columns: ["Colectiva. Nº Viviendas", "Unifamiliar. Nº Viviendas"],
+        published_in_artifact: false,
+        reason: "residential buildability divided by 100, fractional; not a count of dwelling units",
+      },
+    },
+    aggregate_total_rows: { rule: "An aggregate Total row never enters the artifact." },
+    joins: {
+      S1: { matching: "EXACT", normalisation: "NONE", matched: 1, table_codes: 1, unmatched_in_table: [] },
+      S2: { matching: "EXACT", normalisation: "NONE", matched: 1, table_codes: 1, unmatched_in_table: [] },
+    },
+    fingerprint: { algorithm: "sha256", value: planningFingerprint(artifact) },
+    interpretation_ceiling: "Four independent published administrative phase values. No overall stage.",
+  };
+}
+
 function healthyArtifacts() {
   const layers = {
     museum: poiRecords("museum", 3),
@@ -561,6 +831,10 @@ function healthyArtifacts() {
     "destination/madrid_domestic_origins.json": { source: { authority: "INE", source_url: "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_2026.xlsx", workbook_year: 2026, retrieved_at: GENERATED_AT }, source_universe: { residence: "Residents in Spain", trip_condition: "Travel to a province different from the province of residence", same_province_travel_excluded: true }, geography: { level: "municipality", municipality_code: "28079" }, source_period: { latest: "2026-01", available_months: ["2026-01"] }, suppression: { rule: "more than 30 tourists", absent_is_not_zero: "never materialised as zero" }, source_schema: ["mes", "mun_orig_cod", "mun_orig", "dest_cod", "dest", "turistas", "prov_orig_cod", "prov_orig", "prov_dest_cod", "prov_dest"], schema_fingerprint: "a".repeat(64), months: [{ source_month: "2026-01", published_origins: [{ origin_municipality_code: "01001", origin_municipality_name: "A", origin_province_code: "01", origin_province_name: "A", source_reported_tourists: 40 }, { origin_municipality_code: "08019", origin_municipality_name: "B", origin_province_code: "08", origin_province_name: "B", source_reported_tourists: 50 }] }] },
     "destination/madrid_domestic_origins.meta.json": { source: { authority: "INE", source_url: "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_2026.xlsx", workbook_year: 2026, retrieved_at: GENERATED_AT }, source_universe: { residence: "Residents in Spain", trip_condition: "Travel to a province different from the province of residence", same_province_travel_excluded: true }, schema_fingerprint: "a".repeat(64), geography: { municipality_code: "28079", resolved_level: "municipality", destination_corroboration: { dest: "Madrid", prov_dest_cod: "28", prov_dest: "Madrid" } } },
     "hospitality-commercial-context.json": hospitalityArtifact(),
+    "planning/madrid_ambitos.geojson": planningGeometryArtifact(),
+    "planning/madrid_ambitos.meta.json": planningGeometryMeta(),
+    "planning/madrid_ambito_state.json": planningStateArtifact(),
+    "planning/madrid_ambito_state.meta.json": planningStateMeta(),
   };
 }
 
@@ -1893,6 +2167,13 @@ test("source registry is internally coherent", () => {
         "committed_administrative_snapshot",
         "committed_fingerprinted_administrative_snapshot",
         "committed_statistical_snapshot",
+        // Official planning-ambito polygons and codes: join/orientation material
+        // whose publisher declares no date at all, retrieved through the
+        // catalogued route that states the reuse conditions (#68).
+        "committed_reference_geometry",
+        // ONE dated edition of each official planning family, pinned by its own
+        // stated reference date and its content fingerprint (#68).
+        "committed_edition_snapshot",
       ].includes(source.provenance_state),
       `${source.id} must declare a known provenance_state`
     );
@@ -1984,6 +2265,58 @@ test("source registry is internally coherent", () => {
       assert.ok(guard.minimum_rows_per_published_month > 0, `${source.id} needs a per-published-month floor`);
       assert.ok(guard.baseline_months > 0, `${source.id} needs a baseline month count`);
       assert.ok(guard.baseline_rows_per_published_month >= guard.minimum_rows_per_published_month, `${source.id} per-month floor must not exceed its calibrated baseline`);
+    } else if (source.shape === "planning_ambito_geometry") {
+      // The official planning layer is a MIXED UNIVERSE, so it has neither an
+      // exact-count contract (the publisher may add or remove an ambito) nor a
+      // count of a fixed administrative division. Its guardrail is a collapse
+      // floor, and the pinned class counts beside it make a change in the
+      // universe a visible diff rather than a silent one.
+      const guard = source.integrity_guardrail;
+      assert.ok(guard, `${source.id} needs an integrity_guardrail`);
+      assert.ok(guard.rationale, `${source.id} guardrail needs a stated rationale`);
+      assert.ok(guard.calibrated_on, `${source.id} guardrail needs a calibration date`);
+      assert.ok(
+        guard.min_count <= guard.baseline_count,
+        `${source.id} guardrail floor ${guard.min_count} must not exceed its baseline ${guard.baseline_count}`
+      );
+      const counts = source.expected_counts;
+      assert.ok(counts, `${source.id} needs expected_counts`);
+      assert.ok(counts.raw_source_features > counts.included_planning_ambitos, `${source.id} must record the mixed universe it filtered`);
+      assert.equal(
+        counts.included_planning_ambitos + counts.excluded_norma_zonal_grade + counts.excluded_non_developable_land_class,
+        counts.raw_source_features,
+        `${source.id} must account for every raw feature: nothing is silently discarded`
+      );
+      assert.match(counts.note, /mixed universe/i, `${source.id} must state that the raw count is not an ambito count`);
+      assert.match(counts.note, /prohibited wording/i, `${source.id} must record that "765 ambitos" is prohibited`);
+    } else if (source.shape === "planning_ambito_state") {
+      // Two families, two row floors: the estado edition publishes one row per
+      // ambito while the edificabilidad edition publishes one row per situacion,
+      // so a single min_count would be the wrong instrument for both.
+      const guard = source.integrity_guardrail;
+      assert.ok(guard, `${source.id} needs an integrity_guardrail`);
+      assert.ok(guard.rationale, `${source.id} guardrail needs a stated rationale`);
+      assert.ok(guard.calibrated_on, `${source.id} guardrail needs a calibration date`);
+      assert.ok(
+        guard.min_development_state_rows <= guard.baseline_development_state_rows,
+        `${source.id} development-state floor must not exceed its baseline`
+      );
+      assert.ok(
+        guard.min_buildability_rows <= guard.baseline_buildability_rows,
+        `${source.id} buildability floor must not exceed its baseline`
+      );
+      // Exact joins only: normalising a code would merge an annulled ambito with
+      // its Revision Parcial replacement.
+      assert.equal(source.expected_joins.matching, "EXACT");
+      assert.equal(source.expected_joins.normalisation, "NONE");
+      assert.match(source.expected_joins.note, /-RP suffix is NEVER stripped/);
+      // Four independent published fields, and no dwelling count anywhere.
+      assert.equal(source.published_fields.phase_fields.length, 4);
+      assert.equal(source.published_fields.phase_fields_are_independent, true);
+      assert.match(source.published_fields.no_scalar_stage, /no overall stage/i);
+      assert.deepEqual(source.published_fields.excluded_columns, ["Colectiva. Nº Viviendas", "Unifamiliar. Nº Viviendas"]);
+      assert.match(source.published_fields.excluded_columns_reason, /not a count of\s+dwelling units/i);
+      assert.equal(source.published_fields.buildability_unit, "m2 edificable");
     } else if (["admin_geography", "admin_population", "admin_licence_counts", "admin_hospitality_context"].includes(source.shape)) {
       // The administrative geography, the population denominator and the
       // licensed-VUT numerator have an exact-count contract, not a collapse
@@ -2058,11 +2391,22 @@ test("the evidence vocabulary distinguishes a register from a licence", () => {
   //                            OBSERVED: it is an estimate, not a record. It is
   //                            not MODEL-DERIVED: it comes from a statutory
   //                            survey of real establishments, not a simulation.
+  //   ADMINISTRATIVE_PLANNING_STATE
+  //                            an administrative STATE a planning instrument
+  //                            publishes about an area, plus the buildability
+  //                            that instrument makes available there. Not a
+  //                            register: nothing is enumerated. Not a licence:
+  //                            no act has been granted to anyone. Not OBSERVED:
+  //                            a published phase value is an administrative
+  //                            state, never a measurement of physical
+  //                            construction. Not a statistical series: it is a
+  //                            plan's own record, not a survey estimate.
   const families = new Set(REAL_REGISTRY.sources.map((s) => s.evidence_type));
   assert.deepEqual(
     [...families].sort(),
     [
       "ADMINISTRATIVE_LICENSE",
+      "ADMINISTRATIVE_PLANNING_STATE",
       "ADMINISTRATIVE_REGISTER",
       "MODEL-DERIVED",
       "OBSERVED",
@@ -2199,6 +2543,234 @@ test("the packaged fallback declares mixed provenance and points at its record",
   assert.match(provenance.layers.museums.live_source, /Madrid Open Data/);
 });
 
+// ------------------------------------- planning ámbito evidence (K6, #68)
+//
+// The failure modes these cover are each a CONFIDENT WRONG ANSWER rather than a
+// visibly empty panel: a wrong place, an invented quantity, a missing value read
+// as a zero, a progression invented from four independent fields, or a dwelling
+// count conjured out of an m²/100 proxy.
+
+test("K6 a missing or empty planning geometry fails the build", () => {
+  for (const broken of [null, { type: "FeatureCollection", features: [] }, { nope: true }]) {
+    const artifacts = healthyArtifacts();
+    artifacts["planning/madrid_ambitos.geojson"] = broken;
+    const result = run(artifacts);
+    assert.equal(result.ok, false, JSON.stringify(broken));
+    assert.match(errorText(result), /is missing or is not a GeoJSON FeatureCollection|carries no features/);
+  }
+});
+
+test("K6 a collapsed ring, a projection leak and a duplicate code each fail the build", () => {
+  // A ring with fewer than four positions cannot contain a point, so a
+  // containment answer built from it would be meaningless.
+  let artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambitos.geojson"].features[0].geometry.coordinates[0][0] = [[LON, LAT], [LON, LAT]];
+  artifacts["planning/madrid_ambitos.meta.json"] = planningGeometryMeta(artifacts["planning/madrid_ambitos.geojson"]);
+  assert.match(errorText(run(artifacts)), /their geometry has collapsed/);
+
+  // Coordinates left in EPSG:25830 would silently move every boundary.
+  artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambitos.geojson"].features[0].geometry = planningSquare(440461, 4475228, 10);
+  artifacts["planning/madrid_ambitos.meta.json"] = planningGeometryMeta(artifacts["planning/madrid_ambitos.geojson"]);
+  assert.match(errorText(run(artifacts)), /projection leak/);
+
+  artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambitos.geojson"].features[1].properties.ambito_code = "APE.01.01";
+  artifacts["planning/madrid_ambitos.meta.json"] = planningGeometryMeta(artifacts["planning/madrid_ambitos.geojson"]);
+  assert.match(errorText(run(artifacts)), /duplicate ámbito_code "APE\.01\.01"/);
+});
+
+test("K6 a non-ámbito record from the mixed universe may not ship as a planning ámbito", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambitos.geojson"].features[0].properties.source_record_class = "NORMA_ZONAL_GRADE";
+  artifacts["planning/madrid_ambitos.meta.json"] = planningGeometryMeta(artifacts["planning/madrid_ambitos.geojson"]);
+  assert.match(errorText(run(artifacts)), /only the ámbito-like class may ship/);
+});
+
+test("K6 an unresolved route equivalence or an unverified reprojection fails the build", () => {
+  // The issue's STOP condition, enforced at the publication gate too: geometry
+  // whose reuse basis was never established must not reach a deployment.
+  let artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambitos.meta.json"].route_equivalence = { equivalent: false, verdict: "NOT_EQUIVALENT" };
+  assert.match(errorText(run(artifacts)), /reuse basis for the committed geometry is unresolved/);
+
+  artifacts = healthyArtifacts();
+  delete artifacts["planning/madrid_ambitos.meta.json"].route_equivalence;
+  assert.match(errorText(run(artifacts)), /route equivalence is "absent"/);
+
+  artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambitos.meta.json"].crs.verification.within_tolerance = false;
+  assert.match(errorText(run(artifacts)), /was not verified against the publisher's own/);
+
+  artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambitos.meta.json"].crs.simplification = "DOUGLAS_PEUCKER";
+  assert.match(errorText(run(artifacts)), /K6 ships unsimplified geometry/);
+});
+
+test("K6 a back-filled geometry reference date fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambitos.meta.json"].freshness.reference_date = "2026-03-05";
+  assert.match(errorText(run(artifacts)), /The null is known absence and is never back-filled/);
+});
+
+test("K6 an unclassified source record may not be silently admitted", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambitos.meta.json"].universe.excluded_by_class.UNCLASSIFIED_SOURCE_RECORD.count = 2;
+  assert.match(errorText(run(artifacts)), /unclassified source record\(s\) were recorded/);
+});
+
+test("K6 a hand-edited planning artifact is caught by the recomputed fingerprint", () => {
+  for (const key of ["planning/madrid_ambitos.geojson", "planning/madrid_ambito_state.json"]) {
+    const artifacts = healthyArtifacts();
+    // A plausible-looking edit that leaves the structure intact.
+    if (key.endsWith(".geojson")) artifacts[key].features[0].properties.ambito_denomination = "EDITED BY HAND";
+    else artifacts[key].ambitos["APE.01.01"].development_state.characteristic_use = "Industrial";
+    const result = run(artifacts);
+    assert.equal(result.ok, false, key);
+    assert.match(errorText(result), /does not match the artifact's recomputed/, key);
+  }
+});
+
+test("K6 a cross-era edition is refused rather than parsed as equivalent evidence", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambito_state.json"].editions.development_state.schema_era = "S1_SINGLE_STATE_PER_DISTRICT";
+  artifacts["planning/madrid_ambito_state.meta.json"] = planningStateMeta(artifacts["planning/madrid_ambito_state.json"]);
+  assert.match(errorText(run(artifacts)), /not the current comparable era/);
+});
+
+test("K6 a missing stated reference date, or one the registry disagrees with, fails the build", () => {
+  let artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambito_state.json"].editions.development_state.reference_date = null;
+  artifacts["planning/madrid_ambito_state.meta.json"] = planningStateMeta(artifacts["planning/madrid_ambito_state.json"]);
+  assert.match(errorText(run(artifacts)), /states no ISO reference date/);
+
+  artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambito_state.json"].editions.development_state.reference_date = "2025-07-01";
+  artifacts["planning/madrid_ambito_state.meta.json"] = planningStateMeta(artifacts["planning/madrid_ambito_state.json"]);
+  assert.match(errorText(run(artifacts)), /does not match the selected edition's stated/);
+});
+
+test("K6 a silently changed edition identity fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambito_state.json"].editions.available_buildability.snapshot_identity = "S2:2026-07:deadbeefcafe";
+  artifacts["planning/madrid_ambito_state.meta.json"] = planningStateMeta(artifacts["planning/madrid_ambito_state.json"]);
+  assert.match(errorText(run(artifacts)), /does not match the registry's pinned/);
+});
+
+test("K6 a scalar stage, a dwelling count or an aggregate Total row fails the build", () => {
+  // A derived progression over four independent published fields.
+  let artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambito_state.json"].ambitos["APE.01.01"].development_state.overall_stage = "En Ejecución";
+  artifacts["planning/madrid_ambito_state.meta.json"] = planningStateMeta(artifacts["planning/madrid_ambito_state.json"]);
+  assert.match(errorText(run(artifacts)), /forbidden key\(s\) overall_stage/);
+
+  // The m²/100 proxy published as a count of homes.
+  artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambito_state.json"].ambitos["APE.01.01"].available_buildability.rows[0].dwelling_count = 17.49;
+  artifacts["planning/madrid_ambito_state.meta.json"] = planningStateMeta(artifacts["planning/madrid_ambito_state.json"]);
+  assert.match(errorText(run(artifacts)), /forbidden key\(s\) dwelling_count/);
+
+  // The excluded source column itself.
+  artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambito_state.json"].ambitos["APE.01.01"].available_buildability.rows[0].use_classes.colectiva_residencial.source_column =
+    "Colectiva. Nº Viviendas";
+  artifacts["planning/madrid_ambito_state.meta.json"] = planningStateMeta(artifacts["planning/madrid_ambito_state.json"]);
+  assert.match(errorText(run(artifacts)), /excluded dwelling-proxy column .* appears in the published artifact/);
+
+  // A city total published as one place's figure.
+  artifacts = healthyArtifacts();
+  const state = artifacts["planning/madrid_ambito_state.json"];
+  state.ambitos.Total = JSON.parse(JSON.stringify(state.ambitos["APE.01.01"]));
+  state.ambitos.Total.ambito_code = "Total";
+  artifacts["planning/madrid_ambito_state.meta.json"] = planningStateMeta(state);
+  assert.match(errorText(run(artifacts)), /aggregate Total row\(s\) entered the per-ámbito artifact/);
+});
+
+test("K6 a bare buildability number and a missing-value-turned-zero each fail the build", () => {
+  let artifacts = healthyArtifacts();
+  delete artifacts["planning/madrid_ambito_state.json"].ambitos["APE.01.01"].available_buildability.rows[0].use_classes.terciario.unit;
+  artifacts["planning/madrid_ambito_state.meta.json"] = planningStateMeta(artifacts["planning/madrid_ambito_state.json"]);
+  assert.match(errorText(run(artifacts)), /carry a value without its unit/);
+
+  // A blank published cell must stay null: missing never becomes zero.
+  artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambito_state.json"].ambitos["APE.01.01"].available_buildability.rows[0].use_classes.industrial.value = 0;
+  artifacts["planning/madrid_ambito_state.meta.json"] = planningStateMeta(artifacts["planning/madrid_ambito_state.json"]);
+  assert.match(errorText(run(artifacts)), /missing never becomes zero/);
+});
+
+test("K6 four phase fields that stop being four fail the build", () => {
+  let artifacts = healthyArtifacts();
+  delete artifacts["planning/madrid_ambito_state.json"].ambitos["APE.01.01"].development_state.phases.urbanizacion_obras;
+  artifacts["planning/madrid_ambito_state.meta.json"] = planningStateMeta(artifacts["planning/madrid_ambito_state.json"]);
+  assert.match(errorText(run(artifacts)), /do not carry exactly the four phase fields/);
+
+  // A published phase with no source value is a state the publisher never issued.
+  artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambito_state.json"].ambitos["APE.01.01"].development_state.phases.gestion.source_value = "";
+  artifacts["planning/madrid_ambito_state.meta.json"] = planningStateMeta(artifacts["planning/madrid_ambito_state.json"]);
+  assert.match(errorText(run(artifacts)), /marked PUBLISHED but carry no source value/);
+});
+
+test("K6 a normalised or collapsed join fails the build", () => {
+  let artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambito_state.meta.json"].joins.S1.normalisation = "STRIP_RP";
+  assert.match(errorText(run(artifacts)), /Codes join exactly and are never normalised/);
+
+  artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambito_state.meta.json"].joins.S2.matched = 0;
+  artifacts["planning/madrid_ambito_state.meta.json"].joins.S2.table_codes = 1;
+  assert.match(errorText(run(artifacts)), /below the registry's expected/);
+
+  // Unmatched records must be listed, never merely counted away.
+  artifacts = healthyArtifacts();
+  delete artifacts["planning/madrid_ambito_state.meta.json"].joins.S1.unmatched_in_table;
+  assert.match(errorText(run(artifacts)), /does not list its unmatched records/);
+});
+
+test("K6 planning artifacts built from different universes fail the build", () => {
+  const artifacts = healthyArtifacts();
+  delete artifacts["planning/madrid_ambito_state.json"].ambitos["UZPp.03.01-RP"];
+  artifacts["planning/madrid_ambito_state.meta.json"] = planningStateMeta(artifacts["planning/madrid_ambito_state.json"]);
+  assert.match(errorText(run(artifacts)), /not built from the same universe/);
+});
+
+test("K6 a planning scope mismatch fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambito_state.json"].scope = "LENS_INTERSECT_AMBITO";
+  artifacts["planning/madrid_ambito_state.meta.json"] = planningStateMeta(artifacts["planning/madrid_ambito_state.json"]);
+  assert.match(errorText(run(artifacts)), /does not match the registry scope/);
+});
+
+test("K6 a missing planning sidecar field fails the build", () => {
+  for (const [artifactKey, metaKey, path] of [
+    ["planning/madrid_ambitos.meta.json", "reuse", "reuse.conditions_url"],
+    ["planning/madrid_ambitos.meta.json", "interpretation_ceiling", "interpretation_ceiling"],
+    ["planning/madrid_ambito_state.meta.json", "edition_selection", "edition_selection.rule"],
+    ["planning/madrid_ambito_state.meta.json", "aggregate_total_rows", "aggregate_total_rows.rule"],
+  ]) {
+    const artifacts = healthyArtifacts();
+    delete artifacts[artifactKey][metaKey];
+    const result = run(artifacts);
+    assert.equal(result.ok, false, path);
+    assert.match(errorText(result), new RegExp(`has no ${path.replace(/\./g, "\\.")}`), path);
+  }
+  // A missing sidecar altogether is reported, not shrugged off.
+  for (const key of ["planning/madrid_ambitos.meta.json", "planning/madrid_ambito_state.meta.json"]) {
+    const artifacts = healthyArtifacts();
+    artifacts[key] = null;
+    assert.match(errorText(run(artifacts)), /is missing, so the (?:geometry's|editions')/, key);
+  }
+});
+
+test("K6 a planning count below the ingestion guardrail fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["planning/madrid_ambitos.geojson"].features = [artifacts["planning/madrid_ambitos.geojson"].features[0]];
+  artifacts["planning/madrid_ambitos.meta.json"] = planningGeometryMeta(artifacts["planning/madrid_ambitos.geojson"]);
+  // testRegistry() scales the floor to 2, so one feature is a collapse.
+  assert.match(errorText(run(artifacts)), /below the ingestion guardrail/);
+});
+
 test("exactly the layers a user-facing feature depends on block deployment", () => {
   const blocking = REAL_REGISTRY.sources.filter((s) => s.blocks_deployment).map((s) => s.id).sort();
   assert.deepEqual(blocking, [
@@ -2210,6 +2782,8 @@ test("exactly the layers a user-facing feature depends on block deployment", () 
     "hotel_demand",
     "info",
     "museum",
+    "planning_ambito_geometry",
+    "planning_ambito_state",
     "population",
     "rail",
     "snapshot_fallback",
@@ -2235,6 +2809,21 @@ test("exactly the layers a user-facing feature depends on block deployment", () 
     assert.match(
       source.blocks_deployment_note,
       /BLOCKING since the Area Profile/,
+      `${id} must document why it blocks`
+    );
+  }
+
+  // The two planning sources became publication gates with K6 (#68), when the
+  // interface began naming the containing official planning ambito and
+  // publishing its four official phase values and available buildability. Both
+  // are committed artifacts, so neither may be allowed to be absent, and each
+  // has to record why its gate exists.
+  for (const id of ["planning_ambito_geometry", "planning_ambito_state"]) {
+    const source = REAL_REGISTRY.sources.find((s) => s.id === id);
+    assert.equal(source.unavailable_is_allowed, false, `${id} must not allow an unavailable state`);
+    assert.match(
+      source.blocks_deployment_note,
+      /BLOCKING from the moment K6/,
       `${id} must document why it blocks`
     );
   }
@@ -2269,7 +2858,7 @@ test("the committed evidence artifacts satisfy the real registry", () => {
   };
   assert.deepEqual(
     committedRegistry.sources.map((s) => s.id).sort(),
-    ["domestic_origin_context", "geography", "hati", "hospitality_commercial_context", "hotel_demand", "population", "snapshot_fallback", "vut_licences"],
+    ["domestic_origin_context", "geography", "hati", "hospitality_commercial_context", "hotel_demand", "planning_ambito_geometry", "planning_ambito_state", "population", "snapshot_fallback", "vut_licences"],
     "the set of committed, non-rebuilt sources changed; update this test deliberately"
   );
 
