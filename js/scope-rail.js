@@ -45,8 +45,10 @@ const SCOPE_GLYPHS = Object.freeze({
 // caller's dictionary, so the drawer states them from one place rather than from
 // hand-written card prose. `when` names an optional visibility flag.
 //
-// There is NO planning surface: K4 creates the place where #68 will add one, and
-// invents no ámbito value.
+// The planning surfaces are K6's (#68). They are PLANNING_AMBITO-scoped — every
+// published state and quantity describes the WHOLE ámbito — except the Lens∩ámbito
+// membership list, which is LENS_INTERSECT_AMBITO and carries no quantity at all.
+// The two scopes are never merged and no value carries both.
 const SURFACES = Object.freeze({
   "place.area.residents": { mode: "PLACE", scope: "OFFICIAL_BARRIO", sources: ["population", "geography"], unit: "unit.residents", derivation: "derive.published" },
   "place.area.vut": { mode: "PLACE", scope: "OFFICIAL_BARRIO", sources: ["vut_licences"], unit: "unit.vutUnits", derivation: "derive.published", when: "vut" },
@@ -54,6 +56,11 @@ const SURFACES = Object.freeze({
   "place.metric.stays": { mode: "PLACE", scope: "LENS_CIRCLE", sources: ["stay"], unit: "unit.records", derivation: "derive.lensCount" },
   "place.metric.mobility": { mode: "PLACE", scope: "LENS_CIRCLE", sources: ["bike", "rail"], unit: "unit.records", derivation: "derive.lensCount" },
   "place.metric.utci": { mode: "PLACE", scope: "LENS_CIRCLE", sources: ["hati"], unit: "unit.celsius", derivation: "derive.lensMean", when: "hati" },
+  "place.planning.ambito": { mode: "PLACE", scope: "PLANNING_AMBITO", sources: ["planning_ambito_geometry"], unit: "unit.ambitoIdentity", derivation: "derive.ambitoContainment" },
+  "place.planning.phases": { mode: "PLACE", scope: "PLANNING_AMBITO", sources: ["planning_ambito_state"], unit: "unit.phaseState", derivation: "derive.published" },
+  "place.planning.surface": { mode: "PLACE", scope: "PLANNING_AMBITO", sources: ["planning_ambito_state"], unit: "unit.squareMetres", derivation: "derive.published" },
+  "place.planning.buildability": { mode: "PLACE", scope: "PLANNING_AMBITO", sources: ["planning_ambito_state"], unit: "unit.buildability", derivation: "derive.published" },
+  "place.planning.touched": { mode: "PLACE", scope: "LENS_INTERSECT_AMBITO", sources: ["planning_ambito_geometry"], unit: "unit.touchedAmbitos", derivation: "derive.ambitoMembership", when: "planningDetail" },
   "place.detail.mix": { mode: "PLACE", scope: "LENS_CIRCLE", sources: ["museum", "info", "stay", "bike", "rail"], unit: "unit.share", derivation: "derive.lensShare" },
   "place.detail.nearest": { mode: "PLACE", scope: "LENS_CIRCLE", sources: ["museum", "info", "stay", "bike", "rail"], unit: "unit.metres", derivation: "derive.nearest" },
   "place.pedestrian": { mode: "PLACE", scope: "LENS_CIRCLE", sources: ["pedestrian"], unit: "unit.pedestrians", derivation: "derive.lensMean", when: "pedestrian" },

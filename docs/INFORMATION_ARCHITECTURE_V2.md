@@ -2,10 +2,13 @@
 
 Status: implemented by **K4 (#66)**. This document records the reading
 architecture of the panel. It changes **how existing evidence is read**; it
-changes no number, state, unit, withholding rule or interpretation ceiling, and it
-ships **no planning evidence**. Planning evidence is **not yet shipped**: it
-arrives with #68 and will populate the place K4 reserves for it (see
-[§11](#11-where-planning-evidence-will-go)).
+changes no number, state, unit, withholding rule or interpretation ceiling.
+
+**K4 itself shipped no planning evidence** — it only created the place for it.
+That place is now filled: **K6 (#68)** added the ámbito evidence object to PLACE
+with no further IA rewrite, exactly as [§11](#11-where-planning-evidence-went)
+anticipated. See
+[Planning-ámbito evidence V1](PLANNING_AMBITO_EVIDENCE_V1.md).
 
 Related: [Gate K](GATE_K_URBAN_DECISION_WORKSPACE.md) §9 and §12,
 [Product semantics](PRODUCT_SEMANTICS.md), [Gate L](URBAN_PLANNING_SOURCE_GATE_L.md),
@@ -289,22 +292,31 @@ Escape, focus return, visible close. Touch: ≥ 44px on `pointer: coarse` for th
 mode buttons, rail items, evidence controls, disclosures, layer action, drawer
 controls and the language select.
 
-## 11. Where planning evidence will go
+## 11. Where planning evidence went
 
-Not shipped. K4 only creates the place for it:
+K4 created the place; **K6 (#68) filled it**, and the architecture held:
 
-- PLACE's lead is produced by a lead block over existing evidence; #68 adds an
-  ámbito evidence object to PLACE without another IA rewrite.
-- `PLANNING_AMBITO` already exists in the scope enum, has a glyph and a label in
-  both languages, and the rail derives its entries from the surfaces on screen, so
-  an ámbito surface appears in the rail by declaring one `SURFACES` entry.
-- Nothing here encodes an assumption Gate L rejected: no scalar planning stage,
-  no "progress" direction, no dwelling counts, no "remaining to be built", no
-  equating 765 polygons with 765 ámbitos, no reading of `No Necesita` as "not
+- PLACE's lead was produced by a lead block over existing evidence; #68 added an
+  ámbito evidence object **below** it as a second lead-level object, with no
+  further IA rewrite and no change to the reading order.
+- `PLANNING_AMBITO` and `LENS_INTERSECT_AMBITO` already existed in the scope enum
+  with glyphs and labels in both languages, and the rail derives its entries from
+  the surfaces on screen — so the ámbito scope appeared in the rail by declaring
+  `SURFACES` entries, and `LENS_INTERSECT_AMBITO` appears only while the Lens∩ámbito
+  membership surface is actually open.
+- The evidence drawer needed no second provenance store: the two planning sources
+  were registered in `data/source_registry.json` and the existing registry-driven
+  drawer renders their full provenance and verbatim ceilings in both readings.
+- Nothing encodes an assumption Gate L rejected: no scalar planning stage, no
+  "progress" direction, no dwelling counts, no "remaining to be built", no
+  equating 765 polygons with 765 ámbitos, and no reading of `No Necesita` as "not
   applicable".
 
-## 12. Out of scope
+## 12. Out of scope (for K4)
 
-No new dataset, ámbito layer, buildability, licences, change detection, MapLibre,
-PMTiles, DuckDB, React, 3D, shader/glass, AI, recommendation, score, ranking or
-analytical metric. Typography, colour and visual polish are #67's.
+K4 itself added no new dataset, ámbito layer, buildability, licences, change
+detection, MapLibre, PMTiles, DuckDB, React, 3D, shader/glass, AI,
+recommendation, score, ranking or analytical metric; typography, colour and
+visual polish were #67's. The ámbito layer and buildability arrived with #68
+under the Gate L contract; licences, change detection and any runtime-stack
+decision remain out of scope for both.

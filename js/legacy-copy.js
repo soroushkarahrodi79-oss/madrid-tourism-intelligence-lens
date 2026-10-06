@@ -65,6 +65,8 @@ const LEGACY_COPY_ES = [
   ["Hospitality & Commercial Context", "Contexto de hostelería y actividad comercial"],
   ["Hotel demand by month (Destination Context)", "Demanda hotelera por mes (Contexto del destino)"],
   ["Madrid domestic origin context by month (Destination Context)", "Contexto de orígenes nacionales de Madrid por mes (Contexto del destino)"],
+  ["Official planning-ambito geometry (Ambitos Ordenacion)", "Geometría oficial de ámbitos de planeamiento (Ámbitos Ordenación)"],
+  ["Published ambito development state and available buildability (PGOUM 97)", "Estado de desarrollo publicado y edificabilidad disponible del ámbito (PGOUM 97)"],
   // map tooltips
   ["model-derived", "derivado de modelo"],
   ["context only", "solo contexto"],

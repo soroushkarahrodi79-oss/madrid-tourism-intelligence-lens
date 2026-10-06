@@ -42,6 +42,16 @@
   INE hotel occupancy survey published for the latest available month, their
   **residence composition**, a **same-month-previous-year** comparison, and a
   24-month trend.
+- Reports, for the **official planning ámbito** that contains a Lens centre, what
+  **one dated official edition** publishes about that **whole ámbito**: its
+  official denomination and exact official code, the **four independent published
+  development-phase values** (verbatim), the characteristic use, the published
+  surface, and the **available buildability** (*edificabilidad disponible*) by
+  documented use class in **m² edificable** — each figure with its unit, its
+  whole-ámbito scope and the edition's stated reference date. It also lists
+  **which** planning ámbitos a Lens circle touches, and nothing more about that
+  intersection. See
+  [Planning-ámbito evidence V1](PLANNING_AMBITO_EVIDENCE_V1.md).
 
 ## What this application does NOT claim or establish
 
@@ -294,8 +304,68 @@ breach them.
   **not** derive, estimate or imply a number of dwellings, protected dwellings,
   homes or households from it. Buildability is floor area the plan permits, not
   housing delivered; the two are different indicators and are never converted
-  into one another. Madrid's audited machine-readable planning sources publish
-  no dwelling count, so none is claimed (Gate K §6.6, §20).
+  into one another. **Correction to Gate K §6.6**, which claimed no dwelling-count
+  field exists: Gate L §16 found that dataset 203182 *does* publish
+  `Colectiva. Nº Viviendas` and `Unifamiliar. Nº Viviendas`, documented as
+  *"Nº de viviendas disponibles … en unidades"*. It then measured their values as
+  exactly residential buildability ÷ 100, fractional, at a match rate of 1.0
+  across every row — a mechanical m²/100 proxy at an assumed 100 m² per dwelling,
+  **not a count of dwelling units**, with no protected-housing count column at
+  all. Those columns are read and counted at build time so the exclusion is a
+  recorded observation, and are then **excluded by name**. The ceiling is
+  unchanged and binding: buildability ships in m² only, and no dwelling count is
+  published or derivable.
+- **No overall development stage, progress, percentage or timeline.** The four
+  published phase fields of a planning ámbito are, empirically,
+  **multi-dimensional and not an ordered funnel**, and the publisher documents no
+  ordering between them (Gate L §12:
+  `MULTI_DIMENSIONAL_NO_SCALAR_STAGE`). The application therefore reports **four
+  independent published values** and never derives an overall stage, a stage
+  number, a progression, a percentage, a completion figure, advancement, delay, a
+  timeline, a progress bar or an overall status from them. No single element
+  summarises the four, and the order they are listed in is the publisher's column
+  order, not a rank.
+- **A published planning state is not physical construction.**
+  `PLANNING_STATE_TRANSITION ≠ PHYSICAL_URBAN_CHANGE`. A phase value such as
+  `Urbanización. Obras = En Ejecución` is an **administrative state** recorded by
+  the plan. It is not a measurement of work on the ground, not a completion
+  percentage, and not evidence that anything has been built.
+- **Available buildability is not a forecast.** It is what the plan makes
+  available for lucrative uses in currently-valid ámbitos, according to situación.
+  It is **not** "remaining to be built", "yet to be constructed", construction
+  remaining, development remaining, unallocated land, or an estimate of what will
+  necessarily be built. The application never implies it will be consumed.
+- **`No Necesita` has no established meaning.** The publisher lists it as a
+  distinct expected phase value but **never defines it** (Gate L §13). The
+  application preserves the verbatim label, keeps it structurally distinct from
+  `Sin Iniciar`, and states that its precise meaning is not defined in the audited
+  documentation. It is never rendered as, mapped to or equated with "no aplica",
+  "not applicable", `Sin Iniciar`, zero, unavailable, complete or skipped.
+- **`PGOUM-85` and `PGOUM-97` are not progress states.** They are plan-of-origin
+  markers that occupy phase cells — 42.4 % of all phase cells (Gate L §11) — and
+  are preserved verbatim, never inserted into a sequence and never treated as
+  errors.
+- **No edition-to-edition change, trend or difference in planning evidence.** The
+  planning surface reads **one** dated edition per family. The 15 published
+  editions are not one comparable series: S1 has two schema eras and S2 has four,
+  and the four-phase structure exists only in the three most recent (Gate L §6).
+  Cross-era differencing is barred, and even within one era a difference is at
+  most an *observed published difference with cause unresolved*, never progress.
+- **The planning geometry's currency is unknown.** The official layer publishes no
+  edition date, no effective date and no cadence, so the application shows **no
+  date for the geometry** and never infers one from a retrieval time, a catalogue
+  record date or an HTTP header.
+- **The raw planning layer is not a count of ámbitos.** It is a mixed universe of
+  planning ámbitos, Norma Zonal grade records and non-developable land classes.
+  The application filters to the documented ámbito universe, reports every
+  exclusion by class and count, and never describes the raw feature count as a
+  number of ámbitos.
+- **A Lens∩ámbito reading is membership only.** It answers *which* official
+  planning ámbitos a Lens circle touches. It never answers what share of an
+  ámbito's published state, surface or available buildability lies inside the
+  circle — no proportional, area-weighted or population-weighted allocation
+  exists, and the model exposes no overlap area or fraction from which one could
+  be computed.
 - **No apportionment of a whole-area quantity to a part of it.** A value whose
   **scope** is a whole official area — a barrio, a district, an ámbito, the
   municipality — must **never** be scaled, weighted or redistributed into a

@@ -128,6 +128,57 @@ function pointSegmentDistance(x, y, ax, ay, bx, by) {
 }
 
 /**
+ * Does a circle of `radiusM` around (lon, lat) touch this Polygon/MultiPolygon?
+ *
+ * The generic circle-vs-polygon predicate, kept HERE so there is exactly one
+ * containment implementation and one distance implementation in the project.
+ * `js/planning-ambito.js` reuses it rather than writing a second, subtly
+ * different version.
+ *
+ * True when the centre lies inside the geometry, or when any boundary segment
+ * comes within `radiusM` of the centre. Those two cases are jointly exhaustive:
+ * a circle that wholly contains the polygon still has the boundary within its
+ * radius, and a polygon that wholly contains the circle holds its centre. Edge
+ * distances use the same azimuthal-equidistant projection and point-to-segment
+ * distance as `municipalityContainsCircle`.
+ *
+ * This answers MEMBERSHIP ONLY — does the circle touch this area, yes or no. It
+ * deliberately returns no overlap area, no overlapping fraction and no weight,
+ * because there is no quantity in this project that may be apportioned by one.
+ */
+export function geometryIntersectsCircle(lon, lat, radiusM, geometry) {
+  if (!geometry || !Number.isFinite(lon) || !Number.isFinite(lat) || !Number.isFinite(radiusM) || radiusM <= 0) {
+    return false;
+  }
+  if (pointInGeometry(lon, lat, geometry)) return true;
+  const box = boundingBox(geometry);
+  const latPad = radiusM / 111000;
+  const lonPad = latPad / Math.max(0.2, Math.cos((lat * Math.PI) / 180));
+  if (
+    box.maxLat < lat - latPad ||
+    box.minLat > lat + latPad ||
+    box.maxLon < lon - lonPad ||
+    box.minLon > lon + lonPad
+  ) {
+    return false;
+  }
+  for (const edge of boundarySegments(geometry)) {
+    if (
+      edge.maxLat < lat - latPad ||
+      edge.minLat > lat + latPad ||
+      edge.maxLon < lon - lonPad ||
+      edge.minLon > lon + lonPad
+    ) {
+      continue;
+    }
+    const [ax, ay] = localMeters(edge.a[0], edge.a[1], lon, lat);
+    const [bx, by] = localMeters(edge.b[0], edge.b[1], lon, lat);
+    if (pointSegmentDistance(0, 0, ax, ay, bx, by) <= radiusM) return true;
+  }
+  return false;
+}
+
+/**
  * Build a containment index over the canonical geography FeatureCollection.
  *
  * Pure: no I/O, no globals. Returns lookups that take (lon, lat) in GeoJSON

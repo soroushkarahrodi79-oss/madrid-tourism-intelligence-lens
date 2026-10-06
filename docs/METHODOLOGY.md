@@ -561,8 +561,15 @@ The closed scope enum (Gate K §8): `LENS_CIRCLE`, `OFFICIAL_BARRIO`,
 `OFFICIAL_DISTRICT`, `MUNICIPALITY`, `POINT_OBSERVATION`, `BOUNDED_STUDY_AREA`,
 `PLANNING_AMBITO`, `EXECUTION_UNIT`, `DEVELOPMENT_STAGE_AREA`, `PARCEL`,
 `ADDRESS_POINT`, `WORK_GEOMETRY`, `LENS_INTERSECT_AMBITO`. The planning scopes
-are defined because Gate K authorised the enum; **no planning production evidence
-ships until Gate L closes**.
+were defined because Gate K authorised the enum. Gate L has since closed, and
+**K6 (#68) ships production evidence at exactly two of them**:
+`PLANNING_AMBITO` for every whole-ámbito published state and quantity, and
+`LENS_INTERSECT_AMBITO` for the circle∩ámbito reading, which carries **no
+quantity at all** — it answers *which* ámbitos a circle touches and never what
+share of their figures lies inside it. The remaining planning scopes
+(`EXECUTION_UNIT`, `DEVELOPMENT_STAGE_AREA`, `PARCEL`, `ADDRESS_POINT`,
+`WORK_GEOMETRY`) still ship no surface. See
+[Planning-ámbito evidence V1](PLANNING_AMBITO_EVIDENCE_V1.md).
 
 `scopeOf(value)` returns the single scope of a value or **throws** — an unscoped
 value is a contract violation, never defaulted to `LENS_CIRCLE` and never inferred
@@ -667,7 +674,9 @@ Gate L's phase correction is binding here: planning phase fields are independent
 multi-dimensional published fields and must receive neutral categorical,
 non-ordinal treatment only. `No Necesita` is distinct but semantically unresolved;
 `PGOUM-85`/`PGOUM-97` remain neutral source-observed plan/origin markers. K5
-reserves this language but ships no planning UI; that remains #68.
+reserved this language and shipped no planning UI; **K6 (#68) renders under it**,
+pairing each hue with a border style and a text label so that no distinction ever
+rests on colour alone.
 
 ## Data resilience strategy
 

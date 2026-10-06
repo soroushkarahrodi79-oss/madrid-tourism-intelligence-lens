@@ -674,6 +674,153 @@ independent of barrios, districts, map coordinates and Lens state.
 - **Completeness ceiling:** the municipal dataset itself describes the principal/significant parks and gardens, not every green space, median, roundabout, traffic island, or small planted area in Madrid.
 - **Interpretation ceiling:** the presence of a park record is not used as a proxy for shade, cooling, thermal comfort, biodiversity, accessibility, quality, or tourist attractiveness.
 
+## Planning-ámbito geometry (`data/planning/madrid_ambitos.geojson`)
+
+**Source.** The `Ámbitos Ordenación` layer of the planning service catalogued in
+the Ayuntamiento de Madrid Geoportal (IDEAM) as *Planeamiento Urbanístico.
+Modificaciones y desarrollos del PGOUM de 1997.*
+(`geoportal.madrid.es/IDEAM_WBGEOPORTAL/dataset.iam?id=ca62bee0-8ce1-11e9-90e1-dc4a3e81fab6`).
+Resource contact: A.G. Urbanismo, Medio Ambiente y Movilidad, Dirección General
+de Planeamiento.
+
+**Retrieval route.** The catalogued **OGC WFS 2.0.0** download service named by
+that record, feature type `PLANEAMIENTO_URBANISTICO:Ámbitos_Ordenación`,
+`outputFormat=GEOJSON`, `srsName=EPSG::25830`. Build time only: the browser reads
+the committed artifact and never requests the service.
+
+**Why this route.** Gate L audited the raw ArcGIS layer
+`AMBITOS_PLANEAMIENTO_URBANISTICO` and returned **MODIFY** on reuse — it asserts
+attribution but no licence, and public reachability is not a reuse grant. The
+catalogued record's *Limitaciones de acceso público* field points to the
+Ayuntamiento's general reuse conditions, so the catalogued route is the one with
+a stated reuse basis. The builder **proves at build time** that the two routes
+serve the same authoritative geometry (same 765 features, same codes, same
+denominations, same 291,407 vertices, per-code vertex sets identical to 1 mm,
+same 20 `-RP` codes, same exact joins) and **fails rather than substituting** if
+they ever diverge.
+
+**Licence and attribution.** Ayuntamiento de Madrid
+[general reuse conditions](https://datos.madrid.es/pages/condiciones-generales-ayuntamiento-de-madrid),
+which authorise reuse for commercial and non-commercial purposes subject to
+citing the source, stating the original's last-update date where it carries one,
+not distorting the meaning, not implying municipal endorsement and preserving the
+reuse-condition metadata. Attribution retained in
+`data/planning/madrid_ambitos.meta.json`: *Origen de los datos: Ayuntamiento de
+Madrid.* Recorded observation: the WFS capabilities document's own
+`ows:AccessConstraints` URL returned **HTTP 404** on 6 October 2026, so the
+catalogue record's link is the authoritative reuse pointer; the dead link is
+recorded, not corrected.
+
+**The four dates.** `reference_date: null` and `published_at: null` — the layer
+exposes no `editingInfo` and no `lastEditDate`, and the publisher declares no
+edition, effective or reference date. The nulls are **known absence** and are
+never back-filled from (1) the HTTP `Last-Modified` header or response SHA-256,
+recorded under `freshness.observed_resource_state` as a description of the file
+**as served**; (2) the Geoportal record's own *Fecha Creación* (2026-03-05), which
+dates the **metadata record**, not the geometry; or (3) the builder's
+`retrieved_at` clock. `update_frequency: NONE_DECLARED` is the publisher's
+silence, which is a different fact from `DECLARED_UNDEFINED`. The interface
+therefore shows **no date for the geometry at all**.
+
+**CRS.** Source **EPSG:25830**, confirmed from four independent places (WFS
+capabilities `DefaultCRS`, the response's declared CRS, the REST service metadata
+`spatialReference.wkid`, the catalogue record's CRS field). Target **EPSG:4326**,
+transformed explicitly with `pyproj` (`always_xy=True`) and **verified against the
+publisher's own server-side reprojection**: maximum observed deviation
+1.0 × 10⁻⁹ degrees over 140,507 vertices, against a 1 × 10⁻⁶ tolerance. The build
+fails on a declared CRS other than 25830 and on a transform disagreement.
+Coordinates are rounded to 7 decimal places (~1.1 cm): precision only, no vertex
+removed, `simplification: NONE`.
+
+**The universe.** The service serves 765 features and is **a mixed universe, not
+"765 ámbitos"** — that phrasing is prohibited. Every record is classified by its
+exact official code: **724 `PLANNING_AMBITO`** (included), 34
+`NORMA_ZONAL_GRADE` and 7 `NON_DEVELOPABLE_LAND_CLASS` (excluded, with every code
+and reason recorded), 0 `UNCLASSIFIED_SOURCE_RECORD` — an unclassifiable code
+**fails the build**. This corrects Gate L's provisional 723/18/24 split:
+`US.04.10-RP` (Solana de Valdebebas) is a planning ámbito, because the estado
+edition publishes a full row for it. Filtering removes 52 % of the raw vertices;
+the committed artifact is 3.49 MB / 140,507 vertices.
+
+**Identifiers.** The exact official code, never normalised. A `-RP` suffix is
+never stripped: it marks a distinct Revisión Parcial ámbito, and Gate L measured
+that normalising codes *reduces* exact matches.
+
+Full contract: [Planning-ámbito evidence V1](PLANNING_AMBITO_EVIDENCE_V1.md).
+
+## Planning-ámbito development state and available buildability (`data/planning/madrid_ambito_state.json`)
+
+**Sources.** Two dated **CC BY 4.0** families on `datos.madrid.es`, published by
+the Área de Gobierno de Urbanismo, Medio Ambiente y Movilidad, Dirección General
+de Planificación Estratégica:
+
+- **203200** *PGOUM 97. Estado de desarrollo de los ámbitos* — the four
+  independent published development-phase fields, the characteristic use and the
+  ámbito surface.
+- **203182** *PGOUM 97. Edificabilidad remanente en ámbitos* — available
+  buildability (*edificabilidad disponible*) by documented use class, in m², with
+  the ámbito's published `SITUACION DEL ÁMBITO`.
+
+**Retrieval route.** CKAN `package_show` for each dataset, resolving every XLS
+resource, then reading each edition's own stated reference date from inside the
+file. Legacy BIFF8 `.xls` OLE2 compound documents, read with `xlrd` 2.0.2 pinned
+in `scripts/requirements-build.txt` (`openpyxl` cannot open them). Build time
+only.
+
+**One edition per family, selected by its own stated date.** The newest stated
+reference date **within the current schema era** — never by resource id, resource
+name, filename or catalogue position. Gate L proved the resource-id order is not
+chronological (72 S1 inversions, 42 S2; `203200-15` is Enero 2026 while
+`203200-16` is Enero 2025), so the "highest id" heuristic returns the *earliest*
+current-era edition. The builder records what that heuristic would have chosen and
+a regression test asserts it would be wrong. Selected:
+`S1:2026-01:585db074c122` and `S2:2026-01:326edf48d221`.
+
+**The schema-era boundary.** The four-phase flat S1 schema and the
+split-residential flat S2 schema exist only in the three most recent editions.
+The 2013–2024 editions use superseded schemas and are **not one comparable
+series**; the builder refuses an out-of-era edition. Schema drift within the era
+**fails the build**: the header must equal the pinned tuple exactly, in order,
+with one sheet — no fuzzy matching, no index shifting, no dropped field.
+
+**The four dates.** `reference_date: 2026-01-01` is the date **each edition states
+about itself**, read from its `Estado del desarrollo a fecha` column (an Excel
+serial converted with the workbook's own datemode), which the publisher's
+structure document confirms is the *Fecha recogida de los datos*. `published_at:
+2026-03-24` is the file's **own OLE2 root-entry creation timestamp**, a property
+of the file rather than of HTTP or the catalogue (the full timestamp is kept
+separately as `published_at_timestamp`). `retrieved_at` is the builder's clock.
+The HTTP `Last-Modified` header is recorded but is a file-server state and is
+**never** presented as a publication or reference date. `update_frequency:
+SEMESTRAL` is the catalogue's machine-readable `ANNUAL_2`; `observed_cadence:
+SEMESTRAL` is what the current era actually shows, with the longer observation —
+annual gaps 2013–2024, semestral only from 2025 — recorded in prose beside it.
+**The geometry that resolves the place is a different source that declares no date
+at all**, and the two are never shown as one shared period.
+
+**Joins.** Exact official code against the committed geometry universe,
+reproducing the Gate L baseline: **S1 666/667 (99.85 %)**, **S2 230/230 (100 %)**.
+The one table-only code (`APE.21.10`, Recinto Ferial) is named, not dropped; the
+58 geometry-only ámbitos — the published annex's "not monitored" set, including
+the historic colonias — stay in the production universe with an explicit
+`NOT_PUBLISHED_IN_EDITION` state, never a zero.
+
+**What this source does not publish.** S2 does carry `Colectiva. Nº Viviendas`
+and `Unifamiliar. Nº Viviendas`, but Gate L measured them as exactly residential
+buildability ÷ 100, fractional, at a match rate of 1.0 — a mechanical m²/100
+proxy, not a count of dwelling units. The builder reads and counts them, records
+the observation, and **excludes them by name**. Buildability ships in **m²
+only** and no dwelling count is published or derivable.
+
+**One recorded source anomaly.** The 2026-01 S2 edition publishes seven Barajas
+ámbitos twice, once with `COD_DISTRITO` 20 and once with 21, naming the district
+`BARAJAS` in both (Barajas is district 21), and some pairs disagree numerically.
+Both rows are preserved verbatim and classified `CAUSE_UNRESOLVED`; no row is
+preferred, merged or corrected, and no single figure is published for those codes.
+District attribution is read from S1 only, which carries no such anomaly.
+
+Full contract: [Planning-ámbito evidence V1](PLANNING_AMBITO_EVIDENCE_V1.md).
+
 ## Base maps
 
 The UI offers three selectable basemaps: CARTO Positron (light, default),
@@ -696,7 +843,15 @@ General de Estadística) under **CC BY 4.0**, with attribution retained in
 `data/population/madrid_population.meta.json`. The licensed tourist-dwelling
 numerator is published by the Ayuntamiento de Madrid (Agencia de Actividades)
 under **CC BY 4.0**, with attribution retained in
-`data/accommodation/madrid_vut_licences.meta.json`.
+`data/accommodation/madrid_vut_licences.meta.json`. The planning-ámbito
+development state and available buildability are published by the Ayuntamiento de
+Madrid (DG de Planificación Estratégica) under **CC BY 4.0**, with attribution
+retained in `data/planning/madrid_ambito_state.meta.json`. The planning-ámbito
+**geometry** is published by the Ayuntamiento de Madrid (DG de Planeamiento) under
+the municipality's
+[general reuse conditions](https://datos.madrid.es/pages/condiciones-generales-ayuntamiento-de-madrid)
+rather than CC BY 4.0 — a different instrument, recorded as such — with
+attribution retained in `data/planning/madrid_ambitos.meta.json`.
 
 
 ### Madrid accommodation taxonomy

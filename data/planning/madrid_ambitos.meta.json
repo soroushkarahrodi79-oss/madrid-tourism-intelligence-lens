@@ -1,0 +1,260 @@
+{
+  "contract_version": "1.0.0",
+  "artifact": "madrid_ambitos.geojson",
+  "generated_at": "2026-10-06T13:34:25Z",
+  "builder": "scripts/build_planning_ambitos.py",
+  "gate": "Gate L (#65) source contract; issue #68 (K6) production increment",
+  "what_this_is": "Official planning-ámbito polygon geometry and the exact official ámbito code, for the municipality of Madrid. GEOMETRY AND IDENTIFIER ONLY: no quantity and no development state is taken from this service. Every state and every buildability figure comes from the dated CC BY 4.0 XLS editions through scripts/build_ambito_development_state.py.",
+  "source": {
+    "catalogue": "Geoportal del Ayuntamiento de Madrid (IDEAM)",
+    "catalogue_record_title": "Planeamiento Urbanístico. Modificaciones y desarrollos del PGOUM de 1997.",
+    "catalogue_record_url": "https://geoportal.madrid.es/IDEAM_WBGEOPORTAL/dataset.iam?id=ca62bee0-8ce1-11e9-90e1-dc4a3e81fab6",
+    "catalogue_record_identifier": "ca62bee0-8ce1-11e9-90e1-dc4a3e81fab6",
+    "catalogue_record_docu_uid": "{9CA9A128-7F18-4E34-B741-B14B344F9930}",
+    "catalogue_declared_crs": "EPSG:25830",
+    "catalogue_metadata_contact": "Ayuntamiento de Madrid. A.G. Urbanismo, Medio Ambiente y Movilidad. Subdirección General de Innovación e Información Urbana",
+    "authority": "Ayuntamiento de Madrid. A.G. Urbanismo, Medio Ambiente y Movilidad. Dirección General de Planeamiento.",
+    "layer": "Ámbitos Ordenación",
+    "service_copyright_text": "Ayto. Madrid. Área de Desarrollo Urbano. SG Innovación e Información Urbana"
+  },
+  "retrieval": {
+    "route": "OGC_WFS_GETFEATURE",
+    "service": "https://sigma.madrid.es/hosted/services/DESARROLLO_URBANO_ACTUALIZADO/PLANEAMIENTO_URBANISTICO/MapServer/WFSServer",
+    "wfs_version": "2.0.0",
+    "type_name": "PLANEAMIENTO_URBANISTICO:Ámbitos_Ordenación",
+    "output_format": "GEOJSON",
+    "request_url": "https://sigma.madrid.es/hosted/services/DESARROLLO_URBANO_ACTUALIZADO/PLANEAMIENTO_URBANISTICO/MapServer/WFSServer?service=WFS&version=2.0.0&request=GetFeature&typeNames=PLANEAMIENTO_URBANISTICO%3A%C3%81mbitos_Ordenaci%C3%B3n&outputFormat=GEOJSON&srsName=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25830",
+    "retrieved_at": "2026-10-06T13:34:10Z",
+    "http_last_modified": null,
+    "etag": null,
+    "content_type": "application/json; charset=UTF-8",
+    "response_bytes": 10412932,
+    "response_sha256": "9b14c9ad842ad84f72d4b89b9e1a0611a63e319a770b721cf17a4b6cd3e282a7",
+    "declared_crs": "EPSG:25830"
+  },
+  "retrieval_route_rationale": "The catalogued OGC WFS download service is preferred over the raw ArcGIS endpoint Gate L audited because the Geoportal metadata record for this resource explicitly links its public-access limitation field to the Ayuntamiento's general reuse conditions and designates a download service. Gate L returned MODIFY on the raw endpoint's reuse basis precisely because that endpoint carries attribution but no licence or reuse statement, and public reachability is not a reuse grant.",
+  "reuse": {
+    "basis": "AYUNTAMIENTO_DE_MADRID_GENERAL_REUSE_CONDITIONS",
+    "conditions_url": "https://datos.madrid.es/pages/condiciones-generales-ayuntamiento-de-madrid",
+    "conditions_linked_from": "the Geoportal catalogue record's 'Limitaciones de acceso público' field",
+    "grant": "The general conditions authorise reuse of the documents and data subject to them for commercial and non-commercial purposes, including copying, dissemination, modification, adaptation, extraction, reordering and combination.",
+    "obligations_observed": [
+      "the source is cited (attribution below) wherever this geometry is published",
+      "the information's meaning is not distorted: geometry and identifier only, no quantity and no state is read from this service",
+      "no municipal participation, sponsorship or endorsement is indicated or implied",
+      "the reuse-condition and update-date metadata is preserved in this record and carried into data/source_registry.json",
+      "the publisher declares no last-update date for this resource, which is recorded as an explicit null rather than back-filled"
+    ],
+    "attribution": "Origen de los datos: Ayuntamiento de Madrid",
+    "attribution_full": "Origen de los datos: Ayuntamiento de Madrid (Ayuntamiento de Madrid. A.G. Urbanismo, Medio Ambiente y Movilidad. Dirección General de Planeamiento.)",
+    "wfs_access_constraints_declared": "https://datos.madrid.es/egob/catalogo/aviso-legal",
+    "wfs_access_constraints_observed": "The WFS capabilities document's own ows:AccessConstraints URL returned HTTP 404 when checked on 2026-10-06. The Geoportal catalogue record's reuse-conditions link resolves and is therefore the authoritative reuse pointer used here. The dead link is recorded, not corrected.",
+    "gate_l_verdict_on_raw_endpoint": "MODIFY (attribution asserted, no licence statement)",
+    "resolution": "RESOLVED FOR THE CATALOGUED ROUTE. The catalogued route is proven to serve the same authoritative geometry and its catalogue record states the reuse conditions."
+  },
+  "freshness": {
+    "reference_date": null,
+    "reference_date_note": "The publisher declares no reference date, no effective date and no edition date for this geometry: the layer exposes no editingInfo and no lastEditDate (Gate L §19). The null is KNOWN ABSENCE and is never back-filled from the catalogue record's creation date, the HTTP headers or the retrieval clock.",
+    "published_at": null,
+    "retrieved_at": "2026-10-06T13:34:10Z",
+    "update_frequency": "NONE_DECLARED",
+    "source_state": "NOT_DECLARED_BY_PUBLISHER",
+    "observed_resource_state": {
+      "http_last_modified": null,
+      "etag": null,
+      "response_sha256": "9b14c9ad842ad84f72d4b89b9e1a0611a63e319a770b721cf17a4b6cd3e282a7",
+      "note": "An observed state of the resource as served, not a publisher statement about the geometry's currency. It must never be presented as a reference date."
+    }
+  },
+  "crs": {
+    "source": "EPSG:25830",
+    "source_confirmed_from": [
+      "WFS 2.0.0 GetCapabilities DefaultCRS urn:ogc:def:crs:EPSG::25830",
+      "the GetFeature response's own declared CRS",
+      "the catalogued REST service metadata spatialReference.wkid",
+      "the Geoportal catalogue record's 'Sistema de Referencia de Coordenadas' field"
+    ],
+    "target": "EPSG:4326",
+    "transformation": "EPSG:25830 -> EPSG:4326 (pyproj Transformer, always_xy=True)",
+    "transformation_is_client_side": true,
+    "verification": {
+      "method": "EPSG:25830 -> EPSG:4326 (pyproj Transformer, always_xy=True)",
+      "verified_against": "https://sigma.madrid.es/hosted/rest/services/DESARROLLO_URBANO_ACTUALIZADO/PLANEAMIENTO_URBANISTICO/MapServer/2 (outSR=4326, publisher server-side transform)",
+      "vertices_compared": 140507,
+      "codes_not_compared": [],
+      "max_deviation_deg": 1.0000036354540498e-09,
+      "max_deviation_code": "AOE.00.03",
+      "tolerance_deg": 1e-06,
+      "within_tolerance": true
+    },
+    "coordinate_decimals": 7,
+    "coordinate_precision_note": "Rounding to 7 decimal places (~1.1 cm at Madrid's latitude) reduces coordinate precision and diff noise only. No vertex is removed and no geometry is simplified, so topological containment is unchanged.",
+    "simplification": "NONE"
+  },
+  "route_equivalence": {
+    "question": "Is the catalogued Geoportal/WFS 'Ámbitos Ordenación' geometry the same authoritative geometry Gate L audited on AMBITOS_PLANEAMIENTO_URBANISTICO?",
+    "catalogued_route": "https://sigma.madrid.es/hosted/services/DESARROLLO_URBANO_ACTUALIZADO/PLANEAMIENTO_URBANISTICO/MapServer/WFSServer",
+    "audited_route": "https://sigma.madrid.es/hosted/rest/services/DESARROLLO_URBANO_ACTUALIZADO/AMBITOS_PLANEAMIENTO_URBANISTICO/MapServer/0",
+    "catalogued_feature_count": 765,
+    "audited_feature_count": 765,
+    "catalogued_distinct_codes": 765,
+    "audited_distinct_codes": 765,
+    "catalogued_vertices": 291407,
+    "audited_vertices": 291407,
+    "codes_only_in_catalogued": [],
+    "codes_only_in_audited": [],
+    "denomination_differences": [],
+    "geometry_differences": [],
+    "vertex_tolerance_m": 0.001,
+    "rp_identity": {
+      "rp_codes_in_catalogued_route": 20,
+      "rp_codes_in_audited_route": 20,
+      "rp_code_sets_identical": true,
+      "rp_codes": [
+        "AOE.00.02-RP",
+        "AOE.00.11-RP",
+        "APE.08.06-RP",
+        "APE.08.16-RP",
+        "APE.09.03-RP",
+        "APE.09.20-RP",
+        "APE.10.08-RP",
+        "APE.10.23-RP",
+        "APE.16.11-RP",
+        "APE.17.20-RP",
+        "APE.18.06-RP",
+        "APE.19.11-RP",
+        "UNS.04.05-RP",
+        "UNS.04.07-RP",
+        "UNS.04.11-RP",
+        "US.04.10-RP",
+        "UZPp.02.02-RP",
+        "UZPp.02.03-RP",
+        "UZPp.02.04-RP",
+        "UZPp.03.01-RP"
+      ],
+      "valdecarros_evidence": {
+        "UZP.3.01_present": false,
+        "UZPp.03.01-RP_present": true,
+        "note": "Gate L §21: UZP.3.01 (Valdecarros) is listed by the structure annex as annulled by court sentence, while UZPp.03.01-RP is its active replacement in the geometry. Both routes agree: the annulled code is absent and the Revisión Parcial code is present. -RP is a distinct ámbito and the suffix is never stripped."
+      }
+    },
+    "encoding_difference": "The WFS encodes every feature as MultiPolygon; the REST route encodes a single-part feature as Polygon. That is a GeoJSON encoding difference, not a geometry difference, and the vertex-set comparison is insensitive to it.",
+    "equivalent": true,
+    "verdict": "AUTHORITATIVE_EQUIVALENCE_ESTABLISHED"
+  },
+  "universe": {
+    "raw_feature_count": 765,
+    "raw_feature_count_is_not_the_ambito_count": "The official layer is a MIXED universe. The raw feature count is NOT a count of planning ámbitos and the phrase '765 ámbitos' is prohibited wording.",
+    "included_class": "PLANNING_AMBITO",
+    "included_feature_count": 724,
+    "excluded_total": 41,
+    "excluded_by_class": {
+      "NORMA_ZONAL_GRADE": {
+        "count": 34,
+        "codes": [
+          "1.1",
+          "1.2",
+          "1.3",
+          "1.4",
+          "1.5",
+          "1.6",
+          "3.1",
+          "3.1.a",
+          "3.1.b",
+          "3.1.c",
+          "3.2",
+          "4",
+          "5.1",
+          "5.2",
+          "5.3",
+          "7.1.a",
+          "7.1.b",
+          "7.2.e",
+          "8.1.a",
+          "8.1.c",
+          "8.2.a",
+          "8.2.b",
+          "8.2.c",
+          "8.3.a",
+          "8.3.c",
+          "8.4",
+          "8.5",
+          "8.6",
+          "9.1",
+          "9.2",
+          "9.3",
+          "9.4.a",
+          "9.4.b",
+          "9.5"
+        ],
+        "reason": "A Norma Zonal grade/level record (for example '1.1' = ZONA 1 GRADO 1º). It describes a zoning grade applied across the city, not a planning ámbito, and no edition publishes a development state or buildability row for it."
+      },
+      "NON_DEVELOPABLE_LAND_CLASS": {
+        "count": 7,
+        "codes": [
+          "NUC",
+          "NUP.1",
+          "NUP.2",
+          "NUP.3",
+          "NUP.4",
+          "NUP.5",
+          "NUP.6"
+        ],
+        "reason": "A non-developable land class (NUC = no urbanizable común, NUP.n = no urbanizable de protección). It is a land classification, not a planning ámbito."
+      },
+      "UNCLASSIFIED_SOURCE_RECORD": {
+        "count": 0,
+        "codes": [],
+        "reason": "A code matching no documented class. This FAILS the build: a record is never silently discarded and never silently admitted to the production universe."
+      }
+    },
+    "classification_rule": "Each record is classified by its exact official code: a documented ámbito code family (APE, API, APR, AOE, AOD, AE, UZP, UZPp, UZI, UNP, UNS, US) anchored at a dotted separator; a Norma Zonal grade/level code (purely numeric, dotted, optionally with a level letter); a non-developable land class (NUC, NUP.n); otherwise UNCLASSIFIED, which FAILS the build. Codes are never normalised for classification.",
+    "gate_l_correction": "Gate L §17 reported a provisional split of 723 ámbito-like / 18 Norma Zonal / 24 other. Its prefix regex omitted the US family, so US.04.10-RP (SOLANA DE VALDEBEBAS) fell into 'other' although the S1 estado edition publishes a full row for it. The production split is 724 ámbito-like / 34 Norma Zonal grade / 7 non-developable land class, and the 41 excluded records are all land-classification records rather than ámbitos.",
+    "baseline": {
+      "raw_feature_count": 765,
+      "class_counts": {
+        "PLANNING_AMBITO": 724,
+        "NORMA_ZONAL_GRADE": 34,
+        "NON_DEVELOPABLE_LAND_CLASS": 7
+      },
+      "calibrated_on": "2026-10-06",
+      "note": "Observations of the calibration run, pinned so a change in the official universe is a visible diff in a reviewed pull request. They are recorded, not asserted: the publisher may legitimately add or remove an ámbito."
+    },
+    "engineering_guardrail": {
+      "min_ambito_features": 600,
+      "note": "A guard against an ingestion collapse, set far below the observed count. Not an analytical threshold and not a claim about Madrid's ámbito count."
+    }
+  },
+  "identifier": {
+    "join_field": "ambito_code",
+    "source_field": "Etiqueta",
+    "source_field_in_rest_route": "AMB_TX_ETIQ",
+    "denomination_field": "ambito_denomination",
+    "denomination_source_field": "Denominación",
+    "matching": "EXACT",
+    "normalisation": "NONE",
+    "rp_suffix": "A -RP suffix marks a Revisión Parcial ámbito and is a DISTINCT entity (Gate L §21): UZP.3.01 was annulled by court sentence while UZPp.03.01-RP is its active replacement. The suffix is never stripped, and normalisation is rejected because Gate L measured that it REDUCES exact matches."
+  },
+  "geometry_metrics": {
+    "source_vertices_in_included_features": 140507,
+    "artifact_vertices": 140507,
+    "vertices_removed": 0,
+    "raw_response_bytes": 10412932,
+    "geometry_types": [
+      "MultiPolygon"
+    ],
+    "bounds_4326": {
+      "min_lon": -3.8341627,
+      "min_lat": 40.3192213,
+      "max_lon": -3.5180509,
+      "max_lat": 40.5527462
+    }
+  },
+  "fingerprint": {
+    "algorithm": "sha256",
+    "scope": "canonical JSON (sorted keys, compact separators, UTF-8) of the FeatureCollection",
+    "value": "013fceb203f68ad09d0254ae8c69477f5250904c12074a0e0e68cf53497af785"
+  },
+  "runtime_policy": "BUILD TIME ONLY. The browser never requests geoportal.madrid.es, sigma.madrid.es or datos.madrid.es: it reads this committed, fingerprinted artifact.",
+  "interpretation_ceiling": "Official planning-ámbito boundaries and codes as published by the Ayuntamiento de Madrid. The geometry supports orientation, scope recognition and selection; it is NOT evidence of development state, buildability, physical construction, ownership, land value or any quantity, and no figure is ever derived from a polygon's area. The publisher declares no reference date for this geometry, so its currency is unknown and must never be inferred from the retrieval time, the catalogue record date or an HTTP header. The raw service is a mixed universe: the excluded Norma Zonal grade and non-developable land-class records are land-classification records, not ámbitos."
+}
