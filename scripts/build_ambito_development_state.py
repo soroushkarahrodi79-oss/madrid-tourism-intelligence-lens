@@ -36,8 +36,10 @@ What this artifact is not allowed to contain
 * **No cross-era series.** The four-phase flat S1 schema and the split-residential
   flat S2 schema exist only in the three most recent editions (Gate L §6). This
   builder selects within the current era and REFUSES an edition from another era.
-* **No change detection.** One selected edition per family. Edition-to-edition
-  reading is #69.
+* **K6 and K7 stay separate.** The current-edition ``editions`` / ``ambitos``
+  object remains the K6 primary record. K7's two dated source snapshots live under
+  a separate ``change_detection`` key; no K6 record is mutated into a before/after
+  object.
 * **No derived quantity of any kind.** No sum across rows, no total, no ratio, no
   per-area figure, no apportionment.
 
@@ -607,6 +609,107 @@ def load_edition(family, gate_l, l1):
     }
 
 
+# K7 pins one explicitly named pair. Each lookup is made from the catalogue's
+# source-stated reference date and the full file fingerprint; resource IDs and
+# catalogue order are retained as provenance only.
+K7_PINNED_PAIR = {
+    "S1": {
+        "previous": ("2025-07-01", "e1ff3e0e0f63fe59dbe64d10b319026917c34d9086f395e9787b6fe3661cf49d"),
+        "current": ("2026-01-01", "585db074c122caec3293137e56742b5c9d77189205050aab328520a2dd1ec677"),
+    },
+    "S2": {
+        "previous": ("2025-07-01", "09f6859a2541ea8c31eb3ce47464ca5fbec64d38f57a7b3b435bb65e4a5cb286"),
+        "current": ("2026-01-01", "326edf48d2214e73175256777fd5083a3f656a05d0bcf0bec36b63ac6cc899e8"),
+    },
+}
+
+
+def load_pinned_edition(template, reference_date, sha256, gate_l):
+    """Open a specific edition by its in-file date plus full byte fingerprint."""
+    import xlrd  # noqa: PLC0415 - available via _require_gate_l
+
+    candidates = [
+        item for item in template["inventory"]
+        if str(item["reference_date"]).startswith(reference_date[:7]) and item["sha256"] == sha256
+    ]
+    if len(candidates) != 1:
+        raise SystemExit(
+            f"K7 pin {template['family']} {reference_date} / {sha256} resolved to "
+            f"{len(candidates)} catalogue entries; exactly one is required"
+        )
+    selected = candidates[0]
+    expected_era = FAMILIES[template["family"]]["current_era"]
+    if selected["schema_era"] != expected_era:
+        raise SystemExit(
+            f"K7 pin {template['family']} {reference_date} has schema era "
+            f"{selected['schema_era']}, expected {expected_era}"
+        )
+    workbook = gate_l.open_workbook(Path(selected["cache_path"]))
+    sheet = workbook.sheet_by_index(0)
+    header, rows = _header_and_rows(sheet, gate_l.cell_text)
+    assert_current_era_schema(template["family"], header, len(workbook.sheet_names()))
+    import xlrd  # noqa: PLC0415 - available via _require_gate_l
+    date_column = header.index(
+        "Estado del desarrollo a fecha" if template["family"] == "S1" else "ESTADO DEL DESARROLLO A FECHA"
+    )
+    reference = _reference_date(sheet, date_column, xlrd, workbook.datemode)
+    if reference["reference_date"] != reference_date:
+        raise SystemExit(
+            f"K7 pin date mismatch: inventory says {reference_date}, workbook says {reference['reference_date']}"
+        )
+    return {
+        **template,
+        "selected": selected,
+        "reference": reference,
+        "snapshot_identity": f"{template['family']}:{reference['reference_date_month']}:{selected['sha256'][:12]}",
+        "header": header,
+        "rows": rows,
+        "sheet": sheet,
+    }
+
+
+def comparison_snapshot(edition, gate_l):
+    """Make a separate K7 edition record without changing the K6 current object."""
+    family = edition["family"]
+    if family == "S1":
+        records, duplicates, _totals = parse_s1(edition, gate_l)
+        if duplicates:
+            raise SystemExit(f"K7 S1 edition has duplicate exact codes: {duplicates[:3]}")
+        for record in records.values():
+            record["source_verbatim"] = {
+                "phase_values": {
+                    key: phase["source_value"] if phase["state"] == "PUBLISHED" else ""
+                    for key, phase in record["phases"].items()
+                }
+            }
+        return {
+            **_edition_record(edition),
+            "family": family,
+            "records": records,
+            "published_row_count": len(records),
+            "identity_scope": "{edition}:{exact_code}",
+        }
+
+    records, _totals, _excluded = parse_s2(edition, gate_l)
+    for rows in records.values():
+        for row in rows:
+            row["source_verbatim"] = {
+                "denomination": row["denomination"],
+                "district_code": row["district_code"],
+                "district_name": row["district_name"],
+                "situacion": row["situacion"],
+                "observaciones": row["observaciones"],
+            }
+    return {
+        **_edition_record(edition),
+        "family": family,
+        "records": records,
+        "published_row_count": sum(len(rows) for rows in records.values()),
+        "distinct_code_count": len(records),
+        "identity_scope": "{edition}:{exact_code}; row identity subordinate to exact code",
+    }
+
+
 # ========================================================================== parse
 
 
@@ -833,6 +936,19 @@ def build(out_dir, geometry_path):
         f"(reference {s2['reference']['reference_date']}, resource {s2['selected']['resource_id']})"
     )
 
+    # K7 uses an explicit, pinned two-edition pair. These are parsed into a
+    # separate comparison artifact so K6's current-edition records remain intact.
+    comparison_editions = {"previous": {}, "current": {}}
+    for family, template in (("S1", s1), ("S2", s2)):
+        for side in ("previous", "current"):
+            reference_date, sha256 = K7_PINNED_PAIR[family][side]
+            pinned = load_pinned_edition(template, reference_date, sha256, gate_l)
+            comparison_editions[side][family] = comparison_snapshot(pinned, gate_l)
+            print(
+                f"[state] K7 {side} {family} {pinned['snapshot_identity']} "
+                f"(reference {reference_date}, schema {pinned['selected']['schema_era']})"
+            )
+
     s1_records, s1_duplicates, s1_totals = parse_s1(s1, gate_l)
     s2_rows, s2_totals, dwelling_exclusion = parse_s2(s2, gate_l)
     print(f"[state] S1 rows {len(s1_records)} | S2 rows {sum(len(v) for v in s2_rows.values())} "
@@ -941,6 +1057,32 @@ def build(out_dir, geometry_path):
             "development_state": _edition_record(s1),
             "available_buildability": _edition_record(s2),
         },
+        "change_detection": {
+            "contract_version": "1.0.0",
+            "pair_id": "2025-07__2026-01",
+            "comparison_basis": (
+                "Two explicitly named editions selected by source-stated reference date plus full SHA-256; "
+                "comparison is within one schema era. Entity identity is {edition}:{exact_code}."
+            ),
+            "comparability_verdict": "COMPARABLE_WITHIN_SCHEMA_ERA",
+            "schema_era_verdict": {
+                "S1": "S1_FOUR_PHASE_FLAT",
+                "S2": "S2_SPLIT_RESIDENTIAL_FLAT",
+            },
+            "previous": {
+                "reference_date": "2025-07-01",
+                "families": comparison_editions["previous"],
+            },
+            "current": {
+                "reference_date": "2026-01-01",
+                "families": comparison_editions["current"],
+            },
+            "row_policy": (
+                "Preserve every published S2 row under exact code. Match only unique stable SITUACION DEL ÁMBITO "
+                "values; unmatched or duplicate rows remain explicit and numeric comparison is withheld."
+            ),
+            "audits": None,
+        },
         "ambitos": ambitos,
     }
     artifact_fingerprint = fingerprint(artifact)
@@ -980,14 +1122,36 @@ def build(out_dir, geometry_path):
         "artifact": "madrid_ambito_state.json",
         "generated_at": now(),
         "builder": "scripts/build_ambito_development_state.py",
-        "gate": "Gate L (#65) source contract; issue #68 (K6) production increment",
+        "gate": "Gate L (#65) source contract; issue #68 (K6) and #69 (K7) production increments",
         "what_this_is": (
-            "Per planning ámbito, for ONE selected edition of each official family: the four "
-            "independent published development-phase values, the characteristic use, the published "
-            "surface, and available buildability (edificabilidad disponible) by documented use "
-            "class in m² edificable. Whole-ámbito scope throughout."
+            "K6's current-edition record per planning ámbito: the four independent published "
+            "development-phase values, characteristic use, published surface, and available "
+            "buildability by documented use class in m² edificable. K7's separately keyed "
+            "change_detection object carries exactly the pinned 2025-07-01 and 2026-01-01 source "
+            "editions with all S2 rows preserved. Whole-ámbito scope throughout."
         ),
         "scope": "PLANNING_AMBITO",
+        "change_detection": {
+            "pair_id": "2025-07__2026-01",
+            "comparison_basis": "source-stated reference date + full SHA-256 fingerprint + schema era",
+            "comparability_verdict": "COMPARABLE_WITHIN_SCHEMA_ERA",
+            "editions": {
+                side: {
+                    family: {
+                        key: record[key]
+                        for key in (
+                            "reference_date", "snapshot_identity", "resource_id", "sha256",
+                            "schema_era", "schema_fingerprint", "resource_url", "retrieved_at",
+                            "published_at", "published_at_timestamp", "http_last_modified",
+                        )
+                    }
+                    for family, record in families.items()
+                }
+                for side, families in comparison_editions.items()
+            },
+            "row_policy": "All published S2 rows preserved; only unique stable SITUACION matches permit row-level comparison.",
+            "audits": "Derived by scripts/build_ambito_change_detection.mjs from the pinned source-edition records.",
+        },
         "scope_note": (
             "Every value describes the WHOLE planning ámbito. No value is apportioned, "
             "area-weighted, population-weighted or otherwise distributed into a Lens circle, a "
@@ -1227,7 +1391,9 @@ def build(out_dir, geometry_path):
         "interpretation_ceiling": (
             "Four INDEPENDENT published administrative development-phase values per planning "
             "ámbito, and available planning buildability (edificabilidad disponible) by use class "
-            "in m² edificable, as published in ONE dated edition of each official family. The four "
+            "in m² edificable, as published in the K6 current edition per official family. K7 "
+            "separately compares the named 2025-07-01 and 2026-01-01 editions within their shared "
+            "schema eras. The four "
             "phase fields do NOT form one overall completion stage: they are multi-dimensional, the "
             "publisher documents no ordering, and no stage, stage number, progression, percentage, "
             "completion, advancement, delay or timeline is derivable from them. A published phase "
@@ -1241,8 +1407,9 @@ def build(out_dir, geometry_path):
             "published or derivable: the source's Nº Viviendas columns are residential "
             "buildability ÷ 100 with fractional values and are excluded. Every figure describes the "
             "WHOLE ámbito and is never apportioned into a Lens circle, a barrio or any sub-area, "
-            "and never combined with a value of another analytical scope. One edition only: no "
-            "edition-to-edition difference, trend or change is published here. Geometry and "
+            "and never combined with a value of another analytical scope. Edition differences describe "
+            "published table evidence only; they establish neither physical urban change nor an "
+            "unsourced cause. No third edition is included. Geometry and "
             "identifiers come through a separate official route; every quantity and state here "
             "comes from the dated CC BY 4.0 editions."
         ),

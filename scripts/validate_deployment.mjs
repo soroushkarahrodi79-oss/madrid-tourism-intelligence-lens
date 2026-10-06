@@ -33,6 +33,16 @@ import {
   isUpdateFrequency,
   isSourceState,
 } from "../js/evidence-scope.js";
+import {
+  CHANGE_OUTCOMES,
+  CHANGE_OUTCOME,
+  BUILDABILITY_STATE,
+  auditEditionPair,
+  auditLegacyGateLPair,
+  classifyAmbitoEditionPair,
+  compareBuildability,
+  reconcileEditionPair,
+} from "../js/ambito-change.js";
 
 export const CONTRACT_VERSION = "1.0.0";
 
@@ -1477,6 +1487,184 @@ const PLANNING_GEOMETRY_META_FIELDS = [
 //      total as one place's figure.
 //   7. A JOIN COLLAPSE, leaving the published states attached to the wrong places
 //      or to nothing.
+function validatePlanningChangeDetection(source, artifact, meta, errors) {
+  const label = source.display_name;
+  const k7 = artifact?.change_detection;
+  const registryPair = source.change_detection;
+  const metaPair = meta?.change_detection;
+  const fail = (message) => errors.push(`${label}: K7 ${message}`);
+  if (!k7 || !registryPair || !metaPair) {
+    fail("is missing its artifact, registry provenance or metadata pair record");
+    return { state: "unavailable", counts: null, divergences: null };
+  }
+  if (k7.pair_id !== "2025-07__2026-01" || registryPair.pair_id !== k7.pair_id || metaPair.pair_id !== k7.pair_id) {
+    fail("comparison pair drifted from the pinned 2025-07__2026-01 editions");
+  }
+  if (k7.comparability_verdict !== "COMPARABLE_WITHIN_SCHEMA_ERA" || registryPair.comparability_verdict !== k7.comparability_verdict || metaPair.comparability_verdict !== k7.comparability_verdict) {
+    fail("does not declare one comparable same-era pair");
+  }
+  const sides = [
+    ["previous", "2025-07-01"],
+    ["current", "2026-01-01"],
+  ];
+  const families = [
+    ["S1", "S1_FOUR_PHASE_FLAT"],
+    ["S2", "S2_SPLIT_RESIDENTIAL_FLAT"],
+  ];
+  const editionPairs = {};
+  for (const [side, expectedDate] of sides) {
+    const sideRecord = k7[side];
+    if (!sideRecord || sideRecord.reference_date !== expectedDate || !sideRecord.families) {
+      fail(`${side} edition is missing or has an unexpected source-stated reference date`);
+      continue;
+    }
+    for (const [family, expectedEra] of families) {
+      const edition = sideRecord.families[family];
+      if (!edition) {
+        fail(`${side} ${family} edition is missing`);
+        continue;
+      }
+      if (edition.reference_date !== expectedDate) fail(`${side} ${family} reference date is missing or inconsistent`);
+      if (!/^[a-f\d]{64}$/i.test(String(edition.sha256 || ""))) fail(`${side} ${family} full fingerprint is missing`);
+      if (!edition.resource_id || !edition.resource_url || !edition.retrieved_at) fail(`${side} ${family} resource or retrieval provenance is missing`);
+      if (!edition.schema_fingerprint || edition.schema_era !== expectedEra) fail(`${side} ${family} schema era or fingerprint is invalid`);
+      if (!edition.snapshot_identity || !edition.records || typeof edition.records !== "object") fail(`${side} ${family} identity or records are missing`);
+      const registryEdition = registryPair.editions?.[side]?.[family];
+      const metadataEdition = metaPair.editions?.[side]?.[family];
+      for (const candidate of [registryEdition, metadataEdition]) {
+        if (!candidate) {
+          fail(`${side} ${family} provenance record is missing from registry or metadata`);
+          continue;
+        }
+        for (const key of ["reference_date", "resource_id", "sha256", "schema_era", "schema_fingerprint", "resource_url", "retrieved_at"]) {
+          if (candidate[key] !== edition[key]) fail(`${side} ${family} ${key} drifts across its provenance records`);
+        }
+      }
+    }
+  }
+  if (k7.previous?.reference_date === k7.current?.reference_date) fail("supplies the same reference date twice");
+  if (registryPair.oldest_contributor_reference_date !== k7.previous?.reference_date) fail("K2 oldest-contributor date does not match the earlier K7 edition");
+  for (const [family] of families) {
+    const previous = k7.previous?.families?.[family];
+    const current = k7.current?.families?.[family];
+    if (!previous || !current) continue;
+    if (previous.snapshot_identity === current.snapshot_identity || previous.sha256 === current.sha256) fail(`${family} supplies the same edition twice`);
+    if (previous.schema_era !== current.schema_era) fail(`${family} presents a cross-era pair as comparable`);
+    for (const [side, edition] of [["previous", previous], ["current", current]]) {
+      if (family === "S1") {
+        for (const [code, record] of Object.entries(edition.records || {})) {
+          for (const [key, phase] of Object.entries(record.phases || {})) {
+            if (!Object.prototype.hasOwnProperty.call(record.source_verbatim?.phase_values || {}, key) ||
+                record.source_verbatim.phase_values[key] !== phase.source_value) {
+              fail(`${side} S1 ${code} lost its verbatim ${key} value`);
+            }
+          }
+        }
+      } else {
+        let rowCount = 0;
+        for (const [code, rows] of Object.entries(edition.records || {})) {
+          if (!Array.isArray(rows)) {
+            fail(`${side} S2 ${code} rows were collapsed into a scalar record`);
+            continue;
+          }
+          rowCount += rows.length;
+          for (const row of rows) {
+            for (const field of ["situacion", "observaciones"]) {
+              if (!Object.prototype.hasOwnProperty.call(row.source_verbatim || {}, field) || row.source_verbatim[field] !== row[field]) {
+                fail(`${side} S2 ${code} lost its verbatim ${field} value`);
+              }
+            }
+          }
+        }
+        if (rowCount !== edition.published_row_count) fail(`${side} S2 published row multiplicity does not match the retained rows`);
+      }
+    }
+    editionPairs[family] = { previous, current };
+  }
+  if (editionPairs.S1 && editionPairs.S2) {
+    const s1Current = artifact.editions?.development_state;
+    const s2Current = artifact.editions?.available_buildability;
+    for (const [labelName, comparisonEdition, k6Edition] of [
+      ["S1", editionPairs.S1.current, s1Current],
+      ["S2", editionPairs.S2.current, s2Current],
+    ]) {
+      if (!k6Edition || comparisonEdition.snapshot_identity !== k6Edition.snapshot_identity || comparisonEdition.sha256 !== k6Edition.sha256) {
+        fail(`${labelName} K7 current edition does not match the pinned K6 current edition`);
+      }
+    }
+  }
+
+  // The explicit S1 legacy/production benchmark remains exact. The old S2 first
+  // row result is checked separately from the production all-rows classifier.
+  const recomputed = {};
+  for (const [family, editions] of Object.entries(editionPairs)) {
+    const legacy = auditLegacyGateLPair(editions.previous, editions.current);
+    const production = auditEditionPair(editions.previous, editions.current);
+    const reconciliation = reconcileEditionPair(editions.previous, editions.current);
+    if (legacy.comparabilityVerdict !== "COMPARABLE_WITHIN_SCHEMA_ERA" || production.comparabilityVerdict !== "COMPARABLE_WITHIN_SCHEMA_ERA") {
+      fail(`${family} classifier did not return an explicit comparable pair`);
+    }
+    for (const record of [...legacy.records, ...production.records]) {
+      if (!CHANGE_OUTCOMES.includes(record.outcome)) fail(`${family} classifier returned a null or unauthorized outcome for ${record.exactCode}`);
+    }
+    const stored = k7.audits?.families?.[family];
+    if (!stored) {
+      fail(`${family} derived audit and reconciliation report are missing`);
+    } else {
+      if (canonicalJson(stored.legacy_gate_l_audit?.counts) !== canonicalJson(legacy.counts)) fail(`${family} legacy audit counts do not reproduce from edition rows`);
+      if (stored.legacy_gate_l_audit?.cosmetic_only_count !== legacy.cosmeticOnlyCount) fail(`${family} legacy cosmetic-only count does not reproduce from verbatim source strings`);
+      if (canonicalJson(stored.production_row_preserving?.counts) !== canonicalJson(production.counts)) fail(`${family} row-preserving classifier counts do not reproduce from edition rows`);
+      if (stored.production_row_preserving?.cosmetic_only_count !== production.cosmeticOnlyCount) fail(`${family} row-preserving cosmetic-only count does not reproduce`);
+      if (stored.reconciliation?.exact_code_divergence_count !== reconciliation.divergenceCount ||
+          canonicalJson(stored.reconciliation?.divergences) !== canonicalJson(reconciliation.divergences)) {
+        fail(`${family} exact-code divergence report does not reproduce from the paired rows`);
+      }
+    }
+    recomputed[family] = { legacy, production, reconciliation };
+  }
+  const s1 = recomputed.S1;
+  if (s1) {
+    const expected = { NO_CHANGE: 655, STATE_TRANSITION: 10, NEW_AMBITO: 2, ABSENT_FROM_EDITION: 0, MODIFIED_BY_INSTRUMENT: 0, CAUSE_UNRESOLVED: 0, NON_COMPARABLE: 0 };
+    if (canonicalJson(s1.production.counts) !== canonicalJson(expected)) fail("S1 exact production benchmark does not match 655 NO_CHANGE, 10 STATE_TRANSITION and 2 NEW_AMBITO");
+  }
+  const s2 = recomputed.S2;
+  if (s2) {
+    const expectedLegacy = { NO_CHANGE: 220, STATE_TRANSITION: 9, NEW_AMBITO: 0, ABSENT_FROM_EDITION: 9, MODIFIED_BY_INSTRUMENT: 0, CAUSE_UNRESOLVED: 1, NON_COMPARABLE: 0 };
+    if (canonicalJson(s2.legacy.counts) !== canonicalJson(expectedLegacy)) fail("legacy S2 audit no longer reproduces the Gate L baseline");
+    if (s2.legacy.cosmeticOnlyCount !== 54) fail(`legacy S2 audit has ${s2.legacy.cosmeticOnlyCount} cosmetic-only observations, expected 54`);
+    if (s2.production.comparabilityVerdict !== "COMPARABLE_WITHIN_SCHEMA_ERA") fail("S2 row-preserving production pair is not comparable");
+    const explicitDivergences = new Set(s2.reconciliation.divergences.map((record) => record.exactCode));
+    for (const code of ["UZPp.02.03-RP", "UZPp.02.04-RP"]) if (!explicitDivergences.has(code)) fail(`the exact-code reconciliation for ${code} is missing`);
+    const current = editionPairs.S2?.current;
+    if (current) {
+      const currentRows = Object.values(current.records).reduce((sum, rows) => sum + (Array.isArray(rows) ? rows.length : 0), 0);
+      if (currentRows !== 239 || Object.keys(current.records).length !== 230 || current.published_row_count !== currentRows) fail("current S2 row multiplicity collapsed or drifted from 239 rows across 230 exact codes");
+      const barajas = Object.entries(current.records).filter(([, rows]) => Array.isArray(rows) && rows.filter((row) => row.district_name === "BARAJAS" && ["20", "21"].includes(row.district_code)).length === 2);
+      if (barajas.length !== 7) fail(`the Barajas district-code anomaly has ${barajas.length} duplicated exact codes, expected 7`);
+      for (const [code, rows] of barajas) {
+        const rowCodes = new Set(rows.map((row) => row.district_code));
+        if (!rowCodes.has("20") || !rowCodes.has("21") || rows.some((row) => row.district_name !== "BARAJAS")) fail(`${code} Barajas source rows were corrected or dropped`);
+        const result = classifyAmbitoEditionPair(editionPairs.S2.previous, current, code);
+        const numeric = compareBuildability(editionPairs.S2.previous, current, code);
+        if (result.outcome !== CHANGE_OUTCOME.CAUSE_UNRESOLVED || numeric.state !== BUILDABILITY_STATE.WITHHELD) fail(`${code} Barajas ambiguity was reconciled or given a numeric comparison`);
+      }
+    }
+  }
+  // A generated 2024-01 → 2025-01 S1 pair exercises the schema-era guard at
+  // deployment validation time, independently of the current pinned pair.
+  if (editionPairs.S1) {
+    const code = Object.keys(editionPairs.S1.current.records)[0];
+    const old = { ...editionPairs.S1.current, reference_date: "2024-01-01", snapshot_identity: "S1:2024-01:oldschema", sha256: "a".repeat(64), schema_era: "S1_SINGLE_STATE_PER_DISTRICT" };
+    const newer = { ...editionPairs.S1.current, reference_date: "2025-01-01", snapshot_identity: "S1:2025-01:newschema", sha256: "b".repeat(64) };
+    if (classifyAmbitoEditionPair(old, newer, code).outcome !== CHANGE_OUTCOME.NON_COMPARABLE) fail("cross-era 2024-01 → 2025-01 guard did not abstain");
+  }
+  return {
+    state: "available",
+    counts: Object.fromEntries(Object.entries(recomputed).map(([family, values]) => [family, values.production.counts])),
+    divergences: recomputed.S2?.reconciliation.divergenceCount ?? null,
+  };
+}
+
 function validatePlanningState(source, artifact, meta, geometry, errors, warnings) {
   const label = source.display_name;
   const sink = source.blocks_deployment ? errors : warnings;
@@ -1575,6 +1763,7 @@ function validatePlanningState(source, artifact, meta, geometry, errors, warning
         `stated "${editions.development_state?.reference_date}"`
     );
   }
+  const changeDetection = validatePlanningChangeDetection(source, artifact, meta, errors);
 
   // ---- per-record contract --------------------------------------------------
   let totalRows = 0;
@@ -1712,6 +1901,7 @@ function validatePlanningState(source, artifact, meta, geometry, errors, warning
     warnings: [
       `${publishedState} published development states, ${publishedBuildability} published buildability records (${totalRows} rows)`,
       `editions: ${editions.development_state?.snapshot_identity} + ${editions.available_buildability?.snapshot_identity}`,
+      `K7 editions: 2025-07 → 2026-01; production S1 ${changeDetection.counts?.S1?.STATE_TRANSITION ?? "unavailable"} state transitions; S2 ${changeDetection.divergences ?? "unavailable"} legacy/production exact-code divergences`,
       `joins: S1 ${meta.joins?.S1?.matched}/${meta.joins?.S1?.table_codes}, S2 ${meta.joins?.S2?.matched}/${meta.joins?.S2?.table_codes}`,
     ],
   };

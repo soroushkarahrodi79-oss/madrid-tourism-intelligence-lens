@@ -28,8 +28,9 @@
 //      scaled to a circle. The quantity readers (`developmentState`,
 //      `availableBuildability`) take an ámbito code and the artifact, and accept
 //      no point, radius, circle or area parameter at all.
-//   4. **No change detection.** One selected edition per family. Comparing
-//      editions is #69's work and no function here takes two editions.
+//   4. **Change detection is separate.** This K6 module reads one selected
+//      edition per family. K7 lives in `js/ambito-change.js` and takes explicit
+//      dated edition snapshots; no function here takes two editions.
 //
 // `No Necesita` is its own published state. It is never mapped to `Sin Iniciar`,
 // to zero, to unavailable, to "complete", to "skipped" or to "no aplica": Gate L

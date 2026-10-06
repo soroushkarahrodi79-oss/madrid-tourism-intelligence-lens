@@ -318,6 +318,46 @@ header{
 .planning-source-toggle{margin-top:var(--s-2);padding:0;border:0;background:transparent;color:#7d92a9;font-size:var(--t-micro);letter-spacing:.05em;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(125,146,169,.45)}
 .planning-source-toggle:hover{color:#b3c5d8}
 
+/* K7 official-edition comparison. Secondary to K6's current published values,
+   with neutral borders and side labels instead of directional colour or marks. */
+.planning-change{margin-top:var(--s-3);border:1px solid rgba(183,197,212,.22);border-radius:var(--r-small);background:rgba(255,255,255,.018)}
+.planning-change[hidden]{display:none}
+.planning-change>summary,.planning-change-analyst>summary{display:flex;align-items:center;min-height:44px;padding:var(--s-2) var(--s-3);font-size:var(--t-label);letter-spacing:.04em;color:#d1dce8;cursor:pointer}
+.planning-change-intro,.planning-change-scope{margin:0;padding:0 var(--s-3) var(--s-2);font-size:var(--t-meta);line-height:1.5;color:#9fb1c5}
+.planning-change-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-2);margin:0 var(--s-3);padding:var(--s-2) 0;border-top:1px solid rgba(255,255,255,.09);border-bottom:1px solid rgba(255,255,255,.09)}
+.planning-change-dates>div{display:grid;gap:var(--s-1);min-width:0}
+.planning-change-dates span,.planning-change-numeric-values small{font-size:var(--t-micro);line-height:1.35;color:#879bb0;overflow-wrap:anywhere}
+.planning-change-dates strong{font-size:var(--t-label);line-height:1.35;color:#edf3f9;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.planning-change-scope{padding-top:var(--s-2)}
+.planning-change-outcomes{display:grid;gap:var(--s-2);padding:0 var(--s-3)}
+.planning-change-outcome,.planning-change-numeric-row{min-width:0;padding:var(--s-2);border:1px solid rgba(183,197,212,.16);border-radius:var(--r-small);background:rgba(255,255,255,.018)}
+.planning-change-outcome h3,.planning-build-comparison h3,.planning-change-analyst h3{margin:0 0 var(--s-1);font-size:var(--t-meta);font-weight:650;line-height:1.4;color:#b9c8d8}
+.planning-change-label{margin:0;font-size:var(--t-label);line-height:1.45;color:#edf3f9}
+.planning-change-values{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-1) var(--s-2);margin-top:var(--s-2);font-size:var(--t-meta);line-height:1.45;overflow-wrap:anywhere}
+.planning-change-values>span:first-child{grid-column:1/-1;color:#a9bbcf}
+.planning-change-values small{font-size:var(--t-micro);color:#8296ab}
+.planning-change-detail,.planning-change-caveat{margin:var(--s-1) 0 0;font-size:var(--t-meta);line-height:1.5;color:#a9bbcf;overflow-wrap:anywhere}
+.planning-change-caveat{padding:var(--s-1) var(--s-2);border-left:2px solid #8999aa;color:#d0d8e0}
+.planning-build-comparison{display:grid;gap:var(--s-2);margin:var(--s-3) var(--s-3) 0;padding-top:var(--s-2);border-top:1px solid rgba(255,255,255,.09)}
+.planning-build-comparison h3{margin:0}
+.planning-change-numeric-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-2);margin-top:var(--s-1);font-size:var(--t-meta);line-height:1.45;color:#edf3f9;font-variant-numeric:tabular-nums}
+.planning-change-numeric-values>div{display:grid;gap:var(--s-1);min-width:0;overflow-wrap:anywhere}
+.planning-change-cell{margin-top:var(--s-2);padding-top:var(--s-2);border-top:1px solid rgba(255,255,255,.07)}
+.planning-change-cell strong{font-size:var(--t-meta);font-weight:620;color:#bac8d7}
+.planning-change-analyst{margin:var(--s-3);border-top:1px solid rgba(255,255,255,.09)}
+.planning-change-analyst>summary{padding-left:0;padding-right:0;font-size:var(--t-meta)}
+.planning-change-analyst h3{margin-top:var(--s-1)}
+.planning-change-provenance{list-style:none;margin:0;padding:0;display:grid;gap:var(--s-2)}
+.planning-change-provenance-edition{padding:var(--s-2);border:1px solid rgba(183,197,212,.14);border-radius:var(--r-small);font-size:var(--t-micro);line-height:1.5;color:#a9bbcf;overflow-wrap:anywhere}
+.planning-change-provenance-edition strong{color:#e1e8ef}
+.planning-change-provenance-edition p{margin:var(--s-1) 0 0;overflow-wrap:anywhere}
+.planning-change-analyst-data{max-height:28rem;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:var(--s-2);border:1px solid rgba(183,197,212,.14);border-radius:var(--r-small);font-size:var(--t-micro);line-height:1.45;color:#a9bbcf}
+.drawer-change-provenance{margin-top:var(--s-2);padding-top:var(--s-2);border-top:1px solid rgba(255,255,255,.08)}
+.drawer-change-provenance h5{margin:0 0 var(--s-2);font-size:var(--t-meta);color:#d4deea}
+.drawer-change-edition{margin-top:var(--s-2);padding:var(--s-2);border:1px solid rgba(183,197,212,.14);border-radius:var(--r-small);overflow-wrap:anywhere}
+.drawer-change-edition h6{margin:0;font-size:var(--t-meta);color:#ecf2f8}
+.drawer-change-edition>p{margin:var(--s-2) 0 var(--s-1);font-size:var(--t-micro);color:#a9bbcf}
+
 /* Lens ∩ ámbito: a MEMBERSHIP list. It carries no quantity, so there is no
    number here that could be read as a share of an ámbito's figures. */
 .planning-touched{list-style:none;margin:var(--s-2) 0 0;padding:0;display:grid;gap:var(--s-1);font-size:var(--t-body);line-height:1.5;color:#a9bbcf}
