@@ -4,6 +4,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { validateDeployment, readArtifacts } from "../scripts/validate_deployment.mjs";
+import { ANALYTICAL_SCOPES, UPDATE_FREQUENCIES, SOURCE_STATES, freshnessOf } from "../js/evidence-scope.js";
 
 const REAL_REGISTRY = JSON.parse(
   fs.readFileSync(new URL("../data/source_registry.json", import.meta.url), "utf8")
@@ -1916,6 +1917,52 @@ test("source registry is internally coherent", () => {
       );
     }
 
+    // K2: an enumerated analytical scope, declared in spatial_scopes.analytical_scopes
+    // and distinct from the integrity-envelope expected_spatial_scope above.
+    assert.ok(
+      REAL_REGISTRY.spatial_scopes.analytical_scopes?.[source.scope],
+      `${source.id} must declare an analytical scope defined in spatial_scopes.analytical_scopes`
+    );
+    assert.ok(ANALYTICAL_SCOPES.includes(source.scope), `${source.id} analytical scope out of vocabulary`);
+    assert.notEqual(
+      source.scope,
+      source.expected_spatial_scope,
+      `${source.id}: analytical scope and integrity envelope must not be the same token`
+    );
+
+    // K2: the five-field freshness contract, present with valid closed vocabulary.
+    // Nulls are explicit facts, never inferred; retrieved_at follows the
+    // committed-vs-rebuilt rule.
+    for (const field of ["reference_date", "published_at", "retrieved_at", "update_frequency", "source_state"]) {
+      assert.ok(field in source, `${source.id} must carry freshness field ${field}`);
+    }
+    assert.ok(UPDATE_FREQUENCIES.includes(source.update_frequency), `${source.id} update_frequency out of vocabulary`);
+    assert.ok(SOURCE_STATES.includes(source.source_state), `${source.id} source_state out of vocabulary`);
+    assert.ok(
+      source.reference_date === null || /^\d{4}-\d{2}(-\d{2})?$/.test(source.reference_date),
+      `${source.id} reference_date must be an ISO month, ISO date, or null`
+    );
+    assert.ok(
+      source.published_at === null || /^\d{4}-\d{2}-\d{2}$/.test(source.published_at),
+      `${source.id} published_at must be an ISO date or null`
+    );
+    if (source.rebuilt_at_deploy) {
+      assert.equal(
+        source.retrieved_at,
+        null,
+        `${source.id}: a rebuilt-at-deploy source resolves retrieved_at at deploy, so its registry value must be null`
+      );
+    } else {
+      assert.ok(
+        typeof source.retrieved_at === "string" && /^\d{4}-\d{2}-\d{2}/.test(source.retrieved_at),
+        `${source.id}: a committed source must carry a real retrieved_at`
+      );
+    }
+    // No committed snapshot may claim a DAILY cadence as currency.
+    if (source.rebuilt_at_deploy === false) {
+      assert.notEqual(source.update_frequency, "DAILY", `${source.id}: a committed snapshot must not claim DAILY`);
+    }
+
     if (source.shape === "destination_demand_series") {
       // A monthly series has neither an exact administrative-count contract nor
       // a record-collapse floor: its integrity guardrail is a minimum series
@@ -1958,11 +2005,37 @@ test("source registry is internally coherent", () => {
     }
   }
 
-  for (const scope of Object.values(REAL_REGISTRY.spatial_scopes)) {
+  // The integrity-envelope boxes (referenced by expected_spatial_scope) are the
+  // spatial_scopes entries that carry coordinates. The analytical_scopes block is
+  // a different concept (what a value MEANS) and is validated separately, so the
+  // two must never be conflated here.
+  const boxes = Object.entries(REAL_REGISTRY.spatial_scopes).filter(
+    ([, v]) => v && typeof v === "object" && typeof v.lat_min === "number"
+  );
+  assert.ok(boxes.length >= 3, "the integrity-envelope boxes must remain defined");
+  for (const [, scope] of boxes) {
     assert.ok(scope.lat_min < scope.lat_max && scope.lon_min < scope.lon_max);
     assert.ok(scope.note, "each scope must explain what it is for");
   }
 
+  // Every enumerated analytical scope is defined with a one-line definition, and
+  // the registry's set matches the pure model's closed enum exactly.
+  const analytical = REAL_REGISTRY.spatial_scopes.analytical_scopes;
+  assert.ok(analytical, "the registry must define analytical_scopes");
+  assert.deepEqual(
+    Object.keys(analytical).sort(),
+    [...ANALYTICAL_SCOPES].sort(),
+    "registry analytical_scopes must match the closed enum in js/evidence-scope.js"
+  );
+  for (const [id, def] of Object.entries(analytical)) {
+    assert.ok(
+      typeof def.definition === "string" && def.definition.length > 0,
+      `${id} analytical scope needs a one-line definition`
+    );
+    assert.equal(def.lat_min, undefined, `${id} is an analytical scope, not an integrity box`);
+  }
+
+  assert.equal(REAL_REGISTRY.contract_version, "1.1.0", "registry must be at contract 1.1.0");
   assert.match(REAL_REGISTRY.guardrail_note, /not a tourism indicator/i);
 });
 
@@ -2207,4 +2280,177 @@ test("the committed evidence artifacts satisfy the real registry", () => {
   });
 
   assert.deepEqual(errors, [], `committed artifacts must validate: ${errors.join(" | ")}`);
+});
+
+// ---------------------------------------------------------------- K2 freshness + scope
+
+// A clone of the real registry with scaled guardrails, mutated per test. Using
+// testRegistry() keeps every other source valid so each test isolates one defect.
+function sourceById(registry, id) {
+  return registry.sources.find((s) => s.id === id);
+}
+
+test("K2: an out-of-vocabulary update_frequency fails the build", () => {
+  const registry = testRegistry();
+  sourceById(registry, "population").update_frequency = "FORTNIGHTLY";
+  const result = run(healthyArtifacts(), registry);
+  assert.match(errorText(result), /update_frequency "FORTNIGHTLY" is not one of/);
+});
+
+test("K2: an out-of-vocabulary source_state fails the build", () => {
+  const registry = testRegistry();
+  sourceById(registry, "population").source_state = "FINAL";
+  const result = run(healthyArtifacts(), registry);
+  assert.match(errorText(result), /source_state "FINAL" is not one of/);
+});
+
+test("K2: a missing mandatory freshness field fails the build", () => {
+  const registry = testRegistry();
+  delete sourceById(registry, "hotel_demand").source_state;
+  const result = run(healthyArtifacts(), registry);
+  assert.match(errorText(result), /missing mandatory freshness field "source_state"/);
+});
+
+test("K2: a committed source with no usable retrieved_at fails the build", () => {
+  const registry = testRegistry();
+  // population is committed (rebuilt_at_deploy false): a null retrieved_at is not
+  // allowed, and neither is a missing one.
+  sourceById(registry, "population").retrieved_at = null;
+  const nulled = run(healthyArtifacts(), registry);
+  assert.match(errorText(nulled), /retrieved_at.*not an ISO datetime or date in the registry/s);
+
+  const registry2 = testRegistry();
+  delete sourceById(registry2, "population").retrieved_at;
+  const missing = run(healthyArtifacts(), registry2);
+  assert.match(errorText(missing), /missing mandatory freshness field "retrieved_at"/);
+});
+
+test("K2: an available rebuilt-at-deploy layer whose artifact has no generatedAt fails", () => {
+  const registry = testRegistry();
+  const artifacts = healthyArtifacts();
+  delete artifacts["runtime_poi.json"].generatedAt; // POI layers are available
+  const result = run(artifacts, registry);
+  assert.match(errorText(result), /no usable retrieved_at; an available source must record when it was obtained/);
+});
+
+test("K2: an unknown analytical scope fails the build", () => {
+  const registry = testRegistry();
+  sourceById(registry, "hotel_demand").scope = "CITY_BLOCK";
+  const result = run(healthyArtifacts(), registry);
+  assert.match(errorText(result), /analytical scope "CITY_BLOCK" is not declared in spatial_scopes\.analytical_scopes/);
+});
+
+test("K2: a source declaring no analytical scope fails the build", () => {
+  const registry = testRegistry();
+  delete sourceById(registry, "geography").scope;
+  const result = run(healthyArtifacts(), registry);
+  assert.match(errorText(result), /declares no analytical scope/);
+});
+
+test("K2: a committed snapshot may not claim a DAILY cadence as currency", () => {
+  const registry = testRegistry();
+  // hotel_demand is a committed statistical snapshot.
+  sourceById(registry, "hotel_demand").update_frequency = "DAILY";
+  const result = run(healthyArtifacts(), registry);
+  assert.match(errorText(result), /declares update_frequency DAILY while shipping a committed snapshot/);
+});
+
+test("K2: a rebuilt-at-deploy source must carry retrieved_at: null in the registry", () => {
+  const registry = testRegistry();
+  // museum is rebuilt at deploy; a static committed date would misreport currency.
+  sourceById(registry, "museum").retrieved_at = "2026-01-01T00:00:00Z";
+  const result = run(healthyArtifacts(), registry);
+  assert.match(errorText(result), /must carry retrieved_at: null in the registry/);
+});
+
+test("K2: an unavailable rebuilt-at-deploy layer may carry a null retrieved_at", () => {
+  // The opt-in pedestrian snapshot, not built in this checkout, is the one case
+  // where a null retrieved_at is correct, mirroring its already-null source_period.
+  const artifacts = healthyArtifacts();
+  artifacts["pedestrian_activity.json"] = {
+    available: false,
+    generatedAt: null,
+    source: {
+      dataset: "Madrid Open Data — Aforos de peatones y bicicletas",
+      datasetUrl: "https://datos.madrid.es/dataset/300321-0-aforos-peatones-bicicletas",
+      resourceUrl: "https://datos.madrid.es/dataset/300321-0-aforos-peatones-bicicletas/resource/x.csv",
+      year: 2024,
+    },
+    stations: [],
+    stationCount: 0,
+    observationCount: 0,
+    dateMin: null,
+    dateMax: null,
+    error: "Deployment snapshot not built in this checkout.",
+  };
+  const result = run(artifacts);
+  assert.equal(result.ok, true, `pedestrian unavailable must be allowed: ${errorText(result)}`);
+  const pedestrian = result.manifest.layers.find((l) => l.source_id === "pedestrian");
+  assert.equal(pedestrian.state, "unavailable");
+  assert.equal(pedestrian.freshness.retrieved_at, null);
+});
+
+test("K2: the manifest carries the five freshness fields and the analytical scope for every layer", () => {
+  const result = run(healthyArtifacts());
+  assert.equal(result.ok, true, errorText(result));
+  assert.equal(result.manifest.registry_contract_version, "1.1.0");
+  for (const layer of result.manifest.layers) {
+    assert.ok(ANALYTICAL_SCOPES.includes(layer.analytical_scope), `${layer.source_id} must carry an analytical scope`);
+    const f = layer.freshness;
+    assert.ok(f, `${layer.source_id} must carry a freshness block`);
+    for (const field of ["reference_date", "published_at", "retrieved_at", "update_frequency", "source_state"]) {
+      assert.ok(field in f, `${layer.source_id} freshness must carry ${field}`);
+    }
+    assert.ok(UPDATE_FREQUENCIES.includes(f.update_frequency));
+    assert.ok(SOURCE_STATES.includes(f.source_state));
+    // The analytical scope and the integrity envelope are carried side by side and
+    // are never the same token.
+    assert.notEqual(layer.analytical_scope, layer.spatial_scope);
+  }
+});
+
+test("K2: a rebuilt-at-deploy layer's manifest retrieved_at is the built artifact's generatedAt", () => {
+  const result = run(healthyArtifacts());
+  const museum = result.manifest.layers.find((l) => l.source_id === "museum");
+  // The registry value is null (deploy-resolved); the manifest reports the real
+  // artifact generatedAt, so a live fetch is never misreported as a stale date.
+  assert.equal(sourceById(REAL_REGISTRY, "museum").retrieved_at, null);
+  assert.equal(museum.freshness.retrieved_at, GENERATED_AT);
+});
+
+test("K2 regression: a catalogue update date never becomes reference_date or published_at (Plano de ordenación)", () => {
+  // Real repo case: the geography catalogue record was last modified 2026-07-27
+  // (geography/madrid_admin.meta.json), while the geometry publishes no edition
+  // date. That catalogue date must NOT have leaked into reference_date/published_at.
+  const meta = JSON.parse(
+    fs.readFileSync(new URL("../data/geography/madrid_admin.meta.json", import.meta.url), "utf8")
+  );
+  const catalogueDate = meta.source_version.datasets.barrio.catalog_metadata_modified;
+  assert.equal(catalogueDate, "2026-07-27");
+  const geo = sourceById(REAL_REGISTRY, "geography");
+  assert.equal(geo.reference_date, null, "geography reference_date must be null, not the catalogue date");
+  assert.equal(geo.published_at, null, "geography published_at must be null, not the catalogue date");
+  assert.notEqual(geo.reference_date, catalogueDate);
+  assert.notEqual(geo.published_at, catalogueDate);
+
+  // Gate K proof case: PGOUM 97. Plano de ordenación reports a catalogue Fecha de
+  // actualización of 29/07/2026 while its coverage ends 17 April 1997. The
+  // five-field contract has no field that would turn that catalogue date into
+  // evidence currency: a catalogue date can only live under its own name, and
+  // freshnessOf ignores it entirely.
+  const plano = {
+    id: "plano_ordenacion_fixture",
+    scope: "PLANNING_AMBITO",
+    reference_date: "1997-04-17",
+    published_at: null,
+    retrieved_at: "2026-10-05T00:00:00Z",
+    update_frequency: "DECLARED_UNDEFINED",
+    source_state: "DEFINITIVE",
+    catalogue_updated_at: "2026-07-29",
+  };
+  const fresh = freshnessOf(plano);
+  assert.equal(fresh.reference_date, "1997-04-17");
+  assert.notEqual(fresh.reference_date, plano.catalogue_updated_at);
+  assert.notEqual(fresh.published_at, plano.catalogue_updated_at);
+  assert.ok(!("catalogue_updated_at" in fresh), "the catalogue date is not one of the five freshness fields");
 });
