@@ -1,11 +1,128 @@
 {
   "contract_version": "1.0.0",
   "artifact": "madrid_ambito_state.json",
-  "generated_at": "2026-10-06T14:17:59Z",
+  "generated_at": "2026-10-06T18:33:48Z",
   "builder": "scripts/build_ambito_development_state.py",
-  "gate": "Gate L (#65) source contract; issue #68 (K6) production increment",
-  "what_this_is": "Per planning ámbito, for ONE selected edition of each official family: the four independent published development-phase values, the characteristic use, the published surface, and available buildability (edificabilidad disponible) by documented use class in m² edificable. Whole-ámbito scope throughout.",
+  "gate": "Gate L (#65) source contract; issue #68 (K6) and #69 (K7) production increments",
+  "what_this_is": "K6's current-edition record per planning ámbito: the four independent published development-phase values, characteristic use, published surface, and available buildability by documented use class in m² edificable. K7's separately keyed change_detection object carries exactly the pinned 2025-07-01 and 2026-01-01 source editions with all S2 rows preserved. Whole-ámbito scope throughout.",
   "scope": "PLANNING_AMBITO",
+  "change_detection": {
+    "pair_id": "2025-07__2026-01",
+    "comparison_basis": "source-stated reference date + full SHA-256 fingerprint + schema era",
+    "absence_reason_reference": {
+      "resource_id": "203200-14-desarrollo-ambitos",
+      "title": "Ámbitos del PGOUM que no son objeto de seguimiento",
+      "resource_url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos/resource/203200-14-desarrollo-ambitos/download/203200-14-desarrollo-ambitos.pdf",
+      "matching_rule": "Attach a documented reason only to its exact published code; do not infer one from a prefix, name or near-code match."
+    },
+    "absence_reason_policy": "ABSENT_FROM_EDITION remains the primary outcome. Each record carries SOURCE_DOCUMENTED only with an exact-code annex reason; otherwise it carries CAUSE_UNRESOLVED.",
+    "comparability_verdict": "COMPARABLE_WITHIN_SCHEMA_ERA",
+    "editions": {
+      "previous": {
+        "S1": {
+          "reference_date": "2025-07-01",
+          "snapshot_identity": "S1:2025-07:e1ff3e0e0f63",
+          "resource_id": "203200-2-desarrollo-ambitos-xls",
+          "sha256": "e1ff3e0e0f63fe59dbe64d10b319026917c34d9086f395e9787b6fe3661cf49d",
+          "schema_era": "S1_FOUR_PHASE_FLAT",
+          "schema_fingerprint": "1206336af6b4176d",
+          "resource_url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos/resource/203200-2-desarrollo-ambitos-xls/download/203200-2-desarrollo-ambitos-xls.xls",
+          "retrieved_at": "2026-10-06T08:30:07Z",
+          "published_at": null,
+          "published_at_timestamp": null,
+          "http_last_modified": "Sun, 15 Feb 2026 22:24:42 GMT"
+        },
+        "S2": {
+          "reference_date": "2025-07-01",
+          "snapshot_identity": "S2:2025-07:09f6859a2541",
+          "resource_id": "203182-10-ambitos-remanente-xls",
+          "sha256": "09f6859a2541ea8c31eb3ce47464ca5fbec64d38f57a7b3b435bb65e4a5cb286",
+          "schema_era": "S2_SPLIT_RESIDENTIAL_FLAT",
+          "schema_fingerprint": "475e4c2bf290ca1e",
+          "resource_url": "https://datos.madrid.es/dataset/203182-0-ambitos-remanente/resource/203182-10-ambitos-remanente-xls/download/203182-10-ambitos-remanente-xls.xls",
+          "retrieved_at": "2026-10-06T08:30:45Z",
+          "published_at": null,
+          "published_at_timestamp": null,
+          "http_last_modified": "Sun, 15 Feb 2026 22:24:32 GMT"
+        }
+      },
+      "current": {
+        "S1": {
+          "reference_date": "2026-01-01",
+          "snapshot_identity": "S1:2026-01:585db074c122",
+          "resource_id": "203200-15-desarrollo-ambitos",
+          "sha256": "585db074c122caec3293137e56742b5c9d77189205050aab328520a2dd1ec677",
+          "schema_era": "S1_FOUR_PHASE_FLAT",
+          "schema_fingerprint": "1206336af6b4176d",
+          "resource_url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos/resource/203200-15-desarrollo-ambitos/download/situacionambitos_01_01_2026distritos.xls",
+          "retrieved_at": "2026-10-06T08:30:32Z",
+          "published_at": "2026-03-24",
+          "published_at_timestamp": "2026-03-24T07:44:00Z",
+          "http_last_modified": "Thu, 09 Apr 2026 11:14:47 GMT"
+        },
+        "S2": {
+          "reference_date": "2026-01-01",
+          "snapshot_identity": "S2:2026-01:326edf48d221",
+          "resource_id": "203182-14-ambitos-remanente",
+          "sha256": "326edf48d2214e73175256777fd5083a3f656a05d0bcf0bec36b63ac6cc899e8",
+          "schema_era": "S2_SPLIT_RESIDENTIAL_FLAT",
+          "schema_fingerprint": "475e4c2bf290ca1e",
+          "resource_url": "https://datos.madrid.es/dataset/203182-0-ambitos-remanente/resource/203182-14-ambitos-remanente/download/edificabilidad-remanente-01_01_2026_datos-abiertos.xls",
+          "retrieved_at": "2026-10-06T08:30:50Z",
+          "published_at": "2026-03-24",
+          "published_at_timestamp": "2026-03-24T07:44:00Z",
+          "http_last_modified": "Thu, 09 Apr 2026 10:28:30 GMT"
+        }
+      }
+    },
+    "row_policy": "All published S2 rows preserved; only unique stable SITUACION matches permit row-level comparison.",
+    "audits": {
+      "S1": {
+        "legacy_gate_l_counts": {
+          "NO_CHANGE": 655,
+          "STATE_TRANSITION": 10,
+          "NEW_AMBITO": 2,
+          "ABSENT_FROM_EDITION": 0,
+          "MODIFIED_BY_INSTRUMENT": 0,
+          "CAUSE_UNRESOLVED": 0,
+          "NON_COMPARABLE": 0
+        },
+        "legacy_gate_l_cosmetic_only_count": 0,
+        "production_counts": {
+          "NO_CHANGE": 655,
+          "STATE_TRANSITION": 10,
+          "NEW_AMBITO": 2,
+          "ABSENT_FROM_EDITION": 0,
+          "MODIFIED_BY_INSTRUMENT": 0,
+          "CAUSE_UNRESOLVED": 0,
+          "NON_COMPARABLE": 0
+        },
+        "exact_code_divergence_count": 0
+      },
+      "S2": {
+        "legacy_gate_l_counts": {
+          "NO_CHANGE": 220,
+          "STATE_TRANSITION": 9,
+          "NEW_AMBITO": 0,
+          "ABSENT_FROM_EDITION": 9,
+          "MODIFIED_BY_INSTRUMENT": 0,
+          "CAUSE_UNRESOLVED": 1,
+          "NON_COMPARABLE": 0
+        },
+        "legacy_gate_l_cosmetic_only_count": 54,
+        "production_counts": {
+          "NO_CHANGE": 212,
+          "STATE_TRANSITION": 8,
+          "NEW_AMBITO": 0,
+          "ABSENT_FROM_EDITION": 9,
+          "MODIFIED_BY_INSTRUMENT": 0,
+          "CAUSE_UNRESOLVED": 10,
+          "NON_COMPARABLE": 0
+        },
+        "exact_code_divergence_count": 9
+      }
+    }
+  },
   "scope_note": "Every value describes the WHOLE planning ámbito. No value is apportioned, area-weighted, population-weighted or otherwise distributed into a Lens circle, a barrio, a district or any sub-area, and no value is combined with a value of another analytical scope.",
   "license": "CC BY 4.0",
   "authority": "Ayuntamiento de Madrid. Área de Gobierno de Urbanismo, Medio Ambiente y Movilidad. Dirección General de Planificación Estratégica",
@@ -316,7 +433,7 @@
       "table_codes": 230,
       "geometry_codes": 724,
       "matched": 230,
-      "match_rate_of_table": 1.0,
+      "match_rate_of_table": 1,
       "unmatched_in_table_count": 0,
       "unmatched_in_table": [],
       "geometry_only_count": 494,
@@ -741,8 +858,8 @@
   "fingerprint": {
     "algorithm": "sha256",
     "scope": "canonical JSON (sorted keys, compact separators, UTF-8) of the artifact",
-    "value": "e6cc5e52533f2f20b5c9d596b44c8d4cfdfc868fa57256367ace21c0b0294c98"
+    "value": "09d5e323806827dbdb0359e54f207a5c87072aed5793375432308b7f0077fe82"
   },
   "runtime_policy": "BUILD TIME ONLY. The browser never requests datos.madrid.es: it reads this committed, fingerprinted artifact.",
-  "interpretation_ceiling": "Four INDEPENDENT published administrative development-phase values per planning ámbito, and available planning buildability (edificabilidad disponible) by use class in m² edificable, as published in ONE dated edition of each official family. The four phase fields do NOT form one overall completion stage: they are multi-dimensional, the publisher documents no ordering, and no stage, stage number, progression, percentage, completion, advancement, delay or timeline is derivable from them. A published phase state is an ADMINISTRATIVE state, never proof of physical construction progress (PLANNING_STATE_TRANSITION != PHYSICAL_URBAN_CHANGE). 'No Necesita' is a distinct published value whose precise meaning the audited documentation does not define; it does not mean not applicable, skipped, complete, zero or unavailable. 'PGOUM-85' and 'PGOUM-97' are plan-of-origin markers occupying phase cells, not progress states. Available buildability is what the plan makes available, NOT what remains to be physically built and NOT an estimate of what will be built. NO dwelling count is published or derivable: the source's Nº Viviendas columns are residential buildability ÷ 100 with fractional values and are excluded. Every figure describes the WHOLE ámbito and is never apportioned into a Lens circle, a barrio or any sub-area, and never combined with a value of another analytical scope. One edition only: no edition-to-edition difference, trend or change is published here. Geometry and identifiers come through a separate official route; every quantity and state here comes from the dated CC BY 4.0 editions."
+  "interpretation_ceiling": "Four INDEPENDENT published administrative development-phase values per planning ámbito, and available planning buildability (edificabilidad disponible) by use class in m² edificable, as published in the K6 current edition per official family. K7 separately compares the named 2025-07-01 and 2026-01-01 editions within their shared schema eras. The four phase fields do NOT form one overall completion stage: they are multi-dimensional, the publisher documents no ordering, and no stage, stage number, progression, percentage, completion, advancement, delay or timeline is derivable from them. A published phase state is an ADMINISTRATIVE state, never proof of physical construction progress (PLANNING_STATE_TRANSITION != PHYSICAL_URBAN_CHANGE). 'No Necesita' is a distinct published value whose precise meaning the audited documentation does not define; it does not mean not applicable, skipped, complete, zero or unavailable. 'PGOUM-85' and 'PGOUM-97' are plan-of-origin markers occupying phase cells, not progress states. Available buildability is what the plan makes available, NOT what remains to be physically built and NOT an estimate of what will be built. NO dwelling count is published or derivable: the source's Nº Viviendas columns are residential buildability ÷ 100 with fractional values and are excluded. Every figure describes the WHOLE ámbito and is never apportioned into a Lens circle, a barrio or any sub-area, and never combined with a value of another analytical scope. Edition differences describe published table evidence only; they establish neither physical urban change nor an unsourced cause. No third edition is included. Geometry and identifiers come through a separate official route; every quantity and state here comes from the dated CC BY 4.0 editions."
 }

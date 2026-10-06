@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
+import os from "node:os";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
@@ -46,6 +47,11 @@ const sourceById = (id) => registry.sources.find((source) => source.id === id);
 const stateMeta = JSON.parse(
   fs.readFileSync(path.join(ROOT, "data", "planning", "madrid_ambito_state.meta.json"), "utf8")
 );
+const stateArtifact = JSON.parse(
+  fs.readFileSync(path.join(ROOT, "data", "planning", "madrid_ambito_state.json"), "utf8")
+);
+const K7_VISUAL_DIR = path.join(os.tmpdir(), "madrid-k7-visual-review");
+fs.mkdirSync(K7_VISUAL_DIR, { recursive: true });
 
 // Fixture places, verified against the committed geometry.
 const INSIDE = { lat: 40.40255, lon: -3.71371, code: "APR.02.09" }; // has a No Necesita phase
@@ -743,6 +749,137 @@ test("PA 20 the citizen reading foregrounds without changing a value or softenin
   });
   assert.ok(view.ceiling.includes("never proof of physical construction"));
   assert.ok(view.ceiling.includes("No dwelling count is published or derivable"));
+});
+
+test("K7 renders both dates, explicit outcomes and numeric states at desktop and 390px", async (t) => {
+  const samples = [
+    { name: "no-change", lat: 40.4491896975, lon: -3.551747205, code: "AOE.00.02-RP", family: "S1", outcome: "NO_CHANGE" },
+    { name: "state-transition", lat: 40.4001518625, lon: -3.719977745, code: "APE.02.27", family: "S1", outcome: "STATE_TRANSITION" },
+    { name: "new-in-edition", lat: 40.405911965, lon: -3.72762766, code: "APE.10.24", family: "S1", outcome: "NEW_AMBITO" },
+    { name: "absent-from-edition", lat: 40.3957779, lon: -3.6902068, code: "APE.02.16", family: "S2", outcome: "ABSENT_FROM_EDITION" },
+    { name: "cause-unresolved", lat: 40.453697585, lon: -3.60379061, code: "APE.21.02", family: "S2", outcome: "CAUSE_UNRESOLVED" },
+    { name: "numeric-observed", lat: 40.5001215925, lon: -3.6351243775, code: "US.04.10-RP", family: "S2", numeric: "OBSERVED_PUBLISHED_DIFFERENCE" },
+    { name: "numeric-small-observed", lat: 40.4773414653, lon: -3.626530165, code: "APR.16.01", family: "S2", numeric: "WITHHELD" },
+    { name: "numeric-withheld", lat: 40.39107073, lon: -3.68838488, code: "APE.02.12", family: "S2", numeric: "WITHHELD" },
+  ];
+  for (const viewport of [{ width: 1366, height: 900 }, { width: 390, height: 844 }]) {
+    const page = await newPage(viewport);
+    t.after(() => closePage(page));
+    const prefix = viewport.width === 390 ? "390" : "desktop";
+    assert.equal(await page.locator("#map").isVisible(), true, "the map stays present");
+    await page.screenshot({ path: path.join(K7_VISUAL_DIR, prefix + "-place-map.png") });
+
+    for (const sample of samples) {
+      await at(page, sample);
+      await page.locator("#planningChange").evaluate((node) => { node.open = true; });
+      const view = await planning(page);
+      assert.equal(view.change.visible, true, sample.name);
+      assert.deepEqual(view.change.dates, { previous: "1 Jul 2025", current: "1 Jan 2026" }, sample.name);
+      if (sample.outcome) {
+        const family = view.change.outcomes.find((entry) => entry.family === sample.family);
+        assert.equal(family?.outcome, sample.outcome, sample.name);
+        if (sample.outcome === "ABSENT_FROM_EDITION") {
+          assert.match(family.text, /Absent from this edition/);
+          assert.match(family.text, /Cause unresolved/);
+        }
+      }
+      if (sample.numeric) assert.equal(view.change.buildabilityState, sample.numeric, sample.name);
+      if (sample.name === "numeric-small-observed") {
+        assert.match(view.change.buildabilityText, /Observed published difference: 0\.0000000021 m²/);
+        assert.doesNotMatch(view.change.buildabilityText, /Observed published difference: 0\.00 m²/);
+      }
+
+      const stateBlock = await page.locator("#planningChange").evaluate((node) => ({
+        datesVisible: [...node.querySelectorAll("#planningChangeDates strong")].every((date) => date.textContent.trim().length > 0),
+        text: node.innerText,
+      }));
+      assert.equal(stateBlock.datesVisible, true, sample.name);
+      assert.match(stateBlock.text, /1 Jul 2025/);
+      assert.match(stateBlock.text, /1 Jan 2026/);
+
+      const k6Box = await page.locator("#planningIdentity").boundingBox();
+      const k7Box = await page.locator("#planningChange").boundingBox();
+      assert.ok(k6Box && k7Box && k7Box.y > k6Box.y, "the K6 current-edition identity remains above the K7 comparison");
+      if (viewport.width === 1366 && sample.name === "no-change") {
+        await page.locator("#planningSourceToggle").click();
+        assert.equal(await page.locator("#evidenceDrawer").evaluate((node) => node.open), true, "K7 uses the existing K4 evidence drawer");
+        const provenance = (await page.locator(".drawer-change-provenance").innerText()).replace(/\s+/g, " ");
+        assert.match(provenance, /Previous · 1 Jul 2025/);
+        assert.match(provenance, /Current · 1 Jan 2026/);
+        for (const resource of [
+          "203200-2-desarrollo-ambitos-xls",
+          "203200-15-desarrollo-ambitos",
+          "203182-10-ambitos-remanente-xls",
+          "203182-14-ambitos-remanente",
+        ]) assert.ok(provenance.includes(resource), resource);
+        await page.keyboard.press("Escape");
+      }
+      if (viewport.width === 390) {
+        const summaryBox = await page.locator("#planningChange > summary").boundingBox();
+        assert.ok(summaryBox && summaryBox.height >= 44, "K7 comparison disclosure has a mobile touch target");
+        const widths = await page.evaluate(() => ({
+          section: document.getElementById("planningAmbito").scrollWidth - document.getElementById("planningAmbito").clientWidth,
+          document: document.documentElement.scrollWidth - window.innerWidth,
+        }));
+        assert.ok(widths.section <= 1, sample.name + " planning surface overflow " + widths.section + "px");
+        assert.ok(widths.document <= 1, sample.name + " document overflow " + widths.document + "px");
+      }
+      await page.locator("#planningChange").screenshot({ path: path.join(K7_VISUAL_DIR, prefix + "-" + sample.name + ".png") });
+    }
+  }
+
+  const spanishPage = await newPage({ width: 390, height: 844 });
+  t.after(() => closePage(spanishPage));
+  await at(spanishPage, samples[1]);
+  await spanishPage.locator("#planningChange").evaluate((node) => { node.open = true; });
+  await spanishPage.locator("#languageSelect").selectOption("es");
+  const spanish = await planning(spanishPage);
+  assert.deepEqual(spanish.change.dates, { previous: "1 jul. 2025", current: "1 ene. 2026" });
+  const spanishText = await spanishPage.locator("#planningChange").innerText();
+  assert.match(spanishText, /Cambió el estado publicado/);
+  assert.match(spanishText, /Valor publicado anterior/);
+  assert.match(spanishText, /Valor publicado actual/);
+  await spanishPage.locator("#planningChange").screenshot({ path: path.join(K7_VISUAL_DIR, "390-state-transition-es.png") });
+  await at(spanishPage, samples[3]);
+  await spanishPage.locator("#planningChange").evaluate((node) => { node.open = true; });
+  const spanishAbsentText = await spanishPage.locator("#planningChange").innerText();
+  assert.match(spanishAbsentText, /Ausente de esta edición/);
+  assert.match(spanishAbsentText, /Causa no resuelta\. La documentación oficial no indica un motivo para este código exacto/);
+  await at(spanishPage, samples[4]);
+  await spanishPage.locator("#planningChange").evaluate((node) => { node.open = true; });
+  const spanishCauseText = await spanishPage.locator("#planningChange").innerText();
+  assert.match(spanishCauseText, /Las etiquetas de situación duplicadas impiden establecer una correspondencia de filas uno a uno/);
+  assert.match(spanishCauseText, /Código exacto del ámbito y valor único y estable de SITUACION DEL ÁMBITO/);
+  assert.doesNotMatch(spanishCauseText, /Duplicate situation labels|Exact code plus a unique|Both editions must publish numeric values/);
+  await spanishPage.locator("#planningChangeAnalyst").evaluate((node) => { node.open = true; });
+  const spanishAnalystText = await spanishPage.locator("#planningChangeAnalystBody").innerText();
+  assert.match(spanishAnalystText, /correspondencia de filas uno a uno/);
+  assert.doesNotMatch(spanishAnalystText, /Duplicate situation labels|Exact code plus a unique|Both editions must publish numeric values|One or more published S2 rows has no defensible counterpart/);
+
+  // Scan only authored visible K7 text. Source strings are marked data-verbatim
+  // and remain untouched; the analyst disclosure is a separate projection.
+  const forbidden = {
+    en: /\b(?:progress(?:ed|ion)?|advanced|moved\s+forward|improved|worsened|delayed|accelerated|on\s+track|stalled|completion|development\s+gained|construction\s+delivered|consumed|built|expected|projected|trend|rate|velocity|because|due\s+to)\b/i,
+    es: /\b(?:progreso|avanz(?:a|ó|ado|aron|ar)|mejor(?:a|ó|ado)|empeor(?:a|ó|ado)|retras(?:a|ó|ado)|aceler(?:a|ó|ado)|en\s+plazo|estancad\w*|finalizaci[oó]n|desarrollo\s+ganado|construcci[oó]n\s+entregada|consumid\w*|construid\w*|previst\w*|proyectad\w*|tendencia|ritmo|velocidad|porque|debido\s+a|a\s+causa\s+de)\b/i,
+  };
+  const englishPage = await newPage();
+  t.after(() => closePage(englishPage));
+  await at(englishPage, samples[1]);
+  await englishPage.locator("#planningChange").evaluate((node) => { node.open = true; });
+  for (const [page, language] of [[englishPage, "en"], [spanishPage, "es"]]) {
+    const authoredText = await page.locator("#planningChange").evaluate((root) => {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      const values = [];
+      while (walker.nextNode()) {
+        const parent = walker.currentNode.parentElement;
+        if (parent?.closest("[data-verbatim], #planningChangeAnalyst")) continue;
+        values.push(walker.currentNode.textContent);
+      }
+      return values.join(" ");
+    });
+    assert.doesNotMatch(authoredText, forbidden[language], language + " rendered K7 copy");
+  }
+  console.log("[k7-visual] screenshots: " + K7_VISUAL_DIR);
 });
 
 test.after(async () => {

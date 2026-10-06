@@ -60,6 +60,7 @@ const SURFACES = Object.freeze({
   "place.planning.phases": { mode: "PLACE", scope: "PLANNING_AMBITO", sources: ["planning_ambito_state"], unit: "unit.phaseState", derivation: "derive.published" },
   "place.planning.surface": { mode: "PLACE", scope: "PLANNING_AMBITO", sources: ["planning_ambito_state"], unit: "unit.squareMetres", derivation: "derive.published" },
   "place.planning.buildability": { mode: "PLACE", scope: "PLANNING_AMBITO", sources: ["planning_ambito_state"], unit: "unit.buildability", derivation: "derive.published" },
+  "place.planning.change": { mode: "PLACE", scope: "PLANNING_AMBITO", sources: ["planning_ambito_state"], unit: "unit.ambitoChange", derivation: "derive.published" },
   "place.planning.touched": { mode: "PLACE", scope: "LENS_INTERSECT_AMBITO", sources: ["planning_ambito_geometry"], unit: "unit.touchedAmbitos", derivation: "derive.ambitoMembership", when: "planningDetail" },
   "place.detail.mix": { mode: "PLACE", scope: "LENS_CIRCLE", sources: ["museum", "info", "stay", "bike", "rail"], unit: "unit.share", derivation: "derive.lensShare" },
   "place.detail.nearest": { mode: "PLACE", scope: "LENS_CIRCLE", sources: ["museum", "info", "stay", "bike", "rail"], unit: "unit.metres", derivation: "derive.nearest" },
@@ -116,6 +117,7 @@ function railModel({ mode, flags = {}, registry, instances = {} }) {
   const keys = surfaceKeysFor(mode, flags);
   const entries = [];
   const contributorIds = [];
+  const contributorReferenceDates = [];
 
   for (const key of keys) {
     const surface = SURFACES[key];
@@ -126,11 +128,19 @@ function railModel({ mode, flags = {}, registry, instances = {} }) {
       entries.push(entry);
     }
     entry.surfaces.push(key);
-    for (const id of surface.sources) if (!contributorIds.includes(id)) contributorIds.push(id);
+    for (const id of surface.sources) {
+      const source = requireSource(map, id, key);
+      if (!contributorIds.includes(id)) contributorIds.push(id);
+      contributorReferenceDates.push({
+        reference_date: key === "place.planning.change" && source.change_detection
+          ? source.change_detection.oldest_contributor_reference_date
+          : source.reference_date,
+      });
+    }
   }
 
   const contributors = contributorIds.map((id) => requireSource(map, id, "rail"));
-  const referenceDate = EVIDENCE_SCOPE_API.oldestReferenceDate(contributors);
+  const referenceDate = EVIDENCE_SCOPE_API.oldestReferenceDate(contributorReferenceDates);
   const sourceStates = [];
   for (const source of contributors) {
     if (!sourceStates.includes(source.source_state)) sourceStates.push(source.source_state);
@@ -164,6 +174,11 @@ function buildEvidenceRecords({ surfaces, registry, scope = null, sourceId = nul
       derivation: surface.derivation,
       sources: surface.sources.map((id) => {
         const source = requireSource(map, id, key);
+        const isK7Comparison = key === "place.planning.change" && Boolean(source.change_detection);
+        const sourceFreshness = EVIDENCE_SCOPE_API.freshnessOf(source);
+        const freshness = isK7Comparison
+          ? Object.freeze({ ...sourceFreshness, reference_date: source.change_detection.oldest_contributor_reference_date })
+          : sourceFreshness;
         return {
           id,
           displayName: source.display_name || id,
@@ -171,10 +186,11 @@ function buildEvidenceRecords({ surfaces, registry, scope = null, sourceId = nul
           datasetUrl: source.dataset_url || null,
           artifact: source.artifact || null,
           builder: source.builder || null,
-          freshness: EVIDENCE_SCOPE_API.freshnessOf(source),
+          freshness,
           freshnessEvidence: source.freshness_evidence || null,
           periodSemantics: source.source_period_semantics || null,
           interpretationCeiling: source.interpretation_ceiling,
+          changeDetectionProvenance: isK7Comparison ? source.change_detection : null,
         };
       }),
     });
@@ -186,7 +202,7 @@ function buildEvidenceRecords({ surfaces, registry, scope = null, sourceId = nul
 // A projection may OMIT a field. It may never change a value, merge or reorder
 // states, soften a ceiling, or alter a unit; both readings carry the verbatim
 // interpretation ceiling and all five freshness fields.
-const CITIZEN_SOURCE_FIELDS = Object.freeze(["id", "displayName", "authority", "freshness", "interpretationCeiling"]);
+const CITIZEN_SOURCE_FIELDS = Object.freeze(["id", "displayName", "authority", "freshness", "interpretationCeiling", "changeDetectionProvenance"]);
 
 function projectReading(record, reading) {
   if (reading !== "citizen" && reading !== "analyst") {

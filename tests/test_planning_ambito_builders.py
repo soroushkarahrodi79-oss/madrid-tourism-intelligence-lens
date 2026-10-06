@@ -701,6 +701,63 @@ class CommittedStateArtifact(unittest.TestCase):
         self.assertIn("CAUSE_UNRESOLVED", attribution["observed_anomaly"])
         self.assertIn("no row is preferred, merged", attribution["observed_anomaly"])
 
+    def test_k7_pair_has_two_source_dated_immutable_edition_records(self):
+        pair = STATE["change_detection"]
+        self.assertEqual(pair["pair_id"], "2025-07__2026-01")
+        self.assertEqual(pair["comparability_verdict"], "COMPARABLE_WITHIN_SCHEMA_ERA")
+        self.assertEqual(pair["previous"]["reference_date"], "2025-07-01")
+        self.assertEqual(pair["current"]["reference_date"], "2026-01-01")
+        for side, expected in (("previous", "2025-07-01"), ("current", "2026-01-01")):
+            for family, era in (("S1", "S1_FOUR_PHASE_FLAT"), ("S2", "S2_SPLIT_RESIDENTIAL_FLAT")):
+                edition = pair[side]["families"][family]
+                self.assertEqual(edition["reference_date"], expected)
+                self.assertEqual(edition["schema_era"], era)
+                self.assertRegex(edition["sha256"], r"^[a-f0-9]{64}$")
+                self.assertTrue(edition["resource_id"])
+                self.assertTrue(edition["schema_fingerprint"])
+                self.assertTrue(edition["retrieved_at"])
+        # K6 remains its own current-edition record rather than a before/after merge.
+        self.assertEqual(STATE["editions"]["development_state"]["reference_date"], "2026-01-01")
+        self.assertEqual(STATE["editions"]["available_buildability"]["reference_date"], "2026-01-01")
+
+    def test_k7_production_and_legacy_audit_results_are_separate_and_reconciled(self):
+        families = STATE["change_detection"]["audits"]["families"]
+        self.assertEqual(
+            families["S1"]["production_row_preserving"]["counts"],
+            {"NO_CHANGE": 655, "STATE_TRANSITION": 10, "NEW_AMBITO": 2, "ABSENT_FROM_EDITION": 0,
+             "MODIFIED_BY_INSTRUMENT": 0, "CAUSE_UNRESOLVED": 0, "NON_COMPARABLE": 0},
+        )
+        s2 = families["S2"]
+        self.assertEqual(s2["legacy_gate_l_audit"]["row_policy"], "FIRST_ROW_PER_CODE_FOR_LEGACY_REPRODUCTION_ONLY")
+        self.assertEqual(s2["legacy_gate_l_audit"]["cosmetic_only_count"], 54)
+        self.assertEqual(s2["production_row_preserving"]["cosmetic_only_count"], 53)
+        self.assertEqual(s2["production_row_preserving"]["counts"]["CAUSE_UNRESOLVED"], 10)
+        self.assertEqual(s2["reconciliation"]["exact_code_divergence_count"], len(s2["reconciliation"]["divergences"]))
+        by_code = {record["exactCode"]: record for record in s2["reconciliation"]["divergences"]}
+        for code in ("UZPp.02.03-RP", "UZPp.02.04-RP"):
+            item = by_code[code]
+            self.assertEqual(item["production"]["outcome"], "CAUSE_UNRESOLVED")
+            rows = item["production"]["evidence"]["situations"]
+            self.assertEqual(len(rows["matched"]), 1)
+            self.assertEqual(len(rows["unmatchedCurrent"]), 1)
+            self.assertEqual(item["buildability"]["state"], "WITHHELD")
+            self.assertGreater(item["buildability"]["withheldCellCount"], 0)
+
+    def test_k7_snapshots_keep_every_s2_verbatim_row_value(self):
+        pair = STATE["change_detection"]
+        for side in ("previous", "current"):
+            s1 = pair[side]["families"]["S1"]["records"]
+            for record in s1.values():
+                for key, phase in record["phases"].items():
+                    self.assertEqual(record["source_verbatim"]["phase_values"][key], phase["source_value"])
+            s2 = pair[side]["families"]["S2"]["records"]
+            rows = sum(len(per_code) for per_code in s2.values())
+            self.assertEqual(rows, pair[side]["families"]["S2"]["published_row_count"])
+            for per_code in s2.values():
+                for row in per_code:
+                    self.assertEqual(row["source_verbatim"]["situacion"], row["situacion"])
+                    self.assertEqual(row["source_verbatim"]["observaciones"], row["observaciones"])
+
 
 class RegistryAgreement(unittest.TestCase):
     def _source(self, source_id):
@@ -718,6 +775,19 @@ class RegistryAgreement(unittest.TestCase):
         self.assertEqual(source["reference_date"], STATE["editions"]["development_state"]["reference_date"])
         self.assertEqual(source["published_at"], STATE["editions"]["development_state"]["published_at"])
         self.assertEqual(source["scope"], STATE["scope"])
+        self.assertEqual(source["change_detection"]["pair_id"], STATE["change_detection"]["pair_id"])
+        self.assertEqual(STATE_META["change_detection"]["pair_id"], STATE["change_detection"]["pair_id"])
+        for side in ("previous", "current"):
+            for family in ("S1", "S2"):
+                edition = STATE["change_detection"][side]["families"][family]
+                self.assertEqual(
+                    source["change_detection"]["editions"][side][family]["sha256"],
+                    edition["sha256"],
+                )
+                self.assertEqual(
+                    STATE_META["change_detection"]["editions"][side][family]["snapshot_identity"],
+                    edition["snapshot_identity"],
+                )
 
     def test_the_geometry_registry_entry_carries_the_reuse_basis_and_no_date(self):
         source = self._source("planning_ambito_geometry")

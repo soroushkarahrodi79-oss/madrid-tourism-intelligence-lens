@@ -89,8 +89,17 @@ test("accessibility copy is part of the same policy", () => {
   // Static aria-labels in the markup all have a Spanish rendering.
   const labels = [...html.matchAll(/(?:aria-label|title)="([^"]*[A-Za-z]{3}[^"]*)"/g)].map((match) => match[1]);
   const known = new Set(["Mostrar contexto de hostelería y actividad comercial"]);
+  const shellLocalizedLabels = new Map(
+    [...html.matchAll(/aria-label="([^"]+)"[^>]*data-i18n-attr="aria-label:([^"]+)"/g)]
+      .map((match) => [match[1], match[2]]),
+  );
   for (const label of labels) {
     if (known.has(label)) continue;
+    if (shellLocalizedLabels.has(label)) {
+      const key = shellLocalizedLabels.get(label);
+      assert.notEqual(SHELL_DICTIONARIES.en[key], SHELL_DICTIONARIES.es[key], `shell copy translates ${label}`);
+      continue;
+    }
     assert.notEqual(localizeCopyEs(label), label, `no Spanish rendering for static label: ${label}`);
   }
   // Every K4 shell string has a Spanish twin (already tested for keys) and differs where it is words.

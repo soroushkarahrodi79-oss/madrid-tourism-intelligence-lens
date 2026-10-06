@@ -1561,6 +1561,23 @@ if (haloRegressionRequested && haloRegressionLocal) {
           ? null
           : document.getElementById("planningBuildAbsent").textContent.trim(),
         ceiling: document.querySelector("#planningAmbito .planning-ceiling").textContent.trim(),
+        change: {
+          visible: !document.getElementById("planningChange").hasAttribute("hidden"),
+          dates: {
+            previous: document.getElementById("planningChangePreviousDate").textContent.trim(),
+            current: document.getElementById("planningChangeCurrentDate").textContent.trim(),
+          },
+          outcomes: [...document.querySelectorAll("#planningChangeOutcomes .planning-change-outcome")].map((item) => ({
+            family: item.dataset.family,
+            outcome: item.dataset.outcome,
+            text: item.textContent.trim(),
+          })),
+          buildabilityState: planningModel.changeComparison?.buildability?.state || null,
+          buildabilityText: document.getElementById("planningBuildComparison").textContent.trim(),
+          citizenReading: planningModel.changeComparison
+            ? planningModel.changeModule.projectAmbitoChangeReading(planningModel.changeComparison, "citizen")
+            : null,
+        },
         touched: [...document.querySelectorAll("#planningTouchedList > li")].map((item) => item.textContent.trim()),
         touchedCardHidden: document.getElementById("planningTouchedCard").hasAttribute("hidden"),
         // The MODEL, so the test can assert the DOM against it rather than
@@ -2728,7 +2745,7 @@ function disableBoundaryControl() {
 // It never computes a quantity, never combines a planning figure with a Lens or
 // barrio figure, and never asks the model for a share of an ámbito.
 
-const planningModel = { module: null, index: null };
+const planningModel = { module: null, index: null, changeModule: null, changePair: null, changeComparison: null };
 let planningState = "loading";
 let planningHint = null;
 let lastPlanningRenderKey = null;
@@ -2746,6 +2763,12 @@ async function loadPlanningContext() {
     return;
   }
   planningModel.module = module;
+  try {
+    planningModel.changeModule = await import(moduleUrl("ambito-change.js"));
+  } catch (error) {
+    planningModel.changeModule = null;
+    console.warn("planning-ámbito edition comparison unavailable", error);
+  }
 
   // Settled, not all-or-nothing, and both artifacts are fetched ONCE: moving a
   // Lens performs an in-memory bounding-box scan and never a fetch. No official
@@ -2758,6 +2781,8 @@ async function loadPlanningContext() {
     geometry: settledValue(geometry),
     state: settledValue(state),
   });
+  const stateArtifact = settledValue(state);
+  planningModel.changePair = stateArtifact?.change_detection || null;
   if (!index) {
     planningState = "unavailable";
     console.warn("planning ámbito geometry unavailable", geometry.reason || "no ámbito features");
@@ -2802,6 +2827,15 @@ function planningDate(isoDate) {
 function planningFigure(value, maximumFractionDigits) {
   if (!Number.isFinite(value)) return null;
   return value.toLocaleString("en-GB", { maximumFractionDigits });
+}
+
+function planningObservedDifference(value) {
+  if (!Number.isFinite(value)) return null;
+  const magnitude = Math.abs(value);
+  if (magnitude === 0 || magnitude >= 0.005) return planningFigure(value, 2);
+  // Keep a small but published non-zero difference from rounding to “0.00”.
+  const fractionDigits = Math.min(15, Math.max(2, Math.ceil(-Math.log10(magnitude)) + 1));
+  return planningFigure(value, fractionDigits);
 }
 
 function renderPlanningContext() {
@@ -2864,6 +2898,7 @@ function renderPlanningContext() {
     document.getElementById("planningPhases").replaceChildren();
     document.getElementById("planningBuildRows").replaceChildren();
     document.getElementById("planningAttributes").replaceChildren();
+    renderPlanningChange(null);
     return;
   }
   outside.hidden = true;
@@ -3025,6 +3060,332 @@ function renderPlanningContext() {
     buildAbsent.hidden = false;
     buildAbsent.textContent = `${shellT("planning.buildNotPublished")} ${shellT("planning.absenceNote")}`;
   }
+  renderPlanningChange(containing.ambitoCode);
+}
+
+function planningChangeLabel(outcome) {
+  const keys = {
+    NO_CHANGE: "planning.change.noChange",
+    STATE_TRANSITION: "planning.change.state",
+    NEW_AMBITO: "planning.change.new",
+    ABSENT_FROM_EDITION: "planning.change.absent",
+    MODIFIED_BY_INSTRUMENT: "planning.change.instrument",
+    CAUSE_UNRESOLVED: "planning.change.unresolved",
+    NON_COMPARABLE: "planning.change.nonComparable",
+  };
+  return shellT(keys[outcome] || "planning.change.nonComparable");
+}
+
+function planningChangeUiState(outcome) {
+  return ({
+    NO_CHANGE: "NO_CHANGE",
+    STATE_TRANSITION: "PUBLISHED_STATE_CHANGED",
+    NEW_AMBITO: "NEW_IN_EDITION",
+    ABSENT_FROM_EDITION: "ABSENT_FROM_EDITION",
+    MODIFIED_BY_INSTRUMENT: "MODIFIED_BY_PLANNING_INSTRUMENT",
+    CAUSE_UNRESOLVED: "CAUSE_UNRESOLVED",
+    NON_COMPARABLE: "NON_COMPARABLE",
+  })[outcome] || "NON_COMPARABLE";
+}
+
+const PLANNING_CHANGE_MODEL_COPY = Object.freeze([
+  ["Both named edition records are required.", "planning.change.reason.pairRecords"],
+  ["The editions do not identify the same source family.", "planning.change.reason.familyMismatch"],
+  ["Both source-stated reference dates are required.", "planning.change.reason.datesMissing"],
+  ["The named editions must have distinct, ordered reference dates.", "planning.change.reason.datesOrder"],
+  ["Both edition identities and full fingerprints are required.", "planning.change.reason.identityMissing"],
+  ["The same edition cannot be supplied twice.", "planning.change.reason.sameEdition"],
+  ["The editions belong to different or unspecified schema eras.", "planning.change.reason.eraMismatch"],
+  ["Both edition record sets are required.", "planning.change.reason.recordsMissing"],
+  ["Duplicate situation labels prevent a defensible one-to-one row correspondence.", "planning.change.reason.duplicateSituations"],
+  ["A published row has no usable SITUACION DEL ÁMBITO identity.", "planning.change.reason.rowSituationMissing"],
+  ["One or more published rows have no counterpart in the other edition.", "planning.change.reason.rowUnmatched"],
+  ["A dated, applicable planning instrument event is documented for a compared field.", "planning.change.reason.instrumentDocumented"],
+  ["An exact edition-scoped ámbito code is required.", "planning.change.reason.scopedCodeRequired"],
+  ["Neither named edition publishes a record for this exact code.", "planning.change.reason.noRecordsForCode"],
+  ["The exact code is present in the later named edition and absent from the earlier named edition.", "planning.change.reason.codeAppearsLater"],
+  ["The exact code is present in the earlier named edition and absent from the later named edition.", "planning.change.reason.codeAbsentLater"],
+  ["A phase record does not carry the four required published fields.", "planning.change.reason.phaseFieldsMissing"],
+  ["A published row set is malformed and cannot be classified.", "planning.change.reason.rowSetMalformed"],
+  ["The source family has no K7 classifier contract.", "planning.change.reason.noClassifierContract"],
+  ["One or more published S1 phase values differ between the editions.", "planning.change.reason.phaseValuesDiffer"],
+  ["The sole published S2 situation value differs between the editions.", "planning.change.reason.situationDiffers"],
+  ["One or more published S2 rows has no defensible counterpart; the editions do not establish a planning event.", "planning.change.reason.s2Counterpart"],
+  ["A substantive published note differs and the editions do not establish why.", "planning.change.reason.noteCauseUnknown"],
+  ["No substantive difference was detected in the fields with a defensible comparison.", "planning.change.reason.noSubstantiveDifference"],
+  ["An exact edition-scoped code is required.", "planning.change.reason.codeRequired"],
+  ["Absent from the earlier edition and present in the later edition.", "planning.change.reason.laterOnly"],
+  ["Present in the earlier edition and absent from the later edition.", "planning.change.reason.earlierOnly"],
+  ["Duplicate situation labels prevent a defensible numeric row match.", "planning.change.reason.numericDuplicate"],
+  ["A row lacks a usable published situation identity.", "planning.change.reason.numericSituationMissing"],
+  ["One or more rows has no one-to-one counterpart; numeric comparison is withheld for those rows.", "planning.change.reason.numericUnmatched"],
+  ["The edition pair is not comparable.", "planning.change.reason.pairNotComparable"],
+  ["Both named editions must publish S2 rows for this exact code.", "planning.change.reason.buildabilityRowsMissing"],
+  ["Both editions must publish numeric values for the same documented use class; blank is not zero.", "planning.change.reason.numericValuesRequired"],
+  ["This published row has no defensible counterpart in the other edition.", "planning.change.reason.unmatchedRow"],
+  ["At least one numeric comparison is withheld.", "planning.change.reason.someNumericWithheld"],
+  ["Comparison may not be like-for-like across this planning instrument modification.", "planning.change.caveat"],
+]);
+
+function localizePlanningChangeModelCopy(value) {
+  let text = String(value);
+  text = text.replace(/Withheld across ([^;]+); the published values may not be like-for-like\./g, (_all, reference) =>
+    shellT("planning.change.reason.instrumentNumeric").replace("{reference}", reference));
+  for (const [english, key] of PLANNING_CHANGE_MODEL_COPY) text = text.replaceAll(english, shellT(key));
+  return text;
+}
+
+function localizePlanningChangeAnalyst(value, key = null) {
+  if (Array.isArray(value)) return value.map((entry) => localizePlanningChangeAnalyst(entry, key === "reasons" ? "reason" : key));
+  if (value && typeof value === "object") {
+    if (["absenceReason", "sourceVerbatim", "sourceEvidence", "situationVerbatim", "verbatimPhaseValues"].includes(key) || key?.endsWith("Verbatim")) return value;
+    return Object.fromEntries(Object.entries(value).map(([childKey, child]) => [
+      childKey,
+      localizePlanningChangeAnalyst(child, key === "reasons" ? "reason" : childKey),
+    ]));
+  }
+  if (typeof value !== "string") return value;
+  if (key === "matchingBasis") return shellT("planning.change.matchingBasis");
+  if (key === "basis" && value === "Exact code plus a unique, stable SITUACION DEL ÁMBITO value within each edition.") {
+    return shellT("planning.change.matchingBasis");
+  }
+  if (key === "reason" || key === "modificationCaveat") return localizePlanningChangeModelCopy(value);
+  return value;
+}
+
+function planningChangeText(parent, className, text, verbatim = false) {
+  const node = document.createElement("p");
+  if (className) node.className = className;
+  if (verbatim) node.dataset.verbatim = "";
+  node.textContent = verbatim ? text : localizePlanningChangeModelCopy(text);
+  parent.append(node);
+  return node;
+}
+
+function renderPlanningChange(exactCode) {
+  const section = document.getElementById("planningChange");
+  if (!section) return;
+  const pair = planningModel.changePair;
+  const module = planningModel.changeModule;
+  if (!exactCode || !pair || !module || !pair.previous || !pair.current) {
+    section.hidden = true;
+    planningModel.changeComparison = null;
+    document.getElementById("planningChangeOutcomes").replaceChildren();
+    document.getElementById("planningBuildComparison").replaceChildren();
+    document.getElementById("planningChangeAnalystBody").replaceChildren();
+    return;
+  }
+  const previous = { reference_date: pair.previous.reference_date, families: pair.previous.families };
+  const current = { reference_date: pair.current.reference_date, families: pair.current.families };
+  const comparison = module.buildAmbitoComparison({ previous, current, exactCode });
+  const citizen = module.projectAmbitoChangeReading(comparison, "citizen");
+  const analyst = module.projectAmbitoChangeReading(comparison, "analyst");
+  planningModel.changeComparison = comparison;
+  section.hidden = false;
+  section.dataset.state = comparison.comparabilityVerdict;
+  const previousDate = planningDate(comparison.dates.previous);
+  const currentDate = planningDate(comparison.dates.current);
+  setText("planningChangePreviousDate", previousDate || shellT("date.notPublished"));
+  setText("planningChangeCurrentDate", currentDate || shellT("date.notPublished"));
+
+  const outcomes = document.getElementById("planningChangeOutcomes");
+  outcomes.replaceChildren();
+  for (const [family, result] of Object.entries(comparison.state)) {
+    const card = document.createElement("article");
+    card.className = "planning-change-outcome";
+    card.dataset.family = family;
+    card.dataset.outcome = result.outcome;
+    card.dataset.state = planningChangeUiState(result.outcome);
+    const heading = document.createElement("h3");
+    heading.textContent = `${family} · ${shellT(`planning.change.outcome.${family.toLowerCase()}`)}`;
+    card.append(heading);
+    const label = document.createElement("p");
+    label.className = "planning-change-label";
+    const datePair = `${previousDate || "—"} · ${currentDate || "—"}`;
+    if (result.outcome === "NO_CHANGE") {
+      label.textContent = planningChangeLabel(result.outcome)
+        .replace("{previous}", previousDate || "—")
+        .replace("{current}", currentDate || "—");
+    } else {
+      label.textContent = `${planningChangeLabel(result.outcome)} · ${datePair}`;
+    }
+    card.append(label);
+    if (result.outcome === "STATE_TRANSITION") {
+      const differences = result.evidence?.phaseDifferences || result.evidence?.situationDifferences || [];
+      for (const difference of differences) {
+        const row = document.createElement("div");
+        row.className = "planning-change-values";
+        const title = document.createElement("span");
+        title.textContent = ["planeamiento", "gestion", "urbanizacion_proyecto", "urbanizacion_obras"].includes(difference.field)
+          ? shellT(`planning.phase.${difference.field}`)
+          : shellT("planning.change.situation");
+        const before = document.createElement("span");
+        before.dataset.verbatim = "";
+        before.textContent = difference.previous ?? "";
+        const after = document.createElement("span");
+        after.dataset.verbatim = "";
+        after.textContent = difference.current ?? "";
+        const beforeLabel = document.createElement("small");
+        beforeLabel.textContent = shellT("planning.change.previousValue");
+        const afterLabel = document.createElement("small");
+        afterLabel.textContent = shellT("planning.change.currentValue");
+        row.append(title, beforeLabel, before, afterLabel, after);
+        card.append(row);
+      }
+    } else if (result.outcome === "NEW_AMBITO" || result.outcome === "ABSENT_FROM_EDITION") {
+      const memberDate = result.outcome === "NEW_AMBITO" ? currentDate : previousDate;
+      planningChangeText(card, "planning-change-detail", `${result.outcome === "NEW_AMBITO" ? shellT("planning.change.current") : shellT("planning.change.previous")}: ${memberDate || "—"}`);
+      if (result.evidence?.absenceReason) {
+        planningChangeText(card, "planning-change-detail", String(result.evidence.absenceReason), true);
+      } else if (result.outcome === "ABSENT_FROM_EDITION") {
+        planningChangeText(card, "planning-change-detail", shellT("planning.change.absenceCauseUnknown"));
+      }
+    } else if (result.outcome === "MODIFIED_BY_INSTRUMENT") {
+      planningChangeText(card, "planning-change-detail", `${shellT("planning.change.instrumentRef")}: ${result.instrument?.reference || ""}`);
+      planningChangeText(card, "planning-change-caveat", result.modificationCaveat || shellT("planning.change.caveat"));
+    } else if (result.outcome === "CAUSE_UNRESOLVED") {
+      planningChangeText(card, "planning-change-detail", result.reason || shellT("planning.change.reasonUnknown"));
+      for (const difference of result.evidence?.observations?.substantiveDifferences || []) {
+        const row = document.createElement("div");
+        row.className = "planning-change-values";
+        const title = document.createElement("span");
+        title.textContent = shellT("planning.change.reason");
+        const beforeLabel = document.createElement("small");
+        beforeLabel.textContent = `${shellT("planning.change.previousValue")} · ${previousDate || "—"}`;
+        const before = document.createElement("span");
+        before.dataset.verbatim = "";
+        before.textContent = difference.previous ?? "";
+        const afterLabel = document.createElement("small");
+        afterLabel.textContent = `${shellT("planning.change.currentValue")} · ${currentDate || "—"}`;
+        const after = document.createElement("span");
+        after.dataset.verbatim = "";
+        after.textContent = difference.current ?? "";
+        row.append(title, beforeLabel, before, afterLabel, after);
+        card.append(row);
+      }
+      const correspondence = result.evidence?.rowCorrespondence;
+      if (correspondence) {
+        if (correspondence.reason) planningChangeText(card, "planning-change-detail", correspondence.reason);
+        planningChangeText(card, "planning-change-detail", `${shellT("planning.change.rowBasis")}: ${shellT("planning.change.matchingBasis")}`);
+        for (const side of ["previous", "current"]) {
+          for (const row of result.evidence?.situations?.[`unmatched${side === "previous" ? "Previous" : "Current"}`] || []) {
+            const rowDate = side === "previous" ? previousDate : currentDate;
+            planningChangeText(card, "planning-change-detail", `${rowDate} · ${row.situation ?? shellT("planning.notPublished")}`, true);
+          }
+        }
+      }
+    } else if (result.outcome === "NON_COMPARABLE") {
+      planningChangeText(card, "planning-change-detail", result.reason || comparison.reason || shellT("planning.change.reasonUnknown"));
+    }
+    outcomes.append(card);
+  }
+
+  const build = document.getElementById("planningBuildComparison");
+  build.replaceChildren();
+  const numeric = comparison.buildability;
+  build.dataset.state = numeric.state === "WITHHELD" ? "WITHHELD_BUILDABILITY_DIFFERENCE" : numeric.state;
+  const numericHeading = document.createElement("h3");
+  numericHeading.textContent = shellT("planning.change.numericTitle");
+  build.append(numericHeading);
+  const numericLabel = document.createElement("p");
+  numericLabel.className = "planning-change-label";
+  if (numeric.state === "NO_CHANGE") {
+    numericLabel.textContent = shellT("planning.change.numericNoChange")
+      .replace("{previous}", previousDate || "—")
+      .replace("{current}", currentDate || "—");
+  } else if (numeric.state === "OBSERVED_PUBLISHED_DIFFERENCE") {
+    numericLabel.textContent = `${shellT("planning.change.observed")} · ${previousDate || "—"} · ${currentDate || "—"}`;
+  } else {
+    numericLabel.textContent = `${shellT("planning.change.withheld")} · ${previousDate || "—"} · ${currentDate || "—"}`;
+  }
+  build.append(numericLabel);
+  if (numeric.reason) planningChangeText(build, "planning-change-detail", numeric.reason);
+  for (const row of numeric.differences || []) {
+    const wrap = document.createElement("article");
+    wrap.className = "planning-change-numeric-row";
+    if (row.situationVerbatim) {
+      const situation = document.createElement("p");
+      situation.className = "planning-situacion";
+      const label = document.createElement("span");
+      label.textContent = `${shellT("planning.change.situation")}: `;
+      const value = document.createElement("span");
+      value.dataset.verbatim = "";
+      value.textContent = row.situationVerbatim.previous ?? row.situationVerbatim.current ?? "";
+      situation.append(label, value);
+      wrap.append(situation);
+    }
+    if (row.reason) planningChangeText(wrap, "planning-change-detail", row.reason);
+    for (const cell of row.useClasses || []) {
+      const detail = document.createElement("div");
+      detail.className = "planning-change-cell";
+      detail.dataset.state = cell.state;
+      const title = document.createElement("strong");
+      title.textContent = shellT(`planning.use.${cell.useClass}`);
+      detail.append(title);
+      if (cell.state === "WITHHELD") {
+        planningChangeText(detail, "planning-change-detail", shellT("planning.change.withheld"));
+        if (cell.reason) planningChangeText(detail, "planning-change-detail", cell.reason);
+      } else {
+        const values = document.createElement("div");
+        values.className = "planning-change-numeric-values";
+        const old = document.createElement("span");
+        old.textContent = cell.previous?.value == null ? shellT("planning.notPublished") : `${planningFigure(cell.previous.value, 2)} ${cell.previous.unit}`;
+        const currentValue = document.createElement("span");
+        currentValue.textContent = cell.current?.value == null ? shellT("planning.notPublished") : `${planningFigure(cell.current.value, 2)} ${cell.current.unit}`;
+        const oldSide = document.createElement("div");
+        const oldLabel = document.createElement("small");
+        oldLabel.textContent = `${shellT("planning.change.previousValue")} · ${previousDate || "—"}`;
+        oldSide.append(oldLabel, old);
+        const currentSide = document.createElement("div");
+        const currentLabel = document.createElement("small");
+        currentLabel.textContent = `${shellT("planning.change.currentValue")} · ${currentDate || "—"}`;
+        currentSide.append(currentLabel, currentValue);
+        values.append(oldSide, currentSide);
+        detail.append(values);
+        const stateLabel = document.createElement("p");
+        stateLabel.className = "planning-change-detail";
+        stateLabel.textContent = cell.state === "OBSERVED_PUBLISHED_DIFFERENCE"
+          ? `${shellT("planning.change.observed")}: ${planningObservedDifference(cell.observedDifference)} m² edificable`
+          : planningChangeLabel("NO_CHANGE").replace("{previous}", previousDate || "—").replace("{current}", currentDate || "—");
+        detail.append(stateLabel);
+      }
+      wrap.append(detail);
+    }
+    build.append(wrap);
+  }
+
+  const analystBody = document.getElementById("planningChangeAnalystBody");
+  analystBody.replaceChildren();
+  const provenanceLabel = document.createElement("h3");
+  provenanceLabel.textContent = shellT("planning.change.provenance");
+  analystBody.append(provenanceLabel);
+  const provenanceList = document.createElement("ul");
+  provenanceList.className = "planning-change-provenance";
+  for (const [side, labelKey, editionSet] of [
+    ["previous", "planning.change.previousEdition", comparison.editions.previous],
+    ["current", "planning.change.currentEdition", comparison.editions.current],
+  ]) {
+    const item = document.createElement("li");
+    item.className = "planning-change-provenance-edition";
+    const title = document.createElement("strong");
+    title.textContent = `${shellT(labelKey)} · ${planningDate(comparison.dates[side]) || "—"}`;
+    item.append(title);
+    for (const family of ["S1", "S2"]) {
+      const edition = editionSet[family];
+      const record = document.createElement("p");
+      record.textContent = `${family} · ${edition?.resource_id || "—"} · ${edition?.sha256 || "—"} · ${edition?.schema_era || "—"}`;
+      item.append(record);
+    }
+    provenanceList.append(item);
+  }
+  analystBody.append(provenanceList);
+  const details = document.createElement("pre");
+  details.className = "planning-change-analyst-data";
+  details.textContent = JSON.stringify(localizePlanningChangeAnalyst(analyst), null, 2);
+  analystBody.append(details);
+  // `citizen` is a projection of this exact comparison. The DOM uses its dates
+  // and values above; retain the projection on the section for the browser seam.
+  section.dataset.citizenReading = JSON.stringify(citizen);
 }
 
 // LENS_INTERSECT_AMBITO. Computed only while the PLACE detail disclosure is
@@ -4386,6 +4747,52 @@ function renderDrawerBody() {
         if (source.freshnessEvidence) drawerRow(fields, shellT("f.freshnessEvidence"), source.freshnessEvidence, "en");
       }
       block.append(fields);
+      if (source.changeDetectionProvenance) {
+        const provenance = source.changeDetectionProvenance;
+        const provenanceSection = document.createElement("section");
+        provenanceSection.className = "drawer-change-provenance";
+        const provenanceHeading = document.createElement("h5");
+        provenanceHeading.textContent = shellT("planning.change.provenance");
+        provenanceSection.append(provenanceHeading);
+        for (const [side, sideKey] of [["previous", "planning.change.previousEdition"], ["current", "planning.change.currentEdition"]]) {
+          const sideBlock = document.createElement("div");
+          sideBlock.className = "drawer-change-edition";
+          const sideHeading = document.createElement("h6");
+          const sideDate = provenance.editions?.[side]?.S1?.reference_date;
+          sideHeading.textContent = `${shellT(sideKey)} · ${planningDate(sideDate) || "—"}`;
+          sideBlock.append(sideHeading);
+          const editions = provenance.editions?.[side] || {};
+          for (const family of ["S1", "S2"]) {
+            const edition = editions[family];
+            if (!edition) continue;
+            const editionTitle = document.createElement("p");
+            editionTitle.textContent = `${family} · ${edition.resource_id || "—"}`;
+            const editionFacts = document.createElement("dl");
+            editionFacts.className = "drawer-fields";
+            drawerRow(editionFacts, shellT("planning.change.fingerprint"), edition.sha256 || "—", "en");
+            drawerRow(editionFacts, shellT("planning.change.schemaEra"), edition.schema_era || "—", "en");
+            drawerRow(editionFacts, shellT("planning.change.source"), edition.resource_url || "—", "en");
+            drawerRow(editionFacts, shellT("planning.change.retrieved"), edition.retrieved_at || "—", "en");
+            sideBlock.append(editionTitle, editionFacts);
+          }
+          provenanceSection.append(sideBlock);
+        }
+        const absenceReference = provenance.absence_reason_reference;
+        if (absenceReference) {
+          const annexBlock = document.createElement("div");
+          annexBlock.className = "drawer-change-edition";
+          const annexHeading = document.createElement("h6");
+          annexHeading.textContent = shellT("planning.change.absenceReasonSource");
+          annexBlock.append(annexHeading);
+          const annexFacts = document.createElement("dl");
+          annexFacts.className = "drawer-fields";
+          drawerRow(annexFacts, shellT("planning.change.source"), `${absenceReference.resource_id || "—"} · ${absenceReference.resource_url || "—"}`, "en");
+          drawerRow(annexFacts, shellT("planning.change.absenceReasonSource"), absenceReference.title || "—", "es");
+          annexBlock.append(annexFacts);
+          provenanceSection.append(annexBlock);
+        }
+        block.append(provenanceSection);
+      }
       // The ceiling is registry text carried VERBATIM, in both readings and in both
       // document languages: only our label around it is localised.
       const ceiling = document.createElement("p");
@@ -4408,6 +4815,19 @@ function openEvidenceDrawer({ opener = document.activeElement, scope = null, pre
   const dialog = document.getElementById("evidenceDrawer");
   shell.drawerFilter = { scope, prefix };
   shell.drawerOpener = opener;
+  // The opener is remembered by IDENTITY as well as by node. An artifact that
+  // finishes loading while the drawer is open re-renders the rail and detaches
+  // the exact button that opened it (K6's planning artifacts are the first ones
+  // large enough to land mid-interaction). Without a key, focus on close falls
+  // wherever the engine happens to leave it — in practice, inside the dialog
+  // that just closed.
+  shell.drawerOpenerKey = opener
+    ? {
+        id: opener.id || null,
+        scope: (opener.dataset && opener.dataset.scope) || null,
+        prefix: (opener.dataset && opener.dataset.evidencePrefix) || null,
+      }
+    : null;
   renderDrawerBody();
   for (const button of dialog.querySelectorAll(".reading-btn")) {
     button.setAttribute("aria-pressed", String(button.dataset.reading === shell.reading));
@@ -4423,13 +4843,42 @@ document.getElementById("evidenceDrawerClose").onclick = () => evidenceDrawer.cl
 evidenceDrawer.addEventListener("click", (event) => { if (event.target === evidenceDrawer) evidenceDrawer.close(); });
 // Focus returns to the opener — or, if a re-render replaced it, to the nearest
 // equivalent control — so keyboard users never land on <body>.
+// The nearest LIVE equivalent of a re-rendered opener: the same element by id,
+// else the rail control for the same analytical scope, else the per-value
+// evidence control for the same surface prefix, else the rail's freshness
+// control. A keyboard reader is never dropped onto <body> or left inside the
+// dialog that just closed.
+function resolveDrawerOpener(key) {
+  if (key) {
+    if (key.id) {
+      const byId = document.getElementById(key.id);
+      if (byId) return byId;
+    }
+    if (key.scope) {
+      const byScope = document.querySelector(`#scopeRailList .scope-rail-item[data-scope="${key.scope}"]`);
+      if (byScope) return byScope;
+    }
+    if (key.prefix) {
+      const byPrefix = document.querySelector(`.evidence-link[data-evidence-prefix="${key.prefix}"]`);
+      if (byPrefix) return byPrefix;
+    }
+  }
+  return document.getElementById("scopeRailFreshness");
+}
+
 evidenceDrawer.addEventListener("close", () => {
   let target = shell.drawerOpener;
-  if (!target || !document.contains(target)) {
-    target = document.getElementById("scopeRailFreshness");
-  }
+  if (!target || !document.contains(target)) target = resolveDrawerOpener(shell.drawerOpenerKey);
   shell.drawerOpener = null;
-  if (target && typeof target.focus === "function") target.focus();
+  shell.drawerOpenerKey = null;
+  if (!target || typeof target.focus !== "function") return;
+  target.focus();
+  // Again after the engine's own modal focus restoration, which can run after
+  // this event: when its remembered target has been detached it leaves focus
+  // inside the closed dialog, and the synchronous call above would be undone.
+  requestAnimationFrame(() => {
+    if (document.contains(target)) target.focus();
+  });
 });
 for (const button of evidenceDrawer.querySelectorAll(".reading-btn")) {
   button.onclick = () => {

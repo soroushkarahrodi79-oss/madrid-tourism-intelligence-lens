@@ -756,9 +756,9 @@ test("every planning value declares PLANNING_AMBITO, never a Lens or barrio scop
 
 // ------------------------------------------------------ 11. no change surface
 
-test("K6 ships ONE edition: no change, trend or difference surface exists", () => {
-  // No function takes two editions, and nothing in the artifact names a second
-  // one or a difference between editions.
+test("K6 current records remain primary and separate from the K7 edition pair", () => {
+  // K6 model functions still consume a current-edition index. K7's pair is a
+  // separate artifact object and never mutates an ámbito into a merged record.
   for (const fn of [developmentState, availableBuildability, ambitoContaining, ambitosIntersecting]) {
     assert.ok(fn.length <= 2, `${fn.name} takes at most two arguments`);
   }
@@ -771,6 +771,12 @@ test("K6 ships ONE edition: no change, trend or difference surface exists", () =
       walk(child, `${path}.${key}`);
     }
   };
-  walk(STATE, "");
+  walk({ editions: STATE.editions, ambitos: STATE.ambitos }, "K6");
   assert.deepEqual(Object.keys(STATE.editions).sort(), ["available_buildability", "development_state"]);
+  const pair = STATE.change_detection;
+  assert.equal(pair.pair_id, "2025-07__2026-01");
+  assert.equal(pair.previous.reference_date, "2025-07-01");
+  assert.equal(pair.current.reference_date, "2026-01-01");
+  assert.equal(pair.current.families.S1.snapshot_identity, STATE.editions.development_state.snapshot_identity);
+  assert.equal(pair.current.families.S2.snapshot_identity, STATE.editions.available_buildability.snapshot_identity);
 });

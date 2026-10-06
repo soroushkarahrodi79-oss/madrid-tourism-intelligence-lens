@@ -260,6 +260,7 @@ test("IA 10 the evidence drawer opens from the rail by keyboard, shows the full 
   }
   await page.keyboard.press("Escape");
   assert.equal(await dialog.evaluate((node) => node.open), false, "Escape closes");
+  await page.waitForFunction(() => document.activeElement?.className === "scope-rail-item");
   assert.equal(await page.evaluate(() => document.activeElement?.className), "scope-rail-item", "focus returned to a rail control, not <body>");
 });
 

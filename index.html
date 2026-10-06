@@ -241,6 +241,24 @@
         <p class="planning-cannot" data-i18n="planning.citizen.cannot">What it does not say: nothing here measures physical construction, the four values do not combine into one stage or percentage, no number of homes is published or derivable, and no figure is a share of the Lens circle.</p>
       </details>
       <p class="planning-ceiling" data-i18n="planning.ceiling">Four independent published administrative phase values and available planning buildability in m² edificable, from one dated official edition, for the whole ámbito. A published phase state is an administrative state, never proof of physical construction. No overall stage, progress, percentage or timeline exists. No dwelling count is published or derivable. No figure is apportioned into the Lens circle, the barrio or any sub-area.</p>
+
+      <!-- K7 is supporting evidence. K6's current-edition values and readings
+           remain primary above; the comparison names both editions explicitly. -->
+      <details id="planningChange" class="planning-change" hidden>
+        <summary data-i18n="planning.change.title">Official edition comparison</summary>
+        <p class="planning-change-intro" data-i18n="planning.change.intro">Published evidence for this ámbito in two named official editions.</p>
+        <div id="planningChangeDates" class="planning-change-dates" role="group" aria-label="Compared official edition dates" data-i18n-attr="aria-label:planning.change.datesAria">
+          <div><span data-i18n="planning.change.previous">Previous edition</span><strong id="planningChangePreviousDate">—</strong></div>
+          <div><span data-i18n="planning.change.current">Current edition</span><strong id="planningChangeCurrentDate">—</strong></div>
+        </div>
+        <p class="planning-change-scope" data-i18n="planning.change.scope">A difference in a publication describes published planning evidence; it does not establish physical urban change or its cause.</p>
+        <div id="planningChangeOutcomes" class="planning-change-outcomes"></div>
+        <div id="planningBuildComparison" class="planning-build-comparison"></div>
+        <details id="planningChangeAnalyst" class="planning-change-analyst">
+          <summary data-i18n="planning.change.analyst">Analyst reading</summary>
+          <div id="planningChangeAnalystBody"></div>
+        </details>
+      </details>
     </div>
     <button id="planningSourceToggle" class="planning-source-toggle" type="button" aria-haspopup="dialog" data-i18n="planning.source">Source &amp; interpretation</button>
   </section>

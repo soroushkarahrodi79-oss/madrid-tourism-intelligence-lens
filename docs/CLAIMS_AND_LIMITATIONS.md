@@ -43,15 +43,18 @@
   **residence composition**, a **same-month-previous-year** comparison, and a
   24-month trend.
 - Reports, for the **official planning ámbito** that contains a Lens centre, what
-  **one dated official edition** publishes about that **whole ámbito**: its
+  the K6 current dated official edition publishes about that **whole ámbito**: its
   official denomination and exact official code, the **four independent published
   development-phase values** (verbatim), the characteristic use, the published
   surface, and the **available buildability** (*edificabilidad disponible*) by
   documented use class in **m² edificable** — each figure with its unit, its
   whole-ámbito scope and the edition's stated reference date. It also lists
   **which** planning ámbitos a Lens circle touches, and nothing more about that
-  intersection. See
-  [Planning-ámbito evidence V1](PLANNING_AMBITO_EVIDENCE_V1.md).
+  intersection. K7 adds a secondary comparison of the explicitly named
+  **2025-07-01 and 2026-01-01** editions for that same ámbito. The two dates are
+  displayed with the comparison. See
+  [Planning-ámbito evidence V1](PLANNING_AMBITO_EVIDENCE_V1.md) and
+  [Official edition change detection V1](AMBITO_CHANGE_DETECTION_V1.md).
 
 ## What this application does NOT claim or establish
 
@@ -345,12 +348,19 @@ breach them.
   markers that occupy phase cells — 42.4 % of all phase cells (Gate L §11) — and
   are preserved verbatim, never inserted into a sequence and never treated as
   errors.
-- **No edition-to-edition change, trend or difference in planning evidence.** The
-  planning surface reads **one** dated edition per family. The 15 published
-  editions are not one comparable series: S1 has two schema eras and S2 has four,
-  and the four-phase structure exists only in the three most recent (Gate L §6).
-  Cross-era differencing is barred, and even within one era a difference is at
-  most an *observed published difference with cause unresolved*, never progress.
+- **An edition difference is not physical urban change.** K7 compares exactly two
+  named tabular editions, **2025-07-01 → 2026-01-01**, within the shared current
+  S1 and S2 schema eras. The 15 published editions are not one comparable series:
+  schemas before 2025 use earlier structures, and cross-era comparisons abstain.
+  S2 keeps every published row; only a unique, stable SITUACION DEL ÁMBITO value
+  supports row matching. Ambiguous or unmatched rows leave numeric buildability
+  comparisons withheld. An eligible numeric result is labelled an **observed
+  published difference**; it does not establish what happened on the ground or
+  why the source values differ. K7 has no additional editions, map geometry
+  comparison or derived dwelling quantity. The audit retains 54 legacy cosmetic
+  text observations as non-substantive; the row-aware production count is
+  reconciled separately in
+  [Official edition change detection V1](AMBITO_CHANGE_DETECTION_V1.md).
 - **The planning geometry's currency is unknown.** The official layer publishes no
   edition date, no effective date and no cadence, so the application shows **no
   date for the geometry** and never infers one from a retrieval time, a catalogue
