@@ -56,8 +56,9 @@ const UPDATE_FREQUENCIES = Object.freeze([
   "NONE_DECLARED",
 ]);
 
+// (Named PUBLISHER_SOURCE_STATES internally because js/radial-halo.js already owns a global SOURCE_STATES in the classic-script scope; the export keeps the K2 name.)
 // The publisher's own status of the evidence — never our opinion of its quality.
-const SOURCE_STATES = Object.freeze([
+const PUBLISHER_SOURCE_STATES = Object.freeze([
   "DEFINITIVE",
   "PROVISIONAL",
   "WITHHELD_BY_PUBLISHER",
@@ -87,7 +88,7 @@ function isUpdateFrequency(value) {
 }
 
 function isSourceState(value) {
-  return typeof value === "string" && SOURCE_STATES.includes(value);
+  return typeof value === "string" && PUBLISHER_SOURCE_STATES.includes(value);
 }
 
 // A reference date is an ISO month, an ISO calendar date, or an explicit null.
@@ -260,7 +261,7 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     ANALYTICAL_SCOPES,
     UPDATE_FREQUENCIES,
-    SOURCE_STATES,
+    SOURCE_STATES: PUBLISHER_SOURCE_STATES,
     FRESHNESS_FIELDS,
     isAnalyticalScope,
     isUpdateFrequency,

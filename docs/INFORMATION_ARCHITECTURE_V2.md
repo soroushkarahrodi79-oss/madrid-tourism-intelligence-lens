@@ -1,0 +1,274 @@
+# Information architecture V2 — modes and progressive disclosure
+
+Status: implemented by **K4 (#66)**. This document records the reading
+architecture of the panel. It changes **how existing evidence is read**; it
+changes no number, state, unit, withholding rule or interpretation ceiling, and it
+ships **no planning evidence**. Planning evidence is **not yet shipped**: it
+arrives with #68 and will populate the place K4 reserves for it (see
+[§11](#11-where-planning-evidence-will-go)).
+
+Related: [Gate K](GATE_K_URBAN_DECISION_WORKSPACE.md) §9 and §12,
+[Product semantics](PRODUCT_SEMANTICS.md), [Gate L](URBAN_PLANNING_SOURCE_GATE_L.md),
+[Methodology](METHODOLOGY.md), `js/modes.js`, `js/scope-rail.js`,
+`js/evidence-scope.js`, `js/shell-copy.js`.
+
+## 1. Why the old navigation was not an information architecture
+
+The header carried `Explore`, `Compare` and `Evidence`.
+
+- `Explore` was `<button class="active">` with no `id` and no handler anywhere in
+  the codebase: permanently highlighted and inert.
+- `Compare` toggled Lens B. That is a feature switch, not a reading intent.
+- `Evidence` enabled the HATI layer and flew the camera to the pilot rectangle.
+  That is a layer action wearing a navigation label.
+- Under `max-width:850px` the whole nav was hidden, and the stylesheet also hid
+  `.mix`, `.source`, `.area-source-toggle`, `.area-source-details`,
+  `.hospitality-methodology-link`, `.evidence-note`, `.layer-source-note` and
+  `.metric-foot`: **provenance was the first thing deleted while every number
+  was kept** — the inverse of what the product claims.
+- One scroll column carried eleven competing surfaces with controls interleaved
+  between results (the radius slider sat between the lens metrics and the
+  category mix it changes).
+
+K4 replaces this with three real modes, a persistent scope-and-freshness rail,
+one evidence drawer and a fixed reading order.
+
+## 2. The three modes
+
+A mode is a **user intent held as application state**, not a CSS tab and not an
+`active` class. It lives in `js/modes.js` (pure: no DOM, no Leaflet, no clock) and
+is testable without a browser: `currentMode()`, `setMode(mode)`,
+`enterMode(mode, state)`, `subscribe(listener)`, plus `planModeTransition(from, to,
+{ lensBEnabled })`, a frozen side-effect-free plan.
+
+| Mode | Question it answers | Primary scope(s) | Owns |
+|---|---|---|---|
+| **PLACE** | What does the evidence say about this place? | `LENS_CIRCLE`, `OFFICIAL_BARRIO` (and, when #68 ships, `PLANNING_AMBITO`) | Lens-circle metrics, the Area Profile (barrio residents, licensed VUT), pedestrian reading, hospitality context, HATI bounded evidence, category mix, nearest |
+| **COMPARE** | How do two Lens circles read against each other? | `LENS_CIRCLE` × 2 (same scope only) | Lens A/B workflow: independent radii, the radial halo, the Comparison Bridge, Decision Insight, Spatial Window Sensitivity, the comparison table |
+| **CITY** | What is the municipality-wide context? | `MUNICIPALITY` | Hotel demand, Domestic Origin Context, Domestic Origin Dynamics |
+
+**Transitions** (`planModeTransition`) request only the *existing* Lens B path:
+
+- entering COMPARE with Lens B off → `enableLensB` (the existing activation);
+- leaving COMPARE with Lens B on → `disableLensB` (the existing cleanup, which
+  still clears the focused/locked halo metric);
+- every other transition → nothing.
+
+A plan never contains a Lens position or a radius (`preservesLensState: true`),
+so entering COMPARE does not reset Lens A, independent radii survive every
+transition, and moving a Lens never silently changes mode. If applying a plan
+throws, the mode is **not** committed: state can never claim a mode whose side
+effects did not happen.
+
+**No mode button flies the camera, enables a dataset or mutates a layer.** The old
+`Evidence` camera action moved to the HATI layer control
+(`#hatiFrameButton` in the layer panel): it enables the layer first, then frames
+the pilot rectangle, exactly as before.
+
+### Rejected mode names
+
+| Name | Reason |
+|---|---|
+| `EXPLORE` | Not a user intent — the absence of one; the old button was inert. |
+| `PLANNING` | Names a dataset family, not a question the reader asks. |
+| `EVIDENCE` | The word is freed for the evidence drawer; a camera action is not a mode. |
+| `CHANGE` | Never a mode — always a question about something already selected, so it becomes a time control inside PLACE and CITY. |
+
+`REJECTED_MODES` in `js/modes.js` records these as data, and a test asserts none
+of them is a mode.
+
+## 3. Panel reading order
+
+Exactly one mode section is visible at a time. Every mode reads in the same
+order:
+
+```
+[ MODE CONTROL ]                       PLACE · COMPARE · CITY   (aria-pressed / aria-current)
+[ SCOPE & FRESHNESS RAIL ]             what the visible evidence describes, how old
+─────────────────────────────────────
+LEAD ANSWER                            one headline answer to the mode's question
+SUPPORTING EVIDENCE                    at most four figures
+▸ Detail            (closed)           one disclosure
+▸ Evidence & limits (route)            opens the evidence drawer
+─────────────────────────────────────
+CONTROLS                               last, never between results
+```
+
+| | PLACE | COMPARE | CITY |
+|---|---|---|---|
+| **Lead** | Administrative area: the barrio the Lens centre sits in, registered residents, licensed VUT (the barrio's official figures) | Comparison Bridge (focused metric reading) | Destination context: hotel demand for the municipality |
+| **Supporting (≤ 4)** | Four Lens-circle figures: Tourism POIs, Hotels & stays, Mobility nodes, Mean UTCI | Decision Insight (four canonical metrics, fixed order) | Destination metrics |
+| **Detail** | Category mix, Nearest, pedestrian reading, hospitality context | Each lens's barrio, Spatial Sensitivity, comparison table, evidence line | Domestic Origins, Monthly origin dynamics (tables and sub-disclosures) |
+| **Controls** | Lens A/B, radius, HATI time, reset | Lens A/B, radius, HATI time, reset, comparison halo toggle | Source-month selector |
+
+PLACE derives its lead **from existing evidence only**. There is no placeholder
+and no planning wording; nothing that resembles real planning data is rendered.
+
+### Re-homing table
+
+| Surface | From | To |
+|---|---|---|
+| Category mix, Nearest | permanent scroll column (hidden < 850px) | PLACE → Detail (visible at every width once opened) |
+| Pedestrian reading, hospitality context | permanent scroll column | PLACE → Detail (a layer switched on opens it) |
+| Hospitality metric selector and scale | inside the result flow | layer-scoped panel under the hospitality layer |
+| HATI framing | `Evidence` nav button | HATI layer control |
+| Domestic Origins, Monthly Dynamics, their tables and `<details>` | foot of the panel | CITY → Detail |
+| Source-month selector | inside the origins block | CITY controls |
+| Radius, HATI time, Lens A/B, reset | between metrics and category mix | the controls region, last |
+| Comparison halo toggle | between sensitivity and the table | COMPARE controls |
+| Long halo legend | permanent paragraph (hidden < 850px) | evidence drawer |
+| Source footer paragraph | permanent paragraph (hidden < 850px) | evidence drawer |
+| "Source & interpretation" toggles | inline (hidden < 850px) | still a control in the lead; opens the drawer, where the generated provenance lines now live at every breakpoint |
+| HATI evidence note and layer source note | hidden < 850px / < 700px high | visible at every size in the layer panel |
+
+No surface was removed. Surfaces moved.
+
+## 4. The scope and freshness rail
+
+An always-visible strip in the sticky panel head (static, still unhidden, at
+≤ 850px). It states what the evidence **currently on screen** describes.
+
+- **Entries** are derived, not hand-listed: one per *distinct analytical scope*
+  among the surfaces visible in the current mode (`railModel` over
+  `SURFACES` in `js/scope-rail.js`). Real scopes shipped today:
+  `LENS_CIRCLE`, `OFFICIAL_BARRIO`, `MUNICIPALITY`, `POINT_OBSERVATION`,
+  `BOUNDED_STUDY_AREA`. The architecture already supports `PLANNING_AMBITO` and
+  the other planning scopes; **K4 invents no ámbito value**.
+- **Every entry is a glyph plus a text label.** Glyphs are distinct per scope,
+  `aria-hidden`, and never carry meaning alone; the state of the current mode is
+  also never colour-only (filled state, rule, check glyph, `aria-pressed`).
+- **Freshness** uses the K2 helpers only: `oldestReferenceDate(...)` over the
+  registry sources contributing to the visible surfaces.
+  - Result is the **oldest** date at its **original precision** (a month stays a
+    month).
+  - If **any** contributor has `reference_date: null`, the rail shows
+    `Reference · not published`. It never manufactures a common date.
+  - It never says "updated today": that concept does not exist in the registry.
+  - The publisher's `source_state` values are listed descriptively. They are
+    **never** mapped to green/yellow/red, a fresh/stale score, a grade or a
+    confidence figure.
+- Every entry and the freshness line open the evidence drawer (filtered to that
+  scope, or to the whole mode).
+- Fits 360px without horizontal scroll (entries wrap).
+
+## 5. The evidence drawer
+
+One reusable native `<dialog>` that replaces the scattered provenance footers,
+source toggles and the long halo legend.
+
+- **Reachable from any supported value**: the rail, a per-section ⓘ control on
+  the residents/lead, the four metrics, the comparison, and the city lead, the
+  Evidence & limits route in every mode, and the two "Source & interpretation"
+  openers.
+- **Fields per record** (from `data/source_registry.json` plus the surface table;
+  no second provenance store): source name; authority; analytical scope (and,
+  in the analyst reading, its definition); unit; reference date; publication
+  date; retrieval date; update frequency; source state; derivation where already
+  known; retrieval route (analyst); and the **interpretation ceiling verbatim**.
+  A null date is stated as "not published" (or, for retrieval, "not recorded in
+  the registry"), never blank and never back-filled.
+- It is **not** the K13 Evidence Registry query architecture: it only formats
+  existing registry metadata for the surfaces on screen.
+- Also holds the generated area / destination provenance lines, the halo legend
+  (COMPARE only) and the sources paragraph.
+- **Behaviour**: opens by keyboard; Escape closes; focus returns to the opener
+  (or the rail's freshness control if the opener was re-rendered); visible Close
+  control; backdrop click closes; native modal focus containment; ≥ 44px targets
+  on `pointer: coarse`; a bottom sheet on narrow screens.
+
+## 6. Responsive priority (reversed)
+
+| Priority | Behaviour at every breakpoint |
+|---|---|
+| **Never hidden** | the mode control; the rail; the lead answer; the route into Evidence & limits; source, date, unit and interpretation-ceiling access |
+| **Collapses, never deletes** | supporting figures; tables; secondary detail (`<details>`) |
+| **May be hidden** | decorative duplication; legend prose already available in the drawer |
+
+The old rules that hid `.mix`, `.source`, `.area-source-toggle`,
+`.area-source-details`, `.hospitality-methodology-link`, `.evidence-note`,
+`.layer-source-note`, `.metric-foot` and `.activity-card-note` were removed. A
+stylesheet test parses every `@media` block and fails if any hides a
+provenance-bearing selector. The panel's viewport share is unchanged.
+
+## 7. Language policy
+
+**One active document language at a time, switched by one control**
+(`#languageSelect`, in the header). The switch sets `document.documentElement.lang`
+and every dictionary-backed surface follows it through the shared `createI18n`
+layer (`js/i18n.js`): the shell dictionaries in `js/shell-copy.js` (mode control,
+rail, drawer, section structure, layer-scoped controls, the static labels K4
+re-homed), the Bridge / Decision Insight / Spatial Sensitivity dictionaries,
+Hospitality & Commercial Context and Domestic Origins. The previous
+hospitality-only language selector is retired: a Spanish Hospitality context
+inside an English panel was not a policy.
+
+- New surfaces hold **no literal strings in render functions**; they read keys.
+- **Official source values are never translated.** Interpretation ceilings and
+  publisher wording are carried verbatim from the registry in both languages; only
+  our labels around them change.
+- `en` and `es` shell dictionaries must have identical keys (tested).
+
+**Known gap, reported rather than hidden.** Several surfaces predate the shared
+i18n layer and build English strings inside their render path (Area Profile
+headlines and notes, Destination Context cards and ceilings, metric footers,
+Nearest list, comparison table captions, activity-card prose, and the static
+labels of the Area/VUT blocks). Translating them is content work on analytical
+copy, not information architecture, and it would have to be reviewed against the
+interpretation ceilings. K4 therefore ships the complete mechanism and the
+Spanish label set for everything it owns, and keeps `en` as the document default.
+Spanish-first as the *default* needs those surfaces translated first and is
+recorded as follow-up, not claimed here.
+
+## 8. Citizen and analyst readings
+
+Both readings are **projections of one frozen record**
+(`buildEvidenceRecords` → `projectReading`). Neither recomputes.
+
+- The citizen reading may **omit** fields (retrieval route, scope definition,
+  period semantics, date provenance, observed cadence).
+- It may **not** change a numeric value, reorder or merge a state, soften a
+  ceiling, resolve an unresolved meaning or change a unit.
+- **Both** readings carry the five freshness fields and the verbatim
+  interpretation ceiling — the ceiling is never analyst-only.
+- A test asserts the citizen projection is a field-subset of the analyst
+  projection with identical values and identical source order.
+
+## 9. Scope discipline
+
+Every displayed value resolves to exactly one analytical scope through `scopeOf`
+(`SURFACES` declares it; an undeclared or out-of-enum scope throws). The scope of
+a displayed value is its *analytical meaning*: a count inside a Lens circle is
+`LENS_CIRCLE` even though its source records are points. COMPARE operates on
+`LENS_CIRCLE` readings only; a municipality or barrio figure is never arithmetic
+with a Lens figure (`crossScopeArithmeticAllowed`). No existing surface lacked a
+defensible scope.
+
+## 10. Accessibility
+
+Mode control: native buttons, keyboard-operable, `aria-pressed` and
+`aria-current`, a check glyph and a rule as the non-colour cue, a polite live
+region announcing mode changes. Hidden mode sections are `display:none`, so no
+hidden control is tabbable. Drawer: native dialog semantics, `aria-labelledby`,
+Escape, focus return, visible close. Touch: ≥ 44px on `pointer: coarse` for the
+mode buttons, rail items, evidence controls, disclosures, layer action, drawer
+controls and the language select.
+
+## 11. Where planning evidence will go
+
+Not shipped. K4 only creates the place for it:
+
+- PLACE's lead is produced by a lead block over existing evidence; #68 adds an
+  ámbito evidence object to PLACE without another IA rewrite.
+- `PLANNING_AMBITO` already exists in the scope enum, has a glyph and a label in
+  both languages, and the rail derives its entries from the surfaces on screen, so
+  an ámbito surface appears in the rail by declaring one `SURFACES` entry.
+- Nothing here encodes an assumption Gate L rejected: no scalar planning stage,
+  no "progress" direction, no dwelling counts, no "remaining to be built", no
+  equating 765 polygons with 765 ámbitos, no reading of `No Necesita` as "not
+  applicable".
+
+## 12. Out of scope
+
+No new dataset, ámbito layer, buildability, licences, change detection, MapLibre,
+PMTiles, DuckDB, React, 3D, shader/glass, AI, recommendation, score, ranking or
+analytical metric. Typography, colour and visual polish are #67's.

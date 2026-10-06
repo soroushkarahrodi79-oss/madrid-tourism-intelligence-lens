@@ -39,12 +39,6 @@ header{
 .logo:after{inset:3px 2px 3px 14px;transform:skewY(28deg);opacity:.75}
 .brand-title{font-size:15px;font-weight:760;letter-spacing:-.02em;line-height:1.05}
 .brand-sub{font-size:9.5px;color:#94a7bc;margin-top:4px;letter-spacing:.02em}
-.nav{
-  pointer-events:auto;margin-left:auto;display:flex;gap:5px;padding:5px;border:1px solid var(--line);
-  border-radius:14px;background:rgba(6,12,21,.88);backdrop-filter:blur(18px)
-}
-.nav button{border:0;background:transparent;color:#93a4b8;padding:9px 13px;border-radius:10px;font-size:11px;cursor:pointer}
-.nav button.active{background:#102a43;color:white;box-shadow:inset 0 0 0 1px rgba(75,175,255,.4)}
 
 .left{
   position:absolute;z-index:1000;left:calc(18px + var(--safe-left));top:calc(90px + var(--safe-top));width:222px;padding:13px;border:1px solid var(--line);
@@ -274,8 +268,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .bar{height:5px;background:#1d2b3b;border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;border-radius:6px}
 .nearest{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:7px}
 .nearest li{font-size:9px;color:#aebdcd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nearest em{font-style:normal;color:#657b92;margin-left:5px}
-.compareline{margin-top:4px;border-top:1px solid var(--line);padding-top:2px;display:none}
-.compareline.show{display:block}
+.compareline{margin-top:4px;padding-top:2px}
 .comparison-radius-readout{margin:4px 2px 5px;padding:6px 8px;border:1px solid rgba(255,255,255,.09);border-radius:8px;background:rgba(255,255,255,.025);font-size:9px;font-weight:650;color:#d7e5f2;font-variant-numeric:tabular-nums}
 .comparison-mode-cue{margin:0 2px 5px;font-size:8.1px;line-height:1.4;color:#a9bacb}
 .halo-toggle{display:flex;align-items:center;gap:7px;min-height:36px;padding:4px 8px;margin:3px 0 5px;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(255,255,255,.02);font-size:9px;color:#c5d3e1;cursor:pointer}
@@ -519,15 +512,14 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 
 @media(max-width:850px){
   header{left:calc(10px + var(--safe-left));right:calc(10px + var(--safe-right));top:calc(9px + var(--safe-top));height:54px}
-  .brand{padding:8px 10px;max-width:100%;min-width:0}.brand>div:last-child{min-width:0}.brand-title{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.brand-sub{font-size:8.5px}.nav{display:none}
+  .brand{padding:8px 10px;max-width:100%;min-width:0}.brand>div:last-child{min-width:0}.brand-title{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.brand-sub{font-size:8.5px}
   .left{left:calc(10px + var(--safe-left));top:calc(73px + var(--safe-top));width:174px;padding:10px;max-height:min(52vh,430px);max-height:min(52dvh,430px);overflow:auto}
-  .evidence-note{display:none}.layer-source-note{display:none}
   .panel{left:calc(10px + var(--safe-left));right:calc(10px + var(--safe-right));top:auto;bottom:calc(10px + var(--safe-bottom));width:auto;min-width:0;max-width:none;height:auto;min-height:0;max-height:42vh;max-height:42dvh;padding:12px}
   .panel-resize-handle{display:none}
-  .title{font-size:16px}.metrics{grid-template-columns:repeat(4,1fr)}.metric{min-height:61px;padding:8px}.metric-value{font-size:17px}.metric-head{font-size:8px}.metric-foot{display:none}
+  .title{font-size:16px}.metrics{grid-template-columns:repeat(4,1fr)}.metric{min-height:61px;padding:8px}.metric-value{font-size:17px}.metric-head{font-size:8px}.metric-foot{font-size:7.6px}
   .section-head{margin:9px 0 6px}.section-head span{font-size:8.5px}.section-head small{font-size:7.8px}
   .area .section-head{margin-top:0}
-  .area-identity{margin:4px 0 7px}.area-context{font-size:10px}.area-codes{display:none}
+  .area-identity{margin:4px 0 7px}.area-context{font-size:10px}.area-codes{font-size:8px}
   .area-figure{grid-template-columns:auto minmax(0,1fr);gap:10px;padding:8px 10px}
   .area-value{font-size:20px}.area-value-label{font-size:7.8px;margin-top:4px}.area-period{font-size:7.8px;margin-top:3px}
   .area-scope{padding-left:10px}.area-scope p{font-size:8.2px;margin-top:5px}
@@ -538,9 +530,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .area-vut-secondary{margin-top:4px;font-size:8.2px}
   .area-vut-state{margin-top:4px;font-size:7.8px}
   .area-other{margin-top:6px;padding-top:6px;font-size:8.4px;gap:6px}
-  .area-source-toggle,.area-source-details{display:none}
-  .activity-card{grid-template-columns:1fr;padding:9px}.activity-card-note{display:none}
-  .mix{display:none}.source{display:none}
+  .activity-card{grid-template-columns:1fr;padding:9px}
   .compareline{margin-top:8px;padding-bottom:2px}.halo-toggle{min-height:40px}.comparetable{font-size:8px}.comparetable th,.comparetable td{padding:5px 3px}.comparetable th:first-child{min-width:75px}.compare-evidence,.halo-visibility-note{font-size:8px}
   .comparison-bridge-empty{font-size:9px}.cb-metric-name{font-size:10px}.cb-value{font-size:16px}.cb-rel-value{font-size:13px}.cb-sub,.cb-radius,.cb-qualifier{font-size:8.2px}.comparison-bridge[data-relationship="withheld"] .cb-rel-value{font-size:9.4px}
   .decision-insight .di-title{font-size:9.4px}.di-status{font-size:7.9px}.di-metric{font-size:8.8px}.di-rel{font-size:9.2px}.di-guard{font-size:8px}
@@ -563,7 +553,6 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .hospitality-context-card{padding:9px 10px}
   .hospitality-value{font-size:20px}
   .hospitality-meta-grid{grid-template-columns:1fr 1fr}
-  .hospitality-methodology-link{display:none}
   .leaflet-top.leaflet-left{top:calc(73px + var(--safe-top));left:auto;right:calc(10px + var(--safe-right))}
   .leaflet-bottom.leaflet-right{top:calc(158px + var(--safe-top));bottom:auto;left:auto;right:calc(10px + var(--safe-right))}
   .leaflet-control-attribution{max-width:min(46vw,220px);font-size:7px!important;text-align:right}
@@ -585,7 +574,6 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 @media(max-width:560px){
   .left{width:150px;max-height:min(49vh,360px);max-height:min(49dvh,360px)}
   .layer{font-size:9px}
-  .heat-scale,.scale-labels{display:none}
   .metrics{grid-template-columns:1fr 1fr}.metric{min-height:58px}
   .hospitality-meta-grid{grid-template-columns:1fr}
   .leaflet-bottom.leaflet-right{top:calc(170px + var(--safe-top))}
@@ -616,9 +604,123 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 }
 
 @media(max-height:700px){
-  .evidence-note,.layer-source-note,.heat-scale,.scale-labels{display:none}
   .left{max-height:calc(100vh - 90px - var(--safe-top) - var(--safe-bottom));max-height:calc(100dvh - 90px - var(--safe-top) - var(--safe-bottom))}
 }
 @media(max-width:850px) and (max-height:700px){
   .panel{max-height:44vh;max-height:44dvh}
+}
+
+/* ===== INFORMATION ARCHITECTURE V2 (K4, #66) ================================
+   Layout, drawer, rail, responsive visibility and touch behaviour only. No colour
+   or type system is introduced here (that is #67). The responsive rule that
+   governs everything below: NO breakpoint may hide a source, a date, a unit, a
+   scope label or an interpretation ceiling. Supporting figures and tables may
+   collapse; they are never deleted. */
+.header-tools{pointer-events:auto;margin-left:auto;display:flex;align-items:center}
+.header-tools select{width:auto;min-width:96px;padding:8px 10px;font-size:11px;border:1px solid var(--line);border-radius:12px;background:rgba(6,12,21,.9);color:#d9e4ef}
+.header-tools select:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px}
+
+.mode-section[hidden],[data-controls-for][hidden],[data-drawer-mode][hidden]{display:none!important}
+
+/* The head (mode control + scope/freshness rail) stays at the top of the panel's
+   own scroll, so the reader never loses which mode, scope and date they are in. */
+.panel-head{position:sticky;top:-15px;z-index:4;margin:0 -15px 6px;padding:6px 15px 8px;background:var(--panel);border-bottom:1px solid var(--line)}
+.mode-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:3px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.03)}
+.mode-btn{display:flex;align-items:center;justify-content:center;gap:6px;min-height:38px;padding:6px 8px;border:1px solid transparent;border-radius:9px;background:transparent;color:#9fb1c5;font:inherit;font-size:11px;cursor:pointer}
+.mode-btn:focus-visible,.scope-rail button:focus-visible,.evidence-link:focus-visible,.evidence-route:focus-visible,.detail-disclosure>summary:focus-visible,.layer-action:focus-visible,.drawer-close:focus-visible,.reading-btn:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px}
+/* The current mode is shown by a filled state, a visible rule AND a check glyph,
+   never by colour alone. */
+.mode-btn[aria-pressed="true"]{background:#102a43;color:#fff;border-color:rgba(75,175,255,.55);font-weight:700;box-shadow:inset 0 -2px 0 #4bafff}
+.mode-btn[aria-pressed="true"] .mode-name:after{content:" ✓"}
+.mode-glyph{font-size:12px}
+.mode-question{margin:2px 2px 4px;font-size:9.4px;line-height:1.35;color:#9aaec4}
+/* Content scrolled into view (focus, scrollIntoView) must not land under the sticky head. */
+.panel{scroll-padding-top:8.5rem}
+
+.scope-rail{margin:0}
+.scope-rail-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 6px}
+.scope-rail-list li{min-width:0}
+.scope-rail-item{display:inline-flex;align-items:baseline;gap:5px;max-width:100%;padding:4px 7px;border:1px solid var(--line2);border-radius:8px;background:rgba(255,255,255,.04);color:#d7e5f2;font:inherit;font-size:10px;line-height:1.25;cursor:pointer;text-align:left}
+.scope-rail-item .scope-glyph{font-size:11px}
+.scope-rail-item .scope-name{font-weight:650;letter-spacing:.02em;text-transform:uppercase}
+.scope-rail-item .scope-instance{color:#a9bbcf;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.scope-rail-freshness{display:block;width:100%;margin:5px 0 0;padding:3px 2px;border:0;background:transparent;color:#a9bbcf;font:inherit;font-size:9.4px;line-height:1.35;text-align:left;cursor:pointer;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.scope-rail-freshness:hover,.scope-rail-item:hover{color:#fff}
+
+.scope-glyph{display:inline-block;margin-right:3px}
+.metric .scope-glyph{color:#8ba0b7;font-size:9px}
+.section-head .evidence-link{margin-left:auto}
+.evidence-link{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:1px solid var(--line2);border-radius:50%;background:rgba(255,255,255,.04);color:#cfe0f0;font:italic 700 11px Georgia,serif;cursor:pointer}
+.evidence-route-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 2px}
+.evidence-route{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:6px 10px;border:1px solid var(--line2);border-radius:9px;background:rgba(255,255,255,.04);color:#e6f0fa;font:inherit;font-size:10.5px;cursor:pointer}
+.evidence-route-row .area-source-toggle{margin:0}
+
+.detail-disclosure{margin:11px 0 0;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
+.detail-disclosure>summary{display:flex;align-items:center;gap:6px;min-height:34px;padding:7px 11px;cursor:pointer;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#a9bbcf;font-weight:620;list-style:none}
+.detail-disclosure>summary::-webkit-details-marker{display:none}
+.detail-disclosure>summary:before{content:"▸";font-size:10px;letter-spacing:0}
+.detail-disclosure[open]>summary:before{content:"▾"}
+.detail-disclosure>*:not(summary){margin-left:10px;margin-right:10px}
+.detail-disclosure>*:last-child{margin-bottom:10px}
+.detail-disclosure .section-head{margin-top:9px}
+.detail-disclosure .mix{margin-top:2px}
+
+.controls-region{margin-top:14px;padding-top:2px;border-top:1px solid var(--line)}
+.controls-region .lensbar{margin-top:0}
+.layer-panel{margin:2px 0 6px 2px}
+.layer-action{display:block;width:100%;margin:4px 0 2px;padding:6px 8px;border:1px solid rgba(255,176,74,.25);border-radius:9px;background:rgba(255,176,74,.06);color:#ffc570;font:inherit;font-size:9px;cursor:pointer;text-align:left}
+.layer-action:hover{background:rgba(255,176,74,.12)}
+
+/* ONE evidence drawer. Native <dialog>: Escape closes, focus is trapped while it
+   is open and returns to the opener. It overlays the panel column on desktop and
+   is a bottom sheet on narrow screens. */
+.evidence-drawer{position:fixed;margin:0;inset:auto;right:calc(18px + var(--safe-right));top:calc(90px + var(--safe-top));bottom:auto;width:min(460px,calc(100vw - 36px));max-height:calc(100dvh - 108px - var(--safe-top) - var(--safe-bottom));overflow:auto;padding:0 14px 14px;border:1px solid var(--line2);border-radius:18px;background:#08101a;color:var(--text);box-shadow:0 22px 60px rgba(0,0,0,.55);overscroll-behavior:contain;z-index:2000}
+.evidence-drawer::backdrop{background:rgba(2,6,12,.5)}
+.evidence-drawer:not([open]){display:none}
+.drawer-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 -14px;padding:12px 14px 8px;background:#08101a;border-bottom:1px solid var(--line)}
+.drawer-head h2{margin:0;font-size:15px;letter-spacing:-.01em}
+.drawer-close{min-height:36px;padding:6px 12px;border:1px solid var(--line2);border-radius:10px;background:rgba(255,255,255,.06);color:#fff;font:inherit;font-size:11px;cursor:pointer}
+.drawer-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:10px 0 4px}
+.drawer-reading{display:inline-flex;gap:3px;padding:3px;border:1px solid var(--line);border-radius:10px}
+.reading-btn{min-height:30px;padding:4px 10px;border:1px solid transparent;border-radius:7px;background:transparent;color:#9fb1c5;font:inherit;font-size:10px;cursor:pointer}
+.reading-btn[aria-pressed="true"]{background:#102a43;color:#fff;border-color:rgba(75,175,255,.5);font-weight:700}
+.reading-btn[aria-pressed="true"]:before{content:"✓ "}
+.drawer-filter{margin:0;font-size:9.4px;color:#9aaec4}
+.drawer-record{margin:10px 0 0;padding:10px 11px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}
+.drawer-record>h3{display:flex;align-items:baseline;gap:6px;margin:0 0 6px;font-size:11px;letter-spacing:0;text-transform:none;color:#e8f1fa}
+.drawer-source{margin:8px 0 0;padding-top:8px;border-top:1px solid rgba(255,255,255,.07)}
+.drawer-source>h4{margin:0 0 5px;font-size:10.5px;color:#d2e1f0}
+.drawer-fields{display:grid;grid-template-columns:minmax(88px,.42fr) minmax(0,1fr);gap:3px 10px;margin:0;font-size:10px;line-height:1.4}
+.drawer-fields dt{color:#8ba0b7}
+.drawer-fields dd{margin:0;color:#dbe7f3;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.drawer-ceiling{margin:6px 0 0;padding:7px 9px;border-left:3px solid #c9a24a;background:rgba(255,255,255,.04);font-size:10px;line-height:1.45;color:#e6eef6}
+.drawer-ceiling b{display:block;margin-bottom:2px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#c8d7e6}
+.drawer-notes{margin:14px 0 0}
+.drawer-notes>h3{margin:0 0 6px;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#8ba0b7}
+.drawer-notes .area-source-details{display:flex;flex-direction:column;gap:5px;margin:0}
+.drawer-notes .halo-legend{font-size:10px;line-height:1.5;margin:0}
+.drawer-notes .source{font-size:10px;line-height:1.5;margin:0}
+.compare-area-host:empty{display:none}
+.compare-area-host .area{margin:8px 0 0}
+
+@media(max-width:850px){
+  /* On narrow screens the head is the first thing in the flow rather than sticky:
+     the panel is only ~42dvh tall and a sticky head would take half of it. It is
+     still never hidden. */
+  .panel-head{position:static;margin:0 -12px 6px;padding:5px 12px 6px}
+  .mode-btn{min-height:36px}
+  .mode-question{display:none}
+  .evidence-drawer{left:calc(10px + var(--safe-left));right:calc(10px + var(--safe-right));top:auto;bottom:calc(10px + var(--safe-bottom));width:auto;max-height:82dvh}
+  .detail-disclosure>summary{font-size:8.8px}
+  .header-tools select{font-size:16px;min-width:88px;padding:6px 8px}
+}
+@media(max-width:420px){
+  .scope-rail-item{font-size:9.4px;padding:3px 6px}
+  .scope-rail-freshness{font-size:9px}
+  .mode-btn{gap:4px;padding:5px 4px;font-size:10.5px}
+}
+@media(pointer:coarse){
+  .mode-btn,.scope-rail-item,.scope-rail-freshness,.evidence-route,.detail-disclosure>summary,.layer-action,.drawer-close,.reading-btn,.header-tools select{min-height:44px}
+  .evidence-link{width:44px;height:44px;font-size:14px}
+  .reading-btn{min-width:44px}
 }
