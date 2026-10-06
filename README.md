@@ -7,6 +7,8 @@ formalizes **scope, freshness and interpretation ceiling** as explicit, uniform
 properties of every evidence object; today they are documented per source rather
 than guaranteed on every value.
 
+[Open the live Madrid lens](https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens/) · [Current scope and limits](docs/GATE_K_URBAN_DECISION_WORKSPACE.md)
+
 ## 1. What question does it answer?
 
 It starts from a place and a question about it, not from a dataset. For a point
