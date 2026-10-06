@@ -6,7 +6,7 @@
 <title>Madrid Urban Evidence Lens</title>
 <meta name="description" content="A place-first, source-disciplined lens for Madrid: read what official sources document about the city and the limits of that evidence. Urban development is the authorized next organising frame; tourism remains a documented domain. Not real-time; not a recommendation engine.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261006-54">
+<link rel="stylesheet" href="css/app.css?v=20261006-55">
 </head>
 <body>
 <div id="map"></div>
@@ -46,8 +46,8 @@
     </div>
   </div>
   <h3>Operational layers</h3>
-  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--museum);background:var(--museum)"></i><span data-i18n="layer.museum">Museums</span></div><label class="switch"><input data-layer="museum" type="checkbox" checked><span></span></label></div>
-  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--stay);background:var(--stay)"></i><span data-i18n="layer.stay">Hotels & stays</span></div><label class="switch"><input data-layer="stay" type="checkbox" checked><span></span></label></div>
+  <div class="layer"><div class="layer-left"><i class="dot dot-museum"></i><span data-i18n="layer.museum">Museums</span></div><label class="switch"><input data-layer="museum" type="checkbox" checked><span></span></label></div>
+  <div class="layer"><div class="layer-left"><i class="dot dot-stay"></i><span data-i18n="layer.stay">Hotels & stays</span></div><label class="switch"><input data-layer="stay" type="checkbox" checked><span></span></label></div>
   <div class="stay-filter">
     <label for="stayKindFilter" data-i18n="aside.accommodation">Accommodation category</label>
     <select id="stayKindFilter" aria-label="Accommodation category">
@@ -62,21 +62,21 @@
       <option value="other" data-kind="other" data-label="Other / unclassified">Other / unclassified</option>
     </select>
   </div>
-  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--bike);background:var(--bike)"></i>BiciMAD</div><label class="switch"><input data-layer="bike" type="checkbox" checked><span></span></label></div>
-  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--rail);background:var(--rail)"></i>Metro & Cercanías</div><label class="switch"><input data-layer="rail" type="checkbox" checked><span></span></label></div>
-  <div class="layer"><div class="layer-left"><i class="dot" style="color:var(--info);background:var(--info)"></i><span data-i18n="layer.info">Tourist info</span></div><label class="switch"><input data-layer="info" type="checkbox" checked><span></span></label></div>
+  <div class="layer"><div class="layer-left"><i class="dot dot-bike"></i>BiciMAD</div><label class="switch"><input data-layer="bike" type="checkbox" checked><span></span></label></div>
+  <div class="layer"><div class="layer-left"><i class="dot dot-rail"></i>Metro & Cercanías</div><label class="switch"><input data-layer="rail" type="checkbox" checked><span></span></label></div>
+  <div class="layer"><div class="layer-left"><i class="dot dot-info"></i><span data-i18n="layer.info">Tourist info</span></div><label class="switch"><input data-layer="info" type="checkbox" checked><span></span></label></div>
 
   <div class="activity-divider">
     <span>Observed activity</span>
     <small>not tourism-specific</small>
   </div>
-  <div class="layer activity-layer"><div class="layer-left"><i class="dot" style="color:var(--activity);background:var(--activity)"></i><span data-i18n="layer.pedestrian">Pedestrian counters</span></div><label class="switch"><input data-layer="pedestrian" type="checkbox" aria-label="Toggle observed pedestrian activity" aria-checked="false"><span></span></label></div>
+  <div class="layer activity-layer"><div class="layer-left"><i class="dot dot-pedestrian"></i><span data-i18n="layer.pedestrian">Pedestrian counters</span></div><label class="switch"><input data-layer="pedestrian" type="checkbox" aria-label="Toggle observed pedestrian activity" aria-checked="false"><span></span></label></div>
 
   <div class="context-divider">
     <span>Context</span>
     <small>not in metrics</small>
   </div>
-  <div class="layer context-layer"><div class="layer-left"><i class="dot" style="color:var(--park);background:var(--park)"></i><span data-i18n="layer.park">Principal parks</span></div><label class="switch"><input data-layer="park" type="checkbox" aria-label="Toggle principal municipal parks"><span></span></label></div>
+  <div class="layer context-layer"><div class="layer-left"><i class="dot dot-park"></i><span data-i18n="layer.park">Principal parks</span></div><label class="switch"><input data-layer="park" type="checkbox" aria-label="Toggle principal municipal parks"><span></span></label></div>
   <div id="hospitalityLayerRow" class="layer context-layer hospitality-layer"><div class="layer-left"><i class="dot hospitality-dot"></i><span id="hospitalityLayerName">Contexto de hostelería y actividad comercial</span></div><label class="switch"><input id="hospitalityToggle" data-layer="hospitality" type="checkbox" aria-label="Mostrar contexto de hostelería y actividad comercial" aria-checked="false"><span></span></label></div>
   <div class="layer-panel">
     <div id="hospitalityControls" class="hospitality-controls" hidden>
@@ -94,7 +94,7 @@
     <span>Research evidence</span>
     <small>bounded pilot</small>
   </div>
-  <div class="layer research-layer"><div class="layer-left"><i class="dot" style="color:var(--heat);background:var(--heat)"></i><span data-i18n="layer.hati">HATI · thermal pilot</span></div><label class="switch"><input data-layer="heat" type="checkbox" aria-label="Toggle HATI thermal pilot" aria-checked="false"><span></span></label></div>
+  <div class="layer research-layer"><div class="layer-left"><i class="dot dot-heat"></i><span data-i18n="layer.hati">HATI · thermal pilot</span></div><label class="switch"><input data-layer="heat" type="checkbox" aria-label="Toggle HATI thermal pilot" aria-checked="false"><span></span></label></div>
   <button type="button" id="hatiFrameButton" class="layer-action" data-i18n="hati.frame">Show HATI pilot on the map</button>
 
   <div id="layerSourceNote" class="layer-source-note"></div>
@@ -182,10 +182,10 @@
     <!-- SUPPORTING EVIDENCE: at most four Lens-circle figures. -->
   <div class="section-head"><span>Within the Lens</span><small id="lensScopeHint">—</small><button type="button" class="evidence-link" data-evidence-prefix="place.metric." data-evidence-name="sec.withinLens" aria-haspopup="dialog"><span aria-hidden="true">i</span></button></div>
   <div class="metrics">
-    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--museum);color:var(--museum)"></i><span data-i18n="metric.tourism">Tourism POIs</span></div><div id="tourismValue" class="metric-value">—</div><div id="tourismFoot" class="metric-foot">within lens</div></div>
-    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--stay);color:var(--stay)"></i><span data-i18n="metric.stays">Hotels & stays</span></div><div id="stayValue" class="metric-value">—</div><div id="stayFoot" class="metric-foot">within lens</div></div>
-    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--bike);color:var(--bike)"></i><span data-i18n="metric.mobility">Mobility nodes</span></div><div id="mobilityValue" class="metric-value">—</div><div id="mobilityFoot" class="metric-foot">BiciMAD + rail stations</div></div>
-    <div class="metric"><div class="metric-head"><i class="dot" style="background:var(--heat);color:var(--heat)"></i><span data-i18n="metric.utci">Mean UTCI</span> <span class="badge model">model</span></div><div id="heatValue" class="metric-value abstain">—</div><div id="heatFoot" class="metric-foot">HATI outdoor samples</div></div>
+    <div class="metric"><div class="metric-head"><i class="dot dot-museum"></i><span data-i18n="metric.tourism">Tourism POIs</span></div><div id="tourismValue" class="metric-value">—</div><div id="tourismFoot" class="metric-foot">within lens</div></div>
+    <div class="metric"><div class="metric-head"><i class="dot dot-stay"></i><span data-i18n="metric.stays">Hotels & stays</span></div><div id="stayValue" class="metric-value">—</div><div id="stayFoot" class="metric-foot">within lens</div></div>
+    <div class="metric"><div class="metric-head"><i class="dot dot-bike"></i><span data-i18n="metric.mobility">Mobility nodes</span></div><div id="mobilityValue" class="metric-value">—</div><div id="mobilityFoot" class="metric-foot">BiciMAD + rail stations</div></div>
+    <div class="metric"><div class="metric-head"><i class="dot dot-heat"></i><span data-i18n="metric.utci">Mean UTCI</span> <span class="badge model">model</span></div><div id="heatValue" class="metric-value abstain">—</div><div id="heatFoot" class="metric-foot">HATI outdoor samples</div></div>
   </div>
 
 
@@ -197,10 +197,10 @@
     <div class="card">
       <div class="card-title" data-i18n="mix.title">Category mix</div>
       <div id="mixLabel" class="mix-label"></div>
-      <div class="mixrow"><span data-i18n="mix.museums">Museums</span><div class="bar"><i id="barMuseum" style="background:var(--museum);width:0%"></i></div><b id="pctMuseum">0%</b></div>
-      <div class="mixrow"><span data-i18n="mix.stays">Stays</span><div class="bar"><i id="barStay" style="background:var(--stay);width:0%"></i></div><b id="pctStay">0%</b></div>
-      <div class="mixrow"><span data-i18n="mix.mobility">Mobility</span><div class="bar"><i id="barBike" style="background:var(--bike);width:0%"></i></div><b id="pctBike">0%</b></div>
-      <div class="mixrow"><span data-i18n="mix.info">Info</span><div class="bar"><i id="barInfo" style="background:var(--info);width:0%"></i></div><b id="pctInfo">0%</b></div>
+      <div class="mixrow"><span data-i18n="mix.museums">Museums</span><div class="bar"><i id="barMuseum" class="bar-museum" style="width:0%"></i></div><b id="pctMuseum">0%</b></div>
+      <div class="mixrow"><span data-i18n="mix.stays">Stays</span><div class="bar"><i id="barStay" class="bar-stay" style="width:0%"></i></div><b id="pctStay">0%</b></div>
+      <div class="mixrow"><span data-i18n="mix.mobility">Mobility</span><div class="bar"><i id="barBike" class="bar-bike" style="width:0%"></i></div><b id="pctBike">0%</b></div>
+      <div class="mixrow"><span data-i18n="mix.info">Info</span><div class="bar"><i id="barInfo" class="bar-info" style="width:0%"></i></div><b id="pctInfo">0%</b></div>
     </div>
     <div class="card">
       <div class="card-title" data-i18n="mix.nearest">Nearest in active lens</div>
@@ -211,7 +211,7 @@
 
   <div id="pedestrianCard" class="activity-card" hidden>
     <div>
-      <div class="activity-card-title"><i class="dot" style="background:var(--activity);color:var(--activity)"></i>Pedestrian flow <span class="badge observed">observed</span></div>
+      <div class="activity-card-title"><i class="dot dot-pedestrian"></i>Pedestrian flow <span class="badge observed">observed</span></div>
       <div id="pedestrianValue" class="activity-card-value">—</div>
       <div id="pedestrianFoot" class="activity-card-foot">Madrid permanent counters</div>
     </div>
@@ -496,6 +496,6 @@
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20261006-55"></script>
+<script src="js/app.js?v=20261006-56"></script>
 </body>
 </html>

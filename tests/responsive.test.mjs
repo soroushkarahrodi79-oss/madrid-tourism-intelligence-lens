@@ -16,15 +16,15 @@ test("Leaflet zoom controls move away from the layer panel on tablet/mobile", ()
   assert.match(css, /\.leaflet-top\.leaflet-left\{top:calc\(73px \+ var\(--safe-top\)\);left:auto;right:calc\(10px \+ var\(--safe-right\)\)\}/);
 });
 
-test("touch controls have larger tap targets", () => {
+test("coarse-pointer controls share the universal 44px floor", () => {
   assert.match(css, /@media\(pointer:coarse\)/);
-  assert.match(css, /\.switch\{width:42px;height:24px\}/);
-  assert.match(css, /\.leaflet-control-zoom a\{width:42px!important;height:42px!important/);
+  assert.match(css, /:where\(button,select,summary,a\[href\],\[role="button"\],input\[type="range"\],input\[type="checkbox"\]\)\{min-width:44px;min-height:44px\}/);
+  assert.match(css, /\.switch\{width:44px;height:44px\}/);
 });
 
-test("mobile form controls avoid iOS focus zoom", () => {
-  assert.match(css, /select,\.smallbtn\{font-size:16px\}/);
-  assert.match(css, /\.basemap-control select\{font-size:16px\}/);
+test("form control typography is central rather than breakpoint-specific", () => {
+  assert.match(css, /select,[^}]*\{font-size:var\(--t-label\)\}/);
+  for (const block of mediaBlocks(css)) assert.doesNotMatch(block, /font-size\s*:/);
 });
 
 test("responsive stylesheet is cache-busted in the page", () => {
@@ -53,3 +53,21 @@ test("manual resize control is desktop-only and touch-safe", () => {
   assert.match(css, /\.panel-resize-handle\{[\s\S]*?cursor:nesw-resize;touch-action:none/);
   assert.match(css, /@media\(max-width:850px\)[\s\S]*?\.panel-resize-handle\{display:none\}/);
 });
+
+function mediaBlocks(source) {
+  const blocks = [];
+  let index = source.indexOf("@media");
+  while (index !== -1) {
+    const open = source.indexOf("{", index);
+    let depth = 1;
+    let cursor = open + 1;
+    while (depth && cursor < source.length) {
+      if (source[cursor] === "{") depth += 1;
+      if (source[cursor] === "}") depth -= 1;
+      cursor += 1;
+    }
+    blocks.push(source.slice(open + 1, cursor - 1));
+    index = source.indexOf("@media", cursor);
+  }
+  return blocks;
+}

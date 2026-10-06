@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>K5 neutral planning category fixture</title>
+  <style>
+    body{background:#08101a;color:#f3f7ff;font:14px system-ui;padding:24px}
+    .fixture{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:16px;max-width:760px}
+    .state{padding:12px;border:3px solid #aeb8c4;background:#111c29;color:#f3f7ff}
+    .state::before{display:inline-block;width:1.5em;font-weight:800}
+    .sin-iniciar{border-style:dotted}.sin-iniciar::before{content:"○"}
+    .en-tramitacion{border-style:dashed}.en-tramitacion::before{content:"◇"}
+    .en-ejecucion{border-style:double}.en-ejecucion::before{content:"▱"}
+    .finalizado{border-style:solid}.finalizado::before{content:"□"}
+    .no-necesita{border-color:#bdb7aa;outline:1px solid #bdb7aa;outline-offset:3px}.no-necesita::before{content:"—"}
+    .origin{border-color:#c4b8cf;border-left-width:7px;border-right-width:7px}.origin::before{content:"◆"}
+  </style>
+</head>
+<body>
+  <!-- Test-only rendering. These source-observed values are deliberately not
+       imported into production before #68. Shape, stroke and text survive
+       greyscale; no treatment implies order, progress, success or failure. -->
+  <main class="fixture">
+    <div class="state sin-iniciar">Sin Iniciar</div>
+    <div class="state en-tramitacion">En tramitación</div>
+    <div class="state en-ejecucion">En Ejecución</div>
+    <div class="state finalizado">Finalizado</div>
+    <div class="state no-necesita">No Necesita</div>
+    <div class="state origin">PGOUM-85 / PGOUM-97</div>
+  </main>
+</body>
+</html>
