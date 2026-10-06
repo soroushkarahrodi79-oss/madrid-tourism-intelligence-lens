@@ -723,18 +723,17 @@ test("the licensed-VUT block lives inside the administrative area section", () =
 });
 
 test("the place identity stays visually primary and the figure stays subordinate", () => {
-  const size = (selector) => {
-    const match = new RegExp(`${selector}\\{[^}]*font-size:([\\d.]+)px`).exec(css);
-    return match ? Number(match[1]) : null;
-  };
-  const residents = size("\\.area-value");
-  const licensed = size("\\.area-vut-value");
+  const tokenValues = Object.fromEntries([...css.matchAll(/--t-([a-z]+):([\d.]+)px/g)].map((match) => [match[1], Number(match[2])]));
+  assert.match(css, /\.area-value\{font-size:var\(--t-display\)\}/);
+  assert.match(css, /\.metric-value,[^}]*\.area-vut-value,[^}]*\{font-size:var\(--t-figure\)\}/);
+  const residents = tokenValues.display;
+  const licensed = tokenValues.figure;
   assert.ok(licensed < residents, `the licensed figure (${licensed}px) must be smaller than residents (${residents}px)`);
-  assert.ok(licensed < Number(/\.title\{font-size:([\d.]+)px/.exec(css)[1]));
+  assert.ok(licensed < tokenValues.title);
 
-  // And the same ordering holds in the mobile drawer.
-  const mobile = css.slice(css.indexOf("@media(max-width:850px)"));
-  assert.ok(Number(/\.area-vut-value\{font-size:([\d.]+)px/.exec(mobile)[1]) < Number(/\.area-value\{font-size:([\d.]+)px/.exec(mobile)[1]));
+  // Breakpoints do not reassign semantic type roles.
+  const mobile = css.slice(css.indexOf("@media(max-width:850px)"), css.indexOf("/* ===== INFORMATION ARCHITECTURE V2"));
+  assert.doesNotMatch(mobile, /font-size\s*:/);
 });
 
 test("the primary displayed figure is units and the secondary is licences", () => {
@@ -799,7 +798,8 @@ test("the granted-licence wording survives at every viewport", () => {
   assert.match(app, /labels\.VUT_STATE_PREFIX/);
   assert.match(app, /"whole official barrio"/);
   const mobile = css.slice(css.indexOf("@media(max-width:850px)"));
-  assert.match(mobile, /\.area-vut-state\{[^}]*font-size/);
+  assert.match(css, /\.area-vut-state[^}]*font-size:var\(--t-meta\)/);
+  assert.doesNotMatch(mobile, /\.area-vut-state\{[^}]*font-size/);
   assert.doesNotMatch(mobile, /\.area-vut-state\{[^}]*display:none/);
   assert.doesNotMatch(mobile, /\.area-vut\{[^}]*display:none/);
 });

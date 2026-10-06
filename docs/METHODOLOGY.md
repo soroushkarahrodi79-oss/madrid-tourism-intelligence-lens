@@ -640,6 +640,35 @@ further methodological decision; the rules are:
   visible at every screen size; provenance is never the first thing a responsive
   layout drops.
 
+## Binding visual and accessibility constraints (K5)
+
+The evidence contract includes its presentation. These are release-blocking
+constraints, not design guidance:
+
+- **10px absolute type floor:** all production `font-size` declarations use the
+  seven-token scale in [VISUAL_LANGUAGE.md](VISUAL_LANGUAGE.md), and no visible
+  text may compute below 10px at any supported width. Responsive layouts wrap,
+  scroll a genuine table, prioritise columns or use K4 disclosure; they do not
+  shrink text.
+- **WCAG AA contrast:** every project-authored text node must meet AA against its
+  actual effective background, including translucent panel composition. Small
+  10/11/12px roles require at least 4.5:1. A failed pair changes foreground or
+  the minimum necessary surface treatment, never the analytical meaning.
+- **44px coarse-pointer floor:** every visible application-owned interactive
+  target is at least 44×44px when `pointer: coarse`, including map-adjacent and
+  disclosure controls. The hit area may exceed the visual track.
+- **Non-judgement encoding:** colour may identify a category but cannot evaluate
+  phase, freshness, edition age, change, sensitivity or scope. No good/bad,
+  ahead/behind, success/failure, fresh/stale or progress meaning may be encoded
+  by colour. Every meaningful distinction also has text, glyph, stroke/dash,
+  shape, label or pattern.
+
+Gate L's phase correction is binding here: planning phase fields are independent,
+multi-dimensional published fields and must receive neutral categorical,
+non-ordinal treatment only. `No Necesita` is distinct but semantically unresolved;
+`PGOUM-85`/`PGOUM-97` remain neutral source-observed plan/origin markers. K5
+reserves this language but ships no planning UI; that remains #68.
+
 ## Data resilience strategy
 
 Public APIs (Madrid Open Data, EMT Madrid, Overpass) can fail from a static

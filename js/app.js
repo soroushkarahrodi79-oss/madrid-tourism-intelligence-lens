@@ -1967,7 +1967,7 @@ function renderNearest(s) {
     ? s.nearest
         .map(
           (p) =>
-            `<li><i class="dot" style="display:inline-block;background:${LAYER_COLOR[p.type]};color:${LAYER_COLOR[p.type]};margin-right:5px"></i>${p.name}<em>${Math.round(p.d)} m</em></li>`
+            `<li><i class="dot dot-${p.type} dot-inline"></i>${p.name}<em>${Math.round(p.d)} m</em></li>`
         )
         .join("")
     : "<li>No mapped points in lens.</li>";
@@ -3289,7 +3289,11 @@ function shadeMarkersOutsideActiveLens() {
       const inside = d <= radiusFor(active);
 
       if (m._cluster && typeof m.setOpacity === "function") {
-        m.setOpacity(inside ? 1 : 0.38);
+        // Outside/inside remains a structural distinction (dashed/solid), not
+        // a low-contrast fade or a colour-only state. The reduced opacity stays
+        // high enough for the cluster count to meet AA against the map chrome.
+        m.setOpacity(inside ? 1 : 0.72);
+        m.getElement()?.classList.toggle("outside-lens", !inside);
         return;
       }
 
