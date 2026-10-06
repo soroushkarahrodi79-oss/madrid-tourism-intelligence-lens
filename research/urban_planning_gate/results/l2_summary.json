@@ -1,0 +1,54 @@
+{
+  "gate": "L2",
+  "audit_finished_at": "2026-10-06T08:39:35Z",
+  "families": {
+    "S1": {
+      "decisive_pair": "2025-07 -> 2026-01",
+      "rows_earlier": 665,
+      "rows_later": 667,
+      "shared_codes": 665,
+      "total_differences": 12,
+      "cosmetic_text_drift": 0,
+      "counts": {
+        "NEW_AMBITO": 2,
+        "ABSENT_FROM_EDITION": 0,
+        "MODIFIED_BY_INSTRUMENT": 0,
+        "STATE_TRANSITION": 10,
+        "CAUSE_UNRESOLVED": 0
+      },
+      "proportions": {
+        "NEW_AMBITO": 0.16666666666666666,
+        "ABSENT_FROM_EDITION": 0.0,
+        "MODIFIED_BY_INSTRUMENT": 0.0,
+        "STATE_TRANSITION": 0.8333333333333334,
+        "CAUSE_UNRESOLVED": 0.0
+      },
+      "non_comparable_pairs": 1,
+      "compared_pairs": 13
+    },
+    "S2": {
+      "decisive_pair": "2025-07 -> 2026-01",
+      "rows_earlier": 239,
+      "rows_later": 230,
+      "shared_codes": 230,
+      "total_differences": 19,
+      "cosmetic_text_drift": 54,
+      "counts": {
+        "NEW_AMBITO": 0,
+        "ABSENT_FROM_EDITION": 9,
+        "MODIFIED_BY_INSTRUMENT": 0,
+        "STATE_TRANSITION": 9,
+        "CAUSE_UNRESOLVED": 1
+      },
+      "proportions": {
+        "NEW_AMBITO": 0.0,
+        "ABSENT_FROM_EDITION": 0.47368421052631576,
+        "MODIFIED_BY_INSTRUMENT": 0.0,
+        "STATE_TRANSITION": 0.47368421052631576,
+        "CAUSE_UNRESOLVED": 0.05263157894736842
+      },
+      "non_comparable_pairs": 3,
+      "compared_pairs": 11
+    }
+  }
+}

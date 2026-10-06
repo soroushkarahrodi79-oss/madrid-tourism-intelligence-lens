@@ -1,0 +1,418 @@
+{
+  "gate": "L3",
+  "audit_finished_at": "2026-10-06T08:39:48Z",
+  "structure_pdf": {
+    "resource_id": "203200-13-desarrollo-ambitos",
+    "version": "Noviembre 2025",
+    "sha256_prefix": "8480ef941dec"
+  },
+  "four_phase_era": {
+    "editions": [
+      "2025-01",
+      "2025-07",
+      "2026-01"
+    ],
+    "rows_scanned": 1997,
+    "phase_columns": [
+      "Estado de desarrollo. Planeamiento",
+      "Estado de desarrollo. Gestión",
+      "Estado de desarrollo.Urbanización. Proyecto",
+      "Estado de desarrollo. Urbanización. Obras"
+    ],
+    "per_column_vocabulary": {
+      "Estado de desarrollo. Planeamiento": [
+        {
+          "value": "PGOUM-85",
+          "count": 780,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "PGOUM-97",
+          "count": 603,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "Finalizado",
+          "count": 502,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "Sin Iniciar",
+          "count": 98,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "En tramitación",
+          "count": 6,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "Finalizada",
+          "count": 5,
+          "first_edition": "2025-01",
+          "last_edition": "2025-01"
+        },
+        {
+          "value": "No Necesita",
+          "count": 3,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        }
+      ],
+      "Estado de desarrollo. Gestión": [
+        {
+          "value": "PGOUM-85",
+          "count": 675,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "Finalizado",
+          "count": 618,
+          "first_edition": "2025-07",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "Finalizada",
+          "count": 308,
+          "first_edition": "2025-01",
+          "last_edition": "2025-01"
+        },
+        {
+          "value": "Sin Iniciar",
+          "count": 191,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "No Necesita",
+          "count": 123,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "En Ejecución",
+          "count": 82,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        }
+      ],
+      "Estado de desarrollo.Urbanización. Proyecto": [
+        {
+          "value": "Finalizado",
+          "count": 855,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "PGOUM-85",
+          "count": 663,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "No Necesita",
+          "count": 234,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "Sin Iniciar",
+          "count": 218,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "En tramitación",
+          "count": 22,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "En Tramitación",
+          "count": 3,
+          "first_edition": "2025-01",
+          "last_edition": "2025-01"
+        },
+        {
+          "value": "Finalizada",
+          "count": 1,
+          "first_edition": "2025-01",
+          "last_edition": "2025-01"
+        },
+        {
+          "value": "En  Tramitación",
+          "count": 1,
+          "first_edition": "2025-01",
+          "last_edition": "2025-01"
+        }
+      ],
+      "Estado de desarrollo. Urbanización. Obras": [
+        {
+          "value": "PGOUM-85",
+          "count": 663,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "Finalizado",
+          "count": 536,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "Sin Iniciar",
+          "count": 260,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "Finalizadas",
+          "count": 258,
+          "first_edition": "2025-01",
+          "last_edition": "2025-01"
+        },
+        {
+          "value": "No Necesita",
+          "count": 234,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "En Ejecución",
+          "count": 45,
+          "first_edition": "2025-01",
+          "last_edition": "2026-01"
+        },
+        {
+          "value": "FinalizadaS",
+          "count": 1,
+          "first_edition": "2025-01",
+          "last_edition": "2025-01"
+        }
+      ]
+    },
+    "observed_values": [
+      "En  Tramitación",
+      "En Ejecución",
+      "En Tramitación",
+      "En tramitación",
+      "Finalizada",
+      "FinalizadaS",
+      "Finalizadas",
+      "Finalizado",
+      "No Necesita",
+      "PGOUM-85",
+      "PGOUM-97",
+      "Sin Iniciar"
+    ],
+    "documented_values_pdf": [
+      "En Tramitación",
+      "Finalizado",
+      "No necesita",
+      "PGOUM 85",
+      "PGOUM 97",
+      "Sin Iniciar"
+    ],
+    "observed_not_documented": [
+      "En Ejecución",
+      "Finalizada",
+      "FinalizadaS",
+      "Finalizadas"
+    ],
+    "undocumented_states": [
+      "En Ejecución"
+    ],
+    "undocumented_states_note": "Values present in the data but absent from the structure PDF's expected-value list. 'En Ejecución' is a genuinely undocumented phase state the files nonetheless use throughout.",
+    "finalizado_spelling_variants": [
+      "Finalizada",
+      "FinalizadaS",
+      "Finalizadas"
+    ],
+    "documented_not_observed": [],
+    "spelling_drift": [
+      {
+        "observed": "En  Tramitación",
+        "documented": "En Tramitación"
+      },
+      {
+        "observed": "En tramitación",
+        "documented": "En Tramitación"
+      },
+      {
+        "observed": "No Necesita",
+        "documented": "No necesita"
+      },
+      {
+        "observed": "PGOUM-85",
+        "documented": "PGOUM 85"
+      },
+      {
+        "observed": "PGOUM-97",
+        "documented": "PGOUM 97"
+      }
+    ],
+    "pgoum_markers_in_phase_cells": {
+      "PGOUM 85": 0,
+      "PGOUM 97": 0,
+      "PGOUM-85": 2781,
+      "PGOUM-97": 603
+    }
+  },
+  "ordering_analysis": {
+    "method": "For every ordered pair of phase columns, count rows where the later phase is advanced (En Ejecución/Finalizado) while the earlier is not advanced (Sin Iniciar/En tramitación); PGOUM markers and No Necesita excluded.",
+    "funnel_violation_count": 9,
+    "funnel_violations_sample": [
+      {
+        "edition": "2025-01",
+        "code": "APR.17.03",
+        "earlier_phase": "Estado de desarrollo.Urbanización. Proyecto",
+        "earlier_value": "En Tramitación",
+        "later_phase": "Estado de desarrollo. Urbanización. Obras",
+        "later_value": "En Ejecución"
+      },
+      {
+        "edition": "2025-01",
+        "code": "API.20.13",
+        "earlier_phase": "Estado de desarrollo. Gestión",
+        "earlier_value": "Sin Iniciar",
+        "later_phase": "Estado de desarrollo.Urbanización. Proyecto",
+        "later_value": "Finalizado"
+      },
+      {
+        "edition": "2025-01",
+        "code": "APR.20.01/M",
+        "earlier_phase": "Estado de desarrollo. Planeamiento",
+        "earlier_value": "En tramitación",
+        "later_phase": "Estado de desarrollo. Gestión",
+        "later_value": "En Ejecución"
+      },
+      {
+        "edition": "2025-07",
+        "code": "APR.17.03",
+        "earlier_phase": "Estado de desarrollo.Urbanización. Proyecto",
+        "earlier_value": "En tramitación",
+        "later_phase": "Estado de desarrollo. Urbanización. Obras",
+        "later_value": "En Ejecución"
+      },
+      {
+        "edition": "2025-07",
+        "code": "API.20.13",
+        "earlier_phase": "Estado de desarrollo. Gestión",
+        "earlier_value": "Sin Iniciar",
+        "later_phase": "Estado de desarrollo.Urbanización. Proyecto",
+        "later_value": "Finalizado"
+      },
+      {
+        "edition": "2025-07",
+        "code": "APR.20.01/M",
+        "earlier_phase": "Estado de desarrollo. Planeamiento",
+        "earlier_value": "En tramitación",
+        "later_phase": "Estado de desarrollo. Gestión",
+        "later_value": "En Ejecución"
+      },
+      {
+        "edition": "2026-01",
+        "code": "APR.17.03",
+        "earlier_phase": "Estado de desarrollo.Urbanización. Proyecto",
+        "earlier_value": "En tramitación",
+        "later_phase": "Estado de desarrollo. Urbanización. Obras",
+        "later_value": "En Ejecución"
+      },
+      {
+        "edition": "2026-01",
+        "code": "API.20.13",
+        "earlier_phase": "Estado de desarrollo. Gestión",
+        "earlier_value": "Sin Iniciar",
+        "later_phase": "Estado de desarrollo.Urbanización. Proyecto",
+        "later_value": "Finalizado"
+      },
+      {
+        "edition": "2026-01",
+        "code": "APR.20.01/M",
+        "earlier_phase": "Estado de desarrollo. Planeamiento",
+        "earlier_value": "En tramitación",
+        "later_phase": "Estado de desarrollo. Gestión",
+        "later_value": "En Ejecución"
+      }
+    ],
+    "verdict": "MULTI_DIMENSIONAL_NO_SCALAR_STAGE"
+  },
+  "no_necesita": {
+    "documented_as_value": true,
+    "semantics_defined_by_publisher": false,
+    "verdict": "SOURCE_OBSERVED_INTERPRETATION_UNRESOLVED",
+    "note": "The structure PDF lists 'No necesita' as an expected Estado de Desarrollo value but never defines its meaning. The reading 'the phase does not apply' is a project-side interpretation, not a publisher statement. Structurally, 'No Necesita' and 'Sin Iniciar' are distinct listed values and must never be collapsed.",
+    "no_necesita_count": 594,
+    "sin_iniciar_count": 767,
+    "are_distinct_values": true
+  },
+  "single_state_era": {
+    "editions": [
+      "2013-01",
+      "2014-01",
+      "2015-01",
+      "2016-01",
+      "2017-01",
+      "2018-01",
+      "2019-01",
+      "2020-01",
+      "2021-01",
+      "2022-01",
+      "2023-01",
+      "2024-01"
+    ],
+    "note": "2013–2024 editions carry ONE 'Estado de Desarrollo' column, not four phases, in a per-district multi-sheet layout. The four-phase vocabulary cannot be aligned to this era; cross-era phase differencing is barred.",
+    "observed_vocabulary": [
+      {
+        "value": "PGOUM-85",
+        "count": 3128
+      },
+      {
+        "value": "PGOUM-97",
+        "count": 2426
+      },
+      {
+        "value": "Finalizado",
+        "count": 1889
+      },
+      {
+        "value": "Sin Iniciar",
+        "count": 454
+      },
+      {
+        "value": "Planeamiento",
+        "count": 252
+      },
+      {
+        "value": "Finalizada",
+        "count": 36
+      },
+      {
+        "value": "En tramitación",
+        "count": 27
+      },
+      {
+        "value": "No Necesita",
+        "count": 9
+      },
+      {
+        "value": "En Tramitación",
+        "count": 5
+      },
+      {
+        "value": "Sin iniciar",
+        "count": 3
+      },
+      {
+        "value": "En Tramitacón",
+        "count": 2
+      }
+    ]
+  }
+}

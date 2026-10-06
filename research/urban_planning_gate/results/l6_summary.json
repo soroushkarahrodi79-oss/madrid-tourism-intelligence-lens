@@ -1,0 +1,32 @@
+{
+  "gate": "L6",
+  "MCPG_feature_count": 5675,
+  "MCPG_field_count": 74,
+  "MCPG_edif_denormalisation": {
+    "ambito": "DESARROLLO DEL ESTE - VALDECARROS",
+    "parcel_rows": 2003,
+    "edif_ambito_m2": 7686472.9,
+    "distinct_edif_ambito_values": 1,
+    "naive_sum_m2": 15396005218.7,
+    "inflation_factor": 2003,
+    "note": "The ámbito total is identical on every one of its parcel rows; summing EDIF_AMBITO over parcels multiplies the true ámbito buildability by the parcel count."
+  },
+  "MCPG_verdict": "NOT_YET",
+  "FASES_feature_count": 3,
+  "OBRA_feature_count": 17,
+  "ETAPAS_feature_count": 46,
+  "PLAN_18000_feature_count": 21,
+  "portals": [
+    {
+      "url": "https://madridcrece.madrid.es/",
+      "plain": 403,
+      "browser_ua": 403
+    },
+    {
+      "url": "https://gemelo.madrid.es/es/evd-urbanismo",
+      "plain": 403,
+      "browser_ua": 403
+    }
+  ],
+  "housing_unit_verdict": "PRESENTATION_SURFACE_NOT_A_REPRODUCIBLE_RETRIEVAL_ROUTE"
+}

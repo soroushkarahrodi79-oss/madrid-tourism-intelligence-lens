@@ -766,3 +766,31 @@ The evidence-class vocabulary used in `source_catalog.json`
 this gate only**. It is a *proposal* for how the runtime registry enum might
 later grow; **Gate C0 does not implement any taxonomy change**, exactly as Gate
 B recorded but did not implement `ADMINISTRATIVE_LICENSE`.
+
+---
+
+## Addendum (6 October 2026) — the urban-planning family, added by Gate L
+
+This Gate C0 landscape, scoped to *destination intelligence*, **contained no
+urban-planning source family**: it mapped accommodation, hospitality/commercial,
+mobility, climate and tourism-demand sources, not the planning register. When the
+product boundary moved to an **urban development evidence lens** (Gate K, #62), that
+gap became material.
+
+**Gate L (#65)** adds the urban-planning family to the landscape, audited first-hand
+and documented in [`URBAN_PLANNING_SOURCE_GATE_L.md`](URBAN_PLANNING_SOURCE_GATE_L.md)
+with reproducible scripts in [`research/urban_planning_gate/`](../research/urban_planning_gate/):
+
+- **`203200` Estado de desarrollo de los ámbitos** and **`203182` Edificabilidad
+  remanente en ámbitos** — 15 dated CC BY 4.0 BIFF8 `.xls` editions each (the record
+  of ámbito phase states and remaining buildability in m²);
+- **`AMBITOS_PLANEAMIENTO_URBANISTICO`** (sigma.madrid.es ArcGIS REST) — polygon
+  geometry and ámbito code, EPSG:25830, no declared freshness or licence (reuse under
+  attribution only);
+- a set of **non-adopted** planning sources recorded with their measured reasons
+  (`MCPG_Madrid_Crece`, `ETAPAS_DESARROLLOS_DEL_SURESTE`, `OBRA_PUBLICA`, the viewer
+  portals), plus the finding that the "51,000 viviendas" class of figure is a
+  presentation-surface number, not a reproducible machine-readable register value.
+
+Gate L **implements nothing** in `data/`, `scripts/`, the UI or `package.json`, exactly
+as Gate C0 did not; it adds the source contract #68 and #69 will build against.

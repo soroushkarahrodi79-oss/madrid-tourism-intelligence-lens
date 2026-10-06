@@ -1,0 +1,116 @@
+{
+  "gate": "L5",
+  "audit_finished_at": "2026-10-06T08:40:07Z",
+  "layer": "https://sigma.madrid.es/hosted/rest/services/DESARROLLO_URBANO_ACTUALIZADO/AMBITOS_PLANEAMIENTO_URBANISTICO/MapServer/0",
+  "feature_count": 765,
+  "layer_name": "Ámbitos Ordenación",
+  "identifier_universe": {
+    "total_features": 765,
+    "distinct_codes": 765,
+    "ambito_like": 723,
+    "zonal_grade_like": 18,
+    "other": 24,
+    "zonal_grade_samples": [
+      "1.1",
+      "1.2",
+      "1.3",
+      "1.4",
+      "1.5",
+      "1.6",
+      "3.1",
+      "3.2"
+    ],
+    "other_samples": [
+      "3.1.a",
+      "3.1.b",
+      "3.1.c",
+      "4",
+      "7.1.a",
+      "7.1.b",
+      "7.2.e",
+      "8.1.a",
+      "8.1.c",
+      "8.2.a",
+      "8.2.b",
+      "8.2.c"
+    ],
+    "correction": "The layer is a MIXED universe (ámbitos + Norma Zonal grades such as '1.1' = ZONA 1 GRADO 1º), not '765 ámbitos'."
+  },
+  "crs": {
+    "wkid": 25830,
+    "confirmed": "EPSG:25830",
+    "reprojection": "deterministic 25830 -> 4326 via pyproj for browser rendering"
+  },
+  "freshness": {
+    "editingInfo": null,
+    "has_lastEditDate": false,
+    "reference_date": null,
+    "source_state": "NOT_DECLARED_BY_PUBLISHER",
+    "note": "No editingInfo, no lastEditDate, no cadence. Geometry is retrieved at build time, committed as a fingerprinted artifact with an observed_resource_state, never called at runtime."
+  },
+  "reuse_basis": {
+    "layer_copyrightText": "",
+    "service_copyrightText": "Ayuntamiento de Madrid. Área de Desarrollo Urbano Sostenible. SG de Innovación e Información Urbanística",
+    "licenseInfo_present": false,
+    "verdict": "MODIFY",
+    "verdict_note": "The service asserts an attribution/copyright string but NO explicit licence or reuse statement. Geometry may be used only under the municipal open-data general conditions with attribution; the authoritative quantities and states come from the CC BY 4.0 editions, never this service."
+  },
+  "rp_suffix": {
+    "verdict": "DISTINCT_AMBITO_EXACT_MATCH_ONLY",
+    "evidence": "Structure annex 203200-14: (*) = 'Ámbito creado por la Revisión Parcial del PGOUM85 y Modificación del PGOUM97'. UZP.3.01 (Valdecarros) is listed as annulled by court sentence while UZPp.03.01-RP is the active replacement — so -RP is a distinct entity and the suffix must never be stripped for matching."
+  },
+  "join": {
+    "S1": {
+      "table_codes": 667,
+      "geometry_codes": 765,
+      "exact_matched": 666,
+      "exact_match_rate_of_table": 0.9985,
+      "unmatched_in_geometry": 99,
+      "unmatched_in_table": 1,
+      "unmatched_in_geometry_classified": {
+        "zonal_grade_like": 18,
+        "ambito_like": 58,
+        "other": 23
+      },
+      "unmatched_in_table_samples": [
+        "APE.21.10"
+      ],
+      "normalised_matched": 664,
+      "normalised_gain_over_exact": -2,
+      "note": "Exact matching is the default. The normalised figure only MEASURES how many more would join if -RP/padding/case were folded; it is not adopted, because -RP is a distinct ámbito."
+    },
+    "S2": {
+      "table_codes": 230,
+      "geometry_codes": 765,
+      "exact_matched": 230,
+      "exact_match_rate_of_table": 1.0,
+      "unmatched_in_geometry": 535,
+      "unmatched_in_table": 0,
+      "unmatched_in_geometry_classified": {
+        "zonal_grade_like": 18,
+        "ambito_like": 494,
+        "other": 23
+      },
+      "unmatched_in_table_samples": [],
+      "normalised_matched": 230,
+      "normalised_gain_over_exact": 0,
+      "note": "Exact matching is the default. The normalised figure only MEASURES how many more would join if -RP/padding/case were folded; it is not adopted, because -RP is a distinct ámbito."
+    }
+  },
+  "geometry_metrics": {
+    "polygon_features": 765,
+    "rings": 1760,
+    "vertices": 291407,
+    "raw_payload_bytes_geojson_25830": 11197227,
+    "reprojection_sample": {
+      "src_25830": [
+        440461.0159999998,
+        4475228.893999999
+      ],
+      "dst_4326": [
+        -3.701881,
+        40.425564
+      ]
+    }
+  }
+}

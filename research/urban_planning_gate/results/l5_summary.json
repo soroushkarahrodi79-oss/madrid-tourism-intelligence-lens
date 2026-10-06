@@ -1,0 +1,18 @@
+{
+  "gate": "L5",
+  "feature_count": 765,
+  "identifier_universe": {
+    "ambito_like": 723,
+    "zonal_grade_like": 18,
+    "other": 24
+  },
+  "crs": 25830,
+  "editingInfo_present": false,
+  "source_state": "NOT_DECLARED_BY_PUBLISHER",
+  "reuse_verdict": "MODIFY",
+  "rp_verdict": "DISTINCT_AMBITO_EXACT_MATCH_ONLY",
+  "join_S1_exact_match_rate_of_table": 0.9985,
+  "join_S2_exact_match_rate_of_table": 1.0,
+  "geometry_vertices": 291407,
+  "geometry_payload_bytes": 11197227
+}

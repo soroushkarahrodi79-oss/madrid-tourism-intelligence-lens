@@ -1,0 +1,1215 @@
+{
+  "gate": "L2",
+  "audit_finished_at": "2026-10-06T08:39:35Z",
+  "precedence": [
+    "NEW_AMBITO",
+    "ABSENT_FROM_EDITION",
+    "MODIFIED_BY_INSTRUMENT",
+    "STATE_TRANSITION",
+    "CAUSE_UNRESOLVED"
+  ],
+  "interpretation_ceiling": "PLANNING_STATE_TRANSITION != PHYSICAL_URBAN_CHANGE. These are published administrative differences; none is evidence of construction.",
+  "families": {
+    "S1": {
+      "decisive_pair": {
+        "rows_earlier": 665,
+        "rows_later": 667,
+        "shared_codes": 665,
+        "identical_shared": 655,
+        "cosmetic_text_drift": 0,
+        "cosmetic_samples": [],
+        "total_differences": 12,
+        "counts": {
+          "NEW_AMBITO": 2,
+          "ABSENT_FROM_EDITION": 0,
+          "MODIFIED_BY_INSTRUMENT": 0,
+          "STATE_TRANSITION": 10,
+          "CAUSE_UNRESOLVED": 0
+        },
+        "proportions": {
+          "NEW_AMBITO": 0.16666666666666666,
+          "ABSENT_FROM_EDITION": 0.0,
+          "MODIFIED_BY_INSTRUMENT": 0.0,
+          "STATE_TRANSITION": 0.8333333333333334,
+          "CAUSE_UNRESOLVED": 0.0
+        },
+        "has_notes_both": false,
+        "samples": {
+          "NEW_AMBITO": [
+            {
+              "code": "APE.10.24"
+            },
+            {
+              "code": "APE.11.16"
+            }
+          ],
+          "ABSENT_FROM_EDITION": [],
+          "MODIFIED_BY_INSTRUMENT": [],
+          "STATE_TRANSITION": [
+            {
+              "code": "APE.02.27",
+              "from": [
+                [
+                  "estado de desarrollo. planeamiento",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. gestión",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo.urbanización. proyecto",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. urbanización. obras",
+                  "En Ejecución"
+                ]
+              ],
+              "to": [
+                [
+                  "estado de desarrollo. planeamiento",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. gestión",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo.urbanización. proyecto",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. urbanización. obras",
+                  "Finalizado"
+                ]
+              ]
+            },
+            {
+              "code": "APE.04.09",
+              "from": [
+                [
+                  "estado de desarrollo. planeamiento",
+                  "PGOUM-97"
+                ],
+                [
+                  "estado de desarrollo. gestión",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo.urbanización. proyecto",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. urbanización. obras",
+                  "En Ejecución"
+                ]
+              ],
+              "to": [
+                [
+                  "estado de desarrollo. planeamiento",
+                  "PGOUM-97"
+                ],
+                [
+                  "estado de desarrollo. gestión",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo.urbanización. proyecto",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. urbanización. obras",
+                  "Finalizado"
+                ]
+              ]
+            },
+            {
+              "code": "APE.05.30",
+              "from": [
+                [
+                  "estado de desarrollo. planeamiento",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. gestión",
+                  "Sin Iniciar"
+                ],
+                [
+                  "estado de desarrollo.urbanización. proyecto",
+                  "Sin Iniciar"
+                ],
+                [
+                  "estado de desarrollo. urbanización. obras",
+                  "Sin Iniciar"
+                ]
+              ],
+              "to": [
+                [
+                  "estado de desarrollo. planeamiento",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. gestión",
+                  "En Ejecución"
+                ],
+                [
+                  "estado de desarrollo.urbanización. proyecto",
+                  "Sin Iniciar"
+                ],
+                [
+                  "estado de desarrollo. urbanización. obras",
+                  "Sin Iniciar"
+                ]
+              ]
+            },
+            {
+              "code": "APE.07.07",
+              "from": [
+                [
+                  "estado de desarrollo. planeamiento",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. gestión",
+                  "En Ejecución"
+                ],
+                [
+                  "estado de desarrollo.urbanización. proyecto",
+                  "Sin Iniciar"
+                ],
+                [
+                  "estado de desarrollo. urbanización. obras",
+                  "Sin Iniciar"
+                ]
+              ],
+              "to": [
+                [
+                  "estado de desarrollo. planeamiento",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. gestión",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo.urbanización. proyecto",
+                  "Sin Iniciar"
+                ],
+                [
+                  "estado de desarrollo. urbanización. obras",
+                  "Sin Iniciar"
+                ]
+              ]
+            },
+            {
+              "code": "APE.10.22",
+              "from": [
+                [
+                  "estado de desarrollo. planeamiento",
+                  "PGOUM-97"
+                ],
+                [
+                  "estado de desarrollo. gestión",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo.urbanización. proyecto",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. urbanización. obras",
+                  "Sin Iniciar"
+                ]
+              ],
+              "to": [
+                [
+                  "estado de desarrollo. planeamiento",
+                  "PGOUM-97"
+                ],
+                [
+                  "estado de desarrollo. gestión",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo.urbanización. proyecto",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. urbanización. obras",
+                  "Finalizado"
+                ]
+              ]
+            },
+            {
+              "code": "APE.19.09",
+              "from": [
+                [
+                  "estado de desarrollo. planeamiento",
+                  "PGOUM-97"
+                ],
+                [
+                  "estado de desarrollo. gestión",
+                  "En Ejecución"
+                ],
+                [
+                  "estado de desarrollo.urbanización. proyecto",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. urbanización. obras",
+                  "En Ejecución"
+                ]
+              ],
+              "to": [
+                [
+                  "estado de desarrollo. planeamiento",
+                  "PGOUM-97"
+                ],
+                [
+                  "estado de desarrollo. gestión",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo.urbanización. proyecto",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. urbanización. obras",
+                  "Finalizado"
+                ]
+              ]
+            },
+            {
+              "code": "APR.02.20/M",
+              "from": [
+                [
+                  "estado de desarrollo. planeamiento",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. gestión",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo.urbanización. proyecto",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. urbanización. obras",
+                  "Sin Iniciar"
+                ]
+              ],
+              "to": [
+                [
+                  "estado de desarrollo. planeamiento",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. gestión",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo.urbanización. proyecto",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. urbanización. obras",
+                  "Finalizado"
+                ]
+              ]
+            },
+            {
+              "code": "APR.03.04",
+              "from": [
+                [
+                  "estado de desarrollo. planeamiento",
+                  "Sin Iniciar"
+                ],
+                [
+                  "estado de desarrollo. gestión",
+                  "Sin Iniciar"
+                ],
+                [
+                  "estado de desarrollo.urbanización. proyecto",
+                  "No Necesita"
+                ],
+                [
+                  "estado de desarrollo. urbanización. obras",
+                  "No Necesita"
+                ]
+              ],
+              "to": [
+                [
+                  "estado de desarrollo. planeamiento",
+                  "Finalizado"
+                ],
+                [
+                  "estado de desarrollo. gestión",
+                  "Sin Iniciar"
+                ],
+                [
+                  "estado de desarrollo.urbanización. proyecto",
+                  "No Necesita"
+                ],
+                [
+                  "estado de desarrollo. urbanización. obras",
+                  "No Necesita"
+                ]
+              ]
+            }
+          ],
+          "CAUSE_UNRESOLVED": []
+        },
+        "pair": "2025-07 -> 2026-01"
+      },
+      "decisive_pair_selected_by": "latest two consecutive editions sharing a schema fingerprint (S1_FOUR_PHASE_FLAT)",
+      "all_consecutive_pairs": [
+        {
+          "pair": "2013-01 -> 2014-01",
+          "status": "COMPARED",
+          "schema_era": "S1_SINGLE_STATE_PER_DISTRICT",
+          "counts": {
+            "NEW_AMBITO": 21,
+            "ABSENT_FROM_EDITION": 20,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 3,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.4772727272727273,
+            "ABSENT_FROM_EDITION": 0.45454545454545453,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.06818181818181818,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 44,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 662,
+          "rows_later": 663,
+          "shared_codes": 642,
+          "has_notes_both": false
+        },
+        {
+          "pair": "2014-01 -> 2015-01",
+          "status": "COMPARED",
+          "schema_era": "S1_SINGLE_STATE_PER_DISTRICT",
+          "counts": {
+            "NEW_AMBITO": 7,
+            "ABSENT_FROM_EDITION": 6,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 0,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.5384615384615384,
+            "ABSENT_FROM_EDITION": 0.46153846153846156,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.0,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 13,
+          "cosmetic_text_drift": 1,
+          "rows_earlier": 663,
+          "rows_later": 664,
+          "shared_codes": 657,
+          "has_notes_both": false
+        },
+        {
+          "pair": "2015-01 -> 2016-01",
+          "status": "COMPARED",
+          "schema_era": "S1_SINGLE_STATE_PER_DISTRICT",
+          "counts": {
+            "NEW_AMBITO": 4,
+            "ABSENT_FROM_EDITION": 8,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 2,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.2857142857142857,
+            "ABSENT_FROM_EDITION": 0.5714285714285714,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.14285714285714285,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 14,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 664,
+          "rows_later": 660,
+          "shared_codes": 656,
+          "has_notes_both": false
+        },
+        {
+          "pair": "2016-01 -> 2017-01",
+          "status": "COMPARED",
+          "schema_era": "S1_SINGLE_STATE_PER_DISTRICT",
+          "counts": {
+            "NEW_AMBITO": 3,
+            "ABSENT_FROM_EDITION": 0,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 1,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.75,
+            "ABSENT_FROM_EDITION": 0.0,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.25,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 4,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 660,
+          "rows_later": 663,
+          "shared_codes": 660,
+          "has_notes_both": false
+        },
+        {
+          "pair": "2017-01 -> 2018-01",
+          "status": "COMPARED",
+          "schema_era": "S1_SINGLE_STATE_PER_DISTRICT",
+          "counts": {
+            "NEW_AMBITO": 2,
+            "ABSENT_FROM_EDITION": 3,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 3,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.25,
+            "ABSENT_FROM_EDITION": 0.375,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.375,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 8,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 663,
+          "rows_later": 662,
+          "shared_codes": 660,
+          "has_notes_both": false
+        },
+        {
+          "pair": "2018-01 -> 2019-01",
+          "status": "COMPARED",
+          "schema_era": "S1_SINGLE_STATE_PER_DISTRICT",
+          "counts": {
+            "NEW_AMBITO": 0,
+            "ABSENT_FROM_EDITION": 0,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 2,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.0,
+            "ABSENT_FROM_EDITION": 0.0,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 1.0,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 2,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 662,
+          "rows_later": 662,
+          "shared_codes": 662,
+          "has_notes_both": false
+        },
+        {
+          "pair": "2019-01 -> 2020-01",
+          "status": "COMPARED",
+          "schema_era": "S1_SINGLE_STATE_PER_DISTRICT",
+          "counts": {
+            "NEW_AMBITO": 0,
+            "ABSENT_FROM_EDITION": 0,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 0,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.0,
+            "ABSENT_FROM_EDITION": 0.0,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.0,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 0,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 662,
+          "rows_later": 662,
+          "shared_codes": 662,
+          "has_notes_both": false
+        },
+        {
+          "pair": "2020-01 -> 2021-01",
+          "status": "COMPARED",
+          "schema_era": "S1_SINGLE_STATE_PER_DISTRICT",
+          "counts": {
+            "NEW_AMBITO": 5,
+            "ABSENT_FROM_EDITION": 1,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 0,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.8333333333333334,
+            "ABSENT_FROM_EDITION": 0.16666666666666666,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.0,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 6,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 662,
+          "rows_later": 666,
+          "shared_codes": 661,
+          "has_notes_both": false
+        },
+        {
+          "pair": "2021-01 -> 2022-01",
+          "status": "COMPARED",
+          "schema_era": "S1_SINGLE_STATE_PER_DISTRICT",
+          "counts": {
+            "NEW_AMBITO": 11,
+            "ABSENT_FROM_EDITION": 0,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 7,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.6111111111111112,
+            "ABSENT_FROM_EDITION": 0.0,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.3888888888888889,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 18,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 666,
+          "rows_later": 677,
+          "shared_codes": 666,
+          "has_notes_both": false
+        },
+        {
+          "pair": "2022-01 -> 2023-01",
+          "status": "COMPARED",
+          "schema_era": "S1_SINGLE_STATE_PER_DISTRICT",
+          "counts": {
+            "NEW_AMBITO": 2,
+            "ABSENT_FROM_EDITION": 0,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 0,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 1.0,
+            "ABSENT_FROM_EDITION": 0.0,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.0,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 2,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 677,
+          "rows_later": 679,
+          "shared_codes": 677,
+          "has_notes_both": false
+        },
+        {
+          "pair": "2023-01 -> 2024-01",
+          "status": "COMPARED",
+          "schema_era": "S1_SINGLE_STATE_PER_DISTRICT",
+          "counts": {
+            "NEW_AMBITO": 1,
+            "ABSENT_FROM_EDITION": 16,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 4,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.047619047619047616,
+            "ABSENT_FROM_EDITION": 0.7619047619047619,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.19047619047619047,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 21,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 679,
+          "rows_later": 664,
+          "shared_codes": 663,
+          "has_notes_both": false
+        },
+        {
+          "pair": "2024-01 -> 2025-01",
+          "status": "NON_COMPARABLE",
+          "reason": "schema era changes S1_SINGLE_STATE_PER_DISTRICT -> S1_FOUR_PHASE_FLAT"
+        },
+        {
+          "pair": "2025-01 -> 2025-07",
+          "status": "COMPARED",
+          "schema_era": "S1_FOUR_PHASE_FLAT",
+          "counts": {
+            "NEW_AMBITO": 0,
+            "ABSENT_FROM_EDITION": 0,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 335,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.0,
+            "ABSENT_FROM_EDITION": 0.0,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 1.0,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 335,
+          "cosmetic_text_drift": 3,
+          "rows_earlier": 665,
+          "rows_later": 665,
+          "shared_codes": 665,
+          "has_notes_both": false
+        },
+        {
+          "pair": "2025-07 -> 2026-01",
+          "status": "COMPARED",
+          "schema_era": "S1_FOUR_PHASE_FLAT",
+          "counts": {
+            "NEW_AMBITO": 2,
+            "ABSENT_FROM_EDITION": 0,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 10,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.16666666666666666,
+            "ABSENT_FROM_EDITION": 0.0,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.8333333333333334,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 12,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 665,
+          "rows_later": 667,
+          "shared_codes": 665,
+          "has_notes_both": false
+        }
+      ],
+      "entity_identity_key": "{edition}:{code}",
+      "notes_detectability": "MODIFIED_BY_INSTRUMENT is detectable only where an OBSERVACIONES/nuevo notes column exists (S2 recent + some S2 mid eras). S1 carries no notes column, so an S1 phase STATE_TRANSITION cannot be attributed to, or cleared of, an instrument modification from S1 alone."
+    },
+    "S2": {
+      "decisive_pair": {
+        "rows_earlier": 239,
+        "rows_later": 230,
+        "shared_codes": 230,
+        "identical_shared": 166,
+        "cosmetic_text_drift": 54,
+        "cosmetic_samples": [
+          {
+            "code": "AOE.00.11-RP",
+            "earlier": "AMBITO CREADO POR LA REVISION PARCIAL DEL PGOUM85 Y MODIFICACION DEL PGOUM97 EN LOS AMBITOS AFECTADOS POR LA SENTENCIA DEL TRIBUNAL SUPERIOR DE JUSTICIA DE 27/02/03 Y DEL TRIBUNAL SUPREMO DE FECHAS 03/07/07 Y 28/09/12.",
+            "later": "ÁMBITO CREADO POR LA REVISIÓN PARCIAL DEL PGOUM85 Y MODIFICACIÓN DEL PGOUM97 EN LOS ÁMBITOS AFECTADOS POR LA SENTENCIA DEL TRIBUNAL SUPERIOR DE JUSTICIA DE 27/02/03 Y DEL TRIBUNAL SUPREMO DE FECHAS 03/07/07 Y 28/09/12."
+          },
+          {
+            "code": "APE.02.26",
+            "earlier": "AMBITO DE NUEVA CREACION",
+            "later": "ÁMBITO DE NUEVA CREACIÓN"
+          },
+          {
+            "code": "APE.02.27",
+            "earlier": "AMBITO DE NUEVA CREACION",
+            "later": "ÁMBITO DE NUEVA CREACIÓN"
+          },
+          {
+            "code": "APE.02.28",
+            "earlier": "AMBITO DE NUEVA CREACION POR LA MPG.02.317.",
+            "later": "ÁMBITO DE NUEVA CREACIÓN POR LA MPG.02.317."
+          },
+          {
+            "code": "APE.04.16",
+            "earlier": "AMBITO DE NUEVA CREACION",
+            "later": "ÁMBITO DE NUEVA CREACIÓN"
+          },
+          {
+            "code": "APE.05.30",
+            "earlier": "AMBITO DE NUEVA CREACION",
+            "later": "ÁMBITO DE NUEVA CREACIÓN"
+          }
+        ],
+        "total_differences": 19,
+        "counts": {
+          "NEW_AMBITO": 0,
+          "ABSENT_FROM_EDITION": 9,
+          "MODIFIED_BY_INSTRUMENT": 0,
+          "STATE_TRANSITION": 9,
+          "CAUSE_UNRESOLVED": 1
+        },
+        "proportions": {
+          "NEW_AMBITO": 0.0,
+          "ABSENT_FROM_EDITION": 0.47368421052631576,
+          "MODIFIED_BY_INSTRUMENT": 0.0,
+          "STATE_TRANSITION": 0.47368421052631576,
+          "CAUSE_UNRESOLVED": 0.05263157894736842
+        },
+        "has_notes_both": true,
+        "samples": {
+          "NEW_AMBITO": [],
+          "ABSENT_FROM_EDITION": [
+            {
+              "code": "APE.02.16"
+            },
+            {
+              "code": "APE.09.24/UE-2"
+            },
+            {
+              "code": "APE.10.22"
+            },
+            {
+              "code": "API.03.05"
+            },
+            {
+              "code": "API.18.05"
+            },
+            {
+              "code": "APR.02.20/M"
+            },
+            {
+              "code": "APR.05.04"
+            },
+            {
+              "code": "UZPp.02.03-RP (*)"
+            }
+          ],
+          "MODIFIED_BY_INSTRUMENT": [],
+          "STATE_TRANSITION": [
+            {
+              "code": "APE.19.09",
+              "from": [
+                [
+                  "situacion del ámbito",
+                  "FASE GESTION Y/O URBANIZACION"
+                ]
+              ],
+              "to": [
+                [
+                  "situacion del ámbito",
+                  "FASE DE EDIFICACION"
+                ]
+              ]
+            },
+            {
+              "code": "APR.18.02/M",
+              "from": [
+                [
+                  "situacion del ámbito",
+                  "FASE GESTION Y/O URBANIZACION"
+                ]
+              ],
+              "to": [
+                [
+                  "situacion del ámbito",
+                  "FASE DE EDIFICACION"
+                ]
+              ]
+            },
+            {
+              "code": "UNP.4.03",
+              "from": [
+                [
+                  "situacion del ámbito",
+                  "PENDIENTE PLANEAMIENTO DESARROLLO"
+                ]
+              ],
+              "to": [
+                [
+                  "situacion del ámbito",
+                  "PENDIENTE PLAN SECTORIZACION"
+                ]
+              ]
+            },
+            {
+              "code": "UNP.4.03/C",
+              "from": [
+                [
+                  "situacion del ámbito",
+                  "PENDIENTE PLANEAMIENTO DESARROLLO"
+                ]
+              ],
+              "to": [
+                [
+                  "situacion del ámbito",
+                  "PENDIENTE PLAN SECTORIZACION"
+                ]
+              ]
+            },
+            {
+              "code": "UNP.4.09",
+              "from": [
+                [
+                  "situacion del ámbito",
+                  "PENDIENTE PLANEAMIENTO DESARROLLO"
+                ]
+              ],
+              "to": [
+                [
+                  "situacion del ámbito",
+                  "PENDIENTE PLAN SECTORIZACION"
+                ]
+              ]
+            },
+            {
+              "code": "UNS.04.05-RP",
+              "from": [
+                [
+                  "situacion del ámbito",
+                  "PENDIENTE PLANEAMIENTO DESARROLLO"
+                ]
+              ],
+              "to": [
+                [
+                  "situacion del ámbito",
+                  "PENDIENTE PLAN SECTORIZACION"
+                ]
+              ]
+            },
+            {
+              "code": "UNS.04.07-RP",
+              "from": [
+                [
+                  "situacion del ámbito",
+                  "PENDIENTE PLANEAMIENTO DESARROLLO"
+                ]
+              ],
+              "to": [
+                [
+                  "situacion del ámbito",
+                  "PENDIENTE PLAN SECTORIZACION"
+                ]
+              ]
+            },
+            {
+              "code": "UNS.04.11-RP",
+              "from": [
+                [
+                  "situacion del ámbito",
+                  "PENDIENTE PLANEAMIENTO DESARROLLO"
+                ]
+              ],
+              "to": [
+                [
+                  "situacion del ámbito",
+                  "PENDIENTE PLAN SECTORIZACION"
+                ]
+              ]
+            }
+          ],
+          "CAUSE_UNRESOLVED": [
+            {
+              "code": "APE.21.07/M",
+              "note_earlier": "AMBITO DE NUEVA CREACION",
+              "note_later": ""
+            }
+          ]
+        },
+        "pair": "2025-07 -> 2026-01"
+      },
+      "decisive_pair_selected_by": "latest two consecutive editions sharing a schema fingerprint (S2_SPLIT_RESIDENTIAL_FLAT)",
+      "all_consecutive_pairs": [
+        {
+          "pair": "2013-01 -> 2014-01",
+          "status": "COMPARED",
+          "schema_era": "S2_VAC_CODORD",
+          "counts": {
+            "NEW_AMBITO": 23,
+            "ABSENT_FROM_EDITION": 19,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 10,
+            "CAUSE_UNRESOLVED": 2
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.42592592592592593,
+            "ABSENT_FROM_EDITION": 0.35185185185185186,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.18518518518518517,
+            "CAUSE_UNRESOLVED": 0.037037037037037035
+          },
+          "total_differences": 54,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 287,
+          "rows_later": 291,
+          "shared_codes": 268,
+          "has_notes_both": true
+        },
+        {
+          "pair": "2014-01 -> 2015-01",
+          "status": "NON_COMPARABLE",
+          "reason": "schema era changes S2_VAC_CODORD -> S2_SINGLE_RESIDENTIAL"
+        },
+        {
+          "pair": "2015-01 -> 2016-01",
+          "status": "COMPARED",
+          "schema_era": "S2_SINGLE_RESIDENTIAL",
+          "counts": {
+            "NEW_AMBITO": 9,
+            "ABSENT_FROM_EDITION": 34,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 260,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.0297029702970297,
+            "ABSENT_FROM_EDITION": 0.11221122112211221,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.858085808580858,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 303,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 294,
+          "rows_later": 269,
+          "shared_codes": 260,
+          "has_notes_both": true
+        },
+        {
+          "pair": "2016-01 -> 2017-01",
+          "status": "COMPARED",
+          "schema_era": "S2_SINGLE_RESIDENTIAL",
+          "counts": {
+            "NEW_AMBITO": 2,
+            "ABSENT_FROM_EDITION": 4,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 12,
+            "CAUSE_UNRESOLVED": 1
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.10526315789473684,
+            "ABSENT_FROM_EDITION": 0.21052631578947367,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.631578947368421,
+            "CAUSE_UNRESOLVED": 0.05263157894736842
+          },
+          "total_differences": 19,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 269,
+          "rows_later": 267,
+          "shared_codes": 265,
+          "has_notes_both": true
+        },
+        {
+          "pair": "2017-01 -> 2018-01",
+          "status": "COMPARED",
+          "schema_era": "S2_SINGLE_RESIDENTIAL",
+          "counts": {
+            "NEW_AMBITO": 20,
+            "ABSENT_FROM_EDITION": 11,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 256,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.06968641114982578,
+            "ABSENT_FROM_EDITION": 0.03832752613240418,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.89198606271777,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 287,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 267,
+          "rows_later": 276,
+          "shared_codes": 256,
+          "has_notes_both": true
+        },
+        {
+          "pair": "2018-01 -> 2019-01",
+          "status": "COMPARED",
+          "schema_era": "S2_SINGLE_RESIDENTIAL",
+          "counts": {
+            "NEW_AMBITO": 274,
+            "ABSENT_FROM_EDITION": 276,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 0,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.49818181818181817,
+            "ABSENT_FROM_EDITION": 0.5018181818181818,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.0,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 550,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 276,
+          "rows_later": 274,
+          "shared_codes": 0,
+          "has_notes_both": true
+        },
+        {
+          "pair": "2019-01 -> 2020-01",
+          "status": "NON_COMPARABLE",
+          "reason": "schema era changes S2_SINGLE_RESIDENTIAL -> S2_COLECTIVA_UNIFAMILIAR"
+        },
+        {
+          "pair": "2020-01 -> 2021-01",
+          "status": "COMPARED",
+          "schema_era": "S2_COLECTIVA_UNIFAMILIAR",
+          "counts": {
+            "NEW_AMBITO": 7,
+            "ABSENT_FROM_EDITION": 9,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 0,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.4375,
+            "ABSENT_FROM_EDITION": 0.5625,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.0,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 16,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 261,
+          "rows_later": 259,
+          "shared_codes": 252,
+          "has_notes_both": true
+        },
+        {
+          "pair": "2021-01 -> 2022-01",
+          "status": "COMPARED",
+          "schema_era": "S2_COLECTIVA_UNIFAMILIAR",
+          "counts": {
+            "NEW_AMBITO": 0,
+            "ABSENT_FROM_EDITION": 17,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 242,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.0,
+            "ABSENT_FROM_EDITION": 0.06563706563706563,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.9343629343629344,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 259,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 259,
+          "rows_later": 242,
+          "shared_codes": 242,
+          "has_notes_both": true
+        },
+        {
+          "pair": "2022-01 -> 2023-01",
+          "status": "COMPARED",
+          "schema_era": "S2_COLECTIVA_UNIFAMILIAR",
+          "counts": {
+            "NEW_AMBITO": 14,
+            "ABSENT_FROM_EDITION": 5,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 3,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.6363636363636364,
+            "ABSENT_FROM_EDITION": 0.22727272727272727,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.13636363636363635,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 22,
+          "cosmetic_text_drift": 205,
+          "rows_earlier": 242,
+          "rows_later": 251,
+          "shared_codes": 237,
+          "has_notes_both": true
+        },
+        {
+          "pair": "2023-01 -> 2024-01",
+          "status": "COMPARED",
+          "schema_era": "S2_COLECTIVA_UNIFAMILIAR",
+          "counts": {
+            "NEW_AMBITO": 3,
+            "ABSENT_FROM_EDITION": 15,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 5,
+            "CAUSE_UNRESOLVED": 0
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.13043478260869565,
+            "ABSENT_FROM_EDITION": 0.6521739130434783,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.21739130434782608,
+            "CAUSE_UNRESOLVED": 0.0
+          },
+          "total_differences": 23,
+          "cosmetic_text_drift": 0,
+          "rows_earlier": 251,
+          "rows_later": 239,
+          "shared_codes": 236,
+          "has_notes_both": true
+        },
+        {
+          "pair": "2024-01 -> 2025-01",
+          "status": "NON_COMPARABLE",
+          "reason": "schema era changes S2_COLECTIVA_UNIFAMILIAR -> S2_SPLIT_RESIDENTIAL_FLAT"
+        },
+        {
+          "pair": "2025-01 -> 2025-07",
+          "status": "COMPARED",
+          "schema_era": "S2_SPLIT_RESIDENTIAL_FLAT",
+          "counts": {
+            "NEW_AMBITO": 10,
+            "ABSENT_FROM_EDITION": 3,
+            "MODIFIED_BY_INSTRUMENT": 1,
+            "STATE_TRANSITION": 2,
+            "CAUSE_UNRESOLVED": 58
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.13513513513513514,
+            "ABSENT_FROM_EDITION": 0.04054054054054054,
+            "MODIFIED_BY_INSTRUMENT": 0.013513513513513514,
+            "STATE_TRANSITION": 0.02702702702702703,
+            "CAUSE_UNRESOLVED": 0.7837837837837838
+          },
+          "total_differences": 74,
+          "cosmetic_text_drift": 26,
+          "rows_earlier": 232,
+          "rows_later": 239,
+          "shared_codes": 229,
+          "has_notes_both": true
+        },
+        {
+          "pair": "2025-07 -> 2026-01",
+          "status": "COMPARED",
+          "schema_era": "S2_SPLIT_RESIDENTIAL_FLAT",
+          "counts": {
+            "NEW_AMBITO": 0,
+            "ABSENT_FROM_EDITION": 9,
+            "MODIFIED_BY_INSTRUMENT": 0,
+            "STATE_TRANSITION": 9,
+            "CAUSE_UNRESOLVED": 1
+          },
+          "proportions": {
+            "NEW_AMBITO": 0.0,
+            "ABSENT_FROM_EDITION": 0.47368421052631576,
+            "MODIFIED_BY_INSTRUMENT": 0.0,
+            "STATE_TRANSITION": 0.47368421052631576,
+            "CAUSE_UNRESOLVED": 0.05263157894736842
+          },
+          "total_differences": 19,
+          "cosmetic_text_drift": 54,
+          "rows_earlier": 239,
+          "rows_later": 230,
+          "shared_codes": 230,
+          "has_notes_both": true
+        }
+      ],
+      "entity_identity_key": "{edition}:{code}",
+      "notes_detectability": "MODIFIED_BY_INSTRUMENT is detectable only where an OBSERVACIONES/nuevo notes column exists (S2 recent + some S2 mid eras). S1 carries no notes column, so an S1 phase STATE_TRANSITION cannot be attributed to, or cleared of, an instrument modification from S1 alone."
+    }
+  }
+}

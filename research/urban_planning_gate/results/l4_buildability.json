@@ -1,0 +1,193 @@
+{
+  "gate": "L4",
+  "audit_finished_at": "2026-10-06T08:39:56Z",
+  "structure_pdf": {
+    "resource_id": "203182-7-ambitos-remanente",
+    "version": "Noviembre 2025",
+    "sha256_prefix": "f18aad6a9701"
+  },
+  "edition_audited": "2026-01",
+  "remanente_definition_verbatim": "edificabilidad disponible para los usos lucrativos Residencial, Servicios Terciarios e Industrial en los ámbitos de ordenación vigentes del Plan General de Ordenación Urbana de Madrid, según la situación del ámbito.",
+  "remanente_meaning": {
+    "publisher_word": "disponible (available)",
+    "qualifier": "según la situación del ámbito; en ámbitos vigentes",
+    "supported_claim": "available/remaining buildable floor area under the plan, in m², by use",
+    "NOT_supported": [
+      "remaining to be physically built",
+      "remaining unallocated",
+      "will be consumed",
+      "market value"
+    ],
+    "verdict": "AVAILABLE_BUILDABILITY_M2_UNDER_PLAN"
+  },
+  "fields": [
+    {
+      "label": "Colectiva. Edif. Residencial",
+      "pdf_description": "Edificabilidad disponible para el uso de residencial colectiva en m²",
+      "unit": "m2",
+      "present_in_latest": true
+    },
+    {
+      "label": "Colectiva. Nº \nViviendas",
+      "pdf_description": "Nº de viviendas disponibles para residencial colectiva en unidades",
+      "unit": "unidades_declared",
+      "present_in_latest": true
+    },
+    {
+      "label": "Unifamiliar. Edif. Residencial",
+      "pdf_description": "Edificabilidad disponible para el uso de residencial unifamiliar en m²",
+      "unit": "m2",
+      "present_in_latest": true
+    },
+    {
+      "label": "Unifamiliar. Nº \nViviendas",
+      "pdf_description": "Nº de viviendas disponibles para residencial unifamiliar en unidades",
+      "unit": "unidades_declared",
+      "present_in_latest": true
+    },
+    {
+      "label": "Edif. Industrial",
+      "pdf_description": "Edificabilidad disponible para el uso Industrial en m²",
+      "unit": "m2",
+      "present_in_latest": true
+    },
+    {
+      "label": "Edif. Terciario",
+      "pdf_description": "Edificabilidad disponible para el uso Terciario en m²",
+      "unit": "m2",
+      "present_in_latest": true
+    }
+  ],
+  "n_viviendas_finding": {
+    "documented": true,
+    "documented_as": "Nº de viviendas disponibles … en unidades",
+    "colectiva_ratio_test": {
+      "rows_tested": 132,
+      "equal_to_edif_over_100": 132,
+      "fractional_values": 113,
+      "match_rate": 1.0,
+      "samples": [
+        {
+          "edif_m2": 16316.7,
+          "n_viviendas": 163.167,
+          "edif_div_100": 163.167
+        },
+        {
+          "edif_m2": 6670.0,
+          "n_viviendas": 66.7,
+          "edif_div_100": 66.7
+        },
+        {
+          "edif_m2": 8775.0,
+          "n_viviendas": 87.75,
+          "edif_div_100": 87.75
+        },
+        {
+          "edif_m2": 19428.5,
+          "n_viviendas": 194.285,
+          "edif_div_100": 194.285
+        },
+        {
+          "edif_m2": 21600.0,
+          "n_viviendas": 216.0,
+          "edif_div_100": 216.0
+        },
+        {
+          "edif_m2": 13121.0,
+          "n_viviendas": 131.21,
+          "edif_div_100": 131.21
+        }
+      ]
+    },
+    "unifamiliar_ratio_test": {
+      "rows_tested": 41,
+      "equal_to_edif_over_100": 41,
+      "fractional_values": 40,
+      "match_rate": 1.0,
+      "samples": [
+        {
+          "edif_m2": 4560.0,
+          "n_viviendas": 45.6,
+          "edif_div_100": 45.6
+        },
+        {
+          "edif_m2": 2954.28,
+          "n_viviendas": 29.542800000000003,
+          "edif_div_100": 29.5428
+        },
+        {
+          "edif_m2": 1768.0,
+          "n_viviendas": 17.68,
+          "edif_div_100": 17.68
+        },
+        {
+          "edif_m2": 1384.8999999999999,
+          "n_viviendas": 13.848999999999998,
+          "edif_div_100": 13.849
+        },
+        {
+          "edif_m2": 720.0,
+          "n_viviendas": 7.2,
+          "edif_div_100": 7.2
+        },
+        {
+          "edif_m2": 2174.0,
+          "n_viviendas": 21.74,
+          "edif_div_100": 21.74
+        }
+      ]
+    },
+    "conclusion": "The Nº Viviendas columns equal Edif. Residencial ÷ 100 and are fractional, so they are a mechanical m²/100 proxy at an assumed 100 m²/dwelling, NOT a count of real dwelling units.",
+    "corrects_gate_k": "Gate K §6.6 stated 'no dwelling-count field exists in either file'. A column LABELLED as a dwelling count does exist in S2; its values are a derived m²/100 proxy, not an authoritative count."
+  },
+  "no_dwelling_ceiling": {
+    "verdict": "BINDING",
+    "basis": "The only dwelling-labelled field is a fractional m²/100 derivation; the lucrative-use figures are m². No authoritative dwelling-unit or protected-dwelling count is published.",
+    "has_protected_housing_count_column": false,
+    "prohibited": [
+      "m² ÷ assumed dwelling size",
+      "extrapolated protected-housing count",
+      "derived household capacity",
+      "publishing Nº Viviendas as a dwelling count"
+    ]
+  },
+  "cross_edition_comparability": {
+    "schema_eras_for_buildability": {
+      "S2_VAC_CODORD": [
+        "2013-01",
+        "2014-01"
+      ],
+      "S2_SINGLE_RESIDENTIAL": [
+        "2015-01",
+        "2016-01",
+        "2017-01",
+        "2018-01",
+        "2019-01"
+      ],
+      "S2_COLECTIVA_UNIFAMILIAR": [
+        "2020-01",
+        "2021-01",
+        "2022-01",
+        "2023-01",
+        "2024-01"
+      ],
+      "S2_SPLIT_RESIDENTIAL_FLAT": [
+        "2025-01",
+        "2025-07",
+        "2026-01"
+      ]
+    },
+    "within_flat_era_movement": {
+      "pair": "2025-07 -> 2026-01",
+      "colectiva_edif_residencial_total_m2": {
+        "2025-07": 13818395.1,
+        "2026-01": 13710968.8
+      },
+      "rows": {
+        "2025-07": 239,
+        "2026-01": 239
+      },
+      "caveat": "A city total shifts both because per-ámbito figures move AND because ámbitos enter/leave the file and situación changes rebase the universe. A naive delta cannot be attributed to construction: it is at most an OBSERVED PUBLISHED DIFFERENCE with cause unresolved."
+    }
+  }
+}

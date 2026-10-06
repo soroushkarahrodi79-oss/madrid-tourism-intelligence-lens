@@ -1,0 +1,63 @@
+{
+  "gate": "L3",
+  "four_phase_editions": [
+    "2025-01",
+    "2025-07",
+    "2026-01"
+  ],
+  "observed_values": [
+    "En  Tramitación",
+    "En Ejecución",
+    "En Tramitación",
+    "En tramitación",
+    "Finalizada",
+    "FinalizadaS",
+    "Finalizadas",
+    "Finalizado",
+    "No Necesita",
+    "PGOUM-85",
+    "PGOUM-97",
+    "Sin Iniciar"
+  ],
+  "observed_not_documented": [
+    "En Ejecución",
+    "Finalizada",
+    "FinalizadaS",
+    "Finalizadas"
+  ],
+  "undocumented_states": [
+    "En Ejecución"
+  ],
+  "finalizado_spelling_variants": [
+    "Finalizada",
+    "FinalizadaS",
+    "Finalizadas"
+  ],
+  "spelling_drift": [
+    {
+      "observed": "En  Tramitación",
+      "documented": "En Tramitación"
+    },
+    {
+      "observed": "En tramitación",
+      "documented": "En Tramitación"
+    },
+    {
+      "observed": "No Necesita",
+      "documented": "No necesita"
+    },
+    {
+      "observed": "PGOUM-85",
+      "documented": "PGOUM 85"
+    },
+    {
+      "observed": "PGOUM-97",
+      "documented": "PGOUM 97"
+    }
+  ],
+  "funnel_violation_count": 9,
+  "phase_ordering_verdict": "MULTI_DIMENSIONAL_NO_SCALAR_STAGE",
+  "no_necesita_verdict": "SOURCE_OBSERVED_INTERPRETATION_UNRESOLVED",
+  "no_necesita_distinct_from_sin_iniciar": true,
+  "pgoum_markers_share_of_phase_cells": 0.4236
+}
