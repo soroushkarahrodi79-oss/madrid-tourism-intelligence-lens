@@ -46,28 +46,22 @@ test("K5 exposes exactly four spacing and two radius tokens", () => {
   assert.deepEqual(radii, [["small", "8px"], ["large", "16px"]]);
 });
 
-test("K5 spacing migration uses tokens across the application layout", () => {
-  const declarations = cssDeclarations(withoutComments);
-  const literalSpacing = declarations.filter(({ property, value }) =>
+test("K5 spacing literals are limited to explicit geometry categories", () => {
+  const literals = cssDeclarations(withoutComments).filter(({ property, value }) =>
     /^(?:margin(?:-[\w-]+)?|padding(?:-[\w-]+)?|gap|row-gap|column-gap)$/.test(property) && /-?\d+(?:\.\d+)?px\b/.test(value),
   );
-  const geometry = /(?:^|[\s,])(?:#map|\.leaflet(?:-[\w-]+)?|\.logo(?::before|:after)?|\.marker(?:-[\w-]+)?|\.dot(?:-[\w-]+)?|\.bar(?:\s+i)?|\.switch(?:\s|$)|\.halo-[\w-]+|\.destination-spark|\.destination-compbar|\.panel-resize-handle(?::before|:after)?|\.sr-only|\.hospitality-scale|\.heat-scale|\.area-label|\.poi-cluster|\.badge|\.comparison-halo-icon|\.lens-boundary|\.admin-active-pane|\.live(?:\s|$)|\.cb-lock)(?:\b|:|\s|,)/i;
-  const nonGeometry = literalSpacing.filter(({ selector }) => !geometry.test(selector));
-  assert.ok(nonGeometry.length <= 86, `application layout literals regressed: ${nonGeometry.length}`);
-  assert.ok(declarations.some(({ property, value }) => property === "padding" && /var\(--s-3\)/.test(value)), "surface padding uses the canonical scale");
+  const failures = literals.map((declaration) => ({ ...declaration, classification: classifySpacingGeometry(declaration) || "APPLICATION_LAYOUT" }))
+    .filter(({ classification }) => classification === "APPLICATION_LAYOUT");
+  assert.deepEqual(failures, [], formatViolations("UNAPPROVED_LAYOUT_LITERAL", failures));
 });
 
-test("K5 application surfaces use radius tokens; literal radii belong to documented geometry categories", () => {
-  const literalRadii = cssDeclarations(withoutComments).filter(({ property, value }) =>
-    property === "border-radius" && /\d+(?:\.\d+)?px\b/.test(value) && !/999px\b/.test(value),
+test("K5 application surfaces use radius tokens; only explicit geometric radii remain literal", () => {
+  const literals = cssDeclarations(withoutComments).filter(({ property, value }) =>
+    property === "border-radius" && /(?:\d+(?:\.\d+)?px|\d+(?:\.\d+)?%)/.test(value) && !/^var\(--r-(?:small|large)\)$/.test(value),
   );
-  const geometry = /(?:^|[\s,])(?:\.leaflet(?:-[\w-]+)?|\.logo(?::before|:after)?|\.marker(?:-[\w-]+)?|\.dot(?:-[\w-]+)?|\.bar(?:\s+i)?|\.switch(?:\s|$)|\.halo-[\w-]+|\.destination-compbar|\.panel-resize-handle(?::before|:after)?|\.sr-only|\.hospitality-scale|\.heat-scale|\.area-label|\.poi-cluster|\.badge|\.comparison-halo-icon|\.lens-boundary|\.admin-active-pane|\.cb-lock|\.live|\.panel::-webkit-scrollbar-thumb)(?:\b|:|\s|,)/i;
-  const nonGeometry = literalRadii.filter(({ selector }) => !geometry.test(selector));
-  assert.ok(nonGeometry.length <= 28, `application surface literal radii regressed: ${nonGeometry.length}`);
-  for (const selector of [".panel", ".left", ".evidence-drawer", ".mode-nav", ".mode-btn", ".card", ".metric", ".controlbox", ".destination-metric"]) {
-    const surface = cssDeclarations(withoutComments).filter((item) => item.selector.split(",").map((part) => part.trim()).includes(selector) && item.property === "border-radius");
-    assert.ok(surface.some(({ value }) => /var\(--r-(?:small|large)\)/.test(value)), `${selector} must use a radius token`);
-  }
+  const failures = literals.map((declaration) => ({ ...declaration, classification: classifyRadiusGeometry(declaration) || "APPLICATION_SURFACE" }))
+    .filter(({ classification }) => classification === "APPLICATION_SURFACE");
+  assert.deepEqual(failures, [], formatViolations("UNAPPROVED_SURFACE_RADIUS", failures));
 });
 
 test("K5 judgement-bearing concepts use no success, error or warning colour convention", () => {
@@ -128,4 +122,37 @@ function cssDeclarations(source) {
     }
   }
   return declarations;
+}
+
+function classifySpacingGeometry({ selector, property, value }) {
+  const rules = [
+    { category: "LEAFLET_GEOMETRY", selector: /^\.leaflet-control-attribution$/, property: "padding", value: /^2px 5px!important$/ },
+    { category: "LEAFLET_GEOMETRY", selector: /^\.leaflet-tooltip$/, property: "padding", value: /^7px 9px$/ },
+    { category: "ACCESSIBILITY_CLIPPING_GEOMETRY", selector: /^\.sr-only$/, property: "margin", value: /^-1px$/ },
+  ];
+  return rules.find((rule) => rule.selector.test(selector) && rule.property === property && rule.value.test(value))?.category;
+}
+
+function classifyRadiusGeometry({ selector, value }) {
+  const rules = [
+    { category: "CIRCLE_GEOMETRY", selector: /^\.(?:dot|marker-center|poi-cluster|evidence-link)$|^\.live i$|^\.switch span:after$/, value: /^50%$/ },
+    { category: "PILL_GEOMETRY", selector: /^(?:\.activity-divider small,\.context-divider small,\.research-divider small|\.hospitality-scale|\.live|\.cb-lock|\.area-label)$/, value: /^999px$/ },
+    { category: "LEAFLET_GEOMETRY", selector: /^\.leaflet-control-attribution$/, value: /^7px$/ },
+    { category: "LEAFLET_GEOMETRY", selector: /^\.leaflet-tooltip$/, value: /^10px$/ },
+    { category: "LOGO_GEOMETRY", selector: /^\.logo:before,\.logo:after$/, value: /^5px 1px 5px 5px$/ },
+    { category: "SWITCH_GEOMETRY", selector: /^\.switch span$/, value: /^(?:10|14)px$/ },
+    { category: "TRACK_GEOMETRY", selector: /^\.heat-scale$/, value: /^6px$/ },
+    { category: "RESIZE_HANDLE_GEOMETRY", selector: /^\.panel-resize-handle:before,\.panel-resize-handle:after$/, value: /^0 0 0 3px$/ },
+    { category: "RESIZE_HANDLE_GEOMETRY", selector: /^\.panel-resize-handle:focus-visible$/, value: /^5px$/ },
+    { category: "SCROLLBAR_GEOMETRY", selector: /^\.panel::-webkit-scrollbar-thumb$/, value: /^9px$/ },
+    { category: "BAR_GEOMETRY", selector: /^\.bar$|^\.bar i$/, value: /^6px$/ },
+    { category: "CHART_MARK_GEOMETRY", selector: /^\.destination-compbar$/, value: /^3px$/ },
+  ];
+  return rules.find((rule) => rule.selector.test(selector) && rule.value.test(value))?.category;
+}
+
+function formatViolations(code, failures) {
+  return failures.map(({ selector, property, value, classification }) =>
+    `${code}: ${selector} ${property}: ${value} [${classification}]`,
+  ).join("\n");
 }

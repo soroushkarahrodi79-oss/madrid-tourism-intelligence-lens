@@ -73,6 +73,17 @@ markers, chart/halo marks, logos, scrollbars and provider-owned Leaflet shapes.
 These categories are enumerated in the visual-language tests; a geometric
 exception must be recognizable by its role, not by a historical pixel value.
 
+The current spacing exceptions are deliberately narrow: Leaflet attribution and
+tooltip padding is provider-control geometry, and the `sr-only` negative margin
+clips visually hidden accessibility text. The strict test matches each
+selector, property and value together; responsive rules receive no exception.
+Radius exceptions are limited to circles/pills, logo corners, switch and track
+shapes, Leaflet controls, scrollbar corners, resize-handle marks, bar/chart
+marks, and the focus corner on the resize handle. Every retained pixel shape is
+listed under its semantic category in the test allowlist; application-owned
+cards, buttons, panels, controls and information surfaces use the two radius
+tokens.
+
 ## Contrast
 
 All project-authored text must meet WCAG AA against its effective rendered
