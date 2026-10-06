@@ -1,0 +1,107 @@
+{
+  "construction_ceiling": "A grant is not evidence that work started, construction occurred or completed, occupancy happened, or the permitted quantity was built.",
+  "declaraciones_responsables": {
+    "catalogue_metadata_modified": "2026-10-05T00:00:00",
+    "dataset_id": "133556-0-declaraciones-responsables",
+    "declared_cadence": "MONTHLY",
+    "licence": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+    "publisher_description": "Información sobre las declaraciones responsables presentadas desde el año 2023, así como un extracto de su contenido: objeto de la declaración responsable, tipo de procedimiento, emplazamiento, régimen de uso, condiciones de la obra, nivel de protección y otros datos como la geolocalización.\r\n****\r\nPuedes encontrar más información sobre estos datos en el [Portal de transparencia > Licencias urbanísticas y declaraciones responsables](https://transparencia.madrid.es/portales/transparencia/es/Transparencia-por-sectores/Urbanismo-Obras/Licencias-y-autorizaciones/Licencias-urbanisticas-y-declaraciones-responsables/?vgnextfmt=default&vgnextoid=2587a805cface910VgnVCM200000f921e388RCRD&vgnextchannel=dee9508929a56510VgnVCM1000008a4a900aRCRD)",
+    "recommendation": "Exclude from #71; a later feature may expose it only as a separate, clearly labelled evidence family.",
+    "relationship": "Distinct legal instrument (responsible declarations presented), never joined or summed into granted licences.",
+    "title": "Declaraciones responsables urbanísticas"
+  },
+  "gate": "M4",
+  "nivel_proteccion": {
+    "absence_states_kept_distinct": [
+      "EMPTY",
+      "Sin Catalogar",
+      "Sin protección"
+    ],
+    "counts": {
+      "Cascos Históricos Periféricos": 40,
+      "Catálogo Edificios Protegidos": 43,
+      "Centro Histórico APE.00.01": 258,
+      "Colonias Históricas": 63,
+      "Conjuntos Homogéneos": 25,
+      "EMPTY": 2507,
+      "Edificios o Bloques en Altura": 34,
+      "Entorno de Monumento": 55,
+      "Entorno del Centro Histórico": 17,
+      "Espacios de alto valor ecológico y paisajístico": 1,
+      "Establecimientos comerciales": 8,
+      "Monumento": 35,
+      "Nivel I": 81,
+      "Nivel I Integral": 292,
+      "Nivel I Singular": 154,
+      "Nivel II": 41,
+      "Nivel II Estructural": 350,
+      "Nivel II Volumétrico": 95,
+      "Nivel III": 35,
+      "Nivel III Ambiental": 173,
+      "Nivel III Parcial": 611,
+      "Otras Protecciones Singulares": 41,
+      "Parques Históricos/Jardines de Interés": 20,
+      "Protección Normativa": 11,
+      "Protección de Rango Superior": 8,
+      "Sin Catalogar": 5340,
+      "Sin protección": 1040,
+      "Áreas de protección arqueológica y paleontológica": 113,
+      "Áreas de protección geológica": 7
+    }
+  },
+  "norma_zonal_missingness": {
+    "both_missing": 2505,
+    "missing": 2505,
+    "neither_missing": 8991,
+    "only_norma_missing": 0,
+    "only_protection_missing": 2
+  },
+  "overlap_ceiling": "Licence rows are administrative acts and may concern premises/dwellings also present in Censo de Locales, licensed VUT, or hospitality/activity evidence. No deterministic entity link was established here; users must never sum these universes as unique places or businesses.",
+  "product_recommendation": "C — expose building/urbanistic, activity, and temporary-activity families only as an explicit categorical union with separate counts and filters; never a silent combined total.",
+  "resolucion": {
+    "ceiling": "Granted records only; no applications, refusals, withdrawals, approval rate, rejection rate, success rate, or processing-performance denominator.",
+    "counts": {
+      "Conceder": 11498
+    },
+    "distinct_values": [
+      "Conceder"
+    ]
+  },
+  "sensitive_data": {
+    "future_minimisation": "Do not carry PERSONA_INTERESADA or other unnecessary attributes into a production artifact.",
+    "observed_persona_interesada_role": "category of person type, not a personal name",
+    "publisher_statement": "The structure document states the file is aggregated and anonymised and contains no personal data."
+  },
+  "tipo": {
+    "classification": {
+      "Licencia básica actividad": "ACTIVITY_LICENCE_FAMILY",
+      "Licencia básica residencial": "BUILDING_URBANISTIC_LICENCE_FAMILY",
+      "Licencia básica urbanística residencial sujeta a Ley 3/2024": "BUILDING_URBANISTIC_LICENCE_FAMILY",
+      "Licencia de 1ª ocupación y funcionamiento": "BUILDING_URBANISTIC_LICENCE_FAMILY",
+      "Licencia de funcionamiento de actividad": "ACTIVITY_LICENCE_FAMILY",
+      "Licencia urbanística de actividad": "ACTIVITY_LICENCE_FAMILY",
+      "Licencia urbanística residencial": "BUILDING_URBANISTIC_LICENCE_FAMILY",
+      "Licencia urbanística residencial sujeta a Ley 3/2024": "BUILDING_URBANISTIC_LICENCE_FAMILY",
+      "Licencias para actividades temporales": "TEMPORARY_ACTIVITY_FAMILY"
+    },
+    "counts": {
+      "Licencia básica actividad": 95,
+      "Licencia básica residencial": 195,
+      "Licencia básica urbanística residencial sujeta a Ley 3/2024": 4,
+      "Licencia de 1ª ocupación y funcionamiento": 193,
+      "Licencia de funcionamiento de actividad": 1918,
+      "Licencia urbanística de actividad": 3372,
+      "Licencia urbanística residencial": 5538,
+      "Licencia urbanística residencial sujeta a Ley 3/2024": 8,
+      "Licencias para actividades temporales": 175
+    },
+    "family_counts": {
+      "ACTIVITY_LICENCE_FAMILY": 5385,
+      "BUILDING_URBANISTIC_LICENCE_FAMILY": 5938,
+      "TEMPORARY_ACTIVITY_FAMILY": 175
+    },
+    "unclassified_rows": 0,
+    "unclassified_values": []
+  },
+  "verdict": "GO_WITH_CONDITIONS"
+}

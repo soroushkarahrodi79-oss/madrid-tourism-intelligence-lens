@@ -1,0 +1,279 @@
+{
+  "address_text": {
+    "disagreement_rows": 517,
+    "join_authority": "Exact NDP identity remains authoritative; text disagreement is retained as a quality flag and never used to override NDP.",
+    "licence_via_abbreviation_map": {
+      "AV": "AVENIDA",
+      "BU": "BULEVAR",
+      "CA": "CARRERA",
+      "CJ": "CALLEJÓN",
+      "CL": "CALLE",
+      "CM": "CAMINO",
+      "CR": "CARRETERA",
+      "CS": "COSTANILLA",
+      "CU": "CUESTA",
+      "GL": "GALERÍA",
+      "GT": "GLORIETA",
+      "PJ": "PASAJE",
+      "PO": "PASEO",
+      "PZ": "PLAZA",
+      "RD": "RONDA",
+      "TR": "TRAVESÍA"
+    },
+    "street_name_disagreement_rows": 44,
+    "street_number_or_qualifier_disagreement_rows": 479,
+    "street_type_disagreement_rows": 5
+  },
+  "barrio_availability": {
+    "historical_barrio_derived_from_official_coordinate_and_canonical_polygon": 86,
+    "with_barrio": 11265,
+    "with_official_current_callejero_barrio": 11179,
+    "without_barrio_among_identified": 0
+  },
+  "barrio_era": {
+    "callejero_distinct_codes": 131,
+    "canonical_codes_missing_from_callejero": [],
+    "canonical_current_codes": 131,
+    "exact_code_set_match": true,
+    "name_check": "NOT_APPLICABLE; the current address CSV publishes official district/barrio codes but no names",
+    "source_publishes_barrio_names": false,
+    "unknown_codes": []
+  },
+  "coordinate_availability": {
+    "coordinate_pairs_used_by_multiple_rows": 2313,
+    "distinct_coordinate_pairs": 7795,
+    "matched_or_identified_rows": 11265,
+    "outside_municipality": 0,
+    "rows_at_shared_coordinate_pairs": 5783,
+    "with_coordinate": 11265,
+    "without_coordinate": 0
+  },
+  "current_and_historical": {
+    "current_only_distinct_ndps": 7742,
+    "current_only_matched_rows": 11179,
+    "historical_only_recovered_distinct_ndps": 53,
+    "historical_only_recovered_rows": 86,
+    "still_unresolved_distinct_ndps": 143,
+    "still_unresolved_rows": 233
+  },
+  "district_barrio_consistency": {
+    "checked_rows": 11179,
+    "consistent": 11179,
+    "disagreements": 0
+  },
+  "gate": "M3",
+  "overall": {
+    "distinct_licence_ndps": 7938,
+    "licence_rows": 11498,
+    "matched_distinct_ndps": 7795,
+    "matched_rows": 11265,
+    "ndp_match_rate": 0.981985,
+    "row_match_rate": 0.979736,
+    "unmatched_distinct_ndps": 143,
+    "unmatched_rows": 233
+  },
+  "per_tipo": {
+    "Licencia básica actividad": {
+      "distinct_ndps": 92,
+      "match_rate": 0.968421,
+      "matched": 92,
+      "rows": 95,
+      "unmatched": 3
+    },
+    "Licencia básica residencial": {
+      "distinct_ndps": 192,
+      "match_rate": 0.928205,
+      "matched": 181,
+      "rows": 195,
+      "unmatched": 14
+    },
+    "Licencia básica urbanística residencial sujeta a Ley 3/2024": {
+      "distinct_ndps": 4,
+      "match_rate": 1.0,
+      "matched": 4,
+      "rows": 4,
+      "unmatched": 0
+    },
+    "Licencia de 1ª ocupación y funcionamiento": {
+      "distinct_ndps": 180,
+      "match_rate": 0.989637,
+      "matched": 191,
+      "rows": 193,
+      "unmatched": 2
+    },
+    "Licencia de funcionamiento de actividad": {
+      "distinct_ndps": 1649,
+      "match_rate": 0.985401,
+      "matched": 1890,
+      "rows": 1918,
+      "unmatched": 28
+    },
+    "Licencia urbanística de actividad": {
+      "distinct_ndps": 2755,
+      "match_rate": 0.98191,
+      "matched": 3311,
+      "rows": 3372,
+      "unmatched": 61
+    },
+    "Licencia urbanística residencial": {
+      "distinct_ndps": 4898,
+      "match_rate": 0.980498,
+      "matched": 5430,
+      "rows": 5538,
+      "unmatched": 108
+    },
+    "Licencia urbanística residencial sujeta a Ley 3/2024": {
+      "distinct_ndps": 8,
+      "match_rate": 0.75,
+      "matched": 6,
+      "rows": 8,
+      "unmatched": 2
+    },
+    "Licencias para actividades temporales": {
+      "distinct_ndps": 79,
+      "match_rate": 0.914286,
+      "matched": 160,
+      "rows": 175,
+      "unmatched": 15
+    }
+  },
+  "per_year": {
+    "2023": {
+      "distinct_ndps": 1606,
+      "match_rate": 0.973251,
+      "matched": 1892,
+      "rows": 1944,
+      "unmatched": 52
+    },
+    "2024": {
+      "distinct_ndps": 2639,
+      "match_rate": 0.985818,
+      "matched": 3128,
+      "rows": 3173,
+      "unmatched": 45
+    },
+    "2025": {
+      "distinct_ndps": 2977,
+      "match_rate": 0.977541,
+      "matched": 3395,
+      "rows": 3473,
+      "unmatched": 78
+    },
+    "2026": {
+      "distinct_ndps": 2554,
+      "match_rate": 0.980055,
+      "matched": 2850,
+      "rows": 2908,
+      "unmatched": 58
+    }
+  },
+  "residual_samples": {
+    "ADDRESS_TEXT_DISAGREEMENT": [
+      "11004362",
+      "11008289",
+      "11008388",
+      "11009148",
+      "11009373",
+      "11009461",
+      "11009550",
+      "11013634",
+      "11013647",
+      "11016795",
+      "11019433",
+      "11020357",
+      "11023753",
+      "11023787",
+      "11026050",
+      "11026455",
+      "11026761",
+      "11027389",
+      "11028831",
+      "11030823"
+    ],
+    "CAUSE_UNRESOLVED": [
+      "11010505",
+      "11010536",
+      "11018237",
+      "11032843",
+      "11035366",
+      "11044604",
+      "11044657",
+      "11044931",
+      "11050074",
+      "11050606",
+      "11053859",
+      "11053863",
+      "11055480",
+      "11055637",
+      "11055698",
+      "11060966",
+      "11078375",
+      "11100496",
+      "11113459",
+      "11114385"
+    ],
+    "NDP_ABSENT_CURRENT_CALLEJERO": [
+      "10011547",
+      "10039984",
+      "10125812",
+      "10221551",
+      "10383187",
+      "10446670",
+      "10488742",
+      "10856623",
+      "10904270",
+      "10918390",
+      "10940781",
+      "10941956",
+      "10942974",
+      "10967810",
+      "1103534",
+      "2755680",
+      "31063537",
+      "3306202",
+      "4136756",
+      "4138636"
+    ],
+    "NDP_FOUND_HISTORICAL_ONLY": [
+      "11004038",
+      "11011193",
+      "11014270",
+      "11016271",
+      "11020255",
+      "11021688",
+      "11025999",
+      "11030109",
+      "11030110",
+      "11034290",
+      "11034450",
+      "11035495",
+      "11036851",
+      "11042524",
+      "11049446",
+      "11053278",
+      "11053863",
+      "11053933",
+      "11056138",
+      "11056252"
+    ]
+  },
+  "residual_taxonomy": {
+    "ADDRESS_TEXT_DISAGREEMENT": 517,
+    "CAUSE_UNRESOLVED": 117,
+    "NDP_ABSENT_CURRENT_CALLEJERO": 116,
+    "NDP_FOUND_HISTORICAL_ONLY": 86,
+    "RESOLVED": 10662
+  },
+  "residual_taxonomy_is_exhaustive": true,
+  "spatial_cross_check": {
+    "near_boundary_threshold_m": 1.0,
+    "official_barrio_agrees_with_polygon": 11179,
+    "official_barrio_disagrees_with_polygon": 0,
+    "outside_municipality": 0,
+    "scope": "diagnostic validation of current callejero official codes; official codes are not overwritten",
+    "states": {
+      "INSIDE": 11179
+    }
+  },
+  "verdict": "GO_WITH_CONDITIONS"
+}

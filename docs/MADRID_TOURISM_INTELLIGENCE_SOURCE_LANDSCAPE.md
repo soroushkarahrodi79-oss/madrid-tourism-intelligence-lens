@@ -355,6 +355,14 @@ breaks; aggregation geography; and the denominator question.
 
 ### C1 · Callejero oficial. Numeración Vigente e Histórica → **USE** (infrastructure)
 
+**Gate M closure (issue #70): PROMOTE WITH CONDITIONS.** The second caller now
+exists: the granted urban-licence register. The pinned current + dated historical
+official files resolve 11,265 / 11,498 licence rows (97.97%); historical recovery
+is required and 233 rows remain explicitly withheld. Promotion therefore means a
+shared, edition-aware reconciliation contract with residual states — not a generic
+best-effort geocoder and not a production artifact in this research gate. See
+[Gate M](CALLEJERO_NDP_CROSSWALK_GATE_M.md).
+
 Identifier `9be44652-2490-11e9-a99c-ecb1d752b636`. **Dataset state verified 29
 September 2026**, continuously maintained with daily publication mechanics.
 Interfaces: **ESRI REST, WMS, WFS, OGC API Features, SHP, CSV, municipal REST
@@ -737,8 +745,10 @@ question. Only then does an indicator get named.
    workbook at municipality 28079, preserving the >30-tourist suppression rule.
    **International origin remains HOLD / WATCH** pending the new municipal
    FRONTUR series and an explicit comparability treatment.
-5. **Promote the official Callejero into shared reconciliation infrastructure**
-   — *when a second dataset actually needs it*, not before.
+5. **Implement the conditionally promoted official Callejero contract only in an
+   authorised production issue.** Gate M proved the second caller and closed the
+   earlier recommendation as **PROMOTE WITH CONDITIONS**; this research gate itself
+   publishes no shared production artifact.
 
 ### LATER — valuable but not yet justified
 

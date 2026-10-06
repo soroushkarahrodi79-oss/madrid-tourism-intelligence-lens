@@ -1,0 +1,36 @@
+{
+  "conditions": [
+    "Use the exact official NDP join and the pinned current+historical callejero resources.",
+    "Use date-aware historical selection and withhold ambiguous/date-unresolved geometry.",
+    "Keep building, activity, and temporary-activity families explicit and separate.",
+    "Retain all absence/residual states and the granted-not-built interpretation ceiling."
+  ],
+  "future_crosswalk_contract": {
+    "minimum_record_shape": [
+      "exact_ndp",
+      "official_coordinate",
+      "coordinate_crs",
+      "barrio_code",
+      "district_code",
+      "crosswalk_state",
+      "address_identity_provenance",
+      "licence_date",
+      "callejero_source_identity"
+    ],
+    "rules": [
+      "Do not emit geometry for ambiguous or date-unresolved historical identity.",
+      "Preserve official barrio and diagnostic polygon barrio separately; never overwrite silently.",
+      "Preserve the pinned current edition or dated historical-version identity with every resolution."
+    ],
+    "states_supported_by_observation": [
+      "ADDRESS_TEXT_DISAGREEMENT",
+      "CAUSE_UNRESOLVED",
+      "NDP_ABSENT_CURRENT_CALLEJERO",
+      "NDP_FOUND_HISTORICAL_ONLY",
+      "RESOLVED"
+    ]
+  },
+  "no_production_artifact": true,
+  "overall_verdict": "GO WITH CONDITIONS",
+  "recommendation": "#71 GO WITH CONDITIONS"
+}
