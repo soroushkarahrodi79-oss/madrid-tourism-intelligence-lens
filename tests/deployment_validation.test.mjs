@@ -17,6 +17,21 @@ const REAL_PLANNING_STATE = JSON.parse(
 const REAL_PLANNING_STATE_META = JSON.parse(
   fs.readFileSync(new URL("../data/planning/madrid_ambito_state.meta.json", import.meta.url), "utf8")
 );
+// The committed K9 artifacts (callejero NDP crosswalk + granted urban licences)
+// are real and already pass every guard; the validators only read them, so the
+// healthy fixture references them directly rather than synthesising 11k records.
+const REAL_CROSSWALK = JSON.parse(
+  fs.readFileSync(new URL("../data/callejero/madrid_ndp_crosswalk.json", import.meta.url), "utf8")
+);
+const REAL_CROSSWALK_META = JSON.parse(
+  fs.readFileSync(new URL("../data/callejero/madrid_ndp_crosswalk.meta.json", import.meta.url), "utf8")
+);
+const REAL_LICENCES = JSON.parse(
+  fs.readFileSync(new URL("../data/planning/madrid_urban_licences.json", import.meta.url), "utf8")
+);
+const REAL_LICENCES_META = JSON.parse(
+  fs.readFileSync(new URL("../data/planning/madrid_urban_licences.meta.json", import.meta.url), "utf8")
+);
 
 const GENERATED_AT = "2026-09-29T09:00:00.000Z";
 
@@ -846,6 +861,10 @@ function healthyArtifacts() {
     "planning/madrid_ambitos.meta.json": planningGeometryMeta(),
     "planning/madrid_ambito_state.json": planningStateArtifact(),
     "planning/madrid_ambito_state.meta.json": planningStateMeta(),
+    "callejero/madrid_ndp_crosswalk.json": REAL_CROSSWALK,
+    "callejero/madrid_ndp_crosswalk.meta.json": REAL_CROSSWALK_META,
+    "planning/madrid_urban_licences.json": REAL_LICENCES,
+    "planning/madrid_urban_licences.meta.json": REAL_LICENCES_META,
   };
 }
 
@@ -2185,6 +2204,9 @@ test("source registry is internally coherent", () => {
         // ONE dated edition of each official planning family, pinned by its own
         // stated reference date and its content fingerprint (#68).
         "committed_edition_snapshot",
+        // The committed official-callejero NDP crosswalk: reference/join material
+        // fingerprinted and pinned to the Gate M edition (#71).
+        "committed_fingerprinted_crosswalk",
       ].includes(source.provenance_state),
       `${source.id} must declare a known provenance_state`
     );
@@ -2328,6 +2350,38 @@ test("source registry is internally coherent", () => {
       assert.deepEqual(source.published_fields.excluded_columns, ["Colectiva. Nº Viviendas", "Unifamiliar. Nº Viviendas"]);
       assert.match(source.published_fields.excluded_columns_reason, /not a count of\s+dwelling units/i);
       assert.equal(source.published_fields.buildability_unit, "m2 edificable");
+    } else if (["address_point_crosswalk", "address_point_licences"].includes(source.shape)) {
+      // The K9 crosswalk and licence layer guard against an INGESTION COLLAPSE,
+      // not a fixed administrative count: the floors are a match rate, a
+      // resolved-rows floor and a historical-recovery floor, pinned to Gate M.
+      const guard = source.integrity_guardrail;
+      assert.ok(guard, `${source.id} needs an integrity_guardrail`);
+      assert.ok(guard.rationale, `${source.id} guardrail needs a stated rationale`);
+      assert.ok(guard.baseline?.calibrated_on, `${source.id} guardrail needs a calibration date`);
+      assert.ok(
+        guard.min_row_match_rate > 0 && guard.min_row_match_rate <= 1,
+        `${source.id} needs a match-rate floor in (0, 1]`
+      );
+      assert.ok(
+        Number.isInteger(guard.min_resolved_rows) && guard.min_resolved_rows <= guard.baseline.resolved_rows,
+        `${source.id} resolved-rows floor must not exceed its baseline`
+      );
+      assert.ok(
+        Number.isInteger(guard.min_historical_recovered) && guard.min_historical_recovered >= 0,
+        `${source.id} needs a historical-recovery floor`
+      );
+      if (source.shape === "address_point_licences") {
+        for (const family of [
+          "BUILDING_URBANISTIC_LICENCE_FAMILY",
+          "ACTIVITY_LICENCE_FAMILY",
+          "TEMPORARY_ACTIVITY_FAMILY",
+        ]) {
+          assert.ok(
+            guard.min_family_counts?.[family] <= guard.baseline.family_counts[family],
+            `${source.id} ${family} floor must not exceed its baseline`
+          );
+        }
+      }
     } else if (["admin_geography", "admin_population", "admin_licence_counts", "admin_hospitality_context"].includes(source.shape)) {
       // The administrative geography, the population denominator and the
       // licensed-VUT numerator have an exact-count contract, not a collapse
@@ -2832,6 +2886,7 @@ test("exactly the layers a user-facing feature depends on block deployment", () 
   const blocking = REAL_REGISTRY.sources.filter((s) => s.blocks_deployment).map((s) => s.id).sort();
   assert.deepEqual(blocking, [
     "bike",
+    "callejero_ndp_crosswalk",
     "domestic_origin_context",
     "geography",
     "hati",
@@ -2845,6 +2900,7 @@ test("exactly the layers a user-facing feature depends on block deployment", () 
     "rail",
     "snapshot_fallback",
     "stay",
+    "urban_licences",
     "vut_licences",
   ]);
 
@@ -2915,7 +2971,7 @@ test("the committed evidence artifacts satisfy the real registry", () => {
   };
   assert.deepEqual(
     committedRegistry.sources.map((s) => s.id).sort(),
-    ["domestic_origin_context", "geography", "hati", "hospitality_commercial_context", "hotel_demand", "planning_ambito_geometry", "planning_ambito_state", "population", "snapshot_fallback", "vut_licences"],
+    ["callejero_ndp_crosswalk", "domestic_origin_context", "geography", "hati", "hospitality_commercial_context", "hotel_demand", "planning_ambito_geometry", "planning_ambito_state", "population", "snapshot_fallback", "urban_licences", "vut_licences"],
     "the set of committed, non-rebuilt sources changed; update this test deliberately"
   );
 

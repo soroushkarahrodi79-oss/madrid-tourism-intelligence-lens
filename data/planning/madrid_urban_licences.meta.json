@@ -1,0 +1,256 @@
+{
+  "contract_version": "1.0.0",
+  "artifact": "madrid_urban_licences.json",
+  "generated_at": "2026-10-06T21:18:08Z",
+  "builder": "scripts/build_urban_licences.py",
+  "gate": "Gate M (#70); issue #71 (K9) production increment",
+  "source": {
+    "dataset": "640505-0-licencias-urbanisticas-otorgadas",
+    "resource": "640505-1-licencias-urbanisticas-otorgadas",
+    "authority": "Ayuntamiento de Madrid",
+    "download_url": "https://datos.madrid.es/dataset/640505-0-licencias-urbanisticas-otorgadas/resource/640505-1-licencias-urbanisticas-otorgadas/download/licencias.csv",
+    "licence": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+    "encoding": "UTF-8 with BOM",
+    "delimiter": ";",
+    "declared_cadence": "MONTHLY",
+    "reference_date": null,
+    "published_at": null,
+    "retrieved_at": "2026-10-06T21:18:08Z",
+    "update_frequency": "MONTHLY",
+    "source_state": "NOT_DECLARED_BY_PUBLISHER",
+    "observed_resource_state": {
+      "http_last_modified": "Mon, 05 Oct 2026 10:40:14 GMT",
+      "http_etag": "\"1791196814.107552-2921075-240064466\"",
+      "http_content_length": "2921075",
+      "sha256": "0f1009e3cfab7f3d02e180d9bda07e50b5539ffdccae70b941672f1046d0a8a0",
+      "bytes": 2921075,
+      "catalogue_metadata_modified": "2026-10-05T00:00:00"
+    },
+    "freshness_ceiling": "The publisher declares no reference_date and no published_at for the register. The monthly cadence, the HTTP Last-Modified header and the retrieval clock are observed resource state only and are never promoted into a source reference date."
+  },
+  "crosswalk_dependency": {
+    "artifact": "data/callejero/madrid_ndp_crosswalk.json",
+    "fingerprint": "c088083df2ef44b7a13733e42c4d7241570a9768acb29f65e6306035d54e3fe9",
+    "current_callejero_resource": "213605-4-callejero-oficial-madrid-csv",
+    "current_callejero_sha256": "28b2ca7db810e23c0d5921ea2d3f79dceab3cad2d8d3947743476068960fbb28",
+    "historical_callejero_resource": "213605-1-callejero-oficial-madrid-csv",
+    "historical_callejero_sha256": "5e67975fdf066f76521308e702bab98620122b497133eda72526eaed80bebea5"
+  },
+  "universe": {
+    "resolucion": "Conceder (granted only)",
+    "forbidden_denominators": [
+      "approval_rate",
+      "rejection_rate",
+      "refusal_count",
+      "success_rate",
+      "processing_performance_rate"
+    ],
+    "no_cross_family_total": true,
+    "granted_is_not_built": true
+  },
+  "families": {
+    "BUILDING_URBANISTIC_LICENCE_FAMILY": {
+      "resolved": 5812,
+      "unresolved": 126,
+      "total": 5938
+    },
+    "ACTIVITY_LICENCE_FAMILY": {
+      "resolved": 5293,
+      "unresolved": 92,
+      "total": 5385
+    },
+    "TEMPORARY_ACTIVITY_FAMILY": {
+      "resolved": 160,
+      "unresolved": 15,
+      "total": 175
+    }
+  },
+  "tipo_taxonomy": {
+    "classification": {
+      "Licencia básica actividad": "ACTIVITY_LICENCE_FAMILY",
+      "Licencia básica residencial": "BUILDING_URBANISTIC_LICENCE_FAMILY",
+      "Licencia básica urbanística residencial sujeta a Ley 3/2024": "BUILDING_URBANISTIC_LICENCE_FAMILY",
+      "Licencia de 1ª ocupación y funcionamiento": "BUILDING_URBANISTIC_LICENCE_FAMILY",
+      "Licencia de funcionamiento de actividad": "ACTIVITY_LICENCE_FAMILY",
+      "Licencia urbanística de actividad": "ACTIVITY_LICENCE_FAMILY",
+      "Licencia urbanística residencial": "BUILDING_URBANISTIC_LICENCE_FAMILY",
+      "Licencia urbanística residencial sujeta a Ley 3/2024": "BUILDING_URBANISTIC_LICENCE_FAMILY",
+      "Licencias para actividades temporales": "TEMPORARY_ACTIVITY_FAMILY"
+    },
+    "tipo_counts": {
+      "Licencia básica actividad": 95,
+      "Licencia básica residencial": 195,
+      "Licencia básica urbanística residencial sujeta a Ley 3/2024": 4,
+      "Licencia de 1ª ocupación y funcionamiento": 193,
+      "Licencia de funcionamiento de actividad": 1918,
+      "Licencia urbanística de actividad": 3372,
+      "Licencia urbanística residencial": 5538,
+      "Licencia urbanística residencial sujeta a Ley 3/2024": 8,
+      "Licencias para actividades temporales": 175
+    },
+    "family_counts": {
+      "ACTIVITY_LICENCE_FAMILY": 5385,
+      "BUILDING_URBANISTIC_LICENCE_FAMILY": 5938,
+      "TEMPORARY_ACTIVITY_FAMILY": 175
+    },
+    "unclassified_tipo_rows": 0,
+    "closed": true,
+    "drift_policy": "An unseen TIPO fails the build; nothing is silently mapped to OTHER."
+  },
+  "nivel_proteccion": {
+    "counts": {
+      "Cascos Históricos Periféricos": 40,
+      "Catálogo Edificios Protegidos": 43,
+      "Centro Histórico APE.00.01": 258,
+      "Colonias Históricas": 63,
+      "Conjuntos Homogéneos": 25,
+      "EMPTY": 2507,
+      "Edificios o Bloques en Altura": 34,
+      "Entorno de Monumento": 55,
+      "Entorno del Centro Histórico": 17,
+      "Espacios de alto valor ecológico y paisajístico": 1,
+      "Establecimientos comerciales": 8,
+      "Monumento": 35,
+      "Nivel I": 81,
+      "Nivel I Integral": 292,
+      "Nivel I Singular": 154,
+      "Nivel II": 41,
+      "Nivel II Estructural": 350,
+      "Nivel II Volumétrico": 95,
+      "Nivel III": 35,
+      "Nivel III Ambiental": 173,
+      "Nivel III Parcial": 611,
+      "Otras Protecciones Singulares": 41,
+      "Parques Históricos/Jardines de Interés": 20,
+      "Protección Normativa": 11,
+      "Protección de Rango Superior": 8,
+      "Sin Catalogar": 5340,
+      "Sin protección": 1040,
+      "Áreas de protección arqueológica y paleontológica": 113,
+      "Áreas de protección geológica": 7
+    },
+    "absence_states_kept_distinct": [
+      "EMPTY (stored as null)",
+      "Sin Catalogar",
+      "Sin protección"
+    ],
+    "note": "The three absence-like states and the real protection grades are all preserved verbatim; empty is stored as null and never merged with the named states."
+  },
+  "norma_zonal_missingness": {
+    "missing": 2505,
+    "both_protection_and_norma_missing": 2505,
+    "only_protection_missing": 2,
+    "only_norma_missing": 0,
+    "note": "Provenance checks only; no cause is inferred and nothing user-facing is derived from missingness."
+  },
+  "coverage": {
+    "total_rows": 11498,
+    "resolved_rows": 11265,
+    "unresolved_rows": 233,
+    "row_match_rate": 0.979736,
+    "current_only_resolved_rows": 11179,
+    "historical_only_recovered_rows": 86,
+    "address_text_disagreement_rows": 517,
+    "residual_taxonomy": {
+      "ADDRESS_TEXT_DISAGREEMENT": 517,
+      "CAUSE_UNRESOLVED": 117,
+      "NDP_ABSENT_CURRENT_CALLEJERO": 116,
+      "NDP_FOUND_HISTORICAL_ONLY": 86,
+      "RESOLVED": 10662
+    },
+    "per_family": {
+      "BUILDING_URBANISTIC_LICENCE_FAMILY": {
+        "resolved": 5812,
+        "unresolved": 126
+      },
+      "ACTIVITY_LICENCE_FAMILY": {
+        "resolved": 5293,
+        "unresolved": 92
+      },
+      "TEMPORARY_ACTIVITY_FAMILY": {
+        "resolved": 160,
+        "unresolved": 15
+      }
+    },
+    "per_year": {
+      "2023": {
+        "resolved": 1892,
+        "unresolved": 52
+      },
+      "2024": {
+        "resolved": 3128,
+        "unresolved": 45
+      },
+      "2025": {
+        "resolved": 3395,
+        "unresolved": 78
+      },
+      "2026": {
+        "resolved": 2850,
+        "unresolved": 58
+      }
+    },
+    "coverage_statement": "Mapped from 97.97% of granted records in the pinned register; 233 unresolved rows are withheld from the map and reported here."
+  },
+  "date_extent": {
+    "min": "2023-01-13",
+    "max": "2026-09-30"
+  },
+  "excluded": {
+    "declaraciones_responsables_dataset": "133556-0-declaraciones-responsables",
+    "reason": "Gate M recommended excluding responsible declarations from K9 V1. No artifact, UI, count or layer. A future issue may add it as a separate evidence family; it is never joined or summed with granted licences."
+  },
+  "overlap_ceiling": "Licence records may concern places also present in Censo de Locales, licensed VUT or hospitality/activity evidence. No deterministic entity link exists, so these universes are never summed as unique businesses or sites.",
+  "record_fields": [
+    "address_text_agrees",
+    "barrio_code",
+    "barrio_provenance",
+    "coordinate_crs",
+    "crosswalk_state",
+    "district_code",
+    "family",
+    "grant_date",
+    "id",
+    "lat",
+    "lon",
+    "ndp",
+    "nivel_proteccion",
+    "norma_zonal",
+    "resolution_provenance",
+    "tipo"
+  ],
+  "excluded_fields": [
+    "PERSONA_INTERESADA",
+    "ORGANO_COMPETENTE",
+    "Nº_EXPEDIENTE",
+    "DIRECCION",
+    "FECHA_ALTA"
+  ],
+  "baseline": {
+    "licence_rows": 11498,
+    "resolved_rows": 11265,
+    "unresolved_rows": 233,
+    "current_only_resolved_rows": 11179,
+    "historical_only_recovered_rows": 86,
+    "family_counts": {
+      "BUILDING_URBANISTIC_LICENCE_FAMILY": 5938,
+      "ACTIVITY_LICENCE_FAMILY": 5385,
+      "TEMPORARY_ACTIVITY_FAMILY": 175
+    },
+    "unclassified_tipo_rows": 0,
+    "nivel_proteccion_absence_states": {
+      "EMPTY": 2507,
+      "Sin Catalogar": 5340,
+      "Sin protección": 1040
+    },
+    "norma_zonal_missing": 2505,
+    "calibrated_on": "2026-10-06",
+    "note": "Pinned Gate M observations, reproduced from the pinned source edition; recorded, not asserted as permanent truths."
+  },
+  "fingerprint": {
+    "algorithm": "sha256",
+    "scope": "canonical JSON of the artifact object",
+    "value": "3fbe4e9457bee75a507642543ad4ebde964803c5d449c76e3f5608c246c788dd"
+  },
+  "runtime_policy": "BUILD TIME ONLY. The browser reads this committed, fingerprinted artifact and never calls datos.madrid.es."
+}

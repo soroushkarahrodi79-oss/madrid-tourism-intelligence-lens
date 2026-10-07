@@ -207,6 +207,14 @@ including comparing two places at once.
   schema eras. The row-preserving method and reconciliation are documented in
   [Official edition change detection V1](docs/AMBITO_CHANGE_DETECTION_V1.md).
   No dwelling count or overall stage is derived
+- **Granted urban licences** (11,498 pinned rows, 11,265 resolved to an official
+  address point) — Ayuntamiento de Madrid granted-licence register (CC BY 4.0),
+  resolved through the current + historical Callejero Oficial by an exact,
+  date-aware NDP crosswalk (97.97% coverage, reproducing Gate M). Granted-only, so
+  no approval/rejection rate; a grant is **not** construction; the three families
+  are counted separately with no cross-family total. See
+  [Granted urban licences V1](docs/URBAN_LICENCES_V1.md) and
+  [Gate M](docs/CALLEJERO_NDP_CROSSWALK_GATE_M.md)
 - **Monthly hotel demand for the city of Madrid** — Instituto Nacional de
   Estadística, *Encuesta de Ocupación Hotelera* (statistical operation 238), read
   through INE's Tempus3 API. A committed statistical snapshot: 104 contiguous
