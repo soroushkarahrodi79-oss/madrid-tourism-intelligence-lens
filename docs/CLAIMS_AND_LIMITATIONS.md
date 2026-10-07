@@ -385,6 +385,25 @@ breach them.
   licensed-VUT figures are never apportioned to the lens circle that sits inside
   the barrio: the same prohibition binds every whole-area quantity the product
   may ever read, including planning quantities reported per ámbito.
+- **A granted urban licence is not construction.** The K9 licence layer counts
+  licences the municipality **granted** (`RESOLUCION = Conceder`). A granted
+  licence means an administrative grant was recorded; it is **never** evidence
+  that work started, construction occurred or completed, occupancy happened, or
+  the permitted quantity was built.
+- **There is no approval or rejection rate.** The licence register is
+  granted-only, with no applications/refusals denominator, so no approval rate,
+  rejection rate, refusal count or success rate exists or is derivable.
+- **The three licence families are never one total.** Building/urbanistic,
+  activity and temporary-activity licences are counted separately; the product
+  never sums them into a single cross-family total.
+- **The mapped licences are the resolved subset.** 97.97% of pinned granted
+  records resolve to an official address point through the current + historical
+  Callejero Oficial (artifact-derived, never hardcoded); the 233 unresolved rows
+  are reported, not mapped, and never dropped from the denominator. No third-party
+  geocoder is used, and the layer never claims complete coverage. Licence counts
+  are address points inside a Lens circle — never a barrio-level figure, a barrio
+  or district ranking, or a density/heatmap/choropleth surface — and are never
+  summed with Censo de Locales, VUT or hospitality evidence as unique sites.
 
 ## Evidence states shown in the UI
 
