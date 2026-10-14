@@ -606,3 +606,41 @@ test("IA 21 verbatim provenance keeps its own language and says so; sentences we
   await page.waitForFunction(() => !document.querySelector("#areaSourceDetails [lang]"));
   assert.match(await page.locator("#areaSourceDetails").textContent(), /Reference date/);
 });
+
+test("IA 22 the mobile PLACE quick-jump reaches the Lens metrics, is localized, and is hidden on desktop and outside PLACE", async (t) => {
+  // Narrow PLACE panel: the chips are shown.
+  const page = await newPage({ width: 390, height: 844 });
+  t.after(() => closePage(page));
+  const jump = page.locator("#placeJump");
+  assert.notEqual(await jump.evaluate((n) => getComputedStyle(n).display), "none", "the quick-jump is shown on a narrow PLACE panel");
+  const chips = (await page.locator("#placeJump .place-jump-chip").allTextContents()).map((s) => s.trim());
+  assert.deepEqual(chips, ["Within the Lens", "Detail"]);
+
+  // The four Lens figures start well below the panel fold, and one tap brings them to the top.
+  const metricsTop = () => page.evaluate(() => {
+    const panel = document.getElementById("analysisPanel");
+    return document.querySelector("#modePlace .metrics").getBoundingClientRect().top - panel.getBoundingClientRect().top;
+  });
+  assert.ok((await metricsTop()) > 300, "the Lens metrics start far below the fold");
+  await page.locator('#placeJump .place-jump-chip[data-jump="withinLens"]').click();
+  await page.waitForFunction(() => {
+    const panel = document.getElementById("analysisPanel");
+    return document.querySelector("#modePlace .metrics").getBoundingClientRect().top - panel.getBoundingClientRect().top < 140;
+  });
+
+  // Localized: chip text and the nav's accessible name follow the document language.
+  await page.locator("#languageSelect").selectOption("es");
+  const esChips = (await page.locator("#placeJump .place-jump-chip").allTextContents()).map((s) => s.trim());
+  assert.deepEqual(esChips, ["Dentro de la Lente", "Detalle"]);
+  assert.equal(await jump.getAttribute("aria-label"), "Ir a una sección de este lugar");
+  await page.locator("#languageSelect").selectOption("en");
+
+  // Hidden outside PLACE at the same narrow width.
+  await setMode(page, "COMPARE");
+  assert.equal(await jump.evaluate((n) => getComputedStyle(n).display), "none", "the quick-jump is not shown outside PLACE");
+
+  // Hidden on desktop.
+  const desktop = await newPage({ width: 1366, height: 900 });
+  t.after(() => closePage(desktop));
+  assert.equal(await desktop.locator("#placeJump").evaluate((n) => getComputedStyle(n).display), "none", "the quick-jump is desktop-hidden");
+});

@@ -65,17 +65,27 @@ map.createPane("licencePane");
 // click. Still below the active-area, Lens and halo panes.
 map.getPane("licencePane").style.zIndex = "410";
 const LICENCE_STROKE = "#c0794f"; // --licence-neutral
-// The licence points are 3.5px canvas circles; their default clickable area
+// The licence points are 3.5px canvas circles; their geometric clickable area
 // (radius + weight/2 ≈ 4px) is far below any usable target, so a reader has to
 // pixel-hunt to open a record's granted-only popup and usually hits empty map,
 // which moves the Lens instead. Leaflet's _clickTolerance adds the renderer's
 // `tolerance` on top of the geometry, so this extends the clickable area to
-// ≈12px radius (≈24px diameter — the WCAG 2.5.8 target) WITHOUT enlarging the
-// drawn point or changing identity/provenance. A direct or near hit opens the
-// popup (Leaflet stops that click), while a click beyond the tolerance still
-// falls through to the map and moves the active Lens, so background
-// click-to-move is preserved. Verified against the pinned extent at zoom 15.
-const LICENCE_CLICK_TOLERANCE = 8;
+// ≈10px radius (≈20px diameter) WITHOUT enlarging the drawn point or changing
+// identity/provenance. A direct or near hit opens the popup (Leaflet stops that
+// click); a click beyond the tolerance still falls through to the map and moves
+// the active Lens, so background click-to-move is preserved.
+//
+// But the help is GATED BY ZOOM. At city-overview zoom the ~11k points are a
+// dense cloud (measured: in the densest central area even the bare 4px target
+// already captures the majority of clicks), so a wide tolerance there would
+// swallow the clicks used to pan/reposition the Lens and could open a
+// neighbouring record instead of the one aimed at. Individual inspection only
+// happens zoomed in, where points are sparse. So the tolerance applies at the
+// default zoom and closer, and drops to 0 when zoomed further out — restoring
+// baseline navigation at overview while keeping selection easy where it is used.
+const LICENCE_CLICK_TOLERANCE = 6;
+const LICENCE_TOLERANCE_MIN_ZOOM = 14; // the map's initial zoom; closer keeps the tolerance, further out drops it to 0
+const licenceToleranceForZoom = (zoom) => (zoom >= LICENCE_TOLERANCE_MIN_ZOOM ? LICENCE_CLICK_TOLERANCE : 0);
 
 // The area containing a lens centre is the one administrative shape that has to
 // stay readable, so it sits just below the lens itself — visible over the POIs,
@@ -3804,7 +3814,7 @@ function renderUrbanLicences() {
 // The map point layer. Rebuilt only when the window / language / availability
 // changes — NOT on a Lens drag, so ~k points never re-render while dragging.
 function syncLicenceMapLayer() {
-  if (!licenceRenderer) licenceRenderer = L.canvas({ pane: "licencePane", padding: 0.5, tolerance: LICENCE_CLICK_TOLERANCE });
+  if (!licenceRenderer) licenceRenderer = L.canvas({ pane: "licencePane", padding: 0.5, tolerance: licenceToleranceForZoom(map.getZoom()) });
   const on = isLicencesVisible();
   if (!on || licenceState !== "ready" || !licenceModel.index) {
     if (lastLicenceLayerKey !== null) {
@@ -4657,6 +4667,12 @@ map.on("click", (e) => {
   refresh();
 });
 map.on("zoomend", rebuildDenseLayers);
+// Keep the licence click tolerance gated to the current zoom. Leaflet reads
+// `renderer.options.tolerance` at click time, so updating it here is enough — the
+// ~11k points are not re-drawn.
+map.on("zoomend", () => {
+  if (licenceRenderer) licenceRenderer.options.tolerance = licenceToleranceForZoom(map.getZoom());
+});
 
 document.getElementById("lensAButton").onclick = () => activateLens("A");
 // Lens B is enabled THROUGH the COMPARE mode, which owns enableLensB/disableLensB.
