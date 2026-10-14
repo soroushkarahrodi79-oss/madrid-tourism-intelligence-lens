@@ -352,6 +352,48 @@ test("K9 15: a licence point on the map is clickable and opens its granted-only 
   assert.match(popup, /not evidence of construction|administrative grant/i);
 });
 
+test("K9 16: selecting a licence point opens its popup WITHOUT moving the Lens, and a near-miss within the click tolerance still selects it", async () => {
+  const { page } = await newPage();
+  await enableLicences(page);
+  await setWindow(page, EXTENT.min, EXTENT.max);
+  const rec = artifact.records[0];
+  const lensBefore = await page.evaluate(() => {
+    const c = lenses[active].marker.getLatLng();
+    return { lat: c.lat, lng: c.lng };
+  });
+  // Pan to the record at a high zoom where it is isolated, and project its pixel.
+  const pix = await page.evaluate(({ lat, lon }) => {
+    map.setView([lat, lon], 18, { animate: false });
+    const p = map.latLngToContainerPoint([lat, lon]);
+    const r = document.getElementById("map").getBoundingClientRect();
+    return { x: r.left + p.x, y: r.top + p.y };
+  }, rec);
+  const lensNow = () => page.evaluate(() => {
+    const c = lenses[active].marker.getLatLng();
+    return { lat: c.lat, lng: c.lng };
+  });
+
+  // (1) Exact-centre click: the popup opens and the active Lens does NOT move.
+  await page.mouse.click(pix.x, pix.y);
+  assert.ok(
+    await page.locator(".leaflet-popup-content").textContent({ timeout: 5000 }).catch(() => null),
+    "an exact click opens the record popup"
+  );
+  assert.deepEqual(await lensNow(), lensBefore, "the exact point click did not move the active Lens");
+
+  // (2) Near-miss within the extended click tolerance (10px): still selects the
+  // point and still leaves the Lens where it was. On the pre-fix 4px target this
+  // 10px offset missed the marker and moved the Lens instead.
+  await page.evaluate(() => map.closePopup());
+  await page.mouse.click(pix.x + 10, pix.y);
+  assert.ok(
+    await page.locator(".leaflet-popup-content").textContent({ timeout: 5000 }).catch(() => null),
+    "a near-miss within the click tolerance still opens the popup"
+  );
+  assert.deepEqual(await lensNow(), lensBefore, "the near-miss within tolerance did not move the active Lens");
+  await page.context().close();
+});
+
 test("K9 14: no runtime request to an official licence source host", async () => {
   const { page, requests } = await newPage();
   await enableLicences(page);

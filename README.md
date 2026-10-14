@@ -41,7 +41,10 @@ evidence the organising frame, with tourism **retained as one documented
 domain** rather than the headline. That is a change of emphasis and vocabulary,
 not of data in itself. K6 (#68) reads the current official edition for the
 planning ámbito that contains a Lens centre, and K7 (#69) adds a two-edition
-comparison for the named 2025-07 and 2026-01 publications. See
+comparison for the named 2025-07 and 2026-01 publications. K9 (#71) adds the
+opt-in granted urban-licence layer — an administrative address-point register
+read inside the Lens by licence family and grant date, where a grant is **not**
+construction. See
 [Planning-ámbito evidence V1](docs/PLANNING_AMBITO_EVIDENCE_V1.md) and
 [Official edition change detection V1](docs/AMBITO_CHANGE_DETECTION_V1.md). The spatial lens itself
 solves a real problem the next direction keeps: static maps force you to look at
@@ -161,6 +164,20 @@ including comparing two places at once.
   **which** ámbitos the Lens circle touches - membership only, with no share of
   their quantities. See [Planning-ámbito evidence V1](docs/PLANNING_AMBITO_EVIDENCE_V1.md)
   and [Official edition change detection V1](docs/AMBITO_CHANGE_DETECTION_V1.md).
+
+- Opt into the **granted urban-licence** layer (off by default, under
+  *Administrative register* in the layer rail): the official register of urban
+  licences the Ayuntamiento has **granted**, placed at their official address
+  point and read inside the active Lens by **licence family** — building /
+  urbanistic, activity and temporary activity, counted separately and **never
+  summed into one total** — and a bounded **grant-date window** you set. Each
+  point opens a popup with its family, grant date, official licence type and
+  address-point provenance. A granted licence is an administrative step, **not**
+  evidence that work started or anything was built, and because the register is
+  granted-only there is no approval, rejection or refusal rate. The mapped points
+  are the resolved subset (97.97%) of a known register; the unresolved rows are
+  reported, never dropped or approximated. See
+  [Granted urban licences V1](docs/URBAN_LICENCES_V1.md).
 
 - Optionally overlay the full lattice of **district** or **barrio** outlines;
   the containing barrio is always outlined, the lattice defaults to off.
@@ -346,7 +363,10 @@ geometry, the four published development phases (Planeamiento / Gestión / Urban
 Edificación) and remaining buildability in m² by use class — and it is gated behind
 **Gate L (official urban-planning source contract)** plus the spatial-scope and source-freshness
 contracts that precede it. K6 and K7 ship the bounded tabular evidence and
-two-edition comparison; they add no geometry history. The panel's reading architecture
+two-edition comparison, and add no geometry history; K9 (#71) ships the opt-in
+**granted urban-licence** address-point layer, read inside the Lens by licence
+family and grant date (granted ≠ built; see
+[Granted urban licences V1](docs/URBAN_LICENCES_V1.md)). The panel's reading architecture
 (PLACE / COMPARE / CITY modes, the scope-and-freshness rail and the evidence drawer) is described
 in [Information architecture V2](docs/INFORMATION_ARCHITECTURE_V2.md); it reorganizes existing
 evidence and does not add planning evidence.

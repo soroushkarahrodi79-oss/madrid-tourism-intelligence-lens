@@ -65,6 +65,17 @@ map.createPane("licencePane");
 // click. Still below the active-area, Lens and halo panes.
 map.getPane("licencePane").style.zIndex = "410";
 const LICENCE_STROKE = "#c0794f"; // --licence-neutral
+// The licence points are 3.5px canvas circles; their default clickable area
+// (radius + weight/2 ≈ 4px) is far below any usable target, so a reader has to
+// pixel-hunt to open a record's granted-only popup and usually hits empty map,
+// which moves the Lens instead. Leaflet's _clickTolerance adds the renderer's
+// `tolerance` on top of the geometry, so this extends the clickable area to
+// ≈12px radius (≈24px diameter — the WCAG 2.5.8 target) WITHOUT enlarging the
+// drawn point or changing identity/provenance. A direct or near hit opens the
+// popup (Leaflet stops that click), while a click beyond the tolerance still
+// falls through to the map and moves the active Lens, so background
+// click-to-move is preserved. Verified against the pinned extent at zoom 15.
+const LICENCE_CLICK_TOLERANCE = 8;
 
 // The area containing a lens centre is the one administrative shape that has to
 // stay readable, so it sits just below the lens itself — visible over the POIs,
@@ -3793,7 +3804,7 @@ function renderUrbanLicences() {
 // The map point layer. Rebuilt only when the window / language / availability
 // changes — NOT on a Lens drag, so ~k points never re-render while dragging.
 function syncLicenceMapLayer() {
-  if (!licenceRenderer) licenceRenderer = L.canvas({ pane: "licencePane", padding: 0.5 });
+  if (!licenceRenderer) licenceRenderer = L.canvas({ pane: "licencePane", padding: 0.5, tolerance: LICENCE_CLICK_TOLERANCE });
   const on = isLicencesVisible();
   if (!on || licenceState !== "ready" || !licenceModel.index) {
     if (lastLicenceLayerKey !== null) {
@@ -4667,6 +4678,28 @@ document.getElementById("hatiFrameButton").onclick = () => {
   lenses.A.marker.setLatLng([40.4149, -3.687]);
   refresh();
 };
+
+// PLACE quick-jump (narrow screens). Scrolls the panel's internal scroll to the
+// four Lens-circle figures or the Detail disclosure, so the core local evidence
+// is reachable in one tap instead of several screens of scrolling. Pure
+// navigation: it never changes a value, a mode, a layer or the reading order.
+const placeJump = document.getElementById("placeJump");
+if (placeJump) {
+  placeJump.addEventListener("click", (event) => {
+    const chip = event.target.closest(".place-jump-chip");
+    if (!chip) return;
+    const target =
+      chip.dataset.jump === "detail"
+        ? document.getElementById("placeDetail")
+        : document.getElementById("withinLensHead");
+    const panel = document.getElementById("analysisPanel");
+    if (!target || !panel) return;
+    const top =
+      target.getBoundingClientRect().top - panel.getBoundingClientRect().top + panel.scrollTop - 8;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    panel.scrollTo({ top: Math.max(0, top), behavior: reduce ? "auto" : "smooth" });
+  });
+}
 function renderRadiusLabels() {
   const text = formatLensRadius(radiusFor(active));
   document.getElementById("radiusText").textContent = text;

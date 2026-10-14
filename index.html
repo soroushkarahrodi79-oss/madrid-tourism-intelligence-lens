@@ -66,6 +66,17 @@
   <div class="layer"><div class="layer-left"><i class="dot dot-rail"></i>Metro & Cercanías</div><label class="switch"><input data-layer="rail" type="checkbox" checked><span></span></label></div>
   <div class="layer"><div class="layer-left"><i class="dot dot-info"></i><span data-i18n="layer.info">Tourist info</span></div><label class="switch"><input data-layer="info" type="checkbox" checked><span></span></label></div>
 
+  <!-- Administrative register (K9, #71). Placed directly under the operational
+       layers — not buried below Observed activity / Context / Research — so the
+       granted-licence toggle is reachable without deep scrolling in the narrow
+       floating rail on small screens. It stays its own labelled group and OFF by
+       default; promoting its position never enables its data. -->
+  <div class="administrative-divider">
+    <span data-i18n="aside.administrative">Administrative register</span>
+    <small data-i18n="aside.administrativeNote">granted ≠ built</small>
+  </div>
+  <div class="layer administrative-layer"><div class="layer-left"><i class="dot dot-licence"></i><span data-i18n="layer.licences">Granted urban licences</span></div><label class="switch"><input data-layer="licences" type="checkbox" aria-label="Toggle the granted urban-licence register" data-i18n-attr="aria-label:lic.toggleAria" aria-checked="false"><span></span></label></div>
+
   <div class="activity-divider">
     <span>Observed activity</span>
     <small>not tourism-specific</small>
@@ -89,12 +100,6 @@
       <p id="hospitalitySelectorHint" class="hospitality-selector-hint">Polígonos oficiales de barrio · no se calcula dentro del círculo Lens</p>
     </div>
   </div>
-
-  <div class="administrative-divider">
-    <span data-i18n="aside.administrative">Administrative register</span>
-    <small data-i18n="aside.administrativeNote">granted ≠ built</small>
-  </div>
-  <div class="layer administrative-layer"><div class="layer-left"><i class="dot dot-licence"></i><span data-i18n="layer.licences">Granted urban licences</span></div><label class="switch"><input data-layer="licences" type="checkbox" aria-label="Toggle the granted urban-licence register" data-i18n-attr="aria-label:lic.toggleAria" aria-checked="false"><span></span></label></div>
 
   <div class="research-divider">
     <span>Research evidence</span>
@@ -130,6 +135,16 @@
       <button type="button" id="modeCityButton" class="mode-btn" data-mode="CITY" aria-pressed="false"><span class="mode-glyph" aria-hidden="true">▦</span><span class="mode-name" data-i18n="mode.city">City</span></button>
     </nav>
     <p id="modeAnnouncer" class="sr-only" aria-live="polite"></p>
+    <!-- PLACE quick-jump (narrow screens only). On a short mobile panel the mode
+         control and the always-on scope-and-freshness rail fill most of the
+         viewport, so the four Lens-circle figures and the Detail disclosure sit
+         several internal scrolls down. These chips scroll straight to them. They
+         add no evidence, hide nothing and change no reading order; on wide
+         screens and outside PLACE they are display:none. -->
+    <nav id="placeJump" class="place-jump" aria-label="Jump to a section of this place" data-i18n-attr="aria-label:place.jumpAria">
+      <button type="button" class="place-jump-chip" data-jump="withinLens" data-i18n="sec.withinLens">Within the Lens</button>
+      <button type="button" class="place-jump-chip" data-jump="detail" data-i18n="sec.detail">Detail</button>
+    </nav>
     <section id="scopeRail" class="scope-rail" aria-label="Scope and freshness of the evidence on screen">
       <ul id="scopeRailList" class="scope-rail-list"></ul>
       <button type="button" id="scopeRailFreshness" class="scope-rail-freshness" aria-haspopup="dialog"></button>
@@ -350,7 +365,7 @@
 
 
     <!-- SUPPORTING EVIDENCE: at most four Lens-circle figures. -->
-  <div class="section-head"><span>Within the Lens</span><small id="lensScopeHint">—</small><button type="button" class="evidence-link" data-evidence-prefix="place.metric." data-evidence-name="sec.withinLens" aria-haspopup="dialog"><span aria-hidden="true">i</span></button></div>
+  <div class="section-head" id="withinLensHead"><span>Within the Lens</span><small id="lensScopeHint">—</small><button type="button" class="evidence-link" data-evidence-prefix="place.metric." data-evidence-name="sec.withinLens" aria-haspopup="dialog"><span aria-hidden="true">i</span></button></div>
   <div class="metrics">
     <div class="metric"><div class="metric-head"><i class="dot dot-museum"></i><span data-i18n="metric.tourism">Tourism POIs</span></div><div id="tourismValue" class="metric-value">—</div><div id="tourismFoot" class="metric-foot">within lens</div></div>
     <div class="metric"><div class="metric-head"><i class="dot dot-stay"></i><span data-i18n="metric.stays">Hotels & stays</span></div><div id="stayValue" class="metric-value">—</div><div id="stayFoot" class="metric-foot">within lens</div></div>
