@@ -133,6 +133,26 @@ test("STRUCTURAL: no cross-family total is exported and no view carries one", ()
   }
 });
 
+test("STRUCTURAL: no density / heatmap / interpolation surface is exported or carried (#71)", () => {
+  // "No density, heatmap, interpolation or choropleth is produced by any code
+  // path." The model is points-and-counts only: it exposes no surface-producing
+  // function, and no view or record carries a density / intensity / interpolation
+  // field. The UI renders the matched records as discrete point markers only.
+  const forbidden = /densit|heatmap|choropleth|interpolat|kernel|surface|intensity|raster|hexbin|\bidw\b|\bkde\b/i;
+  for (const name of Object.keys(licenceModule)) {
+    assert.ok(!forbidden.test(name), `export "${name}" must not produce a density/interpolated surface`);
+  }
+  const view = licencesInLens({ ...CENTRE, radiusM: 1000 }, FIXTURE, {});
+  for (const key of Object.keys(view)) {
+    assert.ok(!forbidden.test(key), `view key "${key}" must not be a density/surface field`);
+  }
+  for (const record of view.records) {
+    for (const key of Object.keys(record)) {
+      assert.ok(!forbidden.test(key), `record key "${key}" must not be a density/surface field`);
+    }
+  }
+});
+
 test("outputs are deeply frozen", () => {
   const view = licencesInLens({ ...CENTRE, radiusM: 1000 }, FIXTURE, {});
   assert.ok(Object.isFrozen(view));
