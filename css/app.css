@@ -843,6 +843,14 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 /* Content scrolled into view (focus, scrollIntoView) must not land under the sticky head. */
 .panel{scroll-padding-top:8.5rem}
 
+/* PLACE quick-jump chips. Hidden by default (desktop and non-PLACE modes); the
+   ≤850px rule below reveals them in PLACE only. They scroll the panel to the
+   Lens figures / Detail. The type size lives here, never in a @media block. */
+.place-jump{display:none;flex-wrap:wrap;gap:var(--s-2);margin:var(--s-1) 0 0}
+.place-jump-chip{min-height:30px;padding:var(--s-1) var(--s-3);border:1px solid var(--line2);border-radius:var(--r-small);background:rgba(255,255,255,.05);color:#cfe0f0;font:inherit;font-size:var(--t-micro);cursor:pointer}
+.place-jump-chip:before{content:"▾ "}
+.place-jump-chip:hover{color:#fff}
+
 .scope-rail{margin:0}
 .scope-rail-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s-1)}
 .scope-rail-list li{min-width:0}
@@ -916,6 +924,8 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .panel-head{position:static;margin:0 calc(-1 * var(--s-3)) var(--s-1);padding:var(--s-1) var(--s-3)}
   .mode-btn{min-height:36px}
   .mode-question{display:none}
+  /* Reveal the PLACE quick-jump chips on narrow screens, in PLACE only. */
+  .panel[data-mode="PLACE"] .place-jump{display:flex}
   .evidence-drawer{left:calc(10px + var(--safe-left));right:calc(10px + var(--safe-right));top:auto;bottom:calc(10px + var(--safe-bottom));width:auto;max-height:82dvh}
   .detail-disclosure>summary{}
   .header-tools select{min-width:88px;padding:var(--s-1) var(--s-2)}
