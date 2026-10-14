@@ -196,12 +196,13 @@ test("D: K6 ships planning evidence at exactly two scopes; the deferred planning
   assert.equal(intersect[0][0], "place.planning.touched");
   assert.equal(intersect[0][1].derivation, "derive.ambitoMembership");
 
-  // The scopes K4 defined for later increments are still unused: #68 ships the
-  // ámbito layer only, not execution units, stage areas, parcels, address points
-  // or public works.
+  // The scopes K4 defined for later increments are still unused. #68 shipped the
+  // ámbito layer (PLANNING_AMBITO, LENS_INTERSECT_AMBITO) and #71/K9 ships the
+  // granted-licence layer (ADDRESS_POINT); execution units, stage areas, parcels
+  // and public works remain reserved and ship no surface.
   for (const surface of Object.values(SURFACES)) {
     assert.ok(
-      !["EXECUTION_UNIT", "DEVELOPMENT_STAGE_AREA", "PARCEL", "ADDRESS_POINT", "WORK_GEOMETRY"].includes(surface.scope),
+      !["EXECUTION_UNIT", "DEVELOPMENT_STAGE_AREA", "PARCEL", "WORK_GEOMETRY"].includes(surface.scope),
       `${surface.scope} is reserved for a later increment and ships no surface`
     );
   }

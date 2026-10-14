@@ -62,6 +62,8 @@ const LEGACY_COPY_ES = [
   ["Madrid administrative geography", "Geografía administrativa de Madrid"],
   ["Madrid residential population (Padron)", "Población residente de Madrid (Padrón)"],
   ["Licensed tourist-dwelling units (VUT activity licences)", "Viviendas de uso turístico con licencia (licencias de actividad VUT)"],
+  ["Official callejero NDP crosswalk", "Correspondencia oficial de NDP del callejero"],
+  ["Granted urban licences", "Licencias urbanísticas otorgadas"],
   ["Hospitality & Commercial Context", "Contexto de hostelería y actividad comercial"],
   ["Hotel demand by month (Destination Context)", "Demanda hotelera por mes (Contexto del destino)"],
   ["Madrid domestic origin context by month (Destination Context)", "Contexto de orígenes nacionales de Madrid por mes (Contexto del destino)"],

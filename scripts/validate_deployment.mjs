@@ -2286,6 +2286,200 @@ function validateDomesticOrigins(source, artifact, meta, errors, warnings) {
   return { record_count: count, state: count ? "available" : "unavailable", source_period: artifact.source_period?.latest || null, warnings: [] };
 }
 
+// Committed official-callejero NDP crosswalk (K9, #71). BLOCKING: the licence
+// layer's coordinates and barrios come from it, so a missing, truncated or
+// collapsed crosswalk would publish a mislocated or empty evidence layer. The
+// failure mode this gate exists for is a SILENT COLLAPSE — the historical route
+// quietly stops being used, the match rate falls, or every row goes unresolved —
+// not an empty panel. The floors are declared data in the registry's guardrails.
+function validateCrosswalkReference(source, artifact, meta, scopes, errors, warnings) {
+  const label = source.display_name;
+  const sink = source.blocks_deployment ? errors : warnings;
+  if (!artifact || typeof artifact !== "object" || !Array.isArray(artifact.records)) {
+    sink.push(`${label}: ${source.artifact} is missing or has no records array`);
+    return { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
+  }
+  if (!meta || typeof meta !== "object" || !meta.coverage) {
+    sink.push(`${label}: ${source.meta_artifact} is missing or has no coverage block`);
+    return { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
+  }
+  const cov = meta.coverage;
+  const guard = source.integrity_guardrail ?? {};
+
+  // Crosswalk source fingerprints must be present: the three official SHAs and the
+  // artifact fingerprint. Their absence means provenance was lost.
+  const srcs = meta.sources ?? {};
+  for (const key of ["licence_register", "current_callejero", "historical_callejero"]) {
+    const sha = srcs[key]?.observed_resource_state?.sha256;
+    if (typeof sha !== "string" || !/^[0-9a-f]{64}$/.test(sha)) {
+      sink.push(`${label}: crosswalk source fingerprint for ${key} is missing or malformed`);
+    }
+  }
+  if (!/^[0-9a-f]{64}$/.test(meta.fingerprint?.value ?? "")) {
+    sink.push(`${label}: crosswalk artifact fingerprint is missing or malformed`);
+  }
+
+  // Residual reconciliation: every row carries exactly one state and the states
+  // sum to the row count; resolved + unresolved = rows. No silent drop.
+  const residualSum = Object.values(cov.residual_taxonomy ?? {}).reduce((a, b) => a + b, 0);
+  if (!cov.residual_taxonomy_is_exhaustive || residualSum !== cov.licence_rows) {
+    sink.push(`${label}: residual taxonomy (${residualSum}) does not reconcile with ${cov.licence_rows} rows`);
+  }
+  if (cov.resolved_rows + cov.unresolved_rows !== cov.licence_rows) {
+    sink.push(`${label}: resolved (${cov.resolved_rows}) + unresolved (${cov.unresolved_rows}) != rows (${cov.licence_rows})`);
+  }
+
+  // Collapse guards (declared floors, not analytical thresholds).
+  if (typeof guard.min_resolved_rows === "number" && cov.resolved_rows < guard.min_resolved_rows) {
+    sink.push(`${label}: ${cov.resolved_rows} resolved rows is below the collapse floor ${guard.min_resolved_rows}`);
+  }
+  if (cov.resolved_rows === 0) sink.push(`${label}: every row is unresolved; the crosswalk has collapsed`);
+  if (typeof guard.min_row_match_rate === "number" && cov.row_match_rate < guard.min_row_match_rate) {
+    sink.push(
+      `${label}: row match rate ${cov.row_match_rate} is below the floor ${guard.min_row_match_rate} ` +
+        `(pinned Gate M ${guard.baseline?.row_match_rate}). Documented in the registry; catches material collapse.`
+    );
+  }
+  // Historical-recovery guard: the historical route must stay present and working.
+  if (typeof guard.min_historical_recovered === "number" && cov.historical_only_recovered_rows < guard.min_historical_recovered) {
+    sink.push(
+      `${label}: only ${cov.historical_only_recovered_rows} rows recovered via the historical callejero ` +
+        `(floor ${guard.min_historical_recovered}, baseline ${guard.baseline?.historical_only_recovered_rows}). ` +
+        `The historical route may have silently stopped being used.`
+    );
+  }
+
+  // Resolved records carry a coordinate inside the integrity envelope.
+  const box = scopes[source.expected_spatial_scope];
+  const resolved = artifact.records.filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lon));
+  if (box) checkCoordinates(resolved, box, label, sink);
+
+  return {
+    record_count: artifact.records.length,
+    state: "available",
+    source_period: null,
+    warnings: [
+      `${cov.resolved_rows}/${cov.licence_rows} resolved (${cov.current_only_resolved_rows} current, ${cov.historical_only_recovered_rows} historical), match rate ${cov.row_match_rate}`,
+    ],
+  };
+}
+
+// Committed granted-urban-licence layer (K9, #71). BLOCKING. The failure mode is a
+// PLAUSIBLE-LOOKING WRONG LAYER: the three families collapsing, an unseen TIPO
+// silently mapped, the coverage denominator dropping the unresolved rows, the
+// protection absence states merging, or a cross-family total appearing. It also
+// refuses to let the layer acquire a reference date or an approval/rejection shape.
+function validateUrbanLicences(source, artifact, meta, crosswalkMeta, errors, warnings) {
+  const label = source.display_name;
+  const sink = source.blocks_deployment ? errors : warnings;
+  if (!artifact || typeof artifact !== "object" || !Array.isArray(artifact.records)) {
+    sink.push(`${label}: ${source.artifact} is missing or has no records array`);
+    return { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
+  }
+  if (!meta || typeof meta !== "object" || !meta.coverage || !meta.tipo_taxonomy) {
+    sink.push(`${label}: ${source.meta_artifact} is missing or incomplete`);
+    return { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
+  }
+  if (artifact.granted_only !== true) {
+    sink.push(`${label}: artifact is not flagged granted_only; the register must be a granted-only universe`);
+  }
+  const cov = artifact.coverage ?? {};
+  const guard = source.integrity_guardrail ?? {};
+  const families = ["BUILDING_URBANISTIC_LICENCE_FAMILY", "ACTIVITY_LICENCE_FAMILY", "TEMPORARY_ACTIVITY_FAMILY"];
+
+  // Closed taxonomy: no unclassified TIPO may survive to the artifact.
+  if (meta.tipo_taxonomy.unclassified_tipo_rows !== 0) {
+    sink.push(`${label}: ${meta.tipo_taxonomy.unclassified_tipo_rows} unclassified TIPO row(s); the taxonomy must be closed`);
+  }
+  // Family counts must not collapse: each above its declared floor, none missing.
+  const fc = meta.tipo_taxonomy.family_counts ?? {};
+  for (const family of families) {
+    const floor = guard.min_family_counts?.[family];
+    if (!Number.isInteger(fc[family]) || fc[family] <= 0) {
+      sink.push(`${label}: family ${family} has no positive count (${fc[family]})`);
+    } else if (typeof floor === "number" && fc[family] < floor) {
+      sink.push(`${label}: family ${family} count ${fc[family]} is below the collapse floor ${floor}`);
+    }
+  }
+
+  // Coverage: resolved+unresolved reconcile with total; unresolved rows are never
+  // silently dropped from the denominator; resolved count not collapsed; a window.
+  if (cov.resolved_rows + cov.unresolved_rows !== cov.total_rows) {
+    sink.push(`${label}: resolved (${cov.resolved_rows}) + unresolved (${cov.unresolved_rows}) != total (${cov.total_rows})`);
+  }
+  if (cov.resolved_rows !== artifact.records.length) {
+    sink.push(`${label}: coverage resolved_rows ${cov.resolved_rows} != ${artifact.records.length} mapped records`);
+  }
+  if (typeof guard.min_resolved_rows === "number" && cov.resolved_rows < guard.min_resolved_rows) {
+    sink.push(`${label}: ${cov.resolved_rows} resolved records is below the collapse floor ${guard.min_resolved_rows}`);
+  }
+  if (cov.resolved_rows === 0) sink.push(`${label}: every row is unresolved; the layer has collapsed`);
+  if (typeof guard.min_row_match_rate === "number" && cov.row_match_rate < guard.min_row_match_rate) {
+    sink.push(`${label}: row match rate ${cov.row_match_rate} is below the floor ${guard.min_row_match_rate}`);
+  }
+  if (typeof guard.min_historical_recovered === "number" && cov.historical_only_recovered_rows < guard.min_historical_recovered) {
+    sink.push(`${label}: historical recovery (${cov.historical_only_recovered_rows}) below floor ${guard.min_historical_recovered}`);
+  }
+
+  // Date extent must be present and well-formed (the window clamp depends on it).
+  const extent = artifact.date_extent ?? {};
+  if (!ISO_DATE.test(String(extent.min)) || !ISO_DATE.test(String(extent.max)) || extent.min > extent.max) {
+    sink.push(`${label}: date_extent is missing or incoherent (${extent.min}..${extent.max})`);
+  }
+
+  // The three NIVEL_PROTECCION absence states must stay present and distinct.
+  const np = meta.nivel_proteccion?.counts ?? {};
+  for (const state of ["EMPTY", "Sin Catalogar", "Sin protección"]) {
+    if (!Number.isInteger(np[state])) {
+      sink.push(`${label}: NIVEL_PROTECCION absence state "${state}" is missing; the three states must stay distinct`);
+    }
+  }
+
+  // Structural: no approval/rejection denominator, no cross-family total.
+  const blob = JSON.stringify(artifact).toLowerCase();
+  for (const banned of ["approval_rate", "rejection_rate", "refusal_count", "success_rate", "total_urban_licences", "all_licence_total", "overall_licence_count"]) {
+    if (blob.includes(banned)) sink.push(`${label}: artifact carries forbidden key/semantics "${banned}"`);
+  }
+
+  // Responsible declarations (dataset 133556) must never be an ingested source.
+  if (JSON.stringify(meta.source ?? {}).includes("133556")) {
+    sink.push(`${label}: dataset 133556 (responsible declarations) must not be a source of this layer`);
+  }
+
+  // Record field creep guard: a population, ratio, rate or personal field appearing
+  // on a licence record is exactly the conflation this layer must avoid.
+  const allowed = new Set([
+    "id", "ndp", "family", "tipo", "grant_date", "norma_zonal", "nivel_proteccion",
+    "lat", "lon", "coordinate_crs", "barrio_code", "district_code",
+    "crosswalk_state", "resolution_provenance", "barrio_provenance", "address_text_agrees",
+  ]);
+  const seenIds = new Set();
+  let fieldCreep = 0;
+  for (const r of artifact.records) {
+    for (const k of Object.keys(r)) if (!allowed.has(k)) fieldCreep += 1;
+    if (seenIds.has(r.id)) sink.push(`${label}: duplicate record id ${r.id}`);
+    seenIds.add(r.id);
+    if (!families.includes(r.family)) sink.push(`${label}: record ${r.id} has unknown family ${r.family}`);
+  }
+  if (fieldCreep) sink.push(`${label}: ${fieldCreep} record field(s) outside the minimised allow-list`);
+
+  // The licence layer must trace to the committed crosswalk's current+historical SHAs.
+  const dep = meta.crosswalk_dependency ?? {};
+  const xwFp = crosswalkMeta?.fingerprint?.value;
+  if (xwFp && dep.fingerprint && dep.fingerprint !== xwFp) {
+    sink.push(`${label}: declares crosswalk fingerprint ${String(dep.fingerprint).slice(0, 12)} but the committed crosswalk is ${String(xwFp).slice(0, 12)}`);
+  }
+
+  return {
+    record_count: artifact.records.length,
+    state: "available",
+    source_period: null,
+    warnings: [
+      `${cov.resolved_rows}/${cov.total_rows} mapped; families ${families.map((f) => fc[f]).join("/")}; window extent ${extent.min}..${extent.max}`,
+    ],
+  };
+}
+
 function validateRuntimePoiStructure(runtimePoi, registry, errors) {
   // Only demanded when a registry source actually lives in this artifact, so a
   // registry scoped to committed evidence does not require a build artifact.
@@ -2431,6 +2625,26 @@ export function validateDeployment({
           warnings
         );
         break;
+      case "address_point_crosswalk":
+        result = validateCrosswalkReference(
+          source,
+          artifacts[source.artifact],
+          artifacts[source.meta_artifact],
+          scopes,
+          errors,
+          warnings
+        );
+        break;
+      case "address_point_licences":
+        result = validateUrbanLicences(
+          source,
+          artifacts[source.artifact],
+          artifacts[source.meta_artifact],
+          artifacts["callejero/madrid_ndp_crosswalk.meta.json"],
+          errors,
+          warnings
+        );
+        break;
       case "admin_hospitality_context":
         result = validateHospitalityContext(
           source,
@@ -2569,6 +2783,12 @@ const ARTIFACT_FILES = [
   "planning/madrid_ambitos.meta.json",
   "planning/madrid_ambito_state.json",
   "planning/madrid_ambito_state.meta.json",
+  // Committed official-callejero NDP crosswalk and the granted-urban-licence layer
+  // it resolves (K9, #71; not rebuilt at deploy).
+  "callejero/madrid_ndp_crosswalk.json",
+  "callejero/madrid_ndp_crosswalk.meta.json",
+  "planning/madrid_urban_licences.json",
+  "planning/madrid_urban_licences.meta.json",
 ];
 
 export function readArtifacts(dataDir) {

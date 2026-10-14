@@ -48,7 +48,7 @@
       },
       "ADDRESS_POINT": {
         "kind": "analytical_scope",
-        "definition": "An official address point resolved via the callejero (NDP). Blocked on Gate M; defined but unused."
+        "definition": "An official address point resolved via the callejero (NDP). Shipped by #71 (K9): the granted-urban-licence layer and its callejero NDP crosswalk. A value at this scope describes one located record; it is counted inside a Lens circle and is never apportioned, aggregated into a barrio-level figure, ranked by area, or rendered as a density surface."
       },
       "WORK_GEOMETRY": {
         "kind": "analytical_scope",
@@ -912,6 +912,95 @@
           }
         }
       }
+    },
+    {
+      "id": "callejero_ndp_crosswalk",
+      "scope": "ADDRESS_POINT",
+      "reference_date": null,
+      "published_at": null,
+      "retrieved_at": "2026-10-06T21:14:10Z",
+      "update_frequency": "WEEKLY",
+      "source_state": "NOT_DECLARED_BY_PUBLISHER",
+      "freshness_evidence": "retrieved_at is the crosswalk's generated_at (callejero/madrid_ndp_crosswalk.meta.json). The bulk Callejero Oficial publishes NO reference_date and NO published_at, so both are explicit nulls: the dated filename, the HTTP Last-Modified header, the weekly cadence and the retrieval clock are observed resource state only (recorded under sources.*.observed_resource_state) and none is promoted into a source reference date. update_frequency WEEKLY is the callejero bulk cadence. No definitive/provisional status is published. scope ADDRESS_POINT: each resolved record locates one official address point.",
+      "display_name": "Official callejero NDP crosswalk",
+      "authority": "Ayuntamiento de Madrid - CADMA / Callejero Oficial",
+      "dataset_url": "https://datos.madrid.es/dataset/213605-0-callejero-oficial-madrid",
+      "artifact": "callejero/madrid_ndp_crosswalk.json",
+      "meta_artifact": "callejero/madrid_ndp_crosswalk.meta.json",
+      "shape": "address_point_crosswalk",
+      "contract_version": "1.0.0",
+      "builder": "scripts/build_callejero_ndp_crosswalk.py",
+      "rebuilt_at_deploy": false,
+      "provenance_state": "committed_fingerprinted_crosswalk",
+      "role": "reference",
+      "blocks_deployment": true,
+      "unavailable_is_allowed": false,
+      "evidence_type": "REFERENCE",
+      "expected_spatial_scope": "madrid_city_area",
+      "source_period_exposed_by_source": false,
+      "source_period_semantics": "The crosswalk has no source period: the callejero publishes none and the licence register publishes none. Its generated_at is the build/retrieval time, recorded as retrieved_at, never as a reference date. The dated callejero filenames and HTTP validators are observed resource state in the meta and are never collapsed into a publication date.",
+      "integrity_guardrail": {
+        "min_row_match_rate": 0.90,
+        "min_historical_recovered": 20,
+        "min_resolved_rows": 9000,
+        "baseline": {
+          "row_match_rate": 0.979736,
+          "resolved_rows": 11265,
+          "historical_only_recovered_rows": 86,
+          "calibrated_on": "2026-10-06"
+        },
+        "rationale": "Ingestion-collapse guardrails, not analytical thresholds. The match-rate floor (0.90) sits ~8 points below the pinned Gate M row rate (0.9797) and below the lowest observed per-year rate (0.9733), so a legitimate small source update passes while a gross collapse (callejero truncated or unreachable) fails. The historical-recovery floor (20, baseline 86) is a SEPARATE guard: it catches a regression where the builder silently stops using the historical callejero and the ~86 recovered rows fall toward zero. Changing a floor is a visible diff justified in its pull request."
+      },
+      "interpretation_ceiling": "An administrative ADDRESS_POINT crosswalk resolving the granted-licence NDP set to an official callejero location. A resolved coordinate is where the official callejero places an address; it is NOT evidence that any work occurred there. Resolution may be CURRENT (the callejero's own official barrio code) or HISTORICAL (a dated historical version selected by the licence grant date, with a POLYGON-DERIVED barrio from the official historical coordinate); the two barrio provenances are kept distinct and never presented as identical. Unresolved rows are withheld and reported, never geocoded externally or approximated. It is a reference crosswalk, never a count of anything."
+    },
+    {
+      "id": "urban_licences",
+      "scope": "ADDRESS_POINT",
+      "reference_date": null,
+      "published_at": null,
+      "retrieved_at": "2026-10-06T21:18:08Z",
+      "update_frequency": "MONTHLY",
+      "source_state": "NOT_DECLARED_BY_PUBLISHER",
+      "freshness_evidence": "retrieved_at is the artifact generated_at (planning/madrid_urban_licences.meta.json). The granted-licence register publishes NO reference_date and NO published_at, so both are explicit nulls: the monthly cadence, the HTTP Last-Modified header and the retrieval clock are observed resource state only and none is promoted into a source reference date. The per-record grant-date span (date_extent) is a property of the records, not a publication date. update_frequency MONTHLY is the publisher-declared cadence. No definitive/provisional status is published. scope ADDRESS_POINT: counts are records spatially included in a Lens circle, never a barrio-level figure.",
+      "display_name": "Granted urban licences",
+      "authority": "Ayuntamiento de Madrid - Agencia de Actividades / Direccion General de Control de la Edificacion",
+      "dataset_url": "https://datos.madrid.es/dataset/640505-0-licencias-urbanisticas-otorgadas",
+      "artifact": "planning/madrid_urban_licences.json",
+      "meta_artifact": "planning/madrid_urban_licences.meta.json",
+      "shape": "address_point_licences",
+      "contract_version": "1.0.0",
+      "builder": "scripts/build_urban_licences.py",
+      "rebuilt_at_deploy": false,
+      "provenance_state": "committed_fingerprinted_administrative_snapshot",
+      "role": "administrative_context",
+      "blocks_deployment": true,
+      "unavailable_is_allowed": false,
+      "evidence_type": "ADMINISTRATIVE_LICENSE",
+      "expected_spatial_scope": "madrid_city_area",
+      "crosswalk_dependency": "callejero/madrid_ndp_crosswalk.json",
+      "source_period_exposed_by_source": false,
+      "source_period_semantics": "The register declares no reference or effective date, so this layer has no source period: source_period stays null. The grant-date extent (2023-01-13..2026-09-30 at calibration) is a property of the records and bounds the user date window; it is never a publication date. The crosswalk's callejero resources keep their own freshness and are never collapsed into this layer's date.",
+      "integrity_guardrail": {
+        "min_row_match_rate": 0.90,
+        "min_resolved_rows": 9000,
+        "min_historical_recovered": 20,
+        "min_family_counts": {
+          "BUILDING_URBANISTIC_LICENCE_FAMILY": 4000,
+          "ACTIVITY_LICENCE_FAMILY": 3500,
+          "TEMPORARY_ACTIVITY_FAMILY": 50
+        },
+        "baseline": {
+          "resolved_rows": 11265,
+          "family_counts": {
+            "BUILDING_URBANISTIC_LICENCE_FAMILY": 5938,
+            "ACTIVITY_LICENCE_FAMILY": 5385,
+            "TEMPORARY_ACTIVITY_FAMILY": 175
+          },
+          "calibrated_on": "2026-10-06"
+        },
+        "rationale": "Ingestion-collapse guardrails, not analytical thresholds. Each family floor sits well below its pinned Gate M count so churn passes and a family vanishing fails; the resolved-rows and match-rate floors catch a join collapse; the historical-recovery floor catches the historical route silently disappearing."
+      },
+      "interpretation_ceiling": "A count of granted administrative urban licences spatially included in the Lens circle (scope ADDRESS_POINT), by family and grant-date window. GRANTED-ONLY: the register is RESOLUCION=Conceder, so there is no applications/refusals denominator and NO approval rate, rejection rate, refusal count or success rate exists. A granted licence is NOT evidence that work started, construction occurred or completed, occupancy happened, or the permitted quantity was built: granted is not built. The three families (building/urbanistic, activity, temporary activity) are NOT one homogeneous universe and are NEVER summed into a single cross-family total. The mapped layer is the RESOLVED SUBSET of the register; unresolved rows are reported in the coverage metadata and never dropped from the denominator. The crosswalk may resolve via current or historical official callejero, with distinct current/historical administrative-geography provenance. Licence records may concern places also present in Censo de Locales, licensed VUT or hospitality/activity evidence; these universes are NEVER summed as unique businesses or sites. Counts are ADDRESS_POINT records and are never converted into a barrio-level figure, ranked by barrio or district, or rendered as a density, heatmap or choropleth surface. Responsible declarations (dataset 133556) are not ingested."
     }
   ]
 }

@@ -862,6 +862,38 @@ otherwise the comparison keeps `ABSENT_FROM_EDITION` and marks its cause as
 
 Full contract: [Planning-ámbito evidence V1](PLANNING_AMBITO_EVIDENCE_V1.md).
 
+## Granted urban licences and the callejero NDP crosswalk (`data/planning/madrid_urban_licences.json`)
+
+K9 (#71) ships the official **granted urban-licence** layer. Two committed,
+fingerprinted artifacts, both built at build time with no runtime call to
+`datos.madrid.es` or `geoportal.madrid.es`:
+
+- `data/callejero/madrid_ndp_crosswalk.json` resolves the granted-licence NDP set
+  to an official address point using the pinned **current and historical**
+  Callejero Oficial (`213605-4` / `213605-1`). The join is exact
+  `NDP → COD_NDP` as source text; current resolves only on a unique match;
+  historical is **date-aware** by the licence grant date against
+  `FECHA_DE_ALTA`/`FECHA_DE_BAJA`, publishing geometry only when exactly one
+  version is active. It reproduces Gate M exactly: 11,265 / 11,498 rows (97.97%),
+  11,179 current + 86 historical, 233 withheld-and-reported.
+- `data/planning/madrid_urban_licences.json` is the licence product layer
+  (`640505-1`, CC BY 4.0, MONTHLY): the resolved records, minimised to
+  location-and-family evidence, with the three families counted **separately**.
+
+The register is **granted-only** (`RESOLUCION = Conceder`), so there is no
+approval/rejection denominator and a granted licence is never evidence of
+construction. The grant date is `FECHA_FIRMA_RESOLUCION`. The three
+`NIVEL_PROTECCION` absence states (empty / `Sin Catalogar` / `Sin protección`) and
+`NORMA_ZONAL` missingness are preserved, never merged. Current barrios are the
+callejero's official codes; historical-only barrios are polygon-derived from the
+official historical coordinate, and the two provenances stay distinct.
+Responsible declarations (dataset 133556) are not ingested. The deployment
+validator rejects a collapsed match rate, a missing historical route, a collapsed
+family, an unseen TIPO, merged protection states, a cross-family total,
+approval-rate semantics or dataset 133556. Full contract:
+[Granted urban licences V1](URBAN_LICENCES_V1.md); research:
+[Gate M](CALLEJERO_NDP_CROSSWALK_GATE_M.md).
+
 ## Base maps
 
 The UI offers three selectable basemaps: CARTO Positron (light, default),

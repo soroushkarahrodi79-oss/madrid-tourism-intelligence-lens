@@ -9,6 +9,7 @@ const LAYER_COLOR = {
   rail: "#ffd166",
   pedestrian: "#ff7aa2",
   park: "#70dea4",
+  licence: "#c0794f",
 };
 const LAYER_LABEL = {
   museum: "Museums",
@@ -50,6 +51,20 @@ map.createPane("planningPane");
 map.getPane("planningPane").style.zIndex = "360";
 map.getPane("planningPane").style.pointerEvents = "none";
 const PLANNING_STROKE = "#aeb8c4"; // --planning-neutral
+
+// Granted urban licences (K9, #71) render on their own canvas pane, above the
+// administrative fill and below the active-area and Lens panes, so the licence
+// points stay visibly separate from the Lens A/B identities and the ámbito
+// polygon. Their hue is a reserved administrative neutral — never a Lens colour
+// and never a phase/order/judgement encoding. The pane keeps pointer events so a
+// point can be clicked for its granted-only popup.
+map.createPane("licencePane");
+// Above the default overlay pane (z 400, where the preferCanvas POI markers
+// render) so the licence points receive clicks for their granted-only popup —
+// a lower pane's canvas would sit under the POI canvas, which would swallow the
+// click. Still below the active-area, Lens and halo panes.
+map.getPane("licencePane").style.zIndex = "410";
+const LICENCE_STROKE = "#c0794f"; // --licence-neutral
 
 // The area containing a lens centre is the one administrative shape that has to
 // stay readable, so it sits just below the lens itself — visible over the POIs,
@@ -172,6 +187,9 @@ const groups = {
   park: L.layerGroup(),
   // Research evidence is opt-in: populate HATI but keep it off the map until requested.
   heat: L.layerGroup(),
+  // Granted urban licences are opt-in and administratively separate: off the map
+  // until requested, never counted into the POI metrics.
+  licences: L.layerGroup(),
 };
 
 let poiPoints = [];
@@ -1362,6 +1380,45 @@ if (haloRegressionRequested && haloRegressionLocal) {
     recompute() {
       refresh();
     },
+    // K9 granted-urban-licence helpers. They drive and read the real layer
+    // against the committed artifact (no injected fixture), so the browser
+    // contract exercises the production load / state / count / map paths.
+    async enableLicences() {
+      setLayerVisible("licences", true);
+      for (let i = 0; i < 400 && (licenceState === "idle" || licenceState === "loading"); i += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      refresh();
+      return licenceState;
+    },
+    disableLicences() {
+      setLayerVisible("licences", false);
+    },
+    setLicenceWindow(from, to) {
+      const fromEl = document.getElementById("licFrom");
+      const toEl = document.getElementById("licTo");
+      if (fromEl) fromEl.value = from == null ? "" : from;
+      if (toEl) toEl.value = to == null ? "" : to;
+      applyLicenceWindowFromInputs();
+    },
+    licenceSnapshot() {
+      const section = document.getElementById("urbanLicences");
+      return {
+        state: section.dataset.licenceState,
+        window: licenceWindow ? { from: licenceWindow.from, to: licenceWindow.to } : null,
+        perFamily: licenceModel.index && isLicencesVisible() ? licenceView().perFamily : null,
+        mapMarkers: groups.licences.getLayers().length,
+        extent: licenceModel.index ? { min: licenceModel.index.dateExtent.min, max: licenceModel.index.dateExtent.max } : null,
+        records: licenceModel.index ? licenceModel.index.records.length : 0,
+      };
+    },
+    // The rendered popup HTML for one committed record, so a browser contract can
+    // prove per-record provenance (current vs historical-only, address-text
+    // disagreement) is inspectable without having to click a canvas point.
+    licencePopup(id) {
+      const record = licenceModel.index && licenceModel.index.records.find((r) => r.id === id);
+      return record ? licencePopupHtml(record) : null;
+    },
     setZoom(zoom) {
       map.setZoom(Number(zoom), { animate: false });
     },
@@ -1937,6 +1994,10 @@ function setLayerVisible(name, on) {
   }
   if (name === "pedestrian") {
     syncPedestrianUi(on);
+    refresh();
+  }
+  if (name === "licences") {
+    syncLicencesUi(on);
     refresh();
   }
 }
@@ -3489,6 +3550,307 @@ function renderPlanningPolygon(containing) {
   planningLayer = { layer, label, code: containing.ambitoCode };
 }
 
+// ========================================================================= K9
+// Granted urban licences (#71). An opt-in ADDRESS_POINT administrative register.
+// The pure model and the committed, fingerprinted artifact live in
+// js/urban-licences.js; this block loads the artifact once, renders the
+// per-family figures / grant-date window / resolved coverage / inline ceiling,
+// and draws the resolved points on their own neutral canvas pane. It computes NO
+// cross-family total, NO density surface, NO barrio apportionment and NO approval
+// rate, and it never calls an official service: it reads the committed file only.
+//
+// The expensive point layer is rebuilt only when the grant-date window or the
+// document language changes — never on a Lens drag. Moving the Lens re-runs only
+// the cheap in-memory per-family count, so enabling the layer does not regress
+// interaction-to-paint on a drag.
+const licenceModel = { module: null, index: null };
+let licenceState = "idle"; // idle | loading | ready | unavailable
+let licenceWindow = null; // { from, to } applied grant-date window (already clamped)
+let licenceRenderer = null;
+let lastLicenceLayerKey = null;
+
+function licenceInterpolate(template, values) {
+  return String(template).replace(/\{(\w+)\}/g, (match, key) =>
+    Object.prototype.hasOwnProperty.call(values, key) ? String(values[key]) : match
+  );
+}
+
+function licenceNumber(value) {
+  if (!Number.isFinite(value)) return "—";
+  return Number(value).toLocaleString(shellLanguage() === "es" ? "es-ES" : "en-GB");
+}
+
+async function loadLicenceContext() {
+  if (licenceState === "loading" || licenceState === "ready") return;
+  licenceState = "loading";
+  let module;
+  try {
+    module = await import(moduleUrl("urban-licences.js"));
+  } catch (error) {
+    licenceState = "unavailable";
+    console.warn("urban-licences module unavailable", error);
+    renderUrbanLicences();
+    return;
+  }
+  licenceModel.module = module;
+
+  let artifact = null;
+  try {
+    artifact = await fetchAreaJson("data/planning/madrid_urban_licences.json");
+  } catch (error) {
+    console.warn("urban-licences artifact unavailable", error);
+  }
+  const index = module.createLicenceIndex(artifact);
+  if (!index) {
+    licenceState = "unavailable";
+  } else {
+    licenceModel.index = index;
+    licenceState = "ready";
+    // Deterministic default window (trailing twelve months ending at the latest
+    // grant date), clamped to the real extent — never "all time".
+    const def = index.defaultWindow();
+    licenceWindow = def.valid ? { from: def.from, to: def.to } : null;
+    initLicenceWindowInputs();
+  }
+  renderUrbanLicences();
+  renderScopeRail();
+}
+
+function isLicencesVisible() {
+  return map.hasLayer(groups.licences);
+}
+
+function syncLicencesUi(on) {
+  const toggle = document.querySelector('[data-layer="licences"]');
+  if (toggle) {
+    toggle.checked = on;
+    toggle.setAttribute("aria-checked", String(on));
+  }
+  const section = document.getElementById("urbanLicences");
+  if (section) section.hidden = !on;
+  // Lazy load: the artifact is fetched only the first time the layer is enabled,
+  // so it never delays the first map paint.
+  if (on && licenceState === "idle") loadLicenceContext();
+}
+
+function initLicenceWindowInputs() {
+  if (!licenceModel.index) return;
+  const extent = licenceModel.index.dateExtent;
+  const fromEl = document.getElementById("licFrom");
+  const toEl = document.getElementById("licTo");
+  if (!fromEl || !toEl) return;
+  // The inputs carry the extent as min/max so the control itself cannot offer a
+  // date outside the register; the model's clampWindow is the authority behind it.
+  for (const input of [fromEl, toEl]) {
+    input.min = extent.min;
+    input.max = extent.max;
+  }
+  if (licenceWindow) {
+    fromEl.value = licenceWindow.from;
+    toEl.value = licenceWindow.to;
+  }
+}
+
+function applyLicenceWindowFromInputs() {
+  if (!licenceModel.index) return;
+  const fromEl = document.getElementById("licFrom");
+  const toEl = document.getElementById("licTo");
+  // A blank input falls back to the extent bound; the model clamps before / after
+  // / reversed / same-day. The clamped values are reflected back to the inputs so
+  // the control can never display an out-of-range window.
+  const clamped = licenceModel.index.clampWindow(fromEl.value || null, toEl.value || null);
+  licenceWindow = clamped.valid ? { from: clamped.from, to: clamped.to } : null;
+  if (licenceWindow) {
+    fromEl.value = licenceWindow.from;
+    toEl.value = licenceWindow.to;
+  }
+  renderUrbanLicences();
+  renderScopeRail();
+}
+
+function licenceView() {
+  if (!licenceModel.index) return null;
+  const centre = centerOf(active);
+  return licenceModel.index.view(
+    { lat: centre.lat, lon: centre.lon, radiusM: radiusFor(active) },
+    { enabled: isLicencesVisible(), families: null, window: licenceWindow }
+  );
+}
+
+function renderLicenceResidual(residualTaxonomy) {
+  const list = document.getElementById("licResidualList");
+  if (!list) return;
+  list.textContent = "";
+  // Every residual class except the resolved count, with its own label. These are
+  // withheld rows reported as coverage/residual evidence, never dropped.
+  const classes = Object.keys(residualTaxonomy)
+    .filter((key) => key !== "RESOLVED")
+    .sort();
+  for (const key of classes) {
+    const li = document.createElement("li");
+    const label = shellT(`lic.residual.${key}`);
+    li.textContent = `${label === `lic.residual.${key}` ? key : label}: ${licenceNumber(residualTaxonomy[key])}`;
+    list.appendChild(li);
+  }
+}
+
+function renderUrbanLicences() {
+  const section = document.getElementById("urbanLicences");
+  if (!section) return;
+  const STATE = (licenceModel.module && licenceModel.module.LICENCE_LAYER_STATE) || {
+    OFF: "OFF",
+    UNAVAILABLE: "UNAVAILABLE",
+    NO_MATCHES: "NO_MATCHES",
+    AVAILABLE: "AVAILABLE",
+  };
+  const unavailableEl = document.getElementById("licUnavailable");
+  const noMatchesEl = document.getElementById("licNoMatches");
+  const bodyEl = document.getElementById("licBody");
+
+  // OFF: the layer is disabled. The section is hidden and the state is OFF — an
+  // explicit state, never confused with an observed zero or with unavailable.
+  if (!isLicencesVisible()) {
+    section.hidden = true;
+    section.dataset.licenceState = STATE.OFF;
+    syncLicenceMapLayer();
+    return;
+  }
+  section.hidden = false;
+
+  // Still loading the committed artifact: show nothing that could be read as a
+  // zero or as unavailable. A not-yet-loaded index is NOT the UNAVAILABLE state —
+  // that distinction is checked only once the load has settled.
+  if (licenceState === "idle" || licenceState === "loading") {
+    section.dataset.licenceState = STATE.OFF;
+    if (unavailableEl) unavailableEl.hidden = true;
+    if (noMatchesEl) noMatchesEl.hidden = true;
+    if (bodyEl) bodyEl.hidden = true;
+    return;
+  }
+
+  // UNAVAILABLE: the load settled but the committed artifact is missing or unusable.
+  if (licenceState === "unavailable" || !licenceModel.index) {
+    section.dataset.licenceState = STATE.UNAVAILABLE;
+    if (unavailableEl) unavailableEl.hidden = false;
+    if (noMatchesEl) noMatchesEl.hidden = true;
+    if (bodyEl) bodyEl.hidden = true;
+    syncLicenceMapLayer();
+    return;
+  }
+
+  const view = licenceView();
+  section.dataset.licenceState = view.state;
+  if (unavailableEl) unavailableEl.hidden = true;
+
+  // Grant-date window — always stated as explicit dates, never "recent".
+  const win = view.window || licenceWindow;
+  const appliedEl = document.getElementById("licWindowApplied");
+  if (appliedEl && win) {
+    appliedEl.textContent = licenceInterpolate(shellT("lic.windowApplied"), {
+      from: planningDate(win.from),
+      to: planningDate(win.to),
+    });
+  }
+  const extent = licenceModel.index.dateExtent;
+  const extentEl = document.getElementById("licWindowExtent");
+  if (extentEl) {
+    extentEl.textContent = licenceInterpolate(shellT("lic.windowExtent"), {
+      min: planningDate(extent.min),
+      max: planningDate(extent.max),
+    });
+  }
+  const clampedEl = document.getElementById("licWindowClamped");
+  if (clampedEl) clampedEl.hidden = !(view.window && view.window.clamped);
+
+  // Per-family counts — three figures, never one total.
+  setText("licCountBuilding", licenceNumber(view.perFamily.BUILDING_URBANISTIC_LICENCE_FAMILY));
+  setText("licCountActivity", licenceNumber(view.perFamily.ACTIVITY_LICENCE_FAMILY));
+  setText("licCountTemporary", licenceNumber(view.perFamily.TEMPORARY_ACTIVITY_FAMILY));
+
+  // Resolved coverage — the match rate and resolved count, stated with the figures.
+  const cov = view.coverage || {};
+  const rate = Number.isFinite(cov.row_match_rate) ? (cov.row_match_rate * 100).toFixed(2) : "—";
+  setText(
+    "licCoverage",
+    licenceInterpolate(shellT("lic.coverage"), {
+      rate,
+      resolved: licenceNumber(cov.resolved_rows),
+      total: licenceNumber(cov.total_rows),
+    })
+  );
+
+  // Unmatched / withheld — reported with its residual classes, never dropped.
+  setText("licUnmatched", licenceInterpolate(shellT("lic.unmatched"), { unresolved: licenceNumber(cov.unresolved_rows) }));
+  renderLicenceResidual(cov.residual_taxonomy || {});
+
+  // NO_MATCHES (an observed zero for the resolved register) vs AVAILABLE.
+  if (noMatchesEl) noMatchesEl.hidden = view.state !== STATE.NO_MATCHES;
+  if (bodyEl) bodyEl.hidden = false;
+
+  syncLicenceMapLayer();
+}
+
+// The map point layer. Rebuilt only when the window / language / availability
+// changes — NOT on a Lens drag, so ~k points never re-render while dragging.
+function syncLicenceMapLayer() {
+  if (!licenceRenderer) licenceRenderer = L.canvas({ pane: "licencePane", padding: 0.5 });
+  const on = isLicencesVisible();
+  if (!on || licenceState !== "ready" || !licenceModel.index) {
+    if (lastLicenceLayerKey !== null) {
+      groups.licences.clearLayers();
+      lastLicenceLayerKey = null;
+    }
+    return;
+  }
+  const key = `${licenceWindow ? `${licenceWindow.from}..${licenceWindow.to}` : "all"}|${shellLanguage()}`;
+  if (key === lastLicenceLayerKey) return;
+  lastLicenceLayerKey = key;
+  groups.licences.clearLayers();
+
+  const from = licenceWindow && licenceWindow.from;
+  const to = licenceWindow && licenceWindow.to;
+  for (const record of licenceModel.index.records) {
+    if (!Number.isFinite(record.lat) || !Number.isFinite(record.lon)) continue;
+    if (from && to && !(record.grant_date >= from && record.grant_date <= to)) continue;
+    const marker = L.circleMarker([record.lat, record.lon], {
+      pane: "licencePane",
+      renderer: licenceRenderer,
+      radius: 3.5,
+      color: LICENCE_STROKE,
+      weight: 1,
+      opacity: 0.9,
+      fillColor: LICENCE_STROKE,
+      fillOpacity: 0.55,
+    });
+    marker.bindPopup(() => licencePopupHtml(record));
+    marker.addTo(groups.licences);
+  }
+}
+
+function licencePopupHtml(record) {
+  const familyKey = {
+    BUILDING_URBANISTIC_LICENCE_FAMILY: "lic.family.building",
+    ACTIVITY_LICENCE_FAMILY: "lic.family.activity",
+    TEMPORARY_ACTIVITY_FAMILY: "lic.family.temporary",
+  }[record.family];
+  const family = familyKey ? shellT(familyKey) : record.family;
+  const granted = `${shellT("lic.popup.grantedOn")} ${planningDate(record.grant_date)}`;
+  const notBuilt = shellT("lic.popup.notBuilt");
+  // Official value (tipo) is carried verbatim; our labels localise around it.
+  const tipo = record.tipo ? `<br><small>${escapeHtml(record.tipo)}</small>` : "";
+  // Per-record provenance, kept distinct: current official callejero vs a
+  // historical-only recovery (polygon-derived barrio). The address-text
+  // disagreement flag is surfaced so an analyst can inspect it per record.
+  const historical =
+    record.resolution_provenance === "HISTORICAL_CALLEJERO" ||
+    record.crosswalk_state === "NDP_FOUND_HISTORICAL_ONLY" ||
+    record.barrio_provenance === "POLYGON_DERIVED_FROM_OFFICIAL_HISTORICAL_COORDINATE";
+  const provenance = `<br><small>${escapeHtml(shellT(historical ? "lic.popup.historical" : "lic.popup.current"))}</small>`;
+  const disagreement =
+    record.address_text_agrees === false ? `<br><small>${escapeHtml(shellT("lic.popup.disagreement"))}</small>` : "";
+  return `<b>${escapeHtml(family)}</b><br>${escapeHtml(granted)}${tipo}${provenance}${disagreement}<br><em>${escapeHtml(notBuilt)}</em>`;
+}
+
 function fetchAreaJson(url) {
   return fetch(`${url}?v=${AREA_ASSET_VERSION}`).then((response) => {
     if (!response.ok) throw new Error(`${url}: ${response.status}`);
@@ -4227,6 +4589,7 @@ function refresh() {
   renderCompare();
   updateAreaContext();
   renderPlanningContext();
+  renderUrbanLicences();
   shadeMarkersOutsideActiveLens();
   renderScopeRail();
 }
@@ -4351,6 +4714,11 @@ document.getElementById("languageSelect").onchange = (event) => {
   // values inside it sit under data-verbatim and are never touched.
   lastPlanningRenderKey = null;
   renderPlanningContext();
+  // The licence surface likewise builds its product-authored copy (coverage,
+  // window, residual classes) at render time; force a layer rebuild so the map
+  // popups also pick up the new language.
+  lastLicenceLayerKey = null;
+  renderUrbanLicences();
   restoreCopy();
   applyShellCopy();
   renderModeUi();
@@ -4377,6 +4745,8 @@ const areaSourceToggle = document.getElementById("areaSourceToggle");
 areaSourceToggle.onclick = () => openEvidenceDrawer({ opener: areaSourceToggle, focusSection: "drawerAreaNotes" });
 const planningSourceToggle = document.getElementById("planningSourceToggle");
 planningSourceToggle.onclick = () => openEvidenceDrawer({ opener: planningSourceToggle, scope: "PLANNING_AMBITO" });
+const licSourceToggle = document.getElementById("licSourceToggle");
+if (licSourceToggle) licSourceToggle.onclick = () => openEvidenceDrawer({ opener: licSourceToggle, scope: "ADDRESS_POINT" });
 const destinationSourceToggle = document.getElementById("destinationSourceToggle");
 destinationSourceToggle.onclick = () => openEvidenceDrawer({ opener: destinationSourceToggle, focusSection: "drawerDestinationNotes" });
 // THE accommodation-category state transition. Changing the category changes
@@ -4413,6 +4783,13 @@ document.querySelectorAll("[data-layer]").forEach((x) => (x.onchange = () => set
 syncHatiUi(false);
 syncPedestrianUi(false);
 syncHospitalityUi(false);
+syncLicencesUi(false);
+// The grant-date window inputs re-clamp through the model and re-render; the
+// register's extent is bound as the inputs' min/max once the artifact loads.
+for (const id of ["licFrom", "licTo"]) {
+  const input = document.getElementById(id);
+  if (input) input.addEventListener("change", applyLicenceWindowFromInputs);
+}
 
 // ===========================================================================
 // INFORMATION ARCHITECTURE V2 (K4, #66): modes, scope & freshness rail, evidence
@@ -4495,6 +4872,9 @@ function currentFlags() {
     hospitality: hospitalityVisible,
     hati: isHatiVisible(),
     pedestrian: isPedestrianVisible(),
+    // The ADDRESS_POINT licence surface is on screen only while its opt-in layer
+    // is enabled, so the rail never claims a scope whose surface is not rendered.
+    licences: isLicencesVisible(),
     // LENS_INTERSECT_AMBITO is on screen only while the PLACE detail is open and
     // the planning artifacts actually loaded, so the rail never claims a scope
     // whose surface is not rendered.
