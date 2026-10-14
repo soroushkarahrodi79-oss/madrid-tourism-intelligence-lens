@@ -26,7 +26,7 @@ const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 // modules load identically however the page is served. They are ES modules
 // (shared with `node --test`), while the rest of the app is classic scripts.
 const MODULE_BASE = (document.currentScript && document.currentScript.src) || window.location.href;
-const AREA_ASSET_VERSION = "20261006-68";
+const AREA_ASSET_VERSION = "20261014-2";
 const moduleUrl = (name) => new URL(`${name}?v=${AREA_ASSET_VERSION}`, MODULE_BASE).href;
 
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
@@ -1693,6 +1693,67 @@ if (haloRegressionRequested && haloRegressionLocal) {
       renderDecisionInsight();
       renderSpatialSensitivity();
     },
+    // --- K10 ámbito comparison seam (test-only; drives the real render path) ---
+    enterMode(mode) {
+      shell.modes.setMode(mode);
+    },
+    ambitoSetScope(scope) {
+      setCompareScope(scope);
+    },
+    ambitoSelect(slot, code) {
+      const key = slot.toLowerCase();
+      ambitoCompare[key] = isKnownAmbitoCode(code) ? code : null;
+      const input = document.getElementById(slot === "A" || key === "a" ? "ambitoSelectA" : "ambitoSelectB");
+      if (input) input.value = code || "";
+      renderAmbitoCompare();
+    },
+    ambitoClickAt(lat, lon) {
+      return handleAmbitoCompareMapClick({ lat, lng: lon });
+    },
+    ambitoState() {
+      const compareLine = document.getElementById("compareLine");
+      const read = (id) => (document.getElementById(id) ? document.getElementById(id).textContent.trim() : null);
+      const hidden = (id) => (document.getElementById(id) ? document.getElementById(id).hasAttribute("hidden") : null);
+      const idOf = (prefix) => ({
+        code: read(`ambitoId${prefix}Code`),
+        denom: read(`ambitoId${prefix}Denom`),
+        date: read(`ambitoId${prefix}Date`),
+      });
+      return {
+        scope: compareLine ? compareLine.dataset.compareScope : null,
+        blockHidden: hidden("ambitoCompare"),
+        bodyHidden: hidden("ambitoCompareBody"),
+        refusalHidden: hidden("ambitoCompareRefusal"),
+        refusalText: read("ambitoCompareRefusal"),
+        radiusNote: read("ambitoRadiusNote"),
+        guard: read("ambitoCompareGuard"),
+        a: idOf("A"),
+        b: idOf("B"),
+        categorical: [...document.querySelectorAll("#ambitoCatItems > li")].map((li) => ({
+          metric: li.dataset.metric,
+          relation: li.querySelector(".ambito-rel")?.dataset.relation || null,
+          relationText: li.querySelector(".ambito-rel")?.textContent.trim() || null,
+          values: li.querySelector(".ambito-cat-values")?.textContent.trim() || null,
+        })),
+        quantity: [...document.querySelectorAll("#ambitoQtyRows > tr")].map((tr) => {
+          const cells = tr.querySelectorAll("td");
+          return {
+            metric: tr.dataset.metric,
+            a: cells[0]?.textContent.trim() || null,
+            b: cells[1]?.textContent.trim() || null,
+            delta: cells[2]?.textContent.trim() || null,
+            withheld: cells[2]?.classList.contains("ambito-withheld") || false,
+          };
+        }),
+        edition: [...document.querySelectorAll("#ambitoEditionItems > li")].map((li) => ({
+          metric: li.dataset.metric,
+          transition: li.dataset.transition,
+        })),
+        polygonCount: ambitoCompare.polygons ? ambitoCompare.polygons.filter((l) => l.getBounds).length : 0,
+        circleBridgePresent: Boolean(document.getElementById("comparisonBridge")),
+        circleTablePresent: Boolean(document.querySelector(".comparetable")),
+      };
+    },
     haloFocusedCount() {
       let count = 0;
       for (const which of ["A", "B"]) for (const marker of Object.values(comparisonHalos[which])) {
@@ -2880,6 +2941,9 @@ async function loadPlanningContext() {
   }
   renderPlanningContext();
   renderScopeRail();
+  // A user may have opened the ámbito-comparison scope before the planning
+  // artifacts finished loading; now that they are ready, populate and render.
+  if (typeof refreshAmbitoCompareData === "function") refreshAmbitoCompareData();
 }
 
 function planningContaining() {
@@ -4663,8 +4727,12 @@ function disableLensB() {
 lenses.A.marker.on("drag", () => (active !== "A" ? activateLens("A") : refresh()));
 lenses.B.marker.on("drag", () => (active !== "B" ? activateLens("B") : refresh()));
 map.on("click", (e) => {
-  lenses[active].marker.setLatLng(e.latlng);
-  refresh();
+  // In COMPARE + ámbito scope a map click SELECTS an official ámbito (A then B)
+  // instead of moving a Lens; otherwise the Lens-move behaviour is unchanged.
+  if (!handleAmbitoCompareMapClick(e.latlng)) {
+    lenses[active].marker.setLatLng(e.latlng);
+    refresh();
+  }
 });
 map.on("zoomend", rebuildDenseLayers);
 // Keep the licence click tolerance gated to the current zoom. Leaflet reads
@@ -4758,6 +4826,7 @@ document.getElementById("languageSelect").onchange = (event) => {
   renderComparisonBridge();
   renderDecisionInsight();
   renderSpatialSensitivity();
+  renderAmbitoCompare();
   // The planning surface builds its product-authored copy from the shell
   // dictionary at render time, so a language switch re-renders it. Official
   // values inside it sit under data-verbatim and are never touched.
@@ -5643,3 +5712,336 @@ async function boot() {
 }
 
 boot();
+
+// ===================================================================== K10 ====
+// Ámbito comparison in COMPARE (#72). A SECOND comparison scope that reads the
+// one authoritative state from js/ambito-comparison.js (classic-script globals)
+// and the committed K6/K7 evidence via the ESM adapter. It never touches the
+// Lens-circle surfaces, handlers, dragging, halo or licence popups: the circle
+// surfaces and this block are gated by `#compareLine[data-compare-scope]` and
+// never both show, so an ámbito comparison can never be mistaken for a Lens one.
+const ambitoCompare = {
+  scope: "LENS",
+  a: null,
+  b: null,
+  pending: "A",
+  adapter: null,
+  prevArtifact: null,
+  polygons: null,
+  populated: false,
+};
+
+function ambitoT(key) {
+  if (typeof AMBITO_COMPARISON_DICTIONARIES === "undefined") return key;
+  const dict = AMBITO_COMPARISON_DICTIONARIES[shellLanguage()] || AMBITO_COMPARISON_DICTIONARIES.en;
+  return dict[key] ?? AMBITO_COMPARISON_DICTIONARIES.en[key] ?? key;
+}
+function ambitoNum(value) {
+  return Number(value).toLocaleString(shellLanguage() === "es" ? "es-ES" : "en-GB");
+}
+function ambitoSideText(side) {
+  if (side.state === "PUBLISHED") return ambitoNum(side.value);
+  const es = shellLanguage() === "es";
+  if (side.state === "MULTIPLE_ROWS_NOT_COMBINED") return es ? "varias filas" : "multiple rows";
+  if (side.state === "NOT_PUBLISHED_IN_EDITION") return es ? "no en la edición" : "not in edition";
+  return es ? "no publicado" : "not published";
+}
+
+function ambitoCodeList() {
+  if (planningState !== "ready" || !planningModel.index) return [];
+  return planningModel.index.entries.map((entry) => entry.code);
+}
+
+// Is this an EXACT official code of the committed universe? Selection accepts
+// only an exact code; anything else is treated as no selection (never coerced to
+// a near match — the -RP discipline forbids normalisation).
+function isKnownAmbitoCode(code) {
+  if (!code) return false;
+  if (!ambitoCompare.codeSet) ambitoCompare.codeSet = new Set(ambitoCodeList());
+  return ambitoCompare.codeSet.has(code);
+}
+
+function populateAmbitoSelects() {
+  if (ambitoCompare.populated) return;
+  const codes = ambitoCodeList();
+  if (codes.length === 0) return;
+  ambitoCompare.codeSet = new Set(codes);
+  const datalist = document.getElementById("ambitoCodeDatalist");
+  if (!datalist) return;
+  datalist.replaceChildren();
+  for (const code of codes) {
+    const opt = document.createElement("option");
+    opt.value = code;
+    datalist.append(opt);
+  }
+  ambitoCompare.populated = true;
+}
+
+function setCompareScope(scope) {
+  ambitoCompare.scope = scope;
+  const line = document.getElementById("compareLine");
+  if (line) line.dataset.compareScope = scope;
+  const lensBtn = document.getElementById("compareScopeLens");
+  const ambBtn = document.getElementById("compareScopeAmbito");
+  if (lensBtn) lensBtn.setAttribute("aria-pressed", String(scope === "LENS"));
+  if (ambBtn) ambBtn.setAttribute("aria-pressed", String(scope === "AMBITO"));
+  const block = document.getElementById("ambitoCompare");
+  if (block) block.hidden = scope !== "AMBITO";
+  if (scope === "AMBITO") {
+    populateAmbitoSelects();
+    // Switching INTO ámbito scope invalidates any lingering Lens-circle baseline, so a
+    // captured circle baseline can never silently survive a scope switch.
+    if (typeof resetSpatialBaseline === "function") resetSpatialBaseline();
+    renderAmbitoCompare();
+  } else {
+    clearAmbitoComparePolygons();
+  }
+}
+
+function handleAmbitoCompareMapClick(latlng) {
+  if (!shell.modes || shell.modes.currentMode() !== "COMPARE") return false;
+  if (ambitoCompare.scope !== "AMBITO") return false;
+  if (planningState !== "ready" || !planningModel.index || !planningModel.module) return false;
+  const res = planningModel.index.ambitoContaining(latlng.lng, latlng.lat);
+  const hint = document.getElementById("ambitoPickHint");
+  if (!res || res.state !== planningModel.module.AMBITO_STATE.RESOLVED) {
+    if (hint) hint.textContent = shellLanguage() === "es"
+      ? "Ese punto no está dentro de ningún ámbito oficial."
+      : "That point is not inside any official ámbito.";
+    return true; // consumed: the Lens is NOT moved in ámbito-select mode
+  }
+  const slot = ambitoCompare.pending;
+  if (slot === "A") ambitoCompare.a = res.ambitoCode;
+  else ambitoCompare.b = res.ambitoCode;
+  const sel = document.getElementById(slot === "A" ? "ambitoSelectA" : "ambitoSelectB");
+  if (sel) sel.value = res.ambitoCode;
+  ambitoCompare.pending = slot === "A" ? "B" : "A";
+  renderAmbitoCompare();
+  return true;
+}
+
+async function ensureAmbitoAdapter() {
+  if (ambitoCompare.adapter) return ambitoCompare.adapter;
+  try {
+    ambitoCompare.adapter = await import(moduleUrl("ambito-comparison-adapter.js"));
+    if (planningModel.changePair) {
+      ambitoCompare.prevArtifact = ambitoCompare.adapter.reconstructPreviousStateArtifact({
+        change_detection: planningModel.changePair,
+      });
+    }
+  } catch (error) {
+    console.warn("ámbito comparison adapter unavailable", error);
+    ambitoCompare.adapter = null;
+  }
+  return ambitoCompare.adapter;
+}
+
+function clearAmbitoComparePolygons() {
+  if (ambitoCompare.polygons) {
+    for (const layer of ambitoCompare.polygons) map.removeLayer(layer);
+    ambitoCompare.polygons = null;
+  }
+}
+
+function renderAmbitoComparePolygons() {
+  clearAmbitoComparePolygons();
+  if (ambitoCompare.scope !== "AMBITO" || planningState !== "ready" || !planningModel.index) return;
+  const layers = [];
+  const draw = (code, which) => {
+    const feature = planningModel.index.featureFor(code);
+    if (!feature) return;
+    const isB = which === "B";
+    const layer = L.geoJSON(feature, {
+      pane: "planningPane",
+      interactive: false,
+      style: () => ({
+        color: isB ? "#43d7ff" : "#9ccdff",
+        weight: 3,
+        opacity: 0.95,
+        dashArray: isB ? "7 5" : null,
+        fill: true,
+        fillColor: isB ? "#43d7ff" : "#3da8ff",
+        fillOpacity: 0.1,
+      }),
+    }).addTo(map);
+    layers.push(layer);
+    const label = L.tooltip({ permanent: true, direction: "center", className: "planning-ambito-label", interactive: false, opacity: 1 })
+      .setLatLng(layer.getBounds().getCenter())
+      .setContent(`${which} · ${code}`)
+      .addTo(map);
+    layers.push(label);
+  };
+  if (ambitoCompare.a) draw(ambitoCompare.a, "A");
+  if (ambitoCompare.b) draw(ambitoCompare.b, "B");
+  ambitoCompare.polygons = layers;
+}
+
+function renderAmbitoModel(model) {
+  const body = document.getElementById("ambitoCompareBody");
+  const refusalEl = document.getElementById("ambitoCompareRefusal");
+  if (!body || !refusalEl) return;
+  // Cross-scope refusal: an ámbito and a Lens circle are different scopes.
+  if (model.comparable === false) {
+    refusalEl.hidden = false;
+    refusalEl.textContent = ambitoT(`refusal.${model.refusal ? model.refusal.reasonCode : "cross-scope"}`);
+    body.hidden = true;
+    return;
+  }
+  refusalEl.hidden = true;
+  body.hidden = false;
+
+  const setId = (code, denomId, dateId, side) => {
+    setText(code, side.ambitoCode || "—");
+    setText(denomId, side.denomination || "");
+    const devDate = side.edition.developmentState.referenceDate;
+    setText(dateId, devDate ? planningDate(devDate) : shellT("date.notPublished"));
+  };
+  setId("ambitoIdACode", "ambitoIdADenom", "ambitoIdADate", model.a);
+  setId("ambitoIdBCode", "ambitoIdBDenom", "ambitoIdBDate", model.b);
+
+  const rows = ambitoComparisonRows(model);
+  // Categorical phases: two verbatim states + SAME/DIFFERENT, no arrow/sign/delta.
+  const catList = document.getElementById("ambitoCatItems");
+  catList.replaceChildren();
+  for (const metric of rows.filter((m) => m.kind === METRIC_KIND.CATEGORICAL)) {
+    const li = document.createElement("li");
+    li.className = "ambito-cat-item";
+    li.dataset.metric = metric.id;
+    const field = document.createElement("span");
+    field.className = "ambito-cat-field";
+    field.textContent = ambitoT(`metric.${metric.id}`);
+    const values = document.createElement("span");
+    values.className = "ambito-cat-values";
+    const aVal = document.createElement("b");
+    aVal.dataset.verbatim = "";
+    aVal.textContent = metric.a.sourceValue ?? "—";
+    const bVal = document.createElement("b");
+    bVal.dataset.verbatim = "";
+    bVal.textContent = metric.b.sourceValue ?? "—";
+    values.append(document.createTextNode("A "), aVal, document.createTextNode(" · B "), bVal);
+    const rel = document.createElement("span");
+    rel.className = "ambito-rel";
+    rel.dataset.relation = metric.relation;
+    rel.textContent = ambitoT(`relation.${metric.relation}`);
+    li.append(field, rel, values);
+    catList.append(li);
+  }
+
+  // Quantities: B − A in m² only when comparable; otherwise the withheld reason.
+  const qtyRows = document.getElementById("ambitoQtyRows");
+  qtyRows.replaceChildren();
+  for (const metric of rows.filter((m) => m.kind === METRIC_KIND.QUANTITY)) {
+    const tr = document.createElement("tr");
+    tr.dataset.metric = metric.id;
+    const name = document.createElement("th");
+    name.scope = "row";
+    name.textContent = ambitoT(`metric.${metric.id}`);
+    const aTd = document.createElement("td");
+    aTd.textContent = ambitoSideText(metric.a);
+    const bTd = document.createElement("td");
+    bTd.textContent = ambitoSideText(metric.b);
+    const dTd = document.createElement("td");
+    if (metric.comparable) {
+      const sign = metric.deltaValue > 0 ? "+" : "";
+      dTd.textContent = `${sign}${ambitoNum(metric.deltaValue)}`;
+    } else {
+      dTd.className = "ambito-withheld";
+      dTd.textContent = ambitoT(`withheld.${metric.withheldReasonCode}`);
+    }
+    tr.append(name, aTd, bTd, dTd);
+    qtyRows.append(tr);
+  }
+
+  const guard = document.getElementById("ambitoCompareGuard");
+  if (guard) guard.textContent = ambitoT("guard.descriptive-only");
+  const radiusNote = document.getElementById("ambitoRadiusNote");
+  if (radiusNote) radiusNote.textContent = ambitoT("radius.non_applicable");
+}
+
+function renderAmbitoEdition(model, adapter) {
+  const items = document.getElementById("ambitoEditionItems");
+  if (!items) return;
+  items.replaceChildren();
+  const changeModule = planningModel.changeModule;
+  if (!changeModule || !ambitoCompare.prevArtifact || typeof buildAmbitoEditionSensitivity !== "function") return;
+  const prevA = adapter.buildPreviousAmbitoInput(ambitoCompare.a, ambitoCompare.prevArtifact);
+  const prevB = adapter.buildPreviousAmbitoInput(ambitoCompare.b, ambitoCompare.prevArtifact);
+  const prevModel = buildAmbitoComparisonModel(prevA, prevB);
+  const stateArtifact = { change_detection: planningModel.changePair };
+  const continuity = {
+    a: editionContinuityFromOutcome(adapter.governingContinuityOutcome(adapter.editionOutcomes(ambitoCompare.a, stateArtifact, changeModule))),
+    b: editionContinuityFromOutcome(adapter.governingContinuityOutcome(adapter.editionOutcomes(ambitoCompare.b, stateArtifact, changeModule))),
+  };
+  const sens = buildAmbitoEditionSensitivity(model, prevModel, continuity);
+  if (!sens.applicable) return;
+  for (const item of sens.items) {
+    const li = document.createElement("li");
+    li.className = "ambito-edition-item";
+    li.dataset.metric = item.metricId;
+    li.dataset.transition = item.code;
+    const name = document.createElement("span");
+    name.className = "aei-metric";
+    name.textContent = ambitoT(`metric.${item.metricId}`);
+    const trans = document.createElement("span");
+    trans.className = "aei-transition";
+    trans.textContent = ambitoT(`transition.${item.code}`);
+    li.append(name, trans);
+    items.append(li);
+  }
+}
+
+function renderAmbitoCompare() {
+  if (ambitoCompare.scope !== "AMBITO") return;
+  const body = document.getElementById("ambitoCompareBody");
+  const refusalEl = document.getElementById("ambitoCompareRefusal");
+  const radiusNote = document.getElementById("ambitoRadiusNote");
+  if (radiusNote) radiusNote.textContent = ambitoT("radius.non_applicable");
+  if (typeof buildAmbitoComparisonModel !== "function") return;
+  if (!ambitoCompare.a || !ambitoCompare.b || planningState !== "ready" || !planningModel.index) {
+    if (body) body.hidden = true;
+    if (refusalEl) refusalEl.hidden = true;
+    clearAmbitoComparePolygons();
+    return;
+  }
+  ensureAmbitoAdapter().then((adapter) => {
+    if (!adapter || ambitoCompare.scope !== "AMBITO") return;
+    const a = adapter.buildCurrentAmbitoInput(ambitoCompare.a, planningModel.index);
+    const b = adapter.buildCurrentAmbitoInput(ambitoCompare.b, planningModel.index);
+    const model = buildAmbitoComparisonModel(a, b);
+    renderAmbitoModel(model);
+    renderAmbitoComparePolygons();
+    if (model.comparable !== false) renderAmbitoEdition(model, adapter);
+  });
+}
+
+// Called after the planning artifacts finish loading, so a user who opened the
+// ámbito scope before the data arrived gets the populated selects and a render.
+function refreshAmbitoCompareData() {
+  if (ambitoCompare.scope !== "AMBITO") return;
+  populateAmbitoSelects();
+  renderAmbitoCompare();
+}
+
+{
+  const line = document.getElementById("compareLine");
+  if (line && !line.dataset.compareScope) line.dataset.compareScope = "LENS";
+  const lensBtn = document.getElementById("compareScopeLens");
+  const ambBtn = document.getElementById("compareScopeAmbito");
+  if (lensBtn) lensBtn.onclick = () => setCompareScope("LENS");
+  if (ambBtn) ambBtn.onclick = () => setCompareScope("AMBITO");
+  const selA = document.getElementById("ambitoSelectA");
+  const selB = document.getElementById("ambitoSelectB");
+  const onPick = (slot) => (event) => {
+    const code = event.target.value.trim();
+    ambitoCompare[slot] = isKnownAmbitoCode(code) ? code : null;
+    renderAmbitoCompare();
+  };
+  if (selA) { selA.onchange = onPick("a"); selA.oninput = onPick("a"); }
+  if (selB) { selB.onchange = onPick("b"); selB.oninput = onPick("b"); }
+  // Leaving COMPARE clears the two official polygons so they never linger on the
+  // map in PLACE or CITY. The Lens-circle surfaces are untouched.
+  shell.modes.subscribe((mode) => {
+    if (mode !== "COMPARE") clearAmbitoComparePolygons();
+    else if (ambitoCompare.scope === "AMBITO") renderAmbitoComparePolygons();
+  });
+}

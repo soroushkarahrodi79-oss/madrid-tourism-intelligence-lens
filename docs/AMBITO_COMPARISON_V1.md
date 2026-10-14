@@ -10,13 +10,22 @@ reusing the comparison discipline the circle-scope surfaces already enforce —
   `buildAmbitoComparisonModel`, the one-state projections
   (`ambitoBridgeReading`, `ambitoDecisionInsightItems`, `ambitoComparisonRows`,
   `ambitoComparisonStatus`), `ambitoRadiusSensitivityStatus`,
-  `buildAmbitoEditionSensitivity`.
+  `editionContinuityFromOutcome`, `buildAmbitoEditionSensitivity`.
+- Input assembly: [`js/ambito-comparison-adapter.js`](../js/ambito-comparison-adapter.js)
+  turns the committed K6/K7 evidence into model inputs and derives edition
+  continuity through the real K7 classifier; it computes no comparison itself.
+- COMPARE UI: the ámbito scope switch, A/B selection (exact code + map polygon
+  click) and the comparison surfaces in [`index.html`](../index.html),
+  [`js/app.js`](../js/app.js) and [`css/app.css`](../css/app.css).
 - Reads the K6 readers in [`js/planning-ambito.js`](../js/planning-ambito.js)
   (`developmentState`, `availableBuildability`) and, for edition sensitivity,
   the two dated editions K7 keeps in `data/planning/madrid_ambito_state.json`
   (`change_detection.previous` / `.current`) through
   [`js/ambito-change.js`](../js/ambito-change.js).
-- Tests: [`tests/ambito_comparison.test.mjs`](../tests/ambito_comparison.test.mjs).
+- Tests: [`tests/ambito_comparison.test.mjs`](../tests/ambito_comparison.test.mjs)
+  (model), [`tests/ambito_comparison_integration.test.mjs`](../tests/ambito_comparison_integration.test.mjs)
+  (real committed artifacts), [`browser-tests/ambito-comparison.browser.mjs`](../browser-tests/ambito-comparison.browser.mjs)
+  (the real render path).
 
 Related, with their existing contracts unchanged:
 [Planning-ámbito evidence V1](PLANNING_AMBITO_EVIDENCE_V1.md) ·
@@ -114,21 +123,32 @@ never defaulted to `PLANNING_AMBITO`.
 
 Two ámbitos are like-for-like only when each family's edition snapshot identity
 matches on both sides. Where they differ — possible when K7's second edition is
-put in play — the comparison is **withheld by default**: every quantity reports
+put in play — the comparison is **withheld**: every quantity reports
 `withheldReasonCode: CROSS_EDITION` and every phase relation becomes
 `INDETERMINATE` with `indeterminateReasonCode: CROSS_EDITION`. Both ámbitos are
 still shown, each with **its own stated reference date**, exactly as mobility is
-withheld (but both values shown) under unequal windows today. A cross-edition
-comparison proceeds **only** when an explicit `documentedEditionBasis` string is
-supplied.
+withheld (but both values shown) under unequal windows today.
 
-## 7. `MODIFIED_BY_INSTRUMENT` is withheld, never compared
+**There is no override.** An early draft carried a `documentedEditionBasis`
+string that let any non-empty value authorise a cross-edition comparison; that is
+insufficient evidence — there is no defensible general basis for comparing ámbito
+A at one edition against ámbito B at another — so it was removed. The controlled,
+documented way to look across editions is §8.2 edition sensitivity, which varies
+the edition for the **same** pair and derives identity continuity from K7.
 
-When either side carries a documented instrument barrier (`modifiedByInstrument`,
-a K7 `MODIFIED_BY_INSTRUMENT` relationship), every quantity is withheld
-`MODIFIED_BY_INSTRUMENT` and every phase relation is `INDETERMINATE` with that
-reason. A pair that is not like-for-like across a planning-instrument
-modification is never compared as if it were.
+## 7. Identity continuity is derived from K7, not asserted
+
+Across an edition step, an entity's identity is continuous only when the K7
+change-detection outcome for that exact code is `NO_CHANGE` or
+`STATE_TRANSITION`. `NEW_AMBITO`, `ABSENT_FROM_EDITION`, `MODIFIED_BY_INSTRUMENT`,
+`CAUSE_UNRESOLVED` and `NON_COMPARABLE` all mean the identity cannot be carried
+across the step as a like-for-like entity. `editionContinuityFromOutcome` maps
+each K7 outcome to an `{ established, reasonCode }` record; a missing or unknown
+outcome is treated as **not established**, never as silently continuous. The
+barrier is therefore derived from the documented K7 contract, **not** from an
+application-supplied boolean. This matters only for edition sensitivity (§8.2):
+within one edition, two distinct ámbitos are each themselves, so no instrument
+barrier applies.
 
 ## 8. Sensitivity — an explicit decision, not an analogy
 
@@ -144,25 +164,47 @@ panel or silently keeping a circle baseline.
 
 ### 8.2 Edition sensitivity replaces it
 
-`buildAmbitoEditionSensitivity(current, previous)` asks: does the A ↔ B
-relationship hold under the **previous** official edition? The varied parameter
-is the **edition**, not the radius. `current` and `previous` are each a full
-comparison model — A and B both read at the current edition, and A and B both
-read at the previous edition. It reports one transition per canonical metric, in
-fixed order, using the **same transition vocabulary** as Spatial Window
+`buildAmbitoEditionSensitivity(current, previous, continuity)` asks: does the
+A ↔ B relationship hold under the **previous** official edition? The varied
+parameter is the **edition**, not the radius. `current` and `previous` are each a
+full comparison model — A and B both read at the current edition, and A and B
+both read at the previous edition. `continuity` is `{ a, b }`, each the K7-derived
+`editionContinuityFromOutcome` record for that code (§7).
+
+**Identity is checked first.** If either A or B is not identity-continuous across
+the editions, **every** metric is withheld `WITHHELD_NON_CONTINUOUS` with the
+governing reason: two editions of different objects are never compared as the
+same object. Only when both sides are continuous is a per-metric transition
+classified, using the **same transition vocabulary** as Spatial Window
 Sensitivity:
 
 | Kind | Transition codes |
 |---|---|
 | quantity | `UNCHANGED_COMPARABLE`, `DIRECTION_CHANGED`, `BASIS_CHANGED`, `BECAME_WITHHELD`, `BECAME_COMPARABLE`, `WITHHELD_UNCHANGED`, `WITHHELD_REASON_CHANGED` |
 | categorical | `RELATION_UNCHANGED`, `RELATION_CHANGED`, `RELATION_INDETERMINATE` (no direction, ever) |
+| identity | `WITHHELD_NON_CONTINUOUS` |
 
 The **basis is checked before any direction claim** (Spatial Window Sensitivity
-V1 §12). Each side keeps its **own stated reference date**. A
-`MODIFIED_BY_INSTRUMENT` metric in either edition reading reports a withheld
-state rather than a change.
+V1 §12). Each metric carries the baseline/scenario reference date **from its own
+source family** — S1 development-state dates for phase and surface metrics, S2
+available-buildability dates for buildability metrics — never one family's date
+substituted for another's.
 
-## 9. What K10 does not add
+## 9. Halo
+
+The Radial Halo is a Lens-circle display and its contract is unchanged: bar
+lengths compare **within a metric only**, never across metrics, and nothing in
+K10 touches `js/radial-halo.js` or the circle halo. K10 does **not** encode the
+ámbito m² quantities as halo bars and does **not** encode the categorical phases
+as quantitative bars. A halo for two fixed official polygons would need a
+separate, defensible within-metric m² reference per metric; rather than invent a
+benchmark the sources do not state, the ámbito quantities render as a labelled
+table (value + unit, with B − A), which reads a set of m² figures as what they
+are. If a defensible m² halo reference is ever warranted it can be added as a
+separate within-metric scale that never shares an axis with a count metric; that
+is deferred, not worked around.
+
+## 10. What K10 does not add
 
 No score, index, ranking, ordering, "better ámbito" or composite across the four
 phases. No phase delta. No cross-scope comparison. No apportionment of any
@@ -172,11 +214,32 @@ dataset and no new dependency. No change to any existing comparison semantics:
 every current value, delta, basis, withholding rule and boundary stays exactly as
 merged in PRs #56–#60.
 
-## 10. Status (increment 1 of K10)
+## 11. Surface and interaction
 
-This document and `js/ambito-comparison.js` land the **authoritative pure model**
-and its full Node test coverage. The COMPARE-mode A/B selection UI, the view-layer
-wiring of the three comparison surfaces to this model, the map treatment of the
-two official polygons, and the browser (Playwright) regressions are the **next
-increment** on the same PR — see the PR description for the acceptance-criteria
-matrix and what remains open.
+In COMPARE a scope switch chooses **Lens circles** (default, unchanged) or
+**Planning ámbitos**. The two surface sets are gated by
+`#compareLine[data-compare-scope]` and never show at once, so an ámbito
+comparison cannot be read as a Lens one; switching to the ámbito scope also
+invalidates any captured Lens-circle baseline. A and B are chosen by **exact
+official code** (an `<input>` backed by a datalist of the committed codes; only an
+exact code is accepted — the `-RP` discipline forbids near matches) or by
+**clicking an official polygon** on the map, which selects A then B instead of
+moving a Lens; outside the ámbito scope the click path is untouched. The two
+selected geometries are drawn as official polygons (A solid, B dashed) on the
+planning pane, distinct from the adjustable Lens circles.
+
+The identity header shows both codes, denominations and edition reference dates;
+the categorical phases render as same/different chips with no arrow, sign or
+direction colour; the quantities render as a B − A table or a withheld reason;
+the radius-sensitivity line states its non-applicability; and edition sensitivity
+sits behind a disclosure. All copy follows the document language (EN/ES) and
+official values stay verbatim.
+
+### Status
+
+K10 lands across two reviewable increments on PR #87: increment 1 the
+authoritative model, docs and model tests; increment 2 the hardened scientific
+contracts (no cross-edition override, K7-derived continuity, per-family dates),
+the real-artifact integration tests, the COMPARE interaction and the Playwright
+coverage. See the PR description for the full acceptance-criteria matrix and any
+remaining map/halo polish.
