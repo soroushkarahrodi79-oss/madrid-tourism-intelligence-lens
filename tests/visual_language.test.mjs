@@ -136,7 +136,7 @@ function classifySpacingGeometry({ selector, property, value }) {
 function classifyRadiusGeometry({ selector, value }) {
   const rules = [
     { category: "CIRCLE_GEOMETRY", selector: /^\.(?:dot|marker-center|poi-cluster|evidence-link)$|^\.live i$|^\.switch span:after$/, value: /^50%$/ },
-    { category: "PILL_GEOMETRY", selector: /^(?:\.activity-divider small,\.context-divider small,\.research-divider small|\.hospitality-scale|\.live|\.cb-lock|\.area-label)$/, value: /^999px$/ },
+    { category: "PILL_GEOMETRY", selector: /^(?:\.activity-divider small,\.context-divider small,\.research-divider small|\.administrative-divider small|\.hospitality-scale|\.live|\.cb-lock|\.area-label)$/, value: /^999px$/ },
     { category: "LEAFLET_GEOMETRY", selector: /^\.leaflet-control-attribution$/, value: /^7px$/ },
     { category: "LEAFLET_GEOMETRY", selector: /^\.leaflet-tooltip$/, value: /^10px$/ },
     { category: "LOGO_GEOMETRY", selector: /^\.logo:before,\.logo:after$/, value: /^5px 1px 5px 5px$/ },

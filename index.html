@@ -90,6 +90,12 @@
     </div>
   </div>
 
+  <div class="administrative-divider">
+    <span data-i18n="aside.administrative">Administrative register</span>
+    <small data-i18n="aside.administrativeNote">granted ≠ built</small>
+  </div>
+  <div class="layer administrative-layer"><div class="layer-left"><i class="dot dot-licence"></i><span data-i18n="layer.licences">Granted urban licences</span></div><label class="switch"><input data-layer="licences" type="checkbox" aria-label="Toggle the granted urban-licence register" data-i18n-attr="aria-label:lic.toggleAria" aria-checked="false"><span></span></label></div>
+
   <div class="research-divider">
     <span>Research evidence</span>
     <small>bounded pilot</small>
@@ -261,6 +267,85 @@
       </details>
     </div>
     <button id="planningSourceToggle" class="planning-source-toggle" type="button" aria-haspopup="dialog" data-i18n="planning.source">Source &amp; interpretation</button>
+  </section>
+
+
+  <!-- GRANTED URBAN LICENCES (K9, #71). An opt-in ADDRESS_POINT administrative
+       register, OFF by default and shown only when its layer is enabled. The
+       four layer states are kept distinct and never collapsed: OFF (section
+       hidden, toggle off), UNAVAILABLE (committed artifact missing), NO_MATCHES
+       (enabled, valid window, an observed zero) and AVAILABLE. Granted ≠ built,
+       the three families are never summed into one total, the count is the
+       resolved subset of a known register, and the match rate and granted-only
+       ceiling render inline — not drawer-only. -->
+  <section id="urbanLicences" class="licences" aria-labelledby="licSectionHeading" data-licence-state="OFF" hidden>
+    <div class="section-head"><span id="licSectionHeading" data-i18n="lic.section">Granted urban licences</span><small data-i18n="lic.scopeHint">located address points inside the Lens</small><button type="button" class="evidence-link" data-evidence-prefix="place.licences" data-evidence-name="lic.section" aria-haspopup="dialog"><span aria-hidden="true">i</span></button></div>
+    <div id="licLive" aria-live="polite">
+      <p id="licUnavailable" class="lic-state lic-unavailable" data-i18n="lic.unavailable" hidden>The granted urban-licence layer is unavailable in this deployment.</p>
+      <p id="licNoMatches" class="lic-state lic-nomatches" data-i18n="lic.noMatches" hidden>No granted licence resolves inside the Lens for this grant-date window. This is an observed zero for the resolved register — not unavailable, and not the layer being off.</p>
+
+      <div id="licBody" hidden>
+        <!-- GRANT-DATE WINDOW. Bounded to the register's real coverage: the two
+             inputs carry min/max = the extent, so it can never be set outside
+             the register and never implies open-ended history. The applied
+             window is always stated as explicit dates. -->
+        <div class="lic-window">
+          <div class="lic-block-head"><span data-i18n="lic.windowTitle">Grant-date window</span></div>
+          <div class="lic-window-controls">
+            <label class="lic-window-field"><span data-i18n="lic.windowFrom">From</span><input id="licFrom" type="date"></label>
+            <label class="lic-window-field"><span data-i18n="lic.windowTo">To</span><input id="licTo" type="date"></label>
+          </div>
+          <p id="licWindowApplied" class="lic-window-applied"></p>
+          <p id="licWindowClamped" class="lic-window-clamped" data-i18n="lic.windowClamped" hidden>Adjusted to the register's coverage.</p>
+          <p id="licWindowExtent" class="planning-block-note"></p>
+        </div>
+
+        <!-- THREE SEPARATE FAMILIES. Three figures, three labels, no sum. -->
+        <div class="lic-family-head"><span data-i18n="lic.familyTitle">Granted licences inside the Lens, by family</span></div>
+        <div class="lic-families">
+          <div class="lic-family"><div class="lic-family-name" data-i18n="lic.family.building">Building / urbanistic</div><div id="licCountBuilding" class="lic-family-count">—</div><div class="lic-family-unit" data-i18n="lic.familyUnit">granted licences located in the circle</div></div>
+          <div class="lic-family"><div class="lic-family-name" data-i18n="lic.family.activity">Activity</div><div id="licCountActivity" class="lic-family-count">—</div><div class="lic-family-unit" data-i18n="lic.familyUnit">granted licences located in the circle</div></div>
+          <div class="lic-family"><div class="lic-family-name" data-i18n="lic.family.temporary">Temporary activity</div><div id="licCountTemporary" class="lic-family-count">—</div><div class="lic-family-unit" data-i18n="lic.familyUnit">granted licences located in the circle</div></div>
+        </div>
+        <p class="planning-block-note" data-i18n="lic.familyNote">Three separate families. They are different administrative universes and are never added into one total.</p>
+
+        <!-- RESOLVED COVERAGE — stated wherever the count is. -->
+        <div class="lic-coverage">
+          <div class="lic-block-head"><span data-i18n="lic.coverageTitle">Resolved coverage</span></div>
+          <p id="licCoverage" class="lic-coverage-line"></p>
+          <p class="planning-block-note" data-i18n="lic.coverageCeiling">The mapped layer is the resolved subset of the register, not complete Madrid licence coverage.</p>
+        </div>
+
+        <!-- UNMATCHED / WITHHELD — reported, never dropped, with residual classes. -->
+        <div class="lic-unmatched">
+          <div class="lic-block-head"><span data-i18n="lic.unmatchedTitle">Unmatched and withheld</span></div>
+          <p id="licUnmatched" class="lic-unmatched-line"></p>
+          <ul id="licResidualList" class="lic-residual"></ul>
+        </div>
+
+        <!-- INLINE CEILING — the most likely misreading, inline not drawer-only. -->
+        <div class="lic-ceiling">
+          <div class="lic-block-head"><span data-i18n="lic.ceilingTitle">What this is — and is not</span></div>
+          <p class="lic-ceiling-line" data-i18n="lic.ceiling.notBuilt">Granted is not built. A granted licence means an administrative grant was recorded; it is not evidence that work started, construction occurred or completed, occupancy happened, or the permitted quantity was built.</p>
+          <p class="lic-ceiling-line" data-i18n="lic.ceiling.granted">Granted licences only (RESOLUCIÓN = Conceder). There is no applications or refusals denominator, so no approval, rejection or refusal rate exists or is derivable.</p>
+          <p class="lic-ceiling-line" data-i18n="lic.ceiling.noTotal">The three families are never summed into a single cross-family total.</p>
+          <p class="lic-ceiling-line" data-i18n="lic.ceiling.noOverlap">Licence records may concern places also in the Censo de Locales, licensed VUT or hospitality evidence; these universes are never summed as unique businesses or sites.</p>
+        </div>
+
+        <details class="lic-citizen">
+          <summary data-i18n="lic.citizenTitle">What this means</summary>
+          <p data-i18n="lic.citizen.body">These are urban licences the Ayuntamiento recorded as granted, placed at their official address and counted inside the Lens by family and grant date. A granted licence is an administrative step — not proof that anything has been built.</p>
+        </details>
+
+        <details class="lic-provenance">
+          <summary data-i18n="lic.provenanceTitle">Address-point provenance</summary>
+          <p data-i18n="lic.prov.current">Current official callejero: barrio and district are the callejero's own codes.</p>
+          <p data-i18n="lic.prov.historical">Historical-only recovery: the official historical coordinate places the point and its barrio is derived from the canonical polygons — a different provenance, kept distinct.</p>
+          <p data-i18n="lic.prov.disagreement">Some resolved rows carry an address-text disagreement with the current callejero. Exact NDP identity is authoritative; no coordinate is moved and nothing is re-geocoded from the text.</p>
+        </details>
+      </div>
+    </div>
+    <button id="licSourceToggle" class="planning-source-toggle" type="button" aria-haspopup="dialog" data-i18n="lic.source">Source &amp; interpretation</button>
   </section>
 
 

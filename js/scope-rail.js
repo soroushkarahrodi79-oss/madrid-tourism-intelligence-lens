@@ -66,6 +66,13 @@ const SURFACES = Object.freeze({
   "place.detail.nearest": { mode: "PLACE", scope: "LENS_CIRCLE", sources: ["museum", "info", "stay", "bike", "rail"], unit: "unit.metres", derivation: "derive.nearest" },
   "place.pedestrian": { mode: "PLACE", scope: "LENS_CIRCLE", sources: ["pedestrian"], unit: "unit.pedestrians", derivation: "derive.lensMean", when: "pedestrian" },
   "place.hospitality": { mode: "PLACE", scope: "OFFICIAL_BARRIO", sources: ["hospitality_commercial_context"], unit: "unit.hospitality", derivation: "derive.published", when: "hospitality" },
+  // Granted urban licences (K9, #71). ADDRESS_POINT scope: a count of located
+  // records spatially included in the Lens circle, never a barrio figure. The
+  // callejero crosswalk is a contributing source so the drawer carries the
+  // official address-point provenance (current / historical) alongside the
+  // register. Both sources publish reference_date: null, so the rail reports no
+  // shared "as of" date rather than inventing one across unrelated datasets.
+  "place.licences": { mode: "PLACE", scope: "ADDRESS_POINT", sources: ["urban_licences", "callejero_ndp_crosswalk"], unit: "unit.licences", derivation: "derive.lensLicences", when: "licences" },
   "layer.hati": { mode: "PLACE", scope: "BOUNDED_STUDY_AREA", sources: ["hati"], unit: "unit.celsius", derivation: "derive.published", when: "hati" },
   "layer.pedestrian": { mode: "PLACE", scope: "POINT_OBSERVATION", sources: ["pedestrian"], unit: "unit.pedestrians", derivation: "derive.published", when: "pedestrian" },
 

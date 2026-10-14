@@ -18,6 +18,7 @@
   /* Reserved for future planning geometry. The neutral family is deliberately
      separate from Lens A/B and carries no order, progress or judgement. */
   --planning-neutral:#aeb8c4;
+  --licence-neutral:#c0794f;
   --planning-origin:#c4b8cf;
   --planning-unresolved:#bdb7aa;
   --museum:#9d72ff; --info:#c79cff; --stay:#3da8ff; --bike:#54e2b5; --rail:#ffd166;
@@ -85,6 +86,7 @@ header{
 .dot-pedestrian{color:var(--activity);background:var(--activity)}
 .dot-park{color:var(--park);background:var(--park)}
 .dot-heat{color:var(--heat);background:var(--heat)}
+.dot-licence{color:var(--licence-neutral);background:var(--licence-neutral)}
 .dot-inline{display:inline-block;margin-right:var(--s-1)}
 .switch{position:relative;width:27px;height:15px;flex:0 0 auto}.switch input{position:absolute;width:1px;height:1px;opacity:0}.switch span{position:absolute;inset:0;background:#253344;border-radius:10px;cursor:pointer;transition:.2s}
 .switch span:after{content:"";position:absolute;width:11px;height:11px;left:2px;top:2px;border-radius:50%;background:#8da0b7;transition:.2s}
@@ -97,6 +99,9 @@ header{
 .activity-divider small,.context-divider small,.research-divider small{font-size:var(--t-micro);padding:var(--s-1) var(--s-2);border-radius:999px}
 .activity-divider small{border:1px solid rgba(255,122,162,.2);background:rgba(255,122,162,.06);color:#ff9abb}
 .context-divider small{border:1px solid rgba(112,222,164,.2);background:rgba(112,222,164,.06);color:#91e8b8}
+.administrative-divider{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);margin:var(--s-3) 0 var(--s-1);padding-top:var(--s-2);border-top:1px solid rgba(255,255,255,.09)}
+.administrative-divider span{font-size:var(--t-micro);letter-spacing:.12em;text-transform:uppercase;color:#9aaec4}
+.administrative-divider small{font-size:var(--t-micro);padding:var(--s-1) var(--s-2);border-radius:999px;border:1px solid rgba(192,121,79,.3);background:rgba(192,121,79,.08);color:#d99a6e}
 .research-divider small{border:1px solid rgba(255,176,74,.2);background:rgba(255,176,74,.06);color:#ffc570}
 .activity-layer,.context-layer,.research-layer{border-bottom:0}
 .hospitality-layer{align-items:flex-start}
@@ -372,6 +377,44 @@ header{
 /* Hospitality & Commercial is a selectable administrative choropleth. Its
    card is text-complete without the fill, and its purple scale deliberately
    avoids evaluative red/amber/green semantics. */
+/* Granted urban licences (K9, #71). Opt-in ADDRESS_POINT register rendered in a
+   reserved administrative-neutral hue, visually distinct from the Lens A/B
+   identities and from the planning-neutral ámbito. Three per-family figures are
+   kept visually separate so no single "urban licences" total can be read. */
+.licences{margin:var(--s-3) 0 0;padding-top:var(--s-2);border-top:1px solid var(--line)}
+.licences[hidden]{display:none}
+.licences .section-head{margin-top:0}
+.lic-block-head{font-size:var(--t-label);letter-spacing:.1em;text-transform:uppercase;color:#8ba0b7;font-weight:620}
+.lic-state{margin:var(--s-2) 0 0;padding:var(--s-3);border:1px dashed var(--line2);border-radius:var(--r-small);font-size:var(--t-body);line-height:1.55;color:#bda089}
+.lic-state[hidden]{display:none}
+.lic-nomatches{border-color:rgba(192,121,79,.35);background:rgba(192,121,79,.05)}
+#licBody[hidden]{display:none}
+.lic-window{margin-top:var(--s-3);padding:var(--s-3);border:1px solid var(--line);border-radius:var(--r-small);background:rgba(255,255,255,.022)}
+.lic-window-controls{display:flex;flex-wrap:wrap;gap:var(--s-2);margin-top:var(--s-2)}
+.lic-window-field{display:flex;flex-direction:column;gap:var(--s-1);flex:1 1 120px;font-size:var(--t-micro);color:#9aaec4}
+.lic-window-field input{width:100%;padding:var(--s-2);font-size:var(--t-micro);background:#0c1826;color:#d9e4ef;border:1px solid var(--line);border-radius:var(--r-small);font-variant-numeric:tabular-nums}
+.lic-window-field input:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px}
+.lic-window-applied{margin:var(--s-2) 0 0;font-size:var(--t-meta);line-height:1.5;color:#cdb79f;font-variant-numeric:tabular-nums}
+.lic-window-clamped{margin:var(--s-1) 0 0;font-size:var(--t-micro);color:#d99a6e}
+.lic-window-clamped[hidden]{display:none}
+.lic-family-head{margin-top:var(--s-3);font-size:var(--t-label);letter-spacing:.1em;text-transform:uppercase;color:#8ba0b7;font-weight:620}
+.lic-families{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-2);margin-top:var(--s-2)}
+.lic-family{padding:var(--s-3);border:1px solid var(--line);border-left:3px solid var(--licence-neutral);border-radius:var(--r-small);background:rgba(192,121,79,.045);min-width:0}
+.lic-family-name{font-size:var(--t-micro);color:#aebdcd;line-height:1.3}
+.lic-family-count{font-size:var(--t-title);font-weight:780;letter-spacing:-.04em;margin-top:var(--s-2);line-height:1;color:#f3f7ff;font-variant-numeric:tabular-nums}
+.lic-family-unit{font-size:var(--t-micro);color:#8699ae;margin-top:var(--s-1);line-height:1.35}
+.lic-coverage,.lic-unmatched{margin-top:var(--s-3)}
+.lic-coverage-line,.lic-unmatched-line{margin:var(--s-1) 0 0;font-size:var(--t-body);line-height:1.5;color:#bccddf;font-variant-numeric:tabular-nums}
+.lic-residual{list-style:none;margin:var(--s-2) 0 0;padding:0;display:flex;flex-direction:column;gap:var(--s-1);font-size:var(--t-micro);color:#95a9be}
+.lic-residual li{padding-left:var(--s-2);border-left:2px solid var(--line2);font-variant-numeric:tabular-nums}
+.lic-ceiling{margin-top:var(--s-3);padding:var(--s-3);border:1px solid rgba(192,121,79,.28);border-radius:var(--r-small);background:rgba(192,121,79,.05)}
+.lic-ceiling-line{margin:var(--s-2) 0 0;font-size:var(--t-body);line-height:1.5;color:#cdb79f}
+.lic-ceiling-line:first-of-type{color:#e7cdb4;font-weight:600}
+.lic-citizen,.lic-provenance{margin-top:var(--s-3);border:1px solid var(--line);border-radius:var(--r-small);background:rgba(255,255,255,.02)}
+.lic-citizen summary,.lic-provenance summary{padding:var(--s-2) var(--s-3);cursor:pointer;font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:#9aaec4}
+.lic-citizen p,.lic-provenance p{margin:0;padding:0 var(--s-3) var(--s-2);font-size:var(--t-body);line-height:1.5;color:#a9bbcf}
+.lic-provenance p+p{border-top:1px solid var(--line);padding-top:var(--s-2)}
+@media(max-width:480px){.lic-families{grid-template-columns:1fr}.lic-window-field{flex:1 1 100%}}
 .hospitality-context{margin:var(--s-3) 0 var(--s-1);padding-top:var(--s-2);border-top:1px solid var(--line)}
 .hospitality-context[hidden]{display:none}
 .hospitality-context .section-head{margin-top:0}
