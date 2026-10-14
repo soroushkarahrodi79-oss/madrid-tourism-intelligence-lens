@@ -293,8 +293,9 @@ function buildCategoricalMetric(metricId, a, b) {
   };
 }
 
-function buildQuantityMetric(metricId, a, b, editionBasis, instrumentBarrier) {
+function buildQuantityMetric(metricId, a, b, editionBasis) {
   const unit = metricId === "ambito_surface" ? SURFACE_UNIT : BUILDABILITY_UNIT;
+  // Surface is an S1 development-state figure; buildability use classes are S2.
   const editionKey = metricId === "ambito_surface" ? "development_state" : "available_buildability";
   const aSide = quantitySide(a, metricId);
   const bSide = quantitySide(b, metricId);
@@ -312,12 +313,7 @@ function buildQuantityMetric(metricId, a, b, editionBasis, instrumentBarrier) {
   const withheld = (reasonCode) =>
     Object.assign(base, { comparable: false, deltaValue: null, deltaKind: null, withheldReasonCode: reasonCode });
 
-  // A modification barrier (a documented instrument event between the compared
-  // editions) forces withheld before any value is read: a MODIFIED_BY_INSTRUMENT
-  // pair is not like-for-like.
-  if (instrumentBarrier) return withheld(WITHHELD_REASON.MODIFIED_BY_INSTRUMENT);
-
-  // Cross-edition: not like-for-like, withheld by default.
+  // Cross-edition: not like-for-like, withheld (no override).
   if (!editionBasis.like_for_like[editionKey]) return withheld(WITHHELD_REASON.CROSS_EDITION);
 
   if (aSide.state === QUANTITY_SIDE_STATE.MULTIPLE_ROWS_NOT_COMBINED || bSide.state === QUANTITY_SIDE_STATE.MULTIPLE_ROWS_NOT_COMBINED) {
@@ -368,10 +364,14 @@ function sideSummary(input) {
  *     same/different relation and NO delta; quantity metrics carry a B − A
  *     difference when like-for-like, or a withheld reason.
  *
- * `options.documentedEditionBasis` (a non-empty string) permits a cross-edition
- * comparison; absent, a cross-edition pair withholds every metric CROSS_EDITION.
+ * Two ámbitos read from different official editions are NOT like-for-like. There
+ * is no defensible general basis for comparing ámbito A at one edition against
+ * ámbito B at another, so a cross-edition pair withholds every metric
+ * CROSS_EDITION with no override. The controlled, documented way to look across
+ * editions is `buildAmbitoEditionSensitivity`, which varies the edition for the
+ * SAME pair and derives continuity from the K7 change-detection contract.
  */
-function buildAmbitoComparisonModel(a, b, options = {}) {
+function buildAmbitoComparisonModel(a, b) {
   const scopeA = sideScope(a);
   const scopeB = sideScope(b);
 
@@ -396,15 +396,15 @@ function buildAmbitoComparisonModel(a, b, options = {}) {
     });
   }
 
-  const documented =
-    typeof options.documentedEditionBasis === "string" && options.documentedEditionBasis.trim().length > 0;
-
+  // Like-for-like is established per source family ONLY by an exact edition
+  // snapshot-identity match on both sides. There is no override: a cross-edition
+  // pair is withheld.
   const devSame = editionIdentityOf(a, "development_state") === editionIdentityOf(b, "development_state");
   const buildSame = editionIdentityOf(a, "available_buildability") === editionIdentityOf(b, "available_buildability");
   const editionBasis = {
     like_for_like: {
-      development_state: devSame || documented,
-      available_buildability: buildSame || documented,
+      development_state: devSame,
+      available_buildability: buildSame,
     },
     development_state: { a: editionIdentityOf(a, "development_state"), b: editionIdentityOf(b, "development_state"), same: devSame },
     available_buildability: {
@@ -412,12 +412,7 @@ function buildAmbitoComparisonModel(a, b, options = {}) {
       b: editionIdentityOf(b, "available_buildability"),
       same: buildSame,
     },
-    documentedBasis: documented ? options.documentedEditionBasis.trim() : null,
   };
-
-  const aBarrier = Boolean(a.modifiedByInstrument);
-  const bBarrier = Boolean(b.modifiedByInstrument);
-  const instrumentBarrier = aBarrier || bBarrier;
 
   const metrics = AMBITO_METRIC_IDS.map((metricId) => {
     if (metricId.startsWith("phase_")) {
@@ -428,13 +423,10 @@ function buildAmbitoComparisonModel(a, b, options = {}) {
       if (!editionBasis.like_for_like.development_state) {
         metric.relation = CATEGORICAL_RELATION.INDETERMINATE;
         metric.indeterminateReasonCode = WITHHELD_REASON.CROSS_EDITION;
-      } else if (instrumentBarrier) {
-        metric.relation = CATEGORICAL_RELATION.INDETERMINATE;
-        metric.indeterminateReasonCode = WITHHELD_REASON.MODIFIED_BY_INSTRUMENT;
       }
       return metric;
     }
-    return buildQuantityMetric(metricId, a, b, editionBasis, instrumentBarrier);
+    return buildQuantityMetric(metricId, a, b, editionBasis);
   });
 
   return deepFreeze({
@@ -576,7 +568,52 @@ const AMBITO_SENSITIVITY_TRANSITION = Object.freeze({
   RELATION_UNCHANGED: "RELATION_UNCHANGED",
   RELATION_CHANGED: "RELATION_CHANGED",
   RELATION_INDETERMINATE: "RELATION_INDETERMINATE",
+  // identity could not be carried across the two editions for this entity: the
+  // two readings are of different objects, so no transition is claimed at all.
+  WITHHELD_NON_CONTINUOUS: "WITHHELD_NON_CONTINUOUS",
 });
+
+// Why an entity's identity is not continuous across the two editions. Each maps
+// directly from a K7 change-detection outcome; none is an application opinion.
+const CONTINUITY_REASON = Object.freeze({
+  NEW_AMBITO: "NEW_AMBITO",
+  ABSENT_FROM_EDITION: "ABSENT_FROM_EDITION",
+  MODIFIED_BY_INSTRUMENT: "MODIFIED_BY_INSTRUMENT",
+  CAUSE_UNRESOLVED: "CAUSE_UNRESOLVED",
+  NON_COMPARABLE: "NON_COMPARABLE",
+});
+
+// Map a K7 `CHANGE_OUTCOME` (js/ambito-change.js) to an identity-continuity
+// record for edition sensitivity. NO_CHANGE and STATE_TRANSITION both carry the
+// SAME entity across the two editions (its published state may differ, but it is
+// the same ámbito code), so the A ↔ B relationship is comparable across the
+// edition step. Everything else means the identity cannot be carried across the
+// step as a like-for-like entity, so the comparison is withheld. A barrier is
+// derived from this contract, never from an application-supplied boolean.
+function editionContinuityFromOutcome(outcome) {
+  switch (outcome) {
+    case "NO_CHANGE":
+    case "STATE_TRANSITION":
+      return deepFreeze({ established: true, reasonCode: null, outcome: outcome ?? null });
+    case "NEW_AMBITO":
+    case "ABSENT_FROM_EDITION":
+    case "MODIFIED_BY_INSTRUMENT":
+    case "CAUSE_UNRESOLVED":
+    case "NON_COMPARABLE":
+      return deepFreeze({ established: false, reasonCode: outcome, outcome });
+    default:
+      // An unknown or missing outcome is treated as not established, never as
+      // silently continuous.
+      return deepFreeze({ established: false, reasonCode: CONTINUITY_REASON.NON_COMPARABLE, outcome: outcome ?? null });
+  }
+}
+
+// Which side-summary edition record a metric's reference date comes from. Phase
+// and surface metrics are S1 development-state; buildability use classes are S2
+// available-buildability. One family's date is never substituted for another's.
+function metricEditionKey(metricId) {
+  return metricId === "ambito_surface" || metricId.startsWith("phase_") ? "developmentState" : "availableBuildability";
+}
 
 function sign(n) {
   if (n > 0) return 1;
@@ -621,44 +658,79 @@ function classifyCategoricalTransition(prev, cur) {
 /**
  * Edition sensitivity of the A ↔ B comparison.
  *
- * Returns one transition per canonical metric, in fixed order, plus each side's
- * own edition reference date. A MODIFIED_BY_INSTRUMENT barrier on either edition
- * step withholds that metric rather than comparing it. If either comparison is a
- * cross-scope refusal, the whole sensitivity is `applicable: false`.
+ * `current` and `previous` are each a `buildAmbitoComparisonModel` — A and B both
+ * read at the current edition, and A and B both read at the previous edition.
+ * `continuity` is `{ a, b }`, each an `editionContinuityFromOutcome(...)` record
+ * derived from the K7 change-detection classification of that exact ámbito code
+ * across the two editions.
+ *
+ * IDENTITY FIRST. If either A or B is not identity-continuous across the editions
+ * (K7 says NEW_AMBITO, ABSENT_FROM_EDITION, MODIFIED_BY_INSTRUMENT,
+ * CAUSE_UNRESOLVED or NON_COMPARABLE), EVERY metric is withheld
+ * `WITHHELD_NON_CONTINUOUS` with that reason: two editions of different objects
+ * are never compared as the same object. Only when both sides are continuous is
+ * a per-metric transition classified.
+ *
+ * Returns one item per canonical metric, in fixed order. Each carries the
+ * baseline/scenario reference date FROM THE METRIC'S OWN SOURCE FAMILY — S1
+ * development-state dates for phase and surface metrics, S2
+ * available-buildability dates for buildability metrics — never one family's date
+ * substituted for another's. If either comparison is a cross-scope refusal, the
+ * whole sensitivity is `applicable: false`.
  */
-function buildAmbitoEditionSensitivity(current, previous) {
+function buildAmbitoEditionSensitivity(current, previous, continuity = {}) {
   if (!current || !previous || current.comparable === false || previous.comparable === false) {
     return deepFreeze({ applicable: false, reasonCode: "COMPARISON_UNAVAILABLE", items: [] });
   }
+  const contA = continuity.a || editionContinuityFromOutcome(undefined);
+  const contB = continuity.b || editionContinuityFromOutcome(undefined);
+  const identityEstablished = contA.established === true && contB.established === true;
+  // The governing non-continuity reason, A before B (A is the primary identity),
+  // surfaced so the view can name exactly why the step is not comparable.
+  const nonContinuousReason = !contA.established ? contA.reasonCode : !contB.established ? contB.reasonCode : null;
+
   const items = AMBITO_METRIC_IDS.map((metricId) => {
     const cur = findMetric(current, metricId);
     const prev = findMetric(previous, metricId);
+    const editionKey = metricEditionKey(metricId);
     const base = {
       metricId,
       kind: cur.kind,
+      sourceFamily: editionKey === "developmentState" ? "S1" : "S2",
       baselineReferenceDate: {
-        a: previous.a.edition.developmentState.referenceDate,
-        b: previous.b.edition.developmentState.referenceDate,
+        a: previous.a.edition[editionKey].referenceDate,
+        b: previous.b.edition[editionKey].referenceDate,
       },
       scenarioReferenceDate: {
-        a: current.a.edition.developmentState.referenceDate,
-        b: current.b.edition.developmentState.referenceDate,
+        a: current.a.edition[editionKey].referenceDate,
+        b: current.b.edition[editionKey].referenceDate,
       },
     };
+
+    if (!identityEstablished) {
+      return Object.assign(base, {
+        code: AMBITO_SENSITIVITY_TRANSITION.WITHHELD_NON_CONTINUOUS,
+        deltaChange: null,
+        nonContinuousReason,
+        continuity: { a: contA, b: contB },
+      });
+    }
+
     if (cur.kind === METRIC_KIND.CATEGORICAL) {
       return Object.assign(base, classifyCategoricalTransition(prev, cur), { baseline: prev.relation, scenario: cur.relation });
     }
-    // A MODIFIED_BY_INSTRUMENT metric in either edition reading is already
-    // withheld in that model; the transition then reports a withheld state.
     return Object.assign(base, classifyQuantityTransition(prev, cur), {
       baseline: { comparable: prev.comparable, deltaValue: prev.comparable ? prev.deltaValue : null, withheldReasonCode: prev.withheldReasonCode ?? null },
       scenario: { comparable: cur.comparable, deltaValue: cur.comparable ? cur.deltaValue : null, withheldReasonCode: cur.withheldReasonCode ?? null },
     });
   });
+
   return deepFreeze({
     applicable: true,
     variedParameter: "EDITION",
     guardCode: "edition-window-only",
+    identityEstablished,
+    continuity: { a: contA, b: contB },
     items,
   });
 }
@@ -699,6 +771,12 @@ const AMBITO_COMPARISON_DICTIONARIES = Object.freeze({
     "transition.RELATION_UNCHANGED": "Same/different reading unchanged",
     "transition.RELATION_CHANGED": "Same/different reading changed",
     "transition.RELATION_INDETERMINATE": "Not comparable in one edition",
+    "transition.WITHHELD_NON_CONTINUOUS": "Withheld · ámbito identity not continuous across editions",
+    "continuity.NEW_AMBITO": "the ámbito code is new in the later edition",
+    "continuity.ABSENT_FROM_EDITION": "the ámbito code is absent from one edition",
+    "continuity.MODIFIED_BY_INSTRUMENT": "the ámbito was modified by a planning instrument between the editions",
+    "continuity.CAUSE_UNRESOLVED": "the official material gives no reason for the edition difference",
+    "continuity.NON_COMPARABLE": "the two editions are not comparable for this ámbito",
     "radius.non_applicable": "Radius sensitivity does not apply to fixed official ámbito geometry",
     "guard.descriptive-only": "Observed comparison only · no ordering or recommendation",
     "guard.edition-window-only": "Alternative official edition · not a forecast and not a causal effect",
@@ -733,6 +811,12 @@ const AMBITO_COMPARISON_DICTIONARIES = Object.freeze({
     "transition.RELATION_UNCHANGED": "Lectura igual/distinto sin cambios",
     "transition.RELATION_CHANGED": "Lectura igual/distinto cambiada",
     "transition.RELATION_INDETERMINATE": "No comparable en una edición",
+    "transition.WITHHELD_NON_CONTINUOUS": "Retenido · identidad del ámbito no continua entre ediciones",
+    "continuity.NEW_AMBITO": "el código de ámbito es nuevo en la edición posterior",
+    "continuity.ABSENT_FROM_EDITION": "el código de ámbito está ausente en una edición",
+    "continuity.MODIFIED_BY_INSTRUMENT": "el ámbito fue modificado por un instrumento de planeamiento entre las ediciones",
+    "continuity.CAUSE_UNRESOLVED": "el material oficial no da motivo para la diferencia entre ediciones",
+    "continuity.NON_COMPARABLE": "las dos ediciones no son comparables para este ámbito",
     "radius.non_applicable": "La sensibilidad al radio no aplica a la geometría oficial fija del ámbito",
     "guard.descriptive-only": "Comparación observada · sin ordenación ni recomendación",
     "guard.edition-window-only": "Edición oficial alternativa · no es una previsión ni un efecto causal",
@@ -754,6 +838,7 @@ if (typeof module !== "undefined" && module.exports) {
     QUANTITY_SIDE_STATE,
     REFUSAL,
     AMBITO_SENSITIVITY_TRANSITION,
+    CONTINUITY_REASON,
     AMBITO_DECISION_INSIGHT_GUARD_CODE,
     AMBITO_COMPARISON_DICTIONARIES,
     phaseComparisonKey,
@@ -763,6 +848,8 @@ if (typeof module !== "undefined" && module.exports) {
     ambitoComparisonRows,
     ambitoComparisonStatus,
     ambitoRadiusSensitivityStatus,
+    editionContinuityFromOutcome,
+    metricEditionKey,
     buildAmbitoEditionSensitivity,
   };
 }

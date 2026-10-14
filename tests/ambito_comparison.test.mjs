@@ -24,6 +24,7 @@ import {
   CATEGORICAL_RELATION,
   WITHHELD_REASON,
   AMBITO_SENSITIVITY_TRANSITION,
+  CONTINUITY_REASON,
   AMBITO_COMPARISON_DICTIONARIES,
   buildAmbitoComparisonModel,
   ambitoBridgeReading,
@@ -31,8 +32,12 @@ import {
   ambitoComparisonRows,
   ambitoComparisonStatus,
   ambitoRadiusSensitivityStatus,
+  editionContinuityFromOutcome,
   buildAmbitoEditionSensitivity,
 } from "../js/ambito-comparison.js";
+
+// Both ámbitos identity-continuous across the editions (K7 NO_CHANGE/STATE_TRANSITION).
+const CONTINUOUS = { a: editionContinuityFromOutcome("NO_CHANGE"), b: editionContinuityFromOutcome("STATE_TRANSITION") };
 
 // ---------------------------------------------------------------- fixture builders
 
@@ -282,32 +287,16 @@ test("two ámbitos from different editions withhold every quantity by default", 
   }
 });
 
-test("an explicit documented basis permits a cross-edition comparison", () => {
-  const model = buildAmbitoComparisonModel(
-    ambitoSide({ surface: 1000 }),
-    ambitoSide({ code: "APE.02.02", surface: 1200, devEdition: EDITION_PREVIOUS.development_state, buildEdition: EDITION_PREVIOUS.available_buildability, devRef: REF_PREVIOUS, buildRef: REF_PREVIOUS }),
-    { documentedEditionBasis: "same-era editions, like-for-like asserted by reviewer" }
-  );
-  assert.equal(model.editionBasis.like_for_like.development_state, true);
-  assert.equal(model.metrics.find((x) => x.id === "ambito_surface").comparable, true);
-  assert.equal(model.metrics.find((x) => x.id === "ambito_surface").deltaValue, 200);
-});
-
-// ============================================================ MODIFIED_BY_INSTRUMENT
-
-test("a MODIFIED_BY_INSTRUMENT pair withholds every quantity and is never compared", () => {
-  const model = buildAmbitoComparisonModel(
-    ambitoSide({ modifiedByInstrument: true }),
-    ambitoSide({ code: "APE.02.02" })
-  );
-  for (const id of QUANTITY_METRICS) {
-    const m = model.metrics.find((x) => x.id === id);
-    assert.equal(m.comparable, false);
-    assert.equal(m.withheldReasonCode, WITHHELD_REASON.MODIFIED_BY_INSTRUMENT);
-  }
-  for (const id of PHASE_METRICS) {
-    assert.equal(model.metrics.find((x) => x.id === id).indeterminateReasonCode, WITHHELD_REASON.MODIFIED_BY_INSTRUMENT);
-  }
+test("Gate A.1 — there is NO documented-basis override: a cross-edition pair stays withheld whatever options are passed", () => {
+  const prevB = ambitoSide({ code: "APE.02.02", surface: 1200, devEdition: EDITION_PREVIOUS.development_state, buildEdition: EDITION_PREVIOUS.available_buildability, devRef: REF_PREVIOUS, buildRef: REF_PREVIOUS });
+  // Any extra argument is ignored; the function takes (a, b) only.
+  const model = buildAmbitoComparisonModel(ambitoSide({ surface: 1000 }), prevB, { documentedEditionBasis: "anything" });
+  assert.equal(model.editionBasis.like_for_like.development_state, false);
+  assert.equal(model.editionBasis.like_for_like.available_buildability, false);
+  assert.ok(!("documentedBasis" in model.editionBasis), "the escape-hatch field must not exist");
+  const surface = model.metrics.find((x) => x.id === "ambito_surface");
+  assert.equal(surface.comparable, false);
+  assert.equal(surface.withheldReasonCode, WITHHELD_REASON.CROSS_EDITION);
 });
 
 // ===================================================== one authoritative state
@@ -372,18 +361,63 @@ test("edition sensitivity uses the shared transition vocabulary and keeps each s
     ambitoSide({ surface: 1000, devEdition: EDITION_PREVIOUS.development_state, buildEdition: EDITION_PREVIOUS.available_buildability, devRef: REF_PREVIOUS, buildRef: REF_PREVIOUS, build: { colectiva_residencial: 80, unifamiliar_residencial: 0, terciario: 50, industrial: 10 } }),
     ambitoSide({ code: "APE.02.02", surface: 1500, devEdition: EDITION_PREVIOUS.development_state, buildEdition: EDITION_PREVIOUS.available_buildability, devRef: REF_PREVIOUS, buildRef: REF_PREVIOUS, build: { colectiva_residencial: 250, unifamiliar_residencial: 0, terciario: 50, industrial: 40 } })
   );
-  const sens = buildAmbitoEditionSensitivity(current, previous);
+  const sens = buildAmbitoEditionSensitivity(current, previous, CONTINUOUS);
   assert.equal(sens.applicable, true);
   assert.equal(sens.variedParameter, "EDITION");
+  assert.equal(sens.identityEstablished, true);
   assert.deepEqual(sens.items.map((i) => i.metricId), AMBITO_METRIC_IDS);
   const collective = sens.items.find((i) => i.metricId === "buildability_residential_collective");
   // prev B−A = +170, cur B−A = +150: same direction, unchanged-comparable
   assert.equal(collective.code, AMBITO_SENSITIVITY_TRANSITION.UNCHANGED_COMPARABLE);
+  // buildability dates come from the S2 family, not S1
+  assert.equal(collective.sourceFamily, "S2");
   assert.equal(collective.scenarioReferenceDate.a, REF_CURRENT);
   assert.equal(collective.baselineReferenceDate.a, REF_PREVIOUS);
   // valid transition codes only
   const valid = new Set(Object.values(AMBITO_SENSITIVITY_TRANSITION));
   for (const item of sens.items) assert.ok(valid.has(item.code), `${item.metricId} → ${item.code}`);
+});
+
+test("Gate A.2 — edition sensitivity carries each metric's OWN source-family reference date", () => {
+  const current = buildAmbitoComparisonModel(ambitoSide(), ambitoSide({ code: "APE.02.02" }));
+  const previous = buildAmbitoComparisonModel(
+    ambitoSide({ devEdition: EDITION_PREVIOUS.development_state, buildEdition: EDITION_PREVIOUS.available_buildability, devRef: REF_PREVIOUS, buildRef: REF_PREVIOUS }),
+    ambitoSide({ code: "APE.02.02", devEdition: EDITION_PREVIOUS.development_state, buildEdition: EDITION_PREVIOUS.available_buildability, devRef: REF_PREVIOUS, buildRef: REF_PREVIOUS })
+  );
+  const sens = buildAmbitoEditionSensitivity(current, previous, CONTINUOUS);
+  const byId = Object.fromEntries(sens.items.map((i) => [i.metricId, i]));
+  // phase + surface → S1 development-state family
+  for (const id of ["phase_planeamiento", "ambito_surface"]) assert.equal(byId[id].sourceFamily, "S1", id);
+  // buildability → S2 available-buildability family
+  for (const id of ["buildability_residential_collective", "buildability_industrial"]) assert.equal(byId[id].sourceFamily, "S2", id);
+});
+
+test("Gate A.3 — a non-continuous identity (K7 MODIFIED_BY_INSTRUMENT) withholds every metric, never compared", () => {
+  const current = buildAmbitoComparisonModel(ambitoSide(), ambitoSide({ code: "APE.02.02" }));
+  const previous = buildAmbitoComparisonModel(
+    ambitoSide({ devEdition: EDITION_PREVIOUS.development_state, buildEdition: EDITION_PREVIOUS.available_buildability, devRef: REF_PREVIOUS, buildRef: REF_PREVIOUS }),
+    ambitoSide({ code: "APE.02.02", devEdition: EDITION_PREVIOUS.development_state, buildEdition: EDITION_PREVIOUS.available_buildability, devRef: REF_PREVIOUS, buildRef: REF_PREVIOUS })
+  );
+  const continuity = { a: editionContinuityFromOutcome("MODIFIED_BY_INSTRUMENT"), b: editionContinuityFromOutcome("NO_CHANGE") };
+  const sens = buildAmbitoEditionSensitivity(current, previous, continuity);
+  assert.equal(sens.identityEstablished, false);
+  for (const item of sens.items) {
+    assert.equal(item.code, AMBITO_SENSITIVITY_TRANSITION.WITHHELD_NON_CONTINUOUS);
+    assert.equal(item.nonContinuousReason, CONTINUITY_REASON.MODIFIED_BY_INSTRUMENT);
+    // no numeric change is ever produced for a non-continuous entity
+    assert.equal(item.deltaChange, null);
+  }
+});
+
+test("Gate A.3 — missing/unknown continuity is treated as not-established, never silently continuous", () => {
+  const current = buildAmbitoComparisonModel(ambitoSide(), ambitoSide({ code: "APE.02.02" }));
+  const previous = buildAmbitoComparisonModel(
+    ambitoSide({ devEdition: EDITION_PREVIOUS.development_state, buildEdition: EDITION_PREVIOUS.available_buildability, devRef: REF_PREVIOUS, buildRef: REF_PREVIOUS }),
+    ambitoSide({ code: "APE.02.02", devEdition: EDITION_PREVIOUS.development_state, buildEdition: EDITION_PREVIOUS.available_buildability, devRef: REF_PREVIOUS, buildRef: REF_PREVIOUS })
+  );
+  const sens = buildAmbitoEditionSensitivity(current, previous); // no continuity supplied
+  assert.equal(sens.identityEstablished, false);
+  for (const item of sens.items) assert.equal(item.code, AMBITO_SENSITIVITY_TRANSITION.WITHHELD_NON_CONTINUOUS);
 });
 
 test("edition sensitivity detects a direction change", () => {
@@ -395,7 +429,7 @@ test("edition sensitivity detects a direction change", () => {
     ambitoSide({ devEdition: EDITION_PREVIOUS.development_state, buildEdition: EDITION_PREVIOUS.available_buildability, devRef: REF_PREVIOUS, buildRef: REF_PREVIOUS, build: { colectiva_residencial: 100, unifamiliar_residencial: 0, terciario: 50, industrial: 10 } }),
     ambitoSide({ code: "APE.02.02", devEdition: EDITION_PREVIOUS.development_state, buildEdition: EDITION_PREVIOUS.available_buildability, devRef: REF_PREVIOUS, buildRef: REF_PREVIOUS, build: { colectiva_residencial: 300, unifamiliar_residencial: 0, terciario: 50, industrial: 40 } })
   ); // B − A = +200
-  const sens = buildAmbitoEditionSensitivity(current, previous);
+  const sens = buildAmbitoEditionSensitivity(current, previous, CONTINUOUS);
   assert.equal(sens.items.find((i) => i.metricId === "buildability_residential_collective").code, AMBITO_SENSITIVITY_TRANSITION.DIRECTION_CHANGED);
 });
 
