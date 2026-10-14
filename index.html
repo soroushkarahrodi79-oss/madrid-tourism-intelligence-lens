@@ -290,10 +290,10 @@
              the register and never implies open-ended history. The applied
              window is always stated as explicit dates. -->
         <div class="lic-window">
-          <div class="lic-block-head"><span data-i18n="lic.windowTitle">Grant-date window</span></div>
+          <div class="lic-block-head"><span id="licWindowTitle" data-i18n="lic.windowTitle">Grant-date window</span></div>
           <div class="lic-window-controls">
-            <label class="lic-window-field"><span data-i18n="lic.windowFrom">From</span><input id="licFrom" type="date"></label>
-            <label class="lic-window-field"><span data-i18n="lic.windowTo">To</span><input id="licTo" type="date"></label>
+            <label class="lic-window-field"><span id="licFromLabel" data-i18n="lic.windowFrom">From</span><input id="licFrom" type="date" aria-labelledby="licWindowTitle licFromLabel"></label>
+            <label class="lic-window-field"><span id="licToLabel" data-i18n="lic.windowTo">To</span><input id="licTo" type="date" aria-labelledby="licWindowTitle licToLabel"></label>
           </div>
           <p id="licWindowApplied" class="lic-window-applied"></p>
           <p id="licWindowClamped" class="lic-window-clamped" data-i18n="lic.windowClamped" hidden>Adjusted to the register's coverage.</p>

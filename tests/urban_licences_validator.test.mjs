@@ -56,6 +56,36 @@ test("the committed K9 artifacts pass every guard", () => {
   assert.equal(result.ok, true);
 });
 
+test("K9 per-source contract_version is the artifact contract (1.0.0), not the registry freshness contract (1.1.0)", () => {
+  // Two DIFFERENT contract versions are in play and must not be conflated.
+  //   * The registry DOCUMENT's own contract is the K4/#64 freshness contract,
+  //     1.1.0. Issue #71's "registered at contract 1.1.0" means registered in THIS
+  //     registry, carrying the full five-field freshness record — asserted below.
+  //   * A source's `contract_version` is a SEPARATE field: the ARTIFACT contract
+  //     version, which the deployment validator matches against each artifact's own
+  //     `contract_version` (see validateHospitalityContext). Both K9 artifacts are
+  //     at the 1.0.0 artifact contract, so their sources must declare 1.0.0.
+  //     Bumping the source alone to 1.1.0 would desync it from the fingerprinted
+  //     artifact meta; this test fails if anyone does.
+  assert.equal(registry.contract_version, "1.1.0", "registry freshness contract is 1.1.0");
+  const crosswalkMeta = read("data/callejero/madrid_ndp_crosswalk.meta.json");
+  const licenceMeta = read("data/planning/madrid_urban_licences.meta.json");
+  assert.equal(crosswalkSource.contract_version, crosswalkMeta.contract_version, "crosswalk source == artifact contract");
+  assert.equal(licenceSource.contract_version, licenceMeta.contract_version, "licence source == artifact contract");
+  assert.equal(crosswalkSource.contract_version, "1.0.0");
+  assert.equal(licenceSource.contract_version, "1.0.0");
+  // Each K9 source carries the full five-field freshness record of the 1.1.0
+  // contract, with reference_date / published_at as explicit nulls, at ADDRESS_POINT.
+  for (const source of [crosswalkSource, licenceSource]) {
+    for (const field of ["reference_date", "published_at", "retrieved_at", "update_frequency", "source_state"]) {
+      assert.ok(field in source, `${source.id} missing freshness field ${field}`);
+    }
+    assert.equal(source.reference_date, null, `${source.id} reference_date is an explicit null`);
+    assert.equal(source.published_at, null, `${source.id} published_at is an explicit null`);
+    assert.equal(source.scope, "ADDRESS_POINT");
+  }
+});
+
 test("a collapsed match rate is rejected", () => {
   const artifacts = baseArtifacts();
   artifacts["callejero/madrid_ndp_crosswalk.meta.json"].coverage.row_match_rate = 0.4;

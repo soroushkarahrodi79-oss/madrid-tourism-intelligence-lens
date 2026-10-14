@@ -329,6 +329,29 @@ test("K9 13: the surface works at 390px without horizontal overflow", async () =
   await page.context().close();
 });
 
+test("K9 15: a licence point on the map is clickable and opens its granted-only popup", async () => {
+  const { page } = await newPage();
+  await enableLicences(page);
+  await setWindow(page, EXTENT.min, EXTENT.max); // full extent so any record is rendered
+  const rec = artifact.records[0];
+  // Pan the real Leaflet map to the record and click its projected pixel. The
+  // licence canvas pane must sit above the POI overlay canvas, or the POI canvas
+  // would swallow the click and the bound popup would never open.
+  const pix = await page.evaluate(({ lat, lon }) => {
+    map.setView([lat, lon], 18, { animate: false });
+    const p = map.latLngToContainerPoint([lat, lon]);
+    const r = document.getElementById("map").getBoundingClientRect();
+    return { x: r.left + p.x, y: r.top + p.y };
+  }, rec);
+  await page.mouse.click(pix.x, pix.y);
+  const popup = await page
+    .locator(".leaflet-popup-content")
+    .textContent({ timeout: 5000 })
+    .catch(() => null);
+  assert.ok(popup, "clicking a licence point opens a popup");
+  assert.match(popup, /not evidence of construction|administrative grant/i);
+});
+
 test("K9 14: no runtime request to an official licence source host", async () => {
   const { page, requests } = await newPage();
   await enableLicences(page);

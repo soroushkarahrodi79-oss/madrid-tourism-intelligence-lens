@@ -59,7 +59,11 @@ const PLANNING_STROKE = "#aeb8c4"; // --planning-neutral
 // and never a phase/order/judgement encoding. The pane keeps pointer events so a
 // point can be clicked for its granted-only popup.
 map.createPane("licencePane");
-map.getPane("licencePane").style.zIndex = "366";
+// Above the default overlay pane (z 400, where the preferCanvas POI markers
+// render) so the licence points receive clicks for their granted-only popup —
+// a lower pane's canvas would sit under the POI canvas, which would swallow the
+// click. Still below the active-area, Lens and halo panes.
+map.getPane("licencePane").style.zIndex = "410";
 const LICENCE_STROKE = "#c0794f"; // --licence-neutral
 
 // The area containing a lens centre is the one administrative shape that has to
