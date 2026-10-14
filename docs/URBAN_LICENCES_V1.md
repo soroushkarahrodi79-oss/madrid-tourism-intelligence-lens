@@ -263,3 +263,35 @@ heatmap, choropleth, kernel surface or per-area intensity. Not a barrio or distr
 ranking. Counts are `ADDRESS_POINT` records inside a Lens circle and are never
 converted into a barrio-level figure or compared with a barrio total without an
 explicit, separate scope.
+
+## 17. Performance — Lens-drag benchmark gate
+
+The opt-in point layer draws ~11.3k resolved points at full extent. The map markers
+are rebuilt only when the grant-date window or the document language changes, never
+on a Lens drag; moving the Lens re-runs only the in-memory per-family count scan.
+
+**Acceptance gate (amended 14 October 2026, #71).** The original criterion compared
+Lens-drag interaction-to-paint against the pre-K9 commit `42773bc`. Because that
+commit predates four unrelated increments (K4 scope rail, K5 visual language, K6
+ámbito, K7 edition comparison), an absolute-time comparison against it conflates
+K9's cost with unrelated feature growth. By explicit, documented engineering
+decision it is replaced with a reproducible same-build benchmark,
+`scripts/benchmark_licence_drag.mjs`:
+
+- median per-interaction cost with the layer **enabled** ≤ **10 ms**;
+- median **additional** cost of enabling it, on the same build, ≤ **5 ms**.
+
+Measured (script + layout, median ms/interaction, headless Chromium, full-extent
+window, ~11,265 points): enabled ≈ **7–8.5 ms**, marginal ≈ **+4–5 ms** — both within
+the gate, with every observed sample under one 60 fps frame (16.7 ms).
+
+**Historical evidence (retained, not waived).** With the same harness, the pre-K9
+baseline `42773bc` measured ≈ **2.3 ms** (no layer); the current build measures
+≈ **7–8.5 ms** with the layer enabled. That increase is real and documented:
+≈ **+0.8 ms** of it is the four intervening increments (not K9), and ≈ **+4 ms** is
+K9's in-lens count scan.
+
+**Scope of the benchmark.** It measures script execution and layout only. It does
+**not** establish full rendering frame-rate (compositor/raster) or performance on
+real mobile devices; those are deferred to **K12 runtime assessment** (#74 owns the
+runtime-stack decisions).
