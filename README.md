@@ -115,6 +115,12 @@ including comparing two places at once.
   reference date, or says the date is not published. The **Evidence & limits** drawer shows, for
   any value, its source, authority, scope, unit, the five date and state fields and the
   interpretation ceiling verbatim, in a citizen or an analyst reading.
+- **Share and export a reading.** From the **Evidence & limits** drawer, copy a versioned,
+  human-inspectable URL that reproduces the exact reading on another device (or states precisely
+  what it could not restore), and export a five-file bundle — displayed values, official geometry
+  (EPSG:4326), contributing sources with their freshness and licences, a plain-text README, and the
+  shareable URL — for QGIS, GeoLibre or a spreadsheet. The export is a transcript of what is on
+  screen, never a recomputation. See [Evidence export](docs/EVIDENCE_EXPORT.md).
 - Switch the document language (English / Español) with one control; the shell, rail, drawer,
   comparison reading, hospitality and domestic-origin surfaces follow it.
 - Toggle each operational data layer on/off.
