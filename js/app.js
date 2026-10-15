@@ -4459,6 +4459,13 @@ function renderDestinationContext() {
   section.dataset.state = model.state;
 
   const available = model.state === module.DESTINATION_STATE.AVAILABLE;
+  // K11 (#73): capture the destination-context metric values exactly as the card
+  // renders them, for the CITY export transcript (read only when mode is CITY).
+  if (typeof k11 !== "undefined") {
+    k11.cityDestination = available
+      ? Object.freeze({ metrics: model.metrics, period: model.period, hotelCaveat: model.hotelCaveat })
+      : null;
+  }
   // The card shows the short name and keeps "whole municipality" beside it in
   // the section head; the accessible name carries the qualified form, and the
   // full source geography (the publisher's own term plus the code) is stated in
@@ -4681,6 +4688,13 @@ function renderDomesticOrigins() {
   if (!host || !originModel.module || !originModel.i18n) return;
   const module = originModel.module;
   const model = module.buildDomesticOriginContext({ index: originModel.index, month: originMonth });
+  // K11 (#73): capture the domestic-origin rows exactly as rendered, for the CITY
+  // export transcript (read only when mode is CITY).
+  if (typeof k11 !== "undefined") {
+    k11.cityOrigins = model.state === module.ORIGIN_STATE.AVAILABLE
+      ? Object.freeze({ month: model.month, origins: model.origins, scopeCaveat: module.ORIGIN_SCOPE_CAVEAT })
+      : null;
+  }
   host.hidden = false;
   setText("domesticOriginsHeading", originT("heading")); setText("domesticOriginsOfficial", originT("official"));
   setText("domesticOriginsMonthLabel", originT("month")); setText("domesticOriginsScope", originT("municipality")); setText("domesticOriginsUniverse", originT("universe"));
@@ -4785,6 +4799,11 @@ function refresh() {
   renderUrbanLicences();
   shadeMarkersOutsideActiveLens();
   renderScopeRail();
+  // K11 (#73): capture the active-lens PLACE metric values exactly as rendered,
+  // so the export transcribes them without recomputing. The stat functions are
+  // pure and read the same frozen layers the renderers just used. Read only when
+  // the visible mode is PLACE.
+  if (typeof k11 !== "undefined") k11CapturePlaceReading(s);
   k11ScheduleUrlCommit();
 }
 
@@ -6415,12 +6434,13 @@ const K11_COPY = Object.freeze({
     "export.failed": "Export could not be prepared.",
     "restore.partialTitle": "Partial restore",
     "restore.refusedTitle": "Link not restored",
-    "restore.snapshotTitle": "Evidence has moved",
+    "restore.snapshotTitle": "Different deployment build",
     "restore.partialLede": "Some of this shared reading could not be restored:",
     "restore.refusedLede": "This link uses an unsupported format and was not restored, so you are seeing the default reading rather than a different one.",
-    "restore.snapshotLede": "The interface was restored, but the committed evidence behind it has changed since the link was made, so a value may no longer match the original.",
+    "restore.snapshotLede": "The interface was restored, but this link was made on a different deployment build, which may have republished different values — a number may no longer match the original.",
     "restore.baselineEvidence": "the sensitivity baseline (the evidence universe changed, so it cannot be reproduced exactly)",
     "reason.INVALID_RADIUS": "a Lens radius out of range",
+    "reason.RADIUS_NOT_ON_STEP": "a Lens radius off the 50 m step (it would have been rounded)",
     "reason.INVALID_COORDINATES": "a Lens centre outside Madrid",
     "reason.UNKNOWN_AMBITO": "an unknown planning ámbito code",
     "reason.UNKNOWN_LAYER": "an unknown map layer",
@@ -6448,12 +6468,13 @@ const K11_COPY = Object.freeze({
     "export.failed": "No se pudo preparar la exportación.",
     "restore.partialTitle": "Restauración parcial",
     "restore.refusedTitle": "Enlace no restaurado",
-    "restore.snapshotTitle": "La evidencia ha cambiado",
+    "restore.snapshotTitle": "Compilación de despliegue distinta",
     "restore.partialLede": "Parte de esta lectura compartida no se pudo restaurar:",
     "restore.refusedLede": "Este enlace usa un formato no admitido y no se restauró, por lo que ve la lectura por defecto y no otra distinta.",
-    "restore.snapshotLede": "Se restauró la interfaz, pero la evidencia comprometida tras ella ha cambiado desde que se creó el enlace, por lo que algún valor puede no coincidir con el original.",
+    "restore.snapshotLede": "Se restauró la interfaz, pero este enlace se creó en una compilación de despliegue distinta, que puede haber republicado valores diferentes: algún número podría no coincidir con el original.",
     "restore.baselineEvidence": "la línea base de sensibilidad (cambió el universo de evidencia, por lo que no puede reproducirse exactamente)",
     "reason.INVALID_RADIUS": "un radio de Lente fuera de rango",
+    "reason.RADIUS_NOT_ON_STEP": "un radio de Lente fuera del paso de 50 m (se habría redondeado)",
     "reason.INVALID_COORDINATES": "un centro de Lente fuera de Madrid",
     "reason.UNKNOWN_AMBITO": "un código de ámbito de planeamiento desconocido",
     "reason.UNKNOWN_LAYER": "una capa de mapa desconocida",
@@ -6821,48 +6842,167 @@ const K11_LENS_METRIC_META = Object.freeze({
 });
 const K11_AMBITO_SOURCE_IDS = Object.freeze(["planning_ambito_state", "planning_ambito_geometry"]);
 
+// Per-value provenance (Finding 2): resolve a source id to the five freshness
+// fields and the verbatim ceiling, straight from the committed registry — never
+// fabricated. Attached to every exported value so each is independently
+// interpretable without cross-referencing the surface list.
+function k11SourceProvenance(id) {
+  const source = (shell.registry && Array.isArray(shell.registry.sources) ? shell.registry.sources : []).find((candidate) => candidate.id === id);
+  if (!source) return { id, missing_from_registry: true };
+  return {
+    id,
+    display_name: source.display_name || id,
+    authority: source.authority || null,
+    freshness: {
+      reference_date: source.reference_date ?? null,
+      published_at: source.published_at ?? null,
+      retrieved_at: source.retrieved_at ?? null,
+      update_frequency: source.update_frequency ?? null,
+      source_state: source.source_state ?? null,
+    },
+    interpretation_ceiling: source.interpretation_ceiling || null,
+  };
+}
+function k11WithProvenance(value) {
+  return { ...value, provenance: (value.source_ids || []).map(k11SourceProvenance) };
+}
+
 function k11LensValue(id, metric) {
   const meta = K11_LENS_METRIC_META[id] || { label: id, unit: null, sources: [] };
   const comparable = metric.comparable === true;
   const everythingNull = metric.aValue == null && metric.bValue == null && metric.aRawValue == null && metric.bRawValue == null;
   const state = comparable ? "VALID" : everythingNull ? "UNAVAILABLE" : "WITHHELD";
-  return {
-    id,
-    label: meta.label,
-    scope: "LENS_CIRCLE",
-    unit: meta.unit,
-    a_value: metric.aValue ?? null,
-    b_value: metric.bValue ?? null,
-    delta: metric.delta ?? null,
+  return k11WithProvenance({
+    id, label: meta.label, scope: "LENS_CIRCLE", unit: meta.unit, source_family: null,
+    a_value: metric.aValue ?? null, b_value: metric.bValue ?? null, delta: metric.delta ?? null,
     display: comparable ? `A ${k11Fmt(metric.aValue)} · B ${k11Fmt(metric.bValue)} · Δ ${k11FmtDelta(metric.delta)}` : null,
     state,
     comparison_basis: comparable ? (metric.qualifier && /km²/.test(metric.qualifier) ? "REPRESENTED_DENSITY" : "RAW_COUNT") : null,
     withheld_reason: comparable ? undefined : metric.qualifier || null,
     source_ids: meta.sources,
-  };
+  });
+}
+
+// The planning source FAMILY behind a metric: surface and the phase states are S1
+// development-state evidence; the buildability use-classes are S2 available-
+// buildability. Kept explicit so an exported planning value names its family.
+function k11PlanningFamily(metricId) {
+  return metricId === "ambito_surface" || String(metricId).startsWith("phase_")
+    ? "S1_DEVELOPMENT_STATE"
+    : "S2_AVAILABLE_BUILDABILITY";
 }
 
 function k11AmbitoValue(metric) {
   const label = typeof ambitoT === "function" ? ambitoT(`metric.${metric.id}`) : metric.id;
+  const family = k11PlanningFamily(metric.id);
   if (metric.kind === "CATEGORICAL") {
     const published = metric.a.state === "PUBLISHED" && metric.b.state === "PUBLISHED";
-    return {
-      id: metric.id, label, scope: "PLANNING_AMBITO", unit: null, kind: "CATEGORICAL",
+    return k11WithProvenance({
+      id: metric.id, label, scope: "PLANNING_AMBITO", unit: null, kind: "CATEGORICAL", source_family: family,
       a_state: metric.a.sourceValue ?? null, b_state: metric.b.sourceValue ?? null, relation: metric.relation,
       display: `${metric.a.sourceValue ?? "—"} / ${metric.b.sourceValue ?? "—"} · ${metric.relation}`,
       state: published ? "VALID" : "INDETERMINATE", comparison_basis: metric.basis, source_ids: K11_AMBITO_SOURCE_IDS,
-    };
+    });
   }
   const comparable = metric.comparable !== false;
-  return {
-    id: metric.id, label, scope: "PLANNING_AMBITO", unit: metric.unit, kind: "QUANTITY",
+  return k11WithProvenance({
+    id: metric.id, label, scope: "PLANNING_AMBITO", unit: metric.unit, kind: "QUANTITY", source_family: family,
     a_value: metric.a.value ?? null, b_value: metric.b.value ?? null,
     delta: comparable ? metric.deltaValue ?? null : null,
     display: comparable ? `B − A ${k11Fmt(metric.deltaValue)} ${metric.unit}` : null,
     state: comparable ? "VALID" : "WITHHELD",
     withheld_reason: comparable ? undefined : metric.withheldReasonCode || null,
     comparison_basis: metric.basis, source_ids: K11_AMBITO_SOURCE_IDS,
-  };
+  });
+}
+
+// Capture the active-lens PLACE metric values exactly as refresh() rendered them.
+// The stat functions are pure and read the same frozen layers the renderers used,
+// so this is a transcript of the rendered reading, not a second computation.
+function k11CapturePlaceReading(stats) {
+  const heat = heatStatsFor(active);
+  const pedestrian = pedestrianStatsFor(active);
+  k11.placeReading = Object.freeze({
+    which: active,
+    tourism: { value: stats.tourism, status: combinedStatus(layerStatus, ["museums", "info"]) },
+    stay: { value: stats.stay, status: combinedStatus(layerStatus, ["stays"]) },
+    mobility: { value: stats.mobility, status: combinedStatus(layerStatus, ["bikes", "rail"]) },
+    utci: { visible: isHatiVisible(), evidence: heat ? heat.evidence : "NONE", mean: heat && heat.evidence !== "NONE" ? heat.mean : null, count: heat ? heat.count : null, timestep },
+    pedestrian: { visible: isPedestrianVisible(), status: pedestrianStatus, evidence: pedestrian ? pedestrian.evidence : "NONE", mean: pedestrian && pedestrian.evidence !== "NONE" ? pedestrian.meanObserved : null, stationCount: pedestrian ? pedestrian.stationCount : null },
+  });
+}
+
+// PLACE single-lens metric values, from the frozen reading captured in refresh().
+function k11PlaceValues(reading) {
+  if (!reading) return [];
+  const values = [];
+  const countState = (status) => (status === "unavailable" ? "UNAVAILABLE" : "VALID");
+  // Sources are declared LAST in each descriptor so no two-string array literal is
+  // immediately followed by a comma (that shape is reserved for legacy-copy key maps).
+  const simple = [
+    { id: "tourism", label: "Tourism POIs", unit: "POIs", cell: reading.tourism, sources: ["museum", "info"] },
+    { id: "stays", label: "Hotels & stays", unit: "stays", cell: reading.stay, sources: ["stay"] },
+    { id: "mobility", label: "Mobility nodes", unit: "nodes", cell: reading.mobility, sources: ["bike", "rail"] },
+  ];
+  for (const descriptor of simple) {
+    const { id, label, unit, cell, sources } = descriptor;
+    const state = countState(cell.status);
+    values.push(k11WithProvenance({
+      id, label, scope: "LENS_CIRCLE", unit, source_family: null,
+      value: state === "VALID" ? cell.value ?? null : null,
+      display: state === "VALID" ? k11Fmt(cell.value) : null,
+      state, source_ids: sources,
+    }));
+  }
+  if (reading.utci && reading.utci.visible) {
+    const u = reading.utci;
+    const state = u.evidence === "NONE" ? "NO_EVIDENCE" : "VALID";
+    values.push(k11WithProvenance({
+      id: "utci", label: "Mean UTCI", scope: "LENS_CIRCLE", unit: "°C", source_family: null,
+      value: state === "VALID" ? u.mean : null,
+      display: state === "VALID" ? `${u.mean.toFixed(1)}°C` : null,
+      state, timestep: u.timestep, source_ids: ["hati"],
+    }));
+  }
+  if (reading.pedestrian && reading.pedestrian.visible) {
+    const p = reading.pedestrian;
+    const state = p.status === "unavailable" ? "UNAVAILABLE" : p.evidence === "NONE" ? "NO_EVIDENCE" : "VALID";
+    values.push(k11WithProvenance({
+      id: "pedestrian", label: "Observed pedestrian activity", scope: "LENS_CIRCLE", unit: "passages/hour", source_family: null,
+      value: state === "VALID" ? Math.round(p.mean) : null,
+      display: state === "VALID" ? `${Math.round(p.mean).toLocaleString("en-GB")}` : null,
+      state, source_ids: ["pedestrian"],
+    }));
+  }
+  return values;
+}
+
+// CITY municipality values, from the frozen destination and domestic-origin
+// models captured when those surfaces rendered.
+function k11CityValues() {
+  const values = [];
+  const destination = k11.cityDestination;
+  if (destination && Array.isArray(destination.metrics)) {
+    for (const metric of destination.metrics) {
+      values.push(k11WithProvenance({
+        id: metric.key, label: metric.label, scope: "MUNICIPALITY", unit: metric.unit || null, source_family: null,
+        value: metric.value ?? null, display: metric.value == null ? null : (metric.display ?? null),
+        state: metric.value == null ? "UNAVAILABLE" : "VALID", source_ids: ["hotel_demand"],
+      }));
+    }
+  }
+  const origins = k11.cityOrigins;
+  if (origins && Array.isArray(origins.origins)) {
+    for (const row of origins.origins) {
+      values.push(k11WithProvenance({
+        id: `origin_${row.origin_municipality_code}`, label: row.origin_municipality_name, scope: "MUNICIPALITY",
+        unit: "tourists", source_family: null,
+        value: Number.isFinite(row.count) ? row.count : null, display: row.countDisplay ?? null,
+        state: "VALID", source_ids: ["domestic_origin_context"],
+      }));
+    }
+  }
+  return values;
 }
 
 function k11ActiveBarrioFeature() {
@@ -6874,22 +7014,38 @@ function k11ActiveBarrioFeature() {
   return null;
 }
 
-function k11BuildGeometry(scope) {
+// Geometry is gated by the VISIBLE reading (Finding 3): only the geometries that
+// belong to the reading on screen are exported.
+//   PLACE  → the active Lens circle(s) + the containing barrio outline.
+//   COMPARE/LENS → both Lens circles.
+//   COMPARE/AMBITO → the two official ámbito polygons (not the Lens circles).
+//   CITY → no Lens geometry; the reading is municipality-wide.
+function k11LensCircleFeature(which) {
+  const centre = centerOf(which);
+  return {
+    scope: "LENS_CIRCLE", role: which === "B" ? "lensB" : "lensA", identity: which,
+    geometry_kind: "generated_analytical_window",
+    feature: { type: "Feature", properties: { radius_m: radii[which] }, geometry: k11CirclePolygon(centre.lat, centre.lon, radii[which]) },
+  };
+}
+function k11BuildGeometry(mode, scope) {
   const geometry = [];
   try {
-    const cA = centerOf("A");
-    geometry.push({ scope: "LENS_CIRCLE", role: "lensA", identity: "A", geometry_kind: "generated_analytical_window", feature: { type: "Feature", properties: { radius_m: radii.A }, geometry: k11CirclePolygon(cA.lat, cA.lon, radii.A) } });
-    if (bEnabled) {
-      const cB = centerOf("B");
-      geometry.push({ scope: "LENS_CIRCLE", role: "lensB", identity: "B", geometry_kind: "generated_analytical_window", feature: { type: "Feature", properties: { radius_m: radii.B }, geometry: k11CirclePolygon(cB.lat, cB.lon, radii.B) } });
-    }
-    if (scope === "AMBITO" && planningState === "ready" && planningModel.index) {
-      for (const [code, role] of [[ambitoCompare.a, "ambitoA"], [ambitoCompare.b, "ambitoB"]]) {
-        if (!code) continue;
-        const feature = planningModel.index.featureFor(code);
-        if (feature) geometry.push({ scope: "PLANNING_AMBITO", role, identity: code, geometry_kind: "official_boundary", feature });
+    if (mode === "COMPARE" && scope === "AMBITO") {
+      if (planningState === "ready" && planningModel.index) {
+        for (const [code, role] of [[ambitoCompare.a, "ambitoA"], [ambitoCompare.b, "ambitoB"]]) {
+          if (!code) continue;
+          const feature = planningModel.index.featureFor(code);
+          if (feature) geometry.push({ scope: "PLANNING_AMBITO", role, identity: code, geometry_kind: "official_boundary", feature });
+        }
       }
-    } else {
+      return geometry;
+    }
+    if (mode === "CITY") return geometry; // municipality-wide: no Lens geometry
+    // PLACE and COMPARE/LENS: the Lens circle(s).
+    geometry.push(k11LensCircleFeature("A"));
+    if (bEnabled) geometry.push(k11LensCircleFeature("B"));
+    if (mode === "PLACE") {
       const barrio = k11ActiveBarrioFeature();
       if (barrio) geometry.push({ scope: "ADMIN_BARRIO", role: "barrio", identity: (barrio.properties && (barrio.properties.NOMBRE || barrio.properties.nombre)) || barrio.id || "barrio", geometry_kind: "official_boundary", feature: barrio });
     }
@@ -6897,10 +7053,13 @@ function k11BuildGeometry(scope) {
   return geometry;
 }
 
+// Build the projection for the CURRENTLY VISIBLE reading (Finding 3). The values
+// are chosen by the live mode, never by a retained comparison scope: a stale K10
+// selection left in memory while PLACE or CITY is on screen is never exported.
 function k11BuildProjection() {
   if (!shell.registry) return null;
   const mode = shell.modes ? shell.modes.currentMode() : "PLACE";
-  const scope = (typeof ambitoCompare !== "undefined" && ambitoCompare.scope) || "LENS";
+  const scope = mode === "COMPARE" ? ((typeof ambitoCompare !== "undefined" && ambitoCompare.scope) || "LENS") : null;
 
   let evidence = [];
   try {
@@ -6916,26 +7075,38 @@ function k11BuildProjection() {
     }));
   } catch (error) { console.warn("K11 provenance assembly incomplete", error); }
 
-  const values = [];
-  if (scope === "AMBITO") {
+  let values = [];
+  if (mode === "COMPARE" && scope === "AMBITO") {
     const model = ambitoCompare.model;
-    if (model && Array.isArray(model.metrics)) for (const metric of model.metrics) values.push(k11AmbitoValue(metric));
-  } else if (bEnabled && typeof lastHaloComparison !== "undefined" && lastHaloComparison && lastHaloComparison.metrics) {
-    for (const id of lastHaloComparison.order) {
-      const metric = lastHaloComparison.metrics[id];
-      if (metric) values.push(k11LensValue(id, metric));
+    if (model && Array.isArray(model.metrics)) values = model.metrics.map(k11AmbitoValue);
+  } else if (mode === "COMPARE" && scope === "LENS") {
+    if (bEnabled && typeof lastHaloComparison !== "undefined" && lastHaloComparison && lastHaloComparison.metrics) {
+      for (const id of lastHaloComparison.order) {
+        const metric = lastHaloComparison.metrics[id];
+        if (metric) values.push(k11LensValue(id, metric));
+      }
     }
+  } else if (mode === "PLACE") {
+    values = k11PlaceValues(k11.placeReading);
+  } else if (mode === "CITY") {
+    values = k11CityValues();
   }
 
   return {
     meta: {
-      mode, scope, reading: shell.reading, language: shellLanguage(),
-      generated_at: new Date().toISOString(), snapshot_id: K11_SNAPSHOT_ID, app_version: AREA_ASSET_VERSION,
+      mode, comparison_scope: scope, reading: shell.reading, language: shellLanguage(),
+      generated_at: new Date().toISOString(),
+      // The deployment build this reading was exported from — a cache-busting
+      // asset version, NOT a cryptographic fingerprint of the data. The
+      // authoritative per-artifact identities (editions, sha256) travel in
+      // sources.json; this id only distinguishes deployment builds.
+      snapshot_id: K11_SNAPSHOT_ID, app_version: AREA_ASSET_VERSION,
+      registry_contract_version: (shell.registry && shell.registry.contract_version) || null,
     },
     state_url: buildShareUrl(window.location.href, k11CurrentState()),
     values,
     evidence,
-    geometry: k11BuildGeometry(scope),
+    geometry: k11BuildGeometry(mode, scope),
   };
 }
 

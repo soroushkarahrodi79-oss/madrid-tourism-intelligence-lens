@@ -331,7 +331,39 @@ test("URL ámbito-metric vocabulary matches the real AMBITO_METRIC_IDS", () => {
   assert.deepEqual([...AMBITO_METRIC_IDS], [...REAL_AMBITO_METRIC_IDS]);
 });
 
-test("URL radius bounds match the real LENS_RADIUS bounds", () => {
+test("URL radius bounds and step match the real LENS_RADIUS", () => {
   assert.equal(LENS_RADIUS_BOUNDS.minM, LENS_RADIUS.minM);
   assert.equal(LENS_RADIUS_BOUNDS.maxM, LENS_RADIUS.maxM);
+  assert.equal(LENS_RADIUS_BOUNDS.stepM, LENS_RADIUS.stepM);
+});
+
+// -------------------------------------------- off-step radius (silent rounding)
+
+test("an in-range but off-step radius is a stated partial restore, never silently rounded", () => {
+  // 725 is in [100,5000] but off the 50 m step; the app would snap it to 750.
+  const result = parseEvidenceState("v=1&m=COMPARE&a=40.4149,-3.69,725", PARSE_OPTS);
+  assert.equal(result.outcome, OUTCOME.PARTIAL);
+  assert.equal(result.state.lensA, undefined, "the off-step lens is not silently restored at a different radius");
+  const issue = result.issues.find((i) => i.dimension === "lensA");
+  assert.equal(issue.code, REASON.RADIUS_NOT_ON_STEP);
+});
+
+test("an on-step radius restores exactly", () => {
+  const result = parseEvidenceState("v=1&m=COMPARE&a=40.4149,-3.69,750&b=40.42,-3.70,900&be=1", PARSE_OPTS);
+  assert.equal(result.state.lensA.radiusM, 750);
+  assert.equal(result.state.lensB.radiusM, 900);
+  assert.ok(!result.issues.some((i) => i.code === REASON.RADIUS_NOT_ON_STEP));
+});
+
+test("Lens B off-step radius degrades independently of Lens A", () => {
+  const result = parseEvidenceState("v=1&m=COMPARE&a=40.4149,-3.69,900&b=40.42,-3.70,733&be=1", PARSE_OPTS);
+  assert.equal(result.state.lensA.radiusM, 900, "A (on-step) restored");
+  assert.equal(result.state.lensB, undefined, "B (off-step) degraded");
+  assert.equal(result.issues.find((i) => i.dimension === "lensB").code, REASON.RADIUS_NOT_ON_STEP);
+});
+
+test("an off-step sensitivity baseline radius degrades with a reason", () => {
+  const result = parseEvidenceState("v=1&bl=725,900,EQUAL_RADIUS", PARSE_OPTS);
+  assert.equal(result.state.baseline, undefined);
+  assert.equal(result.issues.find((i) => i.dimension === "baseline").code, REASON.INVALID_BASELINE);
 });

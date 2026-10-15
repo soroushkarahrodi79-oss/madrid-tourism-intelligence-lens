@@ -63,8 +63,11 @@ const LENS_SPATIAL_BOUNDS = Object.freeze({
 });
 
 // Lens radius bounds, mirrored from js/lens.js LENS_RADIUS. Kept as data here so
-// the pure model needs no cross-module import; a test asserts the two agree.
-const LENS_RADIUS_BOUNDS = Object.freeze({ minM: 100, maxM: 5000 });
+// the pure model needs no cross-module import; a test asserts the two agree. The
+// step matters: the app snaps every radius to a 50 m increment, so a URL radius
+// that is in range but off-step would be silently restored at a DIFFERENT radius.
+// The parser treats an off-step radius as a stated partial restore instead.
+const LENS_RADIUS_BOUNDS = Object.freeze({ minM: 100, maxM: 5000, stepM: 50 });
 
 const URL_MODES = Object.freeze(["PLACE", "COMPARE", "CITY"]);
 const COMPARE_SCOPES = Object.freeze(["LENS", "AMBITO"]);
@@ -100,6 +103,7 @@ const REASON = Object.freeze({
   INVALID_MODE: "INVALID_MODE",
   INVALID_COORDINATES: "INVALID_COORDINATES",
   INVALID_RADIUS: "INVALID_RADIUS",
+  RADIUS_NOT_ON_STEP: "RADIUS_NOT_ON_STEP",
   INVALID_SCOPE: "INVALID_SCOPE",
   UNKNOWN_AMBITO: "UNKNOWN_AMBITO",
   UNKNOWN_LAYER: "UNKNOWN_LAYER",
@@ -146,6 +150,13 @@ function radiusInBounds(radiusM) {
   return isFiniteNumber(radiusM) && radiusM >= LENS_RADIUS_BOUNDS.minM && radiusM <= LENS_RADIUS_BOUNDS.maxM;
 }
 
+// On the app's 50 m step (100, 150, …, 5000). A radius in range but off-step would
+// be snapped by the app to a different value, so it is never an EXACT restoration.
+function radiusOnStep(radiusM) {
+  return Number.isInteger(Math.round((radiusM - LENS_RADIUS_BOUNDS.minM) / LENS_RADIUS_BOUNDS.stepM))
+    && Math.abs((radiusM - LENS_RADIUS_BOUNDS.minM) % LENS_RADIUS_BOUNDS.stepM) < 1e-9;
+}
+
 function encodeLens(lens) {
   if (!lens) return null;
   return `${coordString(lens.lat)},${coordString(lens.lon)},${Math.round(lens.radiusM)}`;
@@ -162,6 +173,9 @@ function decodeLens(raw) {
   if (!isFiniteNumber(lat) || !isFiniteNumber(lon)) return { issue: REASON.INVALID_COORDINATES };
   if (!inBounds(lat, lon)) return { issue: REASON.INVALID_COORDINATES };
   if (!radiusInBounds(radiusM)) return { issue: REASON.INVALID_RADIUS, lat, lon };
+  // In range but off the app's 50 m step: the app would snap it to a different
+  // radius, so it is never an exact restoration — degrade, never silently round.
+  if (!radiusOnStep(radiusM)) return { issue: REASON.RADIUS_NOT_ON_STEP, lat, lon };
   return { lens: { lat, lon, radiusM } };
 }
 
@@ -403,7 +417,8 @@ function parseEvidenceState(input, options = {}) {
     const radiusA = Number(parts[0]);
     const radiusB = Number(parts[1]);
     const radiusMode = parts[2] || null;
-    if (parts.length !== 3 || !radiusInBounds(radiusA) || !radiusInBounds(radiusB) || !RADIUS_MODES.includes(radiusMode)) {
+    if (parts.length !== 3 || !radiusInBounds(radiusA) || !radiusInBounds(radiusB)
+        || !radiusOnStep(radiusA) || !radiusOnStep(radiusB) || !RADIUS_MODES.includes(radiusMode)) {
       recordIssue(issues, "baseline", REASON.INVALID_BASELINE, rawBaseline);
     } else {
       state.baseline = { radiusA, radiusB, radiusMode, evidenceKey: params.get("bk") ?? null };

@@ -69,6 +69,7 @@ with a reason code, and the rest of the reading still restores:
 | `VERSION_MISSING` / `VERSION_UNSUPPORTED` | missing or unsupported `v` → whole link refused |
 | `INVALID_COORDINATES` | a Lens centre outside the Madrid envelope |
 | `INVALID_RADIUS` | a Lens radius outside 100–5000 m |
+| `RADIUS_NOT_ON_STEP` | a Lens (or baseline) radius in range but off the 50 m step — the app would snap it, so it is never claimed as an exact restoration |
 | `UNKNOWN_AMBITO` | an ámbito code not in the committed official universe |
 | `UNKNOWN_LAYER` | an operational-layer id the app does not define |
 | `UNKNOWN_METRIC` | a metric not valid in the current scope |
@@ -92,9 +93,19 @@ merely because its official geometry was still loading. Ordinary interaction use
 A URL restores the **interface** exactly. It does **not** freeze the underlying
 evidence. The committed artifacts behind the workspace can be redeployed, and a
 redeployment can publish different values. The link therefore carries a snapshot
-identity (`s`); when it differs from the running deployment, the workspace shows
-a visible **"evidence has moved"** warning rather than claiming a newly rendered
-value is identical to the historical one. No silent substitution.
+identity (`s`).
+
+**What `s` is, and is not.** `s` is the **deployment build** identity
+(`AREA_ASSET_VERSION`, a cache-busting asset version) — it is *not* a
+cryptographic fingerprint of the data, and a matching `s` is therefore **not** a
+proof that the underlying data is byte-for-byte unchanged. The authoritative
+per-artifact identities are the **editions and snapshot fingerprints** the
+registry declares (e.g. the planning `change_detection` `sha256`), which travel
+in `sources.json`. When `s` differs from the running deployment, the workspace
+shows a visible **"different deployment build"** warning: the interface restored,
+but the link was made on a different build that *may* have republished different
+values — never a claim that a newly rendered value is identical to the historical
+one. No silent substitution.
 
 ---
 
@@ -110,9 +121,33 @@ browsers block several automatic downloads, a clickable fallback link for every
 file is rendered after the export runs, and the status never claims a download
 succeeded that it cannot confirm.
 
+### 2.0 The export follows the visible reading
+
+The bundle transcribes the reading **currently on screen**, selected by the live
+mode — never a selection left in memory. The value set is:
+
+| visible reading | values transcribed | value scope |
+|---|---|---|
+| **PLACE** | the active Lens metric panel (tourism, stays, mobility, and UTCI / pedestrian when their layer is on) | `LENS_CIRCLE` |
+| **COMPARE · Lens** | the four Halo comparison metrics | `LENS_CIRCLE` |
+| **COMPARE · ámbito** | the nine planning comparison metrics (S1 development-state vs S2 available-buildability named per value) | `PLANNING_AMBITO` |
+| **CITY** | the destination-context metrics (hotel demand) and the domestic-origin rows | `MUNICIPALITY` |
+
+Switching from COMPARE to PLACE or CITY drops the retained Lens/ámbito comparison
+from the export, and the geometry follows the same rule (PLACE: the active Lens
+circle(s) + the containing barrio; COMPARE·ámbito: the official ámbito polygons;
+CITY: no Lens geometry). Every **other** surface shown in the mode (area
+residents, VUT, PLACE planning context, category mix, nearest, hospitality,
+licences, domestic dynamics) is carried in `evidence_surfaces` with complete
+provenance — scope, unit, the five freshness fields and the verbatim ceiling.
+
 ### 2.1 `reading.json`
 
-A machine-readable transcript of the displayed reading.
+A machine-readable transcript of the displayed reading. Each value is
+**independently interpretable**: it carries its own `provenance` (the five
+freshness fields and verbatim ceiling of every contributing source, resolved
+from the registry), its `source_ids` and — for planning metrics — its
+`source_family` (`S1_DEVELOPMENT_STATE` or `S2_AVAILABLE_BUILDABILITY`).
 
 ```json
 {
@@ -120,17 +155,25 @@ A machine-readable transcript of the displayed reading.
   "generated_at": "2026-10-15T09:30:00.000Z",
   "reading": { "mode": "COMPARE", "comparison_scope": "LENS",
                "reading_preference": "analyst", "language": "en" },
-  "evidence_snapshot": { "snapshot_id": "20261015-1", "note": "…" },
+  "evidence_snapshot": { "snapshot_id": "20261015-1",
+                         "registry_contract_version": "…",
+                         "note": "deployment build identity, not a data fingerprint; see §1.3" },
   "state_url": "https://…/?v=1&m=COMPARE&…",
   "values": [
     { "id": "tourism", "label": "Tourism POIs", "scope": "LENS_CIRCLE",
-      "unit": "POIs", "a_value": 5, "b_value": 10, "delta": 5,
+      "unit": "POIs", "source_family": null, "a_value": 5, "b_value": 10, "delta": 5,
       "state": "VALID", "comparison_basis": "RAW_COUNT",
-      "source_ids": ["museum", "info"] },
-    { "id": "mobility", "scope": "LENS_CIRCLE", "unit": "nodes",
+      "source_ids": ["museum", "info"],
+      "provenance": [
+        { "id": "museum", "display_name": "Museums", "authority": "Ayuntamiento de Madrid",
+          "freshness": { "reference_date": null, "published_at": null, "retrieved_at": "2026-09-29",
+                         "update_frequency": "NONE_DECLARED", "source_state": "NOT_DECLARED_BY_PUBLISHER" },
+          "interpretation_ceiling": "Counts of museum POIs inside the Lens circle…" }
+      ] },
+    { "id": "mobility", "scope": "LENS_CIRCLE", "unit": "nodes", "source_family": null,
       "a_value": null, "b_value": null, "delta": null,
       "state": "WITHHELD", "withheld_reason": "different window sizes",
-      "source_ids": ["bike", "rail"] }
+      "source_ids": ["bike", "rail"], "provenance": [ "…" ] }
   ],
   "evidence_surfaces": [
     { "surface": "compare.tourism", "scope": "LENS_CIRCLE", "unit": "unit.poi",

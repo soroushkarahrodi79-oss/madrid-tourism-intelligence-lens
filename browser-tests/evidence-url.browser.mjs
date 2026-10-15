@@ -364,3 +364,96 @@ test("export transcribes the frozen ÁMBITO comparison with official polygons", 
     await close(page);
   }
 });
+
+// ------------------------------------------------ PLACE / CITY values (Finding 1)
+
+test("PLACE export transcribes the active-lens metric values with per-value provenance", async () => {
+  const page = await newPage();
+  try {
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("PLACE"));
+    await seam(page, () => { window.__HALO_REGRESSION__.moveLens("A", 520, 360); window.__HALO_REGRESSION__.recompute(); });
+    const bundle = await seam(page, () => window.__HALO_REGRESSION__.k11Bundle());
+    const reading = JSON.parse(bundle.files.find((f) => f.name.startsWith("reading-")).text);
+    assert.equal(reading.reading.mode, "PLACE");
+    const ids = reading.values.map((v) => v.id);
+    for (const id of ["tourism", "stays", "mobility"]) assert.ok(ids.includes(id), `PLACE value ${id} present`);
+    for (const value of reading.values) {
+      assert.equal(value.scope, "LENS_CIRCLE");
+      assert.ok(value.state, "value has a state");
+      assert.ok(Array.isArray(value.provenance) && value.provenance.length, `${value.id} carries provenance`);
+      for (const prov of value.provenance) {
+        for (const field of ["reference_date", "published_at", "retrieved_at", "update_frequency", "source_state"]) {
+          assert.ok(field in prov.freshness, `${prov.id} carries ${field}`);
+        }
+      }
+    }
+  } finally {
+    await close(page);
+  }
+});
+
+test("CITY export transcribes municipality values (hotel demand) with provenance", async () => {
+  const page = await newPage();
+  try {
+    await page.waitForFunction(() => {
+      const s = document.getElementById("destinationContext");
+      return s && s.dataset.state === "available";
+    });
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("CITY"));
+    const bundle = await seam(page, () => window.__HALO_REGRESSION__.k11Bundle());
+    const reading = JSON.parse(bundle.files.find((f) => f.name.startsWith("reading-")).text);
+    assert.equal(reading.reading.mode, "CITY");
+    assert.ok(reading.values.length >= 1, "CITY has value records");
+    assert.ok(reading.values.every((v) => v.scope === "MUNICIPALITY"), "CITY values are municipality-scoped");
+    assert.ok(reading.values.some((v) => v.provenance.some((p) => p.id === "hotel_demand")), "hotel demand transcribed");
+  } finally {
+    await close(page);
+  }
+});
+
+// ---------------------------------------- export follows the visible mode (Finding 3)
+
+test("switching COMPARE→PLACE drops the retained ámbito comparison from the export", async () => {
+  const page = await newPage();
+  try {
+    // Build a K10 ámbito comparison in COMPARE (model retained in memory).
+    await seam(page, () => window.__HALO_REGRESSION__.ambitoSetScope("AMBITO"));
+    await seam(page, (code) => window.__HALO_REGRESSION__.ambitoSelect("A", code), CODE_A);
+    await seam(page, (code) => window.__HALO_REGRESSION__.ambitoSelect("B", code), CODE_B);
+    await page.waitForFunction(() => {
+      const b = window.__HALO_REGRESSION__.k11Bundle();
+      const r = JSON.parse(b.files.find((f) => f.name.startsWith("reading-")).text);
+      return r.values.some((v) => v.scope === "PLANNING_AMBITO");
+    });
+    // Now switch to PLACE. The ámbito model is still in memory, but it is NOT visible.
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("PLACE"));
+    await seam(page, () => window.__HALO_REGRESSION__.recompute());
+    const bundle = await seam(page, () => window.__HALO_REGRESSION__.k11Bundle());
+    const reading = JSON.parse(bundle.files.find((f) => f.name.startsWith("reading-")).text);
+    assert.equal(reading.reading.mode, "PLACE");
+    assert.ok(!reading.values.some((v) => v.scope === "PLANNING_AMBITO"), "no hidden ámbito values exported in PLACE");
+    const geo = JSON.parse(bundle.files.find((f) => f.name.startsWith("geometry-")).text);
+    assert.ok(!geo.features.some((f) => f.properties.geometry_kind === "official_boundary" && f.properties.scope === "PLANNING_AMBITO"), "no stale ámbito polygon exported in PLACE");
+  } finally {
+    await close(page);
+  }
+});
+
+test("switching COMPARE/LENS→CITY drops the retained Lens comparison from the export", async () => {
+  const page = await newPage();
+  try {
+    await page.waitForFunction(() => {
+      const s = document.getElementById("destinationContext");
+      return s && s.dataset.state === "available";
+    });
+    await seam(page, () => { window.__HALO_REGRESSION__.moveLens("A", 500, 360); window.__HALO_REGRESSION__.moveLens("B", 800, 420); window.__HALO_REGRESSION__.recompute(); });
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("CITY"));
+    const bundle = await seam(page, () => window.__HALO_REGRESSION__.k11Bundle());
+    const reading = JSON.parse(bundle.files.find((f) => f.name.startsWith("reading-")).text);
+    assert.ok(!reading.values.some((v) => v.scope === "LENS_CIRCLE"), "no hidden Lens comparison values exported in CITY");
+    const geo = JSON.parse(bundle.files.find((f) => f.name.startsWith("geometry-")).text);
+    assert.ok(!geo.features.some((f) => f.properties.scope === "LENS_CIRCLE"), "no Lens circle geometry exported in CITY");
+  } finally {
+    await close(page);
+  }
+});

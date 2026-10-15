@@ -93,13 +93,18 @@ function buildReadingObject(projection) {
     generated_at: projection.meta.generated_at,
     reading: {
       mode: projection.meta.mode,
-      comparison_scope: projection.meta.scope,
+      comparison_scope: projection.meta.comparison_scope ?? null,
       reading_preference: projection.meta.reading,
       language: projection.meta.language,
     },
     evidence_snapshot: {
+      // The deployment build identity, NOT a data fingerprint. A matching id
+      // indicates the same deployment build but does not by itself prove the
+      // underlying data is byte-for-byte unchanged; the authoritative per-artifact
+      // identities (editions, snapshot fingerprints) are in sources.json.
       snapshot_id: projection.meta.snapshot_id,
-      note: "Interface state reproduces exactly from state.url. The numeric evidence reproduces only while the committed snapshot id above is unchanged; a different snapshot may render different values.",
+      registry_contract_version: projection.meta.registry_contract_version ?? null,
+      note: "Interface state reproduces exactly from state.url. snapshot_id is the deployment build this reading was exported from (a cache-busting asset version), not a cryptographic fingerprint of the data. A different snapshot_id means a different deployment build, which may have republished different values; an identical one indicates the same build only. The authoritative per-artifact identities are the editions and fingerprints in sources.json.",
     },
     state_url: projection.state_url,
     // The displayed values, each with its scope, unit, state, comparison basis,
@@ -183,7 +188,7 @@ function buildReadmeText(projection, sourcesObject) {
   lines.push("=".repeat(46));
   lines.push("");
   lines.push(`Generated: ${meta.generated_at}`);
-  lines.push(`Mode: ${meta.mode}    Comparison scope: ${meta.scope}    Reading: ${meta.reading}    Language: ${meta.language}`);
+  lines.push(`Mode: ${meta.mode}    Comparison scope: ${meta.comparison_scope ?? "—"}    Reading: ${meta.reading}    Language: ${meta.language}`);
   lines.push(`Evidence snapshot id: ${meta.snapshot_id}`);
   lines.push("");
   lines.push("This bundle is a transcript of one reading of the workspace. It contains");

@@ -34,12 +34,28 @@ import {
 const readJson = (p) => JSON.parse(fs.readFileSync(new URL(p, import.meta.url), "utf8"));
 const REGISTRY = readJson("../data/source_registry.json");
 
+// Mirror of the app's k11WithProvenance: attach, to each value, the five
+// freshness fields and verbatim ceiling resolved from the ACTUAL registry record
+// of each contributing source — so these tests validate against real source
+// records, not a synthetic fixture.
+const FIVE = ["reference_date", "published_at", "retrieved_at", "update_frequency", "source_state"];
+function provenanceOf(id) {
+  const source = REGISTRY.sources.find((s) => s.id === id);
+  if (!source) return { id, missing_from_registry: true };
+  const freshness = {};
+  for (const field of FIVE) freshness[field] = source[field] ?? null;
+  return { id, display_name: source.display_name || id, authority: source.authority || null, freshness, interpretation_ceiling: source.interpretation_ceiling || null };
+}
+function withProvenance(value) {
+  return { ...value, provenance: (value.source_ids || []).map(provenanceOf) };
+}
+
 // A realistic projection using REAL registry source ids, mirroring what the app
 // assembles from the frozen models. `geography` carries a CC BY 4.0 licence.
 const PROJECTION = Object.freeze({
   meta: {
     mode: "COMPARE",
-    scope: "LENS",
+    comparison_scope: "LENS",
     reading: "analyst",
     language: "en",
     generated_at: "2026-10-15T09:30:00.000Z",
@@ -48,11 +64,11 @@ const PROJECTION = Object.freeze({
   },
   state_url: "https://example.org/lens/?v=1&m=COMPARE&a=40.41490,-3.69000,900&b=40.42240,-3.70370,900&be=1&al=A&ly=museum.info&sc=LENS&rd=analyst&lg=en",
   values: [
-    { id: "tourism", label: "Tourism POIs", scope: "LENS_CIRCLE", unit: "POIs", a_value: 5, b_value: 10, delta: 5, display: "A 5 · B 10 · Δ +5", state: "VALID", comparison_basis: "RAW_COUNT", source_ids: ["museum", "info"] },
-    { id: "stays", label: "Hotels & stays", scope: "LENS_CIRCLE", unit: "stays", a_value: 0, b_value: 0, delta: 0, display: "A 0 · B 0 · Δ 0", state: "VALID", comparison_basis: "RAW_COUNT", source_ids: ["stay"] },
-    { id: "mobility", label: "Mobility nodes", scope: "LENS_CIRCLE", unit: "nodes", a_value: null, b_value: null, delta: null, display: null, state: "WITHHELD", withheld_reason: "different window sizes", comparison_basis: "RAW_COUNT", source_ids: ["bike", "rail"] },
-    { id: "utci", label: "Mean UTCI", scope: "LENS_CIRCLE", unit: "°C", a_value: null, b_value: null, delta: null, display: null, state: "UNAVAILABLE", source_ids: ["hati"] },
-  ],
+    { id: "tourism", label: "Tourism POIs", scope: "LENS_CIRCLE", unit: "POIs", source_family: null, a_value: 5, b_value: 10, delta: 5, display: "A 5 · B 10 · Δ +5", state: "VALID", comparison_basis: "RAW_COUNT", source_ids: ["museum", "info"] },
+    { id: "stays", label: "Hotels & stays", scope: "LENS_CIRCLE", unit: "stays", source_family: null, a_value: 0, b_value: 0, delta: 0, display: "A 0 · B 0 · Δ 0", state: "VALID", comparison_basis: "RAW_COUNT", source_ids: ["stay"] },
+    { id: "mobility", label: "Mobility nodes", scope: "LENS_CIRCLE", unit: "nodes", source_family: null, a_value: null, b_value: null, delta: null, display: null, state: "WITHHELD", withheld_reason: "different window sizes", comparison_basis: "RAW_COUNT", source_ids: ["bike", "rail"] },
+    { id: "utci", label: "Mean UTCI", scope: "LENS_CIRCLE", unit: "°C", source_family: null, a_value: null, b_value: null, delta: null, display: null, state: "UNAVAILABLE", source_ids: ["hati"] },
+  ].map(withProvenance),
   evidence: [
     {
       surface: "compare.tourism", scope: "LENS_CIRCLE", unit: "unit.poi", derivation: "derivation.lensCount",
@@ -118,6 +134,26 @@ test("every evidence source carries the five freshness fields and a verbatim cei
       }
       assert.ok(source.interpretation_ceiling, `${source.id} carries its ceiling`);
     }
+  }
+});
+
+test("every exported value is independently interpretable, validated against real registry records", () => {
+  const reading = JSON.parse(fileByStem("reading-").text);
+  for (const value of reading.values) {
+    assert.ok(value.scope, `${value.id} has scope`);
+    assert.ok("unit" in value, `${value.id} has unit`);
+    assert.ok(value.state, `${value.id} has state`);
+    assert.ok("source_family" in value, `${value.id} declares its source family`);
+    assert.ok(Array.isArray(value.source_ids) && value.source_ids.length, `${value.id} names sources`);
+    assert.ok(Array.isArray(value.provenance) && value.provenance.length === value.source_ids.length, `${value.id} carries provenance per source`);
+    for (const prov of value.provenance) {
+      // provenance must equal the ACTUAL registry record, not an invented one
+      const source = REGISTRY.sources.find((s) => s.id === prov.id);
+      assert.ok(source, `${prov.id} is a real registry source`);
+      for (const field of FIVE) assert.equal(prov.freshness[field], source[field] ?? null, `${prov.id}.${field} matches the registry`);
+      assert.equal(prov.interpretation_ceiling, source.interpretation_ceiling || null, `${prov.id} ceiling matches the registry verbatim`);
+    }
+    if (value.state === "WITHHELD") assert.ok(value.withheld_reason, `${value.id} withheld carries a reason`);
   }
 });
 
