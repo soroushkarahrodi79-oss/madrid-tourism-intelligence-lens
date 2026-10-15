@@ -1888,6 +1888,12 @@ if (haloRegressionRequested && haloRegressionLocal) {
         message: document.getElementById("k11RestoreMessage")?.textContent || "",
       };
     },
+    k11Projection() { return k11BuildProjection(); },
+    k11Bundle() {
+      const projection = k11BuildProjection();
+      return projection ? buildEvidenceBundle(projection, shell.registry, { now: new Date() }) : null;
+    },
+    k11Export() { return k11ExportEvidence(); },
   });
 }
 
@@ -6300,6 +6306,7 @@ function renderAmbitoCompare() {
     if (body) body.hidden = true;
     if (refusalEl) refusalEl.hidden = true;
     clearAmbitoComparePolygons();
+    ambitoCompare.model = null; // K11: nothing comparable to transcribe
     return;
   }
   ensureAmbitoAdapter().then((adapter) => {
@@ -6307,6 +6314,9 @@ function renderAmbitoCompare() {
     const a = adapter.buildCurrentAmbitoInput(ambitoCompare.a, planningModel.index);
     const b = adapter.buildCurrentAmbitoInput(ambitoCompare.b, planningModel.index);
     const model = buildAmbitoComparisonModel(a, b);
+    // K11: cache the authoritative frozen model so the export transcribes it
+    // instead of rebuilding a second one.
+    ambitoCompare.model = model;
     renderAmbitoModel(model);
     renderAmbitoComparePolygons();
     if (model.comparable !== false) renderAmbitoEdition(model, adapter);
@@ -6400,6 +6410,9 @@ const K11_COPY = Object.freeze({
     "notice.dismiss": "Dismiss notice",
     "share.copied": "Link copied — it reproduces this exact reading.",
     "share.copyFailed": "Could not copy automatically. Copy this link:",
+    "export.ready": "Evidence exported. If your browser blocked a download, use the links below:",
+    "export.empty": "Nothing to export yet — configure a reading first.",
+    "export.failed": "Export could not be prepared.",
     "restore.partialTitle": "Partial restore",
     "restore.refusedTitle": "Link not restored",
     "restore.snapshotTitle": "Evidence has moved",
@@ -6430,6 +6443,9 @@ const K11_COPY = Object.freeze({
     "notice.dismiss": "Descartar aviso",
     "share.copied": "Enlace copiado: reproduce esta lectura exacta.",
     "share.copyFailed": "No se pudo copiar automáticamente. Copie este enlace:",
+    "export.ready": "Evidencia exportada. Si su navegador bloqueó alguna descarga, use los enlaces siguientes:",
+    "export.empty": "Aún no hay nada que exportar: configure primero una lectura.",
+    "export.failed": "No se pudo preparar la exportación.",
     "restore.partialTitle": "Restauración parcial",
     "restore.refusedTitle": "Enlace no restaurado",
     "restore.snapshotTitle": "La evidencia ha cambiado",
@@ -6760,6 +6776,212 @@ function k11RenderNotice(result) {
     show = true;
   }
   notice.hidden = !show;
+}
+
+// ------------------------------------------------------------------- export
+// The export is a TRANSCRIPT of the rendered reading. Every value it carries is
+// read from the frozen model that drew the screen (lastHaloComparison for the
+// Lens comparison, ambitoCompare.model for the ámbito comparison, the frozen
+// evidence records for provenance). js/evidence-export.js serialises the bundle;
+// nothing here recomputes an analytical value.
+
+function k11Fmt(value) {
+  if (value == null) return "—";
+  return Number(value).toLocaleString(shellLanguage() === "es" ? "es-ES" : "en-GB");
+}
+function k11FmtDelta(value) {
+  if (value == null) return "—";
+  const rounded = Number.isInteger(value) ? value : Math.round(value * 10) / 10;
+  return `${rounded > 0 ? "+" : ""}${k11Fmt(rounded)}`;
+}
+
+// A Lens circle as a GeoJSON Polygon ring in EPSG:4326 — a GENERATED analytical
+// window, explicitly not an official boundary.
+function k11CirclePolygon(lat, lon, radiusM, steps = 64) {
+  const R = 6378137;
+  const latRad = (lat * Math.PI) / 180;
+  const ring = [];
+  for (let i = 0; i <= steps; i += 1) {
+    const bearing = (i / steps) * 2 * Math.PI;
+    const dLat = (radiusM * Math.cos(bearing)) / R;
+    const dLon = (radiusM * Math.sin(bearing)) / (R * Math.cos(latRad));
+    ring.push([
+      Number((lon + (dLon * 180) / Math.PI).toFixed(6)),
+      Number((lat + (dLat * 180) / Math.PI).toFixed(6)),
+    ]);
+  }
+  return { type: "Polygon", coordinates: [ring] };
+}
+
+const K11_LENS_METRIC_META = Object.freeze({
+  tourism: { label: "Tourism POIs", unit: "POIs", sources: ["museum", "info"] },
+  stays: { label: "Hotels & stays", unit: "stays", sources: ["stay"] },
+  mobility: { label: "Mobility nodes", unit: "nodes", sources: ["bike", "rail"] },
+  utci: { label: "Mean UTCI", unit: "°C", sources: ["hati"] },
+});
+const K11_AMBITO_SOURCE_IDS = Object.freeze(["planning_ambito_state", "planning_ambito_geometry"]);
+
+function k11LensValue(id, metric) {
+  const meta = K11_LENS_METRIC_META[id] || { label: id, unit: null, sources: [] };
+  const comparable = metric.comparable === true;
+  const everythingNull = metric.aValue == null && metric.bValue == null && metric.aRawValue == null && metric.bRawValue == null;
+  const state = comparable ? "VALID" : everythingNull ? "UNAVAILABLE" : "WITHHELD";
+  return {
+    id,
+    label: meta.label,
+    scope: "LENS_CIRCLE",
+    unit: meta.unit,
+    a_value: metric.aValue ?? null,
+    b_value: metric.bValue ?? null,
+    delta: metric.delta ?? null,
+    display: comparable ? `A ${k11Fmt(metric.aValue)} · B ${k11Fmt(metric.bValue)} · Δ ${k11FmtDelta(metric.delta)}` : null,
+    state,
+    comparison_basis: comparable ? (metric.qualifier && /km²/.test(metric.qualifier) ? "REPRESENTED_DENSITY" : "RAW_COUNT") : null,
+    withheld_reason: comparable ? undefined : metric.qualifier || null,
+    source_ids: meta.sources,
+  };
+}
+
+function k11AmbitoValue(metric) {
+  const label = typeof ambitoT === "function" ? ambitoT(`metric.${metric.id}`) : metric.id;
+  if (metric.kind === "CATEGORICAL") {
+    const published = metric.a.state === "PUBLISHED" && metric.b.state === "PUBLISHED";
+    return {
+      id: metric.id, label, scope: "PLANNING_AMBITO", unit: null, kind: "CATEGORICAL",
+      a_state: metric.a.sourceValue ?? null, b_state: metric.b.sourceValue ?? null, relation: metric.relation,
+      display: `${metric.a.sourceValue ?? "—"} / ${metric.b.sourceValue ?? "—"} · ${metric.relation}`,
+      state: published ? "VALID" : "INDETERMINATE", comparison_basis: metric.basis, source_ids: K11_AMBITO_SOURCE_IDS,
+    };
+  }
+  const comparable = metric.comparable !== false;
+  return {
+    id: metric.id, label, scope: "PLANNING_AMBITO", unit: metric.unit, kind: "QUANTITY",
+    a_value: metric.a.value ?? null, b_value: metric.b.value ?? null,
+    delta: comparable ? metric.deltaValue ?? null : null,
+    display: comparable ? `B − A ${k11Fmt(metric.deltaValue)} ${metric.unit}` : null,
+    state: comparable ? "VALID" : "WITHHELD",
+    withheld_reason: comparable ? undefined : metric.withheldReasonCode || null,
+    comparison_basis: metric.basis, source_ids: K11_AMBITO_SOURCE_IDS,
+  };
+}
+
+function k11ActiveBarrioFeature() {
+  try {
+    if (geographyIndex && areaModel && areaModel.profile && areaModel.profile.barrioId) {
+      return geographyIndex.featureById("barrio", areaModel.profile.barrioId);
+    }
+  } catch (error) { /* best effort */ }
+  return null;
+}
+
+function k11BuildGeometry(scope) {
+  const geometry = [];
+  try {
+    const cA = centerOf("A");
+    geometry.push({ scope: "LENS_CIRCLE", role: "lensA", identity: "A", geometry_kind: "generated_analytical_window", feature: { type: "Feature", properties: { radius_m: radii.A }, geometry: k11CirclePolygon(cA.lat, cA.lon, radii.A) } });
+    if (bEnabled) {
+      const cB = centerOf("B");
+      geometry.push({ scope: "LENS_CIRCLE", role: "lensB", identity: "B", geometry_kind: "generated_analytical_window", feature: { type: "Feature", properties: { radius_m: radii.B }, geometry: k11CirclePolygon(cB.lat, cB.lon, radii.B) } });
+    }
+    if (scope === "AMBITO" && planningState === "ready" && planningModel.index) {
+      for (const [code, role] of [[ambitoCompare.a, "ambitoA"], [ambitoCompare.b, "ambitoB"]]) {
+        if (!code) continue;
+        const feature = planningModel.index.featureFor(code);
+        if (feature) geometry.push({ scope: "PLANNING_AMBITO", role, identity: code, geometry_kind: "official_boundary", feature });
+      }
+    } else {
+      const barrio = k11ActiveBarrioFeature();
+      if (barrio) geometry.push({ scope: "ADMIN_BARRIO", role: "barrio", identity: (barrio.properties && (barrio.properties.NOMBRE || barrio.properties.nombre)) || barrio.id || "barrio", geometry_kind: "official_boundary", feature: barrio });
+    }
+  } catch (error) { console.warn("K11 geometry assembly incomplete", error); }
+  return geometry;
+}
+
+function k11BuildProjection() {
+  if (!shell.registry) return null;
+  const mode = shell.modes ? shell.modes.currentMode() : "PLACE";
+  const scope = (typeof ambitoCompare !== "undefined" && ambitoCompare.scope) || "LENS";
+
+  let evidence = [];
+  try {
+    const surfaces = surfaceKeysFor(mode, currentFlags());
+    const records = buildEvidenceRecords({ surfaces, registry: shell.registry });
+    evidence = records.map((record) => ({
+      surface: record.surface, scope: record.scope, unit: record.unit, derivation: record.derivation,
+      sources: record.sources.map((source) => ({
+        id: source.id, display_name: source.displayName, authority: source.authority,
+        dataset_url: source.datasetUrl, artifact: source.artifact, builder: source.builder,
+        freshness: source.freshness, interpretation_ceiling: source.interpretationCeiling,
+      })),
+    }));
+  } catch (error) { console.warn("K11 provenance assembly incomplete", error); }
+
+  const values = [];
+  if (scope === "AMBITO") {
+    const model = ambitoCompare.model;
+    if (model && Array.isArray(model.metrics)) for (const metric of model.metrics) values.push(k11AmbitoValue(metric));
+  } else if (bEnabled && typeof lastHaloComparison !== "undefined" && lastHaloComparison && lastHaloComparison.metrics) {
+    for (const id of lastHaloComparison.order) {
+      const metric = lastHaloComparison.metrics[id];
+      if (metric) values.push(k11LensValue(id, metric));
+    }
+  }
+
+  return {
+    meta: {
+      mode, scope, reading: shell.reading, language: shellLanguage(),
+      generated_at: new Date().toISOString(), snapshot_id: K11_SNAPSHOT_ID, app_version: AREA_ASSET_VERSION,
+    },
+    state_url: buildShareUrl(window.location.href, k11CurrentState()),
+    values,
+    evidence,
+    geometry: k11BuildGeometry(scope),
+  };
+}
+
+// Deliver the five files via standards-only browser APIs (Blob + <a download>),
+// no zip dependency. Browsers may block several automatic downloads, so a
+// clickable fallback link for every file is always rendered — delivery status is
+// never advertised as complete when it may have been blocked.
+function k11DeliverFiles(bundle) {
+  const status = document.getElementById("k11ShareStatus");
+  const created = [];
+  for (const file of bundle.files) {
+    const url = URL.createObjectURL(new Blob([file.text], { type: file.mime }));
+    created.push({ url, name: file.name });
+    const anchor = document.createElement("a");
+    anchor.href = url; anchor.download = file.name; anchor.rel = "noopener";
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+  }
+  if (status) {
+    status.dataset.tone = "ok";
+    status.textContent = `${k11T("export.ready")} `;
+    for (const { url, name } of created) {
+      const link = document.createElement("a");
+      link.href = url; link.download = name; link.textContent = name; link.className = "k11-export-link";
+      status.append(link, document.createTextNode("  "));
+    }
+  }
+  // Keep the object URLs alive long enough for the fallback links, then release.
+  setTimeout(() => { for (const { url } of created) URL.revokeObjectURL(url); }, 120000);
+}
+
+function k11ExportEvidence() {
+  const status = document.getElementById("k11ShareStatus");
+  try {
+    const projection = k11BuildProjection();
+    if (!projection || (projection.values.length === 0 && projection.evidence.length === 0)) {
+      if (status) { status.dataset.tone = "error"; status.textContent = k11T("export.empty"); }
+      return;
+    }
+    const bundle = buildEvidenceBundle(projection, shell.registry, { now: new Date() });
+    k11DeliverFiles(bundle);
+  } catch (error) {
+    console.warn("K11 export failed", error);
+    if (status) { status.dataset.tone = "error"; status.textContent = k11T("export.failed"); }
+  }
 }
 
 // --------------------------------------------------------------- UI wiring

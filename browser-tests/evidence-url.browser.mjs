@@ -271,3 +271,96 @@ test("share and export are reachable at 360px", async () => {
     await close(page);
   }
 });
+
+// -------------------------------------------------------------- export bundle
+
+test("export transcribes the frozen LENS comparison into the five-file bundle", async () => {
+  const page = await newPage();
+  try {
+    await seam(page, () => {
+      window.__HALO_REGRESSION__.moveLens("A", 500, 360);
+      window.__HALO_REGRESSION__.moveLens("B", 820, 420);
+      window.__HALO_REGRESSION__.recompute();
+    });
+    const bundle = await seam(page, () => window.__HALO_REGRESSION__.k11Bundle());
+    assert.equal(bundle.files.length, 5, "five files");
+    const names = bundle.files.map((f) => f.name.replace(/-\d{8}-\d{4}/, "")).sort();
+    assert.deepEqual(names, ["README.txt", "geometry.geojson", "reading.json", "sources.json", "state.url"]);
+
+    const reading = JSON.parse(bundle.files.find((f) => f.name.startsWith("reading-")).text);
+    assert.ok(reading.values.length >= 1, "comparison values transcribed");
+    for (const value of reading.values) {
+      assert.ok(value.scope, "value has scope");
+      assert.ok("unit" in value, "value has unit");
+      assert.ok(value.state, "value has state");
+      assert.ok(Array.isArray(value.source_ids), "value names its sources");
+    }
+    // every evidence surface carries the five freshness fields + ceiling
+    for (const surface of reading.evidence_surfaces) {
+      for (const source of surface.sources) {
+        for (const field of ["reference_date", "published_at", "retrieved_at", "update_frequency", "source_state"]) {
+          assert.ok(field in source.freshness, `${source.id} carries ${field}`);
+        }
+        assert.ok(source.interpretation_ceiling, `${source.id} carries its ceiling`);
+      }
+    }
+    const geo = JSON.parse(bundle.files.find((f) => f.name.startsWith("geometry-")).text);
+    assert.match(JSON.stringify(geo.crs), /4326/);
+    const lens = geo.features.filter((f) => f.properties.scope === "LENS_CIRCLE");
+    assert.ok(lens.length >= 1, "lens circle geometry present");
+    assert.equal(lens[0].properties.geometry_kind, "generated_analytical_window");
+
+    // state.url and reading.json agree
+    const stateUrl = bundle.files.find((f) => f.name.startsWith("state-")).text.trim();
+    assert.equal(stateUrl, reading.state_url);
+
+    const sources = JSON.parse(bundle.files.find((f) => f.name.startsWith("sources-")).text);
+    assert.ok(sources.sources.length >= 1 && sources.sources.length < 19, "only contributing sources");
+  } finally {
+    await close(page);
+  }
+});
+
+test("the Export button runs the real delivery path and renders fallback links", async () => {
+  const page = await newPage();
+  try {
+    const downloads = [];
+    page.on("download", (d) => downloads.push(d.suggestedFilename()));
+    await seam(page, () => { window.__HALO_REGRESSION__.moveLens("A", 500, 360); window.__HALO_REGRESSION__.recompute(); });
+    await page.evaluate(() => document.getElementById("evidenceDrawer").showModal());
+    await page.click("#k11ExportBtn");
+    await page.waitForFunction(() => document.querySelectorAll("#k11ShareStatus .k11-export-link").length === 5);
+    const tone = await page.getAttribute("#k11ShareStatus", "data-tone");
+    assert.equal(tone, "ok", "delivery reported ok");
+    const links = await page.$$eval("#k11ShareStatus .k11-export-link", (as) => as.map((a) => a.getAttribute("download")));
+    assert.equal(links.length, 5, "a fallback link per file");
+    assert.ok(links.some((n) => n.startsWith("reading-")), "reading file linked");
+  } finally {
+    await close(page);
+  }
+});
+
+test("export transcribes the frozen ÁMBITO comparison with official polygons", async () => {
+  const page = await newPage();
+  try {
+    await seam(page, () => window.__HALO_REGRESSION__.ambitoSetScope("AMBITO"));
+    await seam(page, (code) => window.__HALO_REGRESSION__.ambitoSelect("A", code), CODE_A);
+    await seam(page, (code) => window.__HALO_REGRESSION__.ambitoSelect("B", code), CODE_B);
+    await page.waitForFunction(() => {
+      const b = window.__HALO_REGRESSION__.k11Bundle();
+      if (!b) return false;
+      const r = JSON.parse(b.files.find((f) => f.name.startsWith("reading-")).text);
+      return r.values.length >= 1;
+    });
+    const bundle = await seam(page, () => window.__HALO_REGRESSION__.k11Bundle());
+    const reading = JSON.parse(bundle.files.find((f) => f.name.startsWith("reading-")).text);
+    assert.ok(reading.values.every((v) => v.scope === "PLANNING_AMBITO"), "ámbito-scoped values");
+    const geo = JSON.parse(bundle.files.find((f) => f.name.startsWith("geometry-")).text);
+    const official = geo.features.filter((f) => f.properties.scope === "PLANNING_AMBITO");
+    assert.ok(official.length >= 1, "official ámbito polygon(s) exported");
+    assert.equal(official[0].properties.geometry_kind, "official_boundary");
+    assert.notEqual(official[0].geometry.type, "Point");
+  } finally {
+    await close(page);
+  }
+});

@@ -1133,3 +1133,4 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 @media(pointer:coarse){
   .drawer-action,.k11-notice-dismiss{min-height:44px}
 }
+.k11-export-link{display:inline-block;margin:var(--s-1) var(--s-2) 0 0;font-size:var(--t-meta);color:#9bd5ff;text-decoration:underline}
