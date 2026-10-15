@@ -988,3 +988,116 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+/* ===================== K10 ámbito comparison (COMPARE second scope) =======
+   All sizing uses the K5 tokens: --t-* type scale, --s-* spacing, --r-* radius.
+   No judgement colour: a same/different reading is a neutral chip, never a
+   direction or a quality hue. Separate from Lens A/B and carries no order,
+   progress or judgement. */
+.compare-scope-switch{display:flex;gap:var(--s-1);margin:0 0 var(--s-2)}
+.compare-scope-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:var(--s-1);
+  padding:var(--s-1) var(--s-2);min-height:34px;border:1px solid rgba(160,180,205,.35);border-radius:var(--r-small);
+  background:rgba(20,32,48,.4);color:var(--muted);font:inherit;font-size:var(--t-meta);cursor:pointer}
+.compare-scope-btn[aria-pressed="true"]{color:var(--text);border-color:rgba(67,215,255,.6);background:rgba(30,52,74,.6)}
+#compareLine[data-compare-scope="AMBITO"] .compare-lens-head,
+#compareLine[data-compare-scope="AMBITO"] #comparisonRadiusReadout,
+#compareLine[data-compare-scope="AMBITO"] #comparisonModeCue,
+#compareLine[data-compare-scope="AMBITO"] #comparisonBridge,
+#compareLine[data-compare-scope="AMBITO"] #decisionInsight,
+#compareLine[data-compare-scope="AMBITO"] #compareDetail{display:none}
+#compareLine:not([data-compare-scope="AMBITO"]) #ambitoCompare{display:none}
+
+.ambito-compare{margin-top:var(--s-1)}
+.ambito-pick{display:flex;gap:var(--s-2);margin:var(--s-1) 0}
+.ambito-pick-field{flex:1;display:flex;align-items:center;gap:var(--s-1);font-size:var(--t-meta)}
+.ambito-pick-tag{width:18px;height:18px;flex:none;display:inline-flex;align-items:center;justify-content:center;
+  border-radius:var(--r-small);font-weight:700;font-size:var(--t-micro);color:#07202f}
+.ambito-pick-tag.ac-a{background:#9ccdff}
+.ambito-pick-tag.ac-b{background:#43d7ff;border:1px dashed #0a3a49}
+.ambito-select{flex:1;min-width:0;min-height:32px;background:rgba(14,24,38,.75);color:var(--text);
+  border:1px solid rgba(160,180,205,.35);border-radius:var(--r-small);font:inherit;font-size:var(--t-meta);padding:var(--s-1) var(--s-1)}
+.ambito-pick-hint{font-size:var(--t-micro);color:var(--text-meta);margin:var(--s-1) 0 var(--s-2)}
+.ambito-refusal{font-size:var(--t-meta);color:var(--text);background:rgba(74,52,30,.5);border:1px solid rgba(220,160,90,.5);
+  border-radius:var(--r-small);padding:var(--s-2) var(--s-2);margin:var(--s-1) 0}
+
+.ambito-identities{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-2);margin:var(--s-1) 0 var(--s-2)}
+.ambito-id{border:1px solid rgba(160,180,205,.3);border-radius:var(--r-small);padding:var(--s-2) var(--s-2);display:flex;flex-direction:column;gap:var(--s-1)}
+.ambito-id.ac-a{border-left:3px solid #9ccdff}
+.ambito-id.ac-b{border-left:3px dashed #43d7ff}
+.ambito-id-tag{font-size:var(--t-micro);font-weight:700;letter-spacing:.08em;color:var(--text-meta)}
+.ambito-id-code{font-size:var(--t-label);color:var(--text)}
+.ambito-id-denom{font-size:var(--t-micro);color:var(--muted);overflow-wrap:anywhere}
+.ambito-id-date{font-size:var(--t-micro);color:var(--text-meta)}
+.ambito-sub{font-size:var(--t-micro);letter-spacing:.07em;text-transform:uppercase;color:var(--text-meta);margin:var(--s-2) 0 var(--s-1);font-weight:600}
+
+.ambito-cat-items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--s-1)}
+.ambito-cat-item{display:grid;grid-template-columns:1fr auto;gap:var(--s-1) var(--s-2);align-items:baseline;
+  border:1px solid rgba(160,180,205,.22);border-radius:var(--r-small);padding:var(--s-1) var(--s-2)}
+.ambito-cat-field{font-size:var(--t-meta);color:var(--text)}
+.ambito-cat-values{font-size:var(--t-micro);color:var(--muted);grid-column:1;overflow-wrap:anywhere}
+.ambito-cat-values b{color:var(--text);font-weight:600}
+.ambito-rel{justify-self:end;font-size:var(--t-micro);letter-spacing:.04em;padding:var(--s-1) var(--s-2);border-radius:var(--r-small);
+  border:1px solid rgba(160,180,205,.4);color:var(--muted);white-space:nowrap}
+.ambito-rel[data-relation="DIFFERENT"]{border-style:dashed}
+
+.ambito-qty-wrap{overflow-x:auto}
+.ambito-qty{width:100%;border-collapse:collapse;font-size:var(--t-micro)}
+.ambito-qty th,.ambito-qty td{text-align:right;padding:var(--s-1) var(--s-1);border-bottom:1px solid rgba(160,180,205,.18)}
+.ambito-qty th:first-child,.ambito-qty td:first-child{text-align:left}
+.ambito-qty thead th{color:var(--text-meta);font-weight:600;font-size:var(--t-micro)}
+.ambito-qty td.ambito-withheld{color:var(--text-meta);font-style:italic;text-align:left}
+
+.ambito-scale-note{font-size:var(--t-micro);color:var(--text-meta);margin:var(--s-1) 0 var(--s-2);
+  line-height:1.45;border-left:2px solid rgba(160,180,205,.35);padding-left:var(--s-2)}
+.ambito-radius-note{font-size:var(--t-micro);color:var(--text-meta);margin:var(--s-2) 0 var(--s-1);
+  border-left:2px solid rgba(160,180,205,.35);padding-left:var(--s-2)}
+.ambito-edition{margin-top:var(--s-1)}
+.ambito-edition summary{font-size:var(--t-meta);cursor:pointer;color:var(--text)}
+.ambito-edition-lead{font-size:var(--t-micro);color:var(--text-meta);margin:var(--s-1) 0}
+.ambito-edition-items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--s-1)}
+.ambito-edition-item{display:flex;justify-content:space-between;gap:var(--s-2);font-size:var(--t-micro);color:var(--muted)}
+.ambito-edition-item .aei-metric{color:var(--text)}
+.ambito-guard{font-size:var(--t-micro);color:var(--text-meta);margin-top:var(--s-2);font-style:italic}
+
+@media(max-width:560px){
+  .ambito-identities{grid-template-columns:1fr}
+  .ambito-pick{flex-direction:column}
+}
+
+/* Coarse pointers get a 44px target on the K10 controls (K5 touch-target rule). */
+@media(pointer:coarse){
+  .compare-scope-btn{min-height:44px}
+  .ambito-select{min-height:44px}
+}
+
+/* K10 ámbito Bridge, Decision Insight, within-metric bars, dates (K5 tokens). */
+.ambito-metric-focus{background:none;border:0;padding:0;margin:0;font:inherit;
+  color:inherit;text-align:left;cursor:pointer;border-bottom:1px dotted transparent}
+.ambito-metric-focus:hover,.ambito-metric-focus:focus-visible{border-bottom-color:rgba(160,180,205,.7);outline:none}
+.ambito-metric-focus[aria-pressed="true"]{color:var(--text);border-bottom-color:var(--b)}
+.ambito-reason{color:var(--text-meta);font-size:var(--t-micro);font-style:italic}
+
+.ambito-bridge{border:1px solid rgba(160,180,205,.3);border-radius:var(--r-small);padding:var(--s-2) var(--s-2);margin:var(--s-1) 0 var(--s-2)}
+.ambito-bridge-empty{font-size:var(--t-micro);color:var(--text-meta);margin:0}
+.ambito-bridge-reading{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--s-1) var(--s-2);font-size:var(--t-meta)}
+.ab-metric{font-weight:600;color:var(--text)}
+.ab-lock{font-size:var(--t-micro);color:var(--text-meta);text-transform:uppercase;letter-spacing:.06em}
+.ab-side{color:var(--muted)}
+.ab-rel{color:var(--text)}
+.ab-qual{font-size:var(--t-micro);color:var(--text-meta);flex-basis:100%}
+
+.ambito-qty-dates{font-size:var(--t-micro);color:var(--text-meta);margin:0 0 var(--s-1)}
+.ambito-scale-cell{text-align:left;min-width:64px}
+.ambito-bars{display:flex;flex-direction:column;gap:var(--s-1)}
+.ambito-bar-track{display:block;height:5px;background:rgba(160,180,205,.18)}
+.ambito-bar-track.ac-a .ambito-bar-fill{background:#9ccdff}
+.ambito-bar-track.ac-b .ambito-bar-fill{background:#43d7ff}
+.ambito-bar-fill{display:block;height:100%}
+
+.ambito-insight{margin:var(--s-2) 0 0}
+.ambito-insight-items{list-style:none;margin:var(--s-1) 0;padding:0;display:flex;flex-direction:column;gap:var(--s-1)}
+.ambito-insight-item{display:flex;justify-content:space-between;gap:var(--s-2);font-size:var(--t-micro);color:var(--muted)}
+.ambito-insight-item .aii-metric{color:var(--text)}
+.ambito-guard-di{font-size:var(--t-micro);color:var(--text-meta);font-style:italic;margin:var(--s-1) 0 0}
+.ambito-edition-note{font-size:var(--t-micro);color:var(--text-meta);margin:var(--s-1) 0}
+.aei-metric{color:var(--text)}

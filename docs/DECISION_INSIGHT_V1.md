@@ -318,3 +318,20 @@ Decision Insight always describes the **current** comparison state. The separate
 [Spatial Window Sensitivity V1](SPATIAL_WINDOW_SENSITIVITY_V1.md) layer compares
 a frozen baseline window against that current state; it consumes these Insight
 items unchanged and never replaces them with baseline values.
+
+## 21. Additive — the `PLANNING_AMBITO` scope (K10, #72)
+
+K10 adds ámbito-scope Decision Insight. Nothing in §§1–20 changes: the four
+circle-scope canonical metrics, their fixed order, the B − A convention, the
+descriptive guard and the no-composite / no-causality rules are untouched.
+
+In ámbito scope the items come from
+`ambitoDecisionInsightItems(model)` in
+[`js/ambito-comparison.js`](../js/ambito-comparison.js), read from the one
+authoritative ámbito state (it recomputes nothing — a test asserts the delta is
+identity). The nine ámbito metrics render in a **fixed canonical order**, never
+sorted by magnitude; the four categorical phase items are descriptive
+same/different contrasts that carry **no numeric delta**; quantity items carry a
+B − A m² difference or a withheld reason. The same `descriptive-only` guard
+applies, and the forbidden ordering/recommendation vocabulary is scanned across
+both ámbito dictionaries. See [Ámbito Comparison V1](AMBITO_COMPARISON_V1.md).

@@ -6,7 +6,7 @@
 <title>Madrid Urban Evidence Lens</title>
 <meta name="description" content="A place-first, source-disciplined lens for Madrid: read what official sources document about the city and the limits of that evidence. Urban development is the authorized next organising frame; tourism remains a documented domain. Not real-time; not a recommendation engine.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261014-1">
+<link rel="stylesheet" href="css/app.css?v=20261015-1">
 </head>
 <body>
 <div id="map"></div>
@@ -443,7 +443,11 @@
   <!-- ============================== COMPARE ============================ -->
   <div id="compareLine" class="compareline mode-section" data-mode-section="COMPARE" hidden>
     <!-- LEAD ANSWER: the focused metric reading (Comparison Bridge). -->
-    <div class="section-head"><span>Lens A ↔ Lens B</span><small>circle measurements only</small><button type="button" class="evidence-link" data-evidence-prefix="compare." data-evidence-name="sec.compare" aria-haspopup="dialog"><span aria-hidden="true">i</span></button></div>
+    <div id="compareScopeSwitch" class="compare-scope-switch" role="group" aria-label="Comparison scope" data-i18n-attr="aria-label:compare.scope.aria">
+      <button type="button" id="compareScopeLens" class="compare-scope-btn" data-compare-scope="LENS" aria-pressed="true"><span aria-hidden="true">◎</span> <span data-i18n="compare.scope.lens">Lens circles</span></button>
+      <button type="button" id="compareScopeAmbito" class="compare-scope-btn" data-compare-scope="AMBITO" aria-pressed="false"><span aria-hidden="true">▣</span> <span data-i18n="compare.scope.ambito">Planning ámbitos</span></button>
+    </div>
+    <div class="section-head compare-lens-head"><span>Lens A ↔ Lens B</span><small>circle measurements only</small><button type="button" class="evidence-link" data-evidence-prefix="compare." data-evidence-name="sec.compare" aria-haspopup="dialog"><span aria-hidden="true">i</span></button></div>
     <div id="comparisonRadiusReadout" class="comparison-radius-readout" aria-label="Lens radii">Lens A · 900 m | Lens B · 900 m</div>
     <div id="comparisonModeCue" class="comparison-mode-cue" aria-live="polite">Equal windows · raw represented counts</div>
     <div id="comparisonBridge" class="comparison-bridge" role="group" aria-label="Focused metric comparison">
@@ -544,6 +548,80 @@
     <div id="haloVisibilityNote" class="halo-visibility-note" aria-live="polite"></div>
     <div id="comparisonHaloSummary" class="sr-only" aria-live="polite"></div>
     </details>
+    <!-- ÁMBITO COMPARISON (K10, #72): a SECOND comparison scope — two official
+         planning ámbitos, not Lens circles. Every surface below reads the one
+         authoritative state from js/ambito-comparison.js; none recomputes. The
+         categorical phases show two verbatim states and SAME/DIFFERENT with no
+         arrow, sign, delta or direction colour. Quantities show B − A in m² only
+         when like-for-like, else a withheld reason inline. Radius sensitivity is
+         stated non-applicable; edition sensitivity uses K7-derived identity.
+         See docs/AMBITO_COMPARISON_V1.md. -->
+    <section id="ambitoCompare" class="ambito-compare" aria-labelledby="ambitoCompareHeading" hidden>
+      <div class="section-head"><span id="ambitoCompareHeading" data-i18n="compare.ambito.heading">Ámbito A ▣ ↔ Ámbito B ▢</span><small id="ambitoCompareScopeNote" data-i18n="compare.ambito.scopeNote">official planning geometries</small></div>
+      <div class="ambito-pick">
+        <label class="ambito-pick-field"><span class="ambito-pick-tag ac-a">A</span>
+          <input id="ambitoSelectA" class="ambito-select" type="text" list="ambitoCodeDatalist" autocomplete="off" aria-label="Ámbito A official code" data-i18n-attr="aria-label:compare.ambito.selectA.aria"></label>
+        <label class="ambito-pick-field"><span class="ambito-pick-tag ac-b">B</span>
+          <input id="ambitoSelectB" class="ambito-select" type="text" list="ambitoCodeDatalist" autocomplete="off" aria-label="Ámbito B official code" data-i18n-attr="aria-label:compare.ambito.selectB.aria"></label>
+      </div>
+      <datalist id="ambitoCodeDatalist"></datalist>
+      <p id="ambitoPickHint" class="ambito-pick-hint" data-i18n="compare.ambito.pickHint">Choose two official ámbitos by exact code, or click an ámbito polygon on the map.</p>
+      <p id="ambitoCompareRefusal" class="ambito-refusal" role="status" hidden></p>
+      <div id="ambitoCompareBody" hidden>
+        <div class="ambito-identities">
+          <div class="ambito-id ac-a"><span class="ambito-id-tag">A</span><b id="ambitoIdACode" class="ambito-id-code" data-verbatim></b><span id="ambitoIdADenom" class="ambito-id-denom" data-verbatim></span><small id="ambitoIdADate" class="ambito-id-date"></small></div>
+          <div class="ambito-id ac-b"><span class="ambito-id-tag">B</span><b id="ambitoIdBCode" class="ambito-id-code" data-verbatim></b><span id="ambitoIdBDenom" class="ambito-id-denom" data-verbatim></span><small id="ambitoIdBDate" class="ambito-id-date"></small></div>
+        </div>
+        <!-- Comparison Bridge (ámbito scope): the focused reading of ONE metric,
+             read from ambitoBridgeReading(model, metricId) — the same authoritative
+             state, never recomputed. Categorical metrics show a relation with no
+             delta; quantities show B − A or a withheld reason. -->
+        <section id="ambitoBridge" class="ambito-bridge" role="group" aria-label="Focused ámbito metric" data-i18n-attr="aria-label:compare.ambito.bridgeAria">
+          <p id="ambitoBridgeEmpty" class="ambito-bridge-empty" data-i18n="compare.ambito.bridgeEmpty">Focus a metric to read Ámbito A against Ámbito B.</p>
+          <div id="ambitoBridgeReading" class="ambito-bridge-reading" hidden>
+            <span id="ambitoBridgeMetric" class="ab-metric"></span>
+            <span id="ambitoBridgeLock" class="ab-lock" hidden data-i18n="compare.ambito.locked">Locked</span>
+            <span id="ambitoBridgeA" class="ab-side ac-a"></span>
+            <span id="ambitoBridgeRel" class="ab-rel"></span>
+            <span id="ambitoBridgeB" class="ab-side ac-b"></span>
+            <span id="ambitoBridgeQualifier" class="ab-qual"></span>
+          </div>
+          <p id="ambitoBridgeA11y" class="sr-only" aria-live="polite"></p>
+        </section>
+        <h4 class="ambito-sub" id="ambitoPhasesHeading" data-i18n="compare.ambito.phasesHeading">Development phases</h4>
+        <ul id="ambitoCatItems" class="ambito-cat-items"></ul>
+        <h4 class="ambito-sub" id="ambitoQtyHeading" data-i18n="compare.ambito.qtyHeading">Available buildability &amp; surface</h4>
+        <p id="ambitoQtyDates" class="ambito-qty-dates"></p>
+        <div class="ambito-qty-wrap">
+          <table class="ambito-qty" aria-labelledby="ambitoQtyHeading">
+            <thead><tr><th scope="col" data-i18n="compare.ambito.metricCol">Metric</th><th scope="col" class="ac-a">A</th><th scope="col" class="ac-b">B</th><th scope="col" id="ambitoQtyDeltaCol">B − A</th><th scope="col" id="ambitoQtyScaleCol" aria-describedby="ambitoScaleNote" data-i18n="compare.ambito.scaleCol">Within-metric</th></tr></thead>
+            <tbody id="ambitoQtyRows"></tbody>
+          </table>
+        </div>
+        <!-- What the within-metric bars mean, for a first-time reader: scaled to
+             the larger published value of that one metric, each metric on its own
+             reference, never a completion percentage, target or citywide
+             benchmark, never comparable across metrics, and a published 0 kept
+             distinct from unavailable evidence. Visible, not collapsed. -->
+        <p id="ambitoScaleNote" class="ambito-scale-note" data-i18n="compare.ambito.scaleNote">Each bar scales A and B only against the larger published value of that same metric, and every metric keeps its own reference. Bar length is not a percentage of planning completion, not a target and not a Madrid-wide benchmark, and lengths cannot be compared between different metrics. A published 0 is a real value shown as an empty bar — it is not the same as unavailable or withheld evidence.</p>
+        <!-- Decision Insight (ámbito scope): descriptive per-metric contrasts in
+             fixed canonical order, from ambitoDecisionInsightItems(model). No
+             ordering, composite, preferred ámbito, recommendation or causality. -->
+        <section id="ambitoInsight" class="ambito-insight" aria-labelledby="ambitoInsightHeading">
+          <h4 class="ambito-sub" id="ambitoInsightHeading" data-i18n="compare.ambito.insightHeading">Decision Insight</h4>
+          <ul id="ambitoInsightItems" class="ambito-insight-items"></ul>
+          <p id="ambitoInsightGuard" class="ambito-guard-di"></p>
+        </section>
+        <p id="ambitoRadiusNote" class="ambito-radius-note"></p>
+        <details id="ambitoEdition" class="ambito-edition">
+          <summary id="ambitoEditionSummary" data-i18n="compare.ambito.editionSummary">Edition sensitivity</summary>
+          <p id="ambitoEditionLead" class="ambito-edition-lead" data-i18n="compare.ambito.editionLead">Does the A ↔ B relationship hold under the previous official edition?</p>
+          <p id="ambitoEditionNote" class="ambito-edition-note" hidden></p>
+          <ul id="ambitoEditionItems" class="ambito-edition-items"></ul>
+        </details>
+        <p id="ambitoCompareGuard" class="ambito-guard"></p>
+      </div>
+    </section>
     <div class="evidence-route-row"><button type="button" class="evidence-route" data-evidence-mode="COMPARE" aria-haspopup="dialog"><span aria-hidden="true">▸</span> <span data-i18n="sec.evidence">Evidence &amp; limits</span></button></div>
   </div>
 
@@ -683,14 +761,15 @@
 <script src="js/radial-halo.js?v=20261005-52"></script>
 <script src="js/evidence.js"></script>
 <script src="js/evidence-scope.js?v=20261006-1"></script>
+<script src="js/ambito-comparison.js?v=20261015-1"></script>
 <script src="js/modes.js?v=20261006-1"></script>
 <script src="js/scope-rail.js?v=20261006-2"></script>
-<script src="js/shell-copy.js?v=20261014-1"></script>
+<script src="js/shell-copy.js?v=20261015-1"></script>
 <script src="js/legacy-copy.js?v=20261006-2"></script>
 <script src="js/data.js?v=20260928-15"></script>
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20261014-1"></script>
+<script src="js/app.js?v=20261015-1"></script>
 </body>
 </html>

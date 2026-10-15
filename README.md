@@ -104,6 +104,12 @@ including comparing two places at once.
   **City** (municipality-wide hotel demand and domestic-origin context). A mode changes how
   existing evidence is read; it never flies the camera, switches a layer or moves a Lens.
   Entering Compare enables Lens B and leaving it follows the previous cleanup.
+- Compare two official **planning ámbitos** in Compare mode (same surfaces, a second scope): the
+  four published phases read as same/different with no direction, available buildability and
+  surface read as a B − A m² difference, cross-scope (ámbito vs Lens circle) and cross-edition
+  pairs are refused or withheld with a stated reason, and radius sensitivity is replaced by an
+  explicit edition sensitivity because an ámbito's geometry is fixed. See
+  [Ámbito Comparison V1](docs/AMBITO_COMPARISON_V1.md).
 - Check, at any width, what the evidence on screen describes and how old it is: the always-visible
   **scope and freshness rail** names the scope (glyph and label) and the oldest contributing
   reference date, or says the date is not published. The **Evidence & limits** drawer shows, for

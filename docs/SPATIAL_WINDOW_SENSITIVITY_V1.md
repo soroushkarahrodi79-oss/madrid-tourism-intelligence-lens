@@ -421,3 +421,29 @@ normalization, the fixed label rail, the Comparison Bridge focus architecture,
 Decision Insight semantics, the zero/N/A/OFF rules, the Mobility unequal-radius
 semantics, the UTCI comparison contract and the regression seam gating are all
 unchanged.
+
+## 23. Additive — sensitivity in the `PLANNING_AMBITO` scope (K10, #72)
+
+K10 introduces a second comparison scope, and sensitivity works differently
+there. Nothing in §§1–22 changes for the Lens-circle scope: radii remain the
+only scenario parameter, the baseline capture/reset/invalidation rules, the
+transition taxonomy and the fixed order all stand.
+
+**Radius sensitivity does not apply to ámbito scope.** An ámbito's geometry is
+fixed and official and the reader cannot change it, so there is no radius to vary.
+`ambitoRadiusSensitivityStatus()` in
+[`js/ambito-comparison.js`](../js/ambito-comparison.js) states that
+non-applicability explicitly (`applicable: false`,
+`reasonCode: "FIXED_OFFICIAL_GEOMETRY"`) and retains **no** baseline
+(`retainsBaseline: false`), so a scope switch leaves no stale Lens baseline
+behind.
+
+**Edition sensitivity replaces it.** `buildAmbitoEditionSensitivity(current,
+previous)` varies the official **edition** instead of the radius, reusing this
+layer's transition vocabulary (`UNCHANGED_COMPARABLE`, `DIRECTION_CHANGED`,
+`BASIS_CHANGED`, `BECAME_WITHHELD`, `BECAME_COMPARABLE`, `WITHHELD_UNCHANGED`,
+`WITHHELD_REASON_CHANGED`) plus categorical-only codes (`RELATION_UNCHANGED`,
+`RELATION_CHANGED`, `RELATION_INDETERMINATE`, which never carry a direction). The
+**basis is checked before any direction claim** (§12), each side keeps its own
+reference date, and a `MODIFIED_BY_INSTRUMENT` pair is withheld rather than
+compared. See [Ámbito Comparison V1](AMBITO_COMPARISON_V1.md).

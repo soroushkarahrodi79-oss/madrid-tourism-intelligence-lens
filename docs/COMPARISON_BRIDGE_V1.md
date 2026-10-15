@@ -135,3 +135,21 @@ No new scoring system, index, ranking, recommendation or causal claim; no
 winner/loser, better/worse or green/red judgement; no new halo slot (Pedestrian
 is not promoted); no card on the map and no connector line between the two
 circles ("Bridge" is the comparison interface, not a geographic path).
+
+## 10. Additive — the `PLANNING_AMBITO` scope (K10, #72)
+
+K10 adds a **second comparison scope** for the Bridge: two official planning
+ámbitos. Nothing in §§1–9 changes. The circle-scope Bridge, its four canonical
+metrics, its B − A semantics, its withholding rules and its focus architecture
+are untouched.
+
+In ámbito scope the Bridge reads the authoritative state in
+[`js/ambito-comparison.js`](../js/ambito-comparison.js) through
+`ambitoBridgeReading(model, metricId)` — the same read-one-state, recompute-nothing
+discipline as §2. The focused reading shows both ámbito identities (denomination
++ exact code), both editions' reference dates, and the focused metric's two
+values. Categorical phase metrics show two states and a same/different reading
+with **no arrow, no sign and no direction colour**; quantity metrics show a B − A
+m² difference or a withheld reason. A different-edition pair is withheld with that
+reason, exactly as mobility is withheld under unequal windows. The full ámbito
+contract lives in [Ámbito Comparison V1](AMBITO_COMPARISON_V1.md).
