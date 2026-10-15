@@ -308,6 +308,23 @@ async function clickMapAt(page, lat, lon) {
   await page.mouse.click(point.x, point.y);
 }
 
+// Guards against an accidental overlay (panel, control, modal) sitting over the
+// pixel we are about to click: the element at that pixel must belong to the open
+// Leaflet map and not to a control. If a panel covered it, `closest(".leaflet-
+// container")` would be null and the assertion would fail before the click.
+async function assertClickLandsOnOpenMap(page, lat, lon) {
+  const onMap = await page.evaluate(([la, lo]) => {
+    const point = window.__HALO_REGRESSION__.containerPointOf(la, lo);
+    const el = document.elementFromPoint(point.x, point.y);
+    return Boolean(el && el.closest(".leaflet-container") && !el.closest(".leaflet-control,.leaflet-popup"));
+  }, [lat, lon]);
+  assert.ok(onMap, "the click pixel lands on the open map, with no overlay intercepting it");
+}
+
+// A second real official polygon, distinct from INSIDE (APR.02.09): interior
+// point verified against the committed geometry via the real containment index.
+const INSIDE_B = { lat: 40.40341, lon: -3.71264, code: "API.02.11" };
+
 test("AC 11 real controls + real map clicks: scope switch, ámbito select, no Lens move, return to circles", async () => {
   const page = await newPage();
   try {
@@ -345,14 +362,76 @@ test("AC 11 real controls + real map clicks: scope switch, ámbito select, no Le
   }
 });
 
-test("AC 11b real map clicks assign A then B on a tablet viewport", async () => {
+test("AC 11b two real map clicks assign A then a distinct B on a tablet viewport, with no overlay and no Lens move", async () => {
   const page = await newPage({ width: 834, height: 1112 });
   try {
-    await page.evaluate(([lat, lon]) => window.__HALO_REGRESSION__.setMapView(lat, lon, 14), [INSIDE.lat, INSIDE.lon]);
+    // enter the ámbito scope through the REAL scope-switch control
     await page.click("#compareScopeAmbito");
+    assert.equal((await ambito(page)).scope, "AMBITO");
+
+    const lensBefore = await page.evaluate(() => ({
+      A: window.__HALO_REGRESSION__.lensLatLng("A"),
+      B: window.__HALO_REGRESSION__.lensLatLng("B"),
+    }));
+
+    // ---- first REAL mouse click selects official ámbito A ----
+    await page.evaluate(([lat, lon]) => window.__HALO_REGRESSION__.setMapView(lat, lon, 15), [INSIDE.lat, INSIDE.lon]);
+    await assertClickLandsOnOpenMap(page, INSIDE.lat, INSIDE.lon);
     await clickMapAt(page, INSIDE.lat, INSIDE.lon);
     await page.waitForFunction((code) => document.getElementById("ambitoSelectA").value === code, INSIDE.code);
+    // only A so far; B is still empty
+    assert.equal(await page.evaluate(() => document.getElementById("ambitoSelectB").value), "");
+
+    // ---- second REAL mouse click selects a DIFFERENT official ámbito B ----
+    await page.evaluate(([lat, lon]) => window.__HALO_REGRESSION__.setMapView(lat, lon, 15), [INSIDE_B.lat, INSIDE_B.lon]);
+    await assertClickLandsOnOpenMap(page, INSIDE_B.lat, INSIDE_B.lon);
+    await clickMapAt(page, INSIDE_B.lat, INSIDE_B.lon);
+    await page.waitForFunction((code) => document.getElementById("ambitoSelectB").value === code, INSIDE_B.code);
+    // both slots are filled; wait for the async comparison render to settle so the
+    // identity panels, polygons and readings reflect the final A/B pair.
+    await page.waitForFunction(() => window.__HALO_REGRESSION__.ambitoState().bodyHidden === false);
+
+    const state = await ambito(page);
+    // both exact official codes are displayed, and they are genuinely distinct
+    assert.equal(state.a.code, INSIDE.code, "first click selected official ámbito A");
+    assert.equal(state.b.code, INSIDE_B.code, "second click selected official ámbito B");
+    assert.notEqual(state.a.code, state.b.code, "A and B are two different official ámbitos");
     assert.equal(await page.evaluate(() => document.getElementById("ambitoSelectA").value), INSIDE.code);
+    assert.equal(await page.evaluate(() => document.getElementById("ambitoSelectB").value), INSIDE_B.code);
+
+    // both official geometries are rendered: A solid, B dashed
+    assert.equal(state.polygonCount, 2, "both official polygons drawn");
+    assert.equal(state.polygonStyles.length, 2);
+    assert.equal(state.polygonStyles[0].dashArray, null, "ámbito A is drawn solid");
+    assert.ok(state.polygonStyles[1].dashArray, "ámbito B is drawn dashed");
+
+    // the active Lens markers did not move during ámbito selection
+    const lensAfter = await page.evaluate(() => ({
+      A: window.__HALO_REGRESSION__.lensLatLng("A"),
+      B: window.__HALO_REGRESSION__.lensLatLng("B"),
+    }));
+    assert.deepEqual(lensAfter, lensBefore, "neither Lens marker moved while selecting ámbitos by map click");
+
+    // the resulting comparison renders official values, source dates and valid states
+    assert.equal(state.bodyHidden, false, "the comparison body renders for a resolved A/B pair");
+    assert.ok(state.a.date && /\d{4}/.test(state.a.date), "A edition date visible");
+    assert.ok(state.b.date && /\d{4}/.test(state.b.date), "B edition date visible");
+    assert.equal(state.categorical.length, 4, "four categorical phase readings");
+    for (const phase of state.categorical) {
+      assert.ok(["SAME", "DIFFERENT", "INDETERMINATE"].includes(phase.relation), `${phase.metric} relation`);
+    }
+    for (const q of state.quantity) {
+      assert.ok(q.withheld || /^[+\-]?[\d.,]+$/.test(q.delta), `${q.metric} is a number or a stated withholding`);
+    }
+
+    // returning to the Lens scope preserves the circle comparison and cleans up
+    await page.click("#compareScopeLens");
+    const lens = await ambito(page);
+    assert.equal(lens.scope, "LENS");
+    assert.equal(lens.blockHidden, true);
+    assert.equal(lens.polygonCount, 0, "ámbito polygons cleaned up on return to circles");
+    assert.equal(lens.circleBridgePresent, true, "circle comparison Bridge preserved");
+    assert.equal(lens.circleTablePresent, true, "circle comparison table preserved");
   } finally {
     await closePage(page);
   }
@@ -432,6 +511,65 @@ test("AC 14 both S1 and S2 reference dates and withhold/continuity reasons are v
     // edition-sensitivity items carry per-family baseline→scenario dates
     assert.ok(state.edition.length === 9);
     assert.match(state.edition[0].text, /2025.*→.*2026/);
+  } finally {
+    await closePage(page);
+  }
+});
+
+// -------------------------- within-metric bar-scale disclosure (ES/EN, visible)
+
+test("AC 15 the within-metric bar-scale disclosure is visible and localized in EN and ES", async () => {
+  const page = await newPage();
+  try {
+    await selectPair(page, "APE.02.12", "APE.02.20");
+
+    // the note is actually rendered (not display:none / hidden / zero-box), sits
+    // in the ámbito block, and is wired to the "Within-metric" column for a11y.
+    const visible = await page.evaluate(() => {
+      const el = document.getElementById("ambitoScaleNote");
+      if (!el) return false;
+      const style = getComputedStyle(el);
+      const box = el.getBoundingClientRect();
+      const linked = document.getElementById("ambitoQtyScaleCol")?.getAttribute("aria-describedby") === "ambitoScaleNote";
+      return Boolean(
+        el.offsetParent !== null && style.display !== "none" && style.visibility !== "hidden" &&
+        box.height > 0 && box.width > 0 && linked && el.closest("#ambitoCompare"),
+      );
+    });
+    assert.ok(visible, "the bar-scale note renders visibly and is linked to the scale column");
+
+    const en = await ambito(page);
+    // EN copy carries every required caveat
+    assert.match(en.scaleNote, /larger published value of that same metric/i);
+    assert.match(en.scaleNote, /its own reference/i);
+    assert.match(en.scaleNote, /not a percentage of planning completion/i);
+    assert.match(en.scaleNote, /not a target/i);
+    assert.match(en.scaleNote, /not a Madrid-wide benchmark/i);
+    assert.match(en.scaleNote, /cannot be compared between different metrics/i);
+    assert.match(en.scaleNote, /published 0 is a real value/i);
+    assert.match(en.scaleNote, /not the same as unavailable or withheld/i);
+
+    // switch to Spanish through the real control; the copy localizes, stays visible
+    await page.evaluate(() => {
+      const select = document.getElementById("languageSelect");
+      select.value = "es";
+      select.dispatchEvent(new Event("change"));
+    });
+    const es = await ambito(page);
+    assert.notEqual(es.scaleNote, en.scaleNote, "the note is localized, not left in English");
+    assert.match(es.scaleNote, /mayor valor publicado de esa misma métrica/i);
+    assert.match(es.scaleNote, /su propia referencia/i);
+    assert.match(es.scaleNote, /no es un porcentaje de ejecución del planeamiento/i);
+    assert.match(es.scaleNote, /ni un objetivo/i);
+    assert.match(es.scaleNote, /ni una referencia para todo Madrid/i);
+    assert.match(es.scaleNote, /no pueden compararse entre métricas distintas/i);
+    assert.match(es.scaleNote, /Un 0 publicado es un valor real/i);
+    assert.match(es.scaleNote, /no equivale a evidencia no disponible o retenida/i);
+    const stillVisible = await page.evaluate(() => {
+      const el = document.getElementById("ambitoScaleNote");
+      return Boolean(el && el.offsetParent !== null && el.getBoundingClientRect().height > 0);
+    });
+    assert.ok(stillVisible, "the note stays visible after switching language");
   } finally {
     await closePage(page);
   }

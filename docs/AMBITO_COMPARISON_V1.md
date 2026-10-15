@@ -223,6 +223,17 @@ and same edition — it invents no benchmark and implies no ordering of the
 categorical phases. The dynamic bar widths are the sole runtime-set presentation;
 every other style is a class.
 
+So a first-time reader cannot mistake the bar for a progress or benchmark reading,
+a localised disclosure (`compare.ambito.scaleNote`, ES/EN) sits directly under the
+quantity table and is linked to the `Within-metric` column header via
+`aria-describedby`. It states, in plain language for municipal technicians, that A
+and B are scaled only against the larger published value of *that* metric, that
+every metric keeps its own reference, that the length is **not** a percentage of
+planning completion, **not** a target and **not** a Madrid-wide benchmark, that
+lengths **cannot** be compared across different metrics, and that a published `0`
+is a real value (an empty bar), distinct from unavailable or withheld evidence. It
+is always visible, never collapsed, and adds no new normalisation or numeric model.
+
 ## 10. What K10 does not add
 
 No score, index, ranking, ordering, "better ámbito" or composite across the four

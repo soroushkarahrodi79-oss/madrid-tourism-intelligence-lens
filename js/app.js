@@ -1759,6 +1759,7 @@ if (haloRegressionRequested && haloRegressionLocal) {
         refusalHidden: hidden("ambitoCompareRefusal"),
         refusalText: read("ambitoCompareRefusal"),
         radiusNote: read("ambitoRadiusNote"),
+        scaleNote: read("ambitoScaleNote"),
         guard: read("ambitoCompareGuard"),
         a: idOf("A"),
         b: idOf("B"),
@@ -1804,6 +1805,16 @@ if (haloRegressionRequested && haloRegressionLocal) {
         })),
         editionNote: hidden("ambitoEditionNote") ? null : read("ambitoEditionNote"),
         polygonCount: ambitoCompare.polygons ? ambitoCompare.polygons.filter((l) => l.getBounds).length : 0,
+        // Per-slot official-polygon stroke style, A first then B, as drawn by
+        // renderAmbitoComparePolygons: A solid (dashArray null), B dashed.
+        polygonStyles: ambitoCompare.polygons
+          ? ambitoCompare.polygons
+              .filter((l) => l.getBounds)
+              .map((group) => {
+                const child = typeof group.getLayers === "function" ? group.getLayers()[0] : null;
+                return { dashArray: (child && child.options ? child.options.dashArray : null) || null };
+              })
+          : [],
         circleBridgePresent: Boolean(document.getElementById("comparisonBridge")),
         circleTablePresent: Boolean(document.querySelector(".comparetable")),
       };

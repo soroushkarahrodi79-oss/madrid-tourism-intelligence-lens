@@ -594,10 +594,16 @@
         <p id="ambitoQtyDates" class="ambito-qty-dates"></p>
         <div class="ambito-qty-wrap">
           <table class="ambito-qty" aria-labelledby="ambitoQtyHeading">
-            <thead><tr><th scope="col" data-i18n="compare.ambito.metricCol">Metric</th><th scope="col" class="ac-a">A</th><th scope="col" class="ac-b">B</th><th scope="col" id="ambitoQtyDeltaCol">B − A</th><th scope="col" id="ambitoQtyScaleCol" data-i18n="compare.ambito.scaleCol">Within-metric</th></tr></thead>
+            <thead><tr><th scope="col" data-i18n="compare.ambito.metricCol">Metric</th><th scope="col" class="ac-a">A</th><th scope="col" class="ac-b">B</th><th scope="col" id="ambitoQtyDeltaCol">B − A</th><th scope="col" id="ambitoQtyScaleCol" aria-describedby="ambitoScaleNote" data-i18n="compare.ambito.scaleCol">Within-metric</th></tr></thead>
             <tbody id="ambitoQtyRows"></tbody>
           </table>
         </div>
+        <!-- What the within-metric bars mean, for a first-time reader: scaled to
+             the larger published value of that one metric, each metric on its own
+             reference, never a completion percentage, target or citywide
+             benchmark, never comparable across metrics, and a published 0 kept
+             distinct from unavailable evidence. Visible, not collapsed. -->
+        <p id="ambitoScaleNote" class="ambito-scale-note" data-i18n="compare.ambito.scaleNote">Each bar scales A and B only against the larger published value of that same metric, and every metric keeps its own reference. Bar length is not a percentage of planning completion, not a target and not a Madrid-wide benchmark, and lengths cannot be compared between different metrics. A published 0 is a real value shown as an empty bar — it is not the same as unavailable or withheld evidence.</p>
         <!-- Decision Insight (ámbito scope): descriptive per-metric contrasts in
              fixed canonical order, from ambitoDecisionInsightItems(model). No
              ordering, composite, preferred ámbito, recommendation or causality. -->

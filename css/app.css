@@ -1047,6 +1047,8 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 .ambito-qty thead th{color:var(--text-meta);font-weight:600;font-size:var(--t-micro)}
 .ambito-qty td.ambito-withheld{color:var(--text-meta);font-style:italic;text-align:left}
 
+.ambito-scale-note{font-size:var(--t-micro);color:var(--text-meta);margin:var(--s-1) 0 var(--s-2);
+  line-height:1.45;border-left:2px solid rgba(160,180,205,.35);padding-left:var(--s-2)}
 .ambito-radius-note{font-size:var(--t-micro);color:var(--text-meta);margin:var(--s-2) 0 var(--s-1);
   border-left:2px solid rgba(160,180,205,.35);padding-left:var(--s-2)}
 .ambito-edition{margin-top:var(--s-1)}
