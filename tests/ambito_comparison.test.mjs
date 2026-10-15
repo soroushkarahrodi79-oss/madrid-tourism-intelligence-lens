@@ -439,6 +439,43 @@ test("edition sensitivity is not applicable when a comparison is a cross-scope r
   assert.equal(buildAmbitoEditionSensitivity(ok, refusal).applicable, false);
 });
 
+// --------------------------------------- F2: exact identity across editions
+
+function editionPair(aCode, bCode, aCodePrev, bCodePrev) {
+  const current = buildAmbitoComparisonModel(ambitoSide({ code: aCode }), ambitoSide({ code: bCode }));
+  const previous = buildAmbitoComparisonModel(
+    ambitoSide({ code: aCodePrev, devEdition: EDITION_PREVIOUS.development_state, buildEdition: EDITION_PREVIOUS.available_buildability, devRef: REF_PREVIOUS, buildRef: REF_PREVIOUS }),
+    ambitoSide({ code: bCodePrev, devEdition: EDITION_PREVIOUS.development_state, buildEdition: EDITION_PREVIOUS.available_buildability, devRef: REF_PREVIOUS, buildRef: REF_PREVIOUS })
+  );
+  return { current, previous };
+}
+
+test("F2 — a previous-edition A code mismatch is refused even when continuity looks valid", () => {
+  const { current, previous } = editionPair("APE.01.01", "APE.02.02", "APE.99.99", "APE.02.02");
+  const sens = buildAmbitoEditionSensitivity(current, previous, CONTINUOUS);
+  assert.equal(sens.applicable, false);
+  assert.equal(sens.reasonCode, "IDENTITY_MISMATCH");
+  assert.equal(sens.mismatch.a.matched, false);
+  assert.equal(sens.mismatch.b.matched, true);
+  assert.deepEqual(sens.items, []);
+});
+
+test("F2 — an A/B swap cannot create a false comparison", () => {
+  // previous has A and B swapped relative to current
+  const { current, previous } = editionPair("APE.01.01", "APE.02.02", "APE.02.02", "APE.01.01");
+  const sens = buildAmbitoEditionSensitivity(current, previous, CONTINUOUS);
+  assert.equal(sens.applicable, false);
+  assert.equal(sens.reasonCode, "IDENTITY_MISMATCH");
+});
+
+test("F2 — a -RP code must match exactly; -RP vs non-RP is a mismatch", () => {
+  const mismatch = editionPair("UZPp.03.01-RP", "APE.02.02", "UZPp.03.01", "APE.02.02");
+  assert.equal(buildAmbitoEditionSensitivity(mismatch.current, mismatch.previous, CONTINUOUS).applicable, false);
+  // exact -RP on both sides is a legitimate, applicable comparison
+  const ok = editionPair("UZPp.03.01-RP", "APE.02.02", "UZPp.03.01-RP", "APE.02.02");
+  assert.equal(buildAmbitoEditionSensitivity(ok.current, ok.previous, CONTINUOUS).applicable, true);
+});
+
 // ======================================================= localization & vocabulary
 
 test("both dictionaries define every key", () => {

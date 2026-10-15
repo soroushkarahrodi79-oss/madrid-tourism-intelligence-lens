@@ -301,6 +301,142 @@ test("AC 10 ámbito interaction contacts no official planning service", async ()
   }
 });
 
+// ------------------------------------------------ F3: real Leaflet interactions
+
+async function clickMapAt(page, lat, lon) {
+  const point = await page.evaluate(([la, lo]) => window.__HALO_REGRESSION__.containerPointOf(la, lo), [lat, lon]);
+  await page.mouse.click(point.x, point.y);
+}
+
+test("AC 11 real controls + real map clicks: scope switch, ámbito select, no Lens move, return to circles", async () => {
+  const page = await newPage();
+  try {
+    // center the map on an ámbito so the pixel click lands inside it
+    await page.evaluate(([lat, lon]) => window.__HALO_REGRESSION__.setMapView(lat, lon, 15), [INSIDE.lat, INSIDE.lon]);
+    // REAL click on the real scope-switch button
+    await page.click("#compareScopeAmbito");
+    assert.equal((await ambito(page)).scope, "AMBITO");
+    const before = await page.evaluate(() => window.__HALO_REGRESSION__.lensLatLng("A"));
+    // REAL mouse click on the rendered map selects ámbito A
+    await clickMapAt(page, INSIDE.lat, INSIDE.lon);
+    await page.waitForFunction((code) => document.getElementById("ambitoSelectA").value === code, INSIDE.code);
+    const after = await page.evaluate(() => window.__HALO_REGRESSION__.lensLatLng("A"));
+    assert.deepEqual(after, before, "the Lens marker did not move on an ámbito-select click");
+
+    // REAL click on the scope-switch button back to Lens circles
+    await page.click("#compareScopeLens");
+    const lens = await ambito(page);
+    assert.equal(lens.scope, "LENS");
+    assert.equal(lens.blockHidden, true);
+    assert.equal(lens.polygonCount, 0, "polygons cleaned up");
+    assert.equal(lens.circleBridgePresent, true);
+
+    // a REAL background map click in the Lens scope MOVES the Lens (unchanged)
+    const bgBefore = await page.evaluate(() => ({ A: window.__HALO_REGRESSION__.lensLatLng("A"), B: window.__HALO_REGRESSION__.lensLatLng("B") }));
+    // a pixel guaranteed on the open map (clear of the panel, controls, markers)
+    const pt = await page.evaluate(() => window.__HALO_REGRESSION__.mapClickablePoint());
+    assert.ok(pt, "an on-map pixel was found");
+    await page.mouse.click(pt.x, pt.y);
+    const bgAfter = await page.evaluate(() => ({ A: window.__HALO_REGRESSION__.lensLatLng("A"), B: window.__HALO_REGRESSION__.lensLatLng("B") }));
+    const moved = JSON.stringify(bgAfter.A) !== JSON.stringify(bgBefore.A) || JSON.stringify(bgAfter.B) !== JSON.stringify(bgBefore.B);
+    assert.ok(moved, "a background click still moves the active Lens in the Lens scope");
+  } finally {
+    await closePage(page);
+  }
+});
+
+test("AC 11b real map clicks assign A then B on a tablet viewport", async () => {
+  const page = await newPage({ width: 834, height: 1112 });
+  try {
+    await page.evaluate(([lat, lon]) => window.__HALO_REGRESSION__.setMapView(lat, lon, 14), [INSIDE.lat, INSIDE.lon]);
+    await page.click("#compareScopeAmbito");
+    await clickMapAt(page, INSIDE.lat, INSIDE.lon);
+    await page.waitForFunction((code) => document.getElementById("ambitoSelectA").value === code, INSIDE.code);
+    assert.equal(await page.evaluate(() => document.getElementById("ambitoSelectA").value), INSIDE.code);
+  } finally {
+    await closePage(page);
+  }
+});
+
+// ----------------------------------------- F4: Bridge + Decision Insight surfaces
+
+test("AC 12 the ámbito Bridge and Decision Insight read the one authoritative model", async () => {
+  const page = await newPage();
+  try {
+    await selectPair(page, "APE.02.12", "APE.02.20");
+    const state = await ambito(page);
+    // Decision Insight renders all nine canonical metrics, in fixed order
+    assert.equal(state.insight.length, 9);
+    assert.deepEqual(state.insight.map((i) => i.metric), [
+      "phase_planeamiento", "phase_gestion", "phase_urbanizacion_proyecto", "phase_urbanizacion_obras",
+      "buildability_residential_collective", "buildability_residential_single_family", "buildability_tertiary",
+      "buildability_industrial", "ambito_surface",
+    ]);
+    assert.match(state.insightGuard, /no ordering or recommendation/i);
+
+    // the Bridge is empty until a metric is focused
+    assert.equal(state.bridge.readingHidden, true);
+    // REAL click on a quantity metric's focus button locks the Bridge reading
+    await page.click('#ambitoQtyRows tr[data-metric="buildability_residential_collective"] .ambito-metric-focus');
+    const focused = await ambito(page);
+    assert.equal(focused.bridge.readingHidden, false);
+    assert.match(focused.bridge.metric, /collective/i);
+    assert.match(focused.bridge.rel, /B − A/);
+    assert.match(focused.bridge.rel, /\+2[,.\s]?105/); // the SAME delta as the table/insight
+    assert.equal(focused.bridge.lockHidden, false, "a clicked metric is locked");
+
+    // a categorical focus shows a relation and no numeric delta
+    await page.click('#ambitoCatItems li[data-metric="phase_planeamiento"] .ambito-metric-focus');
+    const cat = await ambito(page);
+    assert.doesNotMatch(cat.bridge.rel, /\d|B − A/);
+  } finally {
+    await closePage(page);
+  }
+});
+
+// -------------------------------------------- F5: within-metric m² visual
+
+test("AC 13 within-metric bars normalise to each metric's own max; the larger side is full", async () => {
+  const page = await newPage();
+  try {
+    await selectPair(page, "APE.02.12", "APE.02.20");
+    const state = await ambito(page);
+    const collective = state.quantity.find((q) => q.metric === "buildability_residential_collective");
+    assert.equal(collective.bars.length, 2, "two within-metric bars (A, B)");
+    // B (8775) > A (6670): B is full width, A is proportional and strictly less
+    const [aw, bw] = collective.bars.map((w) => parseFloat(w));
+    assert.equal(bw, 100, "the larger side fills its own within-metric reference");
+    assert.ok(aw > 0 && aw < 100, `the smaller side is proportional (got ${aw}%)`);
+    // categorical phases never get bars (they are not in the quantity table)
+    assert.equal(state.quantity.some((q) => q.metric.startsWith("phase_")), false);
+    // each metric has its own independent max (no shared scale)
+    assert.ok(state.quantity.every((q) => q.withheld || q.metricMax !== null));
+  } finally {
+    await closePage(page);
+  }
+});
+
+// ---------------------------------------- F6: source-family dates + reasons
+
+test("AC 14 both S1 and S2 reference dates and withhold/continuity reasons are visible", async () => {
+  const page = await newPage();
+  try {
+    const state = await selectPair(page, "AOE.00.03", "AOE.00.06");
+    // identity shows BOTH source-family dates
+    assert.match(state.a.date, /phases .*\d{4}.* buildability .*\d{4}/i);
+    assert.match(state.qtyDates, /\d{4}/);
+    // the withheld surface names its reason inline
+    const surface = state.quantity.find((q) => q.metric === "ambito_surface");
+    assert.equal(surface.withheld, true);
+    assert.ok(surface.delta && surface.delta.length > 0);
+    // edition-sensitivity items carry per-family baseline→scenario dates
+    assert.ok(state.edition.length === 9);
+    assert.match(state.edition[0].text, /2025.*→.*2026/);
+  } finally {
+    await closePage(page);
+  }
+});
+
 test.after(async () => {
   await browser.close();
   await new Promise((resolve) => server.close(resolve));

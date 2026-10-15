@@ -128,6 +128,33 @@ test("real edition sensitivity over a continuous pair: previous edition rebuilt 
   }
 });
 
+// ---------------------------------------- F1: continuity fails closed
+
+test("F1 — absent K7 evidence (both families null) fails closed, never silent NO_CHANGE", () => {
+  const outcome = governingContinuityOutcome({ S1: null, S2: null });
+  assert.equal(outcome, "NO_EVIDENCE");
+  const cont = editionContinuityFromOutcome(outcome);
+  assert.equal(cont.established, false);
+  assert.equal(cont.reasonCode, CONTINUITY_REASON.NO_EVIDENCE);
+});
+
+test("F1 — one positive family carries identity even when the other is an inapplicable (null) family", () => {
+  // S1 positively NO_CHANGE, S2 has no row (null) → established via S1.
+  assert.equal(governingContinuityOutcome({ S1: "NO_CHANGE", S2: null }), "NO_CHANGE");
+  assert.equal(editionContinuityFromOutcome(governingContinuityOutcome({ S1: "NO_CHANGE", S2: null })).established, true);
+  assert.equal(editionContinuityFromOutcome(governingContinuityOutcome({ S1: "STATE_TRANSITION", S2: null })).outcome, "STATE_TRANSITION");
+});
+
+test("F1 — a break in EITHER family governs, even beside an apparently valid family", () => {
+  assert.equal(governingContinuityOutcome({ S1: "ABSENT_FROM_EDITION", S2: "NO_CHANGE" }), "ABSENT_FROM_EDITION");
+  assert.equal(governingContinuityOutcome({ S1: "NO_CHANGE", S2: "CAUSE_UNRESOLVED" }), "CAUSE_UNRESOLVED");
+  assert.equal(editionContinuityFromOutcome(governingContinuityOutcome({ S1: "ABSENT_FROM_EDITION", S2: "NO_CHANGE" })).established, false);
+});
+
+test("F1 — a valid pair establishes continuity", () => {
+  assert.equal(editionContinuityFromOutcome(governingContinuityOutcome({ S1: "NO_CHANGE", S2: "STATE_TRANSITION" })).established, true);
+});
+
 test("real edition sensitivity refuses a non-continuous entity (APE.21.02) — every metric withheld", () => {
   const previousArtifact = reconstructPreviousStateArtifact(stateArtifact);
   const curModel = buildAmbitoComparisonModel(current("APE.21.02"), current("AOE.00.03"));

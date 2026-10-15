@@ -142,13 +142,27 @@ Across an edition step, an entity's identity is continuous only when the K7
 change-detection outcome for that exact code is `NO_CHANGE` or
 `STATE_TRANSITION`. `NEW_AMBITO`, `ABSENT_FROM_EDITION`, `MODIFIED_BY_INSTRUMENT`,
 `CAUSE_UNRESOLVED` and `NON_COMPARABLE` all mean the identity cannot be carried
-across the step as a like-for-like entity. `editionContinuityFromOutcome` maps
-each K7 outcome to an `{ established, reasonCode }` record; a missing or unknown
-outcome is treated as **not established**, never as silently continuous. The
-barrier is therefore derived from the documented K7 contract, **not** from an
-application-supplied boolean. This matters only for edition sensitivity (§8.2):
-within one edition, two distinct ámbitos are each themselves, so no instrument
-barrier applies.
+across the step as a like-for-like entity.
+
+**The contract fails closed.** `governingContinuityOutcome` collapses the two
+source families' K7 outcomes: a break in *either* family governs even beside an
+apparently valid family; identity is established only when at least one family
+*positively* carries it (`NO_CHANGE` / `STATE_TRANSITION`); and a `null` family
+outcome is **absent evidence**, not a positive signal — so it can never on its
+own establish `NO_CHANGE`. When no family gives a positive signal the outcome is
+`NO_EVIDENCE`, which maps to **not established**. This distinguishes a legitimately
+inapplicable family (a code with no buildability row is still established when S1
+carries it) from genuinely missing evidence (withheld). `editionContinuityFromOutcome`
+maps each K7 outcome to an `{ established, reasonCode }` record, and an unknown
+outcome fails closed as `NO_EVIDENCE`. The barrier is derived from the documented
+K7 contract, **never** from an application-supplied boolean.
+
+**Exact identity is checked before any continuity record is trusted.**
+`buildAmbitoEditionSensitivity` verifies the current A code equals the previous A
+code and the current B equals the previous B, by exact official code (including
+`-RP`; no normalisation). A mismatched or A/B-swapped previous edition returns
+`applicable: false` with `reasonCode: IDENTITY_MISMATCH` — a valid-looking
+continuity record never bypasses an identity mismatch.
 
 ## 8. Sensitivity — an explicit decision, not an analogy
 
@@ -190,19 +204,24 @@ source family** — S1 development-state dates for phase and surface metrics, S2
 available-buildability dates for buildability metrics — never one family's date
 substituted for another's.
 
-## 9. Halo
+## 9. Within-metric m² visual
 
 The Radial Halo is a Lens-circle display and its contract is unchanged: bar
 lengths compare **within a metric only**, never across metrics, and nothing in
-K10 touches `js/radial-halo.js` or the circle halo. K10 does **not** encode the
-ámbito m² quantities as halo bars and does **not** encode the categorical phases
-as quantitative bars. A halo for two fixed official polygons would need a
-separate, defensible within-metric m² reference per metric; rather than invent a
-benchmark the sources do not state, the ámbito quantities render as a labelled
-table (value + unit, with B − A), which reads a set of m² figures as what they
-are. If a defensible m² halo reference is ever warranted it can be added as a
-separate within-metric scale that never shares an axis with a count metric; that
-is deferred, not worked around.
+K10 touches `js/radial-halo.js` or the circle halo. The categorical phases are
+**never** encoded as quantitative bars.
+
+For the m² quantities, each comparable row in the comparison table carries a
+**within-metric visual**: two bars (A, B) normalised to *that metric's own* max
+(`max(|A|, |B|)`). The reference is per-metric and independent — bars are never
+shared across metrics, and there is no count metric in ámbito scope to share a
+scale with. The larger published value fills its own reference; the other is
+proportional. A withheld row shows no bar (there is no defensible pair to scale),
+and a genuine `0` shows an empty bar, distinct from "not published". This is a
+within-metric comparison of two published m² figures on the same basis, same unit
+and same edition — it invents no benchmark and implies no ordering of the
+categorical phases. The dynamic bar widths are the sole runtime-set presentation;
+every other style is a class.
 
 ## 10. What K10 does not add
 
@@ -228,18 +247,27 @@ moving a Lens; outside the ámbito scope the click path is untouched. The two
 selected geometries are drawn as official polygons (A solid, B dashed) on the
 planning pane, distinct from the adjustable Lens circles.
 
-The identity header shows both codes, denominations and edition reference dates;
-the categorical phases render as same/different chips with no arrow, sign or
-direction colour; the quantities render as a B − A table or a withheld reason;
-the radius-sensitivity line states its non-applicability; and edition sensitivity
-sits behind a disclosure. All copy follows the document language (EN/ES) and
+The identity header shows both codes, denominations and **both source-family
+reference dates** (S1 phases/surface, S2 buildability) per side. All three
+canonical surfaces read the one authoritative model: a focused **Comparison
+Bridge** (`ambitoBridgeReading`, focus/lock on real `<button>` metric controls
+with an `aria-live` reading and Escape to clear), **Decision Insight**
+(`ambitoDecisionInsightItems`, the nine metrics in fixed order with the
+descriptive-only guard) and the comparison **table** (`ambitoComparisonRows` plus
+the within-metric m² visual of §9). The categorical phases render as
+same/different chips with no arrow, sign or direction colour; the quantities
+render as a B − A table or a withheld reason named inline; the radius-sensitivity
+line states its non-applicability; and edition sensitivity sits behind a
+disclosure, each item carrying its own-family baseline→scenario dates and any
+non-continuity reason. All copy follows the document language (EN/ES) and
 official values stay verbatim.
 
 ### Status
 
-K10 lands across two reviewable increments on PR #87: increment 1 the
-authoritative model, docs and model tests; increment 2 the hardened scientific
-contracts (no cross-edition override, K7-derived continuity, per-family dates),
-the real-artifact integration tests, the COMPARE interaction and the Playwright
-coverage. See the PR description for the full acceptance-criteria matrix and any
-remaining map/halo polish.
+K10 lands across reviewable increments on PR #87: the authoritative model, docs
+and model tests; the hardened scientific contracts (no cross-edition override,
+K7-derived fail-closed continuity, exact-identity guard, per-family dates); the
+real-artifact integration tests; the COMPARE interaction with the Bridge,
+Decision Insight, table, within-metric m² visual and edition sensitivity; and the
+Playwright coverage including real Leaflet mouse-click selection. See the PR
+description for the full acceptance-criteria matrix.

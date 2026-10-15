@@ -581,6 +581,9 @@ const CONTINUITY_REASON = Object.freeze({
   MODIFIED_BY_INSTRUMENT: "MODIFIED_BY_INSTRUMENT",
   CAUSE_UNRESOLVED: "CAUSE_UNRESOLVED",
   NON_COMPARABLE: "NON_COMPARABLE",
+  // No K7 continuity evidence was available for either source family — distinct
+  // from a documented break. Fails closed (identity not established).
+  NO_EVIDENCE: "NO_EVIDENCE",
 });
 
 // Map a K7 `CHANGE_OUTCOME` (js/ambito-change.js) to an identity-continuity
@@ -601,10 +604,12 @@ function editionContinuityFromOutcome(outcome) {
     case "CAUSE_UNRESOLVED":
     case "NON_COMPARABLE":
       return deepFreeze({ established: false, reasonCode: outcome, outcome });
+    case "NO_EVIDENCE":
+      return deepFreeze({ established: false, reasonCode: CONTINUITY_REASON.NO_EVIDENCE, outcome });
     default:
       // An unknown or missing outcome is treated as not established, never as
-      // silently continuous.
-      return deepFreeze({ established: false, reasonCode: CONTINUITY_REASON.NON_COMPARABLE, outcome: outcome ?? null });
+      // silently continuous — it fails closed as absent evidence.
+      return deepFreeze({ established: false, reasonCode: CONTINUITY_REASON.NO_EVIDENCE, outcome: outcome ?? null });
   }
 }
 
@@ -681,6 +686,26 @@ function classifyCategoricalTransition(prev, cur) {
 function buildAmbitoEditionSensitivity(current, previous, continuity = {}) {
   if (!current || !previous || current.comparable === false || previous.comparable === false) {
     return deepFreeze({ applicable: false, reasonCode: "COMPARISON_UNAVAILABLE", items: [] });
+  }
+  // EXACT IDENTITY across the two editions, BEFORE any continuity record is
+  // trusted. The current A must be the previous A and the current B the previous
+  // B, by exact official code (including any -RP suffix; no normalisation). This
+  // blocks a mismatched or A/B-swapped `previous` from producing a false
+  // transition even when a K7 continuity record looks valid. Equal codes on both
+  // sides (comparing an ámbito against itself) are legitimate and allowed.
+  const aMatch = current.a.ambitoCode != null && current.a.ambitoCode === previous.a.ambitoCode;
+  const bMatch = current.b.ambitoCode != null && current.b.ambitoCode === previous.b.ambitoCode;
+  if (!aMatch || !bMatch) {
+    return deepFreeze({
+      applicable: false,
+      reasonCode: "IDENTITY_MISMATCH",
+      identityEstablished: false,
+      mismatch: {
+        a: { current: current.a.ambitoCode ?? null, previous: previous.a.ambitoCode ?? null, matched: aMatch },
+        b: { current: current.b.ambitoCode ?? null, previous: previous.b.ambitoCode ?? null, matched: bMatch },
+      },
+      items: [],
+    });
   }
   const contA = continuity.a || editionContinuityFromOutcome(undefined);
   const contB = continuity.b || editionContinuityFromOutcome(undefined);
@@ -777,6 +802,7 @@ const AMBITO_COMPARISON_DICTIONARIES = Object.freeze({
     "continuity.MODIFIED_BY_INSTRUMENT": "the ámbito was modified by a planning instrument between the editions",
     "continuity.CAUSE_UNRESOLVED": "the official material gives no reason for the edition difference",
     "continuity.NON_COMPARABLE": "the two editions are not comparable for this ámbito",
+    "continuity.NO_EVIDENCE": "no official continuity evidence is available across the editions",
     "radius.non_applicable": "Radius sensitivity does not apply to fixed official ámbito geometry",
     "guard.descriptive-only": "Observed comparison only · no ordering or recommendation",
     "guard.edition-window-only": "Alternative official edition · not a forecast and not a causal effect",
@@ -817,6 +843,7 @@ const AMBITO_COMPARISON_DICTIONARIES = Object.freeze({
     "continuity.MODIFIED_BY_INSTRUMENT": "el ámbito fue modificado por un instrumento de planeamiento entre las ediciones",
     "continuity.CAUSE_UNRESOLVED": "el material oficial no da motivo para la diferencia entre ediciones",
     "continuity.NON_COMPARABLE": "las dos ediciones no son comparables para este ámbito",
+    "continuity.NO_EVIDENCE": "no hay evidencia oficial de continuidad entre las ediciones",
     "radius.non_applicable": "La sensibilidad al radio no aplica a la geometría oficial fija del ámbito",
     "guard.descriptive-only": "Comparación observada · sin ordenación ni recomendación",
     "guard.edition-window-only": "Edición oficial alternativa · no es una previsión ni un efecto causal",

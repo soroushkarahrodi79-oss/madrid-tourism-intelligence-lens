@@ -6,7 +6,7 @@
 <title>Madrid Urban Evidence Lens</title>
 <meta name="description" content="A place-first, source-disciplined lens for Madrid: read what official sources document about the city and the limits of that evidence. Urban development is the authorized next organising frame; tourism remains a documented domain. Not real-time; not a recommendation engine.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261014-2">
+<link rel="stylesheet" href="css/app.css?v=20261015-1">
 </head>
 <body>
 <div id="map"></div>
@@ -572,19 +572,45 @@
           <div class="ambito-id ac-a"><span class="ambito-id-tag">A</span><b id="ambitoIdACode" class="ambito-id-code" data-verbatim></b><span id="ambitoIdADenom" class="ambito-id-denom" data-verbatim></span><small id="ambitoIdADate" class="ambito-id-date"></small></div>
           <div class="ambito-id ac-b"><span class="ambito-id-tag">B</span><b id="ambitoIdBCode" class="ambito-id-code" data-verbatim></b><span id="ambitoIdBDenom" class="ambito-id-denom" data-verbatim></span><small id="ambitoIdBDate" class="ambito-id-date"></small></div>
         </div>
+        <!-- Comparison Bridge (ámbito scope): the focused reading of ONE metric,
+             read from ambitoBridgeReading(model, metricId) — the same authoritative
+             state, never recomputed. Categorical metrics show a relation with no
+             delta; quantities show B − A or a withheld reason. -->
+        <section id="ambitoBridge" class="ambito-bridge" role="group" aria-label="Focused ámbito metric" data-i18n-attr="aria-label:compare.ambito.bridgeAria">
+          <p id="ambitoBridgeEmpty" class="ambito-bridge-empty" data-i18n="compare.ambito.bridgeEmpty">Focus a metric to read Ámbito A against Ámbito B.</p>
+          <div id="ambitoBridgeReading" class="ambito-bridge-reading" hidden>
+            <span id="ambitoBridgeMetric" class="ab-metric"></span>
+            <span id="ambitoBridgeLock" class="ab-lock" hidden data-i18n="compare.ambito.locked">Locked</span>
+            <span id="ambitoBridgeA" class="ab-side ac-a"></span>
+            <span id="ambitoBridgeRel" class="ab-rel"></span>
+            <span id="ambitoBridgeB" class="ab-side ac-b"></span>
+            <span id="ambitoBridgeQualifier" class="ab-qual"></span>
+          </div>
+          <p id="ambitoBridgeA11y" class="sr-only" aria-live="polite"></p>
+        </section>
         <h4 class="ambito-sub" id="ambitoPhasesHeading" data-i18n="compare.ambito.phasesHeading">Development phases</h4>
         <ul id="ambitoCatItems" class="ambito-cat-items"></ul>
         <h4 class="ambito-sub" id="ambitoQtyHeading" data-i18n="compare.ambito.qtyHeading">Available buildability &amp; surface</h4>
+        <p id="ambitoQtyDates" class="ambito-qty-dates"></p>
         <div class="ambito-qty-wrap">
           <table class="ambito-qty" aria-labelledby="ambitoQtyHeading">
-            <thead><tr><th scope="col" data-i18n="compare.ambito.metricCol">Metric</th><th scope="col" class="ac-a">A</th><th scope="col" class="ac-b">B</th><th scope="col" id="ambitoQtyDeltaCol">B − A</th></tr></thead>
+            <thead><tr><th scope="col" data-i18n="compare.ambito.metricCol">Metric</th><th scope="col" class="ac-a">A</th><th scope="col" class="ac-b">B</th><th scope="col" id="ambitoQtyDeltaCol">B − A</th><th scope="col" id="ambitoQtyScaleCol" data-i18n="compare.ambito.scaleCol">Within-metric</th></tr></thead>
             <tbody id="ambitoQtyRows"></tbody>
           </table>
         </div>
+        <!-- Decision Insight (ámbito scope): descriptive per-metric contrasts in
+             fixed canonical order, from ambitoDecisionInsightItems(model). No
+             ordering, composite, preferred ámbito, recommendation or causality. -->
+        <section id="ambitoInsight" class="ambito-insight" aria-labelledby="ambitoInsightHeading">
+          <h4 class="ambito-sub" id="ambitoInsightHeading" data-i18n="compare.ambito.insightHeading">Decision Insight</h4>
+          <ul id="ambitoInsightItems" class="ambito-insight-items"></ul>
+          <p id="ambitoInsightGuard" class="ambito-guard-di"></p>
+        </section>
         <p id="ambitoRadiusNote" class="ambito-radius-note"></p>
         <details id="ambitoEdition" class="ambito-edition">
           <summary id="ambitoEditionSummary" data-i18n="compare.ambito.editionSummary">Edition sensitivity</summary>
           <p id="ambitoEditionLead" class="ambito-edition-lead" data-i18n="compare.ambito.editionLead">Does the A ↔ B relationship hold under the previous official edition?</p>
+          <p id="ambitoEditionNote" class="ambito-edition-note" hidden></p>
           <ul id="ambitoEditionItems" class="ambito-edition-items"></ul>
         </details>
         <p id="ambitoCompareGuard" class="ambito-guard"></p>
@@ -729,15 +755,15 @@
 <script src="js/radial-halo.js?v=20261005-52"></script>
 <script src="js/evidence.js"></script>
 <script src="js/evidence-scope.js?v=20261006-1"></script>
-<script src="js/ambito-comparison.js?v=20261014-2"></script>
+<script src="js/ambito-comparison.js?v=20261015-1"></script>
 <script src="js/modes.js?v=20261006-1"></script>
 <script src="js/scope-rail.js?v=20261006-2"></script>
-<script src="js/shell-copy.js?v=20261014-2"></script>
+<script src="js/shell-copy.js?v=20261015-1"></script>
 <script src="js/legacy-copy.js?v=20261006-2"></script>
 <script src="js/data.js?v=20260928-15"></script>
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20261014-2"></script>
+<script src="js/app.js?v=20261015-1"></script>
 </body>
 </html>

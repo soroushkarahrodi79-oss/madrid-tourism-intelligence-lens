@@ -1067,3 +1067,35 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
   .compare-scope-btn{min-height:44px}
   .ambito-select{min-height:44px}
 }
+
+/* K10 ámbito Bridge, Decision Insight, within-metric bars, dates (K5 tokens). */
+.ambito-metric-focus{background:none;border:0;padding:0;margin:0;font:inherit;
+  color:inherit;text-align:left;cursor:pointer;border-bottom:1px dotted transparent}
+.ambito-metric-focus:hover,.ambito-metric-focus:focus-visible{border-bottom-color:rgba(160,180,205,.7);outline:none}
+.ambito-metric-focus[aria-pressed="true"]{color:var(--text);border-bottom-color:var(--b)}
+.ambito-reason{color:var(--text-meta);font-size:var(--t-micro);font-style:italic}
+
+.ambito-bridge{border:1px solid rgba(160,180,205,.3);border-radius:var(--r-small);padding:var(--s-2) var(--s-2);margin:var(--s-1) 0 var(--s-2)}
+.ambito-bridge-empty{font-size:var(--t-micro);color:var(--text-meta);margin:0}
+.ambito-bridge-reading{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--s-1) var(--s-2);font-size:var(--t-meta)}
+.ab-metric{font-weight:600;color:var(--text)}
+.ab-lock{font-size:var(--t-micro);color:var(--text-meta);text-transform:uppercase;letter-spacing:.06em}
+.ab-side{color:var(--muted)}
+.ab-rel{color:var(--text)}
+.ab-qual{font-size:var(--t-micro);color:var(--text-meta);flex-basis:100%}
+
+.ambito-qty-dates{font-size:var(--t-micro);color:var(--text-meta);margin:0 0 var(--s-1)}
+.ambito-scale-cell{text-align:left;min-width:64px}
+.ambito-bars{display:flex;flex-direction:column;gap:var(--s-1)}
+.ambito-bar-track{display:block;height:5px;background:rgba(160,180,205,.18)}
+.ambito-bar-track.ac-a .ambito-bar-fill{background:#9ccdff}
+.ambito-bar-track.ac-b .ambito-bar-fill{background:#43d7ff}
+.ambito-bar-fill{display:block;height:100%}
+
+.ambito-insight{margin:var(--s-2) 0 0}
+.ambito-insight-items{list-style:none;margin:var(--s-1) 0;padding:0;display:flex;flex-direction:column;gap:var(--s-1)}
+.ambito-insight-item{display:flex;justify-content:space-between;gap:var(--s-2);font-size:var(--t-micro);color:var(--muted)}
+.ambito-insight-item .aii-metric{color:var(--text)}
+.ambito-guard-di{font-size:var(--t-micro);color:var(--text-meta);font-style:italic;margin:var(--s-1) 0 0}
+.ambito-edition-note{font-size:var(--t-micro);color:var(--text-meta);margin:var(--s-1) 0}
+.aei-metric{color:var(--text)}

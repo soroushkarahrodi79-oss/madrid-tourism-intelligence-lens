@@ -125,16 +125,36 @@ export function editionOutcomes(code, stateArtifact, changeModule) {
   };
 }
 
-// Collapse the two families' outcomes into the single governing K7 outcome for
-// identity continuity: a continuous entity requires BOTH families (where present)
-// to be NO_CHANGE or STATE_TRANSITION. Any other outcome, in either family, is the
-// governing non-continuous reason (the first such outcome, S1 before S2).
+// Collapse the two families' K7 outcomes into the single governing outcome for
+// identity continuity. The contract FAILS CLOSED:
+//
+//   * A break in EITHER family governs (NEW_AMBITO / ABSENT_FROM_EDITION /
+//     MODIFIED_BY_INSTRUMENT / CAUSE_UNRESOLVED / NON_COMPARABLE), even if the
+//     other family looks continuous — an apparently valid record never bypasses a
+//     break.
+//   * Identity is established only when at least ONE family POSITIVELY carries it
+//     (NO_CHANGE or STATE_TRANSITION). A null family outcome is NOT a positive
+//     signal: it is absent/unavailable K7 evidence for that family (no row in the
+//     compared editions, or the classifier was not run), so it can never on its
+//     own establish NO_CHANGE.
+//   * When no family gives a positive signal — every family null — the result is
+//     `NO_EVIDENCE`, which maps to NOT established. This distinguishes genuinely
+//     absent evidence from a documented inapplicable family: a code whose
+//     buildability family (S2) legitimately has no row is still established when
+//     S1 positively carries it, but a code with no K7 signal at all is withheld.
+const CONTINUITY_BREAK = Object.freeze(
+  new Set(["NEW_AMBITO", "ABSENT_FROM_EDITION", "MODIFIED_BY_INSTRUMENT", "CAUSE_UNRESOLVED", "NON_COMPARABLE"])
+);
+const CONTINUITY_POSITIVE = Object.freeze(new Set(["NO_CHANGE", "STATE_TRANSITION"]));
+
 export function governingContinuityOutcome(outcomes) {
-  const continuous = (o) => o === null || o === "NO_CHANGE" || o === "STATE_TRANSITION";
-  if (!continuous(outcomes.S1)) return outcomes.S1;
-  if (!continuous(outcomes.S2)) return outcomes.S2;
-  // Both continuous (or absent): report STATE_TRANSITION if either changed state,
-  // else NO_CHANGE — both map to an established identity.
-  if (outcomes.S1 === "STATE_TRANSITION" || outcomes.S2 === "STATE_TRANSITION") return "STATE_TRANSITION";
-  return "NO_CHANGE";
+  const s1 = outcomes ? outcomes.S1 : null;
+  const s2 = outcomes ? outcomes.S2 : null;
+  if (CONTINUITY_BREAK.has(s1)) return s1;
+  if (CONTINUITY_BREAK.has(s2)) return s2;
+  if (CONTINUITY_POSITIVE.has(s1) || CONTINUITY_POSITIVE.has(s2)) {
+    return s1 === "STATE_TRANSITION" || s2 === "STATE_TRANSITION" ? "STATE_TRANSITION" : "NO_CHANGE";
+  }
+  // No family positively carried the identity — absent / unavailable evidence.
+  return "NO_EVIDENCE";
 }
