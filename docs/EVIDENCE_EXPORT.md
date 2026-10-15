@@ -139,34 +139,33 @@ from the export, and the geometry follows the same rule (PLACE: the active Lens
 circle(s) + the containing barrio, scope `OFFICIAL_BARRIO`; COMPARE·ámbito: the
 official ámbito polygons; CITY: no Lens geometry).
 
-#### Value coverage, and a disclosed limitation
+#### Value coverage
 
-Issue #73 asks the bundle to represent **every displayed value**. The current
-contract transcribes, as `reading.json` **value records**, each mode's **primary
-analytical quantities** (the table above). Every **other** surface shown in the
-mode is still **disclosed** in `evidence_surfaces` with its complete provenance
-(scope, unit, the five freshness fields, verbatim ceiling) — nothing displayed is
-omitted from the bundle — but these are **not yet emitted as individual value
-records**:
+Issue #73 asks the bundle to represent **every displayed value**, and it does:
+beyond the primary quantities above, the value layer transcribes every displayed
+quantitative surface of the visible mode, each as a `reading.json` value record
+with full per-value provenance:
 
-| displayed surface | mode | status |
+| displayed surface | mode | value records |
 |---|---|---|
-| residents, licensed-VUT | PLACE | provenance-only (pending amendment) |
-| planning context: phases, surface, buildability, change detection | PLACE | provenance-only (pending amendment) |
-| category mix, nearest | PLACE | provenance-only (pending amendment) |
-| hospitality context, granted licences | PLACE | provenance-only (pending amendment) |
-| domestic-origin monthly dynamics | CITY | provenance-only (pending amendment) |
-| comparison / sensitivity interpretations | COMPARE | provenance-only (pending amendment) |
+| registered residents, licensed-VUT units | PLACE | `residents`, `vut_units` (`OFFICIAL_BARRIO`) |
+| containing-ámbito planning: four phases, surface, four buildability use-classes | PLACE | `place_*` (`PLANNING_AMBITO`, S1/S2 named) |
+| category mix shares | PLACE | `mix_*` (`LENS_CIRCLE`) |
+| nearest features | PLACE | `nearest_*` (`LENS_CIRCLE`, metres) |
+| granted licences per family | PLACE | `licences_*` (`ADDRESS_POINT`) |
+| hospitality / commercial indicator | PLACE | `hospitality_*` |
+| domestic-origin monthly dynamics | CITY | `dynamics_*` (`MUNICIPALITY`) |
+| spatial-window sensitivity | COMPARE | `sensitivity_*` (`LENS_CIRCLE`, interpretive) |
 
-This is a **declared, enforced limitation**, not a silent one: a per-mode
-browser test asserts every displayed surface is disclosed in `evidence_surfaces`.
-Against the literal wording of issue #73 ("every displayed value"), the
-corresponding acceptance criterion is therefore **not fully met**, and the
-project proposes this amendment for approval: *the value layer transcribes each
-mode's primary analytical quantities; every other displayed surface is carried
-with complete provenance; emitting the surfaces above as individual value records
-is deferred to a follow-up.* Until that amendment is approved the criterion is
-marked **AMENDMENT REQUIRED**, never PASS-by-provenance.
+Each is read from the **same frozen model the surface rendered** — the area
+profile, the authoritative ámbito comparison model (read single-sided for the
+containing ámbito, S1 vs S2 preserved), `categoryMixState`, the licence view, the
+hospitality record, the domestic-origin dynamics model and the spatial-sensitivity
+model — never recomputed and never parsed from the DOM. A spatial-sensitivity
+reading is interpretive: its observed change is carried where the model authorised
+a numeric one, otherwise the item keeps its transition label and an `INTERPRETIVE`
+state — never a fabricated zero. A per-mode browser test additionally asserts that
+every displayed evidence surface is disclosed in `evidence_surfaces`.
 
 ### 2.1 `reading.json`
 

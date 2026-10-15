@@ -377,8 +377,11 @@ test("PLACE export transcribes the active-lens metric values with per-value prov
     assert.equal(reading.reading.mode, "PLACE");
     const ids = reading.values.map((v) => v.id);
     for (const id of ["tourism", "stays", "mobility"]) assert.ok(ids.includes(id), `PLACE value ${id} present`);
+    // The primary lens metrics are LENS_CIRCLE; full coverage adds other scopes.
+    const LENS_METRICS = ["tourism", "stays", "mobility", "utci", "pedestrian"];
     for (const value of reading.values) {
-      assert.equal(value.scope, "LENS_CIRCLE");
+      if (LENS_METRICS.includes(value.id)) assert.equal(value.scope, "LENS_CIRCLE", `${value.id} is LENS_CIRCLE`);
+      assert.ok(["LENS_CIRCLE", "OFFICIAL_BARRIO", "PLANNING_AMBITO", "ADDRESS_POINT", "MUNICIPALITY"].includes(value.scope), `${value.id} approved scope`);
       assert.ok(value.state, "value has a state");
       assert.ok(Array.isArray(value.provenance) && value.provenance.length, `${value.id} carries provenance`);
       for (const prov of value.provenance) {
@@ -569,6 +572,55 @@ test("a shared link with an unknown origin month states a partial restore", asyn
     // and the month was NOT silently adopted
     const selected = await page.inputValue("#domesticOriginsMonth");
     assert.notEqual(selected, "1999-01");
+  } finally {
+    await close(page);
+  }
+});
+
+// ---------------------------------- full value coverage per mode (Finding 3 → closed)
+
+test("PLACE export now emits residents, category-mix and (when resolved) planning value records", async () => {
+  const page = await newPage();
+  try {
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("PLACE"));
+    await page.waitForFunction(() => {
+      const s = document.getElementById("areaProfile");
+      return s && s.dataset.state && s.dataset.state !== "loading";
+    }).catch(() => {});
+    await seam(page, () => window.__HALO_REGRESSION__.recompute());
+    const bundle = await seam(page, () => window.__HALO_REGRESSION__.k11Bundle());
+    const reading = JSON.parse(bundle.files.find((f) => f.name.startsWith("reading-")).text);
+    const ids = reading.values.map((v) => v.id);
+    assert.ok(ids.includes("residents"), "residents is a value record");
+    assert.ok(ids.some((id) => id.startsWith("mix_")), "category-mix shares are value records");
+    // Each new value still carries per-value provenance and an approved scope.
+    for (const value of reading.values) {
+      assert.ok(Array.isArray(value.provenance), `${value.id} carries provenance`);
+      assert.ok(["LENS_CIRCLE", "OFFICIAL_BARRIO", "PLANNING_AMBITO", "ADDRESS_POINT", "MUNICIPALITY"].includes(value.scope), `${value.id} approved scope`);
+    }
+    // More than the five primary lens metrics are now transcribed.
+    assert.ok(reading.values.length > 5, "PLACE value coverage extends beyond the primary panel");
+  } finally {
+    await close(page);
+  }
+});
+
+test("CITY export now emits the month-over-month dynamics summary as value records", async () => {
+  const page = await newPage();
+  try {
+    await page.waitForFunction(() => document.getElementById("destinationContext")?.dataset.state === "available").catch(() => {});
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("CITY"));
+    await page.waitForFunction(() => {
+      const b = window.__HALO_REGRESSION__.k11Bundle();
+      if (!b) return false;
+      const r = JSON.parse(b.files.find((f) => f.name.startsWith("reading-")).text);
+      return r.values.some((v) => v.id.startsWith("dynamics_"));
+    }).catch(() => {});
+    const bundle = await seam(page, () => window.__HALO_REGRESSION__.k11Bundle());
+    const reading = JSON.parse(bundle.files.find((f) => f.name.startsWith("reading-")).text);
+    const dynamics = reading.values.filter((v) => v.id.startsWith("dynamics_"));
+    assert.ok(dynamics.length >= 1, "domestic-origin dynamics transcribed as value records");
+    assert.ok(dynamics.every((v) => v.scope === "MUNICIPALITY"), "dynamics are municipality-scoped");
   } finally {
     await close(page);
   }
