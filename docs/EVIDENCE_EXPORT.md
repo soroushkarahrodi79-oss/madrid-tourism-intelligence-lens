@@ -35,6 +35,7 @@ wiring lives in the K11 block of `js/app.js`.
 | `ly` | enabled operational layers, `.`-joined | `museum.stay.pedestrian.licences` |
 | `ts` | heat (HATI) timestep | `15:00` |
 | `sk` | accommodation (stay-kind) filter | `hotel` |
+| `om` | domestic-origin source month (CITY) | `2024-06` |
 | `sc` | comparison scope | `LENS` · `AMBITO` |
 | `aa` | ámbito A — exact official code | `AOE.00.01` |
 | `ab` | ámbito B — exact official code | `API.03.11` |
@@ -135,11 +136,37 @@ mode — never a selection left in memory. The value set is:
 
 Switching from COMPARE to PLACE or CITY drops the retained Lens/ámbito comparison
 from the export, and the geometry follows the same rule (PLACE: the active Lens
-circle(s) + the containing barrio; COMPARE·ámbito: the official ámbito polygons;
-CITY: no Lens geometry). Every **other** surface shown in the mode (area
-residents, VUT, PLACE planning context, category mix, nearest, hospitality,
-licences, domestic dynamics) is carried in `evidence_surfaces` with complete
-provenance — scope, unit, the five freshness fields and the verbatim ceiling.
+circle(s) + the containing barrio, scope `OFFICIAL_BARRIO`; COMPARE·ámbito: the
+official ámbito polygons; CITY: no Lens geometry).
+
+#### Value coverage, and a disclosed limitation
+
+Issue #73 asks the bundle to represent **every displayed value**. The current
+contract transcribes, as `reading.json` **value records**, each mode's **primary
+analytical quantities** (the table above). Every **other** surface shown in the
+mode is still **disclosed** in `evidence_surfaces` with its complete provenance
+(scope, unit, the five freshness fields, verbatim ceiling) — nothing displayed is
+omitted from the bundle — but these are **not yet emitted as individual value
+records**:
+
+| displayed surface | mode | status |
+|---|---|---|
+| residents, licensed-VUT | PLACE | provenance-only (pending amendment) |
+| planning context: phases, surface, buildability, change detection | PLACE | provenance-only (pending amendment) |
+| category mix, nearest | PLACE | provenance-only (pending amendment) |
+| hospitality context, granted licences | PLACE | provenance-only (pending amendment) |
+| domestic-origin monthly dynamics | CITY | provenance-only (pending amendment) |
+| comparison / sensitivity interpretations | COMPARE | provenance-only (pending amendment) |
+
+This is a **declared, enforced limitation**, not a silent one: a per-mode
+browser test asserts every displayed surface is disclosed in `evidence_surfaces`.
+Against the literal wording of issue #73 ("every displayed value"), the
+corresponding acceptance criterion is therefore **not fully met**, and the
+project proposes this amendment for approval: *the value layer transcribes each
+mode's primary analytical quantities; every other displayed surface is carried
+with complete provenance; emitting the surfaces above as individual value records
+is deferred to a follow-up.* Until that amendment is approved the criterion is
+marked **AMENDMENT REQUIRED**, never PASS-by-provenance.
 
 ### 2.1 `reading.json`
 

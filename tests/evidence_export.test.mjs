@@ -23,6 +23,7 @@ import test from "node:test";
 
 import {
   GEOJSON_CRS,
+  APPROVED_SCOPES,
   FRESHNESS_FIELDS,
   contributingSourceIds,
   buildReadingObject,
@@ -30,6 +31,7 @@ import {
   buildGeometryObject,
   buildEvidenceBundle,
 } from "../js/evidence-export.js";
+import { ANALYTICAL_SCOPES } from "../js/evidence-scope.js";
 
 const readJson = (p) => JSON.parse(fs.readFileSync(new URL(p, import.meta.url), "utf8"));
 const REGISTRY = readJson("../data/source_registry.json");
@@ -86,7 +88,7 @@ const PROJECTION = Object.freeze({
   ],
   geometry: [
     { scope: "LENS_CIRCLE", role: "lensA", identity: "A", geometry_kind: "generated_analytical_window", feature: { type: "Feature", geometry: { type: "Polygon", coordinates: [[[-3.69, 40.41], [-3.68, 40.41], [-3.68, 40.42], [-3.69, 40.41]]] } } },
-    { scope: "ADMIN_BARRIO", role: "barrio", identity: "Universidad", geometry_kind: "official_boundary", feature: { type: "Feature", properties: { NOMBRE: "Universidad" }, geometry: { type: "MultiPolygon", coordinates: [[[[-3.71, 40.42], [-3.70, 40.42], [-3.70, 40.43], [-3.71, 40.42]]]] } } },
+    { scope: "OFFICIAL_BARRIO", role: "barrio", identity: "Universidad", geometry_kind: "official_boundary", feature: { type: "Feature", properties: { NOMBRE: "Universidad" }, geometry: { type: "MultiPolygon", coordinates: [[[[-3.71, 40.42], [-3.70, 40.42], [-3.70, 40.43], [-3.71, 40.42]]]] } } },
   ],
 });
 
@@ -218,6 +220,21 @@ test("a contributing source exports its retrieval route, licence and attribution
 });
 
 // ------------------------------------------------------------ geometry.geojson
+
+test("the approved-scope vocabulary matches the canonical ANALYTICAL_SCOPES", () => {
+  assert.deepEqual([...APPROVED_SCOPES], [...ANALYTICAL_SCOPES]);
+});
+
+test("every exported geometry feature and value uses an approved analytical scope", () => {
+  const geo = JSON.parse(fileByStem("geometry-").text);
+  for (const feature of geo.features) {
+    assert.ok(APPROVED_SCOPES.includes(feature.properties.scope), `feature scope ${feature.properties.scope} is approved`);
+  }
+  const reading = JSON.parse(fileByStem("reading-").text);
+  for (const value of reading.values) {
+    assert.ok(APPROVED_SCOPES.includes(value.scope), `value scope ${value.scope} is approved`);
+  }
+});
 
 test("geometry.geojson is EPSG:4326 with every feature scope-tagged", () => {
   const geo = JSON.parse(fileByStem("geometry-").text);

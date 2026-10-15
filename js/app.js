@@ -1889,6 +1889,10 @@ if (haloRegressionRequested && haloRegressionLocal) {
       };
     },
     k11Projection() { return k11BuildProjection(); },
+    k11ExpectedSurfaces() {
+      const mode = shell.modes ? shell.modes.currentMode() : "PLACE";
+      return typeof surfaceKeysFor === "function" ? surfaceKeysFor(mode, currentFlags()) : [];
+    },
     k11Bundle() {
       const projection = k11BuildProjection();
       return projection ? buildEvidenceBundle(projection, shell.registry, { now: new Date() }) : null;
@@ -4973,7 +4977,7 @@ document.getElementById("languageSelect").onchange = (event) => {
   k11ApplyCopy();
   k11ScheduleUrlCommit();
 };
-document.getElementById("domesticOriginsMonth").onchange = (event) => { originMonth = event.target.value; renderDomesticOrigins(); };
+document.getElementById("domesticOriginsMonth").onchange = (event) => { originMonth = event.target.value; renderDomesticOrigins(); k11ScheduleUrlCommit(); };
 document.getElementById("hospitalityMetricSelect").onchange = (event) => {
   if (!hospitalityModel.module?.APPROVED_INDICATOR_IDS.includes(event.target.value)) return;
   hospitalityMetric = event.target.value;
@@ -5847,7 +5851,10 @@ async function boot() {
   // surfaces describe different things, from different publishers, and must fail
   // independently of each other.
   loadDestinationContext();
-  loadDomesticOrigins();
+  // K11: the domestic-origin source month restores once its own artifact has
+  // loaded (or failed) — independently of the planning track — so a shared CITY
+  // month is validated against the real published set, never silently defaulted.
+  loadDomesticOrigins().finally(() => k11ApplyOriginMonthRestore());
 }
 
 boot();
@@ -6450,6 +6457,8 @@ const K11_COPY = Object.freeze({
     "reason.INVALID_BASELINE": "an invalid sensitivity baseline",
     "reason.INVALID_TIMESTEP": "an invalid heat time",
     "reason.INVALID_STAY_KIND": "an unknown accommodation filter",
+    "reason.INVALID_ORIGIN_MONTH": "a domestic-origin month not in the published set",
+    "reason.ORIGIN_UNAVAILABLE": "the domestic-origin source month (its data is unavailable in this deployment)",
     "reason.INVALID_READING": "an unknown reading preference",
     "reason.INVALID_LANGUAGE": "an unknown language",
     "reason.INVALID_ACTIVE_LENS": "an unknown active Lens",
@@ -6484,6 +6493,8 @@ const K11_COPY = Object.freeze({
     "reason.INVALID_BASELINE": "una línea base de sensibilidad no válida",
     "reason.INVALID_TIMESTEP": "una hora de calor no válida",
     "reason.INVALID_STAY_KIND": "un filtro de alojamiento desconocido",
+    "reason.INVALID_ORIGIN_MONTH": "un mes de origen nacional que no está en el conjunto publicado",
+    "reason.ORIGIN_UNAVAILABLE": "el mes de origen nacional (sus datos no están disponibles en este despliegue)",
     "reason.INVALID_READING": "una preferencia de lectura desconocida",
     "reason.INVALID_LANGUAGE": "un idioma desconocido",
     "reason.INVALID_ACTIVE_LENS": "una Lente activa desconocida",
@@ -6545,6 +6556,7 @@ function k11CurrentState() {
   };
   if (isHatiVisible()) state.timestep = timestep;
   if (stayKindFilter && stayKindFilter !== "all") state.stayKind = stayKindFilter;
+  if (typeof originMonth !== "undefined" && originMonth) state.originMonth = originMonth;
   if (scope === "AMBITO" && typeof ambitoCompare !== "undefined") {
     if (ambitoCompare.a) state.ambitoA = ambitoCompare.a;
     if (ambitoCompare.b) state.ambitoB = ambitoCompare.b;
@@ -6768,6 +6780,40 @@ function k11ApplyBaselineRestore(state, result) {
   }
 }
 
+// Restore the shared domestic-origin source month once its artifact has loaded.
+// The month is validated against the real published set: an unknown month, a
+// malformed one, or an unavailable artifact is a stated partial restore, never a
+// silent fall-back to the latest month.
+function k11ApplyOriginMonthRestore() {
+  if (!k11HasSharedState() || k11.refused) return;
+  if (!/[?&]om=/.test(K11_ORIGINAL_SEARCH)) return; // link carried no month
+  const months = originModel && originModel.index && Array.isArray(originModel.index.months) ? originModel.index.months : null;
+  const options = { snapshotId: K11_SNAPSHOT_ID };
+  if (months) options.knownOriginMonths = months;
+  const result = parseEvidenceState(K11_ORIGINAL_SEARCH, options);
+  const month = result.state && result.state.originMonth;
+  if (month && months && months.includes(month)) {
+    k11.suppress = true;
+    try {
+      const select = document.getElementById("domesticOriginsMonth");
+      originMonth = month;
+      if (select) select.value = month;
+      if (typeof renderDomesticOrigins === "function") renderDomesticOrigins();
+    } catch (error) {
+      console.warn("K11 origin-month restore incomplete", error);
+    } finally {
+      k11.suppress = false;
+      k11CommitUrlState();
+    }
+    return;
+  }
+  // The month was in the link but could not be applied — unknown, malformed, or
+  // the domestic-origin artifact is unavailable in this deployment.
+  const issue = (result.issues || []).find((i) => i.dimension === "originMonth");
+  k11.originMonthIssue = issue || { dimension: "originMonth", code: months ? "INVALID_ORIGIN_MONTH" : "ORIGIN_UNAVAILABLE" };
+  k11RenderNotice(k11InitialRestore || result);
+}
+
 // ------------------------------------------------------------------- notice
 function k11RenderNotice(result) {
   const notice = document.getElementById("k11RestoreNotice");
@@ -6778,6 +6824,9 @@ function k11RenderNotice(result) {
   const snapshotMismatch = result.snapshot && result.snapshot.status === "MISMATCH";
   const interfaceIssues = (result.issues || []).filter((i) => i.code !== "SNAPSHOT_MISMATCH");
   if (k11.baselineUnreproducible) interfaceIssues.push({ dimension: "baseline", code: "BASELINE_EVIDENCE" });
+  // Late-resolved, async restore issues (origin month) are merged in so the one
+  // notice reflects everything that could not be restored.
+  if (k11.originMonthIssue && !interfaceIssues.some((i) => i.dimension === "originMonth")) interfaceIssues.push(k11.originMonthIssue);
 
   let show = false;
   if (!result.ok) {
@@ -6994,11 +7043,16 @@ function k11CityValues() {
   const origins = k11.cityOrigins;
   if (origins && Array.isArray(origins.origins)) {
     for (const row of origins.origins) {
+      // The canonical published figure is source_reported_tourists (an integer
+      // the publisher suppresses at or below 30, so every surviving row is a real
+      // published count). Never read a non-existent `count` field. The source
+      // month is carried so the figure is not detached from its period.
+      const value = Number.isInteger(row.source_reported_tourists) ? row.source_reported_tourists : null;
       values.push(k11WithProvenance({
         id: `origin_${row.origin_municipality_code}`, label: row.origin_municipality_name, scope: "MUNICIPALITY",
-        unit: "tourists", source_family: null,
-        value: Number.isFinite(row.count) ? row.count : null, display: row.countDisplay ?? null,
-        state: "VALID", source_ids: ["domestic_origin_context"],
+        unit: "tourists", source_family: null, source_month: origins.month,
+        value, display: row.countDisplay ?? null,
+        state: value == null ? "UNAVAILABLE" : "VALID", source_ids: ["domestic_origin_context"],
       }));
     }
   }
@@ -7047,7 +7101,7 @@ function k11BuildGeometry(mode, scope) {
     if (bEnabled) geometry.push(k11LensCircleFeature("B"));
     if (mode === "PLACE") {
       const barrio = k11ActiveBarrioFeature();
-      if (barrio) geometry.push({ scope: "ADMIN_BARRIO", role: "barrio", identity: (barrio.properties && (barrio.properties.NOMBRE || barrio.properties.nombre)) || barrio.id || "barrio", geometry_kind: "official_boundary", feature: barrio });
+      if (barrio) geometry.push({ scope: "OFFICIAL_BARRIO", role: "barrio", identity: (barrio.properties && (barrio.properties.NOMBRE || barrio.properties.nombre)) || barrio.id || "barrio", geometry_kind: "official_boundary", feature: barrio });
     }
   } catch (error) { console.warn("K11 geometry assembly incomplete", error); }
   return geometry;

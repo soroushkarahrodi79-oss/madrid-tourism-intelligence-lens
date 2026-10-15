@@ -47,6 +47,7 @@ const FULL = Object.freeze({
   layers: ["museum", "stay", "pedestrian", "licences"],
   timestep: "15:00",
   stayKind: "all",
+  originMonth: "2024-06",
   scope: "AMBITO",
   ambitoA: "AOE.00.01",
   ambitoB: "API.03.11",
@@ -57,7 +58,8 @@ const FULL = Object.freeze({
 });
 
 const KNOWN_CODES = ["AOE.00.01", "API.03.11", "APR.06.02"];
-const PARSE_OPTS = { snapshotId: "20261015-1", knownAmbitoCodes: KNOWN_CODES };
+const KNOWN_MONTHS = ["2024-05", "2024-06", "2024-07"];
+const PARSE_OPTS = { snapshotId: "20261015-1", knownAmbitoCodes: KNOWN_CODES, knownOriginMonths: KNOWN_MONTHS };
 
 function parseFull(overrides = {}) {
   return parseEvidenceState(serializeEvidenceState({ ...FULL, ...overrides }), PARSE_OPTS);
@@ -130,6 +132,24 @@ test("round-trip preserves a locked metric in LENS scope", () => {
 test("round-trip preserves a focused-but-unlocked metric", () => {
   const { state } = parseFull({ metric: { id: "ambito_surface", locked: false } });
   assert.deepEqual(state.metric, { id: "ambito_surface", locked: false });
+});
+
+test("round-trip preserves the domestic-origin source month", () => {
+  assert.equal(parseFull().state.originMonth, "2024-06");
+  assert.equal(parseFull({ originMonth: "2024-07" }).state.originMonth, "2024-07");
+});
+
+test("an unknown origin month is a stated partial restore, never a silent latest fallback", () => {
+  const result = parseEvidenceState("v=1&m=CITY&om=1999-01", PARSE_OPTS);
+  assert.equal(result.outcome, OUTCOME.PARTIAL);
+  assert.equal(result.state.originMonth, undefined);
+  assert.equal(result.issues.find((i) => i.dimension === "originMonth").code, REASON.INVALID_ORIGIN_MONTH);
+});
+
+test("a malformed origin month degrades with a reason", () => {
+  const result = parseEvidenceState("v=1&m=CITY&om=June2024", PARSE_OPTS);
+  assert.equal(result.state.originMonth, undefined);
+  assert.equal(result.issues.find((i) => i.dimension === "originMonth").code, REASON.INVALID_ORIGIN_MONTH);
 });
 
 test("round-trip preserves reading and language", () => {

@@ -110,6 +110,7 @@ const REASON = Object.freeze({
   UNKNOWN_METRIC: "UNKNOWN_METRIC",
   INVALID_TIMESTEP: "INVALID_TIMESTEP",
   INVALID_STAY_KIND: "INVALID_STAY_KIND",
+  INVALID_ORIGIN_MONTH: "INVALID_ORIGIN_MONTH",
   INVALID_READING: "INVALID_READING",
   INVALID_LANGUAGE: "INVALID_LANGUAGE",
   INVALID_ACTIVE_LENS: "INVALID_ACTIVE_LENS",
@@ -122,7 +123,7 @@ const OUTCOME = Object.freeze({ EXACT: "EXACT", PARTIAL: "PARTIAL", REFUSED: "RE
 // Canonical key order. Serialization always emits present keys in this order so a
 // given reading maps to exactly ONE string (asserted by a determinism test).
 const KEY_ORDER = Object.freeze([
-  "v", "s", "m", "a", "b", "be", "al", "ly", "ts", "sk", "sc", "aa", "ab", "fm", "fl", "rd", "lg", "bl", "bk",
+  "v", "s", "m", "a", "b", "be", "al", "ly", "ts", "sk", "om", "sc", "aa", "ab", "fm", "fl", "rd", "lg", "bl", "bk",
 ]);
 
 // ------------------------------------------------------------------ helpers
@@ -206,6 +207,7 @@ function serializeEvidenceState(state = {}) {
 
   if (state.timestep != null && state.timestep !== "") out.set("ts", String(state.timestep));
   if (state.stayKind != null && state.stayKind !== "") out.set("sk", String(state.stayKind));
+  if (state.originMonth != null && state.originMonth !== "") out.set("om", String(state.originMonth));
 
   out.set("sc", String(state.scope ?? "LENS"));
   if (state.scope === "AMBITO") {
@@ -361,6 +363,19 @@ function parseEvidenceState(input, options = {}) {
   if (rawSk != null) {
     if (options.knownStayKinds && !options.knownStayKinds.includes(rawSk)) recordIssue(issues, "stayKind", REASON.INVALID_STAY_KIND, rawSk);
     else state.stayKind = rawSk;
+  }
+
+  // ---- domestic-origin source month (CITY, a real user-selectable dimension) ----
+  const rawOriginMonth = params.get("om");
+  if (rawOriginMonth != null && rawOriginMonth !== "") {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(rawOriginMonth)) {
+      recordIssue(issues, "originMonth", REASON.INVALID_ORIGIN_MONTH, rawOriginMonth);
+    } else if (options.knownOriginMonths && !options.knownOriginMonths.includes(rawOriginMonth)) {
+      // A month not in the published set must not silently fall back to the latest.
+      recordIssue(issues, "originMonth", REASON.INVALID_ORIGIN_MONTH, rawOriginMonth);
+    } else {
+      state.originMonth = rawOriginMonth;
+    }
   }
 
   // ---- comparison scope ----

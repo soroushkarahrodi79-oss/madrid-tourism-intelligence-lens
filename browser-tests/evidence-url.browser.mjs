@@ -457,3 +457,119 @@ test("switching COMPARE/LENS→CITY drops the retained Lens comparison from the 
     await close(page);
   }
 });
+
+// ------------------------------------- CITY origins rendered-vs-export (Finding 1/3)
+
+test("CITY origin rows: exported values match the rendered rows, across two months", async () => {
+  const page = await newPage();
+  try {
+    await page.waitForFunction(() => document.getElementById("destinationContext")?.dataset.state === "available");
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("CITY"));
+    await page.waitForFunction(() => document.querySelectorAll("#domesticOriginsRows tr").length > 0);
+
+    const readRows = () => page.$$eval("#domesticOriginsRows tr", (rows) => rows.map((r) => ({
+      code: r.querySelector(".muted")?.textContent?.trim(),
+      count: r.querySelectorAll("td")[1]?.textContent?.trim(),
+    })));
+    const checkAgainstExport = async () => {
+      const dom = await readRows();
+      const bundle = await seam(page, () => window.__HALO_REGRESSION__.k11Bundle());
+      const reading = JSON.parse(bundle.files.find((f) => f.name.startsWith("reading-")).text);
+      const exported = new Map(reading.values.filter((v) => v.id.startsWith("origin_")).map((v) => [v.id.replace("origin_", ""), v]));
+      assert.ok(dom.length > 0, "origin rows rendered");
+      for (const row of dom) {
+        const value = exported.get(row.code);
+        assert.ok(value, `exported value exists for origin ${row.code}`);
+        assert.equal(value.display, row.count, `exported display matches the rendered count for ${row.code}`);
+        assert.equal(value.state, "VALID");
+        assert.ok(Number.isInteger(value.value), `${row.code} exports the integer source_reported_tourists, not null`);
+        assert.ok(value.source_month, `${row.code} carries its source month`);
+      }
+    };
+
+    await checkAgainstExport(); // default (latest) month
+    const months = await page.$$eval("#domesticOriginsMonth option", (os) => os.map((o) => o.value).filter(Boolean));
+    const current = await page.inputValue("#domesticOriginsMonth");
+    const other = months.find((m) => m !== current);
+    if (other) {
+      await page.selectOption("#domesticOriginsMonth", other);
+      await page.waitForFunction((m) => document.getElementById("domesticOriginsMonth").value === m, other);
+      await checkAgainstExport(); // a non-default month
+    }
+  } finally {
+    await close(page);
+  }
+});
+
+// ------------------------------------------ per-mode disclosure coverage (Finding 3)
+
+test("every displayed evidence surface is disclosed in the export, in every mode", async () => {
+  const page = await newPage();
+  try {
+    for (const mode of ["PLACE", "COMPARE", "CITY"]) {
+      await seam(page, (m) => window.__HALO_REGRESSION__.enterMode(m), mode);
+      if (mode === "CITY") {
+        await page.waitForFunction(() => document.getElementById("destinationContext")?.dataset.state === "available").catch(() => {});
+      }
+      const expected = await seam(page, () => window.__HALO_REGRESSION__.k11ExpectedSurfaces());
+      const bundle = await seam(page, () => window.__HALO_REGRESSION__.k11Bundle());
+      const reading = JSON.parse(bundle.files.find((f) => f.name.startsWith("reading-")).text);
+      const disclosed = new Set(reading.evidence_surfaces.map((s) => s.surface));
+      for (const key of expected) {
+        assert.ok(disclosed.has(key), `${mode}: displayed surface ${key} is disclosed in evidence_surfaces`);
+      }
+    }
+  } finally {
+    await close(page);
+  }
+});
+
+// -------------------------------- origin-month URL round-trip, two months (Finding 2)
+
+test("the domestic-origin month round-trips across browser contexts, for two months", async () => {
+  const page = await newPage();
+  try {
+    await page.waitForFunction(() => document.getElementById("destinationContext")?.dataset.state === "available");
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("CITY"));
+    await page.waitForFunction(() => document.querySelectorAll("#domesticOriginsMonth option").length > 0);
+    const months = await page.$$eval("#domesticOriginsMonth option", (os) => os.map((o) => o.value).filter(Boolean));
+    assert.ok(months.length >= 2, "at least two published months to test");
+
+    for (const month of [months[0], months[months.length - 1]]) {
+      await page.selectOption("#domesticOriginsMonth", month);
+      await page.waitForFunction((m) => document.getElementById("domesticOriginsMonth").value === m, month);
+      // the month change committed to the URL via replaceState
+      const url = await seam(page, () => window.__HALO_REGRESSION__.k11Url());
+      assert.ok(url.includes(`om=${month}`), `URL carries om=${month}`);
+      const query = url.slice(url.indexOf("?"));
+
+      const restored = await restorePage(`${query}`);
+      try {
+        await restored.waitForFunction(() => document.getElementById("destinationContext")?.dataset.state === "available").catch(() => {});
+        const restoredMonth = await restored.inputValue("#domesticOriginsMonth");
+        assert.equal(restoredMonth, month, `restored month is ${month}`);
+        const notice = await seam(restored, () => window.__HALO_REGRESSION__.k11NoticeState());
+        assert.equal(notice.hidden, true, "a valid known month restores with no notice");
+      } finally {
+        await close(restored);
+      }
+    }
+  } finally {
+    await close(page);
+  }
+});
+
+test("a shared link with an unknown origin month states a partial restore", async () => {
+  // Construct a CITY link carrying a month outside the published set.
+  const page = await restorePage("?v=1&m=CITY&om=1999-01");
+  try {
+    await page.waitForFunction(() => document.getElementById("destinationContext")?.dataset.state === "available").catch(() => {});
+    const notice = await seam(page, () => window.__HALO_REGRESSION__.k11NoticeState());
+    assert.equal(notice.hidden, false, "unknown month is surfaced as a partial restore");
+    // and the month was NOT silently adopted
+    const selected = await page.inputValue("#domesticOriginsMonth");
+    assert.notEqual(selected, "1999-01");
+  } finally {
+    await close(page);
+  }
+});

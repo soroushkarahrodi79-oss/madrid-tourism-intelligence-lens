@@ -31,6 +31,25 @@
 
 const EXPORT_CONTRACT_VERSION = 1;
 const GEOJSON_CRS = "EPSG:4326";
+
+// The approved analytical-scope vocabulary, mirrored from js/evidence-scope.js
+// ANALYTICAL_SCOPES; a test asserts the two agree. Every exported value and
+// geometry feature must carry one of these — never an ad-hoc scope string.
+const APPROVED_SCOPES = Object.freeze([
+  "LENS_CIRCLE",
+  "OFFICIAL_BARRIO",
+  "OFFICIAL_DISTRICT",
+  "MUNICIPALITY",
+  "POINT_OBSERVATION",
+  "BOUNDED_STUDY_AREA",
+  "PLANNING_AMBITO",
+  "EXECUTION_UNIT",
+  "DEVELOPMENT_STAGE_AREA",
+  "PARCEL",
+  "ADDRESS_POINT",
+  "WORK_GEOMETRY",
+  "LENS_INTERSECT_AMBITO",
+]);
 const EXPORT_FRESHNESS_FIELDS = Object.freeze([
   "reference_date",
   "published_at",
@@ -317,6 +336,7 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     EXPORT_CONTRACT_VERSION,
     GEOJSON_CRS,
+    APPROVED_SCOPES,
     FRESHNESS_FIELDS: EXPORT_FRESHNESS_FIELDS,
     SOURCE_EXPORT_FIELDS,
     contributingSourceIds,
