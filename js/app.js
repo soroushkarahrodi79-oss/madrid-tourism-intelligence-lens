@@ -29,6 +29,29 @@ const MODULE_BASE = (document.currentScript && document.currentScript.src) || wi
 const AREA_ASSET_VERSION = "20261015-1";
 const moduleUrl = (name) => new URL(`${name}?v=${AREA_ASSET_VERSION}`, MODULE_BASE).href;
 
+// K11 (#73): the evidence-snapshot identity carried in a shared link, so a reader
+// is warned when the committed artifacts behind the workspace have moved since the
+// link was made. The full restore runs later, in stages (see the K11 block at the
+// end of this file); this only reads the language up front so the i18n layer
+// initialises in the right language with no restore flash.
+const K11_SNAPSHOT_ID = AREA_ASSET_VERSION;
+// Capture the ORIGINAL shared query ONCE, before any replaceState commit can
+// rewrite the address bar to the canonical form. Every restore phase parses this
+// frozen string, never the live window.location.search — otherwise phase 1's own
+// commit (and the boot loads after it) would erase the ámbito/baseline dimensions
+// before phase 2 reads them.
+const K11_ORIGINAL_SEARCH = (() => { try { return window.location.search; } catch (error) { return ""; } })();
+let k11InitialRestore = null;
+try {
+  if (typeof parseEvidenceState === "function" && /[?&]v=/.test(K11_ORIGINAL_SEARCH)) {
+    k11InitialRestore = parseEvidenceState(K11_ORIGINAL_SEARCH, { snapshotId: K11_SNAPSHOT_ID });
+    const initialLanguage = k11InitialRestore && k11InitialRestore.state && k11InitialRestore.state.language;
+    if (initialLanguage) document.documentElement.setAttribute("lang", initialLanguage);
+  }
+} catch (error) {
+  k11InitialRestore = null;
+}
+
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
 
 // Administrative reference geometry sits UNDER the POI markers: it is context
@@ -1850,6 +1873,20 @@ if (haloRegressionRequested && haloRegressionLocal) {
     mapCenter() {
       const center = map.getCenter();
       return { lat: center.lat, lng: center.lng };
+    },
+    // K11 (#73) seam: read the live reading as the URL contract sees it, build the
+    // canonical share URL, invoke the real copy path, and read the restore notice.
+    k11State() { return k11CurrentState(); },
+    k11Restored() { return Boolean(k11.restored); },
+    k11Url() { return buildShareUrl(window.location.href, k11CurrentState()); },
+    async k11Share() { return k11CopyShareLink(); },
+    k11NoticeState() {
+      const notice = document.getElementById("k11RestoreNotice");
+      return {
+        hidden: !notice || notice.hidden,
+        title: document.getElementById("k11RestoreTitle")?.textContent || "",
+        message: document.getElementById("k11RestoreMessage")?.textContent || "",
+      };
     },
   });
 }
@@ -4742,6 +4779,7 @@ function refresh() {
   renderUrbanLicences();
   shadeMarkersOutsideActiveLens();
   renderScopeRail();
+  k11ScheduleUrlCommit();
 }
 
 function activateLens(which) {
@@ -4907,6 +4945,8 @@ document.getElementById("languageSelect").onchange = (event) => {
   renderModeUi();
   if (document.getElementById("evidenceDrawer").open) renderDrawerBody();
   applyCopyLanguage();
+  k11ApplyCopy();
+  k11ScheduleUrlCommit();
 };
 document.getElementById("domesticOriginsMonth").onchange = (event) => { originMonth = event.target.value; renderDomesticOrigins(); };
 document.getElementById("hospitalityMetricSelect").onchange = (event) => {
@@ -5450,6 +5490,7 @@ for (const button of evidenceDrawer.querySelectorAll(".reading-btn")) {
       other.setAttribute("aria-pressed", String(other === button));
     }
     renderDrawerBody();
+    k11ScheduleUrlCommit();
   };
 }
 for (const button of document.querySelectorAll(".evidence-route")) {
@@ -5761,6 +5802,11 @@ async function boot() {
   renderLayerSourceNote();
   refresh();
 
+  // K11 (#73): the operational layers and the Lens surfaces are on screen, so the
+  // interface dimensions of a shared reading can be restored now. The ámbito and
+  // baseline dimensions wait for the planning index (phase 2, below).
+  k11ApplyRestorePhase1();
+
   // Administrative context loads after the operational layers are on screen:
   // the canonical geography is ~2.5 MB and must never delay the first paint of
   // the map. It is parsed and indexed exactly once, then reused.
@@ -5768,7 +5814,10 @@ async function boot() {
   // The planning artifacts load on their own track, for the same reason: the
   // ambito evidence and the administrative registers are different publishers
   // with different universes, and one must never cost the other.
-  loadPlanningContext();
+  // K11: the ámbito/baseline dimensions of a shared reading restore once the
+  // planning index is ready (or has failed), so an ámbito code is never rejected
+  // merely because its official geometry has not finished loading yet.
+  loadPlanningContext().finally(() => k11ApplyRestorePhase2());
   // Started separately and never awaited together with the area context: the two
   // surfaces describe different things, from different publishers, and must fail
   // independently of each other.
@@ -5861,6 +5910,7 @@ function setCompareScope(scope) {
   } else {
     clearAmbitoComparePolygons();
   }
+  k11ScheduleUrlCommit();
 }
 
 function handleAmbitoCompareMapClick(latlng) {
@@ -6284,6 +6334,7 @@ function refreshAmbitoCompareData() {
     const code = event.target.value.trim();
     ambitoCompare[slot] = isKnownAmbitoCode(code) ? code : null;
     renderAmbitoCompare();
+    k11ScheduleUrlCommit();
   };
   if (selA) { selA.onchange = onPick("a"); selA.oninput = onPick("a"); }
   if (selB) { selB.onchange = onPick("b"); selB.oninput = onPick("b"); }
@@ -6327,3 +6378,402 @@ function refreshAmbitoCompareData() {
     else if (ambitoCompare.scope === "AMBITO") renderAmbitoComparePolygons();
   });
 }
+
+// ===================================================================== K11 ====
+// Shareable evidence state & documented export (#73). This block is the ONLY
+// bridge between the live application state and the pure, versioned URL contract
+// in js/evidence-url.js. It reads the current reading into the contract's shape,
+// commits a canonical URL with history.replaceState (never pushState, so Lens
+// drags and ordinary interaction never pollute the back button), restores a
+// shared reading in stages that respect the real initialisation order, and copies
+// a share link with honest success/failure feedback. The export itself lives in
+// js/evidence-export.js and is wired at the end of this block.
+
+// Local copy, following the bridge/ámbito pattern (a surface-scoped dictionary
+// rather than widening the shared shell dictionary and its tests).
+const K11_COPY = Object.freeze({
+  en: Object.freeze({
+    "share.title": "Share & export this reading",
+    "share.lede": "Copy a link that reproduces this exact reading, or export its evidence, geometry, sources and limits for QGIS, GeoLibre or a spreadsheet.",
+    "share.copyBtn": "Copy shareable link",
+    "share.exportBtn": "Export evidence",
+    "notice.dismiss": "Dismiss notice",
+    "share.copied": "Link copied — it reproduces this exact reading.",
+    "share.copyFailed": "Could not copy automatically. Copy this link:",
+    "restore.partialTitle": "Partial restore",
+    "restore.refusedTitle": "Link not restored",
+    "restore.snapshotTitle": "Evidence has moved",
+    "restore.partialLede": "Some of this shared reading could not be restored:",
+    "restore.refusedLede": "This link uses an unsupported format and was not restored, so you are seeing the default reading rather than a different one.",
+    "restore.snapshotLede": "The interface was restored, but the committed evidence behind it has changed since the link was made, so a value may no longer match the original.",
+    "restore.baselineEvidence": "the sensitivity baseline (the evidence universe changed, so it cannot be reproduced exactly)",
+    "reason.INVALID_RADIUS": "a Lens radius out of range",
+    "reason.INVALID_COORDINATES": "a Lens centre outside Madrid",
+    "reason.UNKNOWN_AMBITO": "an unknown planning ámbito code",
+    "reason.UNKNOWN_LAYER": "an unknown map layer",
+    "reason.UNKNOWN_METRIC": "an unsupported metric",
+    "reason.INVALID_MODE": "an unknown mode",
+    "reason.INVALID_SCOPE": "an unknown comparison scope",
+    "reason.INVALID_BASELINE": "an invalid sensitivity baseline",
+    "reason.INVALID_TIMESTEP": "an invalid heat time",
+    "reason.INVALID_STAY_KIND": "an unknown accommodation filter",
+    "reason.INVALID_READING": "an unknown reading preference",
+    "reason.INVALID_LANGUAGE": "an unknown language",
+    "reason.INVALID_ACTIVE_LENS": "an unknown active Lens",
+    "reason.MALFORMED": "a malformed value",
+  }),
+  es: Object.freeze({
+    "share.title": "Compartir y exportar esta lectura",
+    "share.lede": "Copie un enlace que reproduzca esta lectura exacta, o exporte su evidencia, geometría, fuentes y límites para QGIS, GeoLibre o una hoja de cálculo.",
+    "share.copyBtn": "Copiar enlace",
+    "share.exportBtn": "Exportar evidencia",
+    "notice.dismiss": "Descartar aviso",
+    "share.copied": "Enlace copiado: reproduce esta lectura exacta.",
+    "share.copyFailed": "No se pudo copiar automáticamente. Copie este enlace:",
+    "restore.partialTitle": "Restauración parcial",
+    "restore.refusedTitle": "Enlace no restaurado",
+    "restore.snapshotTitle": "La evidencia ha cambiado",
+    "restore.partialLede": "Parte de esta lectura compartida no se pudo restaurar:",
+    "restore.refusedLede": "Este enlace usa un formato no admitido y no se restauró, por lo que ve la lectura por defecto y no otra distinta.",
+    "restore.snapshotLede": "Se restauró la interfaz, pero la evidencia comprometida tras ella ha cambiado desde que se creó el enlace, por lo que algún valor puede no coincidir con el original.",
+    "restore.baselineEvidence": "la línea base de sensibilidad (cambió el universo de evidencia, por lo que no puede reproducirse exactamente)",
+    "reason.INVALID_RADIUS": "un radio de Lente fuera de rango",
+    "reason.INVALID_COORDINATES": "un centro de Lente fuera de Madrid",
+    "reason.UNKNOWN_AMBITO": "un código de ámbito de planeamiento desconocido",
+    "reason.UNKNOWN_LAYER": "una capa de mapa desconocida",
+    "reason.UNKNOWN_METRIC": "una métrica no admitida",
+    "reason.INVALID_MODE": "un modo desconocido",
+    "reason.INVALID_SCOPE": "un ámbito de comparación desconocido",
+    "reason.INVALID_BASELINE": "una línea base de sensibilidad no válida",
+    "reason.INVALID_TIMESTEP": "una hora de calor no válida",
+    "reason.INVALID_STAY_KIND": "un filtro de alojamiento desconocido",
+    "reason.INVALID_READING": "una preferencia de lectura desconocida",
+    "reason.INVALID_LANGUAGE": "un idioma desconocido",
+    "reason.INVALID_ACTIVE_LENS": "una Lente activa desconocida",
+    "reason.MALFORMED": "un valor con formato incorrecto",
+  }),
+});
+function k11T(key) {
+  const dict = K11_COPY[shellLanguage()] || K11_COPY.en;
+  return dict[key] ?? K11_COPY.en[key] ?? key;
+}
+
+// Localise the K11 controls (ES/EN) the same way the surface dictionaries do:
+// one applier, called on init and on every language switch. Visible text and the
+// dismiss accessible name both follow the document language.
+function k11ApplyCopy() {
+  const set = (id, key, attr) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (attr) el.setAttribute(attr, k11T(key));
+    else el.textContent = k11T(key);
+  };
+  set("drawerShareTitle", "share.title");
+  set("drawerShareLede", "share.lede");
+  set("k11ShareBtn", "share.copyBtn");
+  set("k11ExportBtn", "share.exportBtn");
+  set("k11RestoreDismiss", "notice.dismiss", "aria-label");
+}
+
+const k11 = { suppress: false, scheduled: false, refused: false, restored: false };
+
+// Read the live reading into the pure contract's shape. This is the single source
+// of truth for both the shared URL and (later) the export's state.url, so the two
+// can never disagree.
+function k11CurrentState() {
+  const scope = (typeof ambitoCompare !== "undefined" && ambitoCompare.scope) || "LENS";
+  let metric = null;
+  if (scope === "AMBITO" && typeof ambitoCompare !== "undefined") {
+    const id = ambitoCompare.lockedMetric || ambitoCompare.focusedMetric;
+    if (id) metric = { id, locked: Boolean(ambitoCompare.lockedMetric) };
+  } else {
+    const id = selectedHaloMetric || focusedHaloMetric;
+    if (id) metric = { id, locked: Boolean(selectedHaloMetric) };
+  }
+  const layers = [];
+  for (const el of document.querySelectorAll("[data-layer]")) if (el.checked) layers.push(el.dataset.layer);
+  const cA = centerOf("A");
+  const cB = centerOf("B");
+  const state = {
+    snapshotId: K11_SNAPSHOT_ID,
+    mode: shell.modes ? shell.modes.currentMode() : "PLACE",
+    lensA: { lat: cA.lat, lon: cA.lon, radiusM: radii.A },
+    lensB: { lat: cB.lat, lon: cB.lon, radiusM: radii.B },
+    lensBEnabled: bEnabled,
+    activeLens: active,
+    layers,
+    scope,
+    reading: shell.reading,
+    language: shellLanguage(),
+  };
+  if (isHatiVisible()) state.timestep = timestep;
+  if (stayKindFilter && stayKindFilter !== "all") state.stayKind = stayKindFilter;
+  if (scope === "AMBITO" && typeof ambitoCompare !== "undefined") {
+    if (ambitoCompare.a) state.ambitoA = ambitoCompare.a;
+    if (ambitoCompare.b) state.ambitoB = ambitoCompare.b;
+  }
+  if (metric) state.metric = metric;
+  if (typeof spatialBaseline !== "undefined" && spatialBaseline && spatialBaseline.radii) {
+    state.baseline = {
+      radiusA: spatialBaseline.radii.A,
+      radiusB: spatialBaseline.radii.B,
+      radiusMode: spatialBaseline.radiusMode,
+      evidenceKey: spatialBaseline.evidenceKey,
+    };
+  }
+  return state;
+}
+
+// Commit the canonical URL with replaceState. Coalesced to one write per frame so
+// a drag (which calls refresh() continuously) never writes the address bar more
+// than once a frame — and never with pushState, so the back button is untouched.
+function k11ScheduleUrlCommit() {
+  if (k11.suppress || k11.scheduled) return;
+  k11.scheduled = true;
+  const run = () => { k11.scheduled = false; k11CommitUrlState(); };
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(run);
+  else setTimeout(run, 0);
+}
+function k11CommitUrlState() {
+  if (k11.suppress) return;
+  try {
+    const url = buildShareUrl(window.location.href, k11CurrentState());
+    window.history.replaceState(window.history.state, "", url);
+  } catch (error) {
+    /* a blocked history write is non-fatal: the Share button reads live state */
+  }
+}
+
+// ----------------------------------------------------------------- clipboard
+function k11ExecCopyFallback(text) {
+  try {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.append(area);
+    area.select();
+    const ok = document.execCommand && document.execCommand("copy");
+    area.remove();
+    return Boolean(ok);
+  } catch (error) {
+    return false;
+  }
+}
+async function k11CopyShareLink() {
+  const url = buildShareUrl(window.location.href, k11CurrentState());
+  try { window.history.replaceState(window.history.state, "", url); } catch (error) { /* non-fatal */ }
+  let ok = false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(url); ok = true; }
+  } catch (error) { ok = false; }
+  if (!ok) ok = k11ExecCopyFallback(url);
+  const status = document.getElementById("k11ShareStatus");
+  if (status) {
+    status.dataset.tone = ok ? "ok" : "error";
+    // On failure the URL is shown in full so the copy never silently fails.
+    status.textContent = ok ? k11T("share.copied") : `${k11T("share.copyFailed")} ${url}`;
+  }
+  return ok;
+}
+
+// ------------------------------------------------------------------- restore
+function k11HasSharedState() {
+  return /[?&]v=/.test(K11_ORIGINAL_SEARCH);
+}
+
+function k11ApplyLensRestore(which, lens) {
+  if (!lens) return;
+  try {
+    lenses[which].marker.setLatLng([lens.lat, lens.lon]);
+    lenses[which].circle.setLatLng([lens.lat, lens.lon]);
+    setLensRadius(which, lens.radiusM); // the app's standard clamp+step applies to all radii
+    lenses[which].circle.setRadius(radiusFor(which));
+    if (which === active && typeof radiusSlider !== "undefined") radiusSlider.value = radiusFor(which);
+  } catch (error) { /* a single lens failure never aborts the whole restore */ }
+}
+
+function k11ApplyLayersRestore(layers) {
+  const wanted = new Set(layers);
+  for (const el of document.querySelectorAll("[data-layer]")) {
+    if (el.disabled) continue; // a layer unavailable in this deployment is left off
+    const on = wanted.has(el.dataset.layer);
+    if (el.checked !== on) {
+      el.checked = on;
+      setLayerVisible(el.dataset.layer, on);
+    }
+  }
+}
+
+// Phase 1: interface dimensions that depend only on the map + operational layers.
+function k11ApplyRestorePhase1() {
+  if (!k11HasSharedState()) return;
+  const result = k11InitialRestore || parseEvidenceState(K11_ORIGINAL_SEARCH, { snapshotId: K11_SNAPSHOT_ID });
+  k11InitialRestore = result;
+  if (!result.ok) { k11.refused = true; k11RenderNotice(result); return; }
+  const s = result.state || {};
+  k11.suppress = true;
+  try {
+    if (s.language && s.language !== shellLanguage()) {
+      const sel = document.getElementById("languageSelect");
+      if (sel) { sel.value = s.language; if (typeof sel.onchange === "function") sel.onchange({ target: sel }); }
+    }
+    if (s.mode && shell.modes) shell.modes.setMode(s.mode);
+    if (s.lensBEnabled === true && !bEnabled) enableLensB();
+    else if (s.lensBEnabled === false && bEnabled) disableLensB();
+    k11ApplyLensRestore("A", s.lensA);
+    k11ApplyLensRestore("B", s.lensB);
+    if (s.activeLens && s.activeLens !== active) activateLens(s.activeLens);
+    if (Array.isArray(s.layers)) k11ApplyLayersRestore(s.layers);
+    if (s.timestep) {
+      const sel = document.getElementById("timeSelect");
+      if (sel) { sel.value = s.timestep; if (typeof sel.onchange === "function") sel.onchange({ target: sel }); }
+    }
+    if (s.stayKind) {
+      const sel = document.getElementById("stayKindFilter");
+      if (sel && !sel.disabled) { sel.value = s.stayKind; if (typeof sel.onchange === "function") sel.onchange({ target: sel }); }
+    }
+    if (s.reading) {
+      shell.reading = s.reading;
+      if (document.getElementById("evidenceDrawer").open) renderDrawerBody();
+    }
+    if (s.scope !== "AMBITO" && s.metric) {
+      selectedHaloMetric = s.metric.locked ? s.metric.id : null;
+      setHaloMetricFocus(s.metric.id, null, false);
+    }
+    refresh();
+  } catch (error) {
+    console.warn("K11 phase-1 restore incomplete", error);
+  } finally {
+    k11.suppress = false;
+  }
+}
+
+// Phase 2: the ámbito comparison and the sensitivity baseline — they need the
+// planning index (ámbito codes, geometry) and, for the baseline, the bridge
+// models. Runs once planning has loaded OR failed, so an ámbito code is never
+// rejected merely because its geometry was still loading.
+function k11ApplyRestorePhase2() {
+  if (!k11HasSharedState() || k11.refused) { k11.restored = true; return; }
+  const options = { snapshotId: K11_SNAPSHOT_ID };
+  try {
+    const codes = typeof ambitoCodeList === "function" ? ambitoCodeList() : [];
+    if (codes.length) options.knownAmbitoCodes = codes;
+  } catch (error) { /* planning unavailable: ámbito codes stay unvalidated */ }
+  const result = parseEvidenceState(K11_ORIGINAL_SEARCH, options);
+  k11InitialRestore = result; // the authoritative result, with ámbito validation
+  const s = (result.ok && result.state) || {};
+  const finish = () => {
+    k11.suppress = false;
+    k11ApplyBaselineRestore(s, result);
+    k11.restored = true;
+    k11RenderNotice(result);
+  };
+  if (result.ok && s.scope === "AMBITO" && typeof setCompareScope === "function") {
+    k11.suppress = true;
+    const apply = () => {
+      try {
+        setCompareScope("AMBITO");
+        if (s.ambitoA) { ambitoCompare.a = s.ambitoA; const sa = document.getElementById("ambitoSelectA"); if (sa) sa.value = s.ambitoA; }
+        if (s.ambitoB) { ambitoCompare.b = s.ambitoB; const sb = document.getElementById("ambitoSelectB"); if (sb) sb.value = s.ambitoB; }
+        if (s.metric) { ambitoCompare.lockedMetric = s.metric.locked ? s.metric.id : null; ambitoCompare.focusedMetric = s.metric.id; }
+        renderAmbitoCompare();
+        renderAmbitoComparePolygons();
+      } catch (error) {
+        console.warn("K11 phase-2 ámbito restore incomplete", error);
+      } finally {
+        finish();
+      }
+    };
+    (typeof ensureAmbitoAdapter === "function" ? ensureAmbitoAdapter() : Promise.resolve()).then(apply, apply);
+    return;
+  }
+  finish();
+}
+
+// The sensitivity baseline is reproduced by re-running the app's OWN capture at
+// the baseline radii, then restoring the scenario (current) radii — never by
+// fabricating a frozen interpretation. If the evidence universe has changed since
+// the link was made (evidenceKey mismatch), the baseline cannot be reproduced
+// exactly and is reported rather than faked.
+function k11ApplyBaselineRestore(state, result) {
+  const baseline = state && state.baseline;
+  if (!baseline) return;
+  if (!bEnabled || typeof captureSpatialBaseline !== "function" || typeof spatialEvidenceKey !== "function") return;
+  try {
+    const currentKey = spatialEvidenceKey();
+    if (baseline.evidenceKey != null && baseline.evidenceKey !== currentKey) {
+      k11.baselineUnreproducible = true;
+      return;
+    }
+    const scenarioA = radii.A;
+    const scenarioB = radii.B;
+    k11.suppress = true;
+    setLensRadius("A", baseline.radiusA);
+    setLensRadius("B", baseline.radiusB);
+    lenses.A.circle.setRadius(radiusFor("A"));
+    lenses.B.circle.setRadius(radiusFor("B"));
+    refresh();
+    captureSpatialBaseline();
+    setLensRadius("A", scenarioA);
+    setLensRadius("B", scenarioB);
+    lenses.A.circle.setRadius(radiusFor("A"));
+    lenses.B.circle.setRadius(radiusFor("B"));
+    if (typeof radiusSlider !== "undefined") radiusSlider.value = radiusFor(active);
+    refresh();
+  } catch (error) {
+    console.warn("K11 baseline restore incomplete", error);
+    k11.baselineUnreproducible = true;
+  } finally {
+    k11.suppress = false;
+    k11CommitUrlState();
+  }
+}
+
+// ------------------------------------------------------------------- notice
+function k11RenderNotice(result) {
+  const notice = document.getElementById("k11RestoreNotice");
+  const title = document.getElementById("k11RestoreTitle");
+  const message = document.getElementById("k11RestoreMessage");
+  if (!notice || !title || !message) return;
+
+  const snapshotMismatch = result.snapshot && result.snapshot.status === "MISMATCH";
+  const interfaceIssues = (result.issues || []).filter((i) => i.code !== "SNAPSHOT_MISMATCH");
+  if (k11.baselineUnreproducible) interfaceIssues.push({ dimension: "baseline", code: "BASELINE_EVIDENCE" });
+
+  let show = false;
+  if (!result.ok) {
+    title.textContent = k11T("restore.refusedTitle");
+    message.textContent = k11T("restore.refusedLede");
+    show = true;
+  } else if (interfaceIssues.length) {
+    title.textContent = k11T("restore.partialTitle");
+    const parts = interfaceIssues.map((issue) =>
+      issue.code === "BASELINE_EVIDENCE" ? k11T("restore.baselineEvidence") : k11T(`reason.${issue.code}`)
+    );
+    message.textContent = `${k11T("restore.partialLede")} ${parts.join("; ")}.`;
+    show = true;
+  } else if (snapshotMismatch) {
+    title.textContent = k11T("restore.snapshotTitle");
+    message.textContent = k11T("restore.snapshotLede");
+    show = true;
+  }
+  notice.hidden = !show;
+}
+
+// --------------------------------------------------------------- UI wiring
+(() => {
+  k11ApplyCopy();
+  const shareBtn = document.getElementById("k11ShareBtn");
+  if (shareBtn) shareBtn.addEventListener("click", () => { k11CopyShareLink(); });
+  const dismiss = document.getElementById("k11RestoreDismiss");
+  if (dismiss) dismiss.addEventListener("click", () => {
+    const notice = document.getElementById("k11RestoreNotice");
+    if (notice) notice.hidden = true;
+  });
+  const exportBtn = document.getElementById("k11ExportBtn");
+  if (exportBtn) exportBtn.addEventListener("click", () => {
+    if (typeof k11ExportEvidence === "function") k11ExportEvidence();
+  });
+})();

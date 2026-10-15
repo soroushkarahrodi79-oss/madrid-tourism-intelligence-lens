@@ -66,7 +66,7 @@ const LENS_SPATIAL_BOUNDS = Object.freeze({
 // the pure model needs no cross-module import; a test asserts the two agree.
 const LENS_RADIUS_BOUNDS = Object.freeze({ minM: 100, maxM: 5000 });
 
-const MODES = Object.freeze(["PLACE", "COMPARE", "CITY"]);
+const URL_MODES = Object.freeze(["PLACE", "COMPARE", "CITY"]);
 const COMPARE_SCOPES = Object.freeze(["LENS", "AMBITO"]);
 const READINGS = Object.freeze(["citizen", "analyst"]);
 const LANGUAGES = Object.freeze(["es", "en"]);
@@ -79,7 +79,7 @@ const RADIUS_MODES = Object.freeze(["EQUAL_RADIUS", "UNEQUAL_RADIUS"]);
 // AMBITO_METRIC_IDS). A metric from the wrong scope is UNKNOWN_METRIC — it never
 // silently survives a scope switch. Tests assert both lists match their sources.
 const LENS_METRIC_IDS = Object.freeze(["tourism", "stays", "mobility", "utci"]);
-const AMBITO_METRIC_IDS = Object.freeze([
+const URL_AMBITO_METRIC_IDS = Object.freeze([
   "phase_planeamiento",
   "phase_gestion",
   "phase_urbanizacion_proyecto",
@@ -294,7 +294,7 @@ function parseEvidenceState(input, options = {}) {
   // ---- mode ----
   const rawMode = params.get("m");
   if (rawMode != null) {
-    if (MODES.includes(rawMode)) state.mode = rawMode;
+    if (URL_MODES.includes(rawMode)) state.mode = rawMode;
     else recordIssue(issues, "mode", REASON.INVALID_MODE, rawMode);
   }
 
@@ -374,7 +374,7 @@ function parseEvidenceState(input, options = {}) {
   // ---- focused / locked metric (scope-partitioned vocabulary) ----
   const rawMetric = params.get("fm");
   if (rawMetric != null && rawMetric !== "") {
-    const vocabulary = effectiveScope === "AMBITO" ? AMBITO_METRIC_IDS : LENS_METRIC_IDS;
+    const vocabulary = effectiveScope === "AMBITO" ? URL_AMBITO_METRIC_IDS : LENS_METRIC_IDS;
     if (vocabulary.includes(rawMetric)) {
       state.metric = { id: rawMetric, locked: params.get("fl") === "1" };
     } else {
@@ -453,14 +453,14 @@ if (typeof module !== "undefined" && module.exports) {
     EVIDENCE_URL_LAYERS,
     LENS_SPATIAL_BOUNDS,
     LENS_RADIUS_BOUNDS,
-    MODES,
+    MODES: URL_MODES,
     COMPARE_SCOPES,
     READINGS,
     LANGUAGES,
     ACTIVE_LENSES,
     RADIUS_MODES,
     LENS_METRIC_IDS,
-    AMBITO_METRIC_IDS,
+    AMBITO_METRIC_IDS: URL_AMBITO_METRIC_IDS,
     REASON,
     OUTCOME,
     serializeEvidenceState,
