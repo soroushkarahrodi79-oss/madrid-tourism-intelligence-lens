@@ -148,24 +148,51 @@ with full per-value provenance:
 
 | displayed surface | mode | value records |
 |---|---|---|
-| registered residents, licensed-VUT units | PLACE | `residents`, `vut_units` (`OFFICIAL_BARRIO`) |
+| registered residents | PLACE | `residents` (`OFFICIAL_BARRIO`) |
+| licensed-VUT: units, **licence count**, **units per 1,000 residents** | PLACE | `vut_units`, `vut_licences`, `vut_ratio` (`OFFICIAL_BARRIO`) |
 | containing-ámbito planning: four phases, surface, four buildability use-classes | PLACE | `place_*` (`PLANNING_AMBITO`, S1/S2 named) |
+| **K7 edition change**: comparability verdict, per-family (S1/S2) classification, buildability use-class differences | PLACE | `change_comparability`, `change_s1`/`change_s2`, `change_buildability_state`, `change_build_*` (`PLANNING_AMBITO`) |
 | category mix shares | PLACE | `mix_*` (`LENS_CIRCLE`) |
 | nearest features | PLACE | `nearest_*` (`LENS_CIRCLE`, metres) |
-| granted licences per family | PLACE | `licences_*` (`ADDRESS_POINT`) |
-| hospitality / commercial indicator | PLACE | `hospitality_*` |
-| domestic-origin monthly dynamics | CITY | `dynamics_*` (`MUNICIPALITY`) |
-| spatial-window sensitivity | COMPARE | `sensitivity_*` (`LENS_CIRCLE`, interpretive) |
+| granted licences per family (in-lens **aggregate count**) | PLACE | `licences_*` (`LENS_CIRCLE`, `aggregate_of: ADDRESS_POINT`) |
+| hospitality / commercial indicator | PLACE | `hospitality_*` (actual unit, not null) |
+| domestic-origin monthly dynamics: summary counts | CITY | `dynamics_*` (`MUNICIPALITY`) |
+| domestic-origin **per shared-origin row**: previous/current counts, absolute & percent change | CITY | `dynamics_sharedrow_*` (`MUNICIPALITY`) |
+| spatial-window sensitivity (delta carries its actual unit) | COMPARE | `sensitivity_*` (`LENS_CIRCLE`, interpretive) |
 
 Each is read from the **same frozen model the surface rendered** — the area
-profile, the authoritative ámbito comparison model (read single-sided for the
-containing ámbito, S1 vs S2 preserved), `categoryMixState`, the licence view, the
-hospitality record, the domestic-origin dynamics model and the spatial-sensitivity
-model — never recomputed and never parsed from the DOM. A spatial-sensitivity
-reading is interpretive: its observed change is carried where the model authorised
-a numeric one, otherwise the item keeps its transition label and an `INTERPRETIVE`
-state — never a fabricated zero. A per-mode browser test additionally asserts that
-every displayed evidence surface is disclosed in `evidence_surfaces`.
+profile (units, licence count and the per-1,000-residents ratio with its own
+abstention reason), the authoritative ámbito comparison model (read single-sided
+for the containing ámbito, S1 vs S2 preserved), the K7 edition-change comparison
+(classifications and the model's own `observedDifference` per use-class — never a
+difference computed in the export), `categoryMixState`, the single licence view,
+the hospitality record, the domestic-origin dynamics model (summary **and** each
+shared-origin row) and the spatial-sensitivity model — never recomputed and never
+parsed from the DOM.
+
+**Scope of an aggregate vs a point.** An in-lens licence figure is a *count* of
+address-point records inside the Lens, so its analytical scope is `LENS_CIRCLE`
+(a spatial aggregate over the generated window); the `ADDRESS_POINT` geometry of
+each underlying record is the record identity, carried as `aggregate_of`, and is
+never promoted to the scope of the summed figure.
+
+**Suppression & withholding survive.** A shared-origin row whose published count
+the source suppressed (so the model states no change) is `WITHHELD` with no
+fabricated number; a K7 buildability cell the model withheld carries its reason
+and null values (blank is never read as zero); a spatial-sensitivity reading is
+interpretive — its observed change is carried where the model authorised a numeric
+one, otherwise the item keeps its transition label and an `INTERPRETIVE` state.
+
+**No recomputation (invariant).** The quantities that both a renderer and the
+export read — `heatStatsFor`, `pedestrianStatsFor`, `categoryMixState`, the
+licence view, the single-sided planning adapter — are each evaluated **once** in
+`refresh()` / the renderer and reused by the capture (the metric renderers return
+the very projection they drew). The export module has no access to raw evidence
+and computes no displayed figure. Browser tests assert rendered value ↔ exported
+value for the origin rows (two months, incl. a non-default month), the VUT ratio,
+the licence aggregate scope, the K7 edition-change states and the shared-origin
+dynamics; a per-mode test additionally asserts that every displayed evidence
+surface is disclosed in `evidence_surfaces`.
 
 ### 2.1 `reading.json`
 

@@ -2274,7 +2274,7 @@ function renderHeatMetric(h) {
     hv.textContent = "Off";
     hv.className = "metric-value abstain";
     hf.textContent = "enable HATI research evidence";
-    return;
+    return h;
   }
 
   if (h.evidence === "NONE") {
@@ -2287,31 +2287,37 @@ function renderHeatMetric(h) {
     hv.style.color = utciCategoryColor(h.mean);
     hf.textContent = `${h.count} HATI sample${h.count !== 1 ? "s" : ""} · ${timestep}`;
   }
+  // K11 (#73): return the drawn projection so refresh() captures the SAME object
+  // it rendered — the stats are computed once, never recomputed for the export.
+  return h;
 }
 
 function renderPedestrianMetric(p) {
   const card = document.getElementById("pedestrianCard");
   const value = document.getElementById("pedestrianValue");
   const foot = document.getElementById("pedestrianFoot");
-  if (!card || !value || !foot || !isPedestrianVisible()) return;
+  if (!card || !value || !foot || !isPedestrianVisible()) return p;
 
   if (pedestrianStatus === "unavailable") {
     value.textContent = "No data";
     value.className = "activity-card-value abstain";
     foot.textContent = "deployment snapshot unavailable";
-    return;
+    return p;
   }
 
   if (p.evidence === "NONE") {
     value.textContent = "No sensor evidence";
     value.className = "activity-card-value abstain";
     foot.textContent = "no permanent pedestrian counter in lens";
-    return;
+    return p;
   }
 
   value.textContent = `${Math.round(p.meanObserved).toLocaleString("en-GB")} ${p.stationCount === 1 ? "ped/h" : "passages/hour"}`;
   value.className = "activity-card-value";
   foot.textContent = `${p.stationCount} counter${p.stationCount !== 1 ? "s" : ""} in current lens · ${formatLensRadius(radiusFor(active))} radius`;
+  // K11 (#73): return the drawn projection so refresh() reuses it for the export
+  // capture rather than recomputing pedestrianStatsFor(active) a second time.
+  return p;
 }
 
 function renderMix(s) {
@@ -2322,7 +2328,8 @@ function renderMix(s) {
     Bike: combinedStatus(layerStatus, ["bikes", "rail"]),
     Info: layerStatus.info,
   };
-  const { rows, label } = categoryMixState(counts, statuses);
+  const mix = categoryMixState(counts, statuses);
+  const { rows, label } = mix;
   Object.entries(rows).forEach(([k, row]) => {
     const bar = document.getElementById("bar" + k);
     const pctEl = document.getElementById("pct" + k);
@@ -2335,6 +2342,9 @@ function renderMix(s) {
     }
   });
   document.getElementById("mixLabel").textContent = label;
+  // K11 (#73): return the frozen mix projection so refresh() can hand the SAME
+  // object to the PLACE capture instead of computing categoryMixState twice.
+  return mix;
 }
 
 function renderNearest(s) {
@@ -3454,6 +3464,7 @@ function renderPlanningChange(exactCode) {
   if (!exactCode || !pair || !module || !pair.previous || !pair.current) {
     section.hidden = true;
     planningModel.changeComparison = null;
+    if (typeof k11 !== "undefined") k11.placeChange = null;
     document.getElementById("planningChangeOutcomes").replaceChildren();
     document.getElementById("planningBuildComparison").replaceChildren();
     document.getElementById("planningChangeAnalystBody").replaceChildren();
@@ -3465,6 +3476,19 @@ function renderPlanningChange(exactCode) {
   const citizen = module.projectAmbitoChangeReading(comparison, "citizen");
   const analyst = module.projectAmbitoChangeReading(comparison, "analyst");
   planningModel.changeComparison = comparison;
+  // K11 (#73): capture the SAME frozen K7 edition-change comparison the panel
+  // renders, for the PLACE export (edition-change classifications + the
+  // defensible buildability differences, each with its withholding reason). No
+  // recomputation — the comparison object computed just above is reused.
+  if (typeof k11 !== "undefined") {
+    k11.placeChange = Object.freeze({
+      exactCode,
+      comparabilityVerdict: comparison.comparabilityVerdict,
+      dates: comparison.dates,
+      state: comparison.state,
+      buildability: comparison.buildability,
+    });
+  }
   section.hidden = false;
   section.dataset.state = comparison.comparabilityVerdict;
   const previousDate = planningDate(comparison.dates.previous);
@@ -3920,12 +3944,10 @@ function renderLicenceResidual(residualTaxonomy) {
 function renderUrbanLicences() {
   const section = document.getElementById("urbanLicences");
   if (!section) return;
-  // K11 (#73): capture the in-lens per-family licence counts (the frozen view the
-  // panel renders) for the PLACE export; null when the layer is off.
-  if (typeof k11 !== "undefined") {
-    try { k11.placeLicences = typeof isLicencesVisible === "function" && isLicencesVisible() ? licenceView() : null; }
-    catch (error) { k11.placeLicences = null; }
-  }
+  // K11 (#73, no-recomputation invariant): the in-lens per-family licence view is
+  // computed ONCE below and captured from that same object. Reset to null here;
+  // every early return (OFF, loading, unavailable) correctly leaves it null.
+  if (typeof k11 !== "undefined") k11.placeLicences = null;
   const STATE = (licenceModel.module && licenceModel.module.LICENCE_LAYER_STATE) || {
     OFF: "OFF",
     UNAVAILABLE: "UNAVAILABLE",
@@ -3968,6 +3990,9 @@ function renderUrbanLicences() {
   }
 
   const view = licenceView();
+  // K11 (#73): the single frozen view the panel renders is the one the export
+  // transcribes — the per-family counts are a LENS_CIRCLE aggregate (see below).
+  if (typeof k11 !== "undefined") k11.placeLicences = view;
   section.dataset.licenceState = view.state;
   if (unavailableEl) unavailableEl.hidden = true;
 
@@ -4362,10 +4387,6 @@ function renderHospitalityContext() {
 
   const record = hospitalityRecord();
   const value = record?.indicators?.[hospitalityMetric];
-  // K11 (#73): capture the selected hospitality indicator value for the PLACE export.
-  if (typeof k11 !== "undefined") {
-    k11.placeHospitality = { metric: hospitalityMetric, value: Number.isFinite(value) ? value : null, scope: hospitalitySelectedBarrio ? "OFFICIAL_BARRIO" : "MUNICIPALITY" };
-  }
   const conditional = hospitalityMetric === module.CONDITIONAL_INDICATOR_ID;
   const conditionalMetadata = hospitalityModel.index.artifact.metadata.conditional_indicator;
   const conditionalReady =
@@ -4386,7 +4407,23 @@ function renderHospitalityContext() {
       ? module.formatMetricValue(hospitalityMetric, value, hospitalityModel.i18n.language)
       : "—"
   );
-  setText("hospitalityUnit", conditionalReady ? hospitalityT(module.metricUnitKey(hospitalityMetric)) : "");
+  const hospitalityUnitText = conditionalReady ? hospitalityT(module.metricUnitKey(hospitalityMetric)) : "";
+  const hospitalityDisplay = conditionalReady && Number.isFinite(value)
+    ? module.formatMetricValue(hospitalityMetric, value, hospitalityModel.i18n.language)
+    : null;
+  setText("hospitalityUnit", hospitalityUnitText);
+  // K11 (#73): capture the selected hospitality indicator exactly as displayed —
+  // its value, its formatted display string and its actual unit (not null), and
+  // the scope the selection implies (barrio when one is picked, else municipality).
+  if (typeof k11 !== "undefined") {
+    k11.placeHospitality = {
+      metric: hospitalityMetric,
+      value: conditionalReady && Number.isFinite(value) ? value : null,
+      display: hospitalityDisplay,
+      unit: hospitalityUnitText || null,
+      scope: hospitalitySelectedBarrio ? "OFFICIAL_BARRIO" : "MUNICIPALITY",
+    };
+  }
   setText("hospitalityReference", hospitalityT("premisesReference"));
   setText("hospitalitySource", hospitalityT("sourceLabel"));
   setText("hospitalityInterpretation", hospitalityT(module.interpretationKey(hospitalityMetric)));
@@ -4706,9 +4743,12 @@ function renderDomesticOriginDynamics() {
   if (!module || !originModel.dynamicsI18n) return;
   const model = module.compareDomesticOriginMonths(originModel.index, originMonth);
   const ready = Boolean(model.summary);
-  // K11 (#73): capture the month-over-month summary counts for the CITY export.
+  // K11 (#73): capture the SAME frozen month-over-month model the panel renders —
+  // the summary counts AND the displayed shared-origin rows (previous/current
+  // tourist counts with the model's own absolute and percent change). One
+  // computation (line above), reused; the export never recompares the months.
   if (typeof k11 !== "undefined") {
-    k11.cityDynamics = ready ? { summary: model.summary, currentMonth: model.currentMonth, previousMonth: model.previousMonth } : null;
+    k11.cityDynamics = ready ? { summary: model.summary, shared: model.shared, currentMonth: model.currentMonth, previousMonth: model.previousMonth } : null;
   }
   setText("domesticOriginDynamicsHeading", dynamicsT("heading"));
   setText("domesticOriginDynamicsRelationship", model.currentMonth && model.previousMonth ? dynamicsT("relationship", { current: model.currentMonth, previous: model.previousMonth }) : "");
@@ -4835,9 +4875,13 @@ function refresh() {
     snapshotFoot: "partial mobility sample, not exhaustive",
     unavailableFoot: "some mobility sources unavailable",
   });
-  renderHeatMetric(heatStatsFor(active));
-  renderPedestrianMetric(pedestrianStatsFor(active));
-  renderMix(s);
+  // K11 (#73, no-recomputation invariant): heatStatsFor / pedestrianStatsFor /
+  // categoryMixState are each evaluated ONCE here. The render functions return the
+  // very projection they drew, so the PLACE capture below reuses those objects
+  // instead of recomputing them. The export never recomputes a displayed figure.
+  const heat = renderHeatMetric(heatStatsFor(active));
+  const pedestrian = renderPedestrianMetric(pedestrianStatsFor(active));
+  const mix = renderMix(s);
   renderNearest(s);
   renderCompare();
   updateAreaContext();
@@ -4845,11 +4889,10 @@ function refresh() {
   renderUrbanLicences();
   shadeMarkersOutsideActiveLens();
   renderScopeRail();
-  // K11 (#73): capture the active-lens PLACE metric values exactly as rendered,
-  // so the export transcribes them without recomputing. The stat functions are
-  // pure and read the same frozen layers the renderers just used. Read only when
-  // the visible mode is PLACE.
-  if (typeof k11 !== "undefined") k11CapturePlaceReading(s);
+  // K11 (#73): capture the active-lens PLACE metric values exactly as rendered.
+  // The frozen projections computed just above are reused — not a second
+  // computation — so the capture is a transcript. Read only in PLACE mode.
+  if (typeof k11 !== "undefined") k11CapturePlaceReading(s, { heat, pedestrian, mix });
   k11ScheduleUrlCommit();
 }
 
@@ -7011,9 +7054,14 @@ function k11AmbitoValue(metric) {
 // Capture the active-lens PLACE metric values exactly as refresh() rendered them.
 // The stat functions are pure and read the same frozen layers the renderers used,
 // so this is a transcript of the rendered reading, not a second computation.
-function k11CapturePlaceReading(stats) {
-  const heat = heatStatsFor(active);
-  const pedestrian = pedestrianStatsFor(active);
+function k11CapturePlaceReading(stats, frozen) {
+  // No-recomputation invariant (#73): refresh() computes heat, pedestrian and the
+  // category-mix projection once and passes them here. This capture performs NO
+  // stat computation of its own — it transcribes the frozen objects the renderers
+  // just drew from.
+  const bundle = frozen || {};
+  const heat = bundle.heat ?? null;
+  const pedestrian = bundle.pedestrian ?? null;
   k11.placeReading = Object.freeze({
     which: active,
     tourism: { value: stats.tourism, status: combinedStatus(layerStatus, ["museums", "info"]) },
@@ -7022,13 +7070,9 @@ function k11CapturePlaceReading(stats) {
     utci: { visible: isHatiVisible(), evidence: heat ? heat.evidence : "NONE", mean: heat && heat.evidence !== "NONE" ? heat.mean : null, count: heat ? heat.count : null, timestep },
     pedestrian: { visible: isPedestrianVisible(), status: pedestrianStatus, evidence: pedestrian ? pedestrian.evidence : "NONE", mean: pedestrian && pedestrian.evidence !== "NONE" ? pedestrian.meanObserved : null, stationCount: pedestrian ? pedestrian.stationCount : null },
   });
-  // Category mix (the same pure categoryMixState the panel renders) and the
-  // nearest features, for the PLACE export transcript.
-  try {
-    const counts = { Museum: stats.museum, Stay: stats.stay, Bike: stats.mobility, Info: stats.info };
-    const statuses = { Museum: layerStatus.museums, Stay: layerStatus.stays, Bike: combinedStatus(layerStatus, ["bikes", "rail"]), Info: layerStatus.info };
-    k11.placeMix = categoryMixState(counts, statuses);
-  } catch (error) { k11.placeMix = null; }
+  // The category-mix projection (the SAME object renderMix() drew) and the nearest
+  // features, for the PLACE export transcript.
+  k11.placeMix = bundle.mix || null;
   k11.placeNearest = Array.isArray(stats.nearest) ? stats.nearest : null;
 }
 
@@ -7086,13 +7130,39 @@ function k11PlaceValues(reading) {
     }));
   }
   if (area && area.vut && area.vut.units) {
-    const vutAvailable = area.vut.state === "available" || area.vut.state === "AVAILABLE";
+    const vut = area.vut;
+    const vutAvailable = vut.state === "available" || vut.state === "AVAILABLE";
     values.push(k11WithProvenance({
       id: "vut_units", label: "Licensed holiday-let units", scope: "OFFICIAL_BARRIO", unit: "units", source_family: null,
-      value: vutAvailable && Number.isFinite(area.vut.units.value) ? area.vut.units.value : null,
-      display: vutAvailable ? (area.vut.units.display ?? null) : null,
+      value: vutAvailable && Number.isFinite(vut.units.value) ? vut.units.value : null,
+      display: vutAvailable ? (vut.units.display ?? null) : null,
       state: vutAvailable ? "VALID" : "UNAVAILABLE", source_ids: ["vut_licences"],
     }));
+    // The licence COUNT is a second, named figure (one licence may cover many
+    // units) — displayed alongside the units, so transcribed alongside them.
+    if (vut.licences) {
+      values.push(k11WithProvenance({
+        id: "vut_licences", label: "Granted activity licences (VUT)", scope: "OFFICIAL_BARRIO", unit: "licences", source_family: null,
+        value: vutAvailable && Number.isFinite(vut.licences.value) ? vut.licences.value : null,
+        display: vutAvailable ? (vut.licences.display ?? null) : null,
+        state: vutAvailable ? "VALID" : "UNAVAILABLE", source_ids: ["vut_licences"],
+      }));
+    }
+    // The licensed-units-per-1,000-residents ratio, exactly as displayed. It
+    // abstains for two materially different reasons the interface keeps distinct:
+    // NO_DENOMINATOR (no resident figure) and NO_NUMERATOR — never a zero.
+    if (vut.ratio) {
+      const ratioAvailable = vut.ratio.state === "available" || vut.ratio.state === "AVAILABLE";
+      values.push(k11WithProvenance({
+        id: "vut_ratio", label: "Licensed VUT units per 1,000 residents", scope: "OFFICIAL_BARRIO",
+        unit: "units per 1,000 residents", source_family: null,
+        value: ratioAvailable && Number.isFinite(vut.ratio.value) ? vut.ratio.value : null,
+        display: ratioAvailable ? (vut.ratio.display ?? null) : null,
+        state: ratioAvailable ? "VALID" : "UNAVAILABLE",
+        withheld_reason: ratioAvailable ? undefined : (vut.ratio.state || null),
+        source_ids: "vut_licences population".split(" "),
+      }));
+    }
   }
   // Containing-ámbito planning figures (PLANNING_AMBITO), read single-sided from
   // the authoritative comparison model's `.a` side (S1/S2 named per metric).
@@ -7121,6 +7191,77 @@ function k11PlaceValues(reading) {
       }
     }
   }
+  // PLACE K7 (#73): the edition-change reading shown under the ámbito — the
+  // per-family change classification and the defensible buildability
+  // differences, each carrying its own withholding reason. Emitted only when the
+  // change panel is actually shown (k11.placeChange non-null). Transcribed from
+  // the frozen comparison; no numeric interpretation is invented here.
+  const change = k11.placeChange;
+  if (change) {
+    const changeSources = typeof K11_AMBITO_SOURCE_IDS !== "undefined" ? K11_AMBITO_SOURCE_IDS : [];
+    // The comparability verdict (a published classification, never a number).
+    values.push(k11WithProvenance({
+      id: "change_comparability", label: "Edition comparability", scope: "PLANNING_AMBITO", unit: null,
+      kind: "CATEGORICAL", source_family: "S1_DEVELOPMENT_STATE",
+      value: change.comparabilityVerdict ?? null, display: change.comparabilityVerdict ?? null,
+      state: "VALID", compared_from: change.dates && change.dates.previous ? change.dates.previous : null,
+      compared_to: change.dates && change.dates.current ? change.dates.current : null, source_ids: changeSources,
+    }));
+    // Per-family edition-change classification (NO_CHANGE, STATE_TRANSITION,
+    // NEW_AMBITO, ABSENT_FROM_EDITION, MODIFIED_BY_INSTRUMENT, CAUSE_UNRESOLVED,
+    // NON_COMPARABLE). An unresolved/non-comparable/absent outcome carries the
+    // model's own reason as the withheld reason rather than a fabricated verdict.
+    // The comparison keys families as "S1" (development state) and "S2"
+    // (available buildability); map each to its export source-family vocabulary.
+    const changeFamily = (family) => (family === "S1" ? "S1_DEVELOPMENT_STATE" : family === "S2" ? "S2_AVAILABLE_BUILDABILITY" : null);
+    if (change.state && typeof change.state === "object") {
+      for (const [family, result] of Object.entries(change.state)) {
+        if (!result) continue;
+        const withheld = ["CAUSE_UNRESOLVED", "NON_COMPARABLE", "ABSENT_FROM_EDITION"].includes(result.outcome);
+        values.push(k11WithProvenance({
+          id: `change_${String(family).toLowerCase()}`, label: `Edition change · ${family}`, scope: "PLANNING_AMBITO",
+          unit: null, kind: "CATEGORICAL", source_family: changeFamily(family),
+          value: result.outcome ?? null, display: result.outcome ?? null,
+          state: result.outcome ? "VALID" : "INDETERMINATE",
+          withheld_reason: withheld ? (result.reason || result.evidence?.absenceReason || null) : undefined,
+          compared_from: change.dates && change.dates.previous ? change.dates.previous : null,
+          compared_to: change.dates && change.dates.current ? change.dates.current : null, source_ids: changeSources,
+        }));
+      }
+    }
+    // Buildability (S2) numeric differences — the published previous/current
+    // values per use-class, exactly as the panel shows them. Withheld cells carry
+    // their reason and no numbers (blank is never read as zero).
+    const build = change.buildability;
+    if (build) {
+      values.push(k11WithProvenance({
+        id: "change_buildability_state", label: "Buildability difference", scope: "PLANNING_AMBITO", unit: null,
+        kind: "CATEGORICAL", source_family: "S2_AVAILABLE_BUILDABILITY",
+        value: build.state ?? null, display: build.state ?? null, state: "VALID",
+        withheld_reason: build.state === "WITHHELD" ? (build.reason || null) : undefined, source_ids: changeSources,
+      }));
+      (build.differences || []).forEach((row, rowIndex) => {
+        for (const cell of row.useClasses || []) {
+          const withheldCell = cell.state === "WITHHELD";
+          const unit = (cell.current && cell.current.unit) || (cell.previous && cell.previous.unit) || null;
+          values.push(k11WithProvenance({
+            id: `change_build_${rowIndex}_${cell.useClass}`, label: `Buildability change · ${cell.useClass}`,
+            scope: "PLANNING_AMBITO", unit, kind: "QUANTITY", source_family: "S2_AVAILABLE_BUILDABILITY",
+            a_value: !withheldCell && cell.previous && Number.isFinite(cell.previous.value) ? cell.previous.value : null,
+            b_value: !withheldCell && cell.current && Number.isFinite(cell.current.value) ? cell.current.value : null,
+            // The model's own published difference (newCell − oldCell); never a
+            // figure computed here. Absent for withheld cells (blank ≠ zero).
+            delta: !withheldCell && Number.isFinite(cell.observedDifference) ? cell.observedDifference : null,
+            display: withheldCell ? null : `${cell.previous?.value ?? "—"} → ${cell.current?.value ?? "—"}${unit ? ` ${unit}` : ""}`,
+            state: withheldCell ? "WITHHELD" : (cell.state === "NO_CHANGE" ? "NO_CHANGE" : "VALID"),
+            withheld_reason: withheldCell ? (cell.reason || row.reason || null) : undefined,
+            compared_from: change.dates && change.dates.previous ? change.dates.previous : null,
+            compared_to: change.dates && change.dates.current ? change.dates.current : null, source_ids: changeSources,
+          }));
+        }
+      });
+    }
+  }
   // Category mix shares (LENS_CIRCLE), from the frozen categoryMixState.
   if (k11.placeMix && k11.placeMix.rows) {
     const mixSources = { Museum: ["museum"], Info: ["info"], Stay: ["stay"], Bike: ["bike", "rail"] };
@@ -7143,11 +7284,17 @@ function k11PlaceValues(reading) {
       }));
     });
   }
-  // In-lens granted licences per family (ADDRESS_POINT), from the frozen view.
+  // Granted licences per family — a COUNT of address-point records falling inside
+  // the active Lens radius. The aggregate's analytical scope is therefore
+  // LENS_CIRCLE (a spatial aggregate over the generated window), NOT ADDRESS_POINT:
+  // ADDRESS_POINT is the geometry of each underlying record, which stays the
+  // source/record identity (urban_licences + the callejero crosswalk), not the
+  // scope of the summed figure. The distinction is asserted in the export tests.
   if (k11.placeLicences && k11.placeLicences.perFamily) {
     for (const [family, count] of Object.entries(k11.placeLicences.perFamily)) {
       values.push(k11WithProvenance({
-        id: `licences_${family}`, label: `Granted licences · ${family}`, scope: "ADDRESS_POINT", unit: "records", source_family: null,
+        id: `licences_${family}`, label: `Granted licences · ${family}`, scope: "LENS_CIRCLE",
+        aggregate_of: "ADDRESS_POINT", unit: "records", source_family: null,
         value: Number.isFinite(count) ? count : null, display: Number.isFinite(count) ? String(count) : null,
         state: Number.isFinite(count) ? "VALID" : "UNAVAILABLE", source_ids: ["urban_licences", "callejero_ndp_crosswalk"],
       }));
@@ -7157,8 +7304,10 @@ function k11PlaceValues(reading) {
   if (k11.placeHospitality) {
     const h = k11.placeHospitality;
     values.push(k11WithProvenance({
-      id: `hospitality_${h.metric}`, label: `Hospitality · ${h.metric}`, scope: h.scope || "OFFICIAL_BARRIO", unit: null, source_family: null,
-      value: Number.isFinite(h.value) ? h.value : null, display: Number.isFinite(h.value) ? String(h.value) : null,
+      id: `hospitality_${h.metric}`, label: `Hospitality · ${h.metric}`, scope: h.scope || "OFFICIAL_BARRIO",
+      unit: h.unit || null, source_family: null,
+      value: Number.isFinite(h.value) ? h.value : null,
+      display: Number.isFinite(h.value) ? (h.display ?? String(h.value)) : null,
       state: Number.isFinite(h.value) ? "VALID" : "UNAVAILABLE", source_ids: ["hospitality_commercial_context"],
     }));
   }
@@ -7215,6 +7364,33 @@ function k11CityValues() {
         source_ids: ["domestic_origin_context"],
       }));
     }
+    // Per shared-origin row, exactly as the shared-origins table displays it: the
+    // previous-month and current-month published tourist counts, and the model's
+    // own absolute and percent change. The publisher suppresses counts at or
+    // below its threshold, so a row whose change the model could not state (a
+    // non-finite absolute/percent) is WITHHELD with no fabricated number — never
+    // a zero. Each figure names the month it belongs to.
+    if (Array.isArray(dynamics.shared)) {
+      for (const row of dynamics.shared) {
+        const prev = Number.isInteger(row.previousCount) ? row.previousCount : null;
+        const curr = Number.isInteger(row.currentCount) ? row.currentCount : null;
+        const changeStated = Number.isFinite(row.absoluteChange) && Number.isFinite(row.percentChange);
+        values.push(k11WithProvenance({
+          // A distinct prefix from the `dynamics_shared_origins` SUMMARY count, so
+          // a per-row filter never catches the summary field.
+          id: `dynamics_sharedrow_${row.origin_municipality_code}`, label: `Shared origin · ${row.origin_municipality_name}`,
+          scope: "MUNICIPALITY", unit: "tourists", source_family: null,
+          previous_value: prev, current_value: curr,
+          absolute_change: changeStated ? row.absoluteChange : null,
+          percent_change: changeStated ? row.percentChange : null,
+          display: changeStated ? `${row.previousCount} → ${row.currentCount} · ${row.absoluteChange > 0 ? "+" : ""}${row.absoluteChange} · ${row.percentChange > 0 ? "+" : ""}${row.percentChange.toFixed(1)}%` : null,
+          state: changeStated ? "VALID" : "WITHHELD",
+          withheld_reason: changeStated ? undefined : "SUPPRESSED_OR_INCOMPARABLE_PUBLISHED_COUNT",
+          source_month: dynamics.currentMonth || null, compared_month: dynamics.previousMonth || null,
+          source_ids: ["domestic_origin_context"],
+        }));
+      }
+    }
   }
   return values;
 }
@@ -7223,6 +7399,14 @@ function k11CityValues() {
 // model. These are interpretive window-sensitivity readings: the observed change
 // is carried where the model authorised a numeric one, otherwise the item keeps
 // its transition label and a withheld/interpretive state — never a fabricated 0.
+function k11SensitivityUnit(item) {
+  // The same unit rule spatialDeltaChangeText() renders the delta with — read
+  // from the frozen item, never recomputed. Temperature is °C; density and count
+  // name the metric's own unit from the shared i18n dictionary.
+  if (item.deltaChangeKind === "temperature") return "°C";
+  if (item.deltaChangeKind === "density") return bridgeT(`insight.unit.density.${item.metricId}`);
+  return bridgeT(`insight.unit.count.${item.metricId}`);
+}
 function k11SensitivityValues() {
   const model = k11.compareSensitivity;
   if (!model || !Array.isArray(model.items)) return [];
@@ -7230,10 +7414,14 @@ function k11SensitivityValues() {
   return model.items.map((item) => {
     const numeric = Number.isFinite(item.deltaChange);
     return k11WithProvenance({
-      id: `sensitivity_${item.metricId}`, label: `Window sensitivity · ${item.metricId}`, scope: "LENS_CIRCLE", unit: null, source_family: null,
+      // The delta carries its actual unit when the model authorised a numeric
+      // change; an interpretive (withheld) item carries no unit because it has no
+      // number — only the transition label.
+      id: `sensitivity_${item.metricId}`, label: `Window sensitivity · ${item.metricId}`, scope: "LENS_CIRCLE",
+      unit: numeric ? k11SensitivityUnit(item) : null, source_family: null,
       transition: item.transitionCode || null,
       value: numeric ? item.deltaChange : null,
-      display: numeric ? String(item.deltaChange) : (item.transitionCode || null),
+      display: numeric ? spatialDeltaChangeText(item) : (item.transitionCode || null),
       state: numeric ? "VALID" : "INTERPRETIVE", comparison_basis: "WINDOW_SENSITIVITY",
       source_ids: metricSources[item.metricId] || [],
     });

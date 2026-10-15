@@ -625,3 +625,189 @@ test("CITY export now emits the month-over-month dynamics summary as value recor
     await close(page);
   }
 });
+
+// ============================================================================
+// FINAL SCIENTIFIC EXPORT INTEGRITY GATE (#73) — rendered↔exported assertions
+// ============================================================================
+
+// Finding 1: an in-lens COUNT of address-point licence records is a spatial
+// aggregate over the generated window. Its analytical scope is LENS_CIRCLE; the
+// ADDRESS_POINT geometry of each underlying record stays the record identity, not
+// the scope of the summed figure. This is the aggregate-vs-individual-point
+// regression the review asked for.
+test("PLACE licence counts export as a LENS_CIRCLE aggregate, retaining ADDRESS_POINT record identity", async () => {
+  const page = await newPage();
+  try {
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("PLACE"));
+    await seam(page, ([la, lo]) => window.__HALO_REGRESSION__.moveLensToLatLng("A", la, lo), [40.4165, -3.7026]);
+    await seam(page, () => window.__HALO_REGRESSION__.enableLicences());
+    await page.waitForFunction(() => {
+      const s = document.getElementById("urbanLicences");
+      return s && s.dataset.licenceState && s.dataset.licenceState !== "OFF";
+    }).catch(() => {});
+    await seam(page, () => window.__HALO_REGRESSION__.recompute());
+    const bundle = await seam(page, () => window.__HALO_REGRESSION__.k11Bundle());
+    const reading = JSON.parse(bundle.files.find((f) => f.name.startsWith("reading-")).text);
+    const licences = reading.values.filter((v) => v.id.startsWith("licences_"));
+    assert.ok(licences.length >= 1, "licence aggregates are exported as value records");
+    for (const v of licences) {
+      assert.equal(v.scope, "LENS_CIRCLE", `${v.id}: an in-lens COUNT is scoped to the window, not the point`);
+      assert.equal(v.aggregate_of, "ADDRESS_POINT", `${v.id}: retains the underlying record geometry identity`);
+      assert.ok(v.provenance.some((p) => p.id === "urban_licences"), `${v.id}: underlying record/source identity retained in provenance`);
+    }
+    // The distinction is real: the aggregate is never mislabelled as a single
+    // address-point observation.
+    assert.ok(!licences.some((v) => v.scope === "ADDRESS_POINT"), "an aggregate count is never labelled as a point observation");
+  } finally {
+    await close(page);
+  }
+});
+
+// Finding 2a: the VUT block shows three figures — units, the licence COUNT, and
+// the units-per-1,000-residents ratio. All three must be transcribed, each with
+// its actual unit, and the ratio's abstention reason must survive.
+test("PLACE VUT export carries the licence count and the per-1,000-residents ratio exactly as displayed", async () => {
+  const page = await newPage();
+  try {
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("PLACE"));
+    await seam(page, ([la, lo]) => window.__HALO_REGRESSION__.moveLensToLatLng("A", la, lo), [40.4165, -3.7026]);
+    await page.waitForFunction(() => {
+      const s = document.getElementById("areaVut");
+      return s && s.dataset.state && s.dataset.state !== "loading";
+    }).catch(() => {});
+    await seam(page, () => window.__HALO_REGRESSION__.recompute());
+    const vutState = await page.$eval("#areaVut", (n) => n.dataset.state).catch(() => null);
+    const ratioState = await page.$eval("#areaVut", (n) => n.dataset.ratio).catch(() => null);
+    const bundle = await seam(page, () => window.__HALO_REGRESSION__.k11Bundle());
+    const reading = JSON.parse(bundle.files.find((f) => f.name.startsWith("reading-")).text);
+    assert.equal(vutState, "available", "the chosen barrio publishes a VUT figure (otherwise pick another)");
+    const ids = reading.values.map((v) => v.id);
+    assert.ok(ids.includes("vut_units"), "units exported");
+    assert.ok(ids.includes("vut_licences"), "the licence COUNT is exported alongside the units");
+    const ratio = reading.values.find((v) => v.id === "vut_ratio");
+    assert.ok(ratio, "the per-1,000-residents ratio is a value record");
+    assert.equal(ratio.unit, "units per 1,000 residents", "the ratio carries its actual unit, not null");
+    if (ratioState === "available") {
+      assert.equal(ratio.state, "VALID");
+      const rendered = await page.$eval("#areaVutSecondary", (n) => n.textContent).catch(() => "");
+      assert.ok(ratio.display && rendered.includes(ratio.display), "exported ratio display matches the rendered secondary line");
+    } else {
+      assert.equal(ratio.state, "UNAVAILABLE");
+      assert.ok(ratio.withheld_reason, "the ratio abstention reason (no_numerator / no_denominator) is carried, never a zero");
+    }
+  } finally {
+    await close(page);
+  }
+});
+
+// Finding 2c: the K7 edition-change reading under the ámbito — the per-family
+// classification and the defensible buildability differences — is transcribed
+// with its comparability verdict and every withholding reason. Two representative
+// samples: an S1 state transition and an S2 cause-unresolved (non-comparable).
+test("PLACE K7 edition-change classifications and buildability differences are transcribed with their reasons", async () => {
+  const page = await newPage();
+  try {
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("PLACE"));
+    const samples = [
+      { lat: 40.4001518625, lon: -3.719977745 }, // APE.02.27 — S1 STATE_TRANSITION
+      { lat: 40.453697585, lon: -3.60379061 },   // APE.21.02 — S2 CAUSE_UNRESOLVED
+      { lat: 40.39107073, lon: -3.68838488 },     // APE.02.12 — S2 buildability WITHHELD
+    ];
+    let asserted = 0;
+    for (const s of samples) {
+      await seam(page, ([la, lo]) => window.__HALO_REGRESSION__.moveLensToLatLng("A", la, lo), [s.lat, s.lon]);
+      await page.waitForFunction(() => {
+        const sec = document.getElementById("planningAmbito");
+        return sec && sec.dataset.state && sec.dataset.state !== "loading";
+      }).catch(() => {});
+      await seam(page, () => window.__HALO_REGRESSION__.recompute());
+      const shown = await page.$eval("#planningChange", (n) => !n.hidden).catch(() => false);
+      if (!shown) continue;
+      const bundle = await seam(page, () => window.__HALO_REGRESSION__.k11Bundle());
+      const reading = JSON.parse(bundle.files.find((f) => f.name.startsWith("reading-")).text);
+      const changes = reading.values.filter((v) => v.id.startsWith("change_"));
+      if (changes.length === 0) continue;
+      asserted += 1;
+      const comparability = reading.values.find((v) => v.id === "change_comparability");
+      assert.ok(comparability && comparability.value, "the comparability verdict is transcribed");
+      for (const v of changes) {
+        assert.equal(v.scope, "PLANNING_AMBITO", `${v.id}: ámbito-scoped`);
+        assert.ok(v.source_family === null || ["S1_DEVELOPMENT_STATE", "S2_AVAILABLE_BUILDABILITY"].includes(v.source_family), `${v.id}: names its S1/S2 family`);
+      }
+      // A withheld classification or buildability cell carries its reason and no
+      // fabricated number (blank is never read as zero).
+      for (const v of changes.filter((x) => x.state === "WITHHELD")) {
+        assert.ok(v.withheld_reason, `${v.id}: a withheld change carries its reason`);
+        assert.equal(v.a_value, null, `${v.id}: no fabricated previous value when withheld`);
+        assert.equal(v.b_value, null, `${v.id}: no fabricated current value when withheld`);
+      }
+    }
+    assert.ok(asserted >= 1, "at least one K7 sample rendered the change panel and was transcribed");
+  } finally {
+    await close(page);
+  }
+});
+
+// Finding 2b: every shared-origin row the dynamics table displays is transcribed
+// with its previous/current published counts and the model's own absolute and
+// percent change — for a NON-DEFAULT month — and a suppressed row (rendered "—")
+// is WITHHELD in the export, never a fabricated number.
+test("CITY dynamics shared-origin rows match the rendered table and preserve suppression, for a non-default month", async () => {
+  const page = await newPage();
+  try {
+    await page.waitForFunction(() => document.getElementById("destinationContext")?.dataset.state === "available");
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("CITY"));
+    await page.waitForFunction(() => document.querySelectorAll("#domesticOriginsMonth option").length > 0);
+    const months = await page.$$eval("#domesticOriginsMonth option", (os) => os.map((o) => o.value).filter(Boolean));
+    const current = await page.inputValue("#domesticOriginsMonth");
+    // A non-default month that still has an adjacent prior month to compare
+    // against (never the earliest, never the current default).
+    const candidate = months.find((m) => m !== current && m !== months[months.length - 1]) || months.find((m) => m !== current);
+    await page.selectOption("#domesticOriginsMonth", candidate);
+    await page.waitForFunction((m) => document.getElementById("domesticOriginsMonth").value === m, candidate);
+    await page.waitForFunction(() => {
+      const shared = document.getElementById("domesticOriginDynamicsShared");
+      return shared && !shared.hidden;
+    }).catch(() => {});
+    // Wait until the rendered table and the captured projection agree, so any
+    // late async re-render (destination/origins load settling) has quiesced. If
+    // they never agree that is a real capture bug and this times out loudly.
+    await page.waitForFunction(() => {
+      const dom = document.querySelectorAll("#domesticOriginDynamicsSharedRows tr").length;
+      const projection = window.__HALO_REGRESSION__.k11Projection();
+      const shared = (projection && projection.values || []).filter((v) => v.id.startsWith("dynamics_sharedrow_")).length;
+      return dom > 0 && dom === shared;
+    });
+
+    const domRows = await page.$$eval("#domesticOriginDynamicsSharedRows tr", (rows) => rows.map((r) => {
+      const tds = [...r.querySelectorAll("td")];
+      return {
+        code: r.querySelector(".muted")?.textContent?.trim(),
+        prev: tds[1]?.textContent?.trim(),
+        curr: tds[2]?.textContent?.trim(),
+        change: tds[3]?.textContent?.trim(),
+      };
+    }));
+    const bundle = await seam(page, () => window.__HALO_REGRESSION__.k11Bundle());
+    const reading = JSON.parse(bundle.files.find((f) => f.name.startsWith("reading-")).text);
+    const shared = reading.values.filter((v) => v.id.startsWith("dynamics_sharedrow_"));
+    assert.equal(shared.length, domRows.length, "one exported shared-origin value per rendered row");
+    const byCode = new Map(shared.map((v) => [v.id.replace("dynamics_sharedrow_", ""), v]));
+    for (const row of domRows) {
+      const v = byCode.get(row.code);
+      assert.ok(v, `exported shared value exists for ${row.code}`);
+      if (row.change === "—") {
+        assert.equal(v.state, "WITHHELD", `${row.code}: a suppressed/incomparable change is WITHHELD`);
+        assert.equal(v.absolute_change, null, `${row.code}: no fabricated absolute change`);
+        assert.equal(v.percent_change, null, `${row.code}: no fabricated percent change`);
+      } else {
+        assert.equal(v.state, "VALID", `${row.code}: a stated change is VALID`);
+        assert.ok(Number.isFinite(v.absolute_change) && Number.isFinite(v.percent_change), `${row.code}: carries the model's own change`);
+        assert.ok(v.display && v.display.includes("→"), `${row.code}: display transcribes prev → current`);
+      }
+    }
+    assert.ok(reading.values.some((v) => v.id.startsWith("dynamics_sharedrow_")), "shared-origin rows exported for a non-default month");
+  } finally {
+    await close(page);
+  }
+});

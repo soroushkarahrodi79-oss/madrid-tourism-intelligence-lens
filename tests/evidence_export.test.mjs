@@ -190,6 +190,29 @@ test("a missing / unavailable value is distinct from a published zero", () => {
   assert.notEqual(utci.state, reading.values.find((v) => v.id === "stays").state);
 });
 
+test("an in-lens aggregate count is scoped LENS_CIRCLE, distinct from an individual ADDRESS_POINT observation", () => {
+  // Finding 1 regression: a COUNT of address-point records falling inside the
+  // Lens is a spatial aggregate over the window (scope LENS_CIRCLE); the
+  // ADDRESS_POINT geometry of each record is the record identity, carried as
+  // `aggregate_of`, never promoted to the scope of the summed figure. An
+  // individual point observation, by contrast, genuinely carries ADDRESS_POINT.
+  const projection = {
+    ...PROJECTION,
+    values: [
+      withProvenance({ id: "licences_ACTIVITY_LICENCE_FAMILY", label: "Granted licences · ACTIVITY_LICENCE_FAMILY", scope: "LENS_CIRCLE", aggregate_of: "ADDRESS_POINT", unit: "records", source_family: null, value: 12, display: "12", state: "VALID", source_ids: ["geography"] }),
+      withProvenance({ id: "single_point_observation", label: "One licensed address", scope: "ADDRESS_POINT", unit: "record", source_family: null, value: 1, display: "1", state: "VALID", source_ids: ["geography"] }),
+    ],
+  };
+  const bundle = buildEvidenceBundle(projection, REGISTRY, { now: new Date("2026-10-15T09:30:00.000Z") });
+  const reading = JSON.parse(bundle.files.find((f) => f.name.startsWith("reading-")).text);
+  const aggregate = reading.values.find((v) => v.id === "licences_ACTIVITY_LICENCE_FAMILY");
+  const point = reading.values.find((v) => v.id === "single_point_observation");
+  assert.equal(aggregate.scope, "LENS_CIRCLE", "the aggregate is scoped to the window");
+  assert.equal(aggregate.aggregate_of, "ADDRESS_POINT", "the underlying record geometry identity is retained");
+  assert.equal(point.scope, "ADDRESS_POINT", "a genuine single-point observation keeps ADDRESS_POINT");
+  assert.notEqual(aggregate.scope, point.scope, "an aggregate is never conflated with an individual observation");
+});
+
 test("reading.json and state.url describe the same reading", () => {
   const reading = JSON.parse(fileByStem("reading-").text);
   const stateUrl = fileByStem("state-").text.trim();
