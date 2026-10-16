@@ -68,6 +68,48 @@ def measure(name, json_path, rows):
     return out
 
 
+def measure_geometry(name, geojson_path):
+    """GeoParquet-style geometry: a WKB geometry column + properties, Parquet-zstd,
+    measured against the source GeoJSON (raw + gzip). Uses shapely for WKB only
+    (not geopandas); this is the builder-side geometry number issue #74 asked for.
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    from shapely.geometry import shape
+
+    with open(geojson_path, "rb") as f:
+        raw = f.read()
+    gj = json.loads(raw)
+    feats = gj["features"]
+    wkb_col = []
+    prop_cols = {}
+    for feat in feats:
+        wkb_col.append(shape(feat["geometry"]).wkb)
+        for k, v in (feat.get("properties") or {}).items():
+            prop_cols.setdefault(k, [None] * len(wkb_col))
+    # normalise property columns to equal length (sparse props -> None)
+    n = len(feats)
+    cols = {"geometry_wkb": wkb_col}
+    for k in prop_cols:
+        col = []
+        for feat in feats:
+            col.append((feat.get("properties") or {}).get(k))
+        # arrow needs homogeneous-ish types; stringify non-scalars
+        cols[k] = [v if (v is None or isinstance(v, (str, int, float, bool))) else json.dumps(v, ensure_ascii=False) for v in col]
+    table = pa.table(cols)
+    out = {
+        "artifact": name,
+        "features": n,
+        "geojson_raw_bytes": len(raw),
+        "geojson_gzip_bytes": gz_len(raw),
+    }
+    for codec in ("zstd", "snappy"):
+        sink = pa.BufferOutputStream()
+        pq.write_table(table, sink, compression=codec)
+        out[f"geoparquet_{codec}_bytes"] = len(sink.getvalue().to_pybytes())
+    return out
+
+
 def main():
     lic_path = os.path.join(ROOT, "data/planning/madrid_urban_licences.json")
     with open(lic_path, encoding="utf-8") as f:
@@ -111,12 +153,15 @@ def main():
         "browser_consumer_finding": (
             "No browser consumer reads Parquet/GeoParquet WITHOUT a WASM reader "
             "(DuckDB-WASM or parquet-wasm). GeoParquet is therefore gated behind the "
-            "DuckDB-WASM decision (NO-GO at this scale). Geometry conversion to "
-            "GeoParquet (WKB column) additionally needs geopandas/shapely builder-side."
+            "DuckDB-WASM decision (NO-GO at this scale)."
         ),
-        "artifacts": [
+        "tabular_artifacts": [
             measure("urban_licences", lic_path, lic_rows),
             measure("domestic_origins", dom_path, dom_rows),
+        ],
+        "geometry_artifacts": [
+            measure_geometry("ambitos", os.path.join(ROOT, "data/planning/madrid_ambitos.geojson")),
+            measure_geometry("admin", os.path.join(ROOT, "data/geography/madrid_admin.geojson")),
         ],
     }
 
@@ -124,11 +169,15 @@ def main():
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
     print(f"geoparquet -> {os.path.relpath(out_path, ROOT)}")
-    for a in result["artifacts"]:
+    for a in result["tabular_artifacts"]:
         print(
-            f"  {a['artifact']:<18} json {a['full_json_raw_bytes']//1024}KB (gz {a['full_json_gzip_bytes']//1024}KB) "
-            f"vs parquet.zstd {a.get('parquet_zstd_bytes','?') if isinstance(a.get('parquet_zstd_bytes'),str) else a['parquet_zstd_bytes']//1024}KB "
-            f"snappy {a['parquet_snappy_bytes']//1024 if isinstance(a.get('parquet_snappy_bytes'),int) else '?'}KB"
+            f"  TAB {a['artifact']:<16} json gz {a['full_json_gzip_bytes']//1024}KB "
+            f"vs parquet.zstd {a['parquet_zstd_bytes']//1024}KB"
+        )
+    for a in result["geometry_artifacts"]:
+        print(
+            f"  GEO {a['artifact']:<16} geojson gz {a['geojson_gzip_bytes']//1024}KB "
+            f"vs geoparquet.zstd {a['geoparquet_zstd_bytes']//1024}KB ({a['features']} feat)"
         )
 
 

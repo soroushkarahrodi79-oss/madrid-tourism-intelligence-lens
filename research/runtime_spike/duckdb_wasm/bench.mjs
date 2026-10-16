@@ -26,8 +26,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import zlib from "node:zlib";
-import { timeIt, stats, hostDescriptor } from "../lib/measure.mjs";
+import { timeIt, stats, hostDescriptor, mulberry32 } from "../lib/measure.mjs";
 import { licencesInLens, defaultWindow } from "../../../js/urban-licences.js";
+import { createPlanningIndex } from "../../../js/planning-ambito.js";
 
 const require = createRequire(import.meta.url);
 const ROOT = path.resolve(fileURLToPath(import.meta.url), "../../../..");
@@ -58,6 +59,67 @@ const jsInCircleResult = js_inCircle();
 const jsDateWindowResult = js_dateWindow();
 const jsInCircleIds = new Set(jsInCircleResult.records.map((r) => r.id));
 const jsDateWindowIds = new Set(jsDateWindowResult.records.map((r) => r.id));
+
+// ------------------------------------------------ shape 3: edition-to-edition diff
+// The real artifact carries ONE edition per family, so there is no second
+// time-edition to diff against. We build a deterministic "previous" edition by
+// perturbing ~15% of ámbitos' planning-phase value (seeded), and diff the
+// CURRENT phase per code against it. This benchmarks the DIFF WORKLOAD SHAPE
+// (compare N codes across editions) with an identical-output check; it does NOT
+// reproduce the full production classification (comparability verdict, cosmetic-
+// only, S1/S2 semantics in js/ambito-change.js), which stays JS-only — that
+// richness is a COST to port to SQL, not a win.
+const ambitoState = JSON.parse(
+  fs.readFileSync(path.join(ROOT, "data/planning/madrid_ambito_state.json"), "utf8"),
+);
+const PHASE_VALUES = ["Sin Iniciar", "En Tramitación", "En Ejecución", "Finalizado", "No Necesita"];
+const currentPhase = {}; // code -> phase string
+for (const [code, rec] of Object.entries(ambitoState.ambitos)) {
+  const v = rec?.development_state?.phases?.planeamiento?.source_value;
+  currentPhase[code] = typeof v === "string" && v ? v : "Sin Iniciar";
+}
+const editionCodes = Object.keys(currentPhase).sort();
+const prngEd = mulberry32(99);
+const previousPhase = {};
+for (const code of editionCodes) {
+  // ~15% of codes get a deterministically different phase as the "previous" edition
+  if (prngEd() < 0.15) {
+    const cur = currentPhase[code];
+    const alt = PHASE_VALUES.find((p) => p !== cur) || cur;
+    previousPhase[code] = alt;
+  } else {
+    previousPhase[code] = currentPhase[code];
+  }
+}
+const js_editionDiff = () => {
+  const changed = new Set();
+  for (const code of editionCodes) if (previousPhase[code] !== currentPhase[code]) changed.add(code);
+  return changed;
+};
+const jsEditionChanged = js_editionDiff();
+
+// ------------------------------------------------ shape 4: ámbito containment
+// Plain-JS baseline is the PRODUCTION point-in-polygon path (createPlanningIndex
+// + its ambitoContaining) over the real 724 ámbito polygons. DuckDB's equivalent
+// needs the spatial extension (ST_Contains); see runtime status below.
+const ambitosGeo = JSON.parse(
+  fs.readFileSync(path.join(ROOT, "data/planning/madrid_ambitos.geojson"), "utf8"),
+);
+const planningIndex = createPlanningIndex({ geometry: ambitosGeo, state: ambitoState });
+const prngPt = mulberry32(123);
+const QUERY_POINTS = Array.from({ length: 500 }, () => ({
+  lon: -3.889 + prngPt() * (-3.518 - -3.889), // Madrid bbox west..east
+  lat: 40.312 + prngPt() * (40.564 - 40.312), // south..north
+}));
+const js_containment = () => {
+  let hits = 0;
+  for (const p of QUERY_POINTS) {
+    const r = planningIndex.ambitoContaining(p.lon, p.lat);
+    if (r && r.ambitoCode) hits++;
+  }
+  return hits;
+};
+const jsContainmentHits = js_containment();
 
 // ---------------------------------------------------------------- DuckDB
 const duckdb = require("@duckdb/duckdb-wasm/dist/duckdb-node-blocking.cjs");
@@ -161,6 +223,25 @@ async function runDuckDB() {
   const dateWindow_cold_ms = performance.now() - t2;
   const dateWindow_warm = timeIt(() => idsOf(sqlDateWindow), { reps: 15, warmup: 2 });
 
+  // shape 3: edition-to-edition diff via a code/phase_prev/phase_cur table.
+  conn.query(`CREATE TABLE editions(code VARCHAR, phase_prev VARCHAR, phase_cur VARCHAR)`);
+  for (let i = 0; i < editionCodes.length; i += CH) {
+    const vals = editionCodes
+      .slice(i, i + CH)
+      .map((c) => `('${esc(c)}','${esc(previousPhase[c])}','${esc(currentPhase[c])}')`)
+      .join(",");
+    conn.query(`INSERT INTO editions VALUES ${vals}`);
+  }
+  const sqlEditionDiff = `SELECT code FROM editions WHERE phase_prev <> phase_cur`;
+  const codesOf = (sql) => {
+    const t = conn.query(sql);
+    const s = new Set();
+    for (const row of t) s.add(row.code);
+    return s;
+  };
+  const duckEditionChanged = codesOf(sqlEditionDiff);
+  const editionDiff_warm = timeIt(() => codesOf(sqlEditionDiff), { reps: 15, warmup: 2 });
+
   conn.close();
 
   return {
@@ -168,6 +249,7 @@ async function runDuckDB() {
     load_ms,
     inCircle: { cold_ms: inCircle_cold_ms, warm: inCircle_warm, ids: duckInCircleIds },
     dateWindow: { cold_ms: dateWindow_cold_ms, warm: dateWindow_warm, ids: duckDateWindowIds },
+    editionDiff: { warm: editionDiff_warm, codes: duckEditionChanged },
   };
 }
 
@@ -203,13 +285,30 @@ try {
       duckdb_matches: duck.dateWindow.ids.size,
       identical: setsEqual(jsDateWindowIds, duck.dateWindow.ids),
     },
+    editionDiff: {
+      js_changed: jsEditionChanged.size,
+      duckdb_changed: duck.editionDiff.codes.size,
+      identical: setsEqual(jsEditionChanged, duck.editionDiff.codes),
+    },
+    containment: {
+      js_hits: jsContainmentHits,
+      duckdb_hits: null,
+      identical: null,
+      duckdb_status:
+        "UNVERIFIED — DuckDB spatial extension (ST_Contains) requires a network fetch " +
+        "(INSTALL spatial) that is blocked in this container; it also ADDS payload on top of " +
+        "the 6.93 MB engine. Plain-JS containment is the production point-in-polygon path.",
+    },
   };
 
   // plain-JS timings (production functions)
   const jsInCircleT = timeIt(js_inCircle, { reps: 25, warmup: 5 });
   const jsDateWindowT = timeIt(js_dateWindow, { reps: 25, warmup: 5 });
+  const jsEditionT = timeIt(js_editionDiff, { reps: 25, warmup: 5 });
+  const jsContainmentT = timeIt(js_containment, { reps: 15, warmup: 3 });
 
   out.correctness = verify;
+  out.query_shapes_covered = ["in_circle", "date_window", "edition_diff", "ambito_containment"];
   out.timings = {
     duckdb: {
       init_ms: Math.round(duck.init_ms * 100) / 100,
@@ -218,10 +317,16 @@ try {
       inCircle_warm: duck.inCircle.warm,
       dateWindow_cold_ms: Math.round(duck.dateWindow.cold_ms * 100) / 100,
       dateWindow_warm: duck.dateWindow.warm,
+      editionDiff_warm: duck.editionDiff.warm,
+      containment: "UNVERIFIED (spatial extension fetch blocked in container)",
     },
     plain_js: {
       inCircle: jsInCircleT,
       dateWindow: jsDateWindowT,
+      editionDiff: jsEditionT,
+      containment: jsContainmentT,
+      containment_points: QUERY_POINTS.length,
+      containment_polygons: editionCodes.length,
     },
   };
   out.verdict_inputs = {

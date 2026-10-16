@@ -6,6 +6,8 @@
   "devDependencies": {
     "@duckdb/duckdb-wasm": "1.29.0",
     "apache-arrow": "17.0.0",
-    "playwright": "1.56.0"
+    "playwright": "1.56.0",
+    "geojson-vt": "4.0.2",
+    "vt-pbf": "3.1.3"
   }
 }

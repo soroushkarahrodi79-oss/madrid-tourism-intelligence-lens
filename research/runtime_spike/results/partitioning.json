@@ -11,8 +11,8 @@
     "cpuCount": 4,
     "totalMemGB": 15.7,
     "nodeVersion": "v22.22.0",
-    "gitSha": "cf85a9b45fd68b73730c809e6e75c04751aeb473",
-    "measuredAt": "2026-10-16T10:13:22.677Z"
+    "gitSha": "f6d76f30cf72a7db517a099c89dc14db4381e54d",
+    "measuredAt": "2026-10-16T11:18:25.823Z"
   },
   "source_file": "data/destination/madrid_domestic_origins.json",
   "whole_file": {
@@ -22,27 +22,27 @@
     "brotli_bytes": 87976,
     "parse_ms": {
       "n": 15,
-      "min": 17.712,
-      "median": 19.131,
-      "p95": 21.078,
-      "max": 21.078,
-      "mean": 19.23,
+      "min": 15.856,
+      "median": 18.387,
+      "p95": 20.214,
+      "max": 20.214,
+      "mean": 18.378,
       "raw_ms": [
-        17.712,
-        17.998,
-        18.498,
-        18.807,
-        18.815,
-        18.902,
-        18.981,
-        19.131,
-        19.481,
-        19.511,
-        19.6,
-        19.746,
-        19.996,
-        20.193,
-        21.078
+        15.856,
+        17.306,
+        17.672,
+        17.976,
+        18.01,
+        18.074,
+        18.202,
+        18.387,
+        18.466,
+        18.716,
+        18.769,
+        18.931,
+        19.15,
+        19.947,
+        20.214
       ]
     }
   },
@@ -54,26 +54,26 @@
     "parse_ms": {
       "n": 15,
       "min": 0.006,
-      "median": 0.009,
-      "p95": 0.015,
-      "max": 0.015,
-      "mean": 0.009,
+      "median": 0.007,
+      "p95": 0.011,
+      "max": 0.011,
+      "mean": 0.008,
       "raw_ms": [
         0.006,
         0.006,
+        0.006,
         0.007,
         0.007,
         0.007,
-        0.008,
-        0.009,
-        0.009,
-        0.009,
-        0.009,
+        0.007,
+        0.007,
+        0.007,
         0.009,
         0.009,
         0.01,
         0.01,
-        0.015
+        0.01,
+        0.011
       ]
     }
   },
@@ -87,27 +87,27 @@
       "brotli_bytes": 25658,
       "parse_ms": {
         "n": 15,
-        "min": 1.76,
-        "median": 2.19,
-        "p95": 2.634,
-        "max": 2.634,
-        "mean": 2.163,
+        "min": 1.562,
+        "median": 2.155,
+        "p95": 3.223,
+        "max": 3.223,
+        "mean": 2.14,
         "raw_ms": [
-          1.76,
-          1.793,
-          1.837,
-          1.97,
-          2.028,
-          2.037,
-          2.094,
-          2.19,
-          2.241,
-          2.247,
-          2.264,
-          2.275,
-          2.511,
-          2.561,
-          2.634
+          1.562,
+          1.789,
+          1.81,
+          1.82,
+          1.968,
+          2.036,
+          2.059,
+          2.155,
+          2.166,
+          2.185,
+          2.268,
+          2.277,
+          2.309,
+          2.466,
+          3.223
         ]
       }
     },
@@ -120,27 +120,27 @@
       "brotli_bytes": 27016,
       "parse_ms": {
         "n": 15,
-        "min": 1.877,
-        "median": 2.584,
-        "p95": 3.332,
-        "max": 3.332,
-        "mean": 2.623,
+        "min": 1.578,
+        "median": 2.133,
+        "p95": 3.155,
+        "max": 3.155,
+        "mean": 2.223,
         "raw_ms": [
-          1.877,
-          2.144,
-          2.247,
-          2.333,
-          2.341,
-          2.402,
-          2.416,
-          2.584,
-          2.625,
-          2.696,
-          2.809,
-          3.062,
-          3.232,
-          3.24,
-          3.332
+          1.578,
+          1.8,
+          1.801,
+          1.931,
+          1.937,
+          2.022,
+          2.133,
+          2.133,
+          2.203,
+          2.287,
+          2.292,
+          2.313,
+          2.851,
+          2.908,
+          3.155
         ]
       }
     },
@@ -153,27 +153,27 @@
       "brotli_bytes": 28888,
       "parse_ms": {
         "n": 15,
-        "min": 2.19,
-        "median": 3.159,
-        "p95": 8.186,
-        "max": 8.186,
-        "mean": 3.491,
+        "min": 1.819,
+        "median": 2.418,
+        "p95": 2.725,
+        "max": 2.725,
+        "mean": 2.304,
         "raw_ms": [
-          2.19,
+          1.819,
+          1.922,
+          1.95,
+          2.091,
+          2.221,
+          2.23,
+          2.353,
           2.418,
-          2.567,
-          2.998,
-          3.045,
-          3.094,
-          3.101,
-          3.159,
-          3.198,
-          3.212,
-          3.239,
-          3.374,
-          4.15,
-          4.439,
-          8.186
+          2.423,
+          2.442,
+          2.465,
+          2.496,
+          2.499,
+          2.51,
+          2.725
         ]
       }
     },
@@ -186,27 +186,27 @@
       "brotli_bytes": 27074,
       "parse_ms": {
         "n": 15,
-        "min": 1.655,
-        "median": 2.183,
-        "p95": 3.146,
-        "max": 3.146,
-        "mean": 2.155,
+        "min": 1.962,
+        "median": 2.164,
+        "p95": 3.284,
+        "max": 3.284,
+        "mean": 2.325,
         "raw_ms": [
-          1.655,
-          1.752,
-          1.852,
-          1.946,
-          1.991,
-          2.042,
-          2.059,
-          2.183,
-          2.186,
-          2.2,
-          2.271,
-          2.28,
-          2.357,
-          2.405,
-          3.146
+          1.962,
+          1.964,
+          1.989,
+          2.054,
+          2.106,
+          2.109,
+          2.148,
+          2.164,
+          2.199,
+          2.367,
+          2.367,
+          2.392,
+          2.684,
+          3.091,
+          3.284
         ]
       }
     },
@@ -219,27 +219,27 @@
       "brotli_bytes": 28158,
       "parse_ms": {
         "n": 15,
-        "min": 1.73,
-        "median": 2.302,
-        "p95": 2.931,
-        "max": 2.931,
-        "mean": 2.288,
+        "min": 1.704,
+        "median": 2.238,
+        "p95": 3.005,
+        "max": 3.005,
+        "mean": 2.212,
         "raw_ms": [
-          1.73,
-          2.028,
-          2.037,
-          2.059,
-          2.088,
-          2.127,
-          2.294,
-          2.302,
-          2.32,
-          2.336,
-          2.406,
-          2.492,
-          2.5,
-          2.674,
-          2.931
+          1.704,
+          1.741,
+          1.751,
+          1.877,
+          1.955,
+          2.001,
+          2.065,
+          2.238,
+          2.3,
+          2.309,
+          2.323,
+          2.349,
+          2.748,
+          2.816,
+          3.005
         ]
       }
     },
@@ -252,27 +252,27 @@
       "brotli_bytes": 28913,
       "parse_ms": {
         "n": 15,
-        "min": 1.772,
-        "median": 2.26,
-        "p95": 2.563,
-        "max": 2.563,
-        "mean": 2.193,
+        "min": 1.8,
+        "median": 2.089,
+        "p95": 2.761,
+        "max": 2.761,
+        "mean": 2.131,
         "raw_ms": [
-          1.772,
-          1.806,
-          1.882,
-          1.911,
-          1.942,
-          2.14,
-          2.2,
-          2.26,
-          2.281,
-          2.337,
-          2.37,
-          2.437,
-          2.489,
-          2.508,
-          2.563
+          1.8,
+          1.833,
+          1.913,
+          1.993,
+          2.007,
+          2.033,
+          2.071,
+          2.089,
+          2.136,
+          2.185,
+          2.185,
+          2.21,
+          2.229,
+          2.523,
+          2.761
         ]
       }
     },
@@ -285,27 +285,27 @@
       "brotli_bytes": 24667,
       "parse_ms": {
         "n": 15,
-        "min": 1.518,
-        "median": 1.734,
-        "p95": 2.379,
-        "max": 2.379,
-        "mean": 1.841,
+        "min": 1.525,
+        "median": 1.941,
+        "p95": 2.419,
+        "max": 2.419,
+        "mean": 1.961,
         "raw_ms": [
-          1.518,
-          1.521,
-          1.571,
-          1.621,
-          1.701,
-          1.717,
-          1.717,
-          1.734,
-          1.771,
-          1.807,
-          2.023,
-          2.088,
-          2.223,
-          2.224,
-          2.379
+          1.525,
+          1.649,
+          1.684,
+          1.822,
+          1.839,
+          1.859,
+          1.885,
+          1.941,
+          1.972,
+          2.06,
+          2.109,
+          2.176,
+          2.181,
+          2.293,
+          2.419
         ]
       }
     }
@@ -313,37 +313,67 @@
   "month_count": 7,
   "scenarios": {
     "A_status_quo_full_upfront": {
+      "functionality": "all features, all 7 months",
       "transfer_gzip9_bytes": 255754,
       "transfer_brotli_bytes": 87976,
-      "parse_median_ms": 19.131,
+      "parse_median_ms": 18.387,
       "description": "Current behaviour: whole artifact fetched and parsed before first paint."
     },
-    "B_partitioned_lazy_latest_month": {
+    "B1_partitioned_latest_month_only": {
+      "functionality": "PLACE/CITY single-month views ONLY — does NOT support month-over-month Dynamics",
       "transfer_gzip9_bytes": 32853,
       "transfer_brotli_bytes": 25315,
-      "parse_median_ms": 1.743,
-      "description": "Fetch index + latest month only on first paint; others on demand."
+      "parse_median_ms": 1.948,
+      "description": "Index + latest month only. NOT functionally equivalent to A for Dynamics."
+    },
+    "B2_partitioned_latest_plus_previous": {
+      "functionality": "adds the one adjacent month Dynamics' default view needs (latest vs previous)",
+      "transfer_gzip9_bytes": 70591,
+      "transfer_brotli_bytes": 54228,
+      "parse_median_ms": 4.037,
+      "description": "Index + latest + previous month. The Dynamics-equivalent initial load; the honest comparison for a general user-visible claim."
     },
     "C_partitioned_eager_all": {
+      "functionality": "all features, all months (upper bound)",
       "transfer_gzip9_bytes": 248340,
       "transfer_brotli_bytes": 191022,
-      "parse_total_median_ms": 16.421,
+      "parse_total_median_ms": 15.145,
       "description": "Fetch index + every month file (upper bound; shows partition overhead vs A)."
     }
   },
-  "initial_load_savings_B_vs_A": {
-    "transfer_gzip9": {
-      "status_quo_bytes": 255754,
-      "partitioned_bytes": 32853,
-      "saved_bytes": 222901,
-      "saved_pct": 87.2
+  "initial_load_savings": {
+    "B1_latest_only_NOT_dynamics_equivalent": {
+      "scenario": "B1_partitioned_latest_month_only",
+      "functionality": "PLACE/CITY single-month views ONLY — does NOT support month-over-month Dynamics",
+      "transfer_gzip9": {
+        "status_quo_bytes": 255754,
+        "partitioned_bytes": 32853,
+        "saved_bytes": 222901,
+        "saved_pct": 87.2
+      },
+      "parse": {
+        "status_quo_median_ms": 18.387,
+        "partitioned_median_ms": 1.948,
+        "saved_pct": 89.4
+      }
     },
-    "parse": {
-      "status_quo_median_ms": 19.131,
-      "partitioned_median_ms": 1.743,
-      "saved_pct": 90.9
+    "B2_dynamics_equivalent": {
+      "scenario": "B2_partitioned_latest_plus_previous",
+      "functionality": "adds the one adjacent month Dynamics' default view needs (latest vs previous)",
+      "transfer_gzip9": {
+        "status_quo_bytes": 255754,
+        "partitioned_bytes": 70591,
+        "saved_bytes": 185163,
+        "saved_pct": 72.4
+      },
+      "parse": {
+        "status_quo_median_ms": 18.387,
+        "partitioned_median_ms": 4.037,
+        "saved_pct": 78
+      }
     }
   },
+  "dynamics_adjacency_finding": "CITY Monthly origin dynamics compares a source month to its EXACT previous calendar month (js/domestic-origin-dynamics.js). A latest-month-only initial load (B1) therefore breaks Dynamics; the feature-equivalent initial load is B2 (latest + previous). The headline latest-only saving must NOT be reported as a general user-visible performance claim.",
   "caching_note": "Partitioned: a new monthly edition invalidates only that month's file + the tiny index; status quo invalidates the whole multi-MB artifact on every update. Partition overhead = header duplicated per month (see C vs A).",
   "operational_complexity_note": "A partition would require the builder to emit N month files + an index, and the loader to fetch lazily. This is a DATA-PIPELINE change (out of K12 scope) — reported as a finding only."
 }

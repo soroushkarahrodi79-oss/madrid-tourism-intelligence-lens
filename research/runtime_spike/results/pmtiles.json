@@ -1,7 +1,7 @@
 {
   "spike": "K12 runtime decision",
   "measurement": "pmtiles_tiling_cost",
-  "deterministic": "input layer bytes are hardware-independent; per-viewport transfer is an ESTIMATE",
+  "deterministic": "input + tiled MVT bytes are hardware-independent",
   "host": {
     "kind": "CONTAINER_CPU — not a device",
     "note": "Timings below are CPU-bound work measured in a shared cloud Linux VM with no GPU (software rasterisation). They are valid as RELATIVE, CPU-only comparisons between approaches on the SAME host. They are NOT mid-range-laptop or iPad numbers and must never be reported as such.",
@@ -11,8 +11,14 @@
     "cpuCount": 4,
     "totalMemGB": 15.7,
     "nodeVersion": "v22.22.0",
-    "gitSha": "cf85a9b45fd68b73730c809e6e75c04751aeb473",
-    "measuredAt": "2026-10-16T10:36:45.651Z"
+    "gitSha": "f6d76f30cf72a7db517a099c89dc14db4381e54d",
+    "measuredAt": "2026-10-16T11:20:28.696Z"
+  },
+  "method": "geojson-vt (tolerance 3, extent 4096, z10–15) + vt-pbf v2 MVT encoding. Tile bytes summed over the Madrid bbox per zoom; per-viewport = the 5x3 tile grid around Sol at z14.",
+  "tippecanoe_crosscheck": {
+    "note": "For an exact tippecanoe archive (different simplification), run on a machine with it:",
+    "ambito": "tippecanoe -o ambito.pmtiles -zg --drop-densest-as-needed -l ambito data/planning/madrid_ambitos.geojson",
+    "status": "tippecanoe absent in this container; the geojson-vt/vt-pbf figures above ARE real MVT measurements, not estimates of tippecanoe"
   },
   "layers": [
     {
@@ -27,6 +33,55 @@
         "raw_bytes": 3487156,
         "gzip_bytes": 938501,
         "brotli_bytes": 538383
+      },
+      "tiled": {
+        "per_zoom": [
+          {
+            "z": 10,
+            "tiles": 2,
+            "raw_bytes": 64902,
+            "gzip_bytes": 36518
+          },
+          {
+            "z": 11,
+            "tiles": 4,
+            "raw_bytes": 75988,
+            "gzip_bytes": 47721
+          },
+          {
+            "z": 12,
+            "tiles": 15,
+            "raw_bytes": 89937,
+            "gzip_bytes": 62311
+          },
+          {
+            "z": 13,
+            "tiles": 46,
+            "raw_bytes": 110221,
+            "gzip_bytes": 84823
+          },
+          {
+            "z": 14,
+            "tiles": 152,
+            "raw_bytes": 154850,
+            "gzip_bytes": 132025
+          },
+          {
+            "z": 15,
+            "tiles": 516,
+            "raw_bytes": 490164,
+            "gzip_bytes": 418228
+          }
+        ],
+        "archive_total_raw_bytes": 986062,
+        "archive_total_gzip_bytes": 781626,
+        "viewport_default_zoom": {
+          "zoom": 14,
+          "grid": "5x3 tiles around Sol",
+          "tiles": 15,
+          "raw_bytes": 25074,
+          "gzip_bytes": 19913
+        }
       }
     },
     {
@@ -37,16 +92,57 @@
         "raw_bytes": 2055767,
         "gzip_bytes": 158904,
         "brotli_bytes": 118494
+      },
+      "tiled": {
+        "per_zoom": [
+          {
+            "z": 10,
+            "tiles": 2,
+            "raw_bytes": 418811,
+            "gzip_bytes": 139926
+          },
+          {
+            "z": 11,
+            "tiles": 5,
+            "raw_bytes": 447591,
+            "gzip_bytes": 152677
+          },
+          {
+            "z": 12,
+            "tiles": 16,
+            "raw_bytes": 457427,
+            "gzip_bytes": 158675
+          },
+          {
+            "z": 13,
+            "tiles": 41,
+            "raw_bytes": 489851,
+            "gzip_bytes": 175809
+          },
+          {
+            "z": 14,
+            "tiles": 119,
+            "raw_bytes": 527037,
+            "gzip_bytes": 204240
+          },
+          {
+            "z": 15,
+            "tiles": 359,
+            "raw_bytes": 565712,
+            "gzip_bytes": 257108
+          }
+        ],
+        "archive_total_raw_bytes": 2906429,
+        "archive_total_gzip_bytes": 1088435,
+        "viewport_default_zoom": {
+          "zoom": 14,
+          "grid": "5x3 tiles around Sol",
+          "tiles": 15,
+          "raw_bytes": 181748,
+          "gzip_bytes": 65027
+        }
       }
     }
   ],
-  "decidability_finding": "PMTiles is a transport/packaging format for VECTOR (or raster) tiles consumed by a vector renderer. The production app uses Leaflet with RASTER basemap tiles and whole-GeoJSON overlays; it has no vector-tile renderer. PMTiles for the overlays is therefore NOT decidable independently of the MapLibre decision (§3): adopting PMTiles for ámbito/licence vectors presupposes a vector renderer. Verdict is slaved to MapLibre's.",
-  "transfer_model_note": "TODAY each overlay is fetched once as a whole gzipped GeoJSON and cached. PMTiles would fetch only the tiles overlapping the viewport, via HTTP range requests on one .pmtiles file. At Madrid-municipal extent and the app's default zoom, the whole ámbito layer is visible, so PMTiles would transfer a comparable byte volume on first paint; its win is at deep zoom over a much larger corpus (parcel scale), which this product does not have.",
-  "tippecanoe_procedure": {
-    "install": "brew install tippecanoe  (or build from mapbox/tippecanoe)",
-    "ambito": "tippecanoe -o ambito.pmtiles -zg --drop-densest-as-needed -l ambito data/planning/madrid_ambitos.geojson",
-    "licences": "node research/runtime_spike/pmtiles/tiling_cost.mjs  # writes licence_points.geojson first, then: tippecanoe -o licences.pmtiles -zg --cluster-distance=... -l licences licence_points.geojson",
-    "then": "measure: ls -l *.pmtiles ; compare against today_whole_layer.gzip_bytes above",
-    "status": "NOT RUN — tippecanoe absent in this container (declared, not estimated away)"
-  }
+  "decidability_finding": "PMTiles packages vector (or raster) tiles consumed by a VECTOR renderer. The production app uses Leaflet with RASTER basemap tiles and whole-GeoJSON overlays — no vector renderer. So adopting PMTiles for the overlays is NOT decidable independently of the MapLibre decision (§3); its verdict is slaved to B."
 }
