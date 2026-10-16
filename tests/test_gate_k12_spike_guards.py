@@ -240,9 +240,13 @@ class ReviewRunnerReliability(unittest.TestCase):
     def test_runner_has_completeness_gate_and_strict_device_grade(self):
         r = read(os.path.join(DH, "run_device.mjs"))
         self.assertIn("process.exit(exitCode)", r)
-        self.assertIn("has_human_label", r)
-        self.assertIn("--require-device".replace("--", ""), r.replace("--", ""))
+        self.assertIn("require-device", r)
         self.assertIn("scenarioComplete", r)
+        # fail-closed device-grade logic lives in the unit-tested grade module
+        g = read(os.path.join(DH, "grade.mjs"))
+        self.assertIn("has_human_label", g)
+        self.assertIn("SOFTWARE_OR_GENERIC", g)
+        self.assertIn("GPU_VENDOR", g)
 
     def test_container_smoke_is_not_certified_and_reports_completeness(self):
         # the committed container smoke must be honest: not device-grade, with a basis
@@ -266,8 +270,13 @@ class ReviewMapLibreParity(unittest.TestCase):
 
     def test_full_suite_runs_maplibre_ceiling_and_recompute(self):
         r = read(os.path.join(DH, "run_device.mjs"))
-        self.assertRegex(r, r"ml\(`kind=")  # maplibre ceiling scenarios
-        self.assertRegex(r, r"ml\(`layers=.*recompute=")  # maplibre real recompute scenarios
+        # ceilPair/realPair both emit a MapLibre (ML) twin → MapLibre runs the
+        # ceiling series and the recompute real-payload set, paired to Leaflet.
+        self.assertIn("ceilPair", r)
+        self.assertIn("realPair", r)
+        self.assertRegex(r, r"recompute=\$\{recompute\}")  # recompute carried into the real pair
+        self.assertRegex(r, r"ceilPair\(\"point\"")  # maplibre+leaflet point ceiling
+        self.assertRegex(r, r"ceilPair\(\"polygon\"")  # maplibre+leaflet polygon ceiling
 
 
 class ReviewAcceptanceCoverage(unittest.TestCase):
@@ -323,6 +332,49 @@ class ReviewMethodologyWording(unittest.TestCase):
         self.assertIn("double-rAF proxy", t)
         self.assertIn("true paint timestamp", t)  # "not** a true paint timestamp"
         self.assertIn("Lighthouse", t)  # map-ready explicitly distinguished from Lighthouse TTI
+
+
+class ReviewDeviceMicroGate(unittest.TestCase):
+    """Device micro-gate: strict parity, readiness barriers, fail-closed device-grade."""
+
+    def test_maplibre_has_admin_layer_and_async_readiness(self):
+        mp = read(os.path.join(PROTO, "maplibre_prototype.html"))
+        self.assertIn('"admin"', mp)  # admin source for the 3-layer parity set
+        self.assertIn("awaitIdleAndSources", mp)
+        self.assertIn("isSourceLoaded", mp)
+
+    def test_rum_records_readiness_barrier_and_fidelity_caveat(self):
+        rum = read(os.path.join(DH, "rum.js"))
+        self.assertIn("readiness_barrier", rum)
+        self.assertIn("recompute_fidelity", rum)
+
+    def test_harness_pages_pass_a_readiness_barrier(self):
+        for f in ("leaflet_baseline.html", "leaflet_ceiling.html"):
+            self.assertIn("readiness_barrier", read(os.path.join(DH, f)), f"{f} lacks readiness_barrier")
+
+    def test_runner_pairs_engines_and_gates_comparability(self):
+        r = read(os.path.join(DH, "run_device.mjs"))
+        self.assertIn("pairKey", r)
+        self.assertIn("comparable", r)
+        self.assertIn("allComparable", r)
+        self.assertIn("ambito,licence,admin", r)  # matched 3-layer set on both engines
+        self.assertIn('deviceGradeOf', r)
+        self.assertIn("./grade.mjs", r)  # fail-closed logic imported from the tested module
+
+    def test_runner_supports_real_channel_and_headed(self):
+        r = read(os.path.join(DH, "run_device.mjs"))
+        self.assertIn("channel", r)
+        self.assertIn("HEADED", r)
+        self.assertIn("chromium.launch", r)
+
+    def test_grade_module_exists(self):
+        self.assertTrue(os.path.exists(os.path.join(DH, "grade.mjs")))
+
+    def test_ipad_matrix_matches_final_benchmark(self):
+        ip = read(os.path.join(DH, "IPAD.md"))
+        self.assertIn("recompute=", ip)  # recompute modes present
+        self.assertIn("maplibre_proto/maplibre_prototype.html?kind=", ip)  # MapLibre ceiling stress
+        self.assertIn("ambito,licence,admin", ip)  # matched 3-layer set
 
 
 if __name__ == "__main__":

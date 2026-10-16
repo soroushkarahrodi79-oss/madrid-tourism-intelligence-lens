@@ -320,7 +320,29 @@ pan sweep, the **same** RUM engine, the **same** `recompute=renderer|full`
 modes (running the identical production models), **and** the **same** synthetic
 ceiling series (`kind=polygon|point&count=…`, identical mulberry32 seeds) so the
 Leaflet ceiling and the MapLibre ceiling are measured on byte-identical geometry.
-The `run_device.mjs --suite=full` matrix runs this parity set on both renderers.
+
+**Matched layer sets (device micro-gate).** Every comparative scenario runs the
+**same** layer set on both engines — `ambito`, `ambito,licence`, and
+`ambito,licence,admin` (the MapLibre prototype renders an `admin` line layer so
+the three-layer workload is genuinely equivalent). The runner pairs each Leaflet
+scenario with its MapLibre twin by a `pairKey` and **refuses a device-validation
+verdict unless both engines completed every comparative pair** (`comparable`
+gate). A Leaflet `ambito,licence,admin` scenario is never compared against a
+MapLibre `ambito,licence` one.
+
+**Readiness barriers.** MapLibre's GeoJSON sources parse and tile on a worker
+*after* `addSource`, so the prototype awaits `map 'idle'` **and**
+`isSourceLoaded()` for every source before any measurement is accepted; Leaflet
+adds its canvas layers synchronously and settles one frame. Each result records
+its `readiness_barrier`, and a scenario with none is counted incomplete.
+
+**Fidelity caveat (do not overstate).** `recompute=full` runs **two** production
+pure models (`licencesInLens` + `createPlanningIndex().ambitosIntersecting`),
+recorded as `interaction_recompute_ms`. This is the analytical **core**, not the
+entire production Lens pipeline, which additionally rebuilds the panel DOM, the
+radial halo, evidence/scope state, the area profile and i18n on each move. The
+harness measures the two models; it does not claim to reproduce the full view
+update.
 
 It could not be measured here: MapLibre WebGL on SwiftShader is software-rendered
 (meaningless for a GPU comparison) and its CDN is blocked in this container. **No
@@ -468,17 +490,22 @@ Re-run everything via `research/runtime_spike/README.md`.
 The owner has a mid-range laptop and a physical iPad. To convert this PARTIAL
 gate to PASS:
 
-1. **Laptop (real Chrome/Edge, not emulation):**
+1. **Laptop — real installed Chrome/Edge, headed, not emulation:**
    ```
    cd research/runtime_spike && npm install
-   node device_harness/run_device.mjs --suite=full --label="<make/model/OS/browser>" --require-device
+   node device_harness/run_device.mjs --suite=full --channel=chrome --headed \
+        --label="<make/model/OS/browser>" --require-device
    ```
-   `--require-device` makes the run EXIT NON-ZERO unless it is positively
-   device-grade (real GPU + real UA + your `--label`); it also exits non-zero if
-   **any** scenario is missing, errored or incomplete (`complete:false`). Confirm
-   the output's `is_device_grade: true` and `complete: true`, then commit
-   `results/device_run_full.json`. Device-grade is **not** inferred from the mere
-   absence of a SwiftShader string — see `device_grade_basis` in the output.
+   `--channel=chrome` (or `msedge`) launches the **real installed browser**, not
+   Playwright's bundled headless Chromium; `--headed` runs it on-screen so the GPU
+   path is the real one. `--require-device` makes the run **EXIT NON-ZERO** unless
+   it is positively device-grade, and it also exits non-zero if **any** scenario
+   is missing/errored/incomplete (`complete:false`) or any comparative pair lacks
+   both engines (`comparable:false`). Device-grade **fails closed**: it needs a
+   hardware-GPU vendor token in `gl_renderer` (not SwiftShader/llvmpipe/NO_WEBGL/
+   generic), a real UA, your `--label`, a real channel, AND headed — inspect
+   `device_grade_basis` and `launch` in the output. Confirm `is_device_grade:true`,
+   `complete:true` and `comparable:true`, then commit `results/device_run_full.json`.
 2. **iPad (physical, Safari):** follow `device_harness/IPAD.md` — serve the repo
    (`python3 -m http.server`), open each harness URL in Safari, tap **download
    JSON**, transfer the files back. iPad **cannot** run Playwright; this manual
@@ -518,6 +545,16 @@ and the gate stays PARTIAL. **Do not** mark PASS from a container run.
   measured inflation (+107 % vs gzipped GeoJSON) is sufficient for the NO-GO.
 - **Network** in the container is proxied and not device-representative; the CDN
   for MapLibre and the DuckDB spatial extension endpoint are blocked here.
+- **Device-grade fails closed.** A run certifies as device-grade only with a
+  hardware-GPU vendor token (not SwiftShader/llvmpipe/NO_WEBGL/generic), a real
+  UA, a human `--label`, a real browser `--channel` (chrome|msedge) and `--headed`.
+  Playwright's bundled headless Chromium never qualifies; the container smoke run
+  is therefore always non-device, and any incomplete or non-comparable run is
+  refused a device-validation verdict.
+- **Recompute fidelity is the analytical core, not the whole Lens.**
+  `interaction_recompute_ms` covers two production models only; the full
+  production Lens view update (panel/halo/evidence/area-profile/i18n) is larger
+  and is not claimed here.
 
 *Generated as part of K12. No measurement, device result or PASS verdict in this
 document is fabricated or emulated.*
