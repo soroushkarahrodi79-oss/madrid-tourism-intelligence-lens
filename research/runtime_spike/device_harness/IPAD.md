@@ -1,5 +1,11 @@
 # iPad measurement procedure (physical device)
 
+> **Prefer the one-page controller.** `ipad_controller.html` (same folder) now
+> automates this entire matrix on a single visible page — Start once, it walks all
+> 38 scenarios, preserves measurements across navigations, resumes after an
+> interruption, fails closed on timeouts/errors, and exports ONE consolidated JSON.
+> The manual one-URL-per-scenario procedure below remains valid as a fallback.
+
 An iPad **cannot** run Playwright. A desktop browser in an iPad viewport, or any
 device-emulation mode, is **not** an iPad and must never be recorded as one:
 the GPU, the compositor, the touch input and the memory ceiling are all

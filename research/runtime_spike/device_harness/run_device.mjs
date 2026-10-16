@@ -28,6 +28,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { scenarioComplete, deviceGradeOf } from "./grade.mjs";
+import { buildSuite } from "./suite.mjs";
 
 const ROOT = path.resolve(fileURLToPath(import.meta.url), "../../../..");
 const args = Object.fromEntries(
@@ -58,51 +59,8 @@ function serve(root) {
   });
 }
 
-const LB = `research/runtime_spike/device_harness/leaflet_baseline.html`;
-const LC = `research/runtime_spike/device_harness/leaflet_ceiling.html`;
-const ML = `research/runtime_spike/maplibre_proto/maplibre_prototype.html`;
-
-// Comparative scenarios run the SAME layers/zoom/basemap/recompute on BOTH
-// engines (identical workload). Ceiling runs the SAME kind/count on both.
-// pairKey ties a Leaflet scenario to its MapLibre twin for the comparability gate.
-const CMP_LAYERS = ["ambito", "ambito,licence", "ambito,licence,admin"];
-
-function realPair(layers, basemap, recompute) {
-  const q = `layers=${layers}&basemap=${basemap}&recompute=${recompute}`;
-  const pairKey = `real|${layers}|${basemap}|${recompute}`;
-  return [
-    { page: LB, q, engine: "leaflet", comparative: true, pairKey },
-    { page: ML, q, engine: "maplibre", comparative: true, pairKey },
-  ];
-}
-function ceilPair(kind, count) {
-  const q = `kind=${kind}&count=${count}`;
-  const pairKey = `ceil|${kind}|${count}`;
-  return [
-    { page: LC, q, engine: "leaflet", comparative: true, pairKey },
-    { page: ML, q, engine: "maplibre", comparative: true, pairKey },
-  ];
-}
-
-const SUITES = {
-  smoke: [
-    ...realPair("ambito", "light", "renderer"),
-    ...realPair("ambito,licence,admin", "light", "full"),
-    ...ceilPair("polygon", 2000),
-  ],
-  full: [
-    // comparative real payload — matched layer sets on BOTH engines
-    ...CMP_LAYERS.flatMap((ly) =>
-      ["light", "satellite"].flatMap((bm) =>
-        ["renderer", "full"].flatMap((rc) => realPair(ly, bm, rc)),
-      ),
-    ),
-    // comparative ceiling series — matched kind/count on BOTH engines (MapLibre trigger)
-    ...[765, 2000, 5675, 10000].flatMap((c) => ceilPair("polygon", c)),
-    ...[11500, 25000, 50000].flatMap((c) => ceilPair("point", c)),
-  ],
-};
-
+// The comparative matrix (page paths, CMP_LAYERS, realPair/ceilPair, SUITES) lives
+// in suite.mjs — the single source of truth shared with the iPad controller.
 const gradeOf = (r) => deviceGradeOf(r, { label: LABEL, channel: CHANNEL, headed: HEADED });
 
 const { srv, port } = await serve(ROOT);
@@ -114,7 +72,7 @@ try {
 } catch (e) {
   launchError = String(e).split("\n")[0];
 }
-const expected = SUITES[SUITE];
+const expected = buildSuite(SUITE);
 const results = [];
 let browserVersion = null;
 

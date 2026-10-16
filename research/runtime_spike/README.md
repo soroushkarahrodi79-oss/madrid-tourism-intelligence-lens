@@ -20,13 +20,17 @@ research/runtime_spike/
   pmtiles/tiling_cost.mjs    §7.1 tiling input baseline + tippecanoe procedure
   device_harness/
     thresholds.json          pre-registered thresholds + UX rationale
-    rum.js                   renderer-agnostic RUM engine (FCP/TTI/interaction-to-paint/frame/memory)
+    rum.js                   renderer-agnostic RUM engine (+ iPad controller handoff bridge)
+    suite.mjs                the 38-scenario matrix — single source shared by runner + iPad controller
     leaflet_baseline.html    §1/§3 scenarios on the REAL payload        (RUN ON DEVICE)
     leaflet_ceiling.html     §2   synthetic ceiling crossing            (RUN ON DEVICE)
     run_device.mjs           Playwright runner (laptop) / container smoke test
-    IPAD.md                  physical-iPad manual procedure
+    IPAD.md                  physical-iPad manual one-URL-per-scenario procedure (fallback)
+    ipad_controller.html     physical-iPad ONE-PAGE controller (automates the whole matrix)
+    mobile_controller_core.mjs  pure controller core (session/resume/export/device-grade)
   maplibre_proto/maplibre_prototype.html  §3 bounded MapLibre prototype (RUN ON DEVICE, needs network)
   results/                   committed JSON evidence
+    windows/                 first physical Windows observation (PARTIAL, preserved unchanged)
 ```
 
 ## Requirements
@@ -102,7 +106,14 @@ node device_harness/run_device.mjs --suite=smoke
 # → results/container_smoke_smoke.json  (MapLibre scenario needs network; marked incomplete in-container)
 ```
 
-**iPad (manual, physical device):** see [`device_harness/IPAD.md`](device_harness/IPAD.md).
+**iPad (physical device) — one-page controller (recommended):** serve the repo
+from the laptop (`python -m http.server 8000`) and open, in iPad Safari,
+`http://<laptop-lan-ip>:8000/research/runtime_spike/device_harness/ipad_controller.html`.
+It drives the SAME 38-scenario matrix (`device_harness/suite.mjs`) one visible
+foreground page at a time, preserves measurements across navigations, resumes after
+interruption, fails closed on timeouts/errors, requires an explicit physical-device
+attestation, and exports ONE consolidated JSON. The one-URL-per-scenario walk in
+[`device_harness/IPAD.md`](device_harness/IPAD.md) remains a fallback.
 
 **Distinguishing device from emulation:** every result carries
 `env.gl_renderer`, `env.gl_is_software` and `env.is_device_grade`. A result is a

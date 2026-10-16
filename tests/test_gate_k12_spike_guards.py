@@ -269,14 +269,21 @@ class ReviewMapLibreParity(unittest.TestCase):
         self.assertIn("ambitosIntersecting", mp)
 
     def test_full_suite_runs_maplibre_ceiling_and_recompute(self):
-        r = read(os.path.join(DH, "run_device.mjs"))
+        # The matrix is the single source of truth in suite.mjs, consumed by BOTH
+        # the Playwright runner and the one-page iPad controller (so the iPad run
+        # can never silently diverge from the laptop run).
+        s = read(os.path.join(DH, "suite.mjs"))
         # ceilPair/realPair both emit a MapLibre (ML) twin → MapLibre runs the
         # ceiling series and the recompute real-payload set, paired to Leaflet.
-        self.assertIn("ceilPair", r)
-        self.assertIn("realPair", r)
-        self.assertRegex(r, r"recompute=\$\{recompute\}")  # recompute carried into the real pair
-        self.assertRegex(r, r"ceilPair\(\"point\"")  # maplibre+leaflet point ceiling
-        self.assertRegex(r, r"ceilPair\(\"polygon\"")  # maplibre+leaflet polygon ceiling
+        self.assertIn("ceilPair", s)
+        self.assertIn("realPair", s)
+        self.assertRegex(s, r"recompute=\$\{recompute\}")  # recompute carried into the real pair
+        self.assertRegex(s, r"ceilPair\(\"point\"")  # maplibre+leaflet point ceiling
+        self.assertRegex(s, r"ceilPair\(\"polygon\"")  # maplibre+leaflet polygon ceiling
+        # the runner builds its suite from that shared definition, not a private copy
+        r = read(os.path.join(DH, "run_device.mjs"))
+        self.assertIn("./suite.mjs", r)
+        self.assertIn("buildSuite", r)
 
 
 class ReviewAcceptanceCoverage(unittest.TestCase):
@@ -357,9 +364,10 @@ class ReviewDeviceMicroGate(unittest.TestCase):
         self.assertIn("pairKey", r)
         self.assertIn("comparable", r)
         self.assertIn("allComparable", r)
-        self.assertIn("ambito,licence,admin", r)  # matched 3-layer set on both engines
         self.assertIn('deviceGradeOf', r)
         self.assertIn("./grade.mjs", r)  # fail-closed logic imported from the tested module
+        # matched 3-layer set on both engines lives in the shared suite definition
+        self.assertIn("ambito,licence,admin", read(os.path.join(DH, "suite.mjs")))
 
     def test_runner_supports_real_channel_and_headed(self):
         r = read(os.path.join(DH, "run_device.mjs"))
@@ -375,6 +383,57 @@ class ReviewDeviceMicroGate(unittest.TestCase):
         self.assertIn("recompute=", ip)  # recompute modes present
         self.assertIn("maplibre_proto/maplibre_prototype.html?kind=", ip)  # MapLibre ceiling stress
         self.assertIn("ambito,licence,admin", ip)  # matched 3-layer set
+
+
+class IpadOnePageController(unittest.TestCase):
+    """The research-only iPad controller: foreground-only, fail-closed, attested,
+    and built from the SAME shared matrix as the laptop runner."""
+
+    def test_controller_files_exist(self):
+        for f in ("ipad_controller.html", "mobile_controller_core.mjs", "suite.mjs"):
+            self.assertTrue(os.path.exists(os.path.join(DH, f)), f"missing {f}")
+
+    def test_controller_runs_pages_in_the_foreground_not_hidden(self):
+        html = read(os.path.join(DH, "ipad_controller.html"))
+        # foreground visible navigation only — no hidden iframes / background tabs
+        self.assertNotIn("<iframe", html.lower())
+        self.assertNotIn("window.open", html)
+        self.assertIn("location.assign", html)  # top-level navigation per scenario
+
+    def test_controller_requires_physical_attestation(self):
+        html = read(os.path.join(DH, "ipad_controller.html"))
+        self.assertIn("attest", html)
+        core = read(os.path.join(DH, "mobile_controller_core.mjs"))
+        # device-grade requires attestation AND must say it is not inferred from UA
+        self.assertIn("physically_attested", core)
+        self.assertIn("not used to infer the device", core.replace("NOT", "not"))
+        self.assertIn("ipadDeviceGradeOf", core)
+
+    def test_controller_shares_the_single_matrix_and_grade_logic(self):
+        core = read(os.path.join(DH, "mobile_controller_core.mjs"))
+        self.assertIn("./suite.mjs", core)
+        self.assertIn("./grade.mjs", core)  # reuses the fail-closed GPU predicates
+        self.assertIn("buildSuite", core)
+
+    def test_controller_is_fail_closed_on_timeouts_and_errors(self):
+        core = read(os.path.join(DH, "mobile_controller_core.mjs"))
+        # a watchdog/error handoff → incomplete, never skipped; export keeps it
+        self.assertIn("incomplete", core)
+        self.assertIn("reconcileOnResume", core)
+        # the rum.js bridge arms an independent watchdog guarded by the ctrl param
+        rum = read(os.path.join(DH, "rum.js"))
+        self.assertIn("k12ctl", rum)
+        self.assertIn("watchdog", rum)
+
+    def test_preserved_windows_observation_is_partial_not_validation(self):
+        win = read_result(os.path.join("windows", "K12_Windows_Prueba1.json"))
+        # preserved unchanged: a device-grade but INCOMPLETE run, never promoted
+        self.assertTrue(win["is_device_grade"])
+        self.assertFalse(win["complete"])
+        self.assertFalse(win["comparable"])
+        self.assertNotEqual(win["run_kind"], "DEVICE_VALIDATION")
+        self.assertEqual(win["obtained_scenarios"], 37)
+        self.assertEqual(win["expected_scenarios"], 38)
 
 
 if __name__ == "__main__":

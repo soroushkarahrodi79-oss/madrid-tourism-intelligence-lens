@@ -177,6 +177,9 @@
     result.total_harness_ms = Math.round(performance.now() - started);
     global.__K12__ = result;
     renderButton(result);
+    // Optional one-shot hook for the iPad controller bridge (below). Never set on
+    // the Playwright or manual single-page paths, so those are unaffected.
+    try { if (typeof global.__K12_HANDOFF__ === "function") global.__K12_HANDOFF__(result); } catch (e) {}
     return result;
   }
 
@@ -203,4 +206,55 @@
   }
 
   global.K12RUM = { run, stats, nextPaint, glRenderer };
+
+  // ── iPad one-page controller bridge ─────────────────────────────────────────
+  //
+  // Active ONLY when the page URL carries `k12ctl=1` (set exclusively by
+  // ipad_controller.html via mobile_controller_core.buildScenarioUrl). On the
+  // Playwright runner and on a manually-opened single harness URL this block is
+  // inert, so the measurement itself is never altered.
+  //
+  // When active it does two things, both FAIL-CLOSED:
+  //   1. on a completed measurement, hand the result back to the controller
+  //      (localStorage) and return to the controller page;
+  //   2. arm an INDEPENDENT watchdog so that if this scenario never completes
+  //      (e.g. the 10 000-polygon Leaflet case), it hands back an explicit error
+  //      and returns — the scenario is recorded INCOMPLETE, never silently
+  //      skipped, and prior measurements (held in the controller's session, which
+  //      this page never writes) are untouched.
+  //
+  // The handoff key mirrors mobile_controller_core.STORAGE.handoff.
+  try {
+    if (typeof document !== "undefined" && typeof location !== "undefined") {
+      const CQ = new URLSearchParams(location.search);
+      if (CQ.get("k12ctl") === "1") {
+        const HANDOFF_KEY = "k12:controller:handoff";
+        const idx = Number(CQ.get("k12idx"));
+        const id = CQ.get("k12id") || "";
+        const ret = CQ.get("k12ret") || "";
+        const timeoutMs = Number(CQ.get("k12timeout")) || 150000;
+        let returned = false;
+
+        const writeAndReturn = (envelope) => {
+          if (returned) return;
+          returned = true;
+          try { global.localStorage.setItem(HANDOFF_KEY, JSON.stringify(envelope)); } catch (e) {}
+          if (ret) location.replace(ret);
+        };
+
+        // (1) completion handoff
+        global.__K12_HANDOFF__ = (result) => writeAndReturn({ idx, id, result });
+
+        // (2) independent watchdog — fires even if the measurement promise never
+        //     resolves (as long as the main thread yields). Fail-closed.
+        global.setTimeout(() => {
+          if (returned || global.__K12__) return;
+          writeAndReturn({
+            idx, id,
+            error: `controller watchdog timeout (${timeoutMs} ms) — scenario did not complete`,
+          });
+        }, timeoutMs);
+      }
+    }
+  } catch (e) {}
 })(typeof window !== "undefined" ? window : globalThis);

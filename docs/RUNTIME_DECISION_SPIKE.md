@@ -506,11 +506,33 @@ gate to PASS:
    generic), a real UA, your `--label`, a real channel, AND headed — inspect
    `device_grade_basis` and `launch` in the output. Confirm `is_device_grade:true`,
    `complete:true` and `comparable:true`, then commit `results/device_run_full.json`.
-2. **iPad (physical, Safari):** follow `device_harness/IPAD.md` — serve the repo
-   (`python3 -m http.server`), open each harness URL in Safari, tap **download
-   JSON**, transfer the files back. iPad **cannot** run Playwright; this manual
-   path is the only device-grade iPad route. A desktop browser in an iPad
-   viewport is **not** a substitute and must not be recorded as iPad.
+2. **iPad (physical, Safari):** serve the repo from the laptop
+   (`python -m http.server 8000`) and open the **one-page controller** in iPad
+   Safari:
+   ```
+   http://<laptop-lan-ip>:8000/research/runtime_spike/device_harness/ipad_controller.html
+   ```
+   It runs the **same** 38-scenario matrix (from the shared `device_harness/suite.mjs`,
+   so it cannot drift from the laptop run), one visible foreground page at a time,
+   preserves every measurement between navigations, resumes after interruption, and
+   exports **one** consolidated JSON in the same shape as the laptop runner. It
+   **fails closed**: a timed-out or errored scenario (e.g. 10 000 polygons) is
+   recorded INCOMPLETE, never skipped, and never destroys prior measurements; and it
+   requires an explicit **physical-device attestation** — a real iPad is not inferred
+   from the user-agent. The older one-URL-per-scenario walk in
+   [`device_harness/IPAD.md`](../research/runtime_spike/device_harness/IPAD.md) remains
+   valid as a fallback. iPad **cannot** run Playwright; these manual paths are the
+   only device-grade iPad routes. A desktop browser in an iPad viewport is **not** a
+   substitute and must not be recorded as iPad.
+
+   > **First physical observation (Windows, PARTIAL).** The first real device run
+   > exists and is preserved unchanged at
+   > [`results/windows/K12_Windows_Prueba1.json`](../research/runtime_spike/results/windows/K12_Windows_Prueba1.json)
+   > (Win 11 / Chrome 154 / Intel UHD 620, device-grade hardware). It completed
+   > **37/38** scenarios; Leaflet at 10 000 polygons timed out at 120 s while MapLibre
+   > completed, so the runner correctly reported `complete:false`, `comparable:false` —
+   > **not** a DEVICE_VALIDATION. See `results/windows/README.md`. The gate stays
+   > PARTIAL; one Windows run where all 38 scenarios complete is still required.
 3. For each run record: device, OS, browser, viewport, cold vs warm cache,
    network, repetitions, median, p95 (the harness records all of these).
 4. Read the Leaflet ceiling crossing (§4.2) and evaluate B's trigger (§6.3).
