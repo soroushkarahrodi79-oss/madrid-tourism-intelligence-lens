@@ -117,18 +117,20 @@ and the one-page iPad controller `../../device_harness/ipad_controller.html`).
 ## Recommended follow-up (bounded — do NOT rerun the whole suite)
 
 The 37 completed scenarios are valid physical observations and should be kept. The
-only missing cell is Leaflet `polygon/10000`. A scientifically sufficient follow-up
-is a **single targeted re-measurement of that one pair**, not the full 38-scenario
-matrix:
+only missing cell is Leaflet `polygon/10000`. The `--suite=smoke`/`--suite=full`
+CLI has no single-pair option, so the **bounded** way to probe exactly that cell —
+without re-running the other 37 — is to open the two 10 000-polygon harness pages
+directly in the real browser and watch whether Leaflet ever reports a result:
 
 ```
-node research/runtime_spike/device_harness/run_device.mjs --suite=smoke \
-     --channel=chrome --headed --label="Mi ordenador Windows fisico Chrome"
+# with the repo served (python -m http.server 8000 from the repo root):
+http://127.0.0.1:8000/research/runtime_spike/device_harness/leaflet_ceiling.html?kind=polygon&count=10000&auto=1&device_label=win-probe
+http://127.0.0.1:8000/research/runtime_spike/maplibre_proto/maplibre_prototype.html?kind=polygon&count=10000&auto=1&device_label=win-probe
 ```
 
-If the Leaflet 10 000-polygon case must be confirmed specifically, raise the harness
-readiness timeout for that one run and expect it to either complete slowly or time
-out again — a repeated timeout is itself the finding (Leaflet cannot render 10 000
-polygons interactively on this GPU). Either way, treat the result as a **second
-partial observation**; a Windows DEVICE_VALIDATION still requires one run where all
-38 scenarios complete and every pair is comparable.
+Expect Leaflet to either settle very slowly or never produce the on-screen JSON — a
+repeated failure to complete is itself the finding (Leaflet cannot render 10 000
+polygons interactively on this GPU); do not fabricate a number for it. A Windows
+**DEVICE_VALIDATION** still requires one `--suite=full` run where all 38 scenarios
+complete and every pair is comparable; re-running the full suite is the only path to
+that verdict, and the Leaflet 10 000-polygon case is the cell at risk.
