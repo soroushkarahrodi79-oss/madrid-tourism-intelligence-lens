@@ -48,6 +48,9 @@ const FULL = Object.freeze({
   timestep: "15:00",
   stayKind: "all",
   originMonth: "2024-06",
+  licenceWindow: { from: "2025-01-01", to: "2025-12-31" },
+  hospitalityMetric: "core_hospitality_premises_count",
+  hospitalityBarrio: "079604",
   scope: "AMBITO",
   ambitoA: "AOE.00.01",
   ambitoB: "API.03.11",
@@ -59,7 +62,17 @@ const FULL = Object.freeze({
 
 const KNOWN_CODES = ["AOE.00.01", "API.03.11", "APR.06.02"];
 const KNOWN_MONTHS = ["2024-05", "2024-06", "2024-07"];
-const PARSE_OPTS = { snapshotId: "20261015-1", knownAmbitoCodes: KNOWN_CODES, knownOriginMonths: KNOWN_MONTHS };
+const KNOWN_LICENCE_EXTENT = { min: "2024-01-01", max: "2026-06-30" };
+const KNOWN_HOSPITALITY_METRICS = ["core_hospitality_premises_count", "conditional_vut_pressure"];
+const KNOWN_HOSPITALITY_BARRIOS = ["079604", "079605"];
+const PARSE_OPTS = {
+  snapshotId: "20261015-1",
+  knownAmbitoCodes: KNOWN_CODES,
+  knownOriginMonths: KNOWN_MONTHS,
+  knownLicenceExtent: KNOWN_LICENCE_EXTENT,
+  knownHospitalityMetrics: KNOWN_HOSPITALITY_METRICS,
+  knownHospitalityBarrios: KNOWN_HOSPITALITY_BARRIOS,
+};
 
 function parseFull(overrides = {}) {
   return parseEvidenceState(serializeEvidenceState({ ...FULL, ...overrides }), PARSE_OPTS);
@@ -150,6 +163,66 @@ test("a malformed origin month degrades with a reason", () => {
   const result = parseEvidenceState("v=1&m=CITY&om=June2024", PARSE_OPTS);
   assert.equal(result.state.originMonth, undefined);
   assert.equal(result.issues.find((i) => i.dimension === "originMonth").code, REASON.INVALID_ORIGIN_MONTH);
+});
+
+// -------------------------------------------- licence grant-date window (#73 micro-gate)
+
+test("round-trip preserves the licence grant-date window (both bounds)", () => {
+  const state = parseFull().state;
+  assert.deepEqual(state.licenceWindow, { from: "2025-01-01", to: "2025-12-31" });
+  const other = parseFull({ licenceWindow: { from: "2024-06-01", to: "2026-06-30" } }).state;
+  assert.deepEqual(other.licenceWindow, { from: "2024-06-01", to: "2026-06-30" });
+});
+
+test("a licence window outside the register extent is a stated partial restore, not a silent clamp", () => {
+  const result = parseEvidenceState("v=1&ly=licences&lw=2020-01-01,2025-12-31", PARSE_OPTS);
+  assert.equal(result.outcome, OUTCOME.PARTIAL);
+  assert.equal(result.state.licenceWindow, undefined);
+  assert.equal(result.issues.find((i) => i.dimension === "licenceWindow").code, REASON.INVALID_LICENCE_WINDOW);
+});
+
+test("a reversed or malformed licence window degrades with a reason, never half-open", () => {
+  for (const raw of ["2025-12-31,2025-01-01", "2025-01-01", "not-a-date,2025-12-31"]) {
+    const result = parseEvidenceState(`v=1&ly=licences&lw=${raw}`, PARSE_OPTS);
+    assert.equal(result.state.licenceWindow, undefined, raw);
+    assert.equal(result.issues.find((i) => i.dimension === "licenceWindow").code, REASON.INVALID_LICENCE_WINDOW, raw);
+  }
+});
+
+test("a licence window is format-checked even without the live extent", () => {
+  const ok = parseEvidenceState("v=1&lw=2025-01-01,2025-06-30", { snapshotId: "x" });
+  assert.deepEqual(ok.state.licenceWindow, { from: "2025-01-01", to: "2025-06-30" });
+  const bad = parseEvidenceState("v=1&lw=2025-13-40,2025-06-30", { snapshotId: "x" });
+  assert.equal(bad.state.licenceWindow, undefined);
+});
+
+// -------------------------------------------- hospitality metric + barrio (#73 micro-gate)
+
+test("round-trip preserves the hospitality metric and selected barrio", () => {
+  const state = parseFull().state;
+  assert.equal(state.hospitalityMetric, "core_hospitality_premises_count");
+  assert.equal(state.hospitalityBarrio, "079604");
+});
+
+test("an unknown hospitality metric is a stated partial restore", () => {
+  const result = parseEvidenceState("v=1&ly=hospitality&hm=not_a_metric", PARSE_OPTS);
+  assert.equal(result.outcome, OUTCOME.PARTIAL);
+  assert.equal(result.state.hospitalityMetric, undefined);
+  assert.equal(result.issues.find((i) => i.dimension === "hospitalityMetric").code, REASON.UNKNOWN_HOSPITALITY_METRIC);
+});
+
+test("an unknown hospitality barrio is a stated partial restore, never silently adopted", () => {
+  const result = parseEvidenceState("v=1&ly=hospitality&hb=999999", PARSE_OPTS);
+  assert.equal(result.outcome, OUTCOME.PARTIAL);
+  assert.equal(result.state.hospitalityBarrio, undefined);
+  assert.equal(result.issues.find((i) => i.dimension === "hospitalityBarrio").code, REASON.UNKNOWN_HOSPITALITY_BARRIO);
+});
+
+test("hospitality metric and barrio are accepted structurally when no live vocabulary is supplied", () => {
+  const result = parseEvidenceState("v=1&hm=core_hospitality_premises_count&hb=079604", { snapshotId: "x" });
+  assert.equal(result.outcome, OUTCOME.EXACT);
+  assert.equal(result.state.hospitalityMetric, "core_hospitality_premises_count");
+  assert.equal(result.state.hospitalityBarrio, "079604");
 });
 
 test("round-trip preserves reading and language", () => {

@@ -811,3 +811,175 @@ test("CITY dynamics shared-origin rows match the rendered table and preserve sup
     await close(page);
   }
 });
+
+// ============================================================================
+// FINAL REPRODUCIBILITY MICRO-GATE (#73) — evidence-changing controls round-trip
+// ============================================================================
+
+// Gate 1a: the licence grant-date window shapes the displayed evidence, so a
+// shared link must restore the SAME window AND the same displayed per-family
+// counts in a fresh context.
+test("the licence grant-date window round-trips: selected window and displayed counts match after restore", async () => {
+  const page = await newPage();
+  try {
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("PLACE"));
+    await seam(page, ([la, lo]) => window.__HALO_REGRESSION__.moveLensToLatLng("A", la, lo), [40.4165, -3.7026]);
+    const state = await seam(page, () => window.__HALO_REGRESSION__.enableLicences());
+    assert.equal(state, "ready", "the licence register loaded (otherwise this deployment cannot exercise the gate)");
+    const base = await seam(page, () => window.__HALO_REGRESSION__.licenceSnapshot());
+    // A non-default window: the full register extent (the default is a trailing window).
+    await seam(page, ([f, t]) => window.__HALO_REGRESSION__.setLicenceWindow(f, t), [base.extent.min, base.extent.max]);
+    const src = await seam(page, () => window.__HALO_REGRESSION__.licenceSnapshot());
+    assert.deepEqual(src.window, { from: base.extent.min, to: base.extent.max }, "the non-default window applied");
+    const url = await seam(page, () => window.__HALO_REGRESSION__.k11Url());
+    assert.ok(url.includes("lw="), "the URL carries the licence window");
+
+    const restored = await restorePage(url.slice(url.indexOf("?")));
+    try {
+      await restored.waitForFunction(() => {
+        const snap = window.__HALO_REGRESSION__.licenceSnapshot();
+        return snap.window && snap.window.from && snap.state && snap.state !== "OFF";
+      }).catch(() => {});
+      const tgt = await seam(restored, () => window.__HALO_REGRESSION__.licenceSnapshot());
+      assert.deepEqual(tgt.window, src.window, "the restored window matches the shared one");
+      assert.deepEqual(tgt.perFamily, src.perFamily, "the displayed per-family counts match after restore");
+      const notice = await seam(restored, () => window.__HALO_REGRESSION__.k11NoticeState());
+      assert.equal(notice.hidden, true, "a valid in-extent window restores EXACT, with no partial notice");
+    } finally {
+      await close(restored);
+    }
+  } finally {
+    await close(page);
+  }
+});
+
+// Gate 1a (negative): a window outside the register extent is a stated PARTIAL,
+// never a silent clamp to a different window.
+test("a shared licence window outside the register extent states a partial restore", async () => {
+  const page = await restorePage("?v=1&m=PLACE&ly=licences&lw=1900-01-01,1900-12-31");
+  try {
+    await page.waitForFunction(() => {
+      const n = window.__HALO_REGRESSION__.k11NoticeState();
+      return n && n.hidden === false;
+    }).catch(() => {});
+    const notice = await seam(page, () => window.__HALO_REGRESSION__.k11NoticeState());
+    assert.equal(notice.hidden, false, "an out-of-extent window is surfaced as a partial restore");
+    // and the window was NOT silently adopted as 1900
+    const snap = await seam(page, () => window.__HALO_REGRESSION__.licenceSnapshot());
+    assert.ok(!snap.window || snap.window.from !== "1900-01-01", "the out-of-extent window was not adopted");
+  } finally {
+    await close(page);
+  }
+});
+
+// Gate 1b: the hospitality metric and selected barrio round-trip, with the
+// displayed barrio name and indicator value matching after restore.
+test("hospitality metric and selected barrio round-trip, with the displayed value matching after restore", async () => {
+  const page = await newPage();
+  try {
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("PLACE"));
+    const st = await seam(page, () => window.__HALO_REGRESSION__.enableHospitality());
+    assert.equal(st, "ready", "hospitality context loaded (otherwise this deployment cannot exercise the gate)");
+    const snap0 = await seam(page, () => window.__HALO_REGRESSION__.hospitalitySnapshot());
+    assert.ok(snap0.sampleBarrio, "a real barrio id is available to select");
+    await seam(page, (b) => window.__HALO_REGRESSION__.selectHospitalityBarrio(b), snap0.sampleBarrio);
+    const src = await seam(page, () => window.__HALO_REGRESSION__.hospitalitySnapshot());
+    const url = await seam(page, () => window.__HALO_REGRESSION__.k11Url());
+    assert.ok(url.includes("hb="), "the URL carries the selected barrio");
+    assert.ok(url.includes("hm="), "the URL carries the hospitality metric");
+
+    const restored = await restorePage(url.slice(url.indexOf("?")));
+    try {
+      await restored.waitForFunction((b) => {
+        const snap = window.__HALO_REGRESSION__.hospitalitySnapshot();
+        return snap.state === "ready" && snap.barrio === b;
+      }, src.barrio).catch(() => {});
+      const tgt = await seam(restored, () => window.__HALO_REGRESSION__.hospitalitySnapshot());
+      assert.equal(tgt.barrio, src.barrio, "the restored barrio matches the shared one");
+      assert.equal(tgt.metric, src.metric, "the restored metric matches the shared one");
+      assert.equal(tgt.areaName, src.areaName, "the displayed barrio name matches after restore");
+      assert.equal(tgt.value, src.value, "the displayed hospitality value matches after restore");
+      const notice = await seam(restored, () => window.__HALO_REGRESSION__.k11NoticeState());
+      assert.equal(notice.hidden, true, "a valid metric + barrio restores EXACT, with no partial notice");
+    } finally {
+      await close(restored);
+    }
+  } finally {
+    await close(page);
+  }
+});
+
+// Gate 1b (negative): an unknown barrio in a shared link is a stated PARTIAL,
+// never silently adopted.
+test("a shared link with an unknown hospitality barrio states a partial restore", async () => {
+  const page = await restorePage("?v=1&m=PLACE&ly=hospitality&hb=999999");
+  try {
+    await page.waitForFunction(() => window.__HALO_REGRESSION__.hospitalitySnapshot().state === "ready").catch(() => {});
+    await page.waitForFunction(() => {
+      const n = window.__HALO_REGRESSION__.k11NoticeState();
+      return n && n.hidden === false;
+    }).catch(() => {});
+    const notice = await seam(page, () => window.__HALO_REGRESSION__.k11NoticeState());
+    assert.equal(notice.hidden, false, "an unknown barrio is surfaced as a partial restore");
+    const snap = await seam(page, () => window.__HALO_REGRESSION__.hospitalitySnapshot());
+    assert.notEqual(snap.barrio, "999999", "the unknown barrio was not adopted");
+  } finally {
+    await close(page);
+  }
+});
+
+// Gate 2: the newly-present and no-longer-present dynamics collections are
+// transcribed, matching the rendered detail tables, for a non-default month;
+// the absent side is never a fabricated number.
+test("CITY dynamics newly-present and no-longer-present rows match the rendered tables, for a non-default month", async () => {
+  const page = await newPage();
+  try {
+    await page.waitForFunction(() => document.getElementById("destinationContext")?.dataset.state === "available");
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("CITY"));
+    await page.waitForFunction(() => document.querySelectorAll("#domesticOriginsMonth option").length > 0);
+    const months = await page.$$eval("#domesticOriginsMonth option", (os) => os.map((o) => o.value).filter(Boolean));
+    const current = await page.inputValue("#domesticOriginsMonth");
+    const candidate = months.find((m) => m !== current && m !== months[months.length - 1]) || months.find((m) => m !== current);
+    await page.selectOption("#domesticOriginsMonth", candidate);
+    await page.waitForFunction((m) => document.getElementById("domesticOriginsMonth").value === m, candidate);
+    // Wait for the rendered tables and the captured projection to agree.
+    await page.waitForFunction(() => {
+      const dom = document.querySelectorAll("#domesticOriginDynamicsNewlyRows tr").length
+        + document.querySelectorAll("#domesticOriginDynamicsNoLongerRows tr").length;
+      const projection = window.__HALO_REGRESSION__.k11Projection();
+      const exported = (projection && projection.values || []).filter((v) => v.id.startsWith("dynamics_newrow_") || v.id.startsWith("dynamics_gonerow_")).length;
+      return dom >= 0 && dom === exported;
+    });
+
+    const readRows = (sel) => page.$$eval(`${sel} tr`, (rows) => rows.map((r) => {
+      const tds = [...r.querySelectorAll("td")];
+      return { code: r.querySelector(".muted")?.textContent?.trim(), count: tds[1]?.textContent?.trim() };
+    }));
+    const newly = await readRows("#domesticOriginDynamicsNewlyRows");
+    const gone = await readRows("#domesticOriginDynamicsNoLongerRows");
+    const bundle = await seam(page, () => window.__HALO_REGRESSION__.k11Bundle());
+    const reading = JSON.parse(bundle.files.find((f) => f.name.startsWith("reading-")).text);
+    const newById = new Map(reading.values.filter((v) => v.id.startsWith("dynamics_newrow_")).map((v) => [v.id.replace("dynamics_newrow_", ""), v]));
+    const goneById = new Map(reading.values.filter((v) => v.id.startsWith("dynamics_gonerow_")).map((v) => [v.id.replace("dynamics_gonerow_", ""), v]));
+
+    assert.equal(newById.size, newly.length, "one exported newly-present value per rendered row");
+    assert.equal(goneById.size, gone.length, "one exported no-longer-present value per rendered row");
+    for (const row of newly) {
+      const v = newById.get(row.code);
+      assert.ok(v, `exported newly-present value exists for ${row.code}`);
+      assert.equal(v.display, row.count, `newly-present ${row.code}: exported current-month count matches the rendered table`);
+      assert.equal(v.previous_value, null, `newly-present ${row.code}: the absent previous side is null, never a fabricated zero`);
+      assert.equal(v.classification, "NEWLY_PRESENT_IN_PUBLISHED_SET");
+    }
+    for (const row of gone) {
+      const v = goneById.get(row.code);
+      assert.ok(v, `exported no-longer-present value exists for ${row.code}`);
+      assert.equal(v.display, row.count, `no-longer-present ${row.code}: exported previous-month count matches the rendered table`);
+      assert.equal(v.current_value, null, `no-longer-present ${row.code}: the absent current side is null, never a fabricated zero`);
+      assert.equal(v.classification, "NO_LONGER_PRESENT_IN_PUBLISHED_SET");
+    }
+    assert.ok(newly.length + gone.length >= 1, "the chosen non-default month exercises at least one transition row");
+  } finally {
+    await close(page);
+  }
+});

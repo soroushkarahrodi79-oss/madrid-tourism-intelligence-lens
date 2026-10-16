@@ -111,6 +111,9 @@ const REASON = Object.freeze({
   INVALID_TIMESTEP: "INVALID_TIMESTEP",
   INVALID_STAY_KIND: "INVALID_STAY_KIND",
   INVALID_ORIGIN_MONTH: "INVALID_ORIGIN_MONTH",
+  INVALID_LICENCE_WINDOW: "INVALID_LICENCE_WINDOW",
+  UNKNOWN_HOSPITALITY_METRIC: "UNKNOWN_HOSPITALITY_METRIC",
+  UNKNOWN_HOSPITALITY_BARRIO: "UNKNOWN_HOSPITALITY_BARRIO",
   INVALID_READING: "INVALID_READING",
   INVALID_LANGUAGE: "INVALID_LANGUAGE",
   INVALID_ACTIVE_LENS: "INVALID_ACTIVE_LENS",
@@ -123,8 +126,12 @@ const OUTCOME = Object.freeze({ EXACT: "EXACT", PARTIAL: "PARTIAL", REFUSED: "RE
 // Canonical key order. Serialization always emits present keys in this order so a
 // given reading maps to exactly ONE string (asserted by a determinism test).
 const KEY_ORDER = Object.freeze([
-  "v", "s", "m", "a", "b", "be", "al", "ly", "ts", "sk", "om", "sc", "aa", "ab", "fm", "fl", "rd", "lg", "bl", "bk",
+  "v", "s", "m", "a", "b", "be", "al", "ly", "ts", "sk", "om", "lw", "hm", "hb", "sc", "aa", "ab", "fm", "fl", "rd", "lg", "bl", "bk",
 ]);
+
+// An ISO calendar date, YYYY-MM-DD. Used by the licence grant-date window; the
+// app validates against the real register extent, this only guards the shape.
+const URL_ISO_DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 // ------------------------------------------------------------------ helpers
 
@@ -209,6 +216,16 @@ function serializeEvidenceState(state = {}) {
   if (state.stayKind != null && state.stayKind !== "") out.set("sk", String(state.stayKind));
   if (state.originMonth != null && state.originMonth !== "") out.set("om", String(state.originMonth));
 
+  // Licence grant-date window (sub-state of the licences layer): both bounds or
+  // neither — a half-open window would restore a DIFFERENT reading than shared.
+  if (state.licenceWindow && state.licenceWindow.from && state.licenceWindow.to) {
+    out.set("lw", `${state.licenceWindow.from},${state.licenceWindow.to}`);
+  }
+  // Hospitality metric selection and selected official barrio (sub-state of the
+  // hospitality layer). Visibility itself travels in `ly` (data-layer="hospitality").
+  if (state.hospitalityMetric != null && state.hospitalityMetric !== "") out.set("hm", String(state.hospitalityMetric));
+  if (state.hospitalityBarrio != null && state.hospitalityBarrio !== "") out.set("hb", String(state.hospitalityBarrio));
+
   out.set("sc", String(state.scope ?? "LENS"));
   if (state.scope === "AMBITO") {
     if (state.ambitoA) out.set("aa", String(state.ambitoA));
@@ -252,7 +269,9 @@ function recordIssue(issues, dimension, code, raw) {
 // parseEvidenceState(input, options) -> a structured restore result.
 //
 //   input:   a query string, a full URL, or a URLSearchParams.
-//   options: { snapshotId, knownAmbitoCodes, knownTimesteps, knownStayKinds }
+//   options: { snapshotId, knownAmbitoCodes, knownTimesteps, knownStayKinds,
+//              knownOriginMonths, knownLicenceExtent: {min,max},
+//              knownHospitalityMetrics, knownHospitalityBarrios }
 //            — the live vocabularies the pure model cannot know on its own. Each
 //            is optional; when omitted, that dimension is accepted structurally
 //            and left for the app to validate at apply time.
@@ -375,6 +394,48 @@ function parseEvidenceState(input, options = {}) {
       recordIssue(issues, "originMonth", REASON.INVALID_ORIGIN_MONTH, rawOriginMonth);
     } else {
       state.originMonth = rawOriginMonth;
+    }
+  }
+
+  // ---- licence grant-date window (sub-state of the licences layer) ----
+  // Format is guarded here; the real register extent is known only to the app,
+  // which validates against it at apply time (knownLicenceExtent when supplied).
+  // A window outside the extent, reversed, or half-open is a stated PARTIAL — it
+  // never silently clamps to a different window than the one shared.
+  const rawLw = params.get("lw");
+  if (rawLw != null && rawLw !== "") {
+    const parts = rawLw.split(",");
+    const from = parts[0];
+    const to = parts[1];
+    if (parts.length !== 2 || !URL_ISO_DATE.test(from) || !URL_ISO_DATE.test(to) || from > to) {
+      recordIssue(issues, "licenceWindow", REASON.INVALID_LICENCE_WINDOW, rawLw);
+    } else if (options.knownLicenceExtent && (from < options.knownLicenceExtent.min || to > options.knownLicenceExtent.max)) {
+      recordIssue(issues, "licenceWindow", REASON.INVALID_LICENCE_WINDOW, rawLw);
+    } else {
+      state.licenceWindow = { from, to };
+    }
+  }
+
+  // ---- hospitality metric selection (sub-state of the hospitality layer) ----
+  const rawHm = params.get("hm");
+  if (rawHm != null && rawHm !== "") {
+    if (options.knownHospitalityMetrics && !options.knownHospitalityMetrics.includes(rawHm)) {
+      recordIssue(issues, "hospitalityMetric", REASON.UNKNOWN_HOSPITALITY_METRIC, rawHm);
+    } else {
+      state.hospitalityMetric = rawHm;
+    }
+  }
+
+  // ---- hospitality selected official barrio ----
+  const rawHb = params.get("hb");
+  if (rawHb != null && rawHb !== "") {
+    const knownBarrios = options.knownHospitalityBarrios
+      ? (options.knownHospitalityBarrios instanceof Set ? options.knownHospitalityBarrios : new Set(options.knownHospitalityBarrios))
+      : null;
+    if (knownBarrios && !knownBarrios.has(rawHb)) {
+      recordIssue(issues, "hospitalityBarrio", REASON.UNKNOWN_HOSPITALITY_BARRIO, rawHb);
+    } else {
+      state.hospitalityBarrio = rawHb;
     }
   }
 

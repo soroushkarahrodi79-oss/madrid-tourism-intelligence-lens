@@ -36,6 +36,9 @@ wiring lives in the K11 block of `js/app.js`.
 | `ts` | heat (HATI) timestep | `15:00` |
 | `sk` | accommodation (stay-kind) filter | `hotel` |
 | `om` | domestic-origin source month (CITY) | `2024-06` |
+| `lw` | licence grant-date window `from,to` (both bounds) | `2025-01-01,2025-12-31` |
+| `hm` | hospitality metric selection | `core_hospitality_premises_count` |
+| `hb` | hospitality selected official barrio | `079604` |
 | `sc` | comparison scope | `LENS` · `AMBITO` |
 | `aa` | ámbito A — exact official code | `AOE.00.01` |
 | `ab` | ámbito B — exact official code | `API.03.11` |
@@ -76,6 +79,8 @@ with a reason code, and the rest of the reading still restores:
 | `UNKNOWN_METRIC` | a metric not valid in the current scope |
 | `INVALID_SCOPE` / `INVALID_MODE` / `INVALID_READING` / `INVALID_LANGUAGE` | an unsupported enum value |
 | `INVALID_BASELINE` / `INVALID_TIMESTEP` / `INVALID_STAY_KIND` | an invalid sub-state |
+| `INVALID_LICENCE_WINDOW` | a licence window reversed, half-open, or outside the register extent (it would clamp to a different window) → partial, never silently clamped |
+| `UNKNOWN_HOSPITALITY_METRIC` / `UNKNOWN_HOSPITALITY_BARRIO` | a hospitality indicator or barrio not in the published set |
 | `SNAPSHOT_MISMATCH` | the committed evidence snapshot has moved since the link was made |
 
 Three outcomes result: **EXACT** (every dimension restored), **PARTIAL** (some
@@ -86,8 +91,17 @@ Restoration respects the real initialisation order. Interface dimensions (mode,
 lenses, layers, language, reading, metric) restore once the map and operational
 layers are ready; the ámbito comparison and the sensitivity baseline restore once
 the planning index has loaded **or failed**, so an ámbito code is never rejected
-merely because its official geometry was still loading. Ordinary interaction uses
-`history.replaceState`, so dragging a Lens never pushes a browser-history entry.
+merely because its official geometry was still loading. The licence grant-date
+window, the domestic-origin month, and the hospitality metric/barrio are
+**layer/panel sub-states** that restore once their own artifact has loaded, each
+validated against the real loaded data — the licence window against the register
+extent (a window the model would clamp to a *different* one is reported, never
+silently substituted), the hospitality metric against the approved indicator ids,
+the barrio against the loaded barrio index. The hospitality layer's *visibility*
+itself travels in `ly` (it is `data-layer="hospitality"`), as does the licence
+layer's. Changing any of these controls updates the canonical URL via
+`history.replaceState`, so dragging a Lens — or retuning a window — never pushes a
+browser-history entry.
 
 ### 1.3 Interface vs evidence-snapshot reproducibility
 
@@ -158,6 +172,7 @@ with full per-value provenance:
 | hospitality / commercial indicator | PLACE | `hospitality_*` (actual unit, not null) |
 | domestic-origin monthly dynamics: summary counts | CITY | `dynamics_*` (`MUNICIPALITY`) |
 | domestic-origin **per shared-origin row**: previous/current counts, absolute & percent change | CITY | `dynamics_sharedrow_*` (`MUNICIPALITY`) |
+| domestic-origin **newly-present / no-longer-present rows**: the single published count, its month, and the published-set classification (absent side `null`, never zero) | CITY | `dynamics_newrow_*`, `dynamics_gonerow_*` (`MUNICIPALITY`) |
 | spatial-window sensitivity (delta carries its actual unit) | COMPARE | `sensitivity_*` (`LENS_CIRCLE`, interpretive) |
 
 Each is read from the **same frozen model the surface rendered** — the area

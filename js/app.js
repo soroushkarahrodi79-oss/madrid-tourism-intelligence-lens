@@ -1472,6 +1472,46 @@ if (haloRegressionRequested && haloRegressionLocal) {
       const record = licenceModel.index && licenceModel.index.records.find((r) => r.id === id);
       return record ? licencePopupHtml(record) : null;
     },
+    // Hospitality seams (K11 #73 micro-gate): drive the metric + barrio controls
+    // deterministically so a browser contract can prove the selection round-trips
+    // without a brittle canvas click. They go through the real handlers.
+    async enableHospitality() {
+      setHospitalityVisible(true);
+      for (let i = 0; i < 400 && hospitalityState === "loading"; i += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      return hospitalityState;
+    },
+    setHospitalityMetric(id) {
+      const select = document.getElementById("hospitalityMetricSelect");
+      if (select) { select.value = id; if (typeof select.onchange === "function") select.onchange({ target: select }); }
+      return hospitalityMetric;
+    },
+    selectHospitalityBarrio(officialId) {
+      hospitalitySelectedBarrio = officialId == null ? null : String(officialId);
+      if (typeof applyHospitalityStyles === "function") applyHospitalityStyles();
+      renderHospitalityContext();
+      k11ScheduleUrlCommit();
+      return hospitalitySelectedBarrio;
+    },
+    hospitalitySnapshot() {
+      let sampleBarrio = null;
+      try {
+        if (hospitalityModel.index && hospitalityModel.index.barrio) {
+          sampleBarrio = [...hospitalityModel.index.barrio.keys()][0] || null;
+        }
+      } catch (error) { sampleBarrio = null; }
+      return {
+        state: hospitalityState,
+        visible: hospitalityVisible,
+        metric: hospitalityMetric,
+        barrio: hospitalitySelectedBarrio,
+        areaName: document.getElementById("hospitalityAreaName")?.textContent?.trim() || null,
+        value: document.getElementById("hospitalityValue")?.textContent?.trim() || null,
+        unit: document.getElementById("hospitalityUnit")?.textContent?.trim() || null,
+        sampleBarrio,
+      };
+    },
     setZoom(zoom) {
       map.setZoom(Number(zoom), { animate: false });
     },
@@ -3861,6 +3901,9 @@ async function loadLicenceContext() {
   }
   renderUrbanLicences();
   renderScopeRail();
+  // K11 (#73): once the register is ready, apply a shared grant-date window (if the
+  // restore link carried one). Guarded + one-shot, so a manual enable is unaffected.
+  if (typeof k11ApplyLicenceWindowRestore === "function") k11ApplyLicenceWindowRestore();
 }
 
 function isLicencesVisible() {
@@ -3913,6 +3956,9 @@ function applyLicenceWindowFromInputs() {
   }
   renderUrbanLicences();
   renderScopeRail();
+  // K11 (#73): the grant-date window shapes the displayed evidence, so a change
+  // updates the canonical URL (replaceState, coalesced to one write per frame).
+  if (typeof k11ScheduleUrlCommit === "function") k11ScheduleUrlCommit();
 }
 
 function licenceView() {
@@ -4308,10 +4354,11 @@ function rebuildHospitalityLayer() {
             hospitalitySelectedBarrio = String(feature.properties.official_id);
             if (event.latlng) {
               lenses[active].marker.setLatLng(event.latlng);
-              refresh();
+              refresh(); // commits the URL (incl. the new barrio) via k11ScheduleUrlCommit
             }
             applyHospitalityStyles();
             renderHospitalityContext();
+            k11ScheduleUrlCommit(); // ensure the selected barrio reaches the URL even without a lens move
           },
         });
       },
@@ -4490,6 +4537,9 @@ async function loadHospitalityContext() {
     if (hospitalityState !== "ready") {
       console.warn("hospitality context unavailable: artifact or canonical geography failed validation");
     }
+    // K11 (#73): once hospitality is ready, restore a shared metric/barrio (if the
+    // restore link carried one). Guarded + one-shot; a manual enable is unaffected.
+    if (typeof k11ApplyHospitalityRestore === "function") k11ApplyHospitalityRestore();
   } catch (error) {
     hospitalityState = "unavailable";
     document.getElementById("hospitalityMetricSelect").disabled = true;
@@ -4748,7 +4798,14 @@ function renderDomesticOriginDynamics() {
   // tourist counts with the model's own absolute and percent change). One
   // computation (line above), reused; the export never recompares the months.
   if (typeof k11 !== "undefined") {
-    k11.cityDynamics = ready ? { summary: model.summary, shared: model.shared, currentMonth: model.currentMonth, previousMonth: model.previousMonth } : null;
+    k11.cityDynamics = ready ? {
+      summary: model.summary,
+      shared: model.shared,
+      newlyPresent: model.newlyPresent,
+      noLongerPresent: model.noLongerPresent,
+      currentMonth: model.currentMonth,
+      previousMonth: model.previousMonth,
+    } : null;
   }
   setText("domesticOriginDynamicsHeading", dynamicsT("heading"));
   setText("domesticOriginDynamicsRelationship", model.currentMonth && model.previousMonth ? dynamicsT("relationship", { current: model.currentMonth, previous: model.previousMonth }) : "");
@@ -5070,11 +5127,13 @@ document.getElementById("hospitalityMetricSelect").onchange = (event) => {
   setText("hospitalityMetricSelectValue", hospitalityT(hospitalityMetric));
   applyHospitalityStyles();
   renderHospitalityContext();
+  k11ScheduleUrlCommit();
 };
 document.getElementById("hospitalityClearSelection").onclick = () => {
   hospitalitySelectedBarrio = null;
   applyHospitalityStyles();
   renderHospitalityContext();
+  k11ScheduleUrlCommit();
 };
 // The per-section "Source & interpretation" toggles are openers for the ONE
 // evidence drawer, which holds the generated provenance lines at every breakpoint.
@@ -6544,6 +6603,9 @@ const K11_COPY = Object.freeze({
     "reason.INVALID_STAY_KIND": "an unknown accommodation filter",
     "reason.INVALID_ORIGIN_MONTH": "a domestic-origin month not in the published set",
     "reason.ORIGIN_UNAVAILABLE": "the domestic-origin source month (its data is unavailable in this deployment)",
+    "reason.INVALID_LICENCE_WINDOW": "a licence grant-date window outside the register (it would have been clamped to a different window)",
+    "reason.UNKNOWN_HOSPITALITY_METRIC": "an unknown hospitality indicator",
+    "reason.UNKNOWN_HOSPITALITY_BARRIO": "a hospitality barrio not in the published set",
     "reason.INVALID_READING": "an unknown reading preference",
     "reason.INVALID_LANGUAGE": "an unknown language",
     "reason.INVALID_ACTIVE_LENS": "an unknown active Lens",
@@ -6580,6 +6642,9 @@ const K11_COPY = Object.freeze({
     "reason.INVALID_STAY_KIND": "un filtro de alojamiento desconocido",
     "reason.INVALID_ORIGIN_MONTH": "un mes de origen nacional que no está en el conjunto publicado",
     "reason.ORIGIN_UNAVAILABLE": "el mes de origen nacional (sus datos no están disponibles en este despliegue)",
+    "reason.INVALID_LICENCE_WINDOW": "una ventana de fechas de licencia fuera del registro (se habría ajustado a una ventana distinta)",
+    "reason.UNKNOWN_HOSPITALITY_METRIC": "un indicador de hostelería desconocido",
+    "reason.UNKNOWN_HOSPITALITY_BARRIO": "un barrio de hostelería que no está en el conjunto publicado",
     "reason.INVALID_READING": "una preferencia de lectura desconocida",
     "reason.INVALID_LANGUAGE": "un idioma desconocido",
     "reason.INVALID_ACTIVE_LENS": "una Lente activa desconocida",
@@ -6643,6 +6708,17 @@ function k11CurrentState() {
   if (isHatiVisible()) state.timestep = timestep;
   if (stayKindFilter && stayKindFilter !== "all") state.stayKind = stayKindFilter;
   if (typeof originMonth !== "undefined" && originMonth) state.originMonth = originMonth;
+  // Licence grant-date window — carried only while the licences layer is on, since
+  // the window only shapes evidence when the layer is shown. Both bounds or none.
+  if (typeof isLicencesVisible === "function" && isLicencesVisible() && licenceWindow && licenceWindow.from && licenceWindow.to) {
+    state.licenceWindow = { from: licenceWindow.from, to: licenceWindow.to };
+  }
+  // Hospitality metric + selected barrio — carried only while the hospitality
+  // layer is on (its visibility itself travels in the layers list).
+  if (typeof hospitalityVisible !== "undefined" && hospitalityVisible) {
+    if (hospitalityMetric) state.hospitalityMetric = hospitalityMetric;
+    if (hospitalitySelectedBarrio) state.hospitalityBarrio = hospitalitySelectedBarrio;
+  }
   if (scope === "AMBITO" && typeof ambitoCompare !== "undefined") {
     if (ambitoCompare.a) state.ambitoA = ambitoCompare.a;
     if (ambitoCompare.b) state.ambitoB = ambitoCompare.b;
@@ -6900,6 +6976,100 @@ function k11ApplyOriginMonthRestore() {
   k11RenderNotice(k11InitialRestore || result);
 }
 
+// Restore the shared licence grant-date window once the licences artifact has
+// loaded. The window is validated against the real register extent: a window
+// outside the extent, reversed, or that the model would clamp to a DIFFERENT
+// window is a stated PARTIAL restore, never a silent substitution. Runs once.
+function k11ApplyLicenceWindowRestore() {
+  if (!k11HasSharedState() || k11.refused || k11.licenceWindowRestored) return;
+  if (!/[?&]lw=/.test(K11_ORIGINAL_SEARCH)) return; // link carried no window
+  if (!licenceModel.index) return; // artifact not ready yet; a later call will apply it
+  k11.licenceWindowRestored = true;
+  const extent = licenceModel.index.dateExtent;
+  const result = parseEvidenceState(K11_ORIGINAL_SEARCH, {
+    snapshotId: K11_SNAPSHOT_ID,
+    knownLicenceExtent: extent ? { min: extent.min, max: extent.max } : undefined,
+  });
+  const requested = result.state && result.state.licenceWindow;
+  if (requested && requested.from && requested.to) {
+    const clamped = licenceModel.index.clampWindow(requested.from, requested.to);
+    // The model clamped the shared window to a different one: the restored reading
+    // is NOT the one that was shared, so report PARTIAL rather than apply silently.
+    if (!clamped.valid || clamped.from !== requested.from || clamped.to !== requested.to) {
+      k11.licenceWindowIssue = { dimension: "licenceWindow", code: "INVALID_LICENCE_WINDOW" };
+    } else {
+      k11.suppress = true;
+      try {
+        licenceWindow = { from: clamped.from, to: clamped.to };
+        const fromEl = document.getElementById("licFrom");
+        const toEl = document.getElementById("licTo");
+        if (fromEl) fromEl.value = licenceWindow.from;
+        if (toEl) toEl.value = licenceWindow.to;
+        renderUrbanLicences();
+      } catch (error) {
+        console.warn("K11 licence-window restore incomplete", error);
+      } finally {
+        k11.suppress = false;
+        k11CommitUrlState();
+      }
+    }
+  } else {
+    // Present in the link but malformed or out of extent (the pure parser rejected it).
+    const issue = (result.issues || []).find((i) => i.dimension === "licenceWindow");
+    if (issue) k11.licenceWindowIssue = issue;
+  }
+  if (k11.licenceWindowIssue) k11RenderNotice(k11InitialRestore || result);
+}
+
+// Restore the shared hospitality metric and selected official barrio once the
+// hospitality artifact has loaded. The metric is validated against the approved
+// indicator ids and the barrio against the loaded barrio index; an unknown metric
+// or barrio is a stated PARTIAL restore, never silently dropped. Runs once.
+function k11ApplyHospitalityRestore() {
+  if (!k11HasSharedState() || k11.refused || k11.hospitalityRestored) return;
+  if (!/[?&](hm|hb)=/.test(K11_ORIGINAL_SEARCH)) return; // link carried neither
+  if (!hospitalityModel.module || hospitalityState !== "ready") return; // not ready yet
+  k11.hospitalityRestored = true;
+  const metrics = hospitalityModel.module.APPROVED_INDICATOR_IDS || null;
+  let barrios = null;
+  try {
+    if (hospitalityModel.index && hospitalityModel.index.barrio && typeof hospitalityModel.index.barrio.keys === "function") {
+      barrios = new Set(hospitalityModel.index.barrio.keys());
+    }
+  } catch (error) { barrios = null; }
+  const result = parseEvidenceState(K11_ORIGINAL_SEARCH, {
+    snapshotId: K11_SNAPSHOT_ID,
+    knownHospitalityMetrics: metrics || undefined,
+    knownHospitalityBarrios: barrios || undefined,
+  });
+  const s = (result.ok && result.state) || {};
+  k11.suppress = true;
+  try {
+    if (s.hospitalityMetric && (!metrics || metrics.includes(s.hospitalityMetric))) {
+      hospitalityMetric = s.hospitalityMetric;
+      const select = document.getElementById("hospitalityMetricSelect");
+      if (select) select.value = hospitalityMetric;
+      setText("hospitalityMetricSelectValue", hospitalityT(hospitalityMetric));
+    }
+    if (s.hospitalityBarrio && (!barrios || barrios.has(s.hospitalityBarrio))) {
+      hospitalitySelectedBarrio = s.hospitalityBarrio;
+    }
+    if (typeof applyHospitalityStyles === "function") applyHospitalityStyles();
+    renderHospitalityContext();
+  } catch (error) {
+    console.warn("K11 hospitality restore incomplete", error);
+  } finally {
+    k11.suppress = false;
+    k11CommitUrlState();
+  }
+  // Surface any dimension the link carried but the live vocabulary rejected.
+  const metricIssue = (result.issues || []).find((i) => i.dimension === "hospitalityMetric");
+  const barrioIssue = (result.issues || []).find((i) => i.dimension === "hospitalityBarrio");
+  if (metricIssue) k11.hospitalityMetricIssue = metricIssue;
+  if (barrioIssue) k11.hospitalityBarrioIssue = barrioIssue;
+  if (metricIssue || barrioIssue) k11RenderNotice(k11InitialRestore || result);
+}
+
 // ------------------------------------------------------------------- notice
 function k11RenderNotice(result) {
   const notice = document.getElementById("k11RestoreNotice");
@@ -6913,6 +7083,9 @@ function k11RenderNotice(result) {
   // Late-resolved, async restore issues (origin month) are merged in so the one
   // notice reflects everything that could not be restored.
   if (k11.originMonthIssue && !interfaceIssues.some((i) => i.dimension === "originMonth")) interfaceIssues.push(k11.originMonthIssue);
+  if (k11.licenceWindowIssue && !interfaceIssues.some((i) => i.dimension === "licenceWindow")) interfaceIssues.push(k11.licenceWindowIssue);
+  if (k11.hospitalityMetricIssue && !interfaceIssues.some((i) => i.dimension === "hospitalityMetric")) interfaceIssues.push(k11.hospitalityMetricIssue);
+  if (k11.hospitalityBarrioIssue && !interfaceIssues.some((i) => i.dimension === "hospitalityBarrio")) interfaceIssues.push(k11.hospitalityBarrioIssue);
 
   let show = false;
   if (!result.ok) {
@@ -7386,6 +7559,45 @@ function k11CityValues() {
           display: changeStated ? `${row.previousCount} → ${row.currentCount} · ${row.absoluteChange > 0 ? "+" : ""}${row.absoluteChange} · ${row.percentChange > 0 ? "+" : ""}${row.percentChange.toFixed(1)}%` : null,
           state: changeStated ? "VALID" : "WITHHELD",
           withheld_reason: changeStated ? undefined : "SUPPRESSED_OR_INCOMPARABLE_PUBLISHED_COUNT",
+          source_month: dynamics.currentMonth || null, compared_month: dynamics.previousMonth || null,
+          source_ids: ["domestic_origin_context"],
+        }));
+      }
+    }
+    // Newly-present origins: published in the current month's set, absent from the
+    // previous month's. Transcribe the single published current-month count and
+    // the model's own classification. The previous side is genuinely absent from
+    // the published set — recorded as null, NEVER a fabricated zero, and the real
+    // arrival of visitors is NOT inferred from published-set membership.
+    if (Array.isArray(dynamics.newlyPresent)) {
+      for (const row of dynamics.newlyPresent) {
+        const curr = Number.isInteger(row.currentCount) ? row.currentCount : null;
+        values.push(k11WithProvenance({
+          id: `dynamics_newrow_${row.origin_municipality_code}`, label: `Newly present origin · ${row.origin_municipality_name}`,
+          scope: "MUNICIPALITY", unit: "tourists", classification: "NEWLY_PRESENT_IN_PUBLISHED_SET",
+          previous_value: null, current_value: curr, value: curr,
+          display: curr == null ? null : dynamicsCount(curr),
+          state: curr == null ? "UNAVAILABLE" : "VALID",
+          count_month: dynamics.currentMonth || null,
+          source_month: dynamics.currentMonth || null, compared_month: dynamics.previousMonth || null,
+          source_ids: ["domestic_origin_context"],
+        }));
+      }
+    }
+    // No-longer-present origins: published in the previous month's set, absent from
+    // the current month's. Transcribe the single published previous-month count; the
+    // current side is genuinely absent (null, never zero), and the real departure of
+    // visitors is NOT inferred from published-set membership.
+    if (Array.isArray(dynamics.noLongerPresent)) {
+      for (const row of dynamics.noLongerPresent) {
+        const prev = Number.isInteger(row.previousCount) ? row.previousCount : null;
+        values.push(k11WithProvenance({
+          id: `dynamics_gonerow_${row.origin_municipality_code}`, label: `No longer present origin · ${row.origin_municipality_name}`,
+          scope: "MUNICIPALITY", unit: "tourists", classification: "NO_LONGER_PRESENT_IN_PUBLISHED_SET",
+          previous_value: prev, current_value: null, value: prev,
+          display: prev == null ? null : dynamicsCount(prev),
+          state: prev == null ? "UNAVAILABLE" : "VALID",
+          count_month: dynamics.previousMonth || null,
           source_month: dynamics.currentMonth || null, compared_month: dynamics.previousMonth || null,
           source_ids: ["domestic_origin_context"],
         }));
