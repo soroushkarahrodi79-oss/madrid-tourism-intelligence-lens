@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>K12 — MapLibre bounded prototype</title>
+    <!-- MapLibre from CDN. THROWAWAY prototype only; never a production dep.
+         Pinned, SRI-free because this page is never shipped. Device run needs
+         network; the version is fixed so the comparison is reproducible. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+    <style>
+      html, body { margin: 0; height: 100%; background: #08101a; }
+      #map { position: absolute; inset: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="../device_harness/rum.js"></script>
+    <script>
+      // K12 MapLibre bounded prototype. Renders the SAME real ámbito + licence
+      // payload as leaflet_baseline.html, measured with the SAME RUM engine and
+      // the SAME scenario shape, so the comparison is apples-to-apples. It is a
+      // disposable spike: it is NOT wired into index.html and adds no production
+      // dependency.
+      //   ?layers=ambito,licence&basemap=light|satellite&zoom=14&auto=1
+      const Q = new URLSearchParams(location.search);
+      const layers = (Q.get("layers") || "ambito").split(",").filter(Boolean);
+      const basemap = Q.get("basemap") || "light";
+      const zoom = Number(Q.get("zoom") || 14);
+      const scenario = Q.get("scenario") || `maplibre_${layers.join("+") || "base"}_${basemap}_z${zoom}`;
+
+      // A minimal raster-basemap style so the prototype needs no vector-tile key
+      // (the production CARTO raster story is unchanged by this test). NOTE: a
+      // real MapLibre migration would move to a VECTOR style — that change is
+      // part of the migration cost enumerated in RUNTIME_DECISION_SPIKE.md.
+      const style = {
+        version: 8,
+        sources: {
+          base: {
+            type: "raster",
+            tiles:
+              basemap === "satellite"
+                ? ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"]
+                : ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+            tileSize: 256,
+            attribution: "© OpenStreetMap / Esri",
+          },
+        },
+        layers: [{ id: "base", type: "raster", source: "base" }],
+      };
+
+      if (typeof maplibregl === "undefined") {
+        document.body.innerHTML =
+          '<p style="color:#fbb;font:14px monospace;padding:20px">MapLibre failed to load from the CDN. This prototype needs network access to cdn.jsdelivr.net. Run it on a machine with internet (your laptop/iPad), not in a locked-down CI container.</p>';
+        throw new Error("maplibre-gl not loaded (CDN unreachable)");
+      }
+
+      const map = new maplibregl.Map({ container: "map", style, center: [-3.7038, 40.4168], zoom });
+
+      async function fetchJSON(u) { const r = await fetch(u); if (!r.ok) throw new Error(u + " " + r.status); return r.json(); }
+
+      async function build() {
+        await new Promise((res) => (map.loaded() ? res() : map.once("load", res)));
+        if (layers.includes("ambito")) {
+          const gj = await fetchJSON("/data/planning/madrid_ambitos.geojson");
+          map.addSource("ambito", { type: "geojson", data: gj });
+          map.addLayer({ id: "ambito-fill", type: "fill", source: "ambito", paint: { "fill-color": "#c84", "fill-opacity": 0.12 } });
+          map.addLayer({ id: "ambito-line", type: "line", source: "ambito", paint: { "line-color": "#c84", "line-width": 1 } });
+        }
+        if (layers.includes("licence")) {
+          const art = await fetchJSON("/data/planning/madrid_urban_licences.json");
+          const fc = { type: "FeatureCollection", features: [] };
+          for (const r of art.records) {
+            const lat = +r.lat, lon = +r.lon;
+            if (isFinite(lat) && isFinite(lon)) fc.features.push({ type: "Feature", properties: { family: r.family }, geometry: { type: "Point", coordinates: [lon, lat] } });
+          }
+          map.addSource("licence", { type: "geojson", data: fc });
+          map.addLayer({ id: "licence-pt", type: "circle", source: "licence", paint: { "circle-radius": 3, "circle-color": "#4ad", "circle-opacity": 0.7 } });
+        }
+        // the Lens as a GeoJSON circle source we move each step
+        map.addSource("lens", { type: "geojson", data: lensFeature(40.4168, -3.7038) });
+        map.addLayer({ id: "lens", type: "line", source: "lens", paint: { "line-color": "#36f", "line-width": 2 } });
+        await K12RUM.nextPaint();
+      }
+
+      function lensFeature(lat, lon) {
+        // a coarse circle polygon (~900 m) as a moved overlay
+        const pts = []; const R = 0.008;
+        for (let i = 0; i <= 48; i++) { const a = (i / 48) * Math.PI * 2; pts.push([lon + Math.cos(a) * R, lat + Math.sin(a) * R * 0.76]); }
+        return { type: "Feature", geometry: { type: "LineString", coordinates: pts } };
+      }
+
+      let theta = 0;
+      function interactionStep() {
+        theta += 0.15;
+        const lat = 40.4168 + Math.sin(theta) * 0.004, lon = -3.7038 + Math.cos(theta) * 0.004;
+        map.getSource("lens").setData(lensFeature(lat, lon));
+      }
+      function pan() {
+        return new Promise((resolve) => {
+          let i = 0; const c = map.getCenter();
+          const step = () => { i++; map.jumpTo({ center: [c.lng + i * 0.0006, c.lat + i * 0.0006] }); i < 60 ? requestAnimationFrame(step) : resolve(); };
+          requestAnimationFrame(step);
+        });
+      }
+
+      window.__K12_RUN__ = async () =>
+        K12RUM.run({ scenario, renderer: "maplibre", device_label: Q.get("device_label") || "", cache: Q.get("cache") || "", network: Q.get("network") || "", reps: Number(Q.get("reps") || 40), ready: build, interactionStep, pan });
+      if (Q.get("auto") === "1") window.addEventListener("load", () => window.__K12_RUN__());
+    </script>
+  </body>
+</html>

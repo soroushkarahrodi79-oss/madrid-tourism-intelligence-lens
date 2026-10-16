@@ -1,0 +1,37 @@
+{
+  "spike": "K12 runtime decision",
+  "purpose": "Performance thresholds DEFINED BEFORE results are interpreted (issue #74 §3).",
+  "note": "These are acceptance lines for the device harnesses. A number is read against the line its scenario names; the Leaflet-ceiling crossing uses interaction_to_paint_ms.p95 and pan_frame_ms.p95.",
+  "thresholds": {
+    "first_contentful_paint_ms": {
+      "good": 1800,
+      "acceptable": 3000,
+      "rationale": "Web Vitals 'good' FCP is <=1.8 s; >3 s on a mid-range device/4G reads as a slow page. The app is a static site, so FCP is dominated by HTML+CSS+vendored Leaflet, not data."
+    },
+    "time_to_interactive_map_ms": {
+      "good": 3500,
+      "acceptable": 5000,
+      "rationale": "Time from navigation until the map accepts a Lens drag. >5 s means the user waits on data fetch+parse before the core interaction works; the partitioning finding targets this."
+    },
+    "interaction_to_paint_ms": {
+      "good_p95": 100,
+      "acceptable_p95": 150,
+      "rationale": "During a continuous Lens drag each recompute+repaint must land fast enough that the lens feels attached to the pointer. Nielsen's 0.1 s is the 'instantaneous' bound; beyond ~150 ms p95 the lens visibly lags the cursor. This is the PRIMARY ceiling metric."
+    },
+    "pan_frame_ms": {
+      "good_p95": 16.7,
+      "acceptable_p95": 33.3,
+      "rationale": "Panning is continuous animation. 16.7 ms = 60 fps (smooth); 33.3 ms = 30 fps (the floor below which touch panning reads as stutter, most visible on iPad). p95 is used so occasional long frames count."
+    },
+    "js_heap_mb": {
+      "report_only": true,
+      "flag_above": 500,
+      "rationale": "No hard pass/fail (performance.memory is Chromium-only and coarse). Flagged above ~500 MB JS heap as a tablet-stability risk worth noting, not a gate."
+    }
+  },
+  "ceiling_definition": {
+    "metric": "the synthetic feature count at which interaction_to_paint_ms.p95 first exceeds acceptable_p95 (150 ms) during a Lens drag, OR pan_frame_ms.p95 first exceeds 33.3 ms during a pan, on a real device",
+    "is_the_maplibre_trigger": true,
+    "must_be_measured_on": ["mid-range laptop (real Chrome/Edge)", "iPad-class device (Safari)"]
+  }
+}
