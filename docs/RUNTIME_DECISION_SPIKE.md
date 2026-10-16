@@ -29,11 +29,14 @@
 | **D** | GeoParquet | **NO-GO** | No browser consumer without DuckDB-WASM (C = NO-GO); builder-side win is modest and already beaten by partitioning. |
 
 **The real win is not on this list.** Partitioning `madrid_domestic_origins.json`
-by month cuts its initial-load transfer by **87.2 %** (250 KB → 32 KB gzip) and
-its parse by **90.9 %**, with **no new technology** (§7). The single most
-valuable finding of this spike is that the architecture is right and the
-available performance work is a data-pipeline change, not a renderer or query
-engine.
+by month would cut the **feature-equivalent** initial-load transfer by **72.4 %**
+(250 KB → 69 KB gzip) — the honest figure, because the CITY *Monthly origin
+dynamics* view compares a month to its **exact previous month**, so a
+functionally-equivalent first load needs the latest **and** the previous month
+(§7.3). A latest-month-only load is lighter still (87.2 %, 32 KB) but is **not**
+feature-equivalent — it breaks Dynamics — so it is not a general user-visible
+claim. Either way the win is a data-pipeline change, **not** a renderer or query
+engine, and the architecture is right.
 
 **Final recommendation:** keep the current architecture. Do not adopt MapLibre,
 PMTiles, DuckDB-WASM or GeoParquet now. Open a separate data-pipeline issue for
@@ -132,10 +135,37 @@ physically present, so this baseline is **real, not synthetic**.
 | Metric | Good | Acceptable | Why |
 |---|---|---|---|
 | First Contentful Paint | ≤ 1.8 s | ≤ 3.0 s | Web Vitals; static-site FCP is HTML+CSS+Leaflet bound |
-| Time to interactive map | ≤ 3.5 s | ≤ 5.0 s | wait before the Lens works; partitioning targets this |
+| Map-ready (data+build+settle) | ≤ 3.5 s | ≤ 5.0 s | wait before the Lens works; partitioning targets this |
 | **Interaction-to-paint (Lens drag), p95** | ≤ 100 ms | **≤ 150 ms** | lens must feel attached to the pointer; **primary ceiling metric** |
 | **Pan frame time, p95** | ≤ 16.7 ms (60 fps) | **≤ 33.3 ms (30 fps)** | below 30 fps touch panning stutters, worst on iPad |
 | JS heap | report-only | flag > 500 MB | coarse; tablet-stability signal, not a gate |
+
+**What these metrics actually measure (methodological honesty):**
+- **FCP** is the Paint Timing API first-contentful-paint of the *harness page*
+  (HTML + CSS + vendored Leaflet / MapLibre JS) — a proxy for the app's static
+  shell, not the full production script graph.
+- **Map-ready** is *not* the Lighthouse **TTI** metric (main-thread quiet
+  window). It is wall time from run start until data is fetched/parsed and
+  layers are built (one settling frame). It is named `map_ready_ms`, not TTI, to
+  avoid the loaded term.
+- **Interaction-to-paint** is a **double-rAF proxy**: time from the Lens state
+  mutation until the callback of the *second* `requestAnimationFrame` runs (after
+  the intervening frame composited). It is **not** a true paint timestamp (that
+  needs the Event Timing / LoAF APIs) and it is **frame-quantised**, so on a fast
+  path it floors near one frame interval. The harness therefore ALSO captures the
+  **synchronous analytical recompute time** separately (`interaction_recompute_ms`)
+  — see §3.2a.
+
+### 3.2a Renderer-only vs full-Lens latency
+
+The harness runs each interaction scenario in two modes, so renderer cost and
+analytical cost are never conflated:
+- **`recompute=renderer`** moves only the Lens overlay circle (renderer-only
+  latency). Moving a circle does **not** run any analytical model.
+- **`recompute=full`** additionally runs the **production** analytical recompute
+  the real Lens triggers on pointer move — `licencesInLens(...)` +
+  `createPlanningIndex(...).ambitosIntersecting(...)`, imported from `js/` without
+  editing it — and records its synchronous time as `interaction_recompute_ms`.
 
 **The Leaflet ceiling** is the synthetic feature count at which
 interaction-to-paint p95 first exceeds **150 ms**, or pan-frame p95 first
@@ -149,12 +179,14 @@ exceeds **33.3 ms**, on a real device. **That count is the MapLibre trigger.**
 | Origins partitioning (bytes + parse) | container | **done, deterministic** |
 | DuckDB-WASM vs plain JS (correctness + CPU timing + payload) | container | **done; init/query are CPU-only** |
 | Leaflet CPU scaling (parse/serialise/cull) | container | **done; CPU-only, not paint** |
-| GeoParquet builder-side bytes | container (pyarrow 26.0.0) | **done, deterministic** |
-| PMTiles input baseline | container | **done**; actual `.pmtiles` deferred (no tippecanoe) |
-| Harness repeatability (end-to-end run) | container | **done** — labelled `CONTAINER_SMOKE_TEST`, SwiftShader |
-| FCP / TTI / interaction-to-paint / frame time on real payload | **device** | **UNVERIFIED — harness ready** |
+| GeoParquet builder-side bytes — tabular **and** geometry | container (pyarrow 26.0.0 + shapely 2.2.0) | **done, deterministic** |
+| PMTiles real MVT tiling + per-viewport transfer | container (geojson-vt + vt-pbf) | **done, deterministic**; tippecanoe cross-check deferred |
+| DuckDB-WASM query shapes 1–3 (in-circle, date-window, edition-diff) | container | **done; correctness verified, CPU timing** |
+| DuckDB-WASM shape 4 (ámbito containment, `ST_Contains`) | container | **UNVERIFIED** — spatial extension fetch blocked; plain-JS side done |
+| Harness repeatability (end-to-end run) | container | **done** — labelled non-device, SwiftShader, `complete` gate |
+| FCP / map-ready / interaction-to-paint / frame time on real payload | **device** | **UNVERIFIED — harness ready** |
 | Leaflet ceiling crossing (the trigger count) | **device** | **UNVERIFIED — harness ready** |
-| MapLibre vs Leaflet on real payload | **device** | **UNVERIFIED — harness ready** |
+| MapLibre vs Leaflet, same payload + ceiling series | **device** | **UNVERIFIED — harness ready** |
 
 ---
 
@@ -198,6 +230,15 @@ geometry in-browser and measures both metrics across the full count series. The
 owner runs it per §10; the resulting crossing is the MapLibre trigger.
 **No ceiling count is claimed in this document.**
 
+The real-payload harness also separates **renderer-only** from **full-Lens**
+latency (§3.2a). In the container smoke run the full-Lens *synchronous
+recompute* over the real payload (production `licencesInLens` +
+`ambitosIntersecting`) measured ≈ 5 ms median on this VM CPU — a CPU-only proxy,
+not a device figure, but it establishes that the analytical recompute is a
+single-digit-millisecond cost at today's load and is captured distinctly from
+the frame-quantised paint proxy. The device run supplies the real
+interaction-to-paint and frame-time curves.
+
 ---
 
 ## 5. DuckDB-WASM vs plain JS (§4) — NO-GO, measured
@@ -210,12 +251,22 @@ SQL on the same 11,265 records on the same host CPU.
 ### 5.1 Correctness verified first
 
 The Haversine metric (`R = 6,371,000 m`, `≤ radiusM`) was replicated exactly in
-SQL. Output sets were compared **before** timing:
+SQL. Output sets were compared **before** timing. **All four issue-#74 query
+shapes are now covered** (shapes 1–3 benchmarked in DuckDB; shape 4's DuckDB
+side is UNVERIFIED, see below):
 
-| Query shape | JS matches | DuckDB matches | Identical? |
+| Query shape | JS result | DuckDB result | Identical? |
 |---|---|---|---|
-| In-circle (1.5 km @ Sol) | 1,554 | 1,554 | **yes** |
-| In-circle + date window (trailing 12 mo) | 527 | 527 | **yes** |
+| 1. In-circle (1.5 km @ Sol) | 1,554 recs | 1,554 recs | **yes** |
+| 2. In-circle + date window (trailing 12 mo) | 527 recs | 527 recs | **yes** |
+| 3. Edition-to-edition diff (724 ámbitos) | 113 changed | 113 changed | **yes** |
+| 4. Ámbito containment (500 pts × 724 poly) | 146 hits | — | **UNVERIFIED** (DuckDB spatial ext blocked) |
+
+Shape 3 uses a deterministic perturbed "previous" edition (the artifact ships one
+edition per family, so there is no second time-edition); it verifies the diff
+*shape* (changed-code set) is identical, while noting the full production
+classification (`auditEditionPair` comparability/cosmetic/S1-S2 semantics) stays
+JS-only — porting it to SQL is a cost, not a win.
 
 ### 5.2 Cost comparison
 
@@ -226,22 +277,28 @@ SQL. Output sets were compared **before** timing:
 | Table load (11,265 rows) | 0 | 0.52 s |
 | **Warm in-circle query, median** | **1.68 ms** | **7.56 ms** |
 | Warm date-window query, median | 1.16 ms | — |
+| Warm edition-diff, median | **0.04 ms** | **0.70 ms** |
+| Containment (500 pts × 724 poly), median | **6.1 ms** | UNVERIFIED (spatial ext) |
 
-**Reading:** plain JS answers the real query shapes in **under 2 ms** with
-nothing to download and no init. DuckDB-WASM returns the *same answer* **~4.5×
-slower per warm query**, and only after transferring **~3.3× the app's entire
-2.11 MB gzip data footprint** as engine bytes and paying seconds of init. The
-two remaining shapes:
+(Init/query millisecond figures are CPU-only and vary run-to-run; one later run
+measured init 1.5 s, in-circle warm 4.8 ms. The verdict rests on the payload and
+the consistent order-of-magnitude gap, not on any single millisecond.)
 
-- **Edition-to-edition diff** (~724 × 2 editions): the production
-  `auditEditionPair`/`classifyAmbitoEditionPair` carry rich non-evaluative
-  classification semantics. Porting them to SQL is a *cost*, not a win, and
-  would create a second analytical semantics — the gate's long-standing concern.
-  Plain JS already does this deterministically with tests.
-- **Ámbito containment** (point-in-polygon over 724 polygons): trivial in plain
-  JS (`ambitoContaining`); in DuckDB it needs the **spatial extension**
-  (additional payload + `ST_Contains`), compounding the payload objection for
-  zero capability the product lacks.
+**Reading:** plain JS answers every covered shape in **single-digit
+milliseconds** with nothing to download and no init. DuckDB-WASM returns the
+*same answer* several× slower per warm query, and only after transferring **~3.3×
+the app's entire 2.11 MB gzip data footprint** as engine bytes and paying
+seconds of init. On the two shapes the issue flagged:
+
+- **Edition-to-edition diff** — measured: identical 113-code result, plain JS
+  **0.04 ms** vs DuckDB **0.70 ms**. The production `auditEditionPair`'s rich
+  classification stays JS-only; porting it to SQL is a *cost*, not a win.
+- **Ámbito containment** — plain JS (`createPlanningIndex().ambitoContaining`,
+  the production point-in-polygon) does 500 points × 724 polygons in **6.1 ms**.
+  DuckDB needs the **spatial extension** (`ST_Contains`), whose `INSTALL spatial`
+  requires a network fetch that is **blocked in this container** (so the DuckDB
+  side is UNVERIFIED) — and which would ADD payload on top of the 6.93 MB engine,
+  compounding the payload objection for zero capability the product lacks.
 
 **Trigger to revisit (numeric):** a query the product genuinely cannot serve in
 plain JS within the interaction budget — e.g. arbitrary user-drawn-polygon
@@ -256,13 +313,20 @@ scale; the result is robust (identical outputs, order-of-magnitude cost gap).
 
 ### 6.1 Gain — UNVERIFIED (device)
 
-A bounded, disposable prototype (`maplibre_proto/maplibre_prototype.html`)
-renders the **same** real ámbito + licence payload with the **same** RUM
-harness and scenario shape as the Leaflet baseline. It could not be measured
-here: MapLibre WebGL on SwiftShader is software-rendered (meaningless for a GPU
-comparison) and the CDN it loads from is blocked in this container. **No
-MapLibre-vs-Leaflet performance claim is made in this document.** The harness is
-ready for the device run (§10).
+A bounded, disposable prototype (`maplibre_proto/maplibre_prototype.html`) is
+built for strict **parity** with the Leaflet harnesses (review #3): the **same**
+real ámbito + licence payload, the **same** viewport, zoom, Lens interaction and
+pan sweep, the **same** RUM engine, the **same** `recompute=renderer|full`
+modes (running the identical production models), **and** the **same** synthetic
+ceiling series (`kind=polygon|point&count=…`, identical mulberry32 seeds) so the
+Leaflet ceiling and the MapLibre ceiling are measured on byte-identical geometry.
+The `run_device.mjs --suite=full` matrix runs this parity set on both renderers.
+
+It could not be measured here: MapLibre WebGL on SwiftShader is software-rendered
+(meaningless for a GPU comparison) and its CDN is blocked in this container. **No
+MapLibre-vs-Leaflet performance claim — no migration advantage — is made in this
+document.** Only the device run (§10) can establish one, and the verdict stays
+NOT YET until it does.
 
 ### 6.2 Migration cost — enumerated (this is decidable now)
 
@@ -296,34 +360,44 @@ uncertainty:** the entire gain side is unmeasured until the device run.
 
 ### 7.1 PMTiles — NOT YET (slaved to MapLibre)
 
-`research/runtime_spike/results/pmtiles.json`. Input baseline (what would be
-tiled): ámbito polygons **916 KB gzip** whole-layer, licence points **155 KB
-gzip** whole-layer. PMTiles is a packaging format for tiles consumed by a
-**vector renderer**; the app has none. It is therefore **not decidable
-independently of MapLibre (§6)** — the verdict is slaved to B. At Madrid
-extent and the default zoom the whole ámbito layer is visible, so PMTiles would
-transfer a comparable first-paint volume; its win is at deep zoom over a far
-larger corpus the product does not have. Actual `.pmtiles` bytes were **not
-produced** (tippecanoe absent in the container); the exact command is recorded
-in the result JSON for the device/CI follow-up. **Trigger:** MapLibre goes GO
-**and** a single vector layer exceeds ~2 MB gzip whole-layer (parcel scale).
+`research/runtime_spike/results/pmtiles.json`. **Real MVT tiles were generated**
+(geojson-vt + vt-pbf, z10–15) — not merely an input baseline:
+
+| Layer | whole-layer gzip | tiled archive z10–15 gzip | per-viewport @ z14 (5×3 tiles) |
+|---|---|---|---|
+| ámbito polygons | 916 KB | 763 KB | **15 tiles, 19 KB gzip** |
+| licence points | 155 KB | 1,063 KB | 15 tiles, 64 KB gzip |
+
+**Reading:** PMTiles' real win is per-viewport transfer at the default zoom —
+the ámbito layer drops from a 916 KB whole-layer fetch to **~19 KB** of visible
+tiles. But (a) for the point layer the tiled archive is *larger* than the whole
+layer (tiles duplicate features across zooms), and (b) this win only materialises
+with a **vector renderer**. PMTiles is therefore **not decidable independently of
+MapLibre (§6)** — the verdict is slaved to B. (geojson-vt's simplification
+differs from tippecanoe's; the exact tippecanoe cross-check command is in the
+result JSON.) **Trigger:** MapLibre goes GO **and** a single vector layer exceeds
+~2 MB gzip whole-layer (parcel scale).
 
 ### 7.2 GeoParquet — NO-GO
 
-`research/runtime_spike/results/geoparquet.json` (pyarrow 26.0.0):
+`research/runtime_spike/results/geoparquet.json` (pyarrow 26.0.0 + shapely 2.2.0).
+Both tabular **and geometry** (WKB column) now measured:
 
-| Artifact | JSON gzip | Parquet zstd | Parquet snappy |
+| Artifact | kind | source gzip | GeoParquet/Parquet zstd |
 |---|---|---|---|
-| urban_licences | 288 KB | 270 KB (−6 %) | 354 KB (worse) |
-| domestic_origins | 252 KB | **108 KB (−57 %)** | 128 KB |
+| urban_licences | tabular | 288 KB | 270 KB (−6 %) |
+| domestic_origins | tabular | 252 KB | **108 KB (−57 %)** |
+| **ámbitos** | **geometry** | **922 KB** | **1,909 KB (+107 %, worse)** |
+| admin | geometry | 249 KB | 275 KB (+10 %, worse) |
 
-Two findings: (1) **no browser consumer reads Parquet/GeoParquet without a WASM
-reader** (DuckDB-WASM or parquet-wasm), so GeoParquet is gated behind C =
-NO-GO; geometry→GeoParquet additionally needs geopandas/shapely builder-side.
-(2) Its only measurable benefit — builder-side bytes — is modest for licences
-and real for origins (−57 %), but the origins payload is **already** solved more
-cheaply by partitioning (§7.3, 250 KB → 32 KB), which needs no reader and no new
-format. **No justified consumer exists; closed.**
+Three findings: (1) **no browser consumer reads Parquet/GeoParquet without a
+WASM reader** (DuckDB-WASM or parquet-wasm), so GeoParquet is gated behind C =
+NO-GO. (2) For **geometry** — the case that would matter for a spatial app —
+GeoParquet (full-precision WKB float64) is **~2× LARGER** than gzipped GeoJSON:
+it *inflates* the spatial payload, it does not reduce it. (3) Its only benefit is
+builder-side bytes for highly-columnar *tabular* data (origins −57 %), which the
+cheaper month-partitioning already covers. **No justified consumer exists;
+closed.**
 
 ### 7.3 Origins partitioning — the actual win (no new technology)
 
@@ -331,14 +405,21 @@ format. **No justified consumer exists; closed.**
 splits cleanly by `source_month` into 7 self-describing partitions + a tiny
 index.
 
-| Scenario | Initial transfer (gzip) | Initial parse (CPU) |
-|---|---|---|
-| **A** status quo (whole file up front) | 250 KB | 19.1 ms |
-| **B** partitioned, lazy (index + latest month) | **32 KB** | **1.7 ms** |
-| Saving (B vs A) | **−87.2 %** | **−90.9 %** |
+Equivalent-functionality scenarios are reported **separately** (review #5),
+because the CITY *Monthly origin dynamics* view compares a source month to its
+**exact previous calendar month** (`js/domestic-origin-dynamics.js`
+`NO_ADJACENT_PRIOR_MONTH`). A latest-month-only load therefore **breaks
+Dynamics**; the feature-equivalent first load needs latest **+ previous**:
 
-Partition overhead (eager-all vs whole file): **negligible** (−7 KB; per-month
-gzip sums slightly below the monolith). Caching: a new monthly edition
+| Scenario | Supports | Initial transfer (gzip) | Initial parse (CPU) | Saving vs A |
+|---|---|---|---|---|
+| **A** status quo (whole file) | everything | 250 KB | 19.1 ms | — |
+| **B1** index + latest month | single-month views **only — NOT Dynamics** | **32 KB** | 1.7 ms | −87.2 % (not feature-equivalent) |
+| **B2** index + latest + previous | adds Dynamics' default comparison | **69 KB** | 3.4 ms | **−72.4 %** (the honest general figure) |
+
+The **general, user-visible claim is B2: −72.4 %** (250 KB → 69 KB). B1's
+−87.2 % applies only where Dynamics is not shown. Partition overhead (eager-all
+vs whole file): **negligible** (−7 KB). Caching: a new monthly edition
 invalidates only that month's file + the index, not the whole multi-MB artifact.
 **This is a data-pipeline change and is out of K12 scope** — reported as a
 finding, implemented by a future issue, touching `data/` builders which this
@@ -359,9 +440,9 @@ spike must not modify.
 |---|---|---|---|---|
 | **A** Current stack | **GO** | 2.11 MB gzip total; existing canvas renderers; §2 | Any device-measured interaction-to-paint p95 > 150 ms on the shipped payload | Device confirmation pending (§10) |
 | **B** MapLibre | **NOT YET** | Migration cost §6.2 (7,809-line view layer, 7 Playwright suites, no-build loss); gain unmeasured | Device interaction-to-paint p95 > 150 ms or pan p95 > 33 ms at a required feature count (e.g. 5,675 parcels) **and** MapLibre inside those 150 ms / 33 ms thresholds at that count, on laptop + iPad | **Entire gain side unmeasured** until device run |
-| **C** DuckDB-WASM | **NO-GO** | Identical outputs; JS 1.68 ms vs 7.56 ms warm; 6.93 MB gzip engine; §5 | > 100 k-feature arbitrary spatial joins, or > 500 k rows pushing JS over 150 ms on device | None material at this scale |
-| **D** PMTiles | **NOT YET** | Slaved to B; §7.1 | B = GO **and** a vector layer > ~2 MB gzip whole-layer | Actual `.pmtiles` bytes not produced (tippecanoe) |
-| **D** GeoParquet | **NO-GO** | No reader-less browser consumer; origins win beaten by partitioning; §7.2 | C flips to GO **and** a builder-cost or payload case parquet uniquely solves | None material |
+| **C** DuckDB-WASM | **NO-GO** | 4 shapes: shapes 1–3 identical outputs, JS faster warm (e.g. edition-diff 0.04 vs 0.70 ms); 6.93 MB gzip engine; §5 | > 100 k-feature arbitrary spatial joins, or > 500 k rows pushing JS over 150 ms on device | Shape-4 (containment) DuckDB side UNVERIFIED (spatial ext fetch blocked); plain-JS side done (6.1 ms) |
+| **D** PMTiles | **NOT YET** | Real MVT tiling measured: ámbito per-viewport 19 KB vs 916 KB whole-layer; slaved to B; §7.1 | B = GO **and** a vector layer > ~2 MB gzip whole-layer | tippecanoe archive cross-check (geojson-vt simplification differs) |
+| **D** GeoParquet | **NO-GO** | Geometry measured: ámbito GeoParquet 1,909 KB vs 922 KB GeoJSON gzip (**+107 %**, inflates); no reader-less browser consumer; §7.2 | C flips to GO **and** a builder-cost or payload case parquet uniquely solves | None material |
 
 ---
 
@@ -390,10 +471,14 @@ gate to PASS:
 1. **Laptop (real Chrome/Edge, not emulation):**
    ```
    cd research/runtime_spike && npm install
-   node device_harness/run_device.mjs --suite=full --label="<make/model/OS/browser>"
+   node device_harness/run_device.mjs --suite=full --label="<make/model/OS/browser>" --require-device
    ```
-   Confirm the output's `is_device_grade: true` (i.e. `gl_is_software: false`).
-   Commit `results/device_run_full.json`.
+   `--require-device` makes the run EXIT NON-ZERO unless it is positively
+   device-grade (real GPU + real UA + your `--label`); it also exits non-zero if
+   **any** scenario is missing, errored or incomplete (`complete:false`). Confirm
+   the output's `is_device_grade: true` and `complete: true`, then commit
+   `results/device_run_full.json`. Device-grade is **not** inferred from the mere
+   absence of a SwiftShader string — see `device_grade_basis` in the output.
 2. **iPad (physical, Safari):** follow `device_harness/IPAD.md` — serve the repo
    (`python3 -m http.server`), open each harness URL in Safari, tap **download
    JSON**, transfer the files back. iPad **cannot** run Playwright; this manual
@@ -413,18 +498,26 @@ and the gate stays PARTIAL. **Do not** mark PASS from a container run.
 
 - **No GPU / no device:** container WebGL is SwiftShader; all paint, frame-time
   and MapLibre-vs-Leaflet comparisons are deferred to the device harness.
-- **DuckDB init is CPU-only and variable** (0.97 s instantiate-only vs 9.7 s
-  create+instantiate+connect in the recorded run); the verdict rests on payload
-  and per-query cost, not on init precision.
+- **Interaction-to-paint is a double-rAF proxy**, frame-quantised, not a true
+  paint timestamp; the harness captures the synchronous analytical recompute
+  (`interaction_recompute_ms`) separately so the two are never conflated, and
+  distinguishes `recompute=renderer` from `recompute=full`.
+- **Map-ready ≠ Lighthouse TTI**; FCP is the harness page's, a static-shell proxy.
+- **DuckDB init is CPU-only and variable** (0.97 s instantiate-only; 1.5–9.7 s
+  create+instantiate+connect across runs); the verdict rests on payload and
+  per-query cost, not on init precision.
+- **DuckDB shape-4 (containment)** DuckDB side is UNVERIFIED: `INSTALL spatial`
+  requires a network fetch blocked in this container. The plain-JS production
+  point-in-polygon side is measured (6.1 ms / 500 pts × 724 poly).
 - **Synthetic polygons** are convex-ish blobs at the real average vertex budget;
   they stress vertex throughput, not concave/hole topology or street-network
   clustering. The ceiling is therefore order-of-magnitude, not exact.
-- **PMTiles actual output bytes** not produced (tippecanoe absent); input
-  baseline + procedure recorded instead.
-- **GeoParquet geometry** not converted (needs geopandas/shapely); the tabular
-  measurement is sufficient for the NO-GO.
+- **PMTiles** tiles are real MVT (geojson-vt + vt-pbf); tippecanoe's own
+  simplification/output would differ — the cross-check command is recorded.
+- **GeoParquet geometry** uses a shapely-WKB column (not full geopandas); the
+  measured inflation (+107 % vs gzipped GeoJSON) is sufficient for the NO-GO.
 - **Network** in the container is proxied and not device-representative; the CDN
-  for MapLibre is blocked here.
+  for MapLibre and the DuckDB spatial extension endpoint are blocked here.
 
 *Generated as part of K12. No measurement, device result or PASS verdict in this
 document is fabricated or emulated.*

@@ -193,9 +193,11 @@ class EvidencePreserved(unittest.TestCase):
 
     def test_partitioning_saving_matches_document_claim(self):
         p = self._load("partitioning.json")
-        saved = p["initial_load_savings_B_vs_A"]["transfer_gzip9"]["saved_pct"]
-        # document headline: ~87% initial-load transfer reduction
-        self.assertGreater(saved, 80, f"partitioning saving {saved}% below documented ~87%")
+        s = p["initial_load_savings"]
+        b2 = s["B2_dynamics_equivalent"]["transfer_gzip9"]["saved_pct"]  # general figure
+        b1 = s["B1_latest_only_NOT_dynamics_equivalent"]["transfer_gzip9"]["saved_pct"]
+        self.assertGreater(b2, 65, f"B2 (Dynamics-equivalent) saving {b2}% unexpectedly low")
+        self.assertGreater(b1, 85, f"B1 (latest-only) saving {b1}% unexpectedly low")
 
     def test_baseline_counts_match_measured_reality(self):
         inv = self._load("baseline_inventory.json")
@@ -204,6 +206,123 @@ class EvidencePreserved(unittest.TestCase):
         self.assertEqual(ambito["features"], 724)
         lic = by_file["planning/madrid_urban_licences.json"]["records"]
         self.assertEqual(lic, 11265)
+
+
+DH = os.path.join(SPIKE, "device_harness")
+PROTO = os.path.join(SPIKE, "maplibre_proto")
+
+
+def read_result(name):
+    return json.loads(read(os.path.join(RESULTS, name)))
+
+
+class ReviewBenchmarkFidelity(unittest.TestCase):
+    """#1 — renderer-only vs full-Lens recompute is instrumented and distinguished."""
+
+    def test_harness_has_both_recompute_modes_and_imports_production_models(self):
+        lb = read(os.path.join(DH, "leaflet_baseline.html"))
+        self.assertIn("recompute", lb)
+        self.assertIn("/js/urban-licences.js", lb)
+        self.assertIn("/js/planning-ambito.js", lb)
+        self.assertIn("ambitosIntersecting", lb)  # the real analytical recompute path
+
+    def test_rum_records_recompute_separately_and_renames_tti(self):
+        rum = read(os.path.join(DH, "rum.js"))
+        self.assertIn("interaction_recompute_ms", rum)
+        self.assertIn("map_ready_ms", rum)
+        self.assertNotIn("time_to_interactive_map_ms", rum)  # loaded TTI term removed
+        self.assertIn("double-rAF proxy", rum)
+
+
+class ReviewRunnerReliability(unittest.TestCase):
+    """#2 — failures/incompleteness are blockers; device-grade is not SwiftShader-absence."""
+
+    def test_runner_has_completeness_gate_and_strict_device_grade(self):
+        r = read(os.path.join(DH, "run_device.mjs"))
+        self.assertIn("process.exit(exitCode)", r)
+        self.assertIn("has_human_label", r)
+        self.assertIn("--require-device".replace("--", ""), r.replace("--", ""))
+        self.assertIn("scenarioComplete", r)
+
+    def test_container_smoke_is_not_certified_and_reports_completeness(self):
+        # the committed container smoke must be honest: not device-grade, with a basis
+        s = read_result("container_smoke_smoke.json")
+        self.assertFalse(s["is_device_grade"], "container run must not be device-grade")
+        self.assertIn("completeness", s)
+        self.assertIn("device_grade_basis", s)
+        self.assertIn("complete", s)
+
+
+class ReviewMapLibreParity(unittest.TestCase):
+    """#3 — MapLibre runs the same payload AND the same synthetic ceiling series."""
+
+    def test_maplibre_prototype_supports_synthetic_and_recompute(self):
+        mp = read(os.path.join(PROTO, "maplibre_prototype.html"))
+        self.assertIn("makePolygons", mp)
+        self.assertIn("makePoints", mp)
+        self.assertIn("mulberry32", mp)
+        self.assertIn("recompute", mp)
+        self.assertIn("ambitosIntersecting", mp)
+
+    def test_full_suite_runs_maplibre_ceiling_and_recompute(self):
+        r = read(os.path.join(DH, "run_device.mjs"))
+        self.assertRegex(r, r"ml\(`kind=")  # maplibre ceiling scenarios
+        self.assertRegex(r, r"ml\(`layers=.*recompute=")  # maplibre real recompute scenarios
+
+
+class ReviewAcceptanceCoverage(unittest.TestCase):
+    """#4 — 4 DuckDB shapes; PMTiles real output; GeoParquet geometry."""
+
+    def test_duckdb_covers_four_shapes_with_verified_outputs(self):
+        d = read_result("duckdb_wasm.json")
+        self.assertEqual(
+            set(d["query_shapes_covered"]),
+            {"in_circle", "date_window", "edition_diff", "ambito_containment"},
+        )
+        self.assertTrue(d["correctness"]["editionDiff"]["identical"])
+        # shape 4 DuckDB side is honestly UNVERIFIED, JS side measured
+        self.assertIsNotNone(d["correctness"]["containment"]["js_hits"])
+        self.assertIn("UNVERIFIED", d["correctness"]["containment"]["duckdb_status"])
+
+    def test_pmtiles_has_real_tiled_output(self):
+        p = read_result("pmtiles.json")
+        for layer in p["layers"]:
+            self.assertIn("tiled", layer)
+            self.assertIn("per_zoom", layer["tiled"])
+            self.assertGreater(layer["tiled"]["viewport_default_zoom"]["tiles"], 0)
+
+    def test_geoparquet_has_geometry_measurement(self):
+        g = read_result("geoparquet.json")
+        self.assertIn("geometry_artifacts", g)
+        amb = next(a for a in g["geometry_artifacts"] if a["artifact"] == "ambitos")
+        self.assertIn("geoparquet_zstd_bytes", amb)
+        self.assertIn("geojson_gzip_bytes", amb)
+
+
+class ReviewPartitioningInterpretation(unittest.TestCase):
+    """#5 — B1 (latest-only) and B2 (Dynamics-equivalent) reported separately."""
+
+    def test_partitioning_reports_b1_and_b2_with_dynamics_finding(self):
+        p = read_result("partitioning.json")
+        self.assertIn("B1_partitioned_latest_month_only", p["scenarios"])
+        self.assertIn("B2_partitioned_latest_plus_previous", p["scenarios"])
+        self.assertIn("dynamics_adjacency_finding", p)
+        self.assertIn("B2_dynamics_equivalent", p["initial_load_savings"])
+
+    def test_doc_qualifies_the_saving(self):
+        t = read(DOC)
+        self.assertIn("72.4", t)  # the Dynamics-equivalent figure is present
+        self.assertIn("breaks Dynamics", t)  # latest-only qualified, not a general claim
+
+
+class ReviewMethodologyWording(unittest.TestCase):
+    """Methodology honesty: FCP/map-ready/double-rAF described accurately."""
+
+    def test_doc_does_not_overclaim_paint_or_tti(self):
+        t = read(DOC)
+        self.assertIn("double-rAF proxy", t)
+        self.assertIn("true paint timestamp", t)  # "not** a true paint timestamp"
+        self.assertIn("Lighthouse", t)  # map-ready explicitly distinguished from Lighthouse TTI
 
 
 if __name__ == "__main__":
