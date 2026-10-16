@@ -723,6 +723,17 @@
 
 <!-- ONE evidence drawer: replaces the scattered provenance footers, the long halo
      legend, the sources paragraph and the per-section source toggles. -->
+<!-- K11 (#73): a dismissible notice shown when a shared link restores only
+     partially, refuses an unsupported version, or restores an interface whose
+     underlying evidence snapshot has since moved. Never hides a limitation. -->
+<div id="k11RestoreNotice" class="k11-notice" role="status" aria-live="polite" hidden>
+  <div class="k11-notice-body">
+    <strong id="k11RestoreTitle" class="k11-notice-title">Partial restore</strong>
+    <p id="k11RestoreMessage" class="k11-notice-message"></p>
+  </div>
+  <button type="button" id="k11RestoreDismiss" class="k11-notice-dismiss">×</button>
+</div>
+
 <dialog id="evidenceDrawer" class="evidence-drawer" aria-labelledby="evidenceDrawerTitle">
   <div class="drawer-head">
     <h2 id="evidenceDrawerTitle" data-i18n="drawer.title">Evidence &amp; limits</h2>
@@ -735,6 +746,15 @@
     </div>
     <p id="evidenceDrawerFilter" class="drawer-filter"></p>
   </div>
+  <section class="drawer-share" id="drawerShare" aria-labelledby="drawerShareTitle">
+    <h3 id="drawerShareTitle" class="drawer-share-title">Share &amp; export this reading</h3>
+    <p id="drawerShareLede" class="drawer-share-lede">Copy a link that reproduces this exact reading, or export its evidence, geometry, sources and limits for QGIS, GeoLibre or a spreadsheet.</p>
+    <div class="drawer-share-actions">
+      <button type="button" id="k11ShareBtn" class="drawer-action">Copy shareable link</button>
+      <button type="button" id="k11ExportBtn" class="drawer-action">Export evidence</button>
+    </div>
+    <p id="k11ShareStatus" class="drawer-share-status" role="status" aria-live="polite"></p>
+  </section>
   <div id="evidenceDrawerBody" class="drawer-body"></div>
   <section class="drawer-notes" id="drawerAreaNotes" data-drawer-mode="PLACE COMPARE">
     <h3 data-i18n="drawer.notes.area">Source &amp; interpretation · Administrative area</h3>
@@ -763,6 +783,8 @@
 <script src="js/evidence-scope.js?v=20261006-1"></script>
 <script src="js/ambito-comparison.js?v=20261015-1"></script>
 <script src="js/modes.js?v=20261006-1"></script>
+<script src="js/evidence-url.js?v=20261015-1"></script>
+<script src="js/evidence-export.js?v=20261015-1"></script>
 <script src="js/scope-rail.js?v=20261006-2"></script>
 <script src="js/shell-copy.js?v=20261015-1"></script>
 <script src="js/legacy-copy.js?v=20261006-2"></script>

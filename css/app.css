@@ -1101,3 +1101,36 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 .ambito-guard-di{font-size:var(--t-micro);color:var(--text-meta);font-style:italic;margin:var(--s-1) 0 0}
 .ambito-edition-note{font-size:var(--t-micro);color:var(--text-meta);margin:var(--s-1) 0}
 .aei-metric{color:var(--text)}
+
+/* ===================================================================== K11 ==
+   Share & export (#73). Share and Export live in the Evidence & limits drawer,
+   next to the provenance they make portable; a page-level notice reports a
+   partial or refused restore. Reuses the existing tokens and visual language —
+   no new design system. */
+.drawer-share{margin:var(--s-2) 0 var(--s-1);padding:var(--s-3);border:1px solid var(--line);border-radius:var(--r-small);background:rgba(13,24,39,.55)}
+.drawer-share-title{margin:0 0 var(--s-1);font-size:var(--t-label);letter-spacing:.02em;color:var(--text)}
+.drawer-share-lede{margin:0 0 var(--s-2);font-size:var(--t-meta);color:var(--muted)}
+.drawer-share-actions{display:flex;flex-wrap:wrap;gap:var(--s-2)}
+.drawer-action{min-height:36px;padding:var(--s-2) var(--s-3);border:1px solid var(--line2);border-radius:var(--r-small);background:rgba(16,42,67,.9);color:#fff;font:inherit;font-size:var(--t-meta);cursor:pointer}
+.drawer-action:hover{background:#15344f}
+.drawer-action:disabled{opacity:.55;cursor:default}
+.drawer-action:focus-visible,.k11-notice-dismiss:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px}
+.drawer-share-status{margin:var(--s-2) 0 0;font-size:var(--t-meta);color:var(--muted);min-height:1.2em}
+.drawer-share-status[data-tone="ok"]{color:#8fe3bf}
+.drawer-share-status[data-tone="error"]{color:#ff9bb0}
+
+.k11-notice{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--safe-top) + 10px);z-index:1200;max-width:min(560px,calc(100vw - 24px));display:flex;gap:var(--s-3);align-items:flex-start;padding:var(--s-3);border:1px solid rgba(255,176,74,.55);border-radius:var(--r-small);background:var(--panel);box-shadow:0 8px 24px rgba(0,0,0,.45)}
+.k11-notice[hidden]{display:none}
+.k11-notice-title{display:block;font-size:var(--t-label);color:#ffd9a6}
+.k11-notice-message{margin:var(--s-1) 0 0;font-size:var(--t-meta);color:var(--text);line-height:1.4}
+.k11-notice-dismiss{flex:0 0 auto;min-width:32px;min-height:32px;border:1px solid var(--line2);border-radius:var(--r-small);background:rgba(255,255,255,.06);color:#fff;font-size:var(--t-figure);line-height:1;cursor:pointer}
+@media(max-width:420px){
+  .k11-notice{left:12px;right:12px;transform:none;max-width:none}
+  .drawer-share-actions .drawer-action{flex:1 1 auto}
+}
+/* K5 touch targets (gate §12). Declared AFTER the base .drawer-action rule so the
+   coarse-pointer minimum wins the source-order tie. */
+@media(pointer:coarse){
+  .drawer-action,.k11-notice-dismiss{min-height:44px}
+}
+.k11-export-link{display:inline-block;margin:var(--s-1) var(--s-2) 0 0;font-size:var(--t-meta);color:#9bd5ff;text-decoration:underline}

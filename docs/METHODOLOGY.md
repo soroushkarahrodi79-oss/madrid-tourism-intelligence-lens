@@ -647,6 +647,34 @@ further methodological decision; the rules are:
   visible at every screen size; provenance is never the first thing a responsive
   layout drops.
 
+## Citing a reproducible reading (K11)
+
+An evidence observatory must let a reader return to a specific reading, cite it,
+and hand it to a reviewer. K11 makes a reading reproducible along two axes that
+are kept strictly distinct:
+
+- **Interface reproducibility.** A reading — the mode, the two Lens centres and
+  radii, the enabled layers, the selected ámbitos, the focused or locked metric,
+  the citizen/analyst reading, the language, and any captured sensitivity
+  baseline — is encoded in a versioned (`v=1`), human-inspectable URL. Opening the
+  URL restores that configuration exactly, or states precisely what it could not
+  restore (an out-of-range radius, an unknown ámbito code, an unsupported
+  version). It never silently restores a *different* reading: a claim nobody can
+  revisit is not a citable claim, and a link that restores the wrong reading is
+  worse than one that restores nothing.
+- **Evidence-snapshot reproducibility.** The URL restores the interface; it does
+  not freeze the committed data behind it. The link carries the deployment's
+  evidence-snapshot identity, and when that identity has moved the workspace warns
+  that a value may no longer match the original rather than implying the number is
+  unchanged. To cite the *numbers*, cite the snapshot identity alongside the URL.
+
+A reading is therefore cited as **the URL plus the evidence-snapshot identity**,
+and the documented export (`docs/EVIDENCE_EXPORT.md`) packages both together with
+the displayed values, their provenance and their interpretation ceilings — so the
+reading travels, intact and attributed, into QGIS, GeoLibre or a spreadsheet. The
+export is a transcript of the rendered reading, never a recomputation: every value
+it carries is read from the same frozen model that drew the screen.
+
 ## Binding visual and accessibility constraints (K5)
 
 The evidence contract includes its presentation. These are release-blocking
