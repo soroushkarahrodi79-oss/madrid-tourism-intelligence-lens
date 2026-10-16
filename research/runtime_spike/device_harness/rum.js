@@ -97,20 +97,48 @@
     // TTI: time until the page reports the map is interactive.
     const tReadyStart = performance.now();
     if (opts.ready) await opts.ready();
-    result.time_to_interactive_map_ms = Math.round(performance.now() - tReadyStart + (opts.navStart || 0));
+    // NOTE: this is NOT the Lighthouse "Time To Interactive" metric (main-thread
+    // quiet-window). It is the wall time from run() start until the page's
+    // ready() callback resolves — i.e. data fetched/parsed + layers built + one
+    // settling frame. Named map_ready_ms to avoid the loaded TTI term.
+    result.map_ready_ms = Math.round(performance.now() - tReadyStart);
     Object.assign(result, paintTimings());
+    result.paint_note =
+      "first_contentful_paint_ms is the Paint Timing API FCP of THIS harness page " +
+      "(HTML+CSS+vendored Leaflet / MapLibre JS), a proxy for the app's static-shell FCP; " +
+      "it does not include the production app's full script graph.";
 
-    // Interaction-to-paint: scripted Lens-drag steps.
+    // recompute_mode: "renderer" moves only the Lens overlay (renderer-only
+    // latency); "full" also runs the production analytical recompute each step
+    // (licencesInLens + ámbito intersect) — the full Lens interaction latency.
+    result.recompute_mode = opts.recompute_mode || "renderer";
+
+    // Interaction latency: scripted Lens-drag steps.
+    //   interaction_to_paint_ms is a DOUBLE-rAF PROXY: time from the state
+    //   mutation until the callback of the SECOND rAF runs (i.e. after the
+    //   intervening frame was composited). It is NOT a true paint timestamp
+    //   (that needs the Event Timing / LoAF APIs) and it is frame-quantised, so
+    //   on an idle/fast path it floors near one frame interval. The synchronous
+    //   analytical work is captured SEPARATELY as interaction_recompute_ms when
+    //   interactionStep returns its measured work time.
     if (opts.interactionStep) {
       const reps = opts.reps || 40;
       const lat = [];
+      const work = [];
       for (let i = 0; i < reps; i++) {
         const t0 = performance.now();
-        opts.interactionStep(i, reps);
+        const w = opts.interactionStep(i, reps);
         await nextPaint();
         lat.push(performance.now() - t0);
+        if (typeof w === "number" && isFinite(w)) work.push(w);
       }
       result.interaction_to_paint_ms = stats(lat);
+      result.interaction_to_paint_method = "double-rAF proxy (two frames); frame-quantised; not a true paint timestamp";
+      result.interaction_recompute_ms = work.length ? stats(work) : null;
+      result.interaction_recompute_note =
+        result.recompute_mode === "full"
+          ? "synchronous production analytical recompute (licencesInLens + ámbito intersect) per step"
+          : "renderer-only: no analytical recompute measured (move the Lens overlay only)";
     }
 
     // Pan: record frame deltas while the page runs a programmatic pan.

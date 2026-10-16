@@ -31,24 +31,29 @@ research/runtime_spike/
 
 ## Requirements
 
-- **Node ≥ 20** (used v22). The container-side harnesses need nothing else.
-- **Python 3 + pyarrow** for the GeoParquet harness: `python3 -m pip install pyarrow`.
-- **DuckDB-WASM + Playwright**: `cd research/runtime_spike && npm install`
-  (installs into *this folder's* `node_modules`, gitignored — **not** the
-  production `package.json`). Playwright reuses the pre-installed Chromium via
-  `PLAYWRIGHT_BROWSERS_PATH`; do not run `playwright install` in the container.
-- **tippecanoe** (optional, for actual PMTiles bytes): `brew install tippecanoe`.
+- **Node ≥ 20** (used v22).
+- **npm deps (this folder only)**: `cd research/runtime_spike && npm install` —
+  installs DuckDB-WASM, Playwright, geojson-vt, vt-pbf into *this folder's*
+  `node_modules` (gitignored, **not** the production `package.json`). Needed by
+  the DuckDB and PMTiles harnesses and the device runner. Playwright reuses the
+  pre-installed Chromium via `PLAYWRIGHT_BROWSERS_PATH`; do not run
+  `playwright install` in the container.
+- **Python 3 + pyarrow + shapely** for the GeoParquet harness (tabular **and**
+  geometry): `python3 -m pip install pyarrow shapely`.
+- **tippecanoe** (optional, only for an exact archive cross-check — the harness
+  already generates real MVT via geojson-vt/vt-pbf): `brew install tippecanoe`.
 
 ## Reproduce the container measurements (deterministic / CPU-only)
 
 ```
-# from repo root
+# from repo root — the pmtiles and duckdb harnesses need `npm install` in
+# research/runtime_spike first; geoparquet needs `pip install pyarrow shapely`.
 node research/runtime_spike/baseline/inventory.mjs
-node research/runtime_spike/partitioning/partition_origins.mjs
+node research/runtime_spike/partitioning/partition_origins.mjs      # A / B1 / B2 scenarios
 node research/runtime_spike/leaflet_ceiling/cpu_scaling.mjs
-node research/runtime_spike/pmtiles/tiling_cost.mjs
-python3 research/runtime_spike/geoparquet/parquet_cost.py
-node research/runtime_spike/duckdb_wasm/bench.mjs     # needs `npm install` in this folder first
+node research/runtime_spike/pmtiles/tiling_cost.mjs                 # real MVT (geojson-vt + vt-pbf)
+python3 research/runtime_spike/geoparquet/parquet_cost.py           # tabular + geometry
+node research/runtime_spike/duckdb_wasm/bench.mjs                   # 4 query shapes
 ```
 
 Each writes/overwrites a file in `results/`. Byte figures and counts are
@@ -63,20 +68,31 @@ file's `host` block).
 ## Device measurements (the UNVERIFIED criteria)
 
 These need a **real GPU and a real device**. A software rasteriser (SwiftShader,
-as in CI/cloud containers) is explicitly **not** device-grade; the runner tags
-such output `CONTAINER_SMOKE_TEST` and sets `is_device_grade:false`.
+as in CI/cloud containers) is explicitly **not** device-grade. **Device-grade is
+not inferred from the absence of a SwiftShader string** — the runner requires a
+positively identified hardware GPU, a real UA, AND a human-supplied `--label`
+(see `device_grade_basis` in the output). Any missing/errored/incomplete scenario
+sets `complete:false`; with `--require-device` the runner EXITS NON-ZERO unless
+the run is both complete and device-grade.
 
-**Laptop (automated):**
+Each harness page runs two interaction modes:
+`recompute=renderer` (move the Lens overlay only — renderer-only latency) and
+`recompute=full` (also run the production `licencesInLens` + `ambitosIntersecting`
+recompute — full-Lens latency, captured as `interaction_recompute_ms`). The
+MapLibre prototype takes the SAME real-payload params AND the SAME synthetic
+ceiling series (`kind`/`count`) as Leaflet, for parity.
+
+**Laptop (automated, real Chrome/Edge — not emulation):**
 ```
 cd research/runtime_spike && npm install
-node device_harness/run_device.mjs --suite=full --label="Dell XPS13 i5 / Win11 / Chrome 131"
-# → results/device_run_full.json   (verify is_device_grade:true)
+node device_harness/run_device.mjs --suite=full --label="Dell XPS13 i5 / Win11 / Chrome 131" --require-device
+# → results/device_run_full.json   (verify complete:true AND is_device_grade:true)
 ```
 
 **Smoke test (any machine, proves the harness runs):**
 ```
 node device_harness/run_device.mjs --suite=smoke
-# → results/container_smoke_smoke.json
+# → results/container_smoke_smoke.json  (MapLibre scenario needs network; marked incomplete in-container)
 ```
 
 **iPad (manual, physical device):** see [`device_harness/IPAD.md`](device_harness/IPAD.md).

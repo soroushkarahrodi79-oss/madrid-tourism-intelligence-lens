@@ -1,18 +1,18 @@
 // K12 device-harness runner.
 //
 // Drives the harness HTML pages in a Chromium build and collects each page's
-// window.__K12__ result into one JSON file. It is the AUTOMATION for the
-// laptop/desktop class: run it with Playwright pointed at a REAL Chrome/Edge on
-// a mid-range laptop and the output is a laptop-class result.
+// window.__K12__ result into one JSON file.
 //
-// Run on this container it still works, but the container has NO GPU
-// (SwiftShader): every result then carries env.gl_is_software=true and
-// is_device_grade=false, and the output file is tagged CONTAINER_SMOKE_TEST.
-// Such a run PROVES the harness is repeatable; it is NOT a device benchmark and
-// must never be reported as one.
+// RELIABILITY CONTRACT (review #2): a device-validation run is COMPLETE only if
+// every expected scenario ran AND produced the required metrics. Any missing,
+// errored, incomplete or non-comparable scenario sets complete=false and makes
+// the process EXIT NON-ZERO. A SwiftShader string's ABSENCE is NOT sufficient to
+// certify physical hardware: device-grade requires a positively-identified
+// non-software GPU, a real UA, AND a non-placeholder, human-supplied
+// device_label. Pass --require-device to HARD-FAIL a run that is not device-grade.
 //
-//   node device_harness/run_device.mjs --suite=smoke   (a few scenarios; CI/smoke)
-//   node device_harness/run_device.mjs --suite=full --label="Dell XPS13 i5 / Win11 / Chrome"
+//   node device_harness/run_device.mjs --suite=smoke
+//   node device_harness/run_device.mjs --suite=full --label="Dell XPS13 i5 / Win11 / Chrome 131" --require-device
 //
 // iPad Safari cannot run Playwright — use device_harness/IPAD.md (manual).
 
@@ -30,7 +30,8 @@ const args = Object.fromEntries(
   }),
 );
 const SUITE = args.suite || "smoke";
-const LABEL = args.label || "CONTAINER (no GPU)";
+const LABEL = typeof args.label === "string" && args.label ? args.label : "";
+const REQUIRE_DEVICE = Boolean(args["require-device"]);
 const REPS = Number(args.reps || 40);
 
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".geojson": "application/json", ".png": "image/png" };
@@ -40,9 +41,7 @@ function serve(root) {
     const srv = http.createServer((req, res) => {
       const u = decodeURIComponent(req.url.split("?")[0]);
       const file = path.join(root, u);
-      if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
-        res.writeHead(404); res.end("nf"); return;
-      }
+      if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); res.end("nf"); return; }
       res.writeHead(200, { "content-type": MIME[path.extname(file)] || "application/octet-stream" });
       fs.createReadStream(file).pipe(res);
     });
@@ -52,74 +51,123 @@ function serve(root) {
 
 const base = "research/runtime_spike/device_harness";
 const proto = "research/runtime_spike/maplibre_proto";
+const lb = (q) => ({ page: `${base}/leaflet_baseline.html`, q });
+const lc = (q) => ({ page: `${base}/leaflet_ceiling.html`, q });
+const ml = (q) => ({ page: `${proto}/maplibre_prototype.html`, q });
+
 const SUITES = {
   smoke: [
-    { page: `${base}/leaflet_baseline.html`, q: "layers=ambito&basemap=light&auto=1" },
-    { page: `${base}/leaflet_baseline.html`, q: "layers=ambito,licence,admin&basemap=light&auto=1" },
-    { page: `${base}/leaflet_ceiling.html`, q: "kind=polygon&count=2000&auto=1" },
-    { page: `${base}/leaflet_ceiling.html`, q: "kind=point&count=25000&auto=1" },
-    { page: `${proto}/maplibre_prototype.html`, q: "layers=ambito&basemap=light&auto=1" },
+    lb("layers=ambito&basemap=light&recompute=renderer"),
+    lb("layers=ambito,licence,admin&basemap=light&recompute=full"),
+    lc("kind=polygon&count=2000"),
+    ml("layers=ambito&basemap=light&recompute=renderer"),
   ],
   full: [
-    // §1/§3 scenarios 1–8 on the real payload, light + satellite
-    ...["admin", "ambito", "licence", "ambito,licence,admin"].flatMap((layers) =>
-      ["light", "satellite"].map((bm) => ({ page: `${base}/leaflet_baseline.html`, q: `layers=${layers}&basemap=${bm}&auto=1` })),
+    // Leaflet real payload — renderer-only AND full-Lens, light + satellite (parity axis)
+    ...["renderer", "full"].flatMap((rc) =>
+      ["light", "satellite"].flatMap((bm) =>
+        ["ambito", "licence", "ambito,licence,admin"].map((ly) => lb(`layers=${ly}&basemap=${bm}&recompute=${rc}`)),
+      ),
     ),
-    // §2 ceiling series
-    ...[765, 2000, 5675, 10000].map((c) => ({ page: `${base}/leaflet_ceiling.html`, q: `kind=polygon&count=${c}&auto=1` })),
-    ...[11500, 25000, 50000].map((c) => ({ page: `${base}/leaflet_ceiling.html`, q: `kind=point&count=${c}&auto=1` })),
-    // §3 MapLibre same payload
-    ...["ambito", "ambito,licence"].flatMap((layers) =>
-      ["light", "satellite"].map((bm) => ({ page: `${proto}/maplibre_prototype.html`, q: `layers=${layers}&basemap=${bm}&auto=1` })),
-    ),
+    // Leaflet ceiling series (the MapLibre trigger)
+    ...[765, 2000, 5675, 10000].map((c) => lc(`kind=polygon&count=${c}`)),
+    ...[11500, 25000, 50000].map((c) => lc(`kind=point&count=${c}`)),
+    // MapLibre — SAME real payload (renderer + full) AND the SAME ceiling series (parity)
+    ...["renderer", "full"].flatMap((rc) => ["light", "satellite"].map((bm) => ml(`layers=ambito,licence&basemap=${bm}&recompute=${rc}`))),
+    ...[765, 2000, 5675, 10000].map((c) => ml(`kind=polygon&count=${c}`)),
+    ...[11500, 25000, 50000].map((c) => ml(`kind=point&count=${c}`)),
   ],
 };
+
+const REQUIRED_METRICS = ["interaction_to_paint_ms", "pan_frame_ms", "first_contentful_paint_ms"];
+
+function scenarioComplete(r) {
+  if (!r || r.error) return { ok: false, why: r?.error || "no result" };
+  const missing = REQUIRED_METRICS.filter((k) => r[k] === undefined || r[k] === null);
+  if (missing.length) return { ok: false, why: `missing metrics: ${missing.join(",")}` };
+  return { ok: true };
+}
+
+// Device-grade: NOT merely "no swiftshader". Require a positively identified
+// hardware GPU, a real UA, and a human-supplied device_label.
+function deviceGradeOf(r) {
+  const e = r.env || {};
+  const gl = String(e.gl_renderer || "");
+  const software = e.gl_is_software || /swiftshader|llvmpipe|software|microsoft basic/i.test(gl);
+  const hasRealGpu = !software && gl !== "" && gl !== "unknown" && gl !== "NO_WEBGL";
+  const hasLabel = Boolean(LABEL) && !/container|unlabelled/i.test(LABEL);
+  const hasUA = Boolean(e.userAgent) && e.userAgent !== "unknown";
+  const basis = { gl_renderer: gl, gl_is_software: software, has_real_gpu: hasRealGpu, has_human_label: hasLabel, has_ua: hasUA };
+  return { device_grade: hasRealGpu && hasLabel && hasUA, basis };
+}
 
 const { srv, port } = await serve(ROOT);
 const origin = `http://127.0.0.1:${port}`;
 const browser = await chromium.launch();
+const expected = SUITES[SUITE];
 const results = [];
-let software = null;
 
-for (const s of SUITES[SUITE]) {
-  const url = `${origin}/${s.page}?${s.q}&device_label=${encodeURIComponent(LABEL)}&reps=${REPS}`;
+for (const s of expected) {
+  const url = `${origin}/${s.page}?${s.q}&device_label=${encodeURIComponent(LABEL)}&reps=${REPS}&auto=1`;
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   const label = `${path.basename(s.page)}?${s.q}`;
   try {
     await page.goto(url, { waitUntil: "load", timeout: 30000 });
     await page.waitForFunction(() => window.__K12__, null, { timeout: 90000 });
     const r = await page.evaluate(() => window.__K12__);
-    software = r.env.gl_is_software;
     results.push(r);
-    console.log(
-      `ok  ${label}  itp.p95=${r.interaction_to_paint_ms?.p95}ms pan.p95=${r.pan_frame_ms?.p95}ms fcp=${r.first_contentful_paint_ms}ms heap=${r.js_heap_mb}MB`,
-    );
+    const c = scenarioComplete(r);
+    console.log(`${c.ok ? "ok " : "INC"} ${label}  itp.p95=${r.interaction_to_paint_ms?.p95} recompute.med=${r.interaction_recompute_ms?.median ?? "-"} pan.p95=${r.pan_frame_ms?.p95} fcp=${r.first_contentful_paint_ms} heap=${r.js_heap_mb}${c.ok ? "" : "  [" + c.why + "]"}`);
   } catch (e) {
-    results.push({ scenario: label, error: String(e).split("\n")[0] });
+    results.push({ scenario: label, query: s.q, error: String(e).split("\n")[0] });
     console.log(`ERR ${label}  ${String(e).split("\n")[0]}`);
   }
   await page.close();
 }
-
 await browser.close();
 srv.close();
 
-const device_grade = software === false;
+// completeness + device-grade gate
+const completeness = expected.map((s, i) => {
+  const r = results[i];
+  const c = scenarioComplete(r);
+  return { scenario: `${path.basename(s.page)}?${s.q}`, complete: c.ok, reason: c.ok ? null : c.why };
+});
+const allComplete = completeness.every((c) => c.complete);
+const grades = results.filter((r) => r && r.env).map(deviceGradeOf);
+const deviceGrade = grades.length > 0 && grades.every((g) => g.device_grade);
+const sampleBasis = grades[0]?.basis || null;
+
 const out = {
   spike: "K12 runtime decision",
   measurement: "device_harness_run",
-  run_kind: device_grade ? "DEVICE" : "CONTAINER_SMOKE_TEST — not a device benchmark",
-  is_device_grade: device_grade,
-  device_label: LABEL,
   suite: SUITE,
-  caveat: device_grade
-    ? "Results reflect the machine Playwright ran on."
-    : "Software rasteriser (SwiftShader) detected: interaction/paint/frame numbers are NOT device-representative. This file only proves the harness runs end-to-end and is repeatable.",
+  device_label: LABEL || "(none supplied)",
+  complete: allComplete,
+  is_device_grade: deviceGrade,
+  run_kind: deviceGrade && allComplete ? "DEVICE_VALIDATION" : deviceGrade ? "DEVICE_INCOMPLETE" : "NON_DEVICE / SMOKE — not a device benchmark",
+  device_grade_basis: sampleBasis,
+  device_grade_rule: "requires a positively identified hardware GPU AND a real UA AND a human-supplied device_label — absence of a SwiftShader string is NOT sufficient",
+  verified_config: {
+    gl_renderer: sampleBasis?.gl_renderer ?? null,
+    userAgent: results.find((r) => r.env)?.env?.userAgent ?? null,
+    viewport: results.find((r) => r.env)?.env?.viewport ?? null,
+  },
+  expected_scenarios: expected.length,
+  obtained_scenarios: results.filter((r) => r && !r.error).length,
+  completeness,
   generated_at: new Date().toISOString(),
   results,
 };
-const outName = device_grade ? `device_run_${SUITE}.json` : `container_smoke_${SUITE}.json`;
+const outName = deviceGrade ? `device_run_${SUITE}.json` : `container_smoke_${SUITE}.json`;
 const outPath = path.join(ROOT, "research/runtime_spike/results", outName);
 fs.writeFileSync(outPath, JSON.stringify(out, null, 2));
-console.log(`\n${out.run_kind}\n→ ${path.relative(ROOT, outPath)}`);
-process.exit(0);
+
+console.log(`\n${out.run_kind}  complete=${allComplete} device_grade=${deviceGrade}`);
+console.log(`→ ${path.relative(ROOT, outPath)}`);
+
+// Blockers → non-zero exit.
+let exitCode = 0;
+if (!allComplete) { console.error(`BLOCKER: ${completeness.filter((c) => !c.complete).length} scenario(s) missing/failed/incomplete.`); exitCode = 1; }
+if (REQUIRE_DEVICE && !deviceGrade) { console.error("BLOCKER: --require-device set but run is not device-grade (software GPU or no human device_label)."); exitCode = 1; }
+process.exit(exitCode);

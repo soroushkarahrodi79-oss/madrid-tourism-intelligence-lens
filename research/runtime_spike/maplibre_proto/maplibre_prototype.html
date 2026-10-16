@@ -4,9 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>K12 — MapLibre bounded prototype</title>
-    <!-- MapLibre from CDN. THROWAWAY prototype only; never a production dep.
-         Pinned, SRI-free because this page is never shipped. Device run needs
-         network; the version is fixed so the comparison is reproducible. -->
+    <!-- MapLibre from CDN. THROWAWAY prototype only; never a production dep. -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
     <style>
       html, body { margin: 0; height: 100%; background: #08101a; }
@@ -17,78 +15,70 @@
     <div id="map"></div>
     <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
     <script src="../device_harness/rum.js"></script>
-    <script>
-      // K12 MapLibre bounded prototype. Renders the SAME real ámbito + licence
-      // payload as leaflet_baseline.html, measured with the SAME RUM engine and
-      // the SAME scenario shape, so the comparison is apples-to-apples. It is a
-      // disposable spike: it is NOT wired into index.html and adds no production
-      // dependency.
-      //   ?layers=ambito,licence&basemap=light|satellite&zoom=14&auto=1
+    <script type="module">
+      // K12 MapLibre bounded prototype. Renders the SAME payload, viewport, zoom,
+      // interaction and pan as leaflet_baseline.html / leaflet_ceiling.html, with
+      // the SAME RUM engine, so the comparison is apples-to-apples (review #3).
+      // Two modes, identical to the Leaflet harnesses:
+      //   REAL   ?layers=ambito,licence&basemap=light&zoom=14&recompute=renderer|full
+      //   SYNTH  ?kind=polygon|point&count=5675   (same mulberry32 seeds as leaflet_ceiling)
+      // recompute=full runs the SAME production analytical models as Leaflet, so
+      // full-Lens latency is compared on identical work. Disposable: not wired
+      // into index.html, adds no production dependency.
+      import { licencesInLens } from "/js/urban-licences.js";
+      import { createPlanningIndex } from "/js/planning-ambito.js";
+
       const Q = new URLSearchParams(location.search);
+      const kind = Q.get("kind");                 // set → synthetic ceiling mode
+      const count = Number(Q.get("count") || 0);
       const layers = (Q.get("layers") || "ambito").split(",").filter(Boolean);
       const basemap = Q.get("basemap") || "light";
-      const zoom = Number(Q.get("zoom") || 14);
-      const scenario = Q.get("scenario") || `maplibre_${layers.join("+") || "base"}_${basemap}_z${zoom}`;
+      const zoom = Number(Q.get("zoom") || (kind ? 12 : 14));
+      const recompute = Q.get("recompute") === "full" ? "full" : "renderer";
+      const scenario =
+        Q.get("scenario") ||
+        (kind ? `maplibre_ceiling_${kind}_${count}` : `maplibre_${layers.join("+")}_${basemap}_z${zoom}_${recompute}`);
 
-      // A minimal raster-basemap style so the prototype needs no vector-tile key
-      // (the production CARTO raster story is unchanged by this test). NOTE: a
-      // real MapLibre migration would move to a VECTOR style — that change is
-      // part of the migration cost enumerated in RUNTIME_DECISION_SPIKE.md.
-      const style = {
-        version: 8,
-        sources: {
-          base: {
-            type: "raster",
-            tiles:
-              basemap === "satellite"
-                ? ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"]
-                : ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-            attribution: "© OpenStreetMap / Esri",
-          },
-        },
-        layers: [{ id: "base", type: "raster", source: "base" }],
-      };
+      // synthetic generator — MIRRORS leaflet_ceiling/generate_synthetic.mjs
+      const BBOX = { west: -3.889, south: 40.312, east: -3.518, north: 40.564 };
+      const AVG_V = 194;
+      function mulberry32(seed) { let a = seed >>> 0; return function () { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+      function makePolygons(n) { const rnd = mulberry32(42); const f = []; for (let i = 0; i < n; i++) { const cx = BBOX.west + rnd() * (BBOX.east - BBOX.west); const cy = BBOX.south + rnd() * (BBOX.north - BBOX.south); const r = 0.0008 + rnd() * 0.0025; const ring = []; for (let v = 0; v < AVG_V; v++) { const ang = (v / AVG_V) * Math.PI * 2; const j = 0.6 + rnd() * 0.8; ring.push([cx + Math.cos(ang) * r * j, cy + Math.sin(ang) * r * j]); } ring.push(ring[0]); f.push({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [ring] } }); } return { type: "FeatureCollection", features: f }; }
+      function makePoints(n) { const rnd = mulberry32(7); const f = []; for (let i = 0; i < n; i++) f.push({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [BBOX.west + rnd() * (BBOX.east - BBOX.west), BBOX.south + rnd() * (BBOX.north - BBOX.south)] } }); return { type: "FeatureCollection", features: f }; }
 
       if (typeof maplibregl === "undefined") {
-        document.body.innerHTML =
-          '<p style="color:#fbb;font:14px monospace;padding:20px">MapLibre failed to load from the CDN. This prototype needs network access to cdn.jsdelivr.net. Run it on a machine with internet (your laptop/iPad), not in a locked-down CI container.</p>';
+        document.body.innerHTML = '<p style="color:#fbb;font:14px monospace;padding:20px">MapLibre failed to load from the CDN. This prototype needs network access to cdn.jsdelivr.net. Run it on a machine with internet, not a locked-down CI container.</p>';
         throw new Error("maplibre-gl not loaded (CDN unreachable)");
       }
 
+      const style = {
+        version: 8,
+        sources: { base: { type: "raster", tiles: basemap === "satellite" ? ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"] : ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, attribution: "© OpenStreetMap / Esri" } },
+        layers: [{ id: "base", type: "raster", source: "base" }],
+      };
       const map = new maplibregl.Map({ container: "map", style, center: [-3.7038, 40.4168], zoom });
 
       async function fetchJSON(u) { const r = await fetch(u); if (!r.ok) throw new Error(u + " " + r.status); return r.json(); }
+      function lensFeature(lat, lon) { const pts = []; const R = 0.008; for (let i = 0; i <= 48; i++) { const a = (i / 48) * Math.PI * 2; pts.push([lon + Math.cos(a) * R, lat + Math.sin(a) * R * 0.76]); } return { type: "Feature", geometry: { type: "LineString", coordinates: pts } }; }
+
+      let licenceRecords = null, planningIndex = null;
 
       async function build() {
         await new Promise((res) => (map.loaded() ? res() : map.once("load", res)));
-        if (layers.includes("ambito")) {
-          const gj = await fetchJSON("/data/planning/madrid_ambitos.geojson");
-          map.addSource("ambito", { type: "geojson", data: gj });
-          map.addLayer({ id: "ambito-fill", type: "fill", source: "ambito", paint: { "fill-color": "#c84", "fill-opacity": 0.12 } });
-          map.addLayer({ id: "ambito-line", type: "line", source: "ambito", paint: { "line-color": "#c84", "line-width": 1 } });
+        if (kind) {
+          const fc = kind === "point" ? makePoints(count) : makePolygons(count);
+          map.addSource("syn", { type: "geojson", data: fc });
+          if (kind === "point") map.addLayer({ id: "syn", type: "circle", source: "syn", paint: { "circle-radius": 3, "circle-color": "#4ad", "circle-opacity": 0.7 } });
+          else { map.addLayer({ id: "syn-f", type: "fill", source: "syn", paint: { "fill-color": "#c84", "fill-opacity": 0.12 } }); map.addLayer({ id: "syn-l", type: "line", source: "syn", paint: { "line-color": "#c84", "line-width": 1 } }); }
+        } else {
+          let ambitoGeo = null;
+          if (layers.includes("ambito")) { ambitoGeo = await fetchJSON("/data/planning/madrid_ambitos.geojson"); map.addSource("ambito", { type: "geojson", data: ambitoGeo }); map.addLayer({ id: "ambito-fill", type: "fill", source: "ambito", paint: { "fill-color": "#c84", "fill-opacity": 0.12 } }); map.addLayer({ id: "ambito-line", type: "line", source: "ambito", paint: { "line-color": "#c84", "line-width": 1 } }); }
+          if (layers.includes("licence")) { const art = await fetchJSON("/data/planning/madrid_urban_licences.json"); licenceRecords = art.records; const fc = { type: "FeatureCollection", features: art.records.filter((r) => isFinite(+r.lat) && isFinite(+r.lon)).map((r) => ({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [+r.lon, +r.lat] } })) }; map.addSource("licence", { type: "geojson", data: fc }); map.addLayer({ id: "licence-pt", type: "circle", source: "licence", paint: { "circle-radius": 3, "circle-color": "#4ad", "circle-opacity": 0.7 } }); }
+          if (recompute === "full") { if (!licenceRecords) licenceRecords = (await fetchJSON("/data/planning/madrid_urban_licences.json")).records; if (!ambitoGeo) ambitoGeo = await fetchJSON("/data/planning/madrid_ambitos.geojson"); planningIndex = createPlanningIndex({ geometry: ambitoGeo }); }
         }
-        if (layers.includes("licence")) {
-          const art = await fetchJSON("/data/planning/madrid_urban_licences.json");
-          const fc = { type: "FeatureCollection", features: [] };
-          for (const r of art.records) {
-            const lat = +r.lat, lon = +r.lon;
-            if (isFinite(lat) && isFinite(lon)) fc.features.push({ type: "Feature", properties: { family: r.family }, geometry: { type: "Point", coordinates: [lon, lat] } });
-          }
-          map.addSource("licence", { type: "geojson", data: fc });
-          map.addLayer({ id: "licence-pt", type: "circle", source: "licence", paint: { "circle-radius": 3, "circle-color": "#4ad", "circle-opacity": 0.7 } });
-        }
-        // the Lens as a GeoJSON circle source we move each step
         map.addSource("lens", { type: "geojson", data: lensFeature(40.4168, -3.7038) });
         map.addLayer({ id: "lens", type: "line", source: "lens", paint: { "line-color": "#36f", "line-width": 2 } });
         await K12RUM.nextPaint();
-      }
-
-      function lensFeature(lat, lon) {
-        // a coarse circle polygon (~900 m) as a moved overlay
-        const pts = []; const R = 0.008;
-        for (let i = 0; i <= 48; i++) { const a = (i / 48) * Math.PI * 2; pts.push([lon + Math.cos(a) * R, lat + Math.sin(a) * R * 0.76]); }
-        return { type: "Feature", geometry: { type: "LineString", coordinates: pts } };
       }
 
       let theta = 0;
@@ -96,17 +86,18 @@
         theta += 0.15;
         const lat = 40.4168 + Math.sin(theta) * 0.004, lon = -3.7038 + Math.cos(theta) * 0.004;
         map.getSource("lens").setData(lensFeature(lat, lon));
+        if (recompute !== "full" || !licenceRecords) return undefined;
+        const t0 = performance.now();
+        licencesInLens({ lat, lon, radiusM: 900 }, licenceRecords, {});
+        if (planningIndex) planningIndex.ambitosIntersecting(lon, lat, 900);
+        return performance.now() - t0;
       }
       function pan() {
-        return new Promise((resolve) => {
-          let i = 0; const c = map.getCenter();
-          const step = () => { i++; map.jumpTo({ center: [c.lng + i * 0.0006, c.lat + i * 0.0006] }); i < 60 ? requestAnimationFrame(step) : resolve(); };
-          requestAnimationFrame(step);
-        });
+        return new Promise((resolve) => { let i = 0; const c = map.getCenter(); const step = () => { i++; map.jumpTo({ center: [c.lng + i * 0.0006, c.lat + i * 0.0006] }); i < 60 ? requestAnimationFrame(step) : resolve(); }; requestAnimationFrame(step); });
       }
 
       window.__K12_RUN__ = async () =>
-        K12RUM.run({ scenario, renderer: "maplibre", device_label: Q.get("device_label") || "", cache: Q.get("cache") || "", network: Q.get("network") || "", reps: Number(Q.get("reps") || 40), ready: build, interactionStep, pan });
+        K12RUM.run({ scenario, renderer: "maplibre", recompute_mode: kind ? "renderer" : recompute, device_label: Q.get("device_label") || "", cache: Q.get("cache") || "", network: Q.get("network") || "", reps: Number(Q.get("reps") || 40), ready: build, interactionStep, pan });
       if (Q.get("auto") === "1") window.addEventListener("load", () => window.__K12_RUN__());
     </script>
   </body>
