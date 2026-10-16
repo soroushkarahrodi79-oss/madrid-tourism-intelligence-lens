@@ -1,0 +1,52 @@
+{
+  "spike": "K12 runtime decision",
+  "measurement": "pmtiles_tiling_cost",
+  "deterministic": "input layer bytes are hardware-independent; per-viewport transfer is an ESTIMATE",
+  "host": {
+    "kind": "CONTAINER_CPU — not a device",
+    "note": "Timings below are CPU-bound work measured in a shared cloud Linux VM with no GPU (software rasterisation). They are valid as RELATIVE, CPU-only comparisons between approaches on the SAME host. They are NOT mid-range-laptop or iPad numbers and must never be reported as such.",
+    "platform": "linux",
+    "arch": "x64",
+    "cpuModel": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "cpuCount": 4,
+    "totalMemGB": 15.7,
+    "nodeVersion": "v22.22.0",
+    "gitSha": "cf85a9b45fd68b73730c809e6e75c04751aeb473",
+    "measuredAt": "2026-10-16T10:36:45.651Z"
+  },
+  "layers": [
+    {
+      "layer": "ambito_polygons",
+      "source": "data/planning/madrid_ambitos.geojson",
+      "geometry": {
+        "features": 724,
+        "vertices": 140507,
+        "rings": 808
+      },
+      "today_whole_layer": {
+        "raw_bytes": 3487156,
+        "gzip_bytes": 938501,
+        "brotli_bytes": 538383
+      }
+    },
+    {
+      "layer": "licence_points",
+      "source": "data/planning/madrid_urban_licences.json (as point FC)",
+      "features": 11265,
+      "today_whole_layer": {
+        "raw_bytes": 2055767,
+        "gzip_bytes": 158904,
+        "brotli_bytes": 118494
+      }
+    }
+  ],
+  "decidability_finding": "PMTiles is a transport/packaging format for VECTOR (or raster) tiles consumed by a vector renderer. The production app uses Leaflet with RASTER basemap tiles and whole-GeoJSON overlays; it has no vector-tile renderer. PMTiles for the overlays is therefore NOT decidable independently of the MapLibre decision (§3): adopting PMTiles for ámbito/licence vectors presupposes a vector renderer. Verdict is slaved to MapLibre's.",
+  "transfer_model_note": "TODAY each overlay is fetched once as a whole gzipped GeoJSON and cached. PMTiles would fetch only the tiles overlapping the viewport, via HTTP range requests on one .pmtiles file. At Madrid-municipal extent and the app's default zoom, the whole ámbito layer is visible, so PMTiles would transfer a comparable byte volume on first paint; its win is at deep zoom over a much larger corpus (parcel scale), which this product does not have.",
+  "tippecanoe_procedure": {
+    "install": "brew install tippecanoe  (or build from mapbox/tippecanoe)",
+    "ambito": "tippecanoe -o ambito.pmtiles -zg --drop-densest-as-needed -l ambito data/planning/madrid_ambitos.geojson",
+    "licences": "node research/runtime_spike/pmtiles/tiling_cost.mjs  # writes licence_points.geojson first, then: tippecanoe -o licences.pmtiles -zg --cluster-distance=... -l licences licence_points.geojson",
+    "then": "measure: ls -l *.pmtiles ; compare against today_whole_layer.gzip_bytes above",
+    "status": "NOT RUN — tippecanoe absent in this container (declared, not estimated away)"
+  }
+}

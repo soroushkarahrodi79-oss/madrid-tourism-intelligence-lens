@@ -1,0 +1,496 @@
+{
+  "spike": "K12 runtime decision",
+  "measurement": "baseline_inventory",
+  "deterministic": "byte sizes and counts are hardware-independent; parse_ms is CPU-only",
+  "host": {
+    "kind": "CONTAINER_CPU — not a device",
+    "note": "Timings below are CPU-bound work measured in a shared cloud Linux VM with no GPU (software rasterisation). They are valid as RELATIVE, CPU-only comparisons between approaches on the SAME host. They are NOT mid-range-laptop or iPad numbers and must never be reported as such.",
+    "platform": "linux",
+    "arch": "x64",
+    "cpuModel": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "cpuCount": 4,
+    "totalMemGB": 15.7,
+    "nodeVersion": "v22.22.0",
+    "gitSha": "cf85a9b45fd68b73730c809e6e75c04751aeb473",
+    "measuredAt": "2026-10-16T10:12:07.904Z"
+  },
+  "totals": {
+    "file_count": 16,
+    "raw_bytes": 25402133,
+    "raw_MB": 24.23,
+    "gzip9_bytes": 2208569,
+    "gzip9_MB": 2.11
+  },
+  "historical_baseline_42773bc": {
+    "note": "Recorded in issue #74 / Gate K §11 for comparison. NOT re-measured here.",
+    "admin_features": 153,
+    "admin_vertices": 31648,
+    "admin_geojson_MB": 2.53,
+    "poi_records": 1470,
+    "total_footprint_MB": 6.6
+  },
+  "artifacts": [
+    {
+      "file": "accommodation/madrid_vut_licences.json",
+      "raw_bytes": 32519,
+      "gzip9_bytes": 1877,
+      "gzip6_bytes": 2049,
+      "brotli_bytes": 1293,
+      "gzip9_ratio": 17.3,
+      "parse_ms": {
+        "n": 9,
+        "min": 0.13,
+        "median": 0.134,
+        "p95": 0.194,
+        "max": 0.194,
+        "mean": 0.144,
+        "raw_ms": [
+          0.13,
+          0.131,
+          0.132,
+          0.133,
+          0.134,
+          0.138,
+          0.139,
+          0.168,
+          0.194
+        ]
+      },
+      "kind": "tabular",
+      "records": 153
+    },
+    {
+      "file": "callejero/madrid_ndp_crosswalk.json",
+      "raw_bytes": 6731851,
+      "gzip9_bytes": 297334,
+      "gzip6_bytes": 322001,
+      "brotli_bytes": 183864,
+      "gzip9_ratio": 22.6,
+      "parse_ms": {
+        "n": 9,
+        "min": 14.009,
+        "median": 15.784,
+        "p95": 21.868,
+        "max": 21.868,
+        "mean": 16.705,
+        "raw_ms": [
+          14.009,
+          15.264,
+          15.305,
+          15.479,
+          15.784,
+          17.234,
+          17.46,
+          17.944,
+          21.868
+        ]
+      },
+      "kind": "other"
+    },
+    {
+      "file": "destination/madrid_domestic_origins.json",
+      "raw_bytes": 3711564,
+      "gzip9_bytes": 255754,
+      "gzip6_bytes": 275320,
+      "brotli_bytes": 87976,
+      "gzip9_ratio": 14.5,
+      "parse_ms": {
+        "n": 9,
+        "min": 7.679,
+        "median": 9.534,
+        "p95": 12.885,
+        "max": 12.885,
+        "mean": 9.866,
+        "raw_ms": [
+          7.679,
+          7.73,
+          8.428,
+          9.494,
+          9.534,
+          10.306,
+          11.368,
+          11.371,
+          12.885
+        ]
+      },
+      "kind": "tabular",
+      "records": 14811,
+      "months": 7
+    },
+    {
+      "file": "destination/madrid_hotel_demand.json",
+      "raw_bytes": 28718,
+      "gzip9_bytes": 3535,
+      "gzip6_bytes": 3891,
+      "brotli_bytes": 2395,
+      "gzip9_ratio": 8.1,
+      "parse_ms": {
+        "n": 9,
+        "min": 0.057,
+        "median": 0.09,
+        "p95": 0.193,
+        "max": 0.193,
+        "mean": 0.098,
+        "raw_ms": [
+          0.057,
+          0.061,
+          0.077,
+          0.09,
+          0.09,
+          0.091,
+          0.101,
+          0.119,
+          0.193
+        ]
+      },
+      "kind": "other"
+    },
+    {
+      "file": "geography/madrid_admin.geojson",
+      "raw_bytes": 2586576,
+      "gzip9_bytes": 249052,
+      "gzip6_bytes": 262686,
+      "brotli_bytes": 91157,
+      "gzip9_ratio": 10.4,
+      "parse_ms": {
+        "n": 9,
+        "min": 9.839,
+        "median": 11.052,
+        "p95": 15.387,
+        "max": 15.387,
+        "mean": 11.608,
+        "raw_ms": [
+          9.839,
+          10.318,
+          10.791,
+          10.997,
+          11.052,
+          11.099,
+          11.532,
+          13.454,
+          15.387
+        ]
+      },
+      "kind": "spatial",
+      "geometry": {
+        "features": 153,
+        "vertices": 31648,
+        "rings": 153
+      }
+    },
+    {
+      "file": "hati_assets.json",
+      "raw_bytes": 9029,
+      "gzip9_bytes": 1867,
+      "gzip6_bytes": 1896,
+      "brotli_bytes": 1505,
+      "gzip9_ratio": 4.8,
+      "parse_ms": {
+        "n": 9,
+        "min": 0.037,
+        "median": 0.039,
+        "p95": 0.068,
+        "max": 0.068,
+        "mean": 0.042,
+        "raw_ms": [
+          0.037,
+          0.038,
+          0.038,
+          0.039,
+          0.039,
+          0.04,
+          0.041,
+          0.041,
+          0.068
+        ]
+      },
+      "kind": "other"
+    },
+    {
+      "file": "hati_provenance.json",
+      "raw_bytes": 2746,
+      "gzip9_bytes": 1350,
+      "gzip6_bytes": 1350,
+      "brotli_bytes": 1141,
+      "gzip9_ratio": 2,
+      "parse_ms": {
+        "n": 9,
+        "min": 0.008,
+        "median": 0.008,
+        "p95": 0.014,
+        "max": 0.014,
+        "mean": 0.009,
+        "raw_ms": [
+          0.008,
+          0.008,
+          0.008,
+          0.008,
+          0.008,
+          0.008,
+          0.008,
+          0.009,
+          0.014
+        ]
+      },
+      "kind": "other"
+    },
+    {
+      "file": "hospitality-commercial-context.json",
+      "raw_bytes": 66585,
+      "gzip9_bytes": 7089,
+      "gzip6_bytes": 7571,
+      "brotli_bytes": 5460,
+      "gzip9_ratio": 9.4,
+      "parse_ms": {
+        "n": 9,
+        "min": 0.122,
+        "median": 0.138,
+        "p95": 0.163,
+        "max": 0.163,
+        "mean": 0.14,
+        "raw_ms": [
+          0.122,
+          0.124,
+          0.126,
+          0.13,
+          0.138,
+          0.151,
+          0.154,
+          0.157,
+          0.163
+        ]
+      },
+      "kind": "other"
+    },
+    {
+      "file": "pedestrian_activity.json",
+      "raw_bytes": 821,
+      "gzip9_bytes": 409,
+      "gzip6_bytes": 409,
+      "brotli_bytes": 332,
+      "gzip9_ratio": 2,
+      "parse_ms": {
+        "n": 9,
+        "min": 0.002,
+        "median": 0.002,
+        "p95": 0.005,
+        "max": 0.005,
+        "mean": 0.003,
+        "raw_ms": [
+          0.002,
+          0.002,
+          0.002,
+          0.002,
+          0.002,
+          0.003,
+          0.003,
+          0.003,
+          0.005
+        ]
+      },
+      "kind": "other"
+    },
+    {
+      "file": "planning/madrid_ambito_state.json",
+      "raw_bytes": 3374203,
+      "gzip9_bytes": 132899,
+      "gzip6_bytes": 141223,
+      "brotli_bytes": 54436,
+      "gzip9_ratio": 25.4,
+      "parse_ms": {
+        "n": 9,
+        "min": 10.896,
+        "median": 12.6,
+        "p95": 13.316,
+        "max": 13.316,
+        "mean": 12.319,
+        "raw_ms": [
+          10.896,
+          11.314,
+          11.397,
+          12.471,
+          12.6,
+          12.694,
+          12.948,
+          13.235,
+          13.316
+        ]
+      },
+      "kind": "other"
+    },
+    {
+      "file": "planning/madrid_ambitos.geojson",
+      "raw_bytes": 3487156,
+      "gzip9_bytes": 938501,
+      "gzip6_bytes": 940775,
+      "brotli_bytes": 538383,
+      "gzip9_ratio": 3.7,
+      "parse_ms": {
+        "n": 9,
+        "min": 20.545,
+        "median": 22.551,
+        "p95": 39.57,
+        "max": 39.57,
+        "mean": 25.726,
+        "raw_ms": [
+          20.545,
+          21.035,
+          21.355,
+          22.133,
+          22.551,
+          23.936,
+          23.941,
+          36.469,
+          39.57
+        ]
+      },
+      "kind": "spatial",
+      "geometry": {
+        "features": 724,
+        "vertices": 140507,
+        "rings": 808
+      }
+    },
+    {
+      "file": "planning/madrid_urban_licences.json",
+      "raw_bytes": 5240735,
+      "gzip9_bytes": 290051,
+      "gzip6_bytes": 318282,
+      "brotli_bytes": 196214,
+      "gzip9_ratio": 18.1,
+      "parse_ms": {
+        "n": 9,
+        "min": 14.452,
+        "median": 16.07,
+        "p95": 18.005,
+        "max": 18.005,
+        "mean": 16.021,
+        "raw_ms": [
+          14.452,
+          14.609,
+          15.281,
+          15.971,
+          16.07,
+          16.192,
+          16.285,
+          17.326,
+          18.005
+        ]
+      },
+      "kind": "tabular",
+      "records": 11265
+    },
+    {
+      "file": "population/madrid_population.json",
+      "raw_bytes": 27502,
+      "gzip9_bytes": 1684,
+      "gzip6_bytes": 1833,
+      "brotli_bytes": 1046,
+      "gzip9_ratio": 16.3,
+      "parse_ms": {
+        "n": 9,
+        "min": 0.059,
+        "median": 0.063,
+        "p95": 0.065,
+        "max": 0.065,
+        "mean": 0.063,
+        "raw_ms": [
+          0.059,
+          0.059,
+          0.062,
+          0.062,
+          0.063,
+          0.064,
+          0.064,
+          0.065,
+          0.065
+        ]
+      },
+      "kind": "other"
+    },
+    {
+      "file": "snapshot_poi.json",
+      "raw_bytes": 1175,
+      "gzip9_bytes": 437,
+      "gzip6_bytes": 439,
+      "brotli_bytes": 390,
+      "gzip9_ratio": 2.7,
+      "parse_ms": {
+        "n": 9,
+        "min": 0.005,
+        "median": 0.005,
+        "p95": 0.006,
+        "max": 0.006,
+        "mean": 0.005,
+        "raw_ms": [
+          0.005,
+          0.005,
+          0.005,
+          0.005,
+          0.005,
+          0.006,
+          0.006,
+          0.006,
+          0.006
+        ]
+      },
+      "kind": "other"
+    },
+    {
+      "file": "snapshot_provenance.json",
+      "raw_bytes": 2847,
+      "gzip9_bytes": 1187,
+      "gzip6_bytes": 1187,
+      "brotli_bytes": 917,
+      "gzip9_ratio": 2.4,
+      "parse_ms": {
+        "n": 9,
+        "min": 0.003,
+        "median": 0.004,
+        "p95": 0.07,
+        "max": 0.07,
+        "mean": 0.011,
+        "raw_ms": [
+          0.003,
+          0.003,
+          0.003,
+          0.004,
+          0.004,
+          0.004,
+          0.004,
+          0.005,
+          0.07
+        ]
+      },
+      "kind": "other"
+    },
+    {
+      "file": "source_registry.json",
+      "raw_bytes": 98106,
+      "gzip9_bytes": 25543,
+      "gzip6_bytes": 25601,
+      "brotli_bytes": 20947,
+      "gzip9_ratio": 3.8,
+      "parse_ms": {
+        "n": 9,
+        "min": 0.118,
+        "median": 0.152,
+        "p95": 0.691,
+        "max": 0.691,
+        "mean": 0.218,
+        "raw_ms": [
+          0.118,
+          0.131,
+          0.142,
+          0.142,
+          0.152,
+          0.19,
+          0.193,
+          0.203,
+          0.691
+        ]
+      },
+      "kind": "other"
+    }
+  ]
+}

@@ -1,0 +1,198 @@
+{
+  "spike": "K12 runtime decision",
+  "measurement": "duckdb_wasm_vs_plain_js",
+  "deterministic": "payload bytes hardware-independent; init/query ms CPU-only (host recorded)",
+  "host": {
+    "kind": "CONTAINER_CPU — not a device",
+    "note": "Timings below are CPU-bound work measured in a shared cloud Linux VM with no GPU (software rasterisation). They are valid as RELATIVE, CPU-only comparisons between approaches on the SAME host. They are NOT mid-range-laptop or iPad numbers and must never be reported as such.",
+    "platform": "linux",
+    "arch": "x64",
+    "cpuModel": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "cpuCount": 4,
+    "totalMemGB": 15.7,
+    "nodeVersion": "v22.22.0",
+    "gitSha": "cf85a9b45fd68b73730c809e6e75c04751aeb473",
+    "measuredAt": "2026-10-16T10:33:32.996Z"
+  },
+  "dataset": {
+    "licence_records": 11265,
+    "date_extent": {
+      "min": "2023-01-13",
+      "max": "2026-09-30"
+    }
+  },
+  "query_params": {
+    "centre": {
+      "lat": 40.4168,
+      "lon": -3.7038
+    },
+    "radius_m": 1500,
+    "window": {
+      "from": "2025-10-01",
+      "to": "2026-09-30",
+      "valid": true
+    }
+  },
+  "payload": {
+    "engine_build": "eh (exception-handling; the default browser build)",
+    "wasm_raw_bytes": 35659694,
+    "wasm_gzip_bytes": 7075384,
+    "wasm_brotli_bytes_note": "≈4.50 MB at brotli q11 (one-off; not recomputed per run)",
+    "js_glue_raw_bytes": 790457,
+    "js_glue_gzip_bytes": 193588,
+    "js_glue_brotli_bytes": 160528,
+    "total_raw_bytes": 36450151,
+    "total_gzip_bytes": 7268972,
+    "comparison_note": "App's ENTIRE committed data footprint is 2.11 MB gzip (baseline_inventory.json). Booting DuckDB-WASM transfers ~6.9 MB gzip (≈4.7 MB brotli) before answering one query."
+  },
+  "correctness": {
+    "inCircle": {
+      "js_matches": 1554,
+      "duckdb_matches": 1554,
+      "identical": true
+    },
+    "dateWindow": {
+      "js_matches": 527,
+      "duckdb_matches": 527,
+      "identical": true
+    }
+  },
+  "timings": {
+    "duckdb": {
+      "init_ms": 9663.3,
+      "load_table_ms": 515.47,
+      "inCircle_cold_ms": 620.03,
+      "inCircle_warm": {
+        "n": 15,
+        "min": 4.651,
+        "median": 7.557,
+        "p95": 130.66,
+        "max": 130.66,
+        "mean": 16.776,
+        "raw_ms": [
+          4.651,
+          5.106,
+          5.81,
+          6.761,
+          7.058,
+          7.231,
+          7.554,
+          7.557,
+          7.76,
+          9.062,
+          9.604,
+          9.622,
+          13.59,
+          19.613,
+          130.66
+        ]
+      },
+      "dateWindow_cold_ms": 17.55,
+      "dateWindow_warm": {
+        "n": 15,
+        "min": 3.253,
+        "median": 3.702,
+        "p95": 120.616,
+        "max": 120.616,
+        "mean": 11.57,
+        "raw_ms": [
+          3.253,
+          3.308,
+          3.447,
+          3.509,
+          3.582,
+          3.663,
+          3.694,
+          3.702,
+          3.866,
+          3.911,
+          3.972,
+          4.224,
+          4.263,
+          4.543,
+          120.616
+        ]
+      }
+    },
+    "plain_js": {
+      "inCircle": {
+        "n": 25,
+        "min": 1.224,
+        "median": 1.677,
+        "p95": 1.864,
+        "max": 1.974,
+        "mean": 1.611,
+        "raw_ms": [
+          1.224,
+          1.273,
+          1.301,
+          1.321,
+          1.329,
+          1.333,
+          1.388,
+          1.556,
+          1.618,
+          1.638,
+          1.657,
+          1.657,
+          1.677,
+          1.689,
+          1.713,
+          1.724,
+          1.725,
+          1.727,
+          1.749,
+          1.763,
+          1.784,
+          1.795,
+          1.796,
+          1.864,
+          1.974
+        ]
+      },
+      "dateWindow": {
+        "n": 25,
+        "min": 0.763,
+        "median": 1.159,
+        "p95": 1.269,
+        "max": 1.594,
+        "mean": 1.151,
+        "raw_ms": [
+          0.763,
+          0.763,
+          1.052,
+          1.081,
+          1.091,
+          1.096,
+          1.103,
+          1.137,
+          1.143,
+          1.145,
+          1.148,
+          1.153,
+          1.159,
+          1.16,
+          1.172,
+          1.2,
+          1.204,
+          1.21,
+          1.212,
+          1.213,
+          1.217,
+          1.237,
+          1.25,
+          1.269,
+          1.594
+        ]
+      }
+    }
+  },
+  "verdict_inputs": {
+    "engine_transfer_gzip_MB": 6.93,
+    "plain_js_warm_median_ms": 1.677,
+    "duckdb_warm_median_ms": 7.557,
+    "duckdb_first_query_wall_ms": 10798.8,
+    "note": "DuckDB first-answer wall time includes engine init + table load + cold query, and EXCLUDES the multi-MB engine download. Plain JS answers from already-loaded records."
+  },
+  "status": "MEASURED_IN_CONTAINER"
+}

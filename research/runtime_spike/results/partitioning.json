@@ -1,0 +1,349 @@
+{
+  "spike": "K12 runtime decision",
+  "measurement": "domestic_origins_partitioning",
+  "deterministic": "transfer bytes hardware-independent; parse_ms CPU-only (host recorded)",
+  "host": {
+    "kind": "CONTAINER_CPU — not a device",
+    "note": "Timings below are CPU-bound work measured in a shared cloud Linux VM with no GPU (software rasterisation). They are valid as RELATIVE, CPU-only comparisons between approaches on the SAME host. They are NOT mid-range-laptop or iPad numbers and must never be reported as such.",
+    "platform": "linux",
+    "arch": "x64",
+    "cpuModel": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "cpuCount": 4,
+    "totalMemGB": 15.7,
+    "nodeVersion": "v22.22.0",
+    "gitSha": "cf85a9b45fd68b73730c809e6e75c04751aeb473",
+    "measuredAt": "2026-10-16T10:13:22.677Z"
+  },
+  "source_file": "data/destination/madrid_domestic_origins.json",
+  "whole_file": {
+    "raw_bytes": 3711564,
+    "gzip9_bytes": 255754,
+    "gzip6_bytes": 275320,
+    "brotli_bytes": 87976,
+    "parse_ms": {
+      "n": 15,
+      "min": 17.712,
+      "median": 19.131,
+      "p95": 21.078,
+      "max": 21.078,
+      "mean": 19.23,
+      "raw_ms": [
+        17.712,
+        17.998,
+        18.498,
+        18.807,
+        18.815,
+        18.902,
+        18.981,
+        19.131,
+        19.481,
+        19.511,
+        19.6,
+        19.746,
+        19.996,
+        20.193,
+        21.078
+      ]
+    }
+  },
+  "index_file": {
+    "raw_bytes": 1567,
+    "gzip9_bytes": 819,
+    "gzip6_bytes": 819,
+    "brotli_bytes": 648,
+    "parse_ms": {
+      "n": 15,
+      "min": 0.006,
+      "median": 0.009,
+      "p95": 0.015,
+      "max": 0.015,
+      "mean": 0.009,
+      "raw_ms": [
+        0.006,
+        0.006,
+        0.007,
+        0.007,
+        0.007,
+        0.008,
+        0.009,
+        0.009,
+        0.009,
+        0.009,
+        0.009,
+        0.009,
+        0.01,
+        0.01,
+        0.015
+      ]
+    }
+  },
+  "month_partitions": [
+    {
+      "source_month": "2026-01",
+      "origins": 1989,
+      "raw_bytes": 344486,
+      "gzip9_bytes": 33392,
+      "gzip6_bytes": 34925,
+      "brotli_bytes": 25658,
+      "parse_ms": {
+        "n": 15,
+        "min": 1.76,
+        "median": 2.19,
+        "p95": 2.634,
+        "max": 2.634,
+        "mean": 2.163,
+        "raw_ms": [
+          1.76,
+          1.793,
+          1.837,
+          1.97,
+          2.028,
+          2.037,
+          2.094,
+          2.19,
+          2.241,
+          2.247,
+          2.264,
+          2.275,
+          2.511,
+          2.561,
+          2.634
+        ]
+      }
+    },
+    {
+      "source_month": "2026-02",
+      "origins": 2105,
+      "raw_bytes": 364408,
+      "gzip9_bytes": 35031,
+      "gzip6_bytes": 36768,
+      "brotli_bytes": 27016,
+      "parse_ms": {
+        "n": 15,
+        "min": 1.877,
+        "median": 2.584,
+        "p95": 3.332,
+        "max": 3.332,
+        "mean": 2.623,
+        "raw_ms": [
+          1.877,
+          2.144,
+          2.247,
+          2.333,
+          2.341,
+          2.402,
+          2.416,
+          2.584,
+          2.625,
+          2.696,
+          2.809,
+          3.062,
+          3.232,
+          3.24,
+          3.332
+        ]
+      }
+    },
+    {
+      "source_month": "2026-03",
+      "origins": 2256,
+      "raw_bytes": 390458,
+      "gzip9_bytes": 37690,
+      "gzip6_bytes": 39527,
+      "brotli_bytes": 28888,
+      "parse_ms": {
+        "n": 15,
+        "min": 2.19,
+        "median": 3.159,
+        "p95": 8.186,
+        "max": 8.186,
+        "mean": 3.491,
+        "raw_ms": [
+          2.19,
+          2.418,
+          2.567,
+          2.998,
+          3.045,
+          3.094,
+          3.101,
+          3.159,
+          3.198,
+          3.212,
+          3.239,
+          3.374,
+          4.15,
+          4.439,
+          8.186
+        ]
+      }
+    },
+    {
+      "source_month": "2026-04",
+      "origins": 2108,
+      "raw_bytes": 364888,
+      "gzip9_bytes": 35100,
+      "gzip6_bytes": 36784,
+      "brotli_bytes": 27074,
+      "parse_ms": {
+        "n": 15,
+        "min": 1.655,
+        "median": 2.183,
+        "p95": 3.146,
+        "max": 3.146,
+        "mean": 2.155,
+        "raw_ms": [
+          1.655,
+          1.752,
+          1.852,
+          1.946,
+          1.991,
+          2.042,
+          2.059,
+          2.183,
+          2.186,
+          2.2,
+          2.271,
+          2.28,
+          2.357,
+          2.405,
+          3.146
+        ]
+      }
+    },
+    {
+      "source_month": "2026-05",
+      "origins": 2186,
+      "raw_bytes": 378642,
+      "gzip9_bytes": 36536,
+      "gzip6_bytes": 38231,
+      "brotli_bytes": 28158,
+      "parse_ms": {
+        "n": 15,
+        "min": 1.73,
+        "median": 2.302,
+        "p95": 2.931,
+        "max": 2.931,
+        "mean": 2.288,
+        "raw_ms": [
+          1.73,
+          2.028,
+          2.037,
+          2.059,
+          2.088,
+          2.127,
+          2.294,
+          2.302,
+          2.32,
+          2.336,
+          2.406,
+          2.492,
+          2.5,
+          2.674,
+          2.931
+        ]
+      }
+    },
+    {
+      "source_month": "2026-06",
+      "origins": 2256,
+      "raw_bytes": 390722,
+      "gzip9_bytes": 37738,
+      "gzip6_bytes": 39588,
+      "brotli_bytes": 28913,
+      "parse_ms": {
+        "n": 15,
+        "min": 1.772,
+        "median": 2.26,
+        "p95": 2.563,
+        "max": 2.563,
+        "mean": 2.193,
+        "raw_ms": [
+          1.772,
+          1.806,
+          1.882,
+          1.911,
+          1.942,
+          2.14,
+          2.2,
+          2.26,
+          2.281,
+          2.337,
+          2.37,
+          2.437,
+          2.489,
+          2.508,
+          2.563
+        ]
+      }
+    },
+    {
+      "source_month": "2026-07",
+      "origins": 1911,
+      "raw_bytes": 331122,
+      "gzip9_bytes": 32034,
+      "gzip6_bytes": 33490,
+      "brotli_bytes": 24667,
+      "parse_ms": {
+        "n": 15,
+        "min": 1.518,
+        "median": 1.734,
+        "p95": 2.379,
+        "max": 2.379,
+        "mean": 1.841,
+        "raw_ms": [
+          1.518,
+          1.521,
+          1.571,
+          1.621,
+          1.701,
+          1.717,
+          1.717,
+          1.734,
+          1.771,
+          1.807,
+          2.023,
+          2.088,
+          2.223,
+          2.224,
+          2.379
+        ]
+      }
+    }
+  ],
+  "month_count": 7,
+  "scenarios": {
+    "A_status_quo_full_upfront": {
+      "transfer_gzip9_bytes": 255754,
+      "transfer_brotli_bytes": 87976,
+      "parse_median_ms": 19.131,
+      "description": "Current behaviour: whole artifact fetched and parsed before first paint."
+    },
+    "B_partitioned_lazy_latest_month": {
+      "transfer_gzip9_bytes": 32853,
+      "transfer_brotli_bytes": 25315,
+      "parse_median_ms": 1.743,
+      "description": "Fetch index + latest month only on first paint; others on demand."
+    },
+    "C_partitioned_eager_all": {
+      "transfer_gzip9_bytes": 248340,
+      "transfer_brotli_bytes": 191022,
+      "parse_total_median_ms": 16.421,
+      "description": "Fetch index + every month file (upper bound; shows partition overhead vs A)."
+    }
+  },
+  "initial_load_savings_B_vs_A": {
+    "transfer_gzip9": {
+      "status_quo_bytes": 255754,
+      "partitioned_bytes": 32853,
+      "saved_bytes": 222901,
+      "saved_pct": 87.2
+    },
+    "parse": {
+      "status_quo_median_ms": 19.131,
+      "partitioned_median_ms": 1.743,
+      "saved_pct": 90.9
+    }
+  },
+  "caching_note": "Partitioned: a new monthly edition invalidates only that month's file + the tiny index; status quo invalidates the whole multi-MB artifact on every update. Partition overhead = header duplicated per month (see C vs A).",
+  "operational_complexity_note": "A partition would require the builder to emit N month files + an index, and the loader to fetch lazily. This is a DATA-PIPELINE change (out of K12 scope) — reported as a finding only."
+}

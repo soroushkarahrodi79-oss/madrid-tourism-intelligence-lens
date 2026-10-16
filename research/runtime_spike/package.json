@@ -1,0 +1,11 @@
+{
+  "name": "k12-runtime-spike-harness",
+  "private": true,
+  "type": "module",
+  "description": "THROWAWAY K12 measurement harness deps. NOT the production package.json. Not shipped.",
+  "devDependencies": {
+    "@duckdb/duckdb-wasm": "1.29.0",
+    "apache-arrow": "17.0.0",
+    "playwright": "1.56.0"
+  }
+}
