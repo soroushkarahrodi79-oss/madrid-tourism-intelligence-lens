@@ -517,9 +517,16 @@ gate to PASS:
    preserves every measurement between navigations, resumes after interruption, and
    exports **one** consolidated JSON in the same shape as the laptop runner. It
    **fails closed**: a timed-out or errored scenario (e.g. 10 000 polygons) is
-   recorded INCOMPLETE, never skipped, and never destroys prior measurements; and it
-   requires an explicit **physical-device attestation** — a real iPad is not inferred
-   from the user-agent. The older one-URL-per-scenario walk in
+   recorded INCOMPLETE, never skipped, and never destroys prior measurements; a
+   sparse or fabricated handoff (a lone `p95` with no raw samples) cannot satisfy
+   completeness. It requires an explicit **physical-device attestation** that is
+   **required but not sufficient**: the run is refused device-grade when the
+   *observed* environment (platform/browser/GPU) contradicts an iPad Safari run
+   (Windows/Android/Linux/ChromeOS, a Chromium/Edge/Firefox/Claude browser, a
+   software or non-Apple GPU), and the export records the observed environment rather
+   than a hardcoded Safari channel. A real iPad is still never inferred from the
+   user-agent (iPadOS desktop mode reports "Macintosh"); the UA/GPU only refute an
+   impossible claim. The older one-URL-per-scenario walk in
    [`device_harness/IPAD.md`](../research/runtime_spike/device_harness/IPAD.md) remains
    valid as a fallback. iPad **cannot** run Playwright; these manual paths are the
    only device-grade iPad routes. A desktop browser in an iPad viewport is **not** a

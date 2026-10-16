@@ -64,6 +64,7 @@
           emulation. The run is <b>not</b> device-grade without this, and a real iPad
           is never inferred from the user-agent alone.</span>
         </label>
+        <div id="envBanner" class="banner" style="margin-top:12px"></div>
         <div style="margin-top:12px">
           <button id="start" class="primary" disabled>▶ Start full suite</button>
           <span class="hint" id="startHint"></span>
@@ -98,16 +99,49 @@
       import {
         STORAGE, createSession, nextPending, markDispatched, applyHandoff,
         reconcileOnResume, progress, isFinished, buildConsolidated, buildScenarioUrl,
+        observedEnvironment, ipadConsistency,
       } from "./mobile_controller_core.mjs";
 
       const DISPATCH_DELAY_MS = 700; // visible cooldown between scenarios
       const $ = (id) => document.getElementById(id);
       const controllerUrl = location.origin + location.pathname; // no stale query
 
+      // Probe the real GL renderer of THIS page (same method as rum.js) so the
+      // controller can show the owner, up front, what environment it is actually in
+      // and whether it contradicts an iPad Safari run. This refutes a wrong claim; it
+      // never manufactures one.
+      function probeGlRenderer() {
+        try {
+          const c = document.createElement("canvas");
+          const gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+          if (!gl) return "NO_WEBGL";
+          const ext = gl.getExtension("WEBGL_debug_renderer_info");
+          return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+        } catch (e) { return "unknown"; }
+      }
+      const observedHere = observedEnvironment({ userAgent: navigator.userAgent, gl_renderer: probeGlRenderer() });
+      const consistencyHere = ipadConsistency({ userAgent: navigator.userAgent, gl_renderer: observedHere.gl_renderer });
+
       const loadSession = () => { try { return JSON.parse(localStorage.getItem(STORAGE.session) || "null"); } catch (e) { return null; } };
       const saveSession = (s) => { try { localStorage.setItem(STORAGE.session, JSON.stringify(s)); } catch (e) {} };
       const readHandoff = () => { try { return JSON.parse(localStorage.getItem(STORAGE.handoff) || "null"); } catch (e) { return null; } };
       const clearHandoff = () => { try { localStorage.removeItem(STORAGE.handoff); } catch (e) {} };
+
+      // ── observed-environment banner (truthful up front) ──
+      function renderEnvBanner() {
+        const o = observedHere;
+        const line = `Observed here: <b>${o.platform}</b> · <b>${o.browser}</b> · GPU <b>${o.gpu_family}</b> (<code>${(o.gl_renderer || "?").slice(0, 46)}</code>)`;
+        if (consistencyHere.ok) {
+          $("envBanner").className = "banner ok";
+          $("envBanner").innerHTML = line + "<br>Consistent with an iPad Safari run. A complete, attested run here can be device-grade.";
+        } else {
+          $("envBanner").className = "banner warn";
+          $("envBanner").innerHTML = line +
+            "<br><b>This is NOT iPad Safari.</b> You can still run it for testing, but the export will be marked <b>is_device_grade:false</b> regardless of the attestation. Blockers: " +
+            consistencyHere.blockers.map((b) => `• ${b}`).join(" ");
+        }
+      }
+      renderEnvBanner();
 
       // ── setup gating ──
       const gate = () => {
@@ -200,9 +234,14 @@
         } else if (finished) {
           const out = buildConsolidated(session);
           $("statusBanner").className = out.run_kind === "DEVICE_VALIDATION" ? "banner ok" : "banner warn";
+          const prov = out.provenance.consistent
+            ? ""
+            : `<br>Environment NOT consistent with iPad Safari (observed ${out.provenance.observed.platform}/${out.provenance.observed.browser}/${out.provenance.observed.gpu_family}): ` +
+              out.provenance.blockers.map((b) => `• ${b}`).join(" ");
           $("statusBanner").innerHTML =
             `Suite finished — <b>${out.run_kind}</b><br>` +
             `complete=${out.complete} · comparable=${out.comparable} · is_device_grade=${out.is_device_grade}` +
+            prov +
             (out.complete ? "" : "<br>Incomplete scenarios are recorded as such and were never skipped. Export to audit.");
         } else {
           $("statusBanner").className = "banner warn";

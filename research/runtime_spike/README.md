@@ -115,6 +115,21 @@ interruption, fails closed on timeouts/errors, requires an explicit physical-dev
 attestation, and exports ONE consolidated JSON. The one-URL-per-scenario walk in
 [`device_harness/IPAD.md`](device_harness/IPAD.md) remains a fallback.
 
+> **Attestation is required but NOT sufficient.** The controller records both what
+> the owner *claims* (the attestation) and what the run *observed* (platform, browser,
+> GPU parsed from `navigator.userAgent` and the GL renderer). A claimed iPad Safari
+> run is **refused device-grade** when the observed environment contradicts it — a
+> Windows/Android/Linux/ChromeOS platform, a Chromium/Edge/Firefox/Claude browser, a
+> software renderer, or any non-Apple GPU (incl. Windows ANGLE/Direct3D). It still
+> never *infers* an iPad from the UA (iPadOS desktop mode reports a "Macintosh" UA,
+> which is accepted with an Apple GPU + Safari); the UA/GPU only **refute** an
+> impossible claim. The export reports the observed environment in `launch`/
+> `provenance` — it never hardcodes a Safari channel. A sparse or fabricated handoff
+> (e.g. a lone `p95` with no raw samples) cannot satisfy completeness: each metric
+> must carry a full, internally-consistent sample distribution. See the preserved
+> negative example under
+> [`results/controller_smoke_builtin_browser_NEGATIVE/`](results/controller_smoke_builtin_browser_NEGATIVE/).
+
 **Distinguishing device from emulation:** every result carries
 `env.gl_renderer`, `env.gl_is_software` and `env.is_device_grade`. A result is a
 genuine device observation **only** if `is_device_grade:true` *and* it came from

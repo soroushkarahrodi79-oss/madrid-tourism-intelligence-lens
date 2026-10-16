@@ -20,7 +20,7 @@
 // never writes. Device-grade requires an explicit physical-device attestation from
 // the owner; it is NOT inferred from the user-agent string.
 
-import { scenarioComplete, deviceGradeOf, GPU_VENDOR, SOFTWARE_OR_GENERIC } from "./grade.mjs";
+import { scenarioComplete, SOFTWARE_OR_GENERIC } from "./grade.mjs";
 import { buildSuite, scenarioId, pageBasename } from "./suite.mjs";
 
 // localStorage keys (same origin shared across the controller page and every
@@ -108,13 +108,15 @@ export function applyHandoff(session, envelope) {
     return session;
   }
   const r = envelope.result;
-  const c = scenarioComplete(r);
+  const c = controllerScenarioComplete(r);
   if (c.ok) {
     s.status = "complete";
     s.result = r;
     s.error = null;
   } else {
-    // A result came back but is missing required metrics → INCOMPLETE, fail closed.
+    // A result came back but is missing metrics, or carries sparse/fabricated/
+    // inconsistent sample distributions → INCOMPLETE, fail closed. The raw result
+    // is retained for audit; it is never promoted to a complete measurement.
     s.status = "incomplete";
     s.result = r || null;
     s.error = c.why || "incomplete result";
@@ -152,40 +154,167 @@ export function isFinished(session) {
   return session.scenarios.every((s) => s.status === "complete" || s.status === "incomplete");
 }
 
+// ── observed-environment parsing (what the browser actually reported) ────────
+//
+// Attestation records what the owner CLAIMS. These helpers record what the run
+// OBSERVED, so the two can be cross-checked. The claimed iPad-Safari route is
+// rejected when the observed environment makes it impossible — a Windows/Android/
+// Linux/ChromeOS platform, a Chromium/Claude/Edge/Firefox browser, a software
+// renderer, or a non-Apple GPU (incl. Windows ANGLE/Direct3D). We do NOT require
+// the literal word "iPad": iPadOS Safari in desktop mode reports a "Macintosh" UA,
+// which is accepted when the GPU is Apple and the browser is Safari.
+const DESKTOP_OS = /(windows nt|android|cros|\bx11\b|\blinux\b(?!.*android))/i;
+const CHROMIUM_UA = /(chrome\/|crios\/|chromium\/|\bedg(a|ios)?\/|claude\/|opr\/|samsungbrowser\/|yabrowser\/)/i;
+const FIREFOX_UA = /(firefox\/|fxios\/)/i;
+const SAFARI_UA = /version\/[\d.]+.*safari/i;
+const APPLE_GPU = /(apple\s*(gpu|m[123]|a[0-9]{1,2})|apple\b)/i;
+const ANGLE_NON_APPLE = /angle\s*\((?!apple)/i; // Windows ANGLE (Intel/NVIDIA/AMD, Direct3D)
+
+export function observedEnvironment(env = {}) {
+  const ua = String(env.userAgent || "").trim();
+  const gl = String(env.gl_renderer || "").trim();
+  let platform = "unknown";
+  if (/windows nt/i.test(ua)) platform = "windows";
+  else if (/android/i.test(ua)) platform = "android";
+  else if (/cros/i.test(ua)) platform = "chromeos";
+  else if (/ipad|iphone|ipod/i.test(ua)) platform = "ios_ipados";
+  else if (/macintosh|mac os x/i.test(ua)) platform = "macos_or_ipados_desktop";
+  else if (/\blinux\b|x11/i.test(ua)) platform = "linux";
+
+  let browser = "other";
+  if (/claude\//i.test(ua)) browser = "claude";
+  else if (/\bedg(a|ios)?\//i.test(ua)) browser = "edge";
+  else if (/(chrome\/|crios\/|chromium\/)/i.test(ua)) browser = "chrome";
+  else if (FIREFOX_UA.test(ua)) browser = "firefox";
+  else if (SAFARI_UA.test(ua)) browser = "safari";
+
+  const software = Boolean(env.gl_is_software) || SOFTWARE_OR_GENERIC.test(gl);
+  let gpu_family = "other";
+  if (software) gpu_family = "software";
+  else if (APPLE_GPU.test(gl)) gpu_family = "apple";
+  else if (/nvidia|geforce/i.test(gl)) gpu_family = "nvidia";
+  else if (/amd|radeon/i.test(gl)) gpu_family = "amd";
+  else if (/intel|iris/i.test(gl)) gpu_family = "intel";
+  else if (/adreno/i.test(gl)) gpu_family = "adreno";
+  else if (/mali/i.test(gl)) gpu_family = "mali";
+  else if (/powervr/i.test(gl)) gpu_family = "powervr";
+
+  return {
+    userAgent: ua || null,
+    gl_renderer: gl || null,
+    platform,
+    browser,
+    is_chromium: browser === "chrome" || browser === "edge" || browser === "claude",
+    gpu_family,
+    angle_non_apple: ANGLE_NON_APPLE.test(gl),
+    gl_is_software: software,
+  };
+}
+
+// Is the observed environment compatible with a REAL iPad Safari run?
+// Returns { ok, blockers:[...] }. Fail-closed: any contradiction is a blocker.
+export function ipadConsistency(env = {}) {
+  const o = observedEnvironment(env);
+  const blockers = [];
+  if (!o.userAgent) blockers.push("no user-agent recorded");
+  if (DESKTOP_OS.test(o.userAgent || "")) blockers.push(`observed platform "${o.platform}" is not iPadOS (incompatible with an iPad Safari run)`);
+  if (o.is_chromium) blockers.push(`observed browser "${o.browser}" is Chromium-based, not Safari`);
+  if (o.browser === "firefox") blockers.push("observed browser is Firefox, not Safari");
+  if (o.gl_is_software) blockers.push(`software renderer "${o.gl_renderer}" is not a device GPU`);
+  if (o.angle_non_apple) blockers.push(`GPU "${o.gl_renderer}" is Windows ANGLE/Direct3D, not an Apple GPU`);
+  if (!o.gl_is_software && o.gpu_family !== "apple") blockers.push(`GPU "${o.gl_renderer}" is "${o.gpu_family}", not an Apple GPU`);
+  return { ok: blockers.length === 0, blockers, observed: o };
+}
+
+// ── measurement integrity (reject sparse / fabricated / inconsistent stats) ──
+//
+// rum.js stats() emits { n, min, median, p95, max, mean, raw:[...] } with
+// raw.length === n and the percentiles computed by a fixed algorithm. A hand-made
+// envelope like { p95: 42.1 } must NOT satisfy completeness. recomputeStats mirrors
+// rum.js stats() exactly so a well-formed-but-fabricated stat whose summaries do not
+// match its raw samples is also rejected.
+export const MIN_SAMPLES = 10; // real runs use reps≈40 (interaction) / ≈59 (pan)
+
+export function recomputeStats(raw) {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const s = [...raw].sort((a, b) => a - b);
+  const pct = (p) => s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))];
+  const mean = s.reduce((a, b) => a + b, 0) / s.length;
+  const r = (x) => Math.round(x * 100) / 100;
+  return { n: s.length, min: r(s[0]), median: r(pct(50)), p95: r(pct(95)), max: r(s[s.length - 1]), mean: r(mean) };
+}
+
+export function statOk(stat, { minSamples = MIN_SAMPLES } = {}) {
+  if (!stat || typeof stat !== "object" || Array.isArray(stat)) return { ok: false, why: "metric is not a stats object" };
+  const { n, raw } = stat;
+  if (!Array.isArray(raw)) return { ok: false, why: "no raw samples (sparse/fabricated metric)" };
+  if (typeof n !== "number" || raw.length !== n) return { ok: false, why: `sample count mismatch (n=${n}, raw=${raw.length})` };
+  if (n < minSamples) return { ok: false, why: `too few samples (${n} < ${minSamples})` };
+  if (!raw.every((x) => typeof x === "number" && isFinite(x))) return { ok: false, why: "non-finite raw sample" };
+  for (const k of ["min", "median", "p95", "max", "mean"]) {
+    if (typeof stat[k] !== "number" || !isFinite(stat[k])) return { ok: false, why: `missing/non-numeric ${k}` };
+  }
+  // the summaries must be the ones derivable from raw (fixed algorithm)
+  const re = recomputeStats(raw);
+  for (const k of ["min", "median", "p95", "max", "mean"]) {
+    if (Math.abs(stat[k] - re[k]) > 0.011) return { ok: false, why: `${k} (${stat[k]}) inconsistent with raw samples (${re[k]})` };
+  }
+  return { ok: true };
+}
+
+// Completeness for the controller: the base metric/readiness gate (grade.mjs) PLUS
+// real, internally-consistent sample distributions. first_contentful_paint_ms must
+// be a finite number (a null/absent FCP stays legitimately INCOMPLETE — never
+// fabricated). Used both when folding a handoff and when building the export.
+export function controllerScenarioComplete(result) {
+  const base = scenarioComplete(result);
+  if (!base.ok) return base;
+  if (typeof result.first_contentful_paint_ms !== "number" || !isFinite(result.first_contentful_paint_ms)) {
+    return { ok: false, why: "first_contentful_paint_ms missing/non-numeric (legitimate incomplete — not fabricated)" };
+  }
+  const itp = statOk(result.interaction_to_paint_ms);
+  if (!itp.ok) return { ok: false, why: `interaction_to_paint_ms: ${itp.why}` };
+  const pan = statOk(result.pan_frame_ms);
+  if (!pan.ok) return { ok: false, why: `pan_frame_ms: ${pan.why}` };
+  return { ok: true };
+}
+
 // ── device-grade for the iPad Safari route (fail-closed) ─────────────────────
 //
-// Distinct from grade.mjs deviceGradeOf, which is the Playwright LAPTOP gate and
-// hard-requires a chrome|msedge channel launched headed — neither of which exists
-// on Safari. For the manual Safari route the device identity is certified by an
-// EXPLICIT owner attestation, NOT by the user-agent string (iPadOS Safari reports a
-// "Macintosh" UA in desktop mode, so UA cannot prove an iPad). We still require a
-// positively-identified hardware GPU and a human label, and we record the UA for
-// audit without using it to infer the device.
+// Attestation is REQUIRED but NOT SUFFICIENT: it records what the owner claims,
+// and it is rejected when the OBSERVED environment contradicts an iPad Safari run.
+// A real iPad is still never inferred from the UA alone (iPadOS desktop-mode reports
+// "Macintosh"); the UA/GPU are used only to REFUTE an impossible claim, never to
+// manufacture one. Requires an Apple GPU, a human label, a real UA, attestation,
+// and an environment consistent with iPad Safari.
 export function ipadDeviceGradeOf(result, opts = {}) {
   const e = (result && result.env) || {};
   const gl = String(e.gl_renderer || "").trim();
   const label = opts.label || "";
   const attested = opts.attested === true;
 
-  const software = Boolean(e.gl_is_software) || SOFTWARE_OR_GENERIC.test(gl);
-  const hasVendorToken = GPU_VENDOR.test(gl);
-  const hasRealGpu = !software && hasVendorToken;
+  const cons = ipadConsistency(e);
+  const o = cons.observed;
+  const hasAppleGpu = o.gpu_family === "apple";
   const hasLabel = Boolean(label) && !/container|unlabelled/i.test(label);
   const hasUA = Boolean(e.userAgent) && e.userAgent !== "unknown";
 
   const basis = {
     gl_renderer: gl,
-    gl_is_software: software,
-    has_gpu_vendor_token: hasVendorToken,
-    has_real_gpu: hasRealGpu,
+    gl_is_software: o.gl_is_software,
+    observed_platform: o.platform,
+    observed_browser: o.browser,
+    gpu_family: o.gpu_family,
+    has_apple_gpu: hasAppleGpu,
     has_human_label: hasLabel,
     has_ua: hasUA,
-    ua_recorded_not_used_for_inference: true,
     physically_attested: attested,
+    environment_consistent_with_ipad_safari: cons.ok,
+    blockers: cons.blockers,
     route: "ipad_safari",
   };
-  // Attestation is REQUIRED and is the device-identity signal (not the UA).
-  return { device_grade: hasRealGpu && hasLabel && hasUA && attested, basis };
+  const device_grade = hasAppleGpu && hasLabel && hasUA && attested && cons.ok;
+  return { device_grade, basis };
 }
 
 // ── consolidated export (same shape as run_device.mjs output) ────────────────
@@ -211,7 +340,7 @@ export function buildConsolidated(session, now = new Date().toISOString()) {
   });
 
   const completeness = scn.map((s) => {
-    const c = s.status === "complete" && s.result ? scenarioComplete(s.result) : { ok: false, why: s.error || "incomplete" };
+    const c = s.status === "complete" && s.result ? controllerScenarioComplete(s.result) : { ok: false, why: s.error || "incomplete" };
     return { scenario: s.id, pairKey: s.pairKey, engine: s.engine, complete: c.ok, reason: c.ok ? null : c.why };
   });
   const allComplete = completeness.length > 0 && completeness.every((c) => c.complete);
@@ -230,19 +359,42 @@ export function buildConsolidated(session, now = new Date().toISOString()) {
   const allComparable = comparability.length > 0 && comparability.every((p) => p.comparable);
 
   // device-grade across every completed, env-bearing result (fail-closed; requires
-  // attestation). If nothing completed, not device-grade.
-  const graded = scn.filter((s) => s.status === "complete" && s.result && s.result.env)
-    .map((s) => ipadDeviceGradeOf(s.result, { label: session.meta.device_label, attested }));
-  const deviceGrade = attested && graded.length > 0 && graded.every((g) => g.device_grade);
-  const sampleBasis = graded[0]?.basis || null;
+  // attestation AND an iPad-Safari-consistent observed environment). If nothing
+  // completed, not device-grade.
+  const gradedScns = scn.filter((s) => s.status === "complete" && s.result && s.result.env);
+  const graded = gradedScns.map((s) => ipadDeviceGradeOf(s.result, { label: session.meta.device_label, attested }));
+
+  // whole-run provenance: observe EVERY env-bearing result (complete or not) and
+  // report incompatible environments as blockers. A run whose environments disagree
+  // across scenarios, or whose observed environment contradicts the claimed iPad
+  // Safari route, is NOT device-grade no matter what the owner attested.
+  const envResults = results.filter((r) => r && r.env);
+  const observedAll = envResults.map((r) => observedEnvironment(r.env));
+  const firstEnv = envResults[0]?.env || null;
+  const firstObserved = observedAll[0] || observedEnvironment({});
+  const provenanceBlockers = [];
+  const platforms = new Set(observedAll.map((o) => o.platform));
+  const browsers = new Set(observedAll.map((o) => o.browser));
+  const gpus = new Set(observedAll.map((o) => o.gpu_family));
+  if (platforms.size > 1) provenanceBlockers.push(`environments disagree across scenarios: platforms {${[...platforms].join(", ")}}`);
+  if (browsers.size > 1) provenanceBlockers.push(`environments disagree across scenarios: browsers {${[...browsers].join(", ")}}`);
+  if (gpus.size > 1) provenanceBlockers.push(`environments disagree across scenarios: GPUs {${[...gpus].join(", ")}}`);
+  if (firstEnv) provenanceBlockers.push(...ipadConsistency(firstEnv).blockers);
+  // dedupe
+  const blockers = [...new Set(provenanceBlockers)];
+
+  const deviceGrade =
+    attested && graded.length > 0 && graded.every((g) => g.device_grade) && blockers.length === 0;
+  const sampleBasis = graded[0]?.basis || (firstEnv ? ipadDeviceGradeOf({ env: firstEnv }, { label: session.meta.device_label, attested }).basis : null);
 
   const isDeviceValidation = allComplete && deviceGrade && allComparable;
-  const firstEnv = results.find((r) => r.env)?.env || null;
 
   return {
     spike: "K12 runtime decision",
     measurement: "ipad_controller_run",
-    route: "ipad_safari_one_page_controller",
+    // the route the owner INTENDED to run (a protocol label), kept separate from
+    // what was OBSERVED (`observed` below). Never asserts the browser was Safari.
+    intended_route: "ipad_safari_one_page_controller",
     suite: session.suite,
     device_label: session.meta.device_label || "(none supplied)",
     complete: allComplete,
@@ -252,24 +404,42 @@ export function buildConsolidated(session, now = new Date().toISOString()) {
     attestation: {
       physically_attested: attested,
       attested_at: session.meta.attested_at || null,
+      claimed_platform: "ipad_safari",
       method: "explicit owner confirmation in the controller UI",
-      note: "A real iPad is NOT inferred from the user-agent; this flag is the device-identity signal and the run is not device-grade without it.",
+      environment_consistent_with_claim: blockers.length === 0,
+      note: "Attestation records the owner's claim. It is REQUIRED but NOT sufficient: it is rejected when the observed environment below contradicts an iPad Safari run. A real iPad is never inferred from the user-agent.",
+    },
+    provenance: {
+      consistent: blockers.length === 0,
+      blockers,
+      observed: {
+        platform: firstObserved.platform,
+        browser: firstObserved.browser,
+        gpu_family: firstObserved.gpu_family,
+        gl_renderer: firstObserved.gl_renderer,
+        userAgent: firstObserved.userAgent,
+        distinct_platforms: [...platforms],
+        distinct_browsers: [...browsers],
+        distinct_gpus: [...gpus],
+      },
     },
     device_grade_basis: sampleBasis,
     device_grade_rule:
-      "iPad Safari route fails CLOSED: needs a hardware GPU vendor token (not SwiftShader/llvmpipe/NO_WEBGL/generic) AND a real UA AND a human device_label AND an explicit physical-device attestation. The UA is recorded for audit but is NOT used to infer the device.",
+      "iPad Safari route fails CLOSED: needs an Apple GPU (not software/ANGLE-Direct3D/other), a real UA, a human device_label, an explicit physical-device attestation, AND an observed environment consistent with iPad Safari (no Windows/Android/Linux/ChromeOS platform and no Chromium/Edge/Firefox/Claude browser). The UA/GPU are used only to REFUTE an impossible claim, never to infer a device.",
     launch: {
-      channel: "safari",
-      headed: true,
-      browser_version: firstEnv?.userAgent || session.meta.userAgent || null,
+      intended_route: "ipad_safari_one_page_controller",
+      observed_platform: firstObserved.platform,
+      observed_browser: firstObserved.browser,
+      observed_gl_renderer: firstObserved.gl_renderer,
+      observed_user_agent: firstEnv?.userAgent || session.meta.userAgent || null,
       launch_error: null,
     },
     verified_config: {
-      gl_renderer: sampleBasis?.gl_renderer ?? null,
+      gl_renderer: firstObserved.gl_renderer,
       userAgent: firstEnv?.userAgent ?? session.meta.userAgent ?? null,
       viewport: firstEnv?.viewport ?? null,
-      channel: "safari",
-      headed: true,
+      observed_platform: firstObserved.platform,
+      observed_browser: firstObserved.browser,
     },
     expected_scenarios: scn.length,
     obtained_scenarios: results.filter((r) => r && !r.error).length,

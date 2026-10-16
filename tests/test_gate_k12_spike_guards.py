@@ -400,14 +400,49 @@ class IpadOnePageController(unittest.TestCase):
         self.assertNotIn("window.open", html)
         self.assertIn("location.assign", html)  # top-level navigation per scenario
 
-    def test_controller_requires_physical_attestation(self):
+    def test_controller_requires_physical_attestation_but_not_as_sufficient(self):
         html = read(os.path.join(DH, "ipad_controller.html"))
         self.assertIn("attest", html)
         core = read(os.path.join(DH, "mobile_controller_core.mjs"))
-        # device-grade requires attestation AND must say it is not inferred from UA
+        # attestation is REQUIRED but NOT sufficient: device-grade also requires the
+        # observed environment to be consistent with an iPad Safari run.
         self.assertIn("physically_attested", core)
-        self.assertIn("not used to infer the device", core.replace("NOT", "not"))
         self.assertIn("ipadDeviceGradeOf", core)
+        self.assertIn("ipadConsistency", core)
+        self.assertIn("environment_consistent_with_ipad_safari", core)
+        self.assertIn("observedEnvironment", core)
+
+    def test_controller_rejects_contradictory_environments_and_records_observed(self):
+        core = read(os.path.join(DH, "mobile_controller_core.mjs"))
+        # obvious contradictions are refuted (not inferred): Windows/Android/Linux/
+        # ChromeOS platforms and Chromium/Claude/Edge browsers, non-Apple GPUs.
+        for token in ("windows nt", "android", "cros", "chrome", "claude", "angle", "provenance"):
+            self.assertIn(token, core.lower(), f"consistency logic missing {token!r}")
+        # the exported launch block records the OBSERVED environment, never a
+        # hardcoded Safari channel.
+        self.assertIn("observed_browser", core)
+        self.assertIn("observed_platform", core)
+        self.assertNotIn('channel: "safari"', core)
+        self.assertNotIn("iPadOS Safari reports a", core)  # the old UA-blind rationale is gone
+
+    def test_controller_rejects_sparse_or_fabricated_measurements(self):
+        core = read(os.path.join(DH, "mobile_controller_core.mjs"))
+        # full sample distributions required; a lone p95 must not satisfy completeness
+        self.assertIn("statOk", core)
+        self.assertIn("recomputeStats", core)
+        self.assertIn("controllerScenarioComplete", core)
+        self.assertIn("raw", core)
+        self.assertIn("MIN_SAMPLES", core)
+
+    def test_builtin_browser_smoke_is_preserved_as_a_negative_example(self):
+        neg = read_result(os.path.join(
+            "controller_smoke_builtin_browser_NEGATIVE",
+            "K12_iPad_Built-in-browser_smoke_Chrome_2026-10-16.json",
+        ))
+        # preserved unchanged: it carries the original (wrong) verdict as evidence
+        self.assertTrue(neg["is_device_grade"])  # the bug we fixed, kept for regression
+        self.assertEqual(neg["obtained_scenarios"], 30)
+        # the fixed core is proven to refuse it in tests/mobile_controller.test.mjs
 
     def test_controller_shares_the_single_matrix_and_grade_logic(self):
         core = read(os.path.join(DH, "mobile_controller_core.mjs"))
