@@ -82,12 +82,19 @@ recompute — full-Lens latency, captured as `interaction_recompute_ms`). The
 MapLibre prototype takes the SAME real-payload params AND the SAME synthetic
 ceiling series (`kind`/`count`) as Leaflet, for parity.
 
-**Laptop (automated, real Chrome/Edge — not emulation):**
+**Laptop (automated, real installed Chrome/Edge, headed — not emulation):**
 ```
 cd research/runtime_spike && npm install
-node device_harness/run_device.mjs --suite=full --label="Dell XPS13 i5 / Win11 / Chrome 131" --require-device
-# → results/device_run_full.json   (verify complete:true AND is_device_grade:true)
+node device_harness/run_device.mjs --suite=full --channel=chrome --headed \
+     --label="Dell XPS13 i5 / Win11 / Chrome 131" --require-device
+# → results/device_run_full.json   (verify complete:true AND comparable:true AND is_device_grade:true)
 ```
+`--channel=chrome|msedge` launches the real installed browser (not the bundled
+headless Chromium); `--headed` uses the real GPU path. Device-grade **fails
+closed** — it needs a hardware-GPU vendor token, a real UA, your `--label`, a
+real channel, and `--headed`; see `device_grade_basis`/`launch` in the output.
+The runner exits non-zero on any incomplete scenario or any comparative pair
+missing an engine (`comparable:false`).
 
 **Smoke test (any machine, proves the harness runs):**
 ```

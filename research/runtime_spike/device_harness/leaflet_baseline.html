@@ -118,6 +118,7 @@
       window.__K12_RUN__ = async () =>
         K12RUM.run({
           scenario, renderer: "leaflet", recompute_mode: recompute,
+          readiness_barrier: "leaflet: geojson/canvas layers added synchronously + double-rAF settle (raster basemap tiles stream async and are not awaited)",
           device_label: Q.get("device_label") || "", cache: Q.get("cache") || "", network: Q.get("network") || "",
           reps: Number(Q.get("reps") || 40), ready: build, interactionStep, pan,
         });

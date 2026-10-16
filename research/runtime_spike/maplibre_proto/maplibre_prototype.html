@@ -63,21 +63,44 @@
 
       let licenceRecords = null, planningIndex = null;
 
+      const sourceIds = [];
+      // Await MapLibre's ASYNC pipeline: every added GeoJSON source finishes
+      // worker parsing/tiling AND the map reaches 'idle' (no pending render or
+      // load) before any measurement is accepted. Without this, readiness would
+      // be recorded before the vector data is actually on screen.
+      async function awaitIdleAndSources() {
+        const deadline = Date.now() + 60000;
+        await new Promise((resolve) => {
+          const check = () => {
+            const sourcesReady = sourceIds.every((id) => {
+              try { return map.isSourceLoaded(id); } catch { return false; }
+            });
+            if ((sourcesReady && !map.isMoving() && map.areTilesLoaded?.() !== false) || Date.now() > deadline) resolve();
+            else map.once("idle", check);
+          };
+          map.once("idle", check);
+          // kick in case 'idle' already passed
+          if (map.loaded()) setTimeout(check, 0);
+        });
+      }
+
       async function build() {
         await new Promise((res) => (map.loaded() ? res() : map.once("load", res)));
         if (kind) {
           const fc = kind === "point" ? makePoints(count) : makePolygons(count);
-          map.addSource("syn", { type: "geojson", data: fc });
+          map.addSource("syn", { type: "geojson", data: fc }); sourceIds.push("syn");
           if (kind === "point") map.addLayer({ id: "syn", type: "circle", source: "syn", paint: { "circle-radius": 3, "circle-color": "#4ad", "circle-opacity": 0.7 } });
           else { map.addLayer({ id: "syn-f", type: "fill", source: "syn", paint: { "fill-color": "#c84", "fill-opacity": 0.12 } }); map.addLayer({ id: "syn-l", type: "line", source: "syn", paint: { "line-color": "#c84", "line-width": 1 } }); }
         } else {
           let ambitoGeo = null;
-          if (layers.includes("ambito")) { ambitoGeo = await fetchJSON("/data/planning/madrid_ambitos.geojson"); map.addSource("ambito", { type: "geojson", data: ambitoGeo }); map.addLayer({ id: "ambito-fill", type: "fill", source: "ambito", paint: { "fill-color": "#c84", "fill-opacity": 0.12 } }); map.addLayer({ id: "ambito-line", type: "line", source: "ambito", paint: { "line-color": "#c84", "line-width": 1 } }); }
-          if (layers.includes("licence")) { const art = await fetchJSON("/data/planning/madrid_urban_licences.json"); licenceRecords = art.records; const fc = { type: "FeatureCollection", features: art.records.filter((r) => isFinite(+r.lat) && isFinite(+r.lon)).map((r) => ({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [+r.lon, +r.lat] } })) }; map.addSource("licence", { type: "geojson", data: fc }); map.addLayer({ id: "licence-pt", type: "circle", source: "licence", paint: { "circle-radius": 3, "circle-color": "#4ad", "circle-opacity": 0.7 } }); }
+          if (layers.includes("admin")) { const gj = await fetchJSON("/data/geography/madrid_admin.geojson"); map.addSource("admin", { type: "geojson", data: gj }); sourceIds.push("admin"); map.addLayer({ id: "admin-line", type: "line", source: "admin", paint: { "line-color": "#789", "line-width": 1 } }); }
+          if (layers.includes("ambito")) { ambitoGeo = await fetchJSON("/data/planning/madrid_ambitos.geojson"); map.addSource("ambito", { type: "geojson", data: ambitoGeo }); sourceIds.push("ambito"); map.addLayer({ id: "ambito-fill", type: "fill", source: "ambito", paint: { "fill-color": "#c84", "fill-opacity": 0.12 } }); map.addLayer({ id: "ambito-line", type: "line", source: "ambito", paint: { "line-color": "#c84", "line-width": 1 } }); }
+          if (layers.includes("licence")) { const art = await fetchJSON("/data/planning/madrid_urban_licences.json"); licenceRecords = art.records; const fc = { type: "FeatureCollection", features: art.records.filter((r) => isFinite(+r.lat) && isFinite(+r.lon)).map((r) => ({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [+r.lon, +r.lat] } })) }; map.addSource("licence", { type: "geojson", data: fc }); sourceIds.push("licence"); map.addLayer({ id: "licence-pt", type: "circle", source: "licence", paint: { "circle-radius": 3, "circle-color": "#4ad", "circle-opacity": 0.7 } }); }
           if (recompute === "full") { if (!licenceRecords) licenceRecords = (await fetchJSON("/data/planning/madrid_urban_licences.json")).records; if (!ambitoGeo) ambitoGeo = await fetchJSON("/data/planning/madrid_ambitos.geojson"); planningIndex = createPlanningIndex({ geometry: ambitoGeo }); }
         }
         map.addSource("lens", { type: "geojson", data: lensFeature(40.4168, -3.7038) });
         map.addLayer({ id: "lens", type: "line", source: "lens", paint: { "line-color": "#36f", "line-width": 2 } });
+        await awaitIdleAndSources();
         await K12RUM.nextPaint();
       }
 
@@ -97,7 +120,7 @@
       }
 
       window.__K12_RUN__ = async () =>
-        K12RUM.run({ scenario, renderer: "maplibre", recompute_mode: kind ? "renderer" : recompute, device_label: Q.get("device_label") || "", cache: Q.get("cache") || "", network: Q.get("network") || "", reps: Number(Q.get("reps") || 40), ready: build, interactionStep, pan });
+        K12RUM.run({ scenario, renderer: "maplibre", recompute_mode: kind ? "renderer" : recompute, readiness_barrier: "maplibre: awaited map 'idle' + isSourceLoaded() for every geojson source (async worker parse/tiling complete) before measuring", device_label: Q.get("device_label") || "", cache: Q.get("cache") || "", network: Q.get("network") || "", reps: Number(Q.get("reps") || 40), ready: build, interactionStep, pan });
       if (Q.get("auto") === "1") window.addEventListener("load", () => window.__K12_RUN__());
     </script>
   </body>

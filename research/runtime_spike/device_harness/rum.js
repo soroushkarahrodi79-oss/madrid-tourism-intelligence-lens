@@ -108,10 +108,24 @@
       "(HTML+CSS+vendored Leaflet / MapLibre JS), a proxy for the app's static-shell FCP; " +
       "it does not include the production app's full script graph.";
 
+    // readiness_barrier: what the page awaited before measuring (so a reader
+    // knows the engine finished async source processing / tiling). Required by
+    // the runner's completeness check.
+    result.readiness_barrier = opts.readiness_barrier || null;
+
     // recompute_mode: "renderer" moves only the Lens overlay (renderer-only
     // latency); "full" also runs the production analytical recompute each step
     // (licencesInLens + ámbito intersect) — the full Lens interaction latency.
     result.recompute_mode = opts.recompute_mode || "renderer";
+    // FIDELITY CAVEAT — do not overstate. interaction_recompute_ms covers TWO
+    // production pure models (licencesInLens + createPlanningIndex().ambitosIntersecting).
+    // It is NOT the entire production Lens application pipeline, which also
+    // rebuilds the panel DOM, the radial halo, evidence/scope state, the area
+    // profile and i18n on each move. This harness measures the analytical core,
+    // not the full view update.
+    result.recompute_fidelity =
+      "two production pure models only (licencesInLens + ambitosIntersecting); " +
+      "excludes panel/halo/evidence/area-profile/i18n view updates of the full Lens pipeline";
 
     // Interaction latency: scripted Lens-drag steps.
     //   interaction_to_paint_ms is a DOUBLE-rAF PROXY: time from the state

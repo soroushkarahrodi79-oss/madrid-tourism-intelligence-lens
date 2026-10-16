@@ -95,7 +95,7 @@
       }
 
       window.__K12_RUN__ = async () =>
-        K12RUM.run({ scenario, renderer: "leaflet", device_label: Q.get("device_label") || "", cache: Q.get("cache") || "", network: Q.get("network") || "", reps: Number(Q.get("reps") || 40), ready: build, interactionStep, pan });
+        K12RUM.run({ scenario, renderer: "leaflet", readiness_barrier: "leaflet: synthetic layer added synchronously to the canvas renderer + double-rAF settle", device_label: Q.get("device_label") || "", cache: Q.get("cache") || "", network: Q.get("network") || "", reps: Number(Q.get("reps") || 40), ready: build, interactionStep, pan });
       if (Q.get("auto") === "1") window.addEventListener("load", () => window.__K12_RUN__());
     </script>
   </body>
