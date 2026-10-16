@@ -767,12 +767,26 @@ REJECT.
 
 ## 11. Technology decision matrix
 
+> **Updated by K12 (#74).** The A–D deferrals below were opinion grounded in
+> expectation; they are now grounded in measurement. The full evidence,
+> method, device-completion protocol and committed JSON are in
+> [`docs/RUNTIME_DECISION_SPIKE.md`](RUNTIME_DECISION_SPIKE.md). K12's gate
+> verdict is **PARTIAL / BLOCKED**: every byte/CPU/correctness measurement is
+> done, but the real-device graphics criteria (interaction-to-paint, frame
+> time, the Leaflet ceiling crossing, the MapLibre comparison) remain
+> **UNVERIFIED** pending a run on physical laptop + iPad hardware — a cloud VM
+> with software WebGL (SwiftShader) cannot produce them honestly. Measured
+> corrections to the figures first cited below: the ámbito layer is **724
+> features / 140,507 vertices** (not "+765 polygons"); the licence layer is
+> **11,265 records** (not "~11,498"); the full deployed footprint is **2.11 MB
+> gzip** (24.23 MB raw).
+
 | # | Hypothesis | Verdict | Grounds |
 |---|---|---|---|
-| **A** | Current stack supports the next phase without a rewrite | **GO** | Leaflet **1.9.4** (current stable) already with `preferCanvas: true` and per-pane `L.canvas()` renderers. Today's load: **153 features / 31,648 vertices / 2.53 MB** GeoJSON and 1,470 POIs. The authorised increment adds **765 ámbito polygons** plus ~700 tabular rows per edition. No rewrite is needed, and none is justified. |
-| **B** | MapLibre GL JS materially improves the product | **NOT YET** — with a named trigger | There is no vector-tile-scale workload. MapLibre's real wins (vector tiles, data-driven styling, extrusion, PMTiles) all presuppose payloads this product does not have. **Trigger:** adopt only if `PARCEL` scope (5,675 polygons × multiple editions) or building extrusion becomes a *proven* requirement, **and** the §11 spike measures a material gain on the real payload. Migrating a 3,752-line Leaflet view layer and one Playwright suite is a large cost to pay speculatively. |
-| **C** | DuckDB-WASM spatial enables useful browser-local analysis | **NO-GO for now** | The honest workload: ~700 ámbito rows × 15 editions ≈ **10,500 rows**, and **11,498** licence rows. Both are trivial in plain JavaScript, and the project's pure-model-plus-tests pattern already handles them deterministically. Adding a WASM analytical engine would add megabytes and a second query semantics for no query the product cannot already answer. **Revisit only if** parcel-level geometry, multi-year licence history and arbitrary user-drawn polygons land *together*. |
-| **D** | GeoParquet / PMTiles reduce payload and preprocessing | **NO-GO (GeoParquet) · NOT YET (PMTiles)** | GeoParquet has no browser consumer here without (C), which is NO-GO; the Python builders already emit small artifacts. PMTiles is tied to (B): it is the right answer *if* MapLibre is adopted and *only* then. Note the real payload problem is not spatial at all — it is `madrid_domestic_origins.json` at **3.71 MB of tabular data**, which neither format addresses and which plain partitioning would fix. |
+| **A** | Current stack supports the next phase without a rewrite | **GO** (K12-confirmed) | Leaflet 1.9.x, vendored, `preferCanvas: true`, five per-pane `L.canvas()` renderers. **Measured** real load: 724 ámbito features / 140,507 vtx, 11,265 licences, 153 admin features; **2.11 MB gzip total**. Existing canvas renderers handle it; no rewrite justified. Trigger to revisit: a device-measured interaction-to-paint p95 > 150 ms on the shipped payload. See RUNTIME_DECISION_SPIKE §2, §8. |
+| **B** | MapLibre GL JS materially improves the product | **NOT YET** — with a named trigger | **Migration cost measured and concrete** (RUNTIME_DECISION_SPIKE §6.2): 7,809-line Leaflet-coupled `app.js`, 7 Playwright browser suites, loss of the vendored no-build property, raster→vector basemap. **Gain remains UNVERIFIED on real hardware** (software WebGL in the spike VM). CPU leading indicator: a 5,675-polygon (parcel-scale) load already costs ~0.56 s *parse alone*. **Numeric trigger:** the device-measured Leaflet ceiling (interaction-to-paint p95 > 150 ms or pan-frame p95 > 33 ms) falls at/below a required feature count **and** the MapLibre prototype stays inside those thresholds at that count, on laptop **and** iPad. |
+| **C** | DuckDB-WASM spatial enables useful browser-local analysis | **NO-GO** (K12-confirmed) | **Measured** against the production plain-JS models on the real 11,265 records: outputs **identical** (in-circle 1,554; date-window 527), plain JS **1.68 ms** vs DuckDB **7.56 ms** warm (4.5×), and DuckDB needs a **6.93 MB gzip** engine (≈3.3× the whole app's data) plus multi-second init. **Trigger:** a query plain JS cannot serve within budget — >100 k-feature arbitrary spatial joins, or >500 k rows pushing JS over 150 ms on-device. RUNTIME_DECISION_SPIKE §5. |
+| **D** | GeoParquet / PMTiles reduce payload and preprocessing | **NO-GO (GeoParquet) · NOT YET (PMTiles)** | **PMTiles** is not decidable independently of MapLibre (it presupposes a vector renderer); slaved to (B). **GeoParquet** has no browser consumer without a WASM reader (gated behind C = NO-GO); its only measured benefit (origins −57 % builder-side) is already beaten by plain month-partitioning (**250 KB → 32 KB gzip, −87 %; parse −91 %**, no new tech). The heaviest *transferred* artifact is in fact `madrid_ambitos.geojson` at **916 KB gzip**, which only the renderer question touches. RUNTIME_DECISION_SPIKE §7. |
 | **E** | GeoLibre's role | **REFERENCE + export interop** | §10.5. Architectural reference for the B/C/D decision; export target for power users. Never embedded, never rebuilt. |
 | **F** | pyrosm as offline OSM prep | **REJECT** | §10.6. Superseded by the official municipal callejero and cartography; would create a second-class evidence tier. |
 | **G** | React Three Fiber / 3D | **STOP** (R3F = REFERENCE) | §10.4. No analytical use case survives contact with the evidence: the publishable quantity is m² by use class, which bars and numbers convey better and which 3D would over-claim. No React migration for 3D. |
