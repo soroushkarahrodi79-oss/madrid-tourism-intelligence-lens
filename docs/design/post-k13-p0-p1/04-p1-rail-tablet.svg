@@ -1,0 +1,185 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="820" viewBox="0 0 1300 820" font-family="Inter, 'Segoe UI', system-ui, sans-serif">
+  <title>P1 — collapsible rail groups on tablet 834x1112, collapsed and expanded</title>
+  <desc>Annotated wireframe of the proposed collapsible layer-group rail at tablet width, shown collapsed (default) and with one group expanded, with the height arithmetic that puts every group header including the K9 administrative register inside one rail screen.</desc>
+
+  <rect width="1300" height="820" fill="#060c14"/>
+
+  <text x="20" y="30" fill="#f3f7ff" font-size="19" font-weight="700">P1 · COLLAPSIBLE RAIL GROUPS — tablet 834 × 1112</text>
+  <text x="20" y="52" fill="#9fb1c5" font-size="13">Rail at ≤850 px: width 174 px, max-height min(52dvh, 430 px), overflow auto · drawn at 1:1 for the rail, schematic elsewhere</text>
+  <text x="20" y="72" fill="#ffb04a" font-size="12">PROPOSED — not implemented. No layer is removed. Collapsing never changes which layers are on.</text>
+
+  <!-- ============ BEFORE ============ -->
+  <text x="30" y="108" fill="#c0794f" font-size="12.5" font-weight="700">TODAY · one 1,912 px stack in a 430 px window</text>
+  <rect x="30" y="118" width="174" height="430" rx="10" fill="#0d1626" stroke="#c0794f" stroke-width="1.6"/>
+  <defs><clipPath id="clipA"><rect x="30" y="118" width="174" height="430" rx="10"/></clipPath></defs>
+  <g clip-path="url(#clipA)" font-size="9.5" fill="#d9e4ef">
+    <text x="42" y="136" fill="#f3f7ff" font-size="10" font-weight="700">MAP DISPLAY</text>
+    <text x="42" y="152" fill="#9fb1c5" font-size="8.5">Base map</text>
+    <rect x="42" y="158" width="150" height="24" rx="5" fill="#060c15" stroke="#2a3442"/><text x="49" y="174" font-size="8.5">Light · CARTO Positron ▾</text>
+    <text x="42" y="198" fill="#9fb1c5" font-size="8.5">Administrative boundaries</text>
+    <rect x="42" y="204" width="150" height="24" rx="5" fill="#060c15" stroke="#2a3442"/><text x="49" y="220" font-size="8.5">Off · active area only ▾</text>
+    <text x="42" y="248" fill="#f3f7ff" font-size="10" font-weight="700">OPERATIONAL LAYERS</text>
+    <circle cx="48" cy="266" r="4" fill="#9d72ff"/><text x="58" y="269">Museums</text><rect x="164" y="260" width="28" height="15" rx="7.5" fill="#2f6f9e"/>
+    <circle cx="48" cy="290" r="4" fill="#3da8ff"/><text x="58" y="293">Hotels &amp; stays</text><rect x="164" y="284" width="28" height="15" rx="7.5" fill="#2f6f9e"/>
+    <rect x="42" y="306" width="150" height="22" rx="5" fill="#060c15" stroke="#2a3442"/><text x="49" y="321" font-size="8">All accommodation ▾</text>
+    <circle cx="48" cy="344" r="4" fill="#54e2b5"/><text x="58" y="347">BiciMAD</text><rect x="164" y="338" width="28" height="15" rx="7.5" fill="#2f6f9e"/>
+    <circle cx="48" cy="368" r="4" fill="#ffd166"/><text x="58" y="371">Metro &amp; Cercanías</text><rect x="164" y="362" width="28" height="15" rx="7.5" fill="#2f6f9e"/>
+    <circle cx="48" cy="392" r="4" fill="#c79cff"/><text x="58" y="395">Tourist info</text><rect x="164" y="386" width="28" height="15" rx="7.5" fill="#2f6f9e"/>
+    <line x1="42" y1="412" x2="192" y2="412" stroke="#2a3442"/>
+    <text x="42" y="428" fill="#f3f7ff" font-size="9.5" font-weight="700">ADMINISTRATIVE REGISTER</text>
+    <text x="42" y="439" fill="#9fb1c5" font-size="8" font-style="italic">granted ≠ built</text>
+    <circle cx="48" cy="456" r="4" fill="#c0794f"/><text x="58" y="459">Granted urban licences</text><rect x="164" y="450" width="28" height="15" rx="7.5" fill="#1b2733" stroke="#3a4654"/>
+    <line x1="42" y1="476" x2="192" y2="476" stroke="#2a3442"/>
+    <text x="42" y="492" fill="#9fb1c5" font-size="9" font-weight="700">Observed activity</text>
+    <circle cx="48" cy="510" r="4" fill="#ff7aa2"/><text x="58" y="513">Pedestrian counters</text><rect x="164" y="504" width="28" height="15" rx="7.5" fill="#1b2733" stroke="#3a4654"/>
+    <line x1="42" y1="530" x2="192" y2="530" stroke="#2a3442"/>
+    <text x="42" y="546" fill="#9fb1c5" font-size="9" font-weight="700">Context</text>
+  </g>
+  <!-- scroll bleed -->
+  <rect x="30" y="500" width="174" height="48" fill="url(#fade)"/>
+  <defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1626" stop-opacity="0"/><stop offset="1" stop-color="#0d1626" stop-opacity="0.95"/></linearGradient></defs>
+  <rect x="196" y="124" width="4" height="96" rx="2" fill="#3a4654"/>
+  <text x="30" y="568" fill="#c0794f" font-size="9">K9 toggle sits ~693 px inside a scrollable 430 px window</text>
+  <text x="30" y="581" fill="#c0794f" font-size="9">at 834 px, and ~693 px inside a 360 px window at 375 px.</text>
+  <text x="30" y="594" fill="#c0794f" font-size="9">≈19 % of the stack is visible at once.</text>
+  <text x="30" y="612" fill="#6d7f93" font-size="8.5">Shown here down to “Context”; four more groups</text>
+  <text x="30" y="623" fill="#6d7f93" font-size="8.5">and HATI continue below the fold.</text>
+
+  <!-- ============ AFTER: collapsed ============ -->
+  <text x="268" y="108" fill="#43d7ff" font-size="12.5" font-weight="700">PROPOSED · all six groups collapsed (default ≤850 px)</text>
+  <rect x="268" y="118" width="174" height="430" rx="10" fill="#0d1626" stroke="#43d7ff" stroke-width="1.6"/>
+  <text x="280" y="136" fill="#9fb1c5" font-size="8.5" font-weight="700" letter-spacing="0.4">MAP &amp; LAYERS</text>
+
+  <g>
+    <rect x="278" y="144" width="154" height="44" rx="6" fill="#0b1521" stroke="#2a3442"/>
+    <text x="288" y="161" fill="#f3f7ff" font-size="9.5" font-weight="700">▸ Map display</text>
+    <text x="288" y="175" fill="#9fb1c5" font-size="8">2 settings</text>
+
+    <rect x="278" y="194" width="154" height="44" rx="6" fill="#0b1521" stroke="#2a3442"/>
+    <text x="288" y="211" fill="#f3f7ff" font-size="9.5" font-weight="700">▸ Operational layers</text>
+    <rect x="288" y="217" width="52" height="14" rx="4" fill="#16314a" stroke="#43d7ff"/><text x="314" y="227" fill="#9bd5ff" font-size="8" text-anchor="middle">5 of 5 on</text>
+    <g><circle cx="352" cy="224" r="3" fill="#9d72ff"/><circle cx="362" cy="224" r="3" fill="#3da8ff"/><circle cx="372" cy="224" r="3" fill="#54e2b5"/><circle cx="382" cy="224" r="3" fill="#ffd166"/><circle cx="392" cy="224" r="3" fill="#c79cff"/></g>
+
+    <rect x="278" y="244" width="154" height="48" rx="6" fill="#0b1521" stroke="#c0794f" stroke-width="1.6"/>
+    <text x="288" y="261" fill="#f3f7ff" font-size="9.5" font-weight="700">▸ Administrative</text>
+    <text x="288" y="273" fill="#f3f7ff" font-size="9.5" font-weight="700">   register</text>
+    <rect x="288" y="277" width="48" height="13" rx="4" fill="#1b2733" stroke="#3a4654"/><text x="312" y="287" fill="#9fb1c5" font-size="7.5" text-anchor="middle">0 of 1 on</text>
+    <text x="344" y="287" fill="#9fb1c5" font-size="7.5" font-style="italic">granted ≠ built</text>
+
+    <rect x="278" y="298" width="154" height="44" rx="6" fill="#0b1521" stroke="#2a3442"/>
+    <text x="288" y="315" fill="#f3f7ff" font-size="9.5" font-weight="700">▸ Observed activity</text>
+    <rect x="288" y="321" width="48" height="13" rx="4" fill="#1b2733" stroke="#3a4654"/><text x="312" y="331" fill="#9fb1c5" font-size="7.5" text-anchor="middle">0 of 1 on</text>
+    <text x="344" y="331" fill="#9fb1c5" font-size="7.5" font-style="italic">not tourism-specific</text>
+
+    <rect x="278" y="348" width="154" height="44" rx="6" fill="#0b1521" stroke="#2a3442"/>
+    <text x="288" y="365" fill="#f3f7ff" font-size="9.5" font-weight="700">▸ Context</text>
+    <rect x="288" y="371" width="48" height="13" rx="4" fill="#1b2733" stroke="#3a4654"/><text x="312" y="381" fill="#9fb1c5" font-size="7.5" text-anchor="middle">0 of 2 on</text>
+    <text x="344" y="381" fill="#9fb1c5" font-size="7.5" font-style="italic">not in metrics</text>
+
+    <rect x="278" y="398" width="154" height="44" rx="6" fill="#0b1521" stroke="#2a3442"/>
+    <text x="288" y="415" fill="#f3f7ff" font-size="9.5" font-weight="700">▸ Research evidence</text>
+    <rect x="288" y="421" width="48" height="13" rx="4" fill="#1b2733" stroke="#3a4654"/><text x="312" y="431" fill="#9fb1c5" font-size="7.5" text-anchor="middle">0 of 1 on</text>
+    <text x="344" y="431" fill="#9fb1c5" font-size="7.5" font-style="italic">bounded pilot</text>
+  </g>
+  <rect x="278" y="450" width="154" height="30" rx="5" fill="#0a131f" stroke="#2a3442" stroke-dasharray="3 3"/>
+  <text x="355" y="463" fill="#70dea4" font-size="8.5" font-weight="700" text-anchor="middle">68 px spare — nothing</text>
+  <text x="355" y="474" fill="#70dea4" font-size="8.5" font-weight="700" text-anchor="middle">below the fold</text>
+
+  <text x="268" y="500" fill="#70dea4" font-size="9.5" font-weight="700">HEIGHT BUDGET (worst case, two-line labels)</text>
+  <text x="268" y="514" fill="#d9e4ef" font-size="8.5">4 headers × 44 px + 2 wrapped × 48 px = 272 px</text>
+  <text x="268" y="526" fill="#d9e4ef" font-size="8.5">+ 5 gaps × 6 px = 302 px + group label 26 px = 328 px</text>
+  <text x="268" y="538" fill="#d9e4ef" font-size="8.5">Rail window at 834 px: 430 px → 102 px spare.</text>
+  <text x="268" y="550" fill="#d9e4ef" font-size="8.5">Rail window at 375 px: 360 px → 32 px spare.</text>
+  <text x="268" y="566" fill="#ffb04a" font-size="8.5">At 375 px the rail is 150 px wide, so two labels wrap.</text>
+  <text x="268" y="578" fill="#ffb04a" font-size="8.5">The budget above already assumes they do.</text>
+  <text x="268" y="596" fill="#43d7ff" font-size="9" font-weight="700">AC1 met by arithmetic: the K9 header is the</text>
+  <text x="268" y="608" fill="#43d7ff" font-size="9" font-weight="700">3rd row, ~192 px down — inside one screen.</text>
+  <text x="268" y="624" fill="#6d7f93" font-size="8">Layout arithmetic from the shipped CSS, not a rendering</text>
+  <text x="268" y="635" fill="#6d7f93" font-size="8">measurement. To be verified in the implementation PR.</text>
+
+  <!-- ============ AFTER: one expanded ============ -->
+  <text x="506" y="108" fill="#43d7ff" font-size="12.5" font-weight="700">PROPOSED · Administrative register expanded</text>
+  <rect x="506" y="118" width="174" height="430" rx="10" fill="#0d1626" stroke="#43d7ff" stroke-width="1.6"/>
+  <text x="518" y="136" fill="#9fb1c5" font-size="8.5" font-weight="700" letter-spacing="0.4">MAP &amp; LAYERS</text>
+  <rect x="516" y="144" width="154" height="44" rx="6" fill="#0b1521" stroke="#2a3442"/>
+  <text x="526" y="161" fill="#f3f7ff" font-size="9.5" font-weight="700">▸ Map display</text><text x="526" y="175" fill="#9fb1c5" font-size="8">2 settings</text>
+  <rect x="516" y="194" width="154" height="44" rx="6" fill="#0b1521" stroke="#2a3442"/>
+  <text x="526" y="211" fill="#f3f7ff" font-size="9.5" font-weight="700">▸ Operational layers</text>
+  <rect x="526" y="217" width="52" height="14" rx="4" fill="#16314a" stroke="#43d7ff"/><text x="552" y="227" fill="#9bd5ff" font-size="8" text-anchor="middle">5 of 5 on</text>
+
+  <!-- expanded group -->
+  <rect x="516" y="244" width="154" height="146" rx="6" fill="#101d2c" stroke="#c0794f" stroke-width="1.8"/>
+  <text x="526" y="261" fill="#f3f7ff" font-size="9.5" font-weight="700">▾ Administrative</text>
+  <text x="526" y="273" fill="#f3f7ff" font-size="9.5" font-weight="700">   register</text>
+  <rect x="526" y="277" width="48" height="13" rx="4" fill="#1b2733" stroke="#3a4654"/><text x="550" y="287" fill="#9fb1c5" font-size="7.5" text-anchor="middle">0 of 1 on</text>
+  <line x1="524" y1="296" x2="662" y2="296" stroke="#2a3442"/>
+  <text x="526" y="309" fill="#9fb1c5" font-size="8" font-style="italic">granted ≠ built</text>
+  <circle cx="530" cy="326" r="4" fill="#c0794f"/><text x="540" y="329" fill="#d9e4ef" font-size="9">Granted urban</text>
+  <text x="540" y="340" fill="#d9e4ef" font-size="9">licences</text>
+  <rect x="630" y="322" width="32" height="18" rx="9" fill="#1b2733" stroke="#3a4654"/><circle cx="639" cy="331" r="7" fill="#8fa1b5"/>
+  <rect x="524" y="350" width="140" height="32" rx="5" fill="#1a1410" stroke="#c0794f"/>
+  <text x="530" y="362" fill="#e8d5c4" font-size="7.5">A granted licence is an</text>
+  <text x="530" y="372" fill="#e8d5c4" font-size="7.5">administrative grant, not</text>
+  <text x="530" y="380" fill="#e8d5c4" font-size="7.5">evidence that anything was built.</text>
+
+  <rect x="516" y="396" width="154" height="44" rx="6" fill="#0b1521" stroke="#2a3442"/>
+  <text x="526" y="413" fill="#f3f7ff" font-size="9.5" font-weight="700">▸ Observed activity</text>
+  <rect x="526" y="419" width="48" height="13" rx="4" fill="#1b2733" stroke="#3a4654"/><text x="550" y="429" fill="#9fb1c5" font-size="7.5" text-anchor="middle">0 of 1 on</text>
+  <rect x="516" y="446" width="154" height="44" rx="6" fill="#0b1521" stroke="#2a3442"/>
+  <text x="526" y="463" fill="#f3f7ff" font-size="9.5" font-weight="700">▸ Context</text>
+  <rect x="526" y="469" width="48" height="13" rx="4" fill="#1b2733" stroke="#3a4654"/><text x="550" y="479" fill="#9fb1c5" font-size="7.5" text-anchor="middle">0 of 2 on</text>
+  <rect x="516" y="496" width="154" height="40" rx="6" fill="#0b1521" stroke="#2a3442"/>
+  <text x="526" y="513" fill="#f3f7ff" font-size="9.5" font-weight="700">▸ Research evidence</text>
+  <rect x="526" y="519" width="48" height="13" rx="4" fill="#1b2733" stroke="#3a4654"/><text x="550" y="529" fill="#9fb1c5" font-size="7.5" text-anchor="middle">0 of 1 on</text>
+
+  <text x="506" y="566" fill="#d9e4ef" font-size="8.5">Opening one group closes the others</text>
+  <text x="506" y="578" fill="#d9e4ef" font-size="8.5">(&lt;details name="rail"&gt;), so the rail</text>
+  <text x="506" y="590" fill="#d9e4ef" font-size="8.5">never grows past one screen plus one</text>
+  <text x="506" y="602" fill="#d9e4ef" font-size="8.5">open group.</text>
+  <text x="506" y="620" fill="#ffb04a" font-size="8.5">If a browser lacks exclusive-accordion</text>
+  <text x="506" y="631" fill="#ffb04a" font-size="8.5">support, groups stay independently</text>
+  <text x="506" y="642" fill="#ffb04a" font-size="8.5">collapsible and the rail scrolls — a</text>
+  <text x="506" y="653" fill="#ffb04a" font-size="8.5">graceful fallback, never a broken one.</text>
+
+  <!-- ============ RULES COLUMN ============ -->
+  <rect x="712" y="118" width="572" height="560" rx="8" fill="#0a131f" stroke="#2a3442"/>
+  <text x="728" y="142" fill="#f3f7ff" font-size="13" font-weight="700">THE BADGE RULE</text>
+  <rect x="728" y="152" width="540" height="78" rx="6" fill="#101d2c" stroke="#70dea4" stroke-width="1.3"/>
+  <text x="738" y="170" fill="#70dea4" font-size="10" font-weight="700">ALLOWED — layer counts only</text>
+  <text x="738" y="186" fill="#d9e4ef" font-size="9.5">“Operational layers · 5 of 5 on” · “Administrative register · 0 of 1 on”</text>
+  <text x="738" y="200" fill="#9fb1c5" font-size="9">The numerator is how many layers in the group are switched on; the denominator is</text>
+  <text x="738" y="212" fill="#9fb1c5" font-size="9">how many layers the group contains. Both are properties of the interface, never of a</text>
+  <text x="738" y="224" fill="#9fb1c5" font-size="9">dataset. This is also how a user finds layer visibility state without expanding.</text>
+
+  <rect x="728" y="240" width="540" height="66" rx="6" fill="#1a1012" stroke="#ff7aa2" stroke-width="1.3"/>
+  <text x="738" y="258" fill="#ff7aa2" font-size="10" font-weight="700">FORBIDDEN — record counts</text>
+  <text x="738" y="274" fill="#d9e4ef" font-size="9.5">✗ “Administrative register · 11,265” ✗ “Context · 1,470 premises” ✗ “Ámbitos · 724”</text>
+  <text x="738" y="290" fill="#9fb1c5" font-size="9">A record count on a group header reads as a measurement of the territory. The counts</text>
+  <text x="738" y="302" fill="#9fb1c5" font-size="9">that ARE evidence stay in the panel with their scope, unit, dates and ceiling.</text>
+
+  <text x="728" y="334" fill="#f3f7ff" font-size="13" font-weight="700">GROUP ORDER AND COMPOSITION (unchanged from today)</text>
+  <g font-size="9.5">
+    <rect x="728" y="344" width="540" height="22" rx="4" fill="#101d2c"/><text x="738" y="359" fill="#d9e4ef">1 · Map display — base map, administrative boundaries <tspan fill="#43d7ff">(gains the 4th “All planning ámbitos” option from P0)</tspan></text>
+    <rect x="728" y="370" width="540" height="22" rx="4" fill="#0d1626"/><text x="738" y="385" fill="#d9e4ef">2 · Operational layers — Museums, Hotels &amp; stays (+ category filter), BiciMAD, Metro &amp; Cercanías, Tourist info</text>
+    <rect x="728" y="396" width="540" height="22" rx="4" fill="#101d2c"/><text x="738" y="411" fill="#d9e4ef">3 · Administrative register — Granted urban licences  <tspan fill="#c0794f" font-weight="700">← K9, third row, reachable without scrolling</tspan></text>
+    <rect x="728" y="422" width="540" height="22" rx="4" fill="#0d1626"/><text x="738" y="437" fill="#d9e4ef">4 · Observed activity — Pedestrian counters</text>
+    <rect x="728" y="448" width="540" height="22" rx="4" fill="#101d2c"/><text x="738" y="463" fill="#d9e4ef">5 · Context — Principal parks, Hospitality &amp; commercial context</text>
+    <rect x="728" y="474" width="540" height="22" rx="4" fill="#0d1626"/><text x="738" y="489" fill="#d9e4ef">6 · Research evidence — HATI · thermal pilot <tspan fill="#ffb04a">(frozen, independent ON/OFF, untouched by this gate)</tspan></text>
+  </g>
+  <text x="728" y="514" fill="#9fb1c5" font-size="9">10 layer toggles in total — the same ten that ship today. P1 regroups and collapses; it adds, removes and renames nothing.</text>
+
+  <line x1="728" y1="530" x2="1268" y2="530" stroke="#2a3442"/>
+  <text x="728" y="550" fill="#f3f7ff" font-size="13" font-weight="700">DESKTOP (&gt;850 px) IS UNCHANGED</text>
+  <text x="728" y="568" fill="#9fb1c5" font-size="9.5">Groups render expanded, exactly as today. The collapse behaviour is a ≤850 px affordance only, so no desktop user</text>
+  <text x="728" y="582" fill="#9fb1c5" font-size="9.5">loses a control they can see now, and the post-K9 desktop improvement from #86 is preserved rather than re-litigated.</text>
+
+  <text x="728" y="610" fill="#f3f7ff" font-size="13" font-weight="700">WHY NATIVE &lt;details&gt;/&lt;summary&gt;</text>
+  <text x="728" y="628" fill="#9fb1c5" font-size="9.5">The product already uses native &lt;details&gt; (Detail, What this means, Official edition comparison) and native &lt;dialog&gt;</text>
+  <text x="728" y="642" fill="#9fb1c5" font-size="9.5">(Evidence &amp; limits), and the audit found focus handling on both to pass. Native disclosure gives keyboard operation,</text>
+  <text x="728" y="656" fill="#9fb1c5" font-size="9.5">expanded/collapsed semantics and find-in-page for free. No hand-rolled ARIA accordion is proposed.</text>
+
+  <text x="20" y="704" fill="#6d7f93" font-size="10">Rail geometry from css/app.css: ≤850 px .left{width:174px; max-height:min(52dvh,430px); overflow:auto} · ≤560 px {width:150px; max-height:min(49dvh,360px)} · ≤420 px {width:142px}.</text>
+  <text x="20" y="720" fill="#6d7f93" font-size="10">The 1,912 px scrollHeight and the 693 px K9 offset are the merged #92 audit's live emulation measurements, carried forward unchanged.</text>
+  <text x="20" y="736" fill="#6d7f93" font-size="10">Coarse-pointer 44 px minimum comes from the existing @media(pointer:coarse) rule at css/app.css:978; a &lt;summary&gt; is already covered by it.</text>
+  <text x="20" y="752" fill="#6d7f93" font-size="10">NOT TESTED: no human user, no real iPad/Safari hardware, no assistive technology. Height figures are layout arithmetic, not rendered measurements.</text>
+</svg>

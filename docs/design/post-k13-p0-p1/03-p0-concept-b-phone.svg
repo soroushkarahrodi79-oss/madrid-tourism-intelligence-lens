@@ -1,0 +1,239 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="860" viewBox="0 0 1300 860" font-family="Inter, 'Segoe UI', system-ui, sans-serif">
+  <title>P0 Concept B — Ámbito finder with a user-initiated locate action (phone 375x812)</title>
+  <desc>Annotated wireframe of proposed Concept B on a 375x812 phone: three states of a bounded ámbito finder sheet, a user-initiated camera move and the way back. Proposed design, not implemented.</desc>
+
+  <rect width="1300" height="860" fill="#060c14"/>
+
+  <text x="20" y="30" fill="#f3f7ff" font-size="19" font-weight="700">P0-b2 CONCEPT B · “Ámbito finder” — <tspan fill="#ffb04a">HOLD · conditional on demonstrated need</tspan></text>
+  <text x="20" y="52" fill="#9fb1c5" font-size="13">Phone 375 × 812 · PLACE · drawn at 0.78 scale · three sequential states, left to right</text>
+  <text x="20" y="72" fill="#ffb04a" font-size="12">HOLD — built only if P0-a fails O3 or the §15 study shows users cannot reach a named ámbito. No NEW programmatic camera move except the two below; ordinary pan/zoom is unchanged.</text>
+
+  <!-- ===================== STATE 1 ===================== -->
+  <text x="40" y="106" fill="#43d7ff" font-size="12" font-weight="700">STATE 1 · entry point in the panel</text>
+  <rect x="40" y="116" width="293" height="634" rx="20" fill="#08101a" stroke="#3a4654" stroke-width="1.5"/>
+  <rect x="41" y="117" width="291" height="632" rx="19" fill="#09111c"/>
+  <g stroke="#131f2e" stroke-width="1"><path d="M41 180 H332 M41 250 H332 M41 320 H332 M41 390 H332"/><path d="M110 117 V749 M180 117 V749 M250 117 V749"/></g>
+  <circle cx="186" cy="265" r="54" fill="#f7fbff" fill-opacity="0.05" stroke="#f7fbff" stroke-width="2"/>
+  <circle cx="186" cy="265" r="3" fill="#f7fbff"/>
+  <text x="186" y="204" fill="#f7fbff" font-size="10" font-weight="700" text-anchor="middle">A · 900 m</text>
+
+  <!-- header -->
+  <rect x="50" y="126" width="273" height="36" rx="7" fill="#0d1626" stroke="#2a3442"/>
+  <rect x="57" y="133" width="22" height="22" rx="4" fill="#13263c" stroke="#3a4654"/>
+  <text x="86" y="148" fill="#f3f7ff" font-size="10" font-weight="700">Madrid Urban Evidence Lens</text>
+  <!-- collapsed rail (P1) -->
+  <rect x="50" y="170" width="120" height="150" rx="8" fill="#0d1626" stroke="#2a3442"/>
+  <text x="58" y="185" fill="#9fb1c5" font-size="8" font-weight="700">LAYERS</text>
+  <g font-size="8" fill="#d9e4ef">
+    <rect x="56" y="192" width="108" height="20" rx="4" fill="#0b1521" stroke="#2a3442"/><text x="61" y="205">▸ Map display · 2</text>
+    <rect x="56" y="216" width="108" height="20" rx="4" fill="#0b1521" stroke="#2a3442"/><text x="61" y="229">▸ Operational · 5/5</text>
+    <rect x="56" y="240" width="108" height="20" rx="4" fill="#0b1521" stroke="#c0794f"/><text x="61" y="253">▸ Admin reg. · 0/1</text>
+    <rect x="56" y="264" width="108" height="20" rx="4" fill="#0b1521" stroke="#2a3442"/><text x="61" y="277">▸ Activity · 0/1</text>
+    <rect x="56" y="288" width="108" height="20" rx="4" fill="#0b1521" stroke="#2a3442"/><text x="61" y="301">▸ Context · 0/2</text>
+  </g>
+
+  <!-- bottom sheet panel -->
+  <rect x="50" y="430" width="273" height="310" rx="12" fill="#0d1827" stroke="#2a3442"/>
+  <rect x="150" y="436" width="73" height="4" rx="2" fill="#3a4654"/>
+  <circle cx="60" cy="454" r="3.5" fill="#70dea4"/><text x="69" y="457" fill="#d9e4ef" font-size="8">11,265 records · snapshot</text>
+  <g>
+    <rect x="56" y="464" width="86" height="24" rx="5" fill="#16314a" stroke="#43d7ff"/><text x="99" y="480" fill="#f3f7ff" font-size="9" font-weight="700" text-anchor="middle">◎ Place</text>
+    <rect x="146" y="464" width="84" height="24" rx="5" fill="#0b1521" stroke="#2a3442"/><text x="188" y="480" fill="#9fb1c5" font-size="9" text-anchor="middle">⇄ Compare</text>
+    <rect x="234" y="464" width="84" height="24" rx="5" fill="#0b1521" stroke="#2a3442"/><text x="276" y="480" fill="#9fb1c5" font-size="9" text-anchor="middle">▦ City</text>
+  </g>
+  <!-- compact summary (P1) -->
+  <rect x="56" y="494" width="262" height="44" rx="6" fill="#101d2c" stroke="#2a3442"/>
+  <text x="62" y="506" fill="#9fb1c5" font-size="7.5">IN THIS 900 m CIRCLE</text><text x="310" y="506" fill="#9bd5ff" font-size="8" text-anchor="end">ⓘ</text>
+  <g font-size="7.5" fill="#9fb1c5">
+    <text x="62" y="518">POIs</text><text x="62" y="532" fill="#f3f7ff" font-size="12" font-weight="700">41</text>
+    <text x="128" y="518">Hotels</text><text x="128" y="532" fill="#f3f7ff" font-size="12" font-weight="700">63</text>
+    <text x="194" y="518">Mobility</text><text x="194" y="532" fill="#f3f7ff" font-size="12" font-weight="700">24</text>
+    <text x="260" y="518">UTCI</text><text x="260" y="532" fill="#8fa1b5" font-size="12" font-weight="700">—</text>
+  </g>
+  <!-- planning section -->
+  <text x="56" y="556" fill="#9fb1c5" font-size="8" font-weight="700">PLANNING ÁMBITO</text><text x="312" y="556" fill="#9bd5ff" font-size="8" text-anchor="end">ⓘ</text>
+  <text x="56" y="570" fill="#d9e4ef" font-size="8">No official planning ámbito contains the Lens</text>
+  <text x="56" y="581" fill="#d9e4ef" font-size="8">centre — an explicit absence, not a zero.</text>
+  <rect x="56" y="588" width="262" height="40" rx="5" fill="#16314a" stroke="#43d7ff" stroke-width="1.3"/>
+  <text x="62" y="602" fill="#f3f7ff" font-size="9.5" font-weight="700">The Lens circle touches 9 ámbitos.</text>
+  <text x="62" y="619" fill="#9bd5ff" font-size="8.5" text-decoration="underline">See all 9 →</text>
+  <!-- THE B ENTRY POINT -->
+  <rect x="56" y="636" width="262" height="44" rx="7" fill="#13263c" stroke="#43d7ff" stroke-width="1.8"/>
+  <text x="187" y="654" fill="#f3f7ff" font-size="11" font-weight="700" text-anchor="middle">◎ Find planning ámbitos</text>
+  <text x="187" y="669" fill="#9bd5ff" font-size="8" text-anchor="middle">Buscar ámbitos de planeamiento</text>
+  <text x="56" y="696" fill="#9fb1c5" font-size="7.5">44 px touch target · keyboard-reachable without the map</text>
+  <rect x="56" y="706" width="262" height="26" rx="5" fill="#0b1521" stroke="#2a3442"/>
+  <text x="62" y="723" fill="#d9e4ef" font-size="9">▸ Detail</text>
+
+  <!-- ===================== STATE 2 ===================== -->
+  <text x="372" y="106" fill="#43d7ff" font-size="12" font-weight="700">STATE 2 · the finder sheet (modal &lt;dialog&gt;)</text>
+  <rect x="372" y="116" width="293" height="634" rx="20" fill="#08101a" stroke="#3a4654" stroke-width="1.5"/>
+  <rect x="373" y="117" width="291" height="632" rx="19" fill="#09111c"/>
+  <g stroke="#131f2e" stroke-width="1"><path d="M373 180 H664 M373 250 H664 M373 320 H664"/><path d="M442 117 V749 M512 117 V749 M582 117 V749"/></g>
+  <!-- lattice behind, dimmed -->
+  <g stroke="#aeb8c4" stroke-width="1" stroke-dasharray="4 3" fill="none" opacity="0.4">
+    <path d="M420 190 L470 184 L478 220 L428 228 Z"/><path d="M490 182 L544 176 L552 212 L498 220 Z"/>
+    <path d="M418 240 L470 234 L478 270 L426 276 Z"/><path d="M492 228 L546 222 L554 258 L500 264 Z"/>
+    <path d="M564 176 L618 170 L626 206 L572 214 Z"/><path d="M566 224 L618 218 L626 254 L574 260 Z"/>
+  </g>
+  <rect x="373" y="117" width="291" height="632" fill="#060c14" fill-opacity="0.55"/>
+
+  <!-- sheet -->
+  <rect x="380" y="286" width="277" height="456" rx="14" fill="#0d1827" stroke="#43d7ff" stroke-width="1.6"/>
+  <rect x="487" y="294" width="63" height="4" rx="2" fill="#3a4654"/>
+  <text x="392" y="318" fill="#f3f7ff" font-size="12" font-weight="700">Find planning ámbitos</text>
+  <rect x="612" y="304" width="34" height="26" rx="5" fill="#0b1521" stroke="#3a4654"/><text x="629" y="322" fill="#d9e4ef" font-size="12" text-anchor="middle">✕</text>
+  <text x="392" y="334" fill="#9fb1c5" font-size="8">Official PGOUM planning boundaries. Not construction,</text>
+  <text x="392" y="345" fill="#9fb1c5" font-size="8">not built footprints, no dwelling counts.</text>
+
+  <!-- show all toggle -->
+  <rect x="390" y="354" width="257" height="34" rx="6" fill="#101d2c" stroke="#2a3442"/>
+  <text x="398" y="368" fill="#f3f7ff" font-size="9" font-weight="700">Show all 724 on the map</text>
+  <text x="398" y="381" fill="#9fb1c5" font-size="7.5">outlines only · zoom 12 and closer</text>
+  <rect x="604" y="363" width="34" height="18" rx="9" fill="#2f6f9e"/><circle cx="629" cy="372" r="7" fill="#fff"/>
+
+  <!-- touched group -->
+  <text x="392" y="406" fill="#43d7ff" font-size="8.5" font-weight="700">TOUCHED BY THE LENS CIRCLE · 9</text>
+  <g>
+    <rect x="390" y="412" width="257" height="34" rx="5" fill="#101d2c" stroke="#aeb8c4" stroke-width="1.2"/>
+    <text x="398" y="425" fill="#f3f7ff" font-size="9" font-weight="700">APE.03.06</text><text x="398" y="437" fill="#9fb1c5" font-size="8">JERÓNIMOS</text>
+    <text x="639" y="432" fill="#9fb1c5" font-size="8" text-anchor="end">›</text>
+    <rect x="390" y="450" width="257" height="34" rx="5" fill="#101d2c" stroke="#2a3442"/>
+    <text x="398" y="463" fill="#f3f7ff" font-size="9" font-weight="700">APE.01.08</text><text x="398" y="475" fill="#9fb1c5" font-size="8">BANCO DE ESPAÑA</text>
+    <text x="639" y="470" fill="#9fb1c5" font-size="8" text-anchor="end">›</text>
+    <rect x="390" y="488" width="257" height="34" rx="5" fill="#101d2c" stroke="#2a3442"/>
+    <text x="398" y="501" fill="#f3f7ff" font-size="9" font-weight="700">APR.01.05</text><text x="398" y="513" fill="#9fb1c5" font-size="8">ALAMEDA</text>
+    <text x="639" y="508" fill="#9fb1c5" font-size="8" text-anchor="end">›</text>
+  </g>
+  <text x="392" y="536" fill="#9bd5ff" font-size="8.5" text-decoration="underline">Show the remaining 6 →</text>
+
+  <!-- nearest group -->
+  <text x="392" y="560" fill="#ffb04a" font-size="8.5" font-weight="700">NEAREST, NOT TOUCHED · DEFERRED</text>
+  <g>
+    <rect x="390" y="566" width="257" height="34" rx="5" fill="#101d2c" stroke="#2a3442"/>
+    <text x="398" y="579" fill="#f3f7ff" font-size="9" font-weight="700">APR.01.08</text><text x="398" y="591" fill="#9fb1c5" font-size="8">MERCADO DE SANTA ISABEL</text>
+    <text x="639" y="586" fill="#9fb1c5" font-size="8" text-anchor="end">›</text>
+  </g>
+  <text x="392" y="616" fill="#ffb04a" font-size="7.5">No distance and no “nearest” ordering is emitted unless a</text>
+  <text x="392" y="626" fill="#ffb04a" font-size="7.5">verified point-to-segment algorithm exists (§6.3, AC-P0-15).</text>
+
+  <rect x="390" y="636" width="257" height="40" rx="6" fill="#1a1410" stroke="#ffb04a" stroke-width="1.2"/>
+  <text x="398" y="650" fill="#ffb04a" font-size="8" font-weight="700">WHAT OPENING ONE DOES</text>
+  <text x="398" y="662" fill="#e8d5c4" font-size="7.5">Moves the map to show that ámbito. The Lens stays</text>
+  <text x="398" y="672" fill="#e8d5c4" font-size="7.5">where it is; every reading is preserved.</text>
+
+  <text x="392" y="696" fill="#9fb1c5" font-size="7.5">Esc closes · focus returns to “Find planning ámbitos”</text>
+  <rect x="390" y="704" width="257" height="28" rx="6" fill="#0b1521" stroke="#3a4654"/>
+  <text x="518" y="722" fill="#d9e4ef" font-size="9.5" text-anchor="middle">Close</text>
+
+  <!-- ===================== STATE 3 ===================== -->
+  <text x="704" y="106" fill="#43d7ff" font-size="12" font-weight="700">STATE 3 · after a user-initiated locate</text>
+  <rect x="704" y="116" width="293" height="634" rx="20" fill="#08101a" stroke="#3a4654" stroke-width="1.5"/>
+  <rect x="705" y="117" width="291" height="632" rx="19" fill="#09111c"/>
+  <g stroke="#131f2e" stroke-width="1"><path d="M705 180 H996 M705 250 H996 M705 320 H996 M705 390 H996"/><path d="M774 117 V749 M844 117 V749 M914 117 V749"/></g>
+
+  <!-- located ambito, fitted -->
+  <path d="M760 230 L920 214 L938 346 L774 366 Z" fill="#aeb8c4" fill-opacity="0.14" stroke="#e3e9ef" stroke-width="2.4" stroke-dasharray="7 4"/>
+  <text x="849" y="294" fill="#ffffff" font-size="11" font-weight="700" text-anchor="middle">APE.03.06</text>
+  <text x="849" y="308" fill="#d9e4ef" font-size="8.5" text-anchor="middle">JERÓNIMOS</text>
+  <!-- lens stays put, now partly offscreen-ish but marked -->
+  <circle cx="800" cy="398" r="40" fill="#f7fbff" fill-opacity="0.05" stroke="#f7fbff" stroke-width="1.8" stroke-dasharray="4 3"/>
+  <circle cx="800" cy="398" r="3" fill="#f7fbff"/>
+  <text x="800" y="448" fill="#f7fbff" font-size="8" font-weight="700" text-anchor="middle">A · unchanged</text>
+
+  <!-- the way back -->
+  <rect x="716" y="130" width="180" height="36" rx="8" fill="#0d1626" fill-opacity="0.97" stroke="#43d7ff" stroke-width="1.6"/>
+  <text x="726" y="146" fill="#f3f7ff" font-size="10" font-weight="700">← Back to the Lens</text>
+  <text x="726" y="159" fill="#9bd5ff" font-size="8">Volver a la Lente</text>
+
+  <rect x="716" y="174" width="268" height="32" rx="6" fill="#0d1626" fill-opacity="0.95" stroke="#aeb8c4"/>
+  <line x1="726" y1="186" x2="746" y2="186" stroke="#aeb8c4" stroke-width="1.6" stroke-dasharray="5 3"/>
+  <text x="754" y="189" fill="#f3f7ff" font-size="8.5" font-weight="700">Official planning ámbito boundary</text>
+  <text x="726" y="201" fill="#ffb04a" font-size="8">Not construction. Not a built footprint.</text>
+
+  <!-- panel still there -->
+  <rect x="714" y="470" width="273" height="270" rx="12" fill="#0d1827" stroke="#2a3442"/>
+  <rect x="814" y="476" width="73" height="4" rx="2" fill="#3a4654"/>
+  <rect x="722" y="490" width="257" height="40" rx="6" fill="#16314a" stroke="#43d7ff" stroke-width="1.3"/>
+  <text x="730" y="504" fill="#43d7ff" font-size="8" font-weight="700">YOU ARE LOOKING AT</text>
+  <text x="730" y="518" fill="#f3f7ff" font-size="10" font-weight="700">APE.03.06 · JERÓNIMOS</text>
+  <text x="730" y="527" fill="#9fb1c5" font-size="7.5">whole planning ámbito — not the Lens circle</text>
+
+  <text x="722" y="548" fill="#9fb1c5" font-size="8" font-weight="700">FOUR PUBLISHED DEVELOPMENT PHASES</text>
+  <text x="722" y="560" fill="#9fb1c5" font-size="7.5">edition 2024-12-31 · no order between them, no overall stage</text>
+  <g font-size="7.5">
+    <rect x="722" y="566" width="124" height="22" rx="4" fill="#101d2c" stroke="#2a3442"/><text x="728" y="580" fill="#d9e4ef">Gestión: EJECUTADO</text>
+    <rect x="852" y="566" width="127" height="22" rx="4" fill="#101d2c" stroke="#2a3442"/><text x="858" y="580" fill="#d9e4ef">Urbanización: —</text>
+    <rect x="722" y="592" width="124" height="22" rx="4" fill="#101d2c" stroke="#2a3442"/><text x="728" y="606" fill="#d9e4ef">Planeamiento: APROB.</text>
+    <rect x="852" y="592" width="127" height="22" rx="4" fill="#101d2c" stroke="#2a3442"/><text x="858" y="606" fill="#8fa1b5">Edificación: no publicado</text>
+  </g>
+  <text x="722" y="632" fill="#9fb1c5" font-size="8" font-weight="700">AVAILABLE BUILDABILITY</text>
+  <text x="722" y="645" fill="#f3f7ff" font-size="11" font-weight="700">— m² edificable</text>
+  <text x="722" y="656" fill="#9fb1c5" font-size="7.5">whole ámbito · no dwelling count is published or derivable</text>
+  <rect x="722" y="664" width="257" height="30" rx="5" fill="#1a1410" stroke="#c0794f"/>
+  <text x="728" y="677" fill="#e8d5c4" font-size="7.5">A published phase state is an administrative state,</text>
+  <text x="728" y="688" fill="#e8d5c4" font-size="7.5">never proof of physical construction.</text>
+  <rect x="722" y="702" width="257" height="28" rx="6" fill="#0b1521" stroke="#43d7ff"/>
+  <text x="850" y="720" fill="#9bd5ff" font-size="9" text-anchor="middle">← Back to the Lens</text>
+
+  <!-- ===================== callouts ===================== -->
+  <rect x="1020" y="116" width="264" height="634" rx="8" fill="#0a131f" stroke="#2a3442"/>
+  <text x="1032" y="138" fill="#f3f7ff" font-size="12" font-weight="700">CONCEPT B · CONTRACTS</text>
+
+  <circle cx="1040" cy="162" r="9" fill="#70dea4"/><text x="1040" y="166" fill="#060c14" font-size="10" font-weight="700" text-anchor="middle">1</text>
+  <text x="1056" y="160" fill="#f3f7ff" font-size="10" font-weight="700">New moves are user-initiated</text>
+  <text x="1056" y="174" fill="#9fb1c5" font-size="9">The only NEW programmatic camera</text>
+  <text x="1056" y="186" fill="#9fb1c5" font-size="9">moves are: opening an entry, and</text>
+  <text x="1056" y="198" fill="#9fb1c5" font-size="9">“Back to the Lens”. Manual pan,</text>
+  <text x="1056" y="210" fill="#9fb1c5" font-size="9">zoom and the PLACE click-moves-</text>
+  <text x="1056" y="222" fill="#9fb1c5" font-size="9">Lens behaviour are UNCHANGED.</text>
+  <text x="1056" y="234" fill="#9fb1c5" font-size="9">Mode/Lens changes move nothing.</text>
+
+  <circle cx="1040" cy="260" r="9" fill="#70dea4"/><text x="1040" y="264" fill="#060c14" font-size="10" font-weight="700" text-anchor="middle">2</text>
+  <text x="1056" y="258" fill="#f3f7ff" font-size="10" font-weight="700">The Lens never moves</text>
+  <text x="1056" y="272" fill="#9fb1c5" font-size="9">Locating changes the viewport,</text>
+  <text x="1056" y="284" fill="#9fb1c5" font-size="9">never lens position or radius, so</text>
+  <text x="1056" y="296" fill="#9fb1c5" font-size="9">every circle reading survives and</text>
+  <text x="1056" y="308" fill="#9fb1c5" font-size="9">no URL-state key changes.</text>
+
+  <circle cx="1040" cy="334" r="9" fill="#70dea4"/><text x="1040" y="338" fill="#060c14" font-size="10" font-weight="700" text-anchor="middle">3</text>
+  <text x="1056" y="332" fill="#f3f7ff" font-size="10" font-weight="700">Distance: prove it or omit it</text>
+  <text x="1056" y="346" fill="#9fb1c5" font-size="9">A bounding box PRUNES candidates;</text>
+  <text x="1056" y="358" fill="#9fb1c5" font-size="9">it is not nearest-boundary distance.</text>
+  <text x="1056" y="370" fill="#9fb1c5" font-size="9">Edges, holes and multipart parts all</text>
+  <text x="1056" y="382" fill="#9fb1c5" font-size="9">break a vertex or box proxy. Either</text>
+  <text x="1056" y="396" fill="#9fb1c5" font-size="9">prove the algorithm, or emit none.</text>
+
+  <circle cx="1040" cy="422" r="9" fill="#70dea4"/><text x="1040" y="426" fill="#060c14" font-size="10" font-weight="700" text-anchor="middle">4</text>
+  <text x="1056" y="420" fill="#f3f7ff" font-size="10" font-weight="700">Two named groups</text>
+  <text x="1056" y="434" fill="#9fb1c5" font-size="9">“Touched by your circle” and</text>
+  <text x="1056" y="446" fill="#9fb1c5" font-size="9">“Nearest, not touched” are kept</text>
+  <text x="1056" y="458" fill="#9fb1c5" font-size="9">apart, so a nearby ámbito is never</text>
+  <text x="1056" y="470" fill="#9fb1c5" font-size="9">read as one the circle intersects.</text>
+
+  <circle cx="1040" cy="496" r="9" fill="#70dea4"/><text x="1040" y="500" fill="#060c14" font-size="10" font-weight="700" text-anchor="middle">5</text>
+  <text x="1056" y="494" fill="#f3f7ff" font-size="10" font-weight="700">Keyboard-first</text>
+  <text x="1056" y="508" fill="#9fb1c5" font-size="9">Native &lt;dialog&gt;: Esc closes, focus</text>
+  <text x="1056" y="520" fill="#9fb1c5" font-size="9">is contained and returns to the</text>
+  <text x="1056" y="532" fill="#9fb1c5" font-size="9">trigger. The whole P0 journey is</text>
+  <text x="1056" y="544" fill="#9fb1c5" font-size="9">reachable without ever focusing a</text>
+  <text x="1056" y="556" fill="#9fb1c5" font-size="9">map marker.</text>
+
+  <line x1="1032" y1="576" x2="1272" y2="576" stroke="#2a3442"/>
+  <text x="1032" y="594" fill="#ffb04a" font-size="10.5" font-weight="700">COST vs A</text>
+  <text x="1032" y="610" fill="#d9e4ef" font-size="9">· a new modal surface + EN/ES copy</text>
+  <text x="1032" y="624" fill="#d9e4ef" font-size="9">· a VERIFIED point-to-segment</text>
+  <text x="1032" y="636" fill="#d9e4ef" font-size="9">  distance + fixtures, or no</text>
+  <text x="1032" y="648" fill="#d9e4ef" font-size="9">  distances at all</text>
+  <text x="1032" y="662" fill="#d9e4ef" font-size="9">· camera save/restore state</text>
+  <text x="1032" y="676" fill="#d9e4ef" font-size="9">· a third “looking at” panel mode</text>
+  <text x="1032" y="690" fill="#d9e4ef" font-size="9">  that must not be mistaken for a</text>
+  <text x="1032" y="702" fill="#d9e4ef" font-size="9">  fourth product mode</text>
+  <text x="1032" y="724" fill="#43d7ff" font-size="9" font-weight="700">B never ships without A: without it</text>
+  <text x="1032" y="736" fill="#43d7ff" font-size="9" font-weight="700">the default view still looks empty.</text>
+
+  <text x="20" y="790" fill="#6d7f93" font-size="10">Numeric distances have been REMOVED from this sketch: a nearest-vertex or bounding-box figure is not the nearest distance to a MultiPolygon boundary (§6.3).</text>
+  <text x="20" y="806" fill="#6d7f93" font-size="10">Phase values and buildability shown in State 3 are layout placeholders, NOT readings from madrid_ambito_state.json.</text>
+  <text x="20" y="822" fill="#6d7f93" font-size="10">The &lt;details name&gt; accordion and 44 px targets drawn in the rail belong to P1 and are specified separately.</text>
+  <text x="20" y="838" fill="#6d7f93" font-size="10">NOT TESTED: no human user, no real iPhone/iPad hardware, no assistive technology. Proposed design only.</text>
+</svg>

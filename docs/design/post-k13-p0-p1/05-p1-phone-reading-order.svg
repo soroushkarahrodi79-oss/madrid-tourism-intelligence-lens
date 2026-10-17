@@ -1,0 +1,210 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="860" viewBox="0 0 1300 860" font-family="Inter, 'Segoe UI', system-ui, sans-serif">
+  <title>P1 — PLACE reading order and the compact circle summary on phone 375x812</title>
+  <desc>Annotated wireframe comparing the shipped PLACE reading order at 375x812 with the proposed compact circle summary, showing that the summary is a second projection of the same four evidence objects and not a new index.</desc>
+
+  <rect width="1300" height="860" fill="#060c14"/>
+
+  <text x="20" y="30" fill="#f3f7ff" font-size="19" font-weight="700">P1 · PLACE READING ORDER — phone 375 × 812</text>
+  <text x="20" y="52" fill="#9fb1c5" font-size="13">Panel at ≤850 px is a bottom sheet: max-height 42dvh (44dvh under 700 px tall) · the panel head is sticky and is never hidden</text>
+  <text x="20" y="72" fill="#ffb04a" font-size="12">PROPOSED — not implemented. No evidence object changes. Nothing is removed from the panel.</text>
+
+  <!-- ============ TODAY ============ -->
+  <text x="40" y="108" fill="#c0794f" font-size="12.5" font-weight="700">TODAY · the first question is answered fourth</text>
+  <rect x="40" y="118" width="300" height="640" rx="18" fill="#0d1827" stroke="#c0794f" stroke-width="1.6"/>
+
+  <rect x="40" y="118" width="300" height="104" rx="18" fill="#0f1b2b"/>
+  <text x="54" y="138" fill="#9fb1c5" font-size="8" font-weight="700">STICKY HEAD · never hidden</text>
+  <circle cx="58" cy="152" r="3.5" fill="#70dea4"/><text x="68" y="155" fill="#d9e4ef" font-size="8.5">11,265 records · deployment snapshot</text>
+  <rect x="52" y="162" width="88" height="26" rx="5" fill="#16314a" stroke="#43d7ff"/><text x="96" y="179" fill="#f3f7ff" font-size="9" font-weight="700" text-anchor="middle">◎ Place</text>
+  <rect x="144" y="162" width="88" height="26" rx="5" fill="#0b1521" stroke="#2a3442"/><text x="188" y="179" fill="#9fb1c5" font-size="9" text-anchor="middle">⇄ Compare</text>
+  <rect x="236" y="162" width="88" height="26" rx="5" fill="#0b1521" stroke="#2a3442"/><text x="280" y="179" fill="#9fb1c5" font-size="9" text-anchor="middle">▦ City</text>
+  <g font-size="7.5" fill="#d7e5f2">
+    <rect x="52" y="194" width="78" height="12" rx="3" fill="#111e2d" stroke="#2a3442"/><text x="56" y="203">◎ LENS CIRCLE</text>
+    <rect x="134" y="194" width="66" height="12" rx="3" fill="#111e2d" stroke="#2a3442"/><text x="138" y="203">▢ BARRIO</text>
+    <rect x="204" y="194" width="120" height="12" rx="3" fill="#111e2d" stroke="#2a3442"/><text x="208" y="203">⬡ PLANNING ÁMBITO</text>
+  </g>
+  <!-- 30px chips -->
+  <rect x="52" y="210" width="94" height="20" rx="5" fill="#0f1b2b" stroke="#c0794f" stroke-width="1.4"/>
+  <text x="99" y="224" fill="#cfe0f0" font-size="8" text-anchor="middle">▾ Within the Lens</text>
+  <rect x="150" y="210" width="56" height="20" rx="5" fill="#0f1b2b" stroke="#c0794f" stroke-width="1.4"/>
+  <text x="178" y="224" fill="#cfe0f0" font-size="8" text-anchor="middle">▾ Detail</text>
+  <text x="214" y="224" fill="#c0794f" font-size="8" font-weight="700">30 px tall</text>
+
+  <line x1="52" y1="240" x2="328" y2="240" stroke="#2a3442" stroke-dasharray="3 3"/>
+  <text x="52" y="256" fill="#c0794f" font-size="8.5" font-style="italic">↓ everything below needs internal scrolling</text>
+
+  <circle cx="60" cy="276" r="10" fill="#2a3442"/><text x="60" y="280" fill="#d9e4ef" font-size="10" font-weight="700" text-anchor="middle">1</text>
+  <text x="78" y="273" fill="#f3f7ff" font-size="10" font-weight="700">Administrative area</text>
+  <text x="78" y="286" fill="#9fb1c5" font-size="8.5">barrio identity, residents, VUT</text>
+  <rect x="52" y="294" width="276" height="54" rx="5" fill="#101d2c" stroke="#2a3442"/>
+  <text x="60" y="310" fill="#f3f7ff" font-size="12" font-weight="700">Los Jerónimos</text>
+  <text x="60" y="324" fill="#9fb1c5" font-size="8">OFFICIAL BARRIO · 030603 · Retiro</text>
+  <text x="60" y="340" fill="#f3f7ff" font-size="10" font-weight="700">10,159 <tspan fill="#9fb1c5" font-size="8" font-weight="400">registered residents</tspan></text>
+
+  <circle cx="60" cy="372" r="10" fill="#2a3442"/><text x="60" y="376" fill="#d9e4ef" font-size="10" font-weight="700" text-anchor="middle">2</text>
+  <text x="78" y="369" fill="#f3f7ff" font-size="10" font-weight="700">Planning ámbito</text>
+  <rect x="52" y="382" width="276" height="48" rx="5" fill="#101d2c" stroke="#2a3442"/>
+  <text x="60" y="396" fill="#d9e4ef" font-size="8">No official planning ámbito contains the Lens centre.</text>
+  <text x="60" y="407" fill="#d9e4ef" font-size="8">The ámbito universe does not cover the whole</text>
+  <text x="60" y="418" fill="#d9e4ef" font-size="8">municipality … not a zero and not the nearest ámbito.</text>
+
+  <circle cx="60" cy="452" r="10" fill="#2a3442"/><text x="60" y="456" fill="#d9e4ef" font-size="10" font-weight="700" text-anchor="middle">3</text>
+  <text x="78" y="449" fill="#f3f7ff" font-size="10" font-weight="700">Granted urban licences</text>
+  <text x="78" y="462" fill="#9fb1c5" font-size="8.5">layer OFF</text>
+
+  <circle cx="60" cy="494" r="10" fill="#c0794f"/><text x="60" y="498" fill="#060c14" font-size="10" font-weight="700" text-anchor="middle">4</text>
+  <text x="78" y="491" fill="#c0794f" font-size="10" font-weight="700">Within the Lens — the four figures</text>
+  <text x="78" y="504" fill="#c0794f" font-size="8.5">the question the user actually arrived with</text>
+  <rect x="52" y="512" width="276" height="54" rx="5" fill="#101d2c" stroke="#c0794f" stroke-width="1.6"/>
+  <g font-size="8" fill="#9fb1c5">
+    <text x="60" y="528">Tourism POIs</text><text x="60" y="546" fill="#f3f7ff" font-size="14" font-weight="700">41</text>
+    <text x="130" y="528">Hotels</text><text x="130" y="546" fill="#f3f7ff" font-size="14" font-weight="700">63</text>
+    <text x="196" y="528">Mobility</text><text x="196" y="546" fill="#f3f7ff" font-size="14" font-weight="700">24</text>
+    <text x="268" y="528">UTCI</text><text x="268" y="546" fill="#8fa1b5" font-size="14" font-weight="700">—</text>
+  </g>
+  <text x="52" y="582" fill="#9fb1c5" font-size="9">5 · ▸ Detail  ·  6 · Context  ·  7 · Controls</text>
+
+  <rect x="52" y="596" width="276" height="56" rx="5" fill="#1a1410" stroke="#c0794f"/>
+  <text x="60" y="612" fill="#c0794f" font-size="9" font-weight="700">WHY THE CHIP IS NOT ENOUGH</text>
+  <text x="60" y="626" fill="#e8d5c4" font-size="8.5">The #86 quick-jump chip scrolls to the figures. It is a</text>
+  <text x="60" y="637" fill="#e8d5c4" font-size="8.5">shortcut past a problem, not a fix for it: the order is</text>
+  <text x="60" y="648" fill="#e8d5c4" font-size="8.5">unchanged and the chip itself is below the 44 px floor.</text>
+
+  <rect x="52" y="664" width="276" height="76" rx="5" fill="#0a131f" stroke="#2a3442"/>
+  <text x="60" y="680" fill="#9fb1c5" font-size="9" font-weight="700">ROOT CAUSE OF THE 30 px CHIP</text>
+  <text x="60" y="694" fill="#d9e4ef" font-size="8">css/app.css:978 already declares a universal coarse-</text>
+  <text x="60" y="705" fill="#d9e4ef" font-size="8">pointer floor — but with <tspan font-family="monospace">:where(…)</tspan>, which has zero</text>
+  <text x="60" y="716" fill="#d9e4ef" font-size="8">specificity. The class rule <tspan font-family="monospace">.place-jump-chip{min-</tspan></text>
+  <text x="60" y="727" fill="#d9e4ef" font-size="8"><tspan font-family="monospace">height:30px}</tspan> at line 850 therefore wins. The fix is to</text>
+  <text x="60" y="738" fill="#d9e4ef" font-size="8">raise that one declaration, not to add a new rule.</text>
+
+  <!-- ============ PROPOSED ============ -->
+  <text x="376" y="108" fill="#43d7ff" font-size="12.5" font-weight="700">PROPOSED · the circle answers first, everything else keeps its place</text>
+  <rect x="376" y="118" width="300" height="640" rx="18" fill="#0d1827" stroke="#43d7ff" stroke-width="1.6"/>
+
+  <rect x="376" y="118" width="300" height="118" rx="18" fill="#0f1b2b"/>
+  <text x="390" y="138" fill="#9fb1c5" font-size="8" font-weight="700">STICKY HEAD · never hidden</text>
+  <circle cx="394" cy="152" r="3.5" fill="#70dea4"/><text x="404" y="155" fill="#d9e4ef" font-size="8.5">11,265 records · deployment snapshot</text>
+  <rect x="388" y="162" width="88" height="26" rx="5" fill="#16314a" stroke="#43d7ff"/><text x="432" y="179" fill="#f3f7ff" font-size="9" font-weight="700" text-anchor="middle">◎ Place</text>
+  <rect x="480" y="162" width="88" height="26" rx="5" fill="#0b1521" stroke="#2a3442"/><text x="524" y="179" fill="#9fb1c5" font-size="9" text-anchor="middle">⇄ Compare</text>
+  <rect x="572" y="162" width="88" height="26" rx="5" fill="#0b1521" stroke="#2a3442"/><text x="616" y="179" fill="#9fb1c5" font-size="9" text-anchor="middle">▦ City</text>
+  <g font-size="7.5" fill="#d7e5f2">
+    <rect x="388" y="194" width="78" height="12" rx="3" fill="#111e2d" stroke="#2a3442"/><text x="392" y="203">◎ LENS CIRCLE</text>
+    <rect x="470" y="194" width="66" height="12" rx="3" fill="#111e2d" stroke="#2a3442"/><text x="474" y="203">▢ BARRIO</text>
+    <rect x="540" y="194" width="120" height="12" rx="3" fill="#111e2d" stroke="#2a3442"/><text x="544" y="203">⬡ PLANNING ÁMBITO</text>
+  </g>
+  <rect x="388" y="210" width="106" height="22" rx="5" fill="#0f1b2b" stroke="#43d7ff" stroke-width="1.4"/>
+  <text x="441" y="225" fill="#cfe0f0" font-size="8" text-anchor="middle">▾ Within the Lens</text>
+  <rect x="498" y="210" width="62" height="22" rx="5" fill="#0f1b2b" stroke="#43d7ff" stroke-width="1.4"/>
+  <text x="529" y="225" fill="#cfe0f0" font-size="8" text-anchor="middle">▾ Detail</text>
+  <text x="568" y="225" fill="#70dea4" font-size="8" font-weight="700">44 px</text>
+
+  <!-- COMPACT SUMMARY -->
+  <circle cx="396" cy="258" r="10" fill="#43d7ff"/><text x="396" y="262" fill="#060c14" font-size="10" font-weight="700" text-anchor="middle">0</text>
+  <text x="414" y="255" fill="#43d7ff" font-size="10" font-weight="700">NEW · compact circle summary</text>
+  <text x="414" y="268" fill="#9fb1c5" font-size="8.5">≤850 px only · the same four objects, read first</text>
+  <rect x="388" y="276" width="276" height="64" rx="6" fill="#101d2c" stroke="#43d7ff" stroke-width="1.6"/>
+  <text x="396" y="291" fill="#9fb1c5" font-size="8" font-weight="700">IN THIS LENS CIRCLE · ◎ 900 m radius</text>
+  <text x="652" y="291" fill="#9bd5ff" font-size="9" text-anchor="end">ⓘ</text>
+  <g font-size="8" fill="#9fb1c5">
+    <text x="396" y="306">Tourism POIs</text><text x="396" y="324" fill="#f3f7ff" font-size="15" font-weight="700">41</text>
+    <text x="466" y="306">Hotels</text><text x="466" y="324" fill="#f3f7ff" font-size="15" font-weight="700">63</text>
+    <text x="532" y="306">Mobility</text><text x="532" y="324" fill="#f3f7ff" font-size="15" font-weight="700">24</text>
+    <text x="604" y="306">UTCI</text><text x="604" y="324" fill="#8fa1b5" font-size="15" font-weight="700">—</text>
+  </g>
+  <text x="604" y="334" fill="#ffb04a" font-size="7">OFF</text>
+
+  <circle cx="396" cy="362" r="10" fill="#2a3442"/><text x="396" y="366" fill="#d9e4ef" font-size="10" font-weight="700" text-anchor="middle">1</text>
+  <text x="414" y="359" fill="#f3f7ff" font-size="10" font-weight="700">Administrative area</text>
+  <text x="414" y="372" fill="#9fb1c5" font-size="8.5">unchanged — still the lead official identity</text>
+  <rect x="388" y="380" width="276" height="40" rx="5" fill="#101d2c" stroke="#2a3442"/>
+  <text x="396" y="396" fill="#f3f7ff" font-size="12" font-weight="700">Los Jerónimos</text>
+  <text x="396" y="410" fill="#9fb1c5" font-size="8">OFFICIAL BARRIO · 030603 · 10,159 residents</text>
+
+  <circle cx="396" cy="442" r="10" fill="#2a3442"/><text x="396" y="446" fill="#d9e4ef" font-size="10" font-weight="700" text-anchor="middle">2</text>
+  <text x="414" y="439" fill="#f3f7ff" font-size="10" font-weight="700">Planning ámbito <tspan fill="#43d7ff" font-size="8.5">+ P0 membership line</tspan></text>
+  <rect x="388" y="452" width="276" height="62" rx="5" fill="#101d2c" stroke="#2a3442"/>
+  <text x="396" y="466" fill="#d9e4ef" font-size="8">No official planning ámbito contains the Lens centre …</text>
+  <text x="396" y="477" fill="#d9e4ef" font-size="8">not a zero and not the nearest ámbito.</text>
+  <rect x="394" y="482" width="264" height="26" rx="4" fill="#16314a" stroke="#43d7ff"/>
+  <text x="400" y="494" fill="#f3f7ff" font-size="9" font-weight="700">The Lens circle touches 9 ámbitos.</text>
+  <text x="400" y="504" fill="#9bd5ff" font-size="8">◎ Find planning ámbitos →</text>
+
+  <circle cx="396" cy="536" r="10" fill="#2a3442"/><text x="396" y="540" fill="#d9e4ef" font-size="10" font-weight="700" text-anchor="middle">3</text>
+  <text x="414" y="533" fill="#f3f7ff" font-size="10" font-weight="700">Granted urban licences</text><text x="414" y="546" fill="#9fb1c5" font-size="8.5">layer OFF</text>
+
+  <circle cx="396" cy="574" r="10" fill="#2a3442"/><text x="396" y="578" fill="#d9e4ef" font-size="10" font-weight="700" text-anchor="middle">4</text>
+  <text x="414" y="571" fill="#f3f7ff" font-size="10" font-weight="700">Within the Lens — full figure block</text>
+  <text x="414" y="584" fill="#9fb1c5" font-size="8.5">stays exactly where it is, with every ⓘ and foot-note</text>
+  <rect x="388" y="592" width="276" height="34" rx="5" fill="#101d2c" stroke="#2a3442"/>
+  <g font-size="7.5" fill="#9fb1c5">
+    <text x="396" y="605">Tourism POIs</text><text x="396" y="620" fill="#f3f7ff" font-size="12" font-weight="700">41</text>
+    <text x="466" y="605">Hotels</text><text x="466" y="620" fill="#f3f7ff" font-size="12" font-weight="700">63</text>
+    <text x="532" y="605">Mobility</text><text x="532" y="620" fill="#f3f7ff" font-size="12" font-weight="700">24</text>
+    <text x="604" y="605">UTCI · model</text><text x="604" y="620" fill="#8fa1b5" font-size="12" font-weight="700">—</text>
+  </g>
+  <text x="388" y="644" fill="#9fb1c5" font-size="9">5 · ▸ Detail  ·  6 · Context  ·  7 · Controls <tspan fill="#70dea4">— order after step 1 is unchanged</tspan></text>
+
+  <rect x="388" y="658" width="276" height="82" rx="5" fill="#0a131f" stroke="#70dea4"/>
+  <text x="396" y="674" fill="#70dea4" font-size="9" font-weight="700">THE SUMMARY IS A PROJECTION, NOT AN OBJECT</text>
+  <text x="396" y="688" fill="#d9e4ef" font-size="8">It renders the same four evidence objects from the same</text>
+  <text x="396" y="699" fill="#d9e4ef" font-size="8">state in the same render pass as the block at step 4.</text>
+  <text x="396" y="710" fill="#d9e4ef" font-size="8">It introduces no combined index, no score, no ranking and</text>
+  <text x="396" y="721" fill="#d9e4ef" font-size="8">no new measurement. It cannot disagree with step 4,</text>
+  <text x="396" y="732" fill="#d9e4ef" font-size="8">because there is only one source of truth behind both.</text>
+
+  <!-- ============ RULES ============ -->
+  <rect x="712" y="118" width="572" height="640" rx="8" fill="#0a131f" stroke="#2a3442"/>
+  <text x="728" y="142" fill="#f3f7ff" font-size="13" font-weight="700">RULES THE COMPACT SUMMARY MUST OBEY</text>
+
+  <g font-size="9.5">
+    <rect x="728" y="152" width="540" height="40" rx="5" fill="#101d2c"/>
+    <text x="738" y="167" fill="#70dea4" font-weight="700">R1 · Four figures and the radius. Nothing else.</text>
+    <text x="738" y="183" fill="#9fb1c5">Tourism POIs, Hotels &amp; stays, Mobility nodes, Mean UTCI, plus “◎ 900 m radius”. No fifth number, no total, no average.</text>
+
+    <rect x="728" y="196" width="540" height="40" rx="5" fill="#0d1626"/>
+    <text x="738" y="211" fill="#70dea4" font-weight="700">R2 · Abstention and OFF survive compression.</text>
+    <text x="738" y="227" fill="#9fb1c5">UTCI reads “—” with its state, never 0 and never blank. A layer that is OFF says OFF. Missing is never zero.</text>
+
+    <rect x="728" y="240" width="540" height="40" rx="5" fill="#101d2c"/>
+    <text x="738" y="255" fill="#70dea4" font-weight="700">R3 · Provenance is reachable from the summary itself.</text>
+    <text x="738" y="271" fill="#9fb1c5">One ⓘ on the band opens Evidence &amp; limits scoped to the Lens-circle surfaces. Per-figure ⓘ stays on the block at step 4.</text>
+
+    <rect x="728" y="284" width="540" height="40" rx="5" fill="#0d1626"/>
+    <text x="738" y="299" fill="#70dea4" font-weight="700">R4 · The scope label is on the band, not inferred.</text>
+    <text x="738" y="315" fill="#9fb1c5">“IN THIS LENS CIRCLE · ◎ 900 m radius” — so it can never be read as the barrio, the ámbito or the municipality.</text>
+
+    <rect x="728" y="328" width="540" height="40" rx="5" fill="#101d2c"/>
+    <text x="738" y="343" fill="#70dea4" font-weight="700">R5 · ≤850 px only; it is additive, never a replacement.</text>
+    <text x="738" y="359" fill="#9fb1c5">Desktop is unchanged. The full block at step 4 is never hidden at any width, so the IA no-hide contract still passes.</text>
+
+    <rect x="728" y="372" width="540" height="40" rx="5" fill="#0d1626"/>
+    <text x="738" y="387" fill="#70dea4" font-weight="700">R6 · The radius is the live radius, not the default.</text>
+    <text x="738" y="403" fill="#9fb1c5">If the user sets 2 km, the band says 2 km. A stale “900 m” beside live figures would be a false reading.</text>
+  </g>
+
+  <line x1="728" y1="428" x2="1268" y2="428" stroke="#2a3442"/>
+  <text x="728" y="450" fill="#f3f7ff" font-size="13" font-weight="700">WHAT P1 DOES NOT DO</text>
+  <text x="728" y="470" fill="#d9e4ef" font-size="9.5">✗ It does not reorder the administrative area, planning ámbito and licence sections relative to each other.</text>
+  <text x="728" y="486" fill="#d9e4ef" font-size="9.5">✗ It does not move controls out of last position.</text>
+  <text x="728" y="502" fill="#d9e4ef" font-size="9.5">✗ It does not remove, shorten or paraphrase a single interpretation ceiling. (Thinning inline caveat density is P2 #8.)</text>
+  <text x="728" y="518" fill="#d9e4ef" font-size="9.5">✗ It does not add a mode, a dataset, an indicator or a fourth product scope.</text>
+  <text x="728" y="534" fill="#d9e4ef" font-size="9.5">✗ It does not touch HATI, which stays a frozen, independent, optional ON/OFF research layer.</text>
+
+  <line x1="728" y1="554" x2="1268" y2="554" stroke="#2a3442"/>
+  <text x="728" y="576" fill="#f3f7ff" font-size="13" font-weight="700">HEIGHT COST AT 375 × 812</text>
+  <text x="728" y="596" fill="#9fb1c5" font-size="9.5">The panel is a 42dvh bottom sheet ≈ 341 px. The sticky head grows by 14 px (chips 30 → 44 px) and the summary band</text>
+  <text x="728" y="612" fill="#9fb1c5" font-size="9.5">adds 64 px + 8 px margin. Net: ≈ 86 px of the sheet is spent buying the answer the user came for, and the material it</text>
+  <text x="728" y="628" fill="#9fb1c5" font-size="9.5">displaces is pushed down the same internal scroll it already lived on — nothing leaves the document.</text>
+  <text x="728" y="648" fill="#ffb04a" font-size="9.5">Open question for the implementation PR: whether the panel should also be allowed to grow to ~48dvh at ≤560 px.</text>
+  <text x="728" y="664" fill="#ffb04a" font-size="9.5">That trades map area for panel area and should be decided against a real device, not against emulation.</text>
+
+  <text x="728" y="692" fill="#f3f7ff" font-size="13" font-weight="700">BILINGUAL NOTE</text>
+  <text x="728" y="712" fill="#9fb1c5" font-size="9.5">The Spanish band label “EN ESTE CÍRCULO DE LENTE · ◎ 900 m de radio” is ~22 % longer than the English. The band is</text>
+  <text x="728" y="728" fill="#9fb1c5" font-size="9.5">designed to wrap its label to two lines rather than truncate, because a truncated scope label is a lost scope label.</text>
+
+  <text x="20" y="790" fill="#6d7f93" font-size="10">Panel geometry from css/app.css: ≤850 px .panel{max-height:42dvh} · ≤850 px and ≤700 px tall {max-height:44dvh} · .place-jump-chip{min-height:30px} at line 850 · :where() floor at line 978.</text>
+  <text x="20" y="806" fill="#6d7f93" font-size="10">Figures 41 / 63 / 24 are illustrative layout placeholders and are NOT evidence readings. The 9-ámbito membership count IS model-derived.</text>
+  <text x="20" y="822" fill="#6d7f93" font-size="10">Height figures are layout arithmetic from the shipped stylesheet, not rendered measurements on a device.</text>
+  <text x="20" y="838" fill="#6d7f93" font-size="10">NOT TESTED: no human user, no real iPhone/iPad hardware, no assistive technology. Proposed design only.</text>
+</svg>
