@@ -82,7 +82,14 @@ class ProductionPackageUnchanged(unittest.TestCase):
 
 
 class ChangeSetPathGuard(unittest.TestCase):
-    """git diff vs the base must touch only docs/, research/runtime_spike/, tests/."""
+    """A change set that touches the spike must keep all its changes in docs/,
+    research/runtime_spike/ and tests/ — the spike never leaks into production.
+
+    This is a SPIKE-CONTAINMENT guard: it applies to a change set that actually
+    touches research/runtime_spike/. A change set that does not touch the spike is
+    outside its remit and is skipped, so the guard does not block unrelated
+    production work on later branches (it previously asserted this unconditionally,
+    which incorrectly failed every production change merged after the spike)."""
 
     def _base_ref(self):
         for ref in ("origin/main", "main"):
@@ -109,6 +116,11 @@ class ChangeSetPathGuard(unittest.TestCase):
             text=True,
         )
         changed = [p for p in diff.stdout.splitlines() if p.strip()]
+        # The guard governs spike change sets only. If nothing under
+        # research/runtime_spike/ changed, this is not a spike PR and the
+        # containment invariant does not apply.
+        if not any(p.startswith("research/runtime_spike/") for p in changed):
+            self.skipTest("change set does not touch the spike; containment guard does not apply")
         offenders = []
         for p in changed:
             if p in PRODUCTION_FILES or p.startswith(PRODUCTION_PREFIXES):

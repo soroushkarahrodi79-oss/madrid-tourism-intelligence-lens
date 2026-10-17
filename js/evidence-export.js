@@ -32,6 +32,16 @@
 const EXPORT_CONTRACT_VERSION = 1;
 const GEOJSON_CRS = "EPSG:4326";
 
+// The export resolves each contributing source THROUGH the K13 SOURCE_PROVENANCE
+// resolver (js/evidence-registry.js), so "is this a registered source?" has one
+// answer in one place. The emitted sources.json still copies the documented export
+// fields VERBATIM from the registry — the resolver is the gatekeeper, not a
+// rewriter — so the bundle's content is unchanged (a test asserts it).
+const EXPORT_REGISTRY_API =
+  typeof module !== "undefined" && module.exports
+    ? require("./evidence-registry.js")
+    : { sourceProvenance };
+
 // The approved analytical-scope vocabulary, mirrored from js/evidence-scope.js
 // ANALYTICAL_SCOPES; a test asserts the two agree. Every exported value and
 // geometry feature must carry one of these — never an ad-hoc scope string.
@@ -141,9 +151,11 @@ function buildSourcesObject(projection, registry) {
   const byId = new Map((registry.sources || []).map((source) => [source.id, source]));
   const out = [];
   for (const id of contributingSourceIds(projection)) {
+    // The registry's SOURCE_PROVENANCE resolver is the single authority on whether
+    // a contributing id is a registered source; a null answer is reported, not hidden.
+    const provenance = EXPORT_REGISTRY_API.sourceProvenance(registry, id);
     const source = byId.get(id);
-    if (!source) {
-      // A contributing id with no registry entry is reported, not hidden.
+    if (!provenance || !source) {
       out.push({ id, missing_from_registry: true });
       continue;
     }

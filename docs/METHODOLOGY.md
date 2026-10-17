@@ -675,6 +675,52 @@ reading travels, intact and attributed, into QGIS, GeoLibre or a spreadsheet. Th
 export is a transcript of the rendered reading, never a recomputation: every value
 it carries is read from the same frozen model that drew the screen.
 
+## Evidence Registry query contract (K13)
+
+The product can answer structured questions about its registered evidence through a
+pure, deterministic query layer (`js/evidence-registry.js`), specified in full in
+`docs/EVIDENCE_REGISTRY_QUERY_CONTRACT.md`. **It introduces no AI assistant**: there
+is no language model, no model call, no API key, no network request, no embedding
+and no natural-language generation anywhere in it. It exists so that any future
+assistant, if one is ever built, cannot become an oracle — it could only ever be a
+front-end that classifies a question and phrases an answer whose every factual token
+already came out of this layer.
+
+Two rules govern it, and both are already the discipline of the rest of this
+product, raised to a query contract:
+
+- **Deterministic first, always.** A question is resolved in a fixed order — select
+  one of a *closed* set of registered question shapes, resolve the scope (refuse if
+  ambiguous), enforce the applicable interpretation ceiling, run the existing
+  deterministic model or artifact lookup, and return the result **with its
+  provenance attached**. Every factual token traces to a model result; the layer
+  computes no number, chooses no date, decides no scope and fills no gap. An
+  unregistered question is refused, not approximated.
+  Ámbito comparisons accept selectors, not evidence payloads: exact official codes
+  and optional registered S1/S2 snapshot identities are resolved through the K10
+  adapter from committed K6/K7 artifacts. Edition differences require the union of
+  codes in both committed editions, so appearances and disappearances remain valid
+  while an unavailable universe causes abstention. A K7 provenance date override is
+  accepted only when it equals the registry's oldest contributing edition.
+- **Abstention is a correct answer.** `abstain(reason)` is a first-class, tested
+  outcome with a closed eight-reason vocabulary — exactly as `withheld` already is
+  in the Comparison Bridge. A refusal is never a zero, never missing-but-estimable
+  data, and never a nearest match: a dwelling-count request abstains rather than
+  estimating, a period outside a source's coverage abstains rather than snapping to
+  the closest published one, and a cross-scope combination without a documented
+  basis abstains rather than apportioning. The eight §4 prohibitions (dwelling
+  counts, apportionment, completion dates or projections, rankings, causal claims,
+  legal interpretation, cross-scope combination, and any untraceable token) are
+  enforced structurally, not by convention.
+
+The evidence drawer and the documented export both read a source's provenance
+*through* this layer's single `SOURCE_PROVENANCE` assembly, so the contract is
+exercised by shipping surfaces; their rendered and serialised content is unchanged.
+Whole Area Profile and Destination Context view models are named deterministic
+assemblies, not `SOURCE_FACT`: their underlying publisher values remain unchanged,
+but containment, comparisons, shares, ranges and presentation projections are
+explicit transformations.
+
 ## Binding visual and accessibility constraints (K5)
 
 The evidence contract includes its presentation. These are release-blocking
