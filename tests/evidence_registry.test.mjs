@@ -40,6 +40,10 @@ import { createPopulationIndex, buildAreaProfile, AREA_STATE } from "../js/area-
 import { createDestinationIndex, buildDestinationContext, DESTINATION_STATE } from "../js/destination-context.js";
 import { buildAmbitoComparisonModel } from "../js/ambito-comparison.js";
 import { buildAmbitoComparison } from "../js/ambito-change.js";
+import {
+  ambitoEditionContainsCode,
+  createCanonicalAmbitoComparisonInputResolver,
+} from "../js/ambito-comparison-adapter.js";
 
 const read = (p) => JSON.parse(fs.readFileSync(new URL(`../${p}`, import.meta.url), "utf8"));
 const REGISTRY = read("data/source_registry.json");
@@ -65,6 +69,8 @@ const ambitoEditionDiff = (code) =>
     current: { reference_date: CD.current.reference_date, families: CD.current.families },
     exactCode: code,
   });
+const ambitoComparisonInputFor = createCanonicalAmbitoComparisonInputResolver({ index: planningIndex, stateArtifact: STATE });
+const ambitoEditionCodeKnown = (code) => ambitoEditionContainsCode(code, STATE);
 
 const DEPS = {
   registry: REGISTRY,
@@ -76,7 +82,9 @@ const DEPS = {
   destinationModel,
   destinationStateAvailable: DESTINATION_STATE.AVAILABLE,
   ambitoCompare: buildAmbitoComparisonModel,
+  ambitoComparisonInputFor,
   ambitoEditionDiff, // the real #69 model (see the AMBITO_EDITION_DIFF tests below)
+  ambitoEditionCodeKnown,
 };
 const reg = R.createEvidenceRegistry(DEPS);
 // A code present in BOTH committed editions — a genuine two-edition diff.
@@ -163,6 +171,20 @@ test("makeEvidence rejects an undeclared scope and an unnamed derivation", () =>
   assert.throws(() => R.makeEvidence({ ...base, scope: "MUNICIPALITY", derivation: "MADE_UP" }), /transformation/);
 });
 
+test("makeEvidence is structural; public queries authenticate source identity and dates", () => {
+  const structural = R.makeEvidence({
+    value: 1,
+    scope: "MUNICIPALITY",
+    unit: "u",
+    sourceId: "not_a_registered_source",
+    freshness: { reference_date: "2099-01-01", published_at: null, retrieved_at: null, update_frequency: "NONE_DECLARED", source_state: "NOT_DECLARED_BY_PUBLISHER" },
+    ceiling: "structural fixture only",
+    derivation: "SOURCE_FACT",
+  });
+  assert.ok(R.isEvidence(structural));
+  assert.equal(reg.query("SOURCE_PROVENANCE", { sourceId: structural.sourceId }).reason, "OUTSIDE_SOURCE_UNIVERSE");
+});
+
 // ============================================================ 2. closed shape set
 
 test("the registered shape set is exactly the ten documented shapes", () => {
@@ -196,7 +218,8 @@ test("AREA_PROFILE_AT_POINT resolves a barrio inside Madrid (boundary: outside i
   const inside = reg.query("AREA_PROFILE_AT_POINT", SOL);
   assert.ok(R.isEvidence(inside));
   assert.equal(inside.scope, "OFFICIAL_BARRIO");
-  assert.equal(inside.derivation, "SOURCE_FACT");
+  assert.equal(inside.derivation, "AREA_PROFILE_ASSEMBLY");
+  assert.deepEqual(inside.value.sources, ["geography", "population"]);
 
   const outside = reg.query("AREA_PROFILE_AT_POINT", { lon: 0, lat: 0 });
   assert.ok(R.isAbstention(outside));
@@ -208,6 +231,7 @@ test("CITY_HOTEL_DEMAND resolves the municipality figure", () => {
   assert.ok(R.isEvidence(out));
   assert.equal(out.scope, "MUNICIPALITY");
   assert.equal(out.sourceId, "hotel_demand");
+  assert.equal(out.derivation, "DESTINATION_CONTEXT_ASSEMBLY");
 });
 
 test("AMBITO_PHASES resolves a code with published state (empty: a code with none abstains)", () => {
@@ -334,7 +358,7 @@ test("abstention reason: CEILING_PROHIBITS — a dwelling count", () => {
 test("prohibition (1): an untraceable factual token cannot be constructed", () => {
   assert.throws(
     () => R.makeEvidence({ value: 5, scope: "MUNICIPALITY", unit: "u", sourceId: "", freshness: { reference_date: null, published_at: null, retrieved_at: null, update_frequency: "NONE_DECLARED", source_state: "NOT_DECLARED_BY_PUBLISHER" }, ceiling: "c", derivation: "SOURCE_FACT" }),
-    /trace to a registered source/
+    /source identity/
   );
 });
 
@@ -403,6 +427,8 @@ test("SOURCE_FACT and derived transformations stay distinguished in the answer",
   assert.equal(fact.derivation, "SOURCE_FACT");
   const derived = reg.query("AMBITOS_IN_LENS", { lon: SOL.lon, lat: SOL.lat, radiusM: 1000 });
   assert.equal(derived.derivation, "CIRCLE_INTERSECT_POLYGON");
+  assert.equal(reg.query("AREA_PROFILE_AT_POINT", SOL).derivation, "AREA_PROFILE_ASSEMBLY");
+  assert.equal(reg.query("CITY_HOTEL_DEMAND", {}).derivation, "DESTINATION_CONTEXT_ASSEMBLY");
   assert.notEqual(fact.derivation, derived.derivation);
 });
 
@@ -615,6 +641,44 @@ test("AMBITO_COMPARE preserves a legitimate same-scope PLANNING_AMBITO compariso
   if (R.isEvidence(out)) assert.equal(out.derivation, "SAME_SCOPE_COMPARISON");
 });
 
+test("AMBITO_COMPARE rejects fabricated caller values instead of comparing them as official evidence", () => {
+  const fabricated = {
+    scope: "PLANNING_AMBITO",
+    code: PUBLISHED_CODE,
+    developmentState: { availability: "PUBLISHED", phases: [{ sourceValue: "FABRICATED" }] },
+    availableBuildability: { availability: "PUBLISHED", rows: [{ useClasses: [{ value: 999999999 }] }] },
+  };
+  const out = reg.query("AMBITO_COMPARE", {
+    a: fabricated,
+    b: { scope: "PLANNING_AMBITO", code: PUBLISHED_CODE },
+  });
+  assert.ok(R.isAbstention(out));
+  assert.equal(out.reason, "AMBIGUOUS_SCOPE");
+});
+
+test("AMBITO_COMPARE resolves exact registered edition identities and rejects stale identities", () => {
+  const current = {
+    development_state: STATE.editions.development_state.snapshot_identity,
+    available_buildability: STATE.editions.available_buildability.snapshot_identity,
+  };
+  const previous = {
+    development_state: CD.previous.families.S1.snapshot_identity,
+    available_buildability: CD.previous.families.S2.snapshot_identity,
+  };
+  const crossEdition = reg.query("AMBITO_COMPARE", {
+    a: { scope: "PLANNING_AMBITO", code: PUBLISHED_CODE, edition: previous },
+    b: { scope: "PLANNING_AMBITO", code: PUBLISHED_CODE, edition: current },
+  });
+  assert.ok(R.isEvidence(crossEdition));
+  assert.equal(crossEdition.value.editionBasis.like_for_like.development_state, false);
+  assert.equal(crossEdition.value.editionBasis.like_for_like.available_buildability, false);
+  const stale = reg.query("AMBITO_COMPARE", {
+    a: { scope: "PLANNING_AMBITO", code: PUBLISHED_CODE, edition: { ...current, development_state: "S1:STALE" } },
+    b: { scope: "PLANNING_AMBITO", code: PUBLISHED_CODE },
+  });
+  assert.equal(stale.reason, "OUTSIDE_TEMPORAL_COVERAGE");
+});
+
 // Finding 3 — provenance integrity: no arbitrary freshness rewrite; every public
 // query result's sourceId is a registered source.
 test("sourceProvenance accepts only a reference_date override (the K7 case) and rejects any other field", () => {
@@ -628,6 +692,9 @@ test("sourceProvenance accepts only a reference_date override (the K7 case) and 
   assert.throws(() => R.sourceProvenance(REGISTRY, "population", { freshnessOverride: { retrieved_at: "2099-01-01" } }), /only reference_date/);
   // A malformed reference_date (a build clock, a bare year) is refused too.
   assert.throws(() => R.sourceProvenance(REGISTRY, "population", { freshnessOverride: { reference_date: "2026" } }), /ISO month/);
+  // Syntactically valid is insufficient: it must be the registered K7 oldest contributor.
+  assert.throws(() => R.sourceProvenance(REGISTRY, "planning_ambito_state", { freshnessOverride: { reference_date: "2099-01-01" } }), /registered contributing-edition/);
+  assert.throws(() => R.sourceProvenance(REGISTRY, "population", { freshnessOverride: { reference_date: "2025-07-01" } }), /registered contributing-edition/);
 });
 
 test("every public query result's sourceId is a registered source", () => {
@@ -650,6 +717,28 @@ test("AMBITO_EDITION_DIFF refuses a bogus code OUTSIDE_SOURCE_UNIVERSE, not a fa
   const out = reg.query("AMBITO_EDITION_DIFF", { code: "ZZZ-NOT-A-CODE" });
   assert.ok(R.isAbstention(out));
   assert.equal(out.reason, "OUTSIDE_SOURCE_UNIVERSE");
+});
+
+test("AMBITO_EDITION_DIFF abstains when no authoritative edition-code universe is wired", () => {
+  const indexWithoutFeatureFor = { ...planningIndex, featureFor: undefined };
+  const noUniverse = R.createEvidenceRegistry({
+    registry: REGISTRY,
+    planningIndex: indexWithoutFeatureFor,
+    ambitoEditionDiff,
+  });
+  const out = noUniverse.query("AMBITO_EDITION_DIFF", { code: "ZZZ-NOT-A-CODE" });
+  assert.equal(out.reason, "NO_EVIDENCE_FOR_SCOPE");
+  assert.equal(noUniverse.query("AMBITO_EDITION_DIFF", { code: EDITION_CODE }).reason, "NO_EVIDENCE_FOR_SCOPE");
+});
+
+test("AMBITO_EDITION_DIFF preserves codes appearing in only one committed edition", () => {
+  const codesFor = (side) => new Set(Object.values(side.families).flatMap((family) => Object.keys(family.records || {})));
+  const previousCodes = codesFor(CD.previous);
+  const currentCodes = codesFor(CD.current);
+  const editionSpecific = [...new Set([...previousCodes, ...currentCodes])].find((code) => previousCodes.has(code) !== currentCodes.has(code));
+  assert.ok(editionSpecific, "expected an edition-specific appearance/disappearance in committed K7 artifacts");
+  const out = reg.query("AMBITO_EDITION_DIFF", { code: editionSpecific });
+  assert.ok(R.isEvidence(out), `expected edition-diff evidence for ${editionSpecific}`);
 });
 
 test("AMBITO_EDITION_DIFF requires an exact code", () => {

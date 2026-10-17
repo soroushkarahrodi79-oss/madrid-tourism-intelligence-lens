@@ -109,6 +109,55 @@ export function buildPreviousAmbitoInput(code, previousArtifact) {
   };
 }
 
+function editionSelector(input) {
+  return {
+    development_state: input?.developmentState?.edition?.snapshotIdentity ?? null,
+    available_buildability: input?.availableBuildability?.edition?.snapshotIdentity ?? null,
+  };
+}
+
+function sameEditionSelector(a, b) {
+  return Boolean(
+    a && b &&
+    a.development_state && a.development_state === b.development_state &&
+    a.available_buildability && a.available_buildability === b.available_buildability
+  );
+}
+
+// Canonical K13 resolver for one comparison side. The caller supplies only an
+// exact official code and, optionally, the two source-family snapshot identities.
+// Values, units and dates always come from the committed current/previous K6/K7
+// artifacts; caller-owned comparison records are never accepted.
+export function createCanonicalAmbitoComparisonInputResolver({ index, stateArtifact } = {}) {
+  const previousArtifact = reconstructPreviousStateArtifact(stateArtifact);
+  return (code, requestedEdition = null) => {
+    if (typeof code !== "string" || !code.trim() || !index) return null;
+    if (typeof index.featureFor !== "function" || !index.featureFor(code)) return null;
+    const current = buildCurrentAmbitoInput(code, index);
+    if (!requestedEdition) return current;
+    if (!requestedEdition || typeof requestedEdition !== "object" || Array.isArray(requestedEdition)) return null;
+    const keys = Object.keys(requestedEdition).sort();
+    if (keys.join("|") !== "available_buildability|development_state") return null;
+    if (sameEditionSelector(requestedEdition, editionSelector(current))) return current;
+    const previous = buildPreviousAmbitoInput(code, previousArtifact);
+    return sameEditionSelector(requestedEdition, editionSelector(previous)) ? previous : null;
+  };
+}
+
+// Union of the exact codes carried by either family in either committed K7
+// edition. This deliberately does not use current geometry: a genuine NEW_AMBITO
+// or ABSENT_FROM_EDITION code exists in only one edition and must remain valid.
+export function ambitoEditionContainsCode(code, stateArtifact) {
+  if (typeof code !== "string" || !code.trim()) return false;
+  const cd = stateArtifact?.change_detection;
+  for (const side of [cd?.previous, cd?.current]) {
+    for (const family of Object.values(side?.families || {})) {
+      if (family?.records && Object.hasOwn(family.records, code)) return true;
+    }
+  }
+  return false;
+}
+
 // Per-family K7 outcomes for one exact code across the committed previous→current
 // editions, through the real K7 classifier. `changeModule` is the ambito-change
 // module. Returns `{ S1, S2 }` outcome strings (or null when a family is absent).

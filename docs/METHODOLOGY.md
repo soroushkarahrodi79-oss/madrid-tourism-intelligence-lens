@@ -696,6 +696,12 @@ product, raised to a query contract:
   provenance attached**. Every factual token traces to a model result; the layer
   computes no number, chooses no date, decides no scope and fills no gap. An
   unregistered question is refused, not approximated.
+  Ámbito comparisons accept selectors, not evidence payloads: exact official codes
+  and optional registered S1/S2 snapshot identities are resolved through the K10
+  adapter from committed K6/K7 artifacts. Edition differences require the union of
+  codes in both committed editions, so appearances and disappearances remain valid
+  while an unavailable universe causes abstention. A K7 provenance date override is
+  accepted only when it equals the registry's oldest contributing edition.
 - **Abstention is a correct answer.** `abstain(reason)` is a first-class, tested
   outcome with a closed eight-reason vocabulary — exactly as `withheld` already is
   in the Comparison Bridge. A refusal is never a zero, never missing-but-estimable
@@ -710,6 +716,10 @@ product, raised to a query contract:
 The evidence drawer and the documented export both read a source's provenance
 *through* this layer's single `SOURCE_PROVENANCE` assembly, so the contract is
 exercised by shipping surfaces; their rendered and serialised content is unchanged.
+Whole Area Profile and Destination Context view models are named deterministic
+assemblies, not `SOURCE_FACT`: their underlying publisher values remain unchanged,
+but containment, comparisons, shares, ranges and presentation projections are
+explicit transformations.
 
 ## Binding visual and accessibility constraints (K5)
 

@@ -37,27 +37,32 @@ missing field is a contract violation, never defaulted:
 | `value` | The deterministic model's own result (a number, a frozen record, a membership list). The layer does **not** recompute it. |
 | `scope` | One analytical scope id from the closed enum in `js/evidence-scope.js`. |
 | `unit` | The unit / copy key of the value (never blank). |
-| `sourceId` | The registered source the value traces to (never blank). This is the structural chokepoint for the "every factual token traces to a registered source" rule. |
+| `sourceId` | The source identity the value traces to (never blank); every public resolver authenticates it against the registry. |
 | `freshness` | The five-field freshness record — `reference_date`, `published_at`, `retrieved_at`, `update_frequency`, `source_state` — preserving explicit nulls. |
 | `ceiling` | The verbatim interpretation ceiling of the source, never softened. |
 | `derivation` | `SOURCE_FACT`, or a **named deterministic transformation**. |
 
-`makeEvidence(fields)` is the only constructor of a factual answer. It validates
-every field and returns a deep-frozen object, or throws. Because it refuses a blank
-`sourceId` and the layer generates no free text, there is no path to an answer that
-carries an untraceable token.
+`makeEvidence(fields)` is the structural constructor of a factual answer. It
+validates every field and returns a deep-frozen object, or throws. It refuses a
+blank `sourceId`, but it has no registry input and does not by itself authenticate
+an identity or date. Public query results go through `evidenceFromSource` and
+`sourceProvenance`, which require the source identity and freshness to come from
+the supplied committed registry. A directly constructed object is therefore not
+equivalent to an authenticated public-query result.
 
 ### `derivation` — source fact vs named transformation (gate §15.3)
 
 | `derivation` | Applied by |
 |---|---|
-| `SOURCE_FACT` | A value the publisher published, carried through unchanged (ámbito phases, buildability, barrio residents, the municipal hotel-demand figure). |
+| `SOURCE_FACT` | One value the publisher published, carried through unchanged (ámbito phases and buildability). |
 | `POINT_IN_POLYGON` | Which official ámbito contains a point. |
 | `CIRCLE_INTERSECT_POLYGON` | Which ámbitos a Lens circle touches — **membership only**, no quantity. |
 | `IN_CIRCLE_FILTER` | A count of located records inside a Lens circle, by family and grant-date window. |
 | `REGISTRY_LOOKUP` | The provenance of a registered source. |
 | `EDITION_DIFF` | An edition-to-edition classification of one ámbito's published state. |
 | `SAME_SCOPE_COMPARISON` | A same-scope comparison of two evidence objects (never cross-scope). |
+| `AREA_PROFILE_ASSEMBLY` | Point-in-polygon barrio membership assembled with the registered barrio population (and optional licence context). The contained population value remains a publisher fact; the profile object is not. |
+| `DESTINATION_CONTEXT_ASSEMBLY` | Published municipal hotel observations assembled with deterministic year-on-year differences, residence shares, trend range and display projections. The observations remain publisher facts; the view model is not. |
 
 A derived value **always names its transformation**; the distinction survives into
 the answer.
@@ -76,9 +81,9 @@ artifact / model it reads.
 | `AMBITO_PHASES` | "What planning stage is this area in?" | `PLANNING_AMBITO` | state lookup by code (#68) |
 | `AMBITO_BUILDABILITY` | "What can still be built here?" (m² only) | `PLANNING_AMBITO` | state lookup by code (#68) |
 | `AMBITOS_IN_LENS` | "What is being developed near here?" | `LENS_INTERSECT_AMBITO` | circle ∩ polygon (#68) |
-| `AMBITO_EDITION_DIFF` | "What changed since the previous official snapshot?" | `PLANNING_AMBITO` | two-edition classifier (#69) |
+| `AMBITO_EDITION_DIFF` | "What changed since the previous official snapshot?" | `PLANNING_AMBITO` | two-edition classifier (#69), guarded by the union of codes in both committed editions |
 | `LICENCES_IN_LENS` | "Show urban licences granted within N m during the last year." | `ADDRESS_POINT` | in-circle filter by family and date window (#71) |
-| `AMBITO_COMPARE` | "Compare these two development areas." | two same-scope objects | the #72 comparison model |
+| `AMBITO_COMPARE` | "Compare these two development areas." | two same-scope objects | canonical K6/K7 inputs resolved from exact official codes and registered snapshot identities, then the #72 comparison model |
 | `SOURCE_PROVENANCE` | "What supports this value, when was it updated, what does it not permit?" (Q11–Q13) | per source | registry lookup |
 | `AREA_PROFILE_AT_POINT` | "Which official barrio is this, and what does its register say?" | `OFFICIAL_BARRIO` | the area-profile model |
 | `CITY_HOTEL_DEMAND` | "What is the city's latest published hotel demand?" | `MUNICIPALITY` | the destination model |
@@ -139,7 +144,7 @@ names its clause in the abstention's `prohibition` field.
 
 | # | Prohibition clause | Reason returned |
 |---|---|---|
-| 1 | `UNTRACEABLE_TOKEN` — a factual token with no registered source | refused at `makeEvidence` construction |
+| 1 | `UNTRACEABLE_TOKEN` — a factual token with no registered source | blank identity refused at `makeEvidence`; public identity authenticated by `sourceProvenance` |
 | 2 | `CROSS_SCOPE_COMBINATION` — combine scopes without a documented basis | `CROSS_SCOPE_WITHOUT_BASIS` |
 | 3 | `WHOLE_TO_PART_APPORTIONMENT` — apportion a whole-object quantity to a part | `CEILING_PROHIBITS` |
 | 4 | `DWELLING_COUNT` — any dwelling or protected-dwelling count | `CEILING_PROHIBITS` |
@@ -196,6 +201,12 @@ The layer is exercised by shipping surfaces, not left on paper:
   `sources.json` still emits the documented export fields verbatim, so the bundle is
   unchanged.
 
+`sourceProvenance` may substitute a reference date only for the registered K7
+oldest-contributing-edition disclosure. A merely well-formed ISO date is not
+enough: it must equal the `planning_ambito_state.change_detection` date committed
+in the registry. Other sources, unknown identities and caller-selected dates
+cannot acquire publisher provenance through this path.
+
 ---
 
 ## 8. Gate §15.5 worked examples
@@ -207,9 +218,9 @@ These run as integration tests against the committed artifacts.
 |---|---|---|
 | "What is being developed near Valdecarros?" | `AMBITOS_IN_LENS` | Resolve to `LENS_INTERSECT_AMBITO`; list the ámbitos touched (membership only); **no apportioned quantity** (`quantitiesProvided: false`). Read each ámbito's phases at ámbito scope via `AMBITO_PHASES`. |
 | "What planning stage is this area in?" | `AMBITO_PHASES` | Return the four published states verbatim (`No Necesita` preserved); provenance carries the edition and `source_state`. A known code with no published state abstains `NO_EVIDENCE_FOR_SCOPE` — never a zero. |
-| "What changed here since the previous official snapshot?" | `AMBITO_EDITION_DIFF` | Classify the two-edition difference; **never** call it progress. Abstains if the model is not wired, or `OUTSIDE_TEMPORAL_COVERAGE` where two editions do not cover the code. |
+| "What changed here since the previous official snapshot?" | `AMBITO_EDITION_DIFF` | Classify the two-edition difference; **never** call it progress. The code must exist in the union of the two committed edition universes; this preserves real appearances/disappearances and rejects unknown codes. If that universe is unavailable, abstain. |
 | "Show urban licences granted within 500 m during the last year." | `LICENCES_IN_LENS` | In-circle filter by family and grant-date window; per-family counts only, never one collapsed total; a window outside the register abstains `OUTSIDE_TEMPORAL_COVERAGE`, never a nearest match. |
-| "Compare these two development areas." | `AMBITO_COMPARE` | Same-scope objects only; a cross-scope pair abstains `CROSS_SCOPE_WITHOUT_BASIS` (`prohibition = CROSS_SCOPE_COMBINATION`); the model withholds rather than inventing a basis. |
+| "Compare these two development areas." | `AMBITO_COMPARE` | Same-scope selectors only. Each side supplies an exact official code and optional registered S1/S2 snapshot identities; the adapter resolves the values from committed evidence. Caller-supplied values and stale identities are refused. Cross-edition withholding remains the #72 model's rule. |
 | "How many homes will be built at Valdecarros?" | any ámbito shape with `wantsDwellingCount` | **Abstain** `CEILING_PROHIBITS` (`prohibition = DWELLING_COUNT`). No audited machine-readable official source publishes dwelling counts; remaining buildability is in m² only. |
 
 ---

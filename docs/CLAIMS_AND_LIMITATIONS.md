@@ -419,6 +419,13 @@ breach them.
   provenance, and each able to **abstain**. It answers "what supports this value,
   when was it updated, and what does it not permit" from the registry rather than
   from prose.
+- Public query provenance is registry-bound: an arbitrary ISO date or unknown
+  source cannot be presented as publisher provenance. Ámbito comparison values are
+  re-resolved from committed codes/edition identities, and an edition change is
+  returned only after validating the code against both committed edition
+  universes. Composite Area Profile and Destination Context objects are labelled
+  as deterministic assemblies even though the publisher observations inside them
+  remain direct official facts.
 - **Any future assistant would be constrained by this contract, not freed by it.**
   If a language model is ever added, its only permitted roles are classifying the
   question and phrasing an answer whose every factual token already came out of a

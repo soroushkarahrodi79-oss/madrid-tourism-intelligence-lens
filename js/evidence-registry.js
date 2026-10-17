@@ -69,6 +69,12 @@ const DERIVATION = Object.freeze({
   EDITION_DIFF: "EDITION_DIFF",
   // A same-scope comparison of two evidence objects (never cross-scope).
   SAME_SCOPE_COMPARISON: "SAME_SCOPE_COMPARISON",
+  // A barrio identity resolved by geometry and assembled with its registered
+  // population/licence context. The assembled object is not one publisher row.
+  AREA_PROFILE_ASSEMBLY: "AREA_PROFILE_ASSEMBLY",
+  // Published hotel observations plus deterministic comparisons, shares,
+  // ranges and display projections from the destination model.
+  DESTINATION_CONTEXT_ASSEMBLY: "DESTINATION_CONTEXT_ASSEMBLY",
 });
 const DERIVATIONS = Object.freeze(Object.values(DERIVATION));
 
@@ -128,8 +134,8 @@ const ABSTENTION_REASONS = Object.freeze(Object.values(ABSTENTION_REASON));
 // and a prohibition test can assert the exact clause that fired.
 const PROHIBITION = Object.freeze({
   // (1) Every factual token must trace to a resolver result. Enforced by
-  // construction: makeEvidence refuses an object with no source id, and this layer
-  // generates no free-text answer into which an untraceable token could be placed.
+  // construction: makeEvidence refuses an object with no source id, while every
+  // public resolver authenticates that id through sourceProvenance.
   UNTRACEABLE_TOKEN: "UNTRACEABLE_TOKEN",
   // (2) No cross-scope combination without an explicit documented basis.
   CROSS_SCOPE_COMBINATION: "CROSS_SCOPE_COMBINATION",
@@ -185,18 +191,20 @@ function isNonEmptyString(value) {
 // makeEvidence({ value, scope, unit, sourceId, freshness, ceiling, derivation })
 // returns a FROZEN, inspectable evidence object, or THROWS. Every field is
 // mandatory; a missing field is a contract violation, never defaulted or
-// back-filled. This is the only constructor of a factual answer in the layer, so
-// it is the structural chokepoint for prohibition (1): an object with no traceable
-// source id cannot be built, and nothing else in the layer emits a factual token.
+// back-filled. This is the structural constructor for a factual answer: it can
+// require a non-empty source identity, but it deliberately has no registry input
+// and therefore cannot authenticate that identity or its dates. Public query
+// authenticity is enforced by evidenceFromSource/sourceProvenance before this
+// constructor is reached.
 //
 //   value       the resolver's own result (a number, a frozen record, a membership
 //               list). It is whatever the deterministic model returned; this layer
 //               does not recompute it.
 //   scope       one analytical scope id from the closed enum (js/evidence-scope.js).
 //   unit        the unit/copy key for the value (never blank).
-//   sourceId    the registered source the value traces to (never blank). For a
-//               multi-source reading this is the primary source; contributors ride
-//               along in `sources` on the resolver result, not here.
+//   sourceId    a non-empty source identity. Public resolvers prove that it is
+//               registered before construction. For a multi-source reading this
+//               is the primary source; contributors ride in `sources` on the value.
 //   freshness   the five-field freshness record of the source, preserving explicit
 //               nulls. Validated field-by-field; a missing field throws.
 //   ceiling     the verbatim interpretation ceiling of the source (never softened).
@@ -219,10 +227,10 @@ function makeEvidence(fields) {
   if (!isNonEmptyString(unit)) {
     throw new Error("makeEvidence: `unit` is mandatory and must be a non-empty string");
   }
-  // Prohibition (1), structural: a factual token with no traceable source is
-  // refused at construction. There is no path to an answer that skips this.
+  // Structural half of prohibition (1): a blank identity is refused here. The
+  // public query path separately proves the identity exists in the registry.
   if (!isNonEmptyString(sourceId)) {
-    throw new Error("makeEvidence: `sourceId` is mandatory; every factual token must trace to a registered source");
+    throw new Error("makeEvidence: `sourceId` is mandatory; every factual token must carry a source identity");
   }
   const validatedFreshness = validateFreshness(freshness);
   if (!isNonEmptyString(ceiling)) {
@@ -360,11 +368,10 @@ function sourceProvenance(registry, sourceId, options = {}) {
   const baseFreshness = REGISTRY_SCOPE_API.freshnessOf(source);
   // A freshness override exists for ONE documented reason: the K7 comparison
   // surface reports the OLDEST contributing edition's reference date in place of
-  // the source's own. Only `reference_date` may be overridden, and only with an
-  // ISO month / date / explicit null; every other freshness field is read
-  // verbatim from the registry and can never be rewritten by a caller. An
-  // override of any other field, or a malformed reference_date, is rejected — a
-  // caller must not be able to silently alter published provenance.
+  // the source's own. Only `reference_date` may be overridden, and only with the
+  // registered oldest-contributor date; every other freshness field is read
+  // verbatim from the registry and can never be rewritten by a caller. Any other
+  // field, malformed date, or unregistered ISO date is rejected.
   let freshness = baseFreshness;
   const override = options.freshnessOverride;
   if (override != null) {
@@ -379,6 +386,17 @@ function sourceProvenance(registry, sourceId, options = {}) {
     if ("reference_date" in override) {
       if (!REGISTRY_SCOPE_API.isReferenceDate(override.reference_date)) {
         throw new Error("sourceProvenance: an overridden reference_date must be an ISO month, ISO date, or null");
+      }
+      const allowed = source.change_detection && source.change_detection.oldest_contributor_reference_date;
+      const editionDates = [];
+      const editionSides = source.change_detection && source.change_detection.editions;
+      for (const side of Object.values(editionSides || {})) {
+        for (const edition of Object.values(side || {})) {
+          if (edition && edition.reference_date) editionDates.push(edition.reference_date);
+        }
+      }
+      if (!allowed || override.reference_date !== allowed || !editionDates.includes(allowed)) {
+        throw new Error("sourceProvenance: reference_date override is not a registered contributing-edition date");
       }
       freshness = { ...baseFreshness, reference_date: override.reference_date };
     }
@@ -613,8 +631,14 @@ function resolveAmbitoEditionDiff(params, deps, ctx) {
   // code in neither edition (every family CAUSE_UNRESOLVED). That is not evidence.
   // Require the code to be a real ámbito in the published universe first, so a
   // bogus code is OUTSIDE_SOURCE_UNIVERSE rather than a fabricated "diff".
-  const index = deps.planningIndex;
-  if (index && typeof index.featureFor === "function" && !index.featureFor(code)) {
+  const codeKnown = deps.ambitoEditionCodeKnown;
+  if (typeof codeKnown !== "function") {
+    return abstain(ABSTENTION_REASON.NO_EVIDENCE_FOR_SCOPE, {
+      shape: SHAPE.AMBITO_EDITION_DIFF, scope: "PLANNING_AMBITO",
+      message: "the authoritative two-edition code universe is not available",
+    });
+  }
+  if (!codeKnown(code)) {
     return abstain(ABSTENTION_REASON.OUTSIDE_SOURCE_UNIVERSE, {
       shape: SHAPE.AMBITO_EDITION_DIFF, scope: "PLANNING_AMBITO",
       message: `ámbito code "${code}" is not in the published universe`,
@@ -728,9 +752,46 @@ function resolveAmbitoCompare(params, deps, ctx) {
       message: `AMBITO_COMPARE compares PLANNING_AMBITO objects only; got ${scopeA}`,
     });
   }
+  const canonicalInputFor = deps.ambitoComparisonInputFor;
+  if (typeof canonicalInputFor !== "function") {
+    return abstain(ABSTENTION_REASON.NO_EVIDENCE_FOR_SCOPE, {
+      shape: SHAPE.AMBITO_COMPARE, scope: "PLANNING_AMBITO",
+      message: "the canonical ámbito comparison adapter is not available",
+    });
+  }
+  const resolveSide = (side) => {
+    const allowed = new Set(["scope", "code", "ambitoCode", "edition"]);
+    if (Object.keys(side).some((key) => !allowed.has(key))) {
+      return { error: ABSTENTION_REASON.AMBIGUOUS_SCOPE, code: null };
+    }
+    if (isNonEmptyString(side.code) && isNonEmptyString(side.ambitoCode) && side.code !== side.ambitoCode) {
+      return { error: ABSTENTION_REASON.AMBIGUOUS_SCOPE, code: null };
+    }
+    const code = side.code ?? side.ambitoCode;
+    if (!isNonEmptyString(code)) return { error: ABSTENTION_REASON.AMBIGUOUS_SCOPE, code: null };
+    if (side.edition != null && (!isObject(side.edition) || Array.isArray(side.edition))) {
+      return { error: ABSTENTION_REASON.AMBIGUOUS_SCOPE, code };
+    }
+    const canonical = canonicalInputFor(code, side.edition ?? null);
+    if (!canonical) {
+      return { error: side.edition == null ? ABSTENTION_REASON.OUTSIDE_SOURCE_UNIVERSE : ABSTENTION_REASON.OUTSIDE_TEMPORAL_COVERAGE, code };
+    }
+    return { canonical, code };
+  };
+  const resolvedA = resolveSide(a);
+  const resolvedB = resolveSide(b);
+  const failed = resolvedA.error ? resolvedA : (resolvedB.error ? resolvedB : null);
+  if (failed) {
+    return abstain(failed.error, {
+      shape: SHAPE.AMBITO_COMPARE, scope: "PLANNING_AMBITO",
+      message: failed.error === ABSTENTION_REASON.OUTSIDE_TEMPORAL_COVERAGE
+        ? `the requested committed edition is unavailable for "${failed.code}"`
+        : failed.code ? `ámbito code "${failed.code}" is not in the canonical comparison evidence` : "each side requires an exact official ámbito code",
+    });
+  }
   let model;
   try {
-    model = compare(a, b);
+    model = compare(resolvedA.canonical, resolvedB.canonical);
   } catch (error) {
     return abstain(ABSTENTION_REASON.CROSS_SCOPE_WITHOUT_BASIS, {
       shape: SHAPE.AMBITO_COMPARE, message: "the comparison was refused by the model",
@@ -790,12 +851,22 @@ function resolveAreaProfileAtPoint(params, deps, ctx) {
       message: "no official barrio resolves at this point",
     });
   }
+  const contributingSourceIds = ["geography", "population"];
+  if (profile.vut && profile.vut.state === "available") contributingSourceIds.push("vut_licences");
+  for (const sourceId of contributingSourceIds) {
+    if (!ctx.sourceProvenance(sourceId)) {
+      return abstain(ABSTENTION_REASON.OUTSIDE_SOURCE_UNIVERSE, {
+        shape: SHAPE.AREA_PROFILE_AT_POINT, scope: "OFFICIAL_BARRIO",
+        message: `area-profile contributor "${sourceId}" is not in the registry`,
+      });
+    }
+  }
   return evidenceFromSource(ctx, {
-    value: profile,
+    value: { ...profile, sources: contributingSourceIds },
     scope: "OFFICIAL_BARRIO",
     unit: "unit.residents",
     sourceId: "population",
-    derivation: DERIVATION.SOURCE_FACT,
+    derivation: DERIVATION.AREA_PROFILE_ASSEMBLY,
   });
 }
 
@@ -849,7 +920,7 @@ function resolveCityHotelDemand(params, deps, ctx) {
     scope: "MUNICIPALITY",
     unit: "unit.hotelDemand",
     sourceId: "hotel_demand",
-    derivation: DERIVATION.SOURCE_FACT,
+    derivation: DERIVATION.DESTINATION_CONTEXT_ASSEMBLY,
   });
 }
 
