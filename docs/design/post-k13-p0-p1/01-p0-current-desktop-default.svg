@@ -58,7 +58,7 @@
     <path d="M538 404 L602 398 L610 438 L544 444 Z"/>
   </g>
   <text x="470" y="498" fill="#aeb8c4" font-size="10" font-weight="700" text-anchor="middle">9 ámbitos actually intersect this circle</text>
-  <text x="470" y="512" fill="#aeb8c4" font-size="9.5" text-anchor="middle">nearest vertex 51 m (APE.03.06 JERÓNIMOS)</text>
+  <text x="470" y="512" fill="#aeb8c4" font-size="9.5" text-anchor="middle">nearest vertex ≤51 m (APE.03.06 JERÓNIMOS)</text>
 
   <!-- POI clusters -->
   <g>
@@ -188,8 +188,9 @@
   <text x="1082" y="188" fill="#9fb1c5" font-size="9">only the containing feature. At</text>
   <text x="1082" y="200" fill="#9fb1c5" font-size="9">the default centre there is none,</text>
   <text x="1082" y="212" fill="#9fb1c5" font-size="9">so the map draws 0 ámbitos</text>
-  <text x="1082" y="224" fill="#9fb1c5" font-size="9">while 229 sit in the viewport.</text>
-  <text x="1082" y="238" fill="#6d7f93" font-size="8.5">js/app.js:3790</text>
+  <text x="1082" y="224" fill="#9fb1c5" font-size="9">while 229 lie in the viewport</text>
+  <text x="1082" y="236" fill="#9fb1c5" font-size="9">rectangle.</text>
+  <text x="1082" y="250" fill="#6d7f93" font-size="8.5">js/app.js:3790</text>
 
   <circle cx="1066" cy="264" r="9" fill="#c0794f"/><text x="1066" y="268" fill="#060c14" font-size="10" font-weight="700" text-anchor="middle">2</text>
   <text x="1082" y="262" fill="#f3f7ff" font-size="10" font-weight="700">Answer behind a closed</text>
@@ -215,12 +216,13 @@
 
   <line x1="1058" y1="506" x2="1272" y2="506" stroke="#2a3442"/>
   <text x="1058" y="524" fill="#43d7ff" font-size="10.5" font-weight="700">MEASURED, NOT ASSUMED</text>
-  <text x="1058" y="540" fill="#d9e4ef" font-size="9">Nearest ámbito vertex to the default</text>
-  <text x="1058" y="552" fill="#d9e4ef" font-size="9">Lens A centre: <tspan font-weight="700" fill="#f3f7ff">51 m</tspan></text>
+  <text x="1058" y="540" fill="#d9e4ef" font-size="9">Nearest ámbito VERTEX to the default</text>
+  <text x="1058" y="552" fill="#d9e4ef" font-size="9">Lens A centre: <tspan font-weight="700" fill="#f3f7ff">51 m</tspan> — an UPPER</text>
+  <text x="1058" y="563" fill="#d9e4ef" font-size="9">bound on boundary distance</text>
   <text x="1058" y="568" fill="#d9e4ef" font-size="9">Ámbitos the default 900 m circle</text>
   <text x="1058" y="580" fill="#d9e4ef" font-size="9">intersects: <tspan font-weight="700" fill="#f3f7ff">9</tspan> (ambitosIntersecting)</text>
-  <text x="1058" y="596" fill="#d9e4ef" font-size="9">Ámbitos with vertices in this</text>
-  <text x="1058" y="608" fill="#d9e4ef" font-size="9">zoom-14 viewport: <tspan font-weight="700" fill="#f3f7ff">229</tspan></text>
+  <text x="1058" y="597" fill="#d9e4ef" font-size="9">Ámbitos with a vertex in this</text>
+  <text x="1058" y="608" fill="#d9e4ef" font-size="9">zoom-14 RECTANGLE: <tspan font-weight="700" fill="#f3f7ff">229</tspan></text>
   <text x="1058" y="624" fill="#d9e4ef" font-size="9">Ámbito universe: <tspan font-weight="700" fill="#f3f7ff">724</tspan> features,</text>
   <text x="1058" y="636" fill="#d9e4ef" font-size="9">140,507 vertices</text>
 
@@ -228,7 +230,7 @@
   <text x="1066" y="666" fill="#43d7ff" font-size="9" font-weight="700">CORRECTION TO #92</text>
   <text x="1066" y="679" fill="#d9e4ef" font-size="8.5">The ámbitos are not “on the</text>
   <text x="1066" y="690" fill="#d9e4ef" font-size="8.5">periphery, outside the viewport”.</text>
-  <text x="1066" y="701" fill="#d9e4ef" font-size="8.5">They are already on screen.</text>
+  <text x="1066" y="701" fill="#d9e4ef" font-size="8.5">They are in the viewport rect.</text>
 
   <!-- leader lines -->
   <g stroke="#c0794f" stroke-width="1" fill="none" opacity="0.8">
@@ -239,6 +241,6 @@
 
   <text x="20" y="742" fill="#6d7f93" font-size="10">Counts derived from data/planning/madrid_ambitos.geojson and js/planning-ambito.js (createPlanningIndex → ambitosIntersecting) on origin/main @ a4e28d1.</text>
   <text x="20" y="758" fill="#6d7f93" font-size="10">Viewport counts are Web-Mercator bounding-box intersections at zoom 14 centred on 40.415, −3.692 — geometry arithmetic, not a rendering measurement.</text>
-  <text x="20" y="774" fill="#6d7f93" font-size="10">Figures shown inside the panel (41 / 63 / 24) are illustrative placeholders for layout only and are NOT evidence readings.</text>
-  <text x="20" y="790" fill="#6d7f93" font-size="10">NOT TESTED: no human user, no real iPad/Safari hardware, no assistive technology. This is a static design sketch.</text>
+  <text x="20" y="774" fill="#6d7f93" font-size="10">A vertex inside a theoretical rectangle is NOT a rendered, unoccluded or discoverable polygon: the shipped build draws none of them. Real-browser verification at all three widths is AC-P0-13.</text>
+  <text x="20" y="790" fill="#6d7f93" font-size="10">Panel figures (41 / 63 / 24) are layout placeholders, not evidence readings. NOT TESTED: no human user, no real hardware, no assistive technology, no browser render.</text>
 </svg>

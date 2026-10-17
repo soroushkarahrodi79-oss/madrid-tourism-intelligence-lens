@@ -4,9 +4,9 @@
 
   <rect width="1300" height="860" fill="#060c14"/>
 
-  <text x="20" y="30" fill="#f3f7ff" font-size="19" font-weight="700">P0 CONCEPT B · “Ámbito finder” — a user-initiated locate action</text>
+  <text x="20" y="30" fill="#f3f7ff" font-size="19" font-weight="700">P0-b2 CONCEPT B · “Ámbito finder” — <tspan fill="#ffb04a">HOLD · conditional on demonstrated need</tspan></text>
   <text x="20" y="52" fill="#9fb1c5" font-size="13">Phone 375 × 812 · PLACE · drawn at 0.78 scale · three sequential states, left to right</text>
-  <text x="20" y="72" fill="#ffb04a" font-size="12">PROPOSED — not implemented. The camera moves ONLY on an explicit user action, never on selecting a Lens or a mode.</text>
+  <text x="20" y="72" fill="#ffb04a" font-size="12">HOLD — built only if P0-a fails O3 or the §15 study shows users cannot reach a named ámbito. No NEW programmatic camera move except the two below; ordinary pan/zoom is unchanged.</text>
 
   <!-- ===================== STATE 1 ===================== -->
   <text x="40" y="106" fill="#43d7ff" font-size="12" font-weight="700">STATE 1 · entry point in the panel</text>
@@ -97,25 +97,25 @@
   <g>
     <rect x="390" y="412" width="257" height="34" rx="5" fill="#101d2c" stroke="#aeb8c4" stroke-width="1.2"/>
     <text x="398" y="425" fill="#f3f7ff" font-size="9" font-weight="700">APE.03.06</text><text x="398" y="437" fill="#9fb1c5" font-size="8">JERÓNIMOS</text>
-    <text x="639" y="432" fill="#9fb1c5" font-size="8" text-anchor="end">51 m ›</text>
+    <text x="639" y="432" fill="#9fb1c5" font-size="8" text-anchor="end">›</text>
     <rect x="390" y="450" width="257" height="34" rx="5" fill="#101d2c" stroke="#2a3442"/>
     <text x="398" y="463" fill="#f3f7ff" font-size="9" font-weight="700">APE.01.08</text><text x="398" y="475" fill="#9fb1c5" font-size="8">BANCO DE ESPAÑA</text>
-    <text x="639" y="470" fill="#9fb1c5" font-size="8" text-anchor="end">467 m ›</text>
+    <text x="639" y="470" fill="#9fb1c5" font-size="8" text-anchor="end">›</text>
     <rect x="390" y="488" width="257" height="34" rx="5" fill="#101d2c" stroke="#2a3442"/>
     <text x="398" y="501" fill="#f3f7ff" font-size="9" font-weight="700">APR.01.05</text><text x="398" y="513" fill="#9fb1c5" font-size="8">ALAMEDA</text>
-    <text x="639" y="508" fill="#9fb1c5" font-size="8" text-anchor="end">474 m ›</text>
+    <text x="639" y="508" fill="#9fb1c5" font-size="8" text-anchor="end">›</text>
   </g>
   <text x="392" y="536" fill="#9bd5ff" font-size="8.5" text-decoration="underline">Show the remaining 6 →</text>
 
   <!-- nearest group -->
-  <text x="392" y="560" fill="#43d7ff" font-size="8.5" font-weight="700">NEAREST, NOT TOUCHED</text>
+  <text x="392" y="560" fill="#ffb04a" font-size="8.5" font-weight="700">NEAREST, NOT TOUCHED · DEFERRED</text>
   <g>
     <rect x="390" y="566" width="257" height="34" rx="5" fill="#101d2c" stroke="#2a3442"/>
     <text x="398" y="579" fill="#f3f7ff" font-size="9" font-weight="700">APR.01.08</text><text x="398" y="591" fill="#9fb1c5" font-size="8">MERCADO DE SANTA ISABEL</text>
-    <text x="639" y="586" fill="#9fb1c5" font-size="8" text-anchor="end">781 m ›</text>
+    <text x="639" y="586" fill="#9fb1c5" font-size="8" text-anchor="end">›</text>
   </g>
-  <text x="392" y="616" fill="#9fb1c5" font-size="7.5">Straight-line distance from the Lens centre to the ámbito</text>
-  <text x="392" y="626" fill="#9fb1c5" font-size="7.5">boundary. It is a locating aid, not published evidence.</text>
+  <text x="392" y="616" fill="#ffb04a" font-size="7.5">No distance and no “nearest” ordering is emitted unless a</text>
+  <text x="392" y="626" fill="#ffb04a" font-size="7.5">verified point-to-segment algorithm exists (§6.3, AC-P0-15).</text>
 
   <rect x="390" y="636" width="257" height="40" rx="6" fill="#1a1410" stroke="#ffb04a" stroke-width="1.2"/>
   <text x="398" y="650" fill="#ffb04a" font-size="8" font-weight="700">WHAT OPENING ONE DOES</text>
@@ -181,13 +181,13 @@
   <text x="1032" y="138" fill="#f3f7ff" font-size="12" font-weight="700">CONCEPT B · CONTRACTS</text>
 
   <circle cx="1040" cy="162" r="9" fill="#70dea4"/><text x="1040" y="166" fill="#060c14" font-size="10" font-weight="700" text-anchor="middle">1</text>
-  <text x="1056" y="160" fill="#f3f7ff" font-size="10" font-weight="700">User-initiated only</text>
-  <text x="1056" y="174" fill="#9fb1c5" font-size="9">The camera moves on exactly two</text>
-  <text x="1056" y="186" fill="#9fb1c5" font-size="9">gestures: opening an entry, and</text>
-  <text x="1056" y="198" fill="#9fb1c5" font-size="9">“Back to my Lens”. Selecting a</text>
-  <text x="1056" y="210" fill="#9fb1c5" font-size="9">mode, a Lens or an empty status</text>
-  <text x="1056" y="222" fill="#9fb1c5" font-size="9">never moves it. The IA contract</text>
-  <text x="1056" y="234" fill="#9fb1c5" font-size="9">test already forbids that.</text>
+  <text x="1056" y="160" fill="#f3f7ff" font-size="10" font-weight="700">New moves are user-initiated</text>
+  <text x="1056" y="174" fill="#9fb1c5" font-size="9">The only NEW programmatic camera</text>
+  <text x="1056" y="186" fill="#9fb1c5" font-size="9">moves are: opening an entry, and</text>
+  <text x="1056" y="198" fill="#9fb1c5" font-size="9">“Back to the Lens”. Manual pan,</text>
+  <text x="1056" y="210" fill="#9fb1c5" font-size="9">zoom and the PLACE click-moves-</text>
+  <text x="1056" y="222" fill="#9fb1c5" font-size="9">Lens behaviour are UNCHANGED.</text>
+  <text x="1056" y="234" fill="#9fb1c5" font-size="9">Mode/Lens changes move nothing.</text>
 
   <circle cx="1040" cy="260" r="9" fill="#70dea4"/><text x="1040" y="264" fill="#060c14" font-size="10" font-weight="700" text-anchor="middle">2</text>
   <text x="1056" y="258" fill="#f3f7ff" font-size="10" font-weight="700">The Lens never moves</text>
@@ -197,12 +197,12 @@
   <text x="1056" y="308" fill="#9fb1c5" font-size="9">no URL-state key changes.</text>
 
   <circle cx="1040" cy="334" r="9" fill="#70dea4"/><text x="1040" y="338" fill="#060c14" font-size="10" font-weight="700" text-anchor="middle">3</text>
-  <text x="1056" y="332" fill="#f3f7ff" font-size="10" font-weight="700">Distance is a locating aid</text>
-  <text x="1056" y="346" fill="#9fb1c5" font-size="9">“51 m” is derived geometry for</text>
-  <text x="1056" y="358" fill="#9fb1c5" font-size="9">finding, labelled as such, carried</text>
-  <text x="1056" y="370" fill="#9fb1c5" font-size="9">at no analytical scope and never</text>
-  <text x="1056" y="382" fill="#9fb1c5" font-size="9">combined with a published figure.</text>
-  <text x="1056" y="396" fill="#9fb1c5" font-size="9">It is NOT a new indicator.</text>
+  <text x="1056" y="332" fill="#f3f7ff" font-size="10" font-weight="700">Distance: prove it or omit it</text>
+  <text x="1056" y="346" fill="#9fb1c5" font-size="9">A bounding box PRUNES candidates;</text>
+  <text x="1056" y="358" fill="#9fb1c5" font-size="9">it is not nearest-boundary distance.</text>
+  <text x="1056" y="370" fill="#9fb1c5" font-size="9">Edges, holes and multipart parts all</text>
+  <text x="1056" y="382" fill="#9fb1c5" font-size="9">break a vertex or box proxy. Either</text>
+  <text x="1056" y="396" fill="#9fb1c5" font-size="9">prove the algorithm, or emit none.</text>
 
   <circle cx="1040" cy="422" r="9" fill="#70dea4"/><text x="1040" y="426" fill="#060c14" font-size="10" font-weight="700" text-anchor="middle">4</text>
   <text x="1056" y="420" fill="#f3f7ff" font-size="10" font-weight="700">Two named groups</text>
@@ -222,17 +222,17 @@
   <line x1="1032" y1="576" x2="1272" y2="576" stroke="#2a3442"/>
   <text x="1032" y="594" fill="#ffb04a" font-size="10.5" font-weight="700">COST vs A</text>
   <text x="1032" y="610" fill="#d9e4ef" font-size="9">· a new modal surface + EN/ES copy</text>
-  <text x="1032" y="624" fill="#d9e4ef" font-size="9">· a new pure nearestAmbitos() over</text>
-  <text x="1032" y="636" fill="#d9e4ef" font-size="9">  the bounding boxes the index</text>
-  <text x="1032" y="648" fill="#d9e4ef" font-size="9">  already precomputes</text>
+  <text x="1032" y="624" fill="#d9e4ef" font-size="9">· a VERIFIED point-to-segment</text>
+  <text x="1032" y="636" fill="#d9e4ef" font-size="9">  distance + fixtures, or no</text>
+  <text x="1032" y="648" fill="#d9e4ef" font-size="9">  distances at all</text>
   <text x="1032" y="662" fill="#d9e4ef" font-size="9">· camera save/restore state</text>
   <text x="1032" y="676" fill="#d9e4ef" font-size="9">· a third “looking at” panel mode</text>
   <text x="1032" y="690" fill="#d9e4ef" font-size="9">  that must not be mistaken for a</text>
   <text x="1032" y="702" fill="#d9e4ef" font-size="9">  fourth product mode</text>
-  <text x="1032" y="724" fill="#43d7ff" font-size="9" font-weight="700">B cannot replace A: without A the</text>
-  <text x="1032" y="736" fill="#43d7ff" font-size="9" font-weight="700">default view still looks empty.</text>
+  <text x="1032" y="724" fill="#43d7ff" font-size="9" font-weight="700">B never ships without A: without it</text>
+  <text x="1032" y="736" fill="#43d7ff" font-size="9" font-weight="700">the default view still looks empty.</text>
 
-  <text x="20" y="790" fill="#6d7f93" font-size="10">Distances shown (51 m, 467 m, 474 m, 781 m) are real nearest-vertex computations from data/planning/madrid_ambitos.geojson to the default Lens A centre.</text>
+  <text x="20" y="790" fill="#6d7f93" font-size="10">Numeric distances have been REMOVED from this sketch: a nearest-vertex or bounding-box figure is not the nearest distance to a MultiPolygon boundary (§6.3).</text>
   <text x="20" y="806" fill="#6d7f93" font-size="10">Phase values and buildability shown in State 3 are layout placeholders, NOT readings from madrid_ambito_state.json.</text>
   <text x="20" y="822" fill="#6d7f93" font-size="10">The &lt;details name&gt; accordion and 44 px targets drawn in the rail belong to P1 and are specified separately.</text>
   <text x="20" y="838" fill="#6d7f93" font-size="10">NOT TESTED: no human user, no real iPhone/iPad hardware, no assistive technology. Proposed design only.</text>
