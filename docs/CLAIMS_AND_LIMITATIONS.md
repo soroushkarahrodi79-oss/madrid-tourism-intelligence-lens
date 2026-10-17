@@ -405,6 +405,29 @@ breach them.
   or district ranking, or a density/heatmap/choropleth surface — and are never
   summed with Censo de Locales, VUT or hospitality evidence as unique sites.
 
+### No AI assistant; the contract that would constrain one
+
+- **This product contains no AI assistant and no language model.** There is no
+  chat, no input box, no conversational surface and no "Ask Madrid". There is no
+  LLM, no model call, no API key, no network request, no prompt, no embedding and
+  no vector store anywhere in it, and it generates no natural-language text about
+  the evidence.
+- What the product does have is a pure, deterministic **Evidence Registry query
+  contract** (`js/evidence-registry.js`, documented in
+  `docs/EVIDENCE_REGISTRY_QUERY_CONTRACT.md`): a closed set of registered question
+  shapes, each answered from a shipped artifact or model and returned with its full
+  provenance, and each able to **abstain**. It answers "what supports this value,
+  when was it updated, and what does it not permit" from the registry rather than
+  from prose.
+- **Any future assistant would be constrained by this contract, not freed by it.**
+  If a language model is ever added, its only permitted roles are classifying the
+  question and phrasing an answer whose every factual token already came out of a
+  query result. It would never compute a number, choose a date, decide a scope,
+  apportion a whole to a part, rank, score, recommend, make a causal or legal
+  claim, present a dwelling count, or answer where the evidence does not support it.
+  A refusal is a correct answer. No such assistant exists today, and none may be
+  built before this contract closes.
+
 ## Evidence states shown in the UI
 
 - **MODEL-DERIVED** — one or more HATI samples fall inside the active lens;

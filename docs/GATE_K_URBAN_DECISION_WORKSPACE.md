@@ -976,6 +976,21 @@ Comparison Bridge.
 | "Compare these two development areas." | Same-scope objects only; reuse the existing Bridge/Insight contracts; withhold rather than invent a basis. |
 | "How many homes will be built at Valdecarros?" | **Abstain.** No audited machine-readable official source publishes dwelling counts; report remaining buildability in m² instead and say why. |
 
+### 15.6 Implementation status (K13, #75)
+
+The query contract of §15.1–§15.5 is **implemented, design-only, as a pure
+deterministic layer** in `js/evidence-registry.js`, specified in
+`docs/EVIDENCE_REGISTRY_QUERY_CONTRACT.md`. It registers ten question shapes over
+the shipped #68/#69/#71/#72, area-profile and destination evidence; returns a frozen
+`{value, scope, unit, sourceId, freshness, ceiling, derivation}` object with
+provenance; distinguishes `SOURCE_FACT` from named transformations; and makes
+`abstain(reason)` a first-class result over the closed eight-reason vocabulary, with
+the §15.4 prohibitions enforced structurally. The evidence drawer and the export
+bundle read a source's provenance through its single `SOURCE_PROVENANCE` assembly.
+**No LLM, model call, key, network request or assistant UI is introduced** — the
+intent classifier is a deterministic keyword matcher at the one seam a model could
+later occupy. No assistant issue may be opened before K13 closes.
+
 ---
 
 ## 16. Academic and professional positioning
