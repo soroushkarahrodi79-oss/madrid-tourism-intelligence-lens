@@ -1,0 +1,203 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="900" viewBox="0 0 1300 900" font-family="Inter, 'Segoe UI', system-ui, sans-serif">
+  <title>Planning-ámbito state inventory — what the map draws and what the panel says in each state</title>
+  <desc>A matrix of the seven planning-ámbito states, the map rendering, the panel copy and the source authority for each, distinguishing layer OFF, dataset unavailable, absence from the universe, no containing polygon, and resolved geometry.</desc>
+
+  <rect width="1300" height="900" fill="#060c14"/>
+
+  <text x="20" y="30" fill="#f3f7ff" font-size="19" font-weight="700">STATE INVENTORY · planning ámbito, map and panel</text>
+  <text x="20" y="52" fill="#9fb1c5" font-size="13">Seven states must stay distinguishable. Collapsing any two of them would destroy a scientific distinction the product currently holds correctly.</text>
+  <text x="20" y="72" fill="#ffb04a" font-size="12">Rows 1–4 and 7 exist today. Rows 5–6 are introduced by the P0 lattice and finder.</text>
+
+  <!-- header -->
+  <g>
+    <rect x="20" y="92" width="196" height="38" fill="#13263c"/><text x="30" y="116" fill="#f3f7ff" font-size="11" font-weight="700">STATE</text>
+    <rect x="218" y="92" width="150" height="38" fill="#13263c"/><text x="228" y="110" fill="#f3f7ff" font-size="11" font-weight="700">MODEL VALUE</text><text x="228" y="124" fill="#9fb1c5" font-size="8.5">planning-ambito.js</text>
+    <rect x="370" y="92" width="238" height="38" fill="#13263c"/><text x="380" y="116" fill="#f3f7ff" font-size="11" font-weight="700">WHAT THE MAP DRAWS</text>
+    <rect x="610" y="92" width="400" height="38" fill="#13263c"/><text x="620" y="116" fill="#f3f7ff" font-size="9.5" font-weight="700">WHAT THE PANEL SAYS</text>
+    <rect x="1012" y="92" width="268" height="38" fill="#13263c"/><text x="1022" y="110" fill="#f3f7ff" font-size="11" font-weight="700">AUTHORITY / EDITION</text><text x="1022" y="124" fill="#9fb1c5" font-size="8.5">and what must never be implied</text>
+  </g>
+
+  <!-- row 1 LOADING -->
+  <g>
+    <rect x="20" y="132" width="1260" height="78" fill="#0d1626"/>
+    <rect x="20" y="132" width="5" height="78" fill="#8fa1b5"/>
+    <text x="34" y="154" fill="#f3f7ff" font-size="11" font-weight="700">1 · LOADING</text>
+    <text x="34" y="170" fill="#9fb1c5" font-size="9">the artifacts have not</text>
+    <text x="34" y="182" fill="#9fb1c5" font-size="9">settled yet</text>
+    <text x="228" y="154" fill="#d9e4ef" font-size="9" font-family="monospace">AMBITO_STATE</text><text x="228" y="166" fill="#d9e4ef" font-size="9" font-family="monospace">.LOADING</text>
+    <text x="380" y="154" fill="#d9e4ef" font-size="9.5">Nothing. No outline, no lattice,</text>
+    <text x="380" y="167" fill="#d9e4ef" font-size="9.5">no placeholder geometry.</text>
+    <text x="380" y="184" fill="#ffb04a" font-size="8.5">A skeleton shape here would be an</text>
+    <text x="380" y="195" fill="#ffb04a" font-size="8.5">invented boundary. Never draw one.</text>
+    <text x="620" y="154" fill="#d9e4ef" font-size="8.2">EN “Loading official planning ámbitos…”</text>
+    <text x="620" y="168" fill="#d9e4ef" font-size="8.2">ES “Cargando los ámbitos oficiales de planeamiento…”</text>
+    <text x="620" y="186" fill="#9fb1c5" font-size="7.3">The lattice option stays present but disabled; the finder button is disabled with the same message.</text>
+    <text x="1022" y="154" fill="#9fb1c5" font-size="9">Not yet known.</text>
+    <text x="1022" y="170" fill="#ff7aa2" font-size="8.5">Never shown as unavailable, and</text>
+    <text x="1022" y="182" fill="#ff7aa2" font-size="8.5">never shown as an absence.</text>
+  </g>
+
+  <!-- row 2 UNAVAILABLE -->
+  <g>
+    <rect x="20" y="212" width="1260" height="78" fill="#101d2c"/>
+    <rect x="20" y="212" width="5" height="78" fill="#ff7aa2"/>
+    <text x="34" y="234" fill="#f3f7ff" font-size="11" font-weight="700">2 · UNAVAILABLE</text>
+    <text x="34" y="250" fill="#9fb1c5" font-size="9">the load settled but the</text>
+    <text x="34" y="262" fill="#9fb1c5" font-size="9">artifact is missing or</text>
+    <text x="34" y="274" fill="#9fb1c5" font-size="9">unusable</text>
+    <text x="228" y="234" fill="#d9e4ef" font-size="9" font-family="monospace">AMBITO_STATE</text><text x="228" y="246" fill="#d9e4ef" font-size="9" font-family="monospace">.UNAVAILABLE</text>
+    <text x="228" y="264" fill="#9fb1c5" font-size="8.5">createPlanningIndex</text><text x="228" y="275" fill="#9fb1c5" font-size="8.5">returned null</text>
+    <text x="380" y="234" fill="#d9e4ef" font-size="9.5">Nothing.</text>
+    <text x="380" y="252" fill="#ffb04a" font-size="8.5">The “All planning ámbitos” option is</text>
+    <text x="380" y="263" fill="#ffb04a" font-size="8.5">disabled, not silently removed, so the</text>
+    <text x="380" y="274" fill="#ffb04a" font-size="8.5">user learns the layer exists but is down.</text>
+    <text x="620" y="234" fill="#d9e4ef" font-size="8.2">EN “The official planning-ámbito layer is unavailable in this deployment.”</text>
+    <text x="620" y="248" fill="#d9e4ef" font-size="8.2">ES “La capa oficial de ámbitos de planeamiento no está disponible en este despliegue.”</text>
+    <text x="620" y="268" fill="#70dea4" font-size="7.3">This is a statement about the deployment, not about Madrid. It says nothing whatsoever about</text>
+    <text x="620" y="280" fill="#70dea4" font-size="7.3">whether ámbitos exist at this location.</text>
+    <text x="1022" y="234" fill="#9fb1c5" font-size="9">No edition can be named,</text>
+    <text x="1022" y="246" fill="#9fb1c5" font-size="9">so none is shown.</text>
+    <text x="1022" y="264" fill="#ff7aa2" font-size="8.5">Never a zero. Never “no ámbitos</text>
+    <text x="1022" y="276" fill="#ff7aa2" font-size="8.5">here”. Never an empty list.</text>
+  </g>
+
+  <!-- row 3 OUTSIDE -->
+  <g>
+    <rect x="20" y="292" width="1260" height="96" fill="#0d1626"/>
+    <rect x="20" y="292" width="5" height="96" fill="#aeb8c4"/>
+    <text x="34" y="314" fill="#f3f7ff" font-size="11" font-weight="700">3 · NO CONTAINING</text>
+    <text x="34" y="328" fill="#f3f7ff" font-size="11" font-weight="700">   ÁMBITO</text>
+    <text x="34" y="346" fill="#9fb1c5" font-size="9">the Lens centre lies in no</text>
+    <text x="34" y="358" fill="#9fb1c5" font-size="9">ámbito. THIS IS THE</text>
+    <text x="34" y="370" fill="#9fb1c5" font-size="9">DEFAULT COLD START.</text>
+    <text x="228" y="314" fill="#d9e4ef" font-size="9" font-family="monospace">.OUTSIDE_ALL</text><text x="228" y="326" fill="#d9e4ef" font-size="9" font-family="monospace">_AMBITOS</text>
+    <text x="228" y="346" fill="#9fb1c5" font-size="8.5">ambitoContaining</text><text x="228" y="357" fill="#9fb1c5" font-size="8.5">returns no code</text>
+    <text x="380" y="314" fill="#c0794f" font-size="9.5" font-weight="700">TODAY: nothing at all.</text>
+    <text x="380" y="330" fill="#43d7ff" font-size="9.5" font-weight="700">PROPOSED: the touched ámbitos</text>
+    <text x="380" y="343" fill="#43d7ff" font-size="9.5" font-weight="700">outlined, neutral, stroke-only;</text>
+    <text x="380" y="356" fill="#43d7ff" font-size="9.5" font-weight="700">the rest only if the lattice is on.</text>
+    <text x="380" y="374" fill="#9fb1c5" font-size="8.5">No fill until an ámbito is active.</text>
+    <text x="620" y="314" fill="#d9e4ef" font-size="8.2">Containment, verbatim and unchanged: “No official planning ámbito contains the Lens</text>
+    <text x="620" y="327" fill="#d9e4ef" font-size="8.2">centre … an explicit absence of a containing ámbito — not a zero and not the nearest ámbito.”</text>
+    <text x="620" y="346" fill="#43d7ff" font-size="8.2" font-weight="700">Then, newly: “The Lens circle touches 9 official planning ámbitos.”</text>
+    <text x="620" y="360" fill="#43d7ff" font-size="8.2" font-weight="700">ES “Tu círculo de Lente toca 9 ámbitos oficiales de planeamiento.”</text>
+    <text x="620" y="378" fill="#70dea4" font-size="7.3">Containment and membership are different questions. Both are answered; neither replaces the other.</text>
+    <text x="1022" y="314" fill="#9fb1c5" font-size="9">PGOUM ámbito universe,</text>
+    <text x="1022" y="326" fill="#9fb1c5" font-size="9">Ayuntamiento de Madrid.</text>
+    <text x="1022" y="344" fill="#ff7aa2" font-size="8.5">The universe does not cover the</text>
+    <text x="1022" y="356" fill="#ff7aa2" font-size="8.5">whole municipality. Absence of a</text>
+    <text x="1022" y="368" fill="#ff7aa2" font-size="8.5">containing ámbito is never</text>
+    <text x="1022" y="380" fill="#ff7aa2" font-size="8.5">“undeveloped” or “nothing here”.</text>
+  </g>
+
+  <!-- row 4 RESOLVED -->
+  <g>
+    <rect x="20" y="390" width="1260" height="86" fill="#101d2c"/>
+    <rect x="20" y="390" width="5" height="86" fill="#e3e9ef"/>
+    <text x="34" y="412" fill="#f3f7ff" font-size="11" font-weight="700">4 · RESOLVED</text>
+    <text x="34" y="428" fill="#9fb1c5" font-size="9">an ámbito contains the</text>
+    <text x="34" y="440" fill="#9fb1c5" font-size="9">Lens centre</text>
+    <text x="228" y="412" fill="#d9e4ef" font-size="9" font-family="monospace">AMBITO_STATE</text><text x="228" y="424" fill="#d9e4ef" font-size="9" font-family="monospace">.RESOLVED</text>
+    <text x="380" y="412" fill="#d9e4ef" font-size="9.5">The containing polygon, dashed</text>
+    <text x="380" y="425" fill="#d9e4ef" font-size="9.5">neutral stroke + 7 % fill + code</text>
+    <text x="380" y="438" fill="#d9e4ef" font-size="9.5">label. Unchanged from today.</text>
+    <text x="380" y="456" fill="#9fb1c5" font-size="8.5">If the lattice is also on, the active</text>
+    <text x="380" y="467" fill="#9fb1c5" font-size="8.5">ámbito stays visually distinct from it.</text>
+    <text x="620" y="412" fill="#d9e4ef" font-size="8.2">Denomination, official code, the four independent published phases, characteristic use,</text>
+    <text x="620" y="425" fill="#d9e4ef" font-size="8.2">surface, available buildability in m² edificable, the edition reference date, and the ceiling.</text>
+    <text x="620" y="444" fill="#70dea4" font-size="7.3">All unchanged by this gate. Within a resolved ámbito, four further value states still apply per field:</text>
+    <text x="620" y="456" fill="#70dea4" font-size="7.3">PUBLISHED · NOT_PUBLISHED · NOT_PUBLISHED_NON_NUMERIC · NOT_PUBLISHED_IN_EDITION.</text>
+    <text x="1022" y="412" fill="#9fb1c5" font-size="9">One dated official edition,</text>
+    <text x="1022" y="424" fill="#9fb1c5" font-size="9">keyed {edition}:{code}.</text>
+    <text x="1022" y="442" fill="#ff7aa2" font-size="8.5">No overall stage, no progress, no</text>
+    <text x="1022" y="454" fill="#ff7aa2" font-size="8.5">percentage, no timeline, no</text>
+    <text x="1022" y="466" fill="#ff7aa2" font-size="8.5">dwelling count. m² only.</text>
+  </g>
+
+  <!-- row 5 LATTICE -->
+  <g>
+    <rect x="20" y="478" width="1260" height="86" fill="#0d1626"/>
+    <rect x="20" y="478" width="5" height="86" fill="#43d7ff"/>
+    <text x="34" y="500" fill="#43d7ff" font-size="11" font-weight="700">5 · LATTICE ON ·</text>
+    <text x="34" y="514" fill="#43d7ff" font-size="11" font-weight="700">   NEW</text>
+    <text x="34" y="532" fill="#9fb1c5" font-size="9">the user chose “All planning</text>
+    <text x="34" y="544" fill="#9fb1c5" font-size="9">ámbitos” on the boundary</text>
+    <text x="34" y="556" fill="#9fb1c5" font-size="9">select</text>
+    <text x="228" y="500" fill="#d9e4ef" font-size="9">A view option, not a</text>
+    <text x="228" y="512" fill="#d9e4ef" font-size="9">model state. It changes</text>
+    <text x="228" y="524" fill="#d9e4ef" font-size="9">no reading and no scope.</text>
+    <text x="380" y="500" fill="#d9e4ef" font-size="9.5">Outlines of every ámbito in the</text>
+    <text x="380" y="513" fill="#d9e4ef" font-size="9.5">viewport — stroke-only, no fill,</text>
+    <text x="380" y="526" fill="#d9e4ef" font-size="9.5">neutral #aeb8c4, plus a persistent</text>
+    <text x="380" y="539" fill="#d9e4ef" font-size="9.5">legend chip.</text>
+    <text x="380" y="556" fill="#ffb04a" font-size="8.5">Zoom-gated — see row 6.</text>
+    <text x="620" y="500" fill="#d9e4ef" font-size="8.2">Panel copy is unchanged. The legend chip on the map carries the distinction:</text>
+    <text x="620" y="516" fill="#d9e4ef" font-size="8.2">EN “Official planning ámbitos · PGOUM boundaries. Planning boundaries — not construction.”</text>
+    <text x="620" y="530" fill="#d9e4ef" font-size="8.2">ES “Ámbitos oficiales de planeamiento · límites del PGOUM. Límites de planeamiento — no es construcción.”</text>
+    <text x="620" y="550" fill="#70dea4" font-size="7.3">Turning the lattice on reveals geometry. It computes nothing, reads nothing and claims nothing.</text>
+    <text x="1022" y="500" fill="#9fb1c5" font-size="9">Same geometry artifact,</text>
+    <text x="1022" y="512" fill="#9fb1c5" font-size="9">already fetched at load.</text>
+    <text x="1022" y="530" fill="#ff7aa2" font-size="8.5">Never a built footprint. Never</text>
+    <text x="1022" y="542" fill="#ff7aa2" font-size="8.5">“projects”, “works”, “obras” or</text>
+    <text x="1022" y="554" fill="#ff7aa2" font-size="8.5">“construcción” in any label.</text>
+  </g>
+
+  <!-- row 6 ZOOM GATE -->
+  <g>
+    <rect x="20" y="566" width="1260" height="86" fill="#101d2c"/>
+    <rect x="20" y="566" width="5" height="86" fill="#ffb04a"/>
+    <text x="34" y="588" fill="#ffb04a" font-size="11" font-weight="700">6 · LATTICE ON,</text>
+    <text x="34" y="602" fill="#ffb04a" font-size="11" font-weight="700">   TOO FAR OUT · NEW</text>
+    <text x="34" y="620" fill="#9fb1c5" font-size="9">the lattice is requested</text>
+    <text x="34" y="632" fill="#9fb1c5" font-size="9">below the zoom gate</text>
+    <text x="228" y="588" fill="#d9e4ef" font-size="9">A rendering guard, not</text>
+    <text x="228" y="600" fill="#d9e4ef" font-size="9">an evidence state.</text>
+    <text x="228" y="618" fill="#9fb1c5" font-size="8.5">Driven by the measured</text>
+    <text x="228" y="629" fill="#9fb1c5" font-size="8.5">K12 device evidence.</text>
+    <text x="380" y="588" fill="#d9e4ef" font-size="9.5">The lattice is not drawn. The</text>
+    <text x="380" y="601" fill="#d9e4ef" font-size="9.5">containing/touched outlines still</text>
+    <text x="380" y="614" fill="#d9e4ef" font-size="9.5">are, so the map is never empty</text>
+    <text x="380" y="627" fill="#d9e4ef" font-size="9.5">of the ámbitos that matter here.</text>
+    <text x="620" y="588" fill="#d9e4ef" font-size="8.2">EN “Zoom in to show every planning ámbito. The ones the Lens circle touches stay visible.”</text>
+    <text x="620" y="602" fill="#d9e4ef" font-size="8.2">ES “Acerca el mapa para ver todos los ámbitos de planeamiento. Los que toca el círculo de Lente siguen visibles.”</text>
+    <text x="620" y="622" fill="#ffb04a" font-size="7.3">This is an honest performance limit stated to the user, not a silent failure and not a claim that no ámbitos</text>
+    <text x="620" y="634" fill="#ffb04a" font-size="7.3">exist out there. The exact gate is an implementation decision to be set against a device, not guessed here.</text>
+    <text x="1022" y="588" fill="#9fb1c5" font-size="9">Unchanged.</text>
+    <text x="1022" y="606" fill="#ff7aa2" font-size="8.5">Never phrased as absence,</text>
+    <text x="1022" y="618" fill="#ff7aa2" font-size="8.5">unavailability or zero. The user</text>
+    <text x="1022" y="630" fill="#ff7aa2" font-size="8.5">must know the data is there.</text>
+  </g>
+
+  <!-- row 7 LAYER OFF -->
+  <g>
+    <rect x="20" y="654" width="1260" height="78" fill="#0d1626"/>
+    <rect x="20" y="654" width="5" height="78" fill="#c0794f"/>
+    <text x="34" y="676" fill="#f3f7ff" font-size="11" font-weight="700">7 · A LAYER IS OFF</text>
+    <text x="34" y="692" fill="#9fb1c5" font-size="9">e.g. K9 granted licences,</text>
+    <text x="34" y="704" fill="#9fb1c5" font-size="9">HATI, hospitality context</text>
+    <text x="228" y="676" fill="#d9e4ef" font-size="9" font-family="monospace">"OFF"</text>
+    <text x="228" y="694" fill="#9fb1c5" font-size="8.5">distinct from</text><text x="228" y="705" fill="#9fb1c5" font-size="8.5">"UNAVAILABLE"</text>
+    <text x="380" y="676" fill="#d9e4ef" font-size="9.5">Nothing for that layer. The rail</text>
+    <text x="380" y="689" fill="#d9e4ef" font-size="9.5">badge reads “0 of 1 on”, which</text>
+    <text x="380" y="702" fill="#d9e4ef" font-size="9.5">is how the user sees it is off</text>
+    <text x="380" y="715" fill="#d9e4ef" font-size="9.5">without expanding the group.</text>
+    <text x="620" y="676" fill="#d9e4ef" font-size="8.2">EN “Layer off — turn it on in the rail to read it.” ES “Capa desactivada — actívala en el panel lateral.”</text>
+    <text x="620" y="696" fill="#70dea4" font-size="7.3">OFF (the user chose not to look), UNAVAILABLE (the deployment cannot serve it), an observed zero (the layer is</text>
+    <text x="620" y="708" fill="#70dea4" font-size="7.3">on and genuinely nothing resolves inside the Lens) and an absence from the universe are four different facts.</text>
+    <text x="620" y="722" fill="#70dea4" font-size="7.3">The product already keeps all four apart. This gate must not collapse any of them.</text>
+    <text x="1022" y="676" fill="#9fb1c5" font-size="9">N/A while off.</text>
+    <text x="1022" y="694" fill="#ff7aa2" font-size="8.5">A collapsed rail group must never</text>
+    <text x="1022" y="706" fill="#ff7aa2" font-size="8.5">make an ON layer look OFF, or</text>
+    <text x="1022" y="718" fill="#ff7aa2" font-size="8.5">the reverse.</text>
+  </g>
+
+  <!-- bottom -->
+  <rect x="20" y="748" width="1260" height="78" rx="6" fill="#1a1410" stroke="#ffb04a" stroke-width="1.4"/>
+  <text x="40" y="772" fill="#ffb04a" font-size="12" font-weight="700">THE DISTINCTION THIS GATE EXISTS TO PROTECT</text>
+  <text x="40" y="794" fill="#e8d5c4" font-size="10.5">A planning ámbito is an <tspan font-weight="700">administrative area of the general plan</tspan>. Its published phases are administrative states. Its buildability is what the plan makes</text>
+  <text x="40" y="812" fill="#e8d5c4" font-size="10.5">available, in m² edificable, for the whole ámbito. None of it measures physical construction, and no number of dwellings is published or derivable from it.</text>
+
+  <text x="20" y="856" fill="#6d7f93" font-size="10">States, enum names and the containment copy are read from js/planning-ambito.js and js/shell-copy.js on origin/main @ a4e28d1. The “9 ámbitos” figure is model-derived.</text>
+  <text x="20" y="872" fill="#6d7f93" font-size="10">Proposed EN/ES strings in rows 1, 2, 5, 6 and 7 are new copy drafted by this gate; they do not exist in the shipped dictionaries and are specified in §7 of the specification.</text>
+  <text x="20" y="888" fill="#6d7f93" font-size="10">NOT TESTED: no human user, no real hardware, no assistive technology. Proposed design only.</text>
+</svg>

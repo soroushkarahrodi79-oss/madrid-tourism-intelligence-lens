@@ -1,0 +1,244 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="800" viewBox="0 0 1300 800" font-family="Inter, 'Segoe UI', system-ui, sans-serif">
+  <title>P0 baseline — desktop 1440x900 cold start in the current build</title>
+  <desc>Annotated wireframe of the shipped PLACE cold start at desktop 1440x900, marking the three mechanical causes of the planning-ambito discovery failure. Static sketch; no interactive behaviour is claimed.</desc>
+
+  <rect width="1300" height="800" fill="#060c14"/>
+
+  <!-- ===== title ===== -->
+  <text x="20" y="30" fill="#f3f7ff" font-size="19" font-weight="700">P0 BASELINE · what a first-time resident actually sees</text>
+  <text x="20" y="52" fill="#9fb1c5" font-size="13">Desktop 1440 × 900 · PLACE · cold start · default Lens A 900 m at 40.4149, −3.690 · map zoom 14 · drawn at 0.7 scale</text>
+  <text x="20" y="72" fill="#9bd5ff" font-size="12">Current shipped build (origin/main @ a4e28d1). Static sketch — not a screenshot, not a live prototype.</text>
+
+  <!-- ===== device frame ===== -->
+  <rect x="20" y="88" width="1008" height="630" rx="6" fill="#08101a" stroke="#3a4654" stroke-width="1.5"/>
+
+  <!-- map substrate -->
+  <rect x="21" y="89" width="1006" height="628" fill="#09111c"/>
+  <!-- faint street grid -->
+  <g stroke="#131f2e" stroke-width="1">
+    <path d="M21 150 H1027 M21 215 H1027 M21 280 H1027 M21 345 H1027 M21 410 H1027 M21 475 H1027 M21 540 H1027 M21 605 H1027 M21 670 H1027"/>
+    <path d="M90 89 V717 M170 89 V717 M250 89 V717 M330 89 V717 M410 89 V717 M490 89 V717 M570 89 V717 M650 89 V717 M730 89 V717 M810 89 V717 M890 89 V717 M970 89 V717"/>
+  </g>
+
+  <!-- INVISIBLE ambitos: 229 in frame, none drawn. Shown here as ghosts for the reader of this sketch only. -->
+  <g stroke="#aeb8c4" stroke-width="1" stroke-dasharray="2 5" fill="none" opacity="0.26">
+    <path d="M300 300 L360 292 L372 338 L312 348 Z"/><path d="M380 286 L444 280 L452 320 L388 328 Z"/>
+    <path d="M456 276 L512 272 L520 310 L462 316 Z"/><path d="M300 356 L368 348 L376 392 L308 400 Z"/>
+    <path d="M384 334 L440 328 L448 368 L392 374 Z"/><path d="M452 322 L516 316 L524 356 L458 362 Z"/>
+    <path d="M530 268 L596 262 L604 304 L538 312 Z"/><path d="M532 318 L592 312 L600 352 L540 358 Z"/>
+    <path d="M296 410 L364 402 L372 444 L304 452 Z"/><path d="M380 380 L444 374 L452 414 L388 420 Z"/>
+    <path d="M456 368 L520 362 L528 402 L462 408 Z"/><path d="M536 358 L600 352 L608 392 L542 398 Z"/>
+    <path d="M612 258 L676 252 L684 294 L620 302 Z"/><path d="M616 306 L678 300 L686 340 L622 346 Z"/>
+    <path d="M618 352 L682 346 L690 386 L624 392 Z"/><path d="M292 462 L358 454 L366 496 L300 504 Z"/>
+    <path d="M374 428 L440 422 L448 462 L382 468 Z"/><path d="M456 416 L520 410 L528 450 L462 456 Z"/>
+    <path d="M538 404 L602 398 L610 438 L544 444 Z"/><path d="M620 398 L684 392 L692 432 L626 438 Z"/>
+    <path d="M696 250 L762 244 L770 286 L704 294 Z"/><path d="M700 300 L764 294 L772 334 L706 340 Z"/>
+    <path d="M702 348 L766 342 L774 382 L708 388 Z"/><path d="M704 394 L768 388 L776 428 L710 434 Z"/>
+    <path d="M250 300 L292 294 L300 336 L258 342 Z"/><path d="M246 352 L290 346 L298 388 L254 394 Z"/>
+    <path d="M242 404 L288 398 L296 440 L250 446 Z"/><path d="M788 256 L852 250 L860 292 L796 300 Z"/>
+    <path d="M790 306 L854 300 L862 340 L798 346 Z"/><path d="M792 354 L856 348 L864 388 L800 394 Z"/>
+    <path d="M370 480 L436 474 L444 514 L378 520 Z"/><path d="M452 466 L518 460 L526 500 L458 506 Z"/>
+    <path d="M540 452 L604 446 L612 486 L546 492 Z"/><path d="M622 444 L686 438 L694 478 L628 484 Z"/>
+    <path d="M706 440 L770 434 L778 474 L712 480 Z"/><path d="M794 400 L858 394 L866 434 L802 440 Z"/>
+    <path d="M300 520 L364 514 L372 554 L308 560 Z"/><path d="M386 530 L448 524 L456 564 L392 570 Z"/>
+    <path d="M466 516 L530 510 L538 550 L472 556 Z"/><path d="M548 502 L612 496 L620 536 L554 542 Z"/>
+  </g>
+  <text x="252" y="268" fill="#aeb8c4" font-size="10" opacity="0.65" font-style="italic">(ghosted here for this sketch only — the live build draws none of these)</text>
+
+  <!-- Lens A -->
+  <circle cx="470" cy="400" r="86" fill="#f7fbff" fill-opacity="0.05" stroke="#f7fbff" stroke-width="2"/>
+  <circle cx="470" cy="400" r="4" fill="#f7fbff"/>
+  <text x="470" y="378" fill="#f7fbff" font-size="11" font-weight="700" text-anchor="middle">A · 900 m</text>
+  <!-- the 9 touched ambitos, emphasised -->
+  <g stroke="#aeb8c4" stroke-width="1.6" fill="none" opacity="0.95">
+    <path d="M452 322 L516 316 L524 356 L458 362 Z"/><path d="M456 368 L520 362 L528 402 L462 408 Z"/>
+    <path d="M456 416 L520 410 L528 450 L462 456 Z"/><path d="M384 334 L440 328 L448 368 L392 374 Z"/>
+    <path d="M380 380 L444 374 L452 414 L388 420 Z"/><path d="M374 428 L440 422 L448 462 L382 468 Z"/>
+    <path d="M536 358 L600 352 L608 392 L542 398 Z"/><path d="M532 318 L592 312 L600 352 L540 358 Z"/>
+    <path d="M538 404 L602 398 L610 438 L544 444 Z"/>
+  </g>
+  <text x="470" y="498" fill="#aeb8c4" font-size="10" font-weight="700" text-anchor="middle">9 ámbitos actually intersect this circle</text>
+  <text x="470" y="512" fill="#aeb8c4" font-size="9.5" text-anchor="middle">nearest vertex 51 m (APE.03.06 JERÓNIMOS)</text>
+
+  <!-- POI clusters -->
+  <g>
+    <circle cx="396" cy="356" r="13" fill="#0b1521" stroke="#9d72ff" stroke-width="2"/><text x="396" y="360" fill="#f3f7ff" font-size="9" text-anchor="middle">12</text>
+    <circle cx="520" cy="430" r="13" fill="#0b1521" stroke="#3da8ff" stroke-width="2"/><text x="520" y="434" fill="#f3f7ff" font-size="9" text-anchor="middle">31</text>
+    <circle cx="448" cy="462" r="11" fill="#0b1521" stroke="#54e2b5" stroke-width="2"/><text x="448" y="466" fill="#f3f7ff" font-size="8" text-anchor="middle">8</text>
+  </g>
+
+  <!-- ===== header ===== -->
+  <rect x="34" y="100" width="420" height="40" rx="8" fill="#0d1626" stroke="#2a3442"/>
+  <rect x="42" y="108" width="24" height="24" rx="5" fill="#13263c" stroke="#3a4654"/>
+  <text x="74" y="117" fill="#f3f7ff" font-size="11.5" font-weight="700">Madrid Urban Evidence Lens</text>
+  <text x="74" y="131" fill="#9fb1c5" font-size="9.5">Urban development · Official evidence</text>
+  <rect x="862" y="100" width="156" height="40" rx="8" fill="#0d1626" stroke="#2a3442"/>
+  <text x="874" y="124" fill="#d9e4ef" font-size="10">English ▾</text>
+
+  <!-- ===== left rail ===== -->
+  <rect x="34" y="152" width="178" height="548" rx="10" fill="#0d1626" stroke="#2a3442"/>
+  <text x="46" y="172" fill="#f3f7ff" font-size="10.5" font-weight="700" letter-spacing="0.5">MAP DISPLAY</text>
+  <text x="46" y="190" fill="#9fb1c5" font-size="9">Base map</text>
+  <rect x="46" y="196" width="154" height="24" rx="5" fill="#060c15" stroke="#2a3442"/><text x="53" y="212" fill="#d9e4ef" font-size="9">Light · CARTO Positron ▾</text>
+  <text x="46" y="238" fill="#9fb1c5" font-size="9">Administrative boundaries</text>
+  <rect x="46" y="244" width="154" height="24" rx="5" fill="#060c15" stroke="#c0794f" stroke-width="1.4"/><text x="53" y="260" fill="#d9e4ef" font-size="9">Off · active area only ▾</text>
+  <text x="46" y="282" fill="#c0794f" font-size="8.5">Off / district / barrio only —</text>
+  <text x="46" y="293" fill="#c0794f" font-size="8.5">no ámbito option exists</text>
+
+  <text x="46" y="318" fill="#f3f7ff" font-size="10.5" font-weight="700" letter-spacing="0.5">OPERATIONAL LAYERS</text>
+  <g font-size="9.5" fill="#d9e4ef">
+    <circle cx="52" cy="334" r="4" fill="#9d72ff"/><text x="62" y="337">Museums</text><rect x="172" y="328" width="28" height="15" rx="7.5" fill="#2f6f9e"/><circle cx="193" cy="335.5" r="5.5" fill="#fff"/>
+    <circle cx="52" cy="356" r="4" fill="#3da8ff"/><text x="62" y="359">Hotels &amp; stays</text><rect x="172" y="350" width="28" height="15" rx="7.5" fill="#2f6f9e"/><circle cx="193" cy="357.5" r="5.5" fill="#fff"/>
+  </g>
+  <rect x="46" y="372" width="154" height="22" rx="5" fill="#060c15" stroke="#2a3442"/><text x="53" y="387" fill="#d9e4ef" font-size="8.5">All accommodation ▾</text>
+  <g font-size="9.5" fill="#d9e4ef">
+    <circle cx="52" cy="408" r="4" fill="#54e2b5"/><text x="62" y="411">BiciMAD</text><rect x="172" y="402" width="28" height="15" rx="7.5" fill="#2f6f9e"/><circle cx="193" cy="409.5" r="5.5" fill="#fff"/>
+    <circle cx="52" cy="430" r="4" fill="#ffd166"/><text x="62" y="433">Metro &amp; Cercanías</text><rect x="172" y="424" width="28" height="15" rx="7.5" fill="#2f6f9e"/><circle cx="193" cy="431.5" r="5.5" fill="#fff"/>
+    <circle cx="52" cy="452" r="4" fill="#c79cff"/><text x="62" y="455">Tourist info</text><rect x="172" y="446" width="28" height="15" rx="7.5" fill="#2f6f9e"/><circle cx="193" cy="453.5" r="5.5" fill="#fff"/>
+  </g>
+  <line x1="46" y1="470" x2="200" y2="470" stroke="#2a3442"/>
+  <text x="46" y="486" fill="#f3f7ff" font-size="10" font-weight="700">ADMINISTRATIVE REGISTER</text>
+  <text x="46" y="497" fill="#9fb1c5" font-size="8.5" font-style="italic">granted ≠ built</text>
+  <g font-size="9.5" fill="#d9e4ef">
+    <circle cx="52" cy="514" r="4" fill="#c0794f"/><text x="62" y="517">Granted urban licences</text><rect x="172" y="508" width="28" height="15" rx="7.5" fill="#1b2733" stroke="#3a4654"/><circle cx="180" cy="515.5" r="5.5" fill="#8fa1b5"/>
+  </g>
+  <line x1="46" y1="532" x2="200" y2="532" stroke="#2a3442"/>
+  <text x="46" y="548" fill="#9fb1c5" font-size="9.5" font-weight="700">Observed activity</text>
+  <g font-size="9.5" fill="#d9e4ef"><circle cx="52" cy="566" r="4" fill="#ff7aa2"/><text x="62" y="569">Pedestrian counters</text><rect x="172" y="560" width="28" height="15" rx="7.5" fill="#1b2733" stroke="#3a4654"/><circle cx="180" cy="567.5" r="5.5" fill="#8fa1b5"/></g>
+  <line x1="46" y1="584" x2="200" y2="584" stroke="#2a3442"/>
+  <text x="46" y="600" fill="#9fb1c5" font-size="9.5" font-weight="700">Context</text>
+  <g font-size="9.5" fill="#d9e4ef">
+    <circle cx="52" cy="618" r="4" fill="#70dea4"/><text x="62" y="621">Principal parks</text><rect x="172" y="612" width="28" height="15" rx="7.5" fill="#1b2733" stroke="#3a4654"/><circle cx="180" cy="619.5" r="5.5" fill="#8fa1b5"/>
+    <circle cx="52" cy="640" r="4" fill="#d08cff"/><text x="62" y="643">Hospitality context</text><rect x="172" y="634" width="28" height="15" rx="7.5" fill="#1b2733" stroke="#3a4654"/><circle cx="180" cy="641.5" r="5.5" fill="#8fa1b5"/>
+  </g>
+  <line x1="46" y1="658" x2="200" y2="658" stroke="#2a3442"/>
+  <text x="46" y="674" fill="#9fb1c5" font-size="9.5" font-weight="700">Research evidence</text>
+  <g font-size="9.5" fill="#d9e4ef"><circle cx="52" cy="690" r="4" fill="#ffb04a"/><text x="62" y="693">HATI · thermal pilot</text><rect x="172" y="684" width="28" height="15" rx="7.5" fill="#1b2733" stroke="#3a4654"/><circle cx="180" cy="691.5" r="5.5" fill="#8fa1b5"/></g>
+
+  <!-- ===== analysis panel ===== -->
+  <rect x="700" y="152" width="318" height="548" rx="10" fill="#0d1827" stroke="#2a3442"/>
+  <rect x="700" y="152" width="318" height="76" rx="10" fill="#0f1b2b"/>
+  <circle cx="714" cy="168" r="4" fill="#70dea4"/><text x="724" y="171" fill="#d9e4ef" font-size="9">11,265 records · deployment snapshot</text>
+  <g>
+    <rect x="710" y="180" width="98" height="26" rx="6" fill="#16314a" stroke="#43d7ff"/><text x="759" y="197" fill="#f3f7ff" font-size="10" font-weight="700" text-anchor="middle">◎ Place</text>
+    <rect x="812" y="180" width="96" height="26" rx="6" fill="#0b1521" stroke="#2a3442"/><text x="860" y="197" fill="#9fb1c5" font-size="10" text-anchor="middle">⇄ Compare</text>
+    <rect x="912" y="180" width="96" height="26" rx="6" fill="#0b1521" stroke="#2a3442"/><text x="960" y="197" fill="#9fb1c5" font-size="10" text-anchor="middle">▦ City</text>
+  </g>
+  <g font-size="8.5" fill="#d7e5f2">
+    <rect x="710" y="212" width="86" height="13" rx="4" fill="#111e2d" stroke="#2a3442"/><text x="715" y="222">◎ LENS CIRCLE</text>
+    <rect x="800" y="212" width="86" height="13" rx="4" fill="#111e2d" stroke="#2a3442"/><text x="805" y="222">▢ BARRIO</text>
+    <rect x="890" y="212" width="118" height="13" rx="4" fill="#111e2d" stroke="#2a3442"/><text x="895" y="222">⬡ PLANNING ÁMBITO</text>
+  </g>
+
+  <!-- 1. administrative area -->
+  <text x="712" y="248" fill="#9fb1c5" font-size="9" font-weight="700">1 · ADMINISTRATIVE AREA</text><text x="1000" y="248" fill="#9bd5ff" font-size="9" text-anchor="end">ⓘ</text>
+  <text x="712" y="266" fill="#f3f7ff" font-size="13" font-weight="700">Los Jerónimos</text>
+  <text x="712" y="281" fill="#9fb1c5" font-size="9">OFFICIAL BARRIO · 030603 · Retiro</text>
+  <rect x="712" y="288" width="290" height="30" rx="5" fill="#101d2c" stroke="#2a3442"/>
+  <text x="720" y="300" fill="#f3f7ff" font-size="11" font-weight="700">10,159</text><text x="766" y="300" fill="#9fb1c5" font-size="8.5">registered residents · Padrón</text>
+  <text x="720" y="312" fill="#9fb1c5" font-size="8">whole barrio — not the Lens circle</text>
+
+  <!-- 2. planning ambito : THE FAILURE -->
+  <rect x="706" y="326" width="306" height="86" rx="6" fill="#1a1410" stroke="#c0794f" stroke-width="1.6"/>
+  <text x="712" y="342" fill="#9fb1c5" font-size="9" font-weight="700">2 · PLANNING ÁMBITO</text><text x="1000" y="342" fill="#9bd5ff" font-size="9" text-anchor="end">ⓘ</text>
+  <text x="712" y="360" fill="#e8d5c4" font-size="9.5">“No official planning ámbito <tspan font-weight="700">contains</tspan> the Lens</text>
+  <text x="712" y="372" fill="#e8d5c4" font-size="9.5">centre. The ámbito universe does not cover the</text>
+  <text x="712" y="384" fill="#e8d5c4" font-size="9.5">whole municipality, so this is an explicit absence</text>
+  <text x="712" y="396" fill="#e8d5c4" font-size="9.5">of a containing ámbito — not a zero and not the</text>
+  <text x="712" y="408" fill="#e8d5c4" font-size="9.5">nearest ámbito.”</text>
+
+  <!-- 3. licences (OFF) -->
+  <text x="712" y="430" fill="#9fb1c5" font-size="9" font-weight="700">3 · GRANTED URBAN LICENCES</text>
+  <text x="712" y="444" fill="#9fb1c5" font-size="9">Layer OFF — turn it on in the rail to read it.</text>
+
+  <!-- 4. the four Lens figures -->
+  <rect x="706" y="454" width="306" height="56" rx="6" fill="#101d2c" stroke="#43d7ff" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="712" y="468" fill="#43d7ff" font-size="9" font-weight="700">4 · WITHIN THE LENS — the first question, answered fourth</text>
+  <g font-size="8.5" fill="#9fb1c5">
+    <text x="714" y="482">Tourism POIs</text><text x="714" y="498" fill="#f3f7ff" font-size="13" font-weight="700">41</text>
+    <text x="790" y="482">Hotels</text><text x="790" y="498" fill="#f3f7ff" font-size="13" font-weight="700">63</text>
+    <text x="862" y="482">Mobility</text><text x="862" y="498" fill="#f3f7ff" font-size="13" font-weight="700">24</text>
+    <text x="938" y="482">UTCI</text><text x="938" y="498" fill="#8fa1b5" font-size="13" font-weight="700">—</text>
+  </g>
+
+  <!-- 5. Detail, CLOSED -->
+  <rect x="706" y="520" width="306" height="26" rx="5" fill="#0b1521" stroke="#c0794f" stroke-width="1.6"/>
+  <text x="714" y="537" fill="#d9e4ef" font-size="10">▸ Detail</text>
+  <text x="790" y="537" fill="#c0794f" font-size="9" font-weight="700">← closed by default</text>
+  <rect x="716" y="552" width="290" height="40" rx="5" fill="#0a131f" stroke="#2a3442" stroke-dasharray="3 3"/>
+  <text x="724" y="566" fill="#6d7f93" font-size="9" font-style="italic">hidden: “Planning ámbitos touched by the Lens”</text>
+  <text x="724" y="580" fill="#6d7f93" font-size="9" font-style="italic">— the 9 real answers live in here, unrendered</text>
+
+  <!-- controls last -->
+  <line x1="712" y1="606" x2="1006" y2="606" stroke="#2a3442"/>
+  <text x="712" y="622" fill="#9fb1c5" font-size="9" font-weight="700">CONTROLS</text>
+  <rect x="712" y="630" width="76" height="24" rx="5" fill="#0b1521" stroke="#2a3442"/><text x="750" y="646" fill="#d9e4ef" font-size="9" text-anchor="middle">Radius</text>
+  <rect x="794" y="630" width="76" height="24" rx="5" fill="#0b1521" stroke="#2a3442"/><text x="832" y="646" fill="#d9e4ef" font-size="9" text-anchor="middle">Evidence</text>
+  <rect x="876" y="630" width="76" height="24" rx="5" fill="#0b1521" stroke="#2a3442"/><text x="914" y="646" fill="#d9e4ef" font-size="9" text-anchor="middle">Reset</text>
+
+  <!-- ===== callout column ===== -->
+  <rect x="1046" y="88" width="238" height="630" rx="8" fill="#0a131f" stroke="#2a3442"/>
+  <text x="1058" y="110" fill="#f3f7ff" font-size="12" font-weight="700">THREE MECHANICAL CAUSES</text>
+  <text x="1058" y="126" fill="#9fb1c5" font-size="9">All three are disclosure / rendering.</text>
+  <text x="1058" y="138" fill="#9fb1c5" font-size="9">None is geographic remoteness.</text>
+
+  <circle cx="1066" cy="164" r="9" fill="#c0794f"/><text x="1066" y="168" fill="#060c14" font-size="10" font-weight="700" text-anchor="middle">1</text>
+  <text x="1082" y="162" fill="#f3f7ff" font-size="10" font-weight="700">Containing-only renderer</text>
+  <text x="1082" y="176" fill="#9fb1c5" font-size="9">renderPlanningPolygon() paints</text>
+  <text x="1082" y="188" fill="#9fb1c5" font-size="9">only the containing feature. At</text>
+  <text x="1082" y="200" fill="#9fb1c5" font-size="9">the default centre there is none,</text>
+  <text x="1082" y="212" fill="#9fb1c5" font-size="9">so the map draws 0 ámbitos</text>
+  <text x="1082" y="224" fill="#9fb1c5" font-size="9">while 229 sit in the viewport.</text>
+  <text x="1082" y="238" fill="#6d7f93" font-size="8.5">js/app.js:3790</text>
+
+  <circle cx="1066" cy="264" r="9" fill="#c0794f"/><text x="1066" y="268" fill="#060c14" font-size="10" font-weight="700" text-anchor="middle">2</text>
+  <text x="1082" y="262" fill="#f3f7ff" font-size="10" font-weight="700">Answer behind a closed</text>
+  <text x="1082" y="274" fill="#f3f7ff" font-size="10" font-weight="700">disclosure</text>
+  <text x="1082" y="288" fill="#9fb1c5" font-size="9">renderPlanningTouched() sets</text>
+  <text x="1082" y="300" fill="#9fb1c5" font-size="9">card.hidden = !placeDetail.open,</text>
+  <text x="1082" y="312" fill="#9fb1c5" font-size="9">and &lt;details id="placeDetail"&gt;</text>
+  <text x="1082" y="324" fill="#9fb1c5" font-size="9">ships without `open`. The</text>
+  <text x="1082" y="336" fill="#9fb1c5" font-size="9">membership list is never even</text>
+  <text x="1082" y="348" fill="#9fb1c5" font-size="9">computed at cold start.</text>
+  <text x="1082" y="362" fill="#6d7f93" font-size="8.5">js/app.js:3742 · index.html:379,399</text>
+
+  <circle cx="1066" cy="388" r="9" fill="#c0794f"/><text x="1066" y="392" fill="#060c14" font-size="10" font-weight="700" text-anchor="middle">3</text>
+  <text x="1082" y="386" fill="#f3f7ff" font-size="10" font-weight="700">Correct answer, narrower</text>
+  <text x="1082" y="398" fill="#f3f7ff" font-size="10" font-weight="700">question</text>
+  <text x="1082" y="412" fill="#9fb1c5" font-size="9">planning.outside is precise about</text>
+  <text x="1082" y="424" fill="#9fb1c5" font-size="9">containment and must not change.</text>
+  <text x="1082" y="436" fill="#9fb1c5" font-size="9">But nothing follows it with the</text>
+  <text x="1082" y="448" fill="#9fb1c5" font-size="9">membership answer that already</text>
+  <text x="1082" y="460" fill="#9fb1c5" font-size="9">exists, so the reader concludes</text>
+  <text x="1082" y="472" fill="#9fb1c5" font-size="9">“there are none here”.</text>
+  <text x="1082" y="486" fill="#6d7f93" font-size="8.5">js/shell-copy.js:137</text>
+
+  <line x1="1058" y1="506" x2="1272" y2="506" stroke="#2a3442"/>
+  <text x="1058" y="524" fill="#43d7ff" font-size="10.5" font-weight="700">MEASURED, NOT ASSUMED</text>
+  <text x="1058" y="540" fill="#d9e4ef" font-size="9">Nearest ámbito vertex to the default</text>
+  <text x="1058" y="552" fill="#d9e4ef" font-size="9">Lens A centre: <tspan font-weight="700" fill="#f3f7ff">51 m</tspan></text>
+  <text x="1058" y="568" fill="#d9e4ef" font-size="9">Ámbitos the default 900 m circle</text>
+  <text x="1058" y="580" fill="#d9e4ef" font-size="9">intersects: <tspan font-weight="700" fill="#f3f7ff">9</tspan> (ambitosIntersecting)</text>
+  <text x="1058" y="596" fill="#d9e4ef" font-size="9">Ámbitos with vertices in this</text>
+  <text x="1058" y="608" fill="#d9e4ef" font-size="9">zoom-14 viewport: <tspan font-weight="700" fill="#f3f7ff">229</tspan></text>
+  <text x="1058" y="624" fill="#d9e4ef" font-size="9">Ámbito universe: <tspan font-weight="700" fill="#f3f7ff">724</tspan> features,</text>
+  <text x="1058" y="636" fill="#d9e4ef" font-size="9">140,507 vertices</text>
+
+  <rect x="1058" y="650" width="214" height="56" rx="5" fill="#101d2c" stroke="#43d7ff" stroke-dasharray="3 3"/>
+  <text x="1066" y="666" fill="#43d7ff" font-size="9" font-weight="700">CORRECTION TO #92</text>
+  <text x="1066" y="679" fill="#d9e4ef" font-size="8.5">The ámbitos are not “on the</text>
+  <text x="1066" y="690" fill="#d9e4ef" font-size="8.5">periphery, outside the viewport”.</text>
+  <text x="1066" y="701" fill="#d9e4ef" font-size="8.5">They are already on screen.</text>
+
+  <!-- leader lines -->
+  <g stroke="#c0794f" stroke-width="1" fill="none" opacity="0.8">
+    <path d="M1046 170 L1012 300" stroke-dasharray="3 3"/>
+    <path d="M1046 286 L1014 533" stroke-dasharray="3 3"/>
+    <path d="M1046 400 L1014 370" stroke-dasharray="3 3"/>
+  </g>
+
+  <text x="20" y="742" fill="#6d7f93" font-size="10">Counts derived from data/planning/madrid_ambitos.geojson and js/planning-ambito.js (createPlanningIndex → ambitosIntersecting) on origin/main @ a4e28d1.</text>
+  <text x="20" y="758" fill="#6d7f93" font-size="10">Viewport counts are Web-Mercator bounding-box intersections at zoom 14 centred on 40.415, −3.692 — geometry arithmetic, not a rendering measurement.</text>
+  <text x="20" y="774" fill="#6d7f93" font-size="10">Figures shown inside the panel (41 / 63 / 24) are illustrative placeholders for layout only and are NOT evidence readings.</text>
+  <text x="20" y="790" fill="#6d7f93" font-size="10">NOT TESTED: no human user, no real iPad/Safari hardware, no assistive technology. This is a static design sketch.</text>
+</svg>
