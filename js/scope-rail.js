@@ -20,6 +20,17 @@ const EVIDENCE_SCOPE_API =
     ? require("./evidence-scope.js")
     : { ANALYTICAL_SCOPES, FRESHNESS_FIELDS, scopeOf, freshnessOf, oldestReferenceDate };
 
+// The SINGLE SOURCE_PROVENANCE assembly lives in js/evidence-registry.js (K13,
+// #75). The drawer reads each source's provenance THROUGH it rather than
+// hand-assembling the same fields, so the registry query contract is exercised by
+// a shipping surface. The rendered content is unchanged — a refactor-equivalence
+// test asserts it — because the resolver reads the same registry entry this code
+// used to read directly.
+const EVIDENCE_REGISTRY_API =
+  typeof module !== "undefined" && module.exports
+    ? require("./evidence-registry.js")
+    : { sourceProvenance };
+
 // Distinct glyph per analytical scope. A glyph never carries meaning alone: the
 // rail always pairs it with a text label, and the glyph is aria-hidden.
 const SCOPE_GLYPHS = Object.freeze({
@@ -181,22 +192,32 @@ function buildEvidenceRecords({ surfaces, registry, scope = null, sourceId = nul
       derivation: surface.derivation,
       sources: surface.sources.map((id) => {
         const source = requireSource(map, id, key);
+        // The K7 comparison surface (place.planning.change) reports the OLDEST
+        // contributing edition's reference date in place of the source's own; the
+        // override rides into the resolver so provenance stays the single
+        // authority. The change-detection provenance block is a property of THIS
+        // surface, not of the source, so it is attached here, not by the resolver.
         const isK7Comparison = key === "place.planning.change" && Boolean(source.change_detection);
-        const sourceFreshness = EVIDENCE_SCOPE_API.freshnessOf(source);
-        const freshness = isK7Comparison
-          ? Object.freeze({ ...sourceFreshness, reference_date: source.change_detection.oldest_contributor_reference_date })
-          : sourceFreshness;
-        return {
+        const freshnessOverride = isK7Comparison
+          ? { reference_date: source.change_detection.oldest_contributor_reference_date }
+          : null;
+        const prov = EVIDENCE_REGISTRY_API.sourceProvenance(
+          registry,
           id,
-          displayName: source.display_name || id,
-          authority: source.authority || null,
-          datasetUrl: source.dataset_url || null,
-          artifact: source.artifact || null,
-          builder: source.builder || null,
-          freshness,
-          freshnessEvidence: source.freshness_evidence || null,
-          periodSemantics: source.source_period_semantics || null,
-          interpretationCeiling: source.interpretation_ceiling,
+          freshnessOverride ? { freshnessOverride } : {}
+        );
+        if (!prov) throw new Error(`surface "${key}" names source "${id}", which is not in the registry`);
+        return {
+          id: prov.id,
+          displayName: prov.displayName,
+          authority: prov.authority,
+          datasetUrl: prov.datasetUrl,
+          artifact: prov.artifact,
+          builder: prov.builder,
+          freshness: prov.freshness,
+          freshnessEvidence: prov.freshnessEvidence,
+          periodSemantics: prov.periodSemantics,
+          interpretationCeiling: prov.interpretationCeiling,
           changeDetectionProvenance: isK7Comparison ? source.change_detection : null,
         };
       }),

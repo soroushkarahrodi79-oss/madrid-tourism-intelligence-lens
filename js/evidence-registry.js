@@ -229,7 +229,7 @@ function makeEvidence(fields) {
     throw new Error("makeEvidence: `ceiling` is mandatory; an evidence object always carries its interpretation ceiling");
   }
   if (!DERIVATIONS.includes(derivation)) {
-    throw new Error(`makeEvidence: "${derivation}" is not SOURCE_FACT or a named transformation (${DERIVATIONS.join(", ")})`);
+    throw new Error(`makeEvidence: derivation "${derivation}" is not SOURCE_FACT or a named transformation (${DERIVATIONS.join(", ")})`);
   }
 
   return deepFreeze({
