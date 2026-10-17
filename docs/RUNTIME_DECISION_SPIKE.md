@@ -4,8 +4,9 @@
 **Branch base:** `origin/main` @ `cf85a9b` (K11 / PR #88 merged)
 **Nature:** Measurement spike. **Decide, do not migrate.** No library is adopted here.
 
-> **Gate verdict: PARTIAL — device criteria now MEASURED on a physical iPad M3
-> (DEVICE_VALIDATION); owner decision pending.**
+> **Gate verdict: PARTIAL — device criteria MEASURED on a physical iPad M3
+> (DEVICE_VALIDATION). Owner decision recorded 2026-10-17: KEEP Leaflet (A = GO);
+> MapLibre stays NOT YET. PR #89 remains Draft per owner instruction.**
 > Every environment-independent measurement was always complete and reproducible.
 > The acceptance criteria that require *real-device graphics performance*
 > (interaction-to-paint, frame time, the Leaflet ceiling crossing, the MapLibre
@@ -685,13 +686,13 @@ pan threshold but MapLibre itself is only marginally inside it. Keep Leaflet.
 6. **`interaction_to_paint_ms` is a double-rAF proxy**, frame-quantised, **not a true
    paint timestamp** — hence the ~33 ms floor regardless of engine.
 
-**Recommended architectural decision:** **keep the current Leaflet + vanilla-JS stack
-(A = GO); hold MapLibre at NOT YET.** The first complete physical device validation
-shows the current architecture meets every interaction threshold at the real data
-volume on a modern iPad, and the MapLibre migration cost (§6.2) is not repaid at
-today's load. Revisit only when blocker 1 or blocker 2 resolves toward denser
-polygons or a weak-GPU support floor. This is a recommendation; the decision is the
-owner's, and **PR #89 stays Draft until explicit owner approval**.
+**Architectural decision — RECORDED (owner-approved 2026-10-17):** **keep the current
+Leaflet + vanilla-JS stack (A = GO); hold MapLibre at NOT YET.** The first complete
+physical device validation shows the current architecture meets every interaction
+threshold at the real data volume on a modern iPad, and the MapLibre migration cost
+(§6.2) is not repaid at today's load. Revisit only when blocker 1 or blocker 2
+resolves toward denser polygons or a weak-GPU support floor. **PR #89 remains Draft
+per owner instruction** — this records the decision; it does not merge the spike.
 
 ---
 
