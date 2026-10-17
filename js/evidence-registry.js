@@ -33,7 +33,7 @@
 // wired in (its artifact did not load) makes its shape abstain with evidence, not
 // crash.
 
-const EVIDENCE_SCOPE_API =
+const REGISTRY_SCOPE_API =
   typeof module !== "undefined" && module.exports
     ? require("./evidence-scope.js")
     : {
@@ -213,7 +213,7 @@ function makeEvidence(fields) {
   if (value === undefined) {
     throw new Error("makeEvidence: `value` must not be undefined (use null for an explicit known absence)");
   }
-  if (!EVIDENCE_SCOPE_API.isAnalyticalScope(scope)) {
+  if (!REGISTRY_SCOPE_API.isAnalyticalScope(scope)) {
     throw new Error(`makeEvidence: "${scope}" is not a declared analytical scope`);
   }
   if (!isNonEmptyString(unit)) {
@@ -251,7 +251,7 @@ function validateFreshness(freshness) {
     throw new TypeError("makeEvidence: `freshness` must be the five-field freshness record");
   }
   const record = {};
-  for (const field of EVIDENCE_SCOPE_API.FRESHNESS_FIELDS) {
+  for (const field of REGISTRY_SCOPE_API.FRESHNESS_FIELDS) {
     if (!Object.prototype.hasOwnProperty.call(freshness, field)) {
       throw new Error(`makeEvidence: freshness is missing mandatory field "${field}"`);
     }
@@ -357,7 +357,7 @@ function sourceProvenance(registry, sourceId, options = {}) {
   const map = registrySourceMap(registry);
   const source = map.get(sourceId);
   if (!source) return null;
-  const baseFreshness = EVIDENCE_SCOPE_API.freshnessOf(source);
+  const baseFreshness = REGISTRY_SCOPE_API.freshnessOf(source);
   const freshness = options.freshnessOverride
     ? { ...baseFreshness, ...options.freshnessOverride }
     : baseFreshness;
@@ -673,7 +673,7 @@ function resolveAmbitoCompare(params, deps, ctx) {
   // combined without a documented basis. Geometric overlap is not a basis.
   const scopeA = scopeOfInput(a);
   const scopeB = scopeOfInput(b);
-  if (scopeA && scopeB && !EVIDENCE_SCOPE_API.crossScopeArithmeticAllowed(scopeA, scopeB, params.basis)) {
+  if (scopeA && scopeB && !REGISTRY_SCOPE_API.crossScopeArithmeticAllowed(scopeA, scopeB, params.basis)) {
     return prohibit(PROHIBITION.CROSS_SCOPE_COMBINATION, {
       shape: SHAPE.AMBITO_COMPARE,
       message: `cannot compare a ${scopeA} value with a ${scopeB} value without a documented basis`,
@@ -803,7 +803,7 @@ function pointOf(params) {
 }
 
 function scopeOfInput(input) {
-  if (isObject(input) && EVIDENCE_SCOPE_API.isAnalyticalScope(input.scope)) return input.scope;
+  if (isObject(input) && REGISTRY_SCOPE_API.isAnalyticalScope(input.scope)) return input.scope;
   return null;
 }
 

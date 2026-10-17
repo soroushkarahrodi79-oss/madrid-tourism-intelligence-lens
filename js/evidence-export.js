@@ -37,7 +37,7 @@ const GEOJSON_CRS = "EPSG:4326";
 // answer in one place. The emitted sources.json still copies the documented export
 // fields VERBATIM from the registry — the resolver is the gatekeeper, not a
 // rewriter — so the bundle's content is unchanged (a test asserts it).
-const EVIDENCE_REGISTRY_API =
+const EXPORT_REGISTRY_API =
   typeof module !== "undefined" && module.exports
     ? require("./evidence-registry.js")
     : { sourceProvenance };
@@ -153,7 +153,7 @@ function buildSourcesObject(projection, registry) {
   for (const id of contributingSourceIds(projection)) {
     // The registry's SOURCE_PROVENANCE resolver is the single authority on whether
     // a contributing id is a registered source; a null answer is reported, not hidden.
-    const provenance = EVIDENCE_REGISTRY_API.sourceProvenance(registry, id);
+    const provenance = EXPORT_REGISTRY_API.sourceProvenance(registry, id);
     const source = byId.get(id);
     if (!provenance || !source) {
       out.push({ id, missing_from_registry: true });

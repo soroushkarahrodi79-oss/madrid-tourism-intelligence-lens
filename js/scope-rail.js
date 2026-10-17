@@ -26,7 +26,7 @@ const EVIDENCE_SCOPE_API =
 // a shipping surface. The rendered content is unchanged — a refactor-equivalence
 // test asserts it — because the resolver reads the same registry entry this code
 // used to read directly.
-const EVIDENCE_REGISTRY_API =
+const DRAWER_REGISTRY_API =
   typeof module !== "undefined" && module.exports
     ? require("./evidence-registry.js")
     : { sourceProvenance };
@@ -201,7 +201,7 @@ function buildEvidenceRecords({ surfaces, registry, scope = null, sourceId = nul
         const freshnessOverride = isK7Comparison
           ? { reference_date: source.change_detection.oldest_contributor_reference_date }
           : null;
-        const prov = EVIDENCE_REGISTRY_API.sourceProvenance(
+        const prov = DRAWER_REGISTRY_API.sourceProvenance(
           registry,
           id,
           freshnessOverride ? { freshnessOverride } : {}
