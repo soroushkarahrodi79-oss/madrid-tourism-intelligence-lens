@@ -434,6 +434,30 @@ class IpadOnePageController(unittest.TestCase):
         self.assertIn("raw", core)
         self.assertIn("MIN_SAMPLES", core)
 
+    def test_ipad_device_validation_is_preserved_and_complete(self):
+        ip = read_result(os.path.join("ipad", "K12_iPad_M3_Safari_2026-10-17.json"))
+        # the first complete physical iPad device validation, preserved unchanged
+        self.assertEqual(ip["run_kind"], "DEVICE_VALIDATION")
+        self.assertTrue(ip["complete"])
+        self.assertTrue(ip["comparable"])
+        self.assertTrue(ip["is_device_grade"])
+        self.assertEqual(ip["obtained_scenarios"], 38)
+        self.assertEqual(ip["expected_scenarios"], 38)
+        self.assertTrue(ip["provenance"]["consistent"])
+        self.assertEqual(ip["provenance"]["observed"]["gpu_family"], "apple")
+        self.assertEqual(ip["provenance"]["observed"]["browser"], "safari")
+        # launch reports observed env, never a hardcoded safari channel
+        self.assertNotIn("channel", ip["launch"])
+
+    def test_decision_doc_has_device_evidence_section_and_blockers(self):
+        t = read(DOC)
+        self.assertIn("## 12.", t)  # device evidence section
+        self.assertIn("DEVICE_VALIDATION", t)
+        self.assertIn("2 000", t)  # the iPad Leaflet polygon crossing
+        self.assertIn("Remaining decision blockers", t)
+        # B stays NOT YET (evidence-grounded), the §8 table still structurally valid
+        self.assertIn("NOT YET", t)
+
     def test_builtin_browser_smoke_is_preserved_as_a_negative_example(self):
         neg = read_result(os.path.join(
             "controller_smoke_builtin_browser_NEGATIVE",

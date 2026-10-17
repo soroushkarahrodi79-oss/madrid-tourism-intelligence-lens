@@ -4,17 +4,19 @@
 **Branch base:** `origin/main` @ `cf85a9b` (K11 / PR #88 merged)
 **Nature:** Measurement spike. **Decide, do not migrate.** No library is adopted here.
 
-> **Gate verdict: PARTIAL / BLOCKED.**
-> Every environment-independent measurement is complete and reproducible. The
-> acceptance criteria that require *real-device graphics performance*
+> **Gate verdict: PARTIAL — device criteria now MEASURED on a physical iPad M3
+> (DEVICE_VALIDATION); owner decision pending.**
+> Every environment-independent measurement was always complete and reproducible.
+> The acceptance criteria that require *real-device graphics performance*
 > (interaction-to-paint, frame time, the Leaflet ceiling crossing, the MapLibre
-> comparison) are **UNVERIFIED**: this spike was executed in a cloud Linux VM
-> whose WebGL renderer is **SwiftShader (software)** and which has no GPU, no
-> touch device and no device-representative network. Software-rasterised paint
-> numbers are not device numbers, and this document never presents them as such.
-> Reproducible, automated harnesses are delivered so the owner can complete the
-> device criteria on a mid-range laptop and a physical iPad; §10 is the exact
-> protocol. Nothing below is a fabricated or emulated device result.
+> comparison) were originally **UNVERIFIED** — the spike first ran in a cloud Linux
+> VM whose WebGL renderer is **SwiftShader (software)**. They are now **measured on
+> real hardware**: a complete, device-grade **iPad M3 / Safari** run (38/38, 19/19
+> comparable, `DEVICE_VALIDATION`) and a partial **Windows / Intel UHD 620** run
+> (37/38). **§12 is the evidence-based assessment.** No number in this document is a
+> software-rasterised, fabricated or emulated device result. The gate stays PARTIAL
+> only because the architectural decision is the **owner's** to confirm (PR #89 is
+> Draft); the physical-device criteria themselves are closed for the iPad.
 
 ---
 
@@ -23,7 +25,7 @@
 | # | Technology | Verdict | One-line basis |
 |---|---|---|---|
 | **A** | Keep current stack (Leaflet + vanilla JS, no build) | **GO** | Real payload is 2.11 MB gzip; existing canvas renderers handle it. No rewrite justified. |
-| **B** | MapLibre GL JS | **NOT YET** | Migration cost is high and concrete; the gain is **unmeasured on real hardware**. Numeric trigger in §6. |
+| **B** | MapLibre GL JS | **NOT YET** (evidence-grounded) | Device-measured (§12): at the **real** data volume Leaflet meets all thresholds on iPad M3 (pan p95 ≤ 30 ms) and neither engine wins universally; MapLibre's advantage appears only at polygon densities ≥ **2 000** (above today's ~724 ámbitos) or on weak integrated-GPU laptops. Trigger (§6.3) not crossed at current load. |
 | **C** | DuckDB-WASM | **NO-GO** | Outputs verified identical to plain JS; plain JS is **4.5× faster warm** and needs none of DuckDB's **6.93 MB gzip** engine + multi-second init. |
 | **D** | PMTiles | **NOT YET** (slaved to B) | Not decidable independently of MapLibre; it presupposes a vector renderer the product does not have. |
 | **D** | GeoParquet | **NO-GO** | No browser consumer without DuckDB-WASM (C = NO-GO); builder-side win is modest and already beaten by partitioning. |
@@ -38,10 +40,15 @@ feature-equivalent — it breaks Dynamics — so it is not a general user-visibl
 claim. Either way the win is a data-pipeline change, **not** a renderer or query
 engine, and the architecture is right.
 
-**Final recommendation:** keep the current architecture. Do not adopt MapLibre,
-PMTiles, DuckDB-WASM or GeoParquet now. Open a separate data-pipeline issue for
-origins partitioning. Re-run the device harnesses (§10) to close the UNVERIFIED
-criteria and confirm B's trigger has not been crossed.
+**Final recommendation (now device-grounded):** keep the current architecture.
+Do not adopt MapLibre, PMTiles, DuckDB-WASM or GeoParquet now. The physical iPad M3
+run (§12) **confirms** this: at the real data volume Leaflet meets every interaction
+threshold on a modern device and B's trigger (§6.3) is **not** crossed. Open a
+separate data-pipeline issue for origins partitioning. **Revisit B only if the
+roadmap commits to** (i) ámbito/polygon layers materially denser than today
+(> ~2 000 simultaneous polygons), where Leaflet pan degrades and MapLibre stays flat,
+or (ii) a hard support floor of weak integrated-GPU laptops, where Leaflet already
+fails the real-payload pan threshold (§12). Remaining decision blockers: §12.
 
 ---
 
@@ -221,14 +228,22 @@ gzip). That is a real, hardware-independent signal that the "load the whole
 GeoJSON" approach degrades at parcel scale regardless of the renderer — but it
 is a *load/parse* ceiling, distinct from the *interaction* ceiling.
 
-### 4.2 Interaction/paint ceiling — UNVERIFIED (device)
+### 4.2 Interaction/paint ceiling — MEASURED (device, §12)
 
 The count at which **interaction-to-paint p95 > 150 ms** or **pan-frame p95 >
-33 ms** cannot be measured here (SwiftShader). The harness
-`device_harness/leaflet_ceiling.html` generates the identical synthetic
-geometry in-browser and measures both metrics across the full count series. The
-owner runs it per §10; the resulting crossing is the MapLibre trigger.
-**No ceiling count is claimed in this document.**
+33.3 ms** could not be measured in the SwiftShader VM; `device_harness/leaflet_ceiling.html`
+generates the identical synthetic geometry in-browser and measures both metrics
+across the full count series. It has now been run on two physical devices (§12):
+
+- **iPad M3 / Safari** — Leaflet polygon **pan p95** crosses 33.3 ms at **2 000
+  polygons** (24 → **53** → 144 → 251 ms at 765 / 2 000 / 5 675 / 10 000); MapLibre
+  never crosses (17 → 26 ms). Point layers do not cross on iPad up to 50 000.
+- **Windows / Intel UHD 620** — Leaflet polygon pan is over threshold at the
+  **smallest** count (469 ms at 765) and **times out** at 10 000; MapLibre stays
+  ≤ 44.7 ms.
+
+The crossing is the MapLibre trigger (§6.3). The current product renders **~724
+ámbitos** — below the 2 000-polygon iPad crossing.
 
 The real-payload harness also separates **renderer-only** from **full-Lens**
 latency (§3.2a). In the container smoke run the full-Lens *synchronous
@@ -309,9 +324,9 @@ scale; the result is robust (identical outputs, order-of-magnitude cost gap).
 
 ---
 
-## 6. MapLibre GL JS (§3) — NOT YET
+## 6. MapLibre GL JS (§3) — NOT YET (now device-measured, §12)
 
-### 6.1 Gain — UNVERIFIED (device)
+### 6.1 Gain — MEASURED (device, §12)
 
 A bounded, disposable prototype (`maplibre_proto/maplibre_prototype.html`) is
 built for strict **parity** with the Leaflet harnesses (review #3): the **same**
@@ -344,11 +359,16 @@ radial halo, evidence/scope state, the area profile and i18n on each move. The
 harness measures the two models; it does not claim to reproduce the full view
 update.
 
-It could not be measured here: MapLibre WebGL on SwiftShader is software-rendered
-(meaningless for a GPU comparison) and its CDN is blocked in this container. **No
-MapLibre-vs-Leaflet performance claim — no migration advantage — is made in this
-document.** Only the device run (§10) can establish one, and the verdict stays
-NOT YET until it does.
+It could not be measured in the SwiftShader VM, but it **has** now been measured on
+real hardware (§12). The result: **at the current real data volume MapLibre shows no
+decisive advantage** — on the iPad M3 both engines sit within the 33.3 ms pan
+threshold for all 12 real-payload pairs (Leaflet ≤ 30 ms, MapLibre ≤ 26 ms) and
+neither is a universal winner. MapLibre's advantage is **real but conditional**: it
+stays flat as polygon count scales (17 → 26 ms to 10 000) while Leaflet degrades and
+crosses at 2 000, and on the weak Intel laptop Leaflet already fails the real-payload
+pan threshold while MapLibre is far closer to it. The verdict stays **NOT YET**
+because the trigger (§6.3) is not crossed at the data volume the product renders
+today; §12 states the remaining decision blockers.
 
 ### 6.2 Migration cost — enumerated (this is decidable now)
 
@@ -372,9 +392,15 @@ Adopt MapLibre only when **both** hold, measured on a real mid-range laptop
    **inside** the thresholds at that same count on the same devices.
 
 The §4.1 CPU evidence (0.56 s parse at 5,675 polygons) is a **leading
-indicator** that parcel scale is where this becomes live — but it is not the
-paint ceiling, so it cannot by itself fire the trigger. **Remaining
-uncertainty:** the entire gain side is unmeasured until the device run.
+indicator** that parcel scale is where this becomes live. **Device evidence (§12):**
+condition 1 is met on the iPad at **2 000 polygons** and condition 2 holds there too
+(MapLibre pan p95 17 ms) — **but only in the synthetic ceiling**, above the ~724
+ámbitos the product actually renders. At the real payload neither condition fires on
+the iPad (Leaflet is inside the thresholds). On the weak Intel laptop condition 1
+fires at the real payload, but MapLibre is only marginally inside 33.3 ms there, so
+the trigger is not cleanly satisfied. **Net: the trigger is not crossed at the
+current data volume on a capable device; it would fire if the roadmap pushes polygon
+density past ~2 000, or if weak integrated-GPU laptops become a hard support floor.**
 
 ---
 
@@ -460,8 +486,8 @@ spike must not modify.
 
 | Tech | Verdict | Measured evidence | Numeric trigger to change it | Remaining uncertainty |
 |---|---|---|---|---|
-| **A** Current stack | **GO** | 2.11 MB gzip total; existing canvas renderers; §2 | Any device-measured interaction-to-paint p95 > 150 ms on the shipped payload | Device confirmation pending (§10) |
-| **B** MapLibre | **NOT YET** | Migration cost §6.2 (7,809-line view layer, 7 Playwright suites, no-build loss); gain unmeasured | Device interaction-to-paint p95 > 150 ms or pan p95 > 33 ms at a required feature count (e.g. 5,675 parcels) **and** MapLibre inside those 150 ms / 33 ms thresholds at that count, on laptop + iPad | **Entire gain side unmeasured** until device run |
+| **A** Current stack | **GO** | 2.11 MB gzip total; existing canvas renderers; **iPad M3 real-payload pan p95 ≤ 30 ms, all 12 pairs within 33.3 ms** (§12); §2 | Any device-measured interaction-to-paint p95 > 150 ms on the shipped payload | **Confirmed on iPad M3**; weak Intel laptop fails real-payload pan (§12) |
+| **B** MapLibre | **NOT YET** | Migration cost §6.2 (7,809-line view layer, 7 Playwright suites, no-build loss); **gain now device-measured (§12): no decisive advantage at the real payload (≤724 ámbitos); flat as polygons scale while Leaflet crosses at 2,000** | Device pan p95 > 33.3 ms (or itp p95 > 150 ms) at a required feature count **and** MapLibre inside those thresholds at that count, on laptop + iPad — **met only at ≥ 2,000 polygons (iPad) or on weak integrated-GPU laptops**, both above/outside today's load | Roadmap polygon density > ~2,000 and target device floor (§12) are the open decisions, not the measurement |
 | **C** DuckDB-WASM | **NO-GO** | 4 shapes: shapes 1–3 identical outputs, JS faster warm (e.g. edition-diff 0.04 vs 0.70 ms); 6.93 MB gzip engine; §5 | > 100 k-feature arbitrary spatial joins, or > 500 k rows pushing JS over 150 ms on device | Shape-4 (containment) DuckDB side UNVERIFIED (spatial ext fetch blocked); plain-JS side done (6.1 ms) |
 | **D** PMTiles | **NOT YET** | Real MVT tiling measured: ámbito per-viewport 19 KB vs 916 KB whole-layer; slaved to B; §7.1 | B = GO **and** a vector layer > ~2 MB gzip whole-layer | tippecanoe archive cross-check (geojson-vt simplification differs) |
 | **D** GeoParquet | **NO-GO** | Geometry measured: ámbito GeoParquet 1,909 KB vs 922 KB GeoJSON gzip (**+107 %**, inflates); no reader-less browser consumer; §7.2 | C flips to GO **and** a builder-cost or payload case parquet uniquely solves | None material |
@@ -479,7 +505,9 @@ All figures above trace to committed JSON under `research/runtime_spike/results/
 - `geoparquet.json` — §7.2
 - `pmtiles.json` — §7.1 + tippecanoe procedure
 - `container_smoke_<suite>.json` — harness repeatability proof (labelled non-device)
-- device runs (to be added by the owner): `device_run_<suite>.json`
+- **`ipad/K12_iPad_M3_Safari_2026-10-17.json`** — §12 first COMPLETE device validation (iPad M3 / Safari, 38/38, `DEVICE_VALIDATION`)
+- **`windows/K12_Windows_Prueba1.json`** — §12 partial Windows observation (Intel UHD 620, 37/38)
+- `controller_smoke_builtin_browser_NEGATIVE/…` — a non-iPad controller export kept as an integrity negative example (refused device-grade)
 
 Re-run everything via `research/runtime_spike/README.md`.
 
@@ -545,8 +573,13 @@ gate to PASS:
 4. Read the Leaflet ceiling crossing (§4.2) and evaluate B's trigger (§6.3).
    Update §8 and Gate K §11 with the device figures.
 
-Until steps 1–2 are done on real hardware, the device criteria stay UNVERIFIED
-and the gate stays PARTIAL. **Do not** mark PASS from a container run.
+**Status:** step 2 (iPad) is **done** — a complete `DEVICE_VALIDATION` on a physical
+iPad M3 / Safari (§12). Step 1 (laptop) has a **partial** Windows run (37/38; the
+Leaflet 10 000-polygon cell timed out). The device criteria are therefore **closed on
+the iPad** and the ceiling/trigger are now evaluated against real figures (§12). The
+gate stays **PARTIAL only because the architectural decision is the owner's**; it is
+not a software-rasterised limitation any more. **Do not** mark PASS from a container
+run, and do not merge PR #89 without explicit owner approval.
 
 ---
 
@@ -584,6 +617,83 @@ and the gate stays PARTIAL. **Do not** mark PASS from a container run.
   `interaction_recompute_ms` covers two production models only; the full
   production Lens view update (panel/halo/evidence/area-profile/i18n) is larger
   and is not claimed here.
+
+---
+
+## 12. Device evidence — MEASURED (iPad M3 Safari + Windows)
+
+Two physical runs now exist, preserved byte-identical and independently audited (all
+88 iPad stat objects recompute exactly from their own `raw` samples; the verdict
+re-derives identically through the hardened controller core).
+
+- **iPad M3 / Safari** — `ipad/K12_iPad_M3_Safari_2026-10-17.json`
+  (SHA-256 `6603144d…`). `DEVICE_VALIDATION`: 38/38 complete, 19/19 comparable,
+  `is_device_grade:true`, Apple GPU + Safari, provenance consistent.
+- **Windows / Intel UHD 620** — `windows/K12_Windows_Prueba1.json`. Partial (37/38):
+  Leaflet 10 000-polygon timed out; device-grade hardware but not a validation.
+
+### 12.1 Synthetic ceiling — pan p95 (ms), threshold 33.3
+
+| polygons | iPad Leaflet | iPad MapLibre | Win Leaflet | Win MapLibre |
+| --- | --- | --- | --- | --- |
+| 765   | 24  | 17 | 469.6 | 29.7 |
+| 2 000  | **53** | 17 | 898.9 | 27.6 |
+| 5 675  | **144** | 21 | 2080.7 | 32.5 |
+| 10 000 | **251** | 26 | timeout | 44.7 |
+
+Points (11 500 / 25 000 / 50 000) do not cross on iPad (17 / 19 / 28 ms Leaflet).
+**iPad Leaflet polygon pan crosses 33.3 ms at 2 000 polygons; MapLibre never crosses.**
+The pattern is identical on both devices; the iPad M3 is ~10–20× faster in absolute
+terms. The product renders **~724 ámbitos today — below the 2 000 crossing.**
+
+### 12.2 Real payload (≤724 ámbitos, ~11 265 licences) — iPad pan p95
+
+All **12 real-payload pairs are within 33.3 ms on the iPad for both engines**
+(Leaflet max **30 ms**, MapLibre max **26 ms**); `interaction_to_paint_ms.p95`
+≈ 33–34 ms for both (the double-rAF proxy floors near two 60 fps frames — not lag).
+**Neither engine is a universal winner** (e.g. `ambito|light` Leaflet 17 vs MapLibre
+20–25 ms; `ambito,licence,admin|satellite|renderer` Leaflet 30 vs MapLibre 25 ms).
+On the weak Intel laptop, by contrast, Leaflet real-payload pan was **143–311 ms**
+(failing) and MapLibre **35–46 ms** (marginally over on the 3-layer sets).
+
+### 12.3 Assessment
+
+The device evidence **confirms A = GO** at the current data volume on a modern device
+and shows **B's trigger (§6.3) is not crossed today**: MapLibre's advantage is real
+but materialises only (i) at polygon densities ≥ ~2 000 (above the ~724 ámbitos
+shipped) or (ii) on weak integrated-GPU laptops, where Leaflet fails the real-payload
+pan threshold but MapLibre itself is only marginally inside it. Keep Leaflet.
+
+### 12.4 Remaining decision blockers (owner's call — PR #89 stays Draft)
+
+1. **Future polygon density.** Will any view render **> ~2 000 simultaneous
+   ámbito-class polygons**? If no, Leaflet suffices indefinitely on modern devices.
+   If yes (e.g. parcel-scale overlays), the trigger fires → adopt MapLibre.
+2. **Target device floor.** Is the **weak integrated-GPU laptop** class (Intel UHD
+   620 and similar) a hard support requirement? There Leaflet already fails the
+   real-payload 33.3 ms pan; MapLibre is better but not comfortably inside it — so
+   neither engine is clean, and this needs an explicit product decision.
+3. **Warm cache / cellular not measured.** Both device runs are **cold cache, wifi,
+   single session**; `map_ready`/FCP are cold-start proxies.
+4. **Readiness barriers are not engine-equivalent.** Leaflet does not await raster
+   tiles; MapLibre awaits `idle` + `isSourceLoaded()`. So `map_ready`/FCP are not
+   strictly comparable between engines (the interaction/pan metrics, identical
+   workload, are).
+5. **Not full Lens fidelity.** The harness measures two production pure models, not
+   the full per-move Lens view update (panel/halo/evidence/area-profile/i18n), which
+   is larger for both engines equally.
+6. **`interaction_to_paint_ms` is a double-rAF proxy**, frame-quantised, **not a true
+   paint timestamp** — hence the ~33 ms floor regardless of engine.
+
+**Recommended architectural decision:** **keep the current Leaflet + vanilla-JS stack
+(A = GO); hold MapLibre at NOT YET.** The first complete physical device validation
+shows the current architecture meets every interaction threshold at the real data
+volume on a modern iPad, and the MapLibre migration cost (§6.2) is not repaid at
+today's load. Revisit only when blocker 1 or blocker 2 resolves toward denser
+polygons or a weak-GPU support floor. This is a recommendation; the decision is the
+owner's, and **PR #89 stays Draft until explicit owner approval**.
+
+---
 
 *Generated as part of K12. No measurement, device result or PASS verdict in this
 document is fabricated or emulated.*

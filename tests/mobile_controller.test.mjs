@@ -402,6 +402,65 @@ test("the built-in-browser controller smoke is REFUSED device-grade and its spar
   assert.equal(withRaw, 29, "all 29 real measurements retained");
 });
 
+// ── POSITIVE example: the real iPad M3 Safari device validation ───────────────
+// The first complete physical iPad run must pass the hardened validator: every
+// stat recomputes from its raw samples, and the verdict re-derives as a
+// DEVICE_VALIDATION (Apple GPU + Safari + attestation + consistent environment).
+
+test("the real iPad M3 Safari run is a verified DEVICE_VALIDATION with consistent stats", () => {
+  const file = path.resolve(HERE, "../research/runtime_spike/results/ipad/K12_iPad_M3_Safari_2026-10-17.json");
+  const ipad = JSON.parse(fs.readFileSync(file, "utf8"));
+  assert.equal(ipad.run_kind, "DEVICE_VALIDATION");
+
+  // every stat object is internally consistent (no sparse/fabricated metric)
+  let checked = 0;
+  for (const r of ipad.results) {
+    for (const k of ["interaction_to_paint_ms", "pan_frame_ms", "interaction_recompute_ms"]) {
+      const st = r[k];
+      if (st && Array.isArray(st.raw)) {
+        checked++;
+        assert.equal(statOk(st).ok, true, `${r.scenario} ${k}: ${statOk(st).why}`);
+      }
+    }
+  }
+  assert.ok(checked >= 76, `expected many stat objects, got ${checked}`);
+
+  // re-derive the verdict through the fixed core
+  const byKeyEngine = new Map();
+  for (const r of ipad.results) byKeyEngine.set(`${r.pairKey}|${r.renderer || r.engine}`, r);
+  const s = createSession({ suite: "full", meta: { device_label: ipad.device_label, attested: true, userAgent: ipad.verified_config.userAgent } });
+  for (let i = 0; i < s.scenarios.length; i++) {
+    const sc = s.scenarios[i];
+    const r = byKeyEngine.get(`${sc.pairKey}|${sc.engine}`);
+    markDispatched(s, i);
+    if (r && !r.error) applyHandoff(s, { idx: i, id: sc.id, result: r });
+    else applyHandoff(s, { idx: i, id: sc.id, error: "missing" });
+  }
+  const out = buildConsolidated(s);
+  assert.equal(out.complete, true);
+  assert.equal(out.comparable, true);
+  assert.equal(out.is_device_grade, true);
+  assert.equal(out.run_kind, "DEVICE_VALIDATION");
+  assert.equal(out.provenance.consistent, true);
+  assert.deepEqual([out.provenance.observed.browser, out.provenance.observed.gpu_family], ["safari", "apple"]);
+  assert.equal(out.obtained_scenarios, 38);
+  assert.equal(out.comparability.filter((p) => p.comparable).length, 19);
+});
+
+test("iPad Leaflet polygon pan crosses 33.3 ms at 2000 while MapLibre stays under (evidence check)", () => {
+  const file = path.resolve(HERE, "../research/runtime_spike/results/ipad/K12_iPad_M3_Safari_2026-10-17.json");
+  const ipad = JSON.parse(fs.readFileSync(file, "utf8"));
+  const pan = (pairKey, engine) => {
+    const r = ipad.results.find((x) => x.pairKey === pairKey && (x.renderer || x.engine) === engine);
+    return r?.pan_frame_ms?.p95;
+  };
+  assert.ok(pan("ceil|polygon|765", "leaflet") <= 33.3, "Leaflet under at 765");
+  assert.ok(pan("ceil|polygon|2000", "leaflet") > 33.3, "Leaflet crosses at 2000");
+  for (const c of [765, 2000, 5675, 10000]) {
+    assert.ok(pan(`ceil|polygon|${c}`, "maplibre") <= 33.3, `MapLibre under at ${c}`);
+  }
+});
+
 // ── pure URL builder ───────────────────────────────────────────────────────────
 
 test("buildScenarioUrl preserves the payload query and adds fail-closed controller params", () => {
