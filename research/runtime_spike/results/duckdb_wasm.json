@@ -1,0 +1,303 @@
+{
+  "spike": "K12 runtime decision",
+  "measurement": "duckdb_wasm_vs_plain_js",
+  "deterministic": "payload bytes hardware-independent; init/query ms CPU-only (host recorded)",
+  "host": {
+    "kind": "CONTAINER_CPU — not a device",
+    "note": "Timings below are CPU-bound work measured in a shared cloud Linux VM with no GPU (software rasterisation). They are valid as RELATIVE, CPU-only comparisons between approaches on the SAME host. They are NOT mid-range-laptop or iPad numbers and must never be reported as such.",
+    "platform": "linux",
+    "arch": "x64",
+    "cpuModel": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "cpuCount": 4,
+    "totalMemGB": 15.7,
+    "nodeVersion": "v22.22.0",
+    "gitSha": "f6d76f30cf72a7db517a099c89dc14db4381e54d",
+    "measuredAt": "2026-10-16T11:25:46.153Z"
+  },
+  "dataset": {
+    "licence_records": 11265,
+    "date_extent": {
+      "min": "2023-01-13",
+      "max": "2026-09-30"
+    }
+  },
+  "query_params": {
+    "centre": {
+      "lat": 40.4168,
+      "lon": -3.7038
+    },
+    "radius_m": 1500,
+    "window": {
+      "from": "2025-10-01",
+      "to": "2026-09-30",
+      "valid": true
+    }
+  },
+  "payload": {
+    "engine_build": "eh (exception-handling; the default browser build)",
+    "wasm_raw_bytes": 35659694,
+    "wasm_gzip_bytes": 7075384,
+    "wasm_brotli_bytes_note": "≈4.50 MB at brotli q11 (one-off; not recomputed per run)",
+    "js_glue_raw_bytes": 790457,
+    "js_glue_gzip_bytes": 193588,
+    "js_glue_brotli_bytes": 160528,
+    "total_raw_bytes": 36450151,
+    "total_gzip_bytes": 7268972,
+    "comparison_note": "App's ENTIRE committed data footprint is 2.11 MB gzip (baseline_inventory.json). Booting DuckDB-WASM transfers ~6.9 MB gzip (≈4.7 MB brotli) before answering one query."
+  },
+  "correctness": {
+    "inCircle": {
+      "js_matches": 1554,
+      "duckdb_matches": 1554,
+      "identical": true
+    },
+    "dateWindow": {
+      "js_matches": 527,
+      "duckdb_matches": 527,
+      "identical": true
+    },
+    "editionDiff": {
+      "js_changed": 113,
+      "duckdb_changed": 113,
+      "identical": true
+    },
+    "containment": {
+      "js_hits": 146,
+      "duckdb_hits": null,
+      "identical": null,
+      "duckdb_status": "UNVERIFIED — DuckDB spatial extension (ST_Contains) requires a network fetch (INSTALL spatial) that is blocked in this container; it also ADDS payload on top of the 6.93 MB engine. Plain-JS containment is the production point-in-polygon path."
+    }
+  },
+  "query_shapes_covered": [
+    "in_circle",
+    "date_window",
+    "edition_diff",
+    "ambito_containment"
+  ],
+  "timings": {
+    "duckdb": {
+      "init_ms": 1519.5,
+      "load_table_ms": 414.46,
+      "inCircle_cold_ms": 28.81,
+      "inCircle_warm": {
+        "n": 15,
+        "min": 4.324,
+        "median": 4.763,
+        "p95": 12.846,
+        "max": 12.846,
+        "mean": 5.655,
+        "raw_ms": [
+          4.324,
+          4.357,
+          4.39,
+          4.471,
+          4.499,
+          4.602,
+          4.632,
+          4.763,
+          5.06,
+          5.106,
+          5.119,
+          5.585,
+          6.797,
+          8.275,
+          12.846
+        ]
+      },
+      "dateWindow_cold_ms": 6.86,
+      "dateWindow_warm": {
+        "n": 15,
+        "min": 2.708,
+        "median": 2.816,
+        "p95": 2.957,
+        "max": 2.957,
+        "mean": 2.815,
+        "raw_ms": [
+          2.708,
+          2.719,
+          2.74,
+          2.772,
+          2.782,
+          2.783,
+          2.789,
+          2.816,
+          2.82,
+          2.82,
+          2.829,
+          2.831,
+          2.925,
+          2.932,
+          2.957
+        ]
+      },
+      "editionDiff_warm": {
+        "n": 15,
+        "min": 0.651,
+        "median": 0.699,
+        "p95": 0.832,
+        "max": 0.832,
+        "mean": 0.712,
+        "raw_ms": [
+          0.651,
+          0.679,
+          0.679,
+          0.683,
+          0.69,
+          0.69,
+          0.696,
+          0.699,
+          0.71,
+          0.718,
+          0.723,
+          0.731,
+          0.742,
+          0.759,
+          0.832
+        ]
+      },
+      "containment": "UNVERIFIED (spatial extension fetch blocked in container)"
+    },
+    "plain_js": {
+      "inCircle": {
+        "n": 25,
+        "min": 1.22,
+        "median": 1.301,
+        "p95": 1.638,
+        "max": 2.284,
+        "mean": 1.37,
+        "raw_ms": [
+          1.22,
+          1.221,
+          1.239,
+          1.246,
+          1.272,
+          1.274,
+          1.28,
+          1.285,
+          1.287,
+          1.289,
+          1.292,
+          1.294,
+          1.301,
+          1.307,
+          1.321,
+          1.325,
+          1.328,
+          1.354,
+          1.37,
+          1.423,
+          1.445,
+          1.459,
+          1.491,
+          1.638,
+          2.284
+        ]
+      },
+      "dateWindow": {
+        "n": 25,
+        "min": 0.738,
+        "median": 0.865,
+        "p95": 1.196,
+        "max": 1.459,
+        "mean": 0.9,
+        "raw_ms": [
+          0.738,
+          0.751,
+          0.776,
+          0.782,
+          0.784,
+          0.8,
+          0.805,
+          0.815,
+          0.831,
+          0.844,
+          0.849,
+          0.859,
+          0.865,
+          0.866,
+          0.867,
+          0.868,
+          0.876,
+          0.885,
+          0.893,
+          0.957,
+          1.015,
+          1.034,
+          1.087,
+          1.196,
+          1.459
+        ]
+      },
+      "editionDiff": {
+        "n": 25,
+        "min": 0.037,
+        "median": 0.04,
+        "p95": 0.047,
+        "max": 0.136,
+        "mean": 0.044,
+        "raw_ms": [
+          0.037,
+          0.037,
+          0.037,
+          0.038,
+          0.038,
+          0.038,
+          0.038,
+          0.038,
+          0.038,
+          0.039,
+          0.039,
+          0.04,
+          0.04,
+          0.04,
+          0.041,
+          0.041,
+          0.041,
+          0.042,
+          0.042,
+          0.043,
+          0.043,
+          0.044,
+          0.044,
+          0.047,
+          0.136
+        ]
+      },
+      "containment": {
+        "n": 15,
+        "min": 4.159,
+        "median": 6.123,
+        "p95": 7.253,
+        "max": 7.253,
+        "mean": 5.506,
+        "raw_ms": [
+          4.159,
+          4.192,
+          4.36,
+          4.438,
+          4.438,
+          4.49,
+          4.845,
+          6.123,
+          6.151,
+          6.248,
+          6.293,
+          6.3,
+          6.524,
+          6.775,
+          7.253
+        ]
+      },
+      "containment_points": 500,
+      "containment_polygons": 724
+    }
+  },
+  "verdict_inputs": {
+    "engine_transfer_gzip_MB": 6.93,
+    "plain_js_warm_median_ms": 1.301,
+    "duckdb_warm_median_ms": 4.763,
+    "duckdb_first_query_wall_ms": 1962.77,
+    "note": "DuckDB first-answer wall time includes engine init + table load + cold query, and EXCLUDES the multi-MB engine download. Plain JS answers from already-loaded records."
+  },
+  "status": "MEASURED_IN_CONTAINER"
+}

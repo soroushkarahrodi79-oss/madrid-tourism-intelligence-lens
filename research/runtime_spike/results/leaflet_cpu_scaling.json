@@ -1,0 +1,443 @@
+{
+  "spike": "K12 runtime decision",
+  "measurement": "leaflet_cpu_scaling",
+  "scope": "CPU/parse/style/cull component ONLY — NOT GPU paint or interaction-to-paint",
+  "ceiling_crossing": "DEFERRED to device_harness/leaflet_ceiling.html (requires a real GPU)",
+  "deterministic": "bytes + vertices hardware-independent; *_ms CPU-only (host recorded)",
+  "host": {
+    "kind": "CONTAINER_CPU — not a device",
+    "note": "Timings below are CPU-bound work measured in a shared cloud Linux VM with no GPU (software rasterisation). They are valid as RELATIVE, CPU-only comparisons between approaches on the SAME host. They are NOT mid-range-laptop or iPad numbers and must never be reported as such.",
+    "platform": "linux",
+    "arch": "x64",
+    "cpuModel": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "cpuCount": 4,
+    "totalMemGB": 15.7,
+    "nodeVersion": "v22.22.0",
+    "gitSha": "cf85a9b45fd68b73730c809e6e75c04751aeb473",
+    "measuredAt": "2026-10-16T10:25:55.743Z"
+  },
+  "synthetic_method": {
+    "generator": "research/runtime_spike/leaflet_ceiling/generate_synthetic.mjs",
+    "prng": "mulberry32 seeded — reproducible",
+    "polygon_vertex_budget": 194,
+    "real_ambito_reference": "724 features / 140507 vertices (≈194 v/feature)",
+    "limitations": "convex-ish blobs, uniform scatter — stresses throughput, not topology/clustering"
+  },
+  "polygon_levels": [
+    {
+      "kind": "polygon",
+      "count": 765,
+      "vertices": 149175,
+      "raw_bytes": 6002783,
+      "gzip_bytes": 2292002,
+      "generate_ms": 32,
+      "serialize_ms": {
+        "n": 7,
+        "min": 67.167,
+        "median": 68.506,
+        "p95": 69.378,
+        "max": 69.378,
+        "mean": 68.349,
+        "raw_ms": [
+          67.167,
+          67.361,
+          68.245,
+          68.506,
+          68.623,
+          69.164,
+          69.378
+        ]
+      },
+      "parse_ms": {
+        "n": 7,
+        "min": 69.714,
+        "median": 70.771,
+        "p95": 74.048,
+        "max": 74.048,
+        "mean": 71.04,
+        "raw_ms": [
+          69.714,
+          69.748,
+          70.343,
+          70.771,
+          71.171,
+          71.483,
+          74.048
+        ]
+      },
+      "style_pass_ms": {
+        "n": 7,
+        "min": 1.481,
+        "median": 1.574,
+        "p95": 1.594,
+        "max": 1.594,
+        "mean": 1.549,
+        "raw_ms": [
+          1.481,
+          1.493,
+          1.529,
+          1.574,
+          1.575,
+          1.593,
+          1.594
+        ]
+      }
+    },
+    {
+      "kind": "polygon",
+      "count": 2000,
+      "vertices": 390000,
+      "raw_bytes": 15694288,
+      "gzip_bytes": 5990492,
+      "generate_ms": 49.49,
+      "serialize_ms": {
+        "n": 7,
+        "min": 151.812,
+        "median": 169.371,
+        "p95": 176.179,
+        "max": 176.179,
+        "mean": 167.985,
+        "raw_ms": [
+          151.812,
+          160.286,
+          168.609,
+          169.371,
+          173.751,
+          175.885,
+          176.179
+        ]
+      },
+      "parse_ms": {
+        "n": 7,
+        "min": 119.843,
+        "median": 148.083,
+        "p95": 174.868,
+        "max": 174.868,
+        "mean": 144.381,
+        "raw_ms": [
+          119.843,
+          122.466,
+          126.325,
+          148.083,
+          157.318,
+          161.767,
+          174.868
+        ]
+      },
+      "style_pass_ms": {
+        "n": 7,
+        "min": 3.031,
+        "median": 3.32,
+        "p95": 3.69,
+        "max": 3.69,
+        "mean": 3.299,
+        "raw_ms": [
+          3.031,
+          3.136,
+          3.175,
+          3.32,
+          3.33,
+          3.412,
+          3.69
+        ]
+      }
+    },
+    {
+      "kind": "polygon",
+      "count": 5675,
+      "vertices": 1106625,
+      "raw_bytes": 44533738,
+      "gzip_bytes": 17001718,
+      "generate_ms": 437.5,
+      "serialize_ms": {
+        "n": 7,
+        "min": 446.394,
+        "median": 503.393,
+        "p95": 581.278,
+        "max": 581.278,
+        "mean": 510.323,
+        "raw_ms": [
+          446.394,
+          488.125,
+          488.258,
+          503.393,
+          523.099,
+          541.712,
+          581.278
+        ]
+      },
+      "parse_ms": {
+        "n": 7,
+        "min": 343.461,
+        "median": 562.389,
+        "p95": 628.162,
+        "max": 628.162,
+        "mean": 538.95,
+        "raw_ms": [
+          343.461,
+          483.265,
+          548.738,
+          562.389,
+          580.917,
+          625.719,
+          628.162
+        ]
+      },
+      "style_pass_ms": {
+        "n": 7,
+        "min": 10.378,
+        "median": 10.779,
+        "p95": 13.339,
+        "max": 13.339,
+        "mean": 11.381,
+        "raw_ms": [
+          10.378,
+          10.511,
+          10.69,
+          10.779,
+          11.564,
+          12.409,
+          13.339
+        ]
+      }
+    },
+    {
+      "kind": "polygon",
+      "count": 10000,
+      "vertices": 1950000,
+      "raw_bytes": 78476028,
+      "gzip_bytes": 29957949,
+      "generate_ms": 615.96,
+      "serialize_ms": {
+        "n": 7,
+        "min": 865.959,
+        "median": 924.989,
+        "p95": 1264.449,
+        "max": 1264.449,
+        "mean": 1010.971,
+        "raw_ms": [
+          865.959,
+          888.819,
+          914.119,
+          924.989,
+          975.218,
+          1243.244,
+          1264.449
+        ]
+      },
+      "parse_ms": {
+        "n": 7,
+        "min": 623.922,
+        "median": 782.83,
+        "p95": 1047.459,
+        "max": 1047.459,
+        "mean": 814.603,
+        "raw_ms": [
+          623.922,
+          624.676,
+          666.112,
+          782.83,
+          947.846,
+          1009.374,
+          1047.459
+        ]
+      },
+      "style_pass_ms": {
+        "n": 7,
+        "min": 21.944,
+        "median": 23.316,
+        "p95": 25.936,
+        "max": 25.936,
+        "mean": 23.402,
+        "raw_ms": [
+          21.944,
+          22.242,
+          22.855,
+          23.316,
+          23.32,
+          24.204,
+          25.936
+        ]
+      }
+    }
+  ],
+  "point_levels": [
+    {
+      "kind": "point",
+      "count": 11500,
+      "vertices": 11500,
+      "raw_bytes": 1698917,
+      "gzip_bytes": 242199,
+      "generate_ms": 9.04,
+      "serialize_ms": {
+        "n": 7,
+        "min": 19.084,
+        "median": 20.855,
+        "p95": 21.58,
+        "max": 21.58,
+        "mean": 20.432,
+        "raw_ms": [
+          19.084,
+          19.223,
+          19.82,
+          20.855,
+          20.919,
+          21.54,
+          21.58
+        ]
+      },
+      "parse_ms": {
+        "n": 7,
+        "min": 9.346,
+        "median": 16.831,
+        "p95": 19.595,
+        "max": 19.595,
+        "mean": 14.815,
+        "raw_ms": [
+          9.346,
+          9.572,
+          9.574,
+          16.831,
+          19.211,
+          19.575,
+          19.595
+        ]
+      },
+      "style_pass_ms": {
+        "n": 7,
+        "min": 0.238,
+        "median": 0.25,
+        "p95": 0.715,
+        "max": 0.715,
+        "mean": 0.314,
+        "raw_ms": [
+          0.238,
+          0.239,
+          0.243,
+          0.25,
+          0.252,
+          0.264,
+          0.715
+        ]
+      }
+    },
+    {
+      "kind": "point",
+      "count": 25000,
+      "vertices": 25000,
+      "raw_bytes": 3706640,
+      "gzip_bytes": 526445,
+      "generate_ms": 9.86,
+      "serialize_ms": {
+        "n": 7,
+        "min": 15.853,
+        "median": 25.297,
+        "p95": 30.917,
+        "max": 30.917,
+        "mean": 23.286,
+        "raw_ms": [
+          15.853,
+          16.007,
+          17.279,
+          25.297,
+          26.9,
+          30.748,
+          30.917
+        ]
+      },
+      "parse_ms": {
+        "n": 7,
+        "min": 21.276,
+        "median": 26.103,
+        "p95": 28.554,
+        "max": 28.554,
+        "mean": 25.104,
+        "raw_ms": [
+          21.276,
+          23.288,
+          23.295,
+          26.103,
+          26.282,
+          26.93,
+          28.554
+        ]
+      },
+      "style_pass_ms": {
+        "n": 7,
+        "min": 0.33,
+        "median": 0.359,
+        "p95": 3.826,
+        "max": 3.826,
+        "mean": 0.851,
+        "raw_ms": [
+          0.33,
+          0.33,
+          0.336,
+          0.359,
+          0.368,
+          0.406,
+          3.826
+        ]
+      }
+    },
+    {
+      "kind": "point",
+      "count": 50000,
+      "vertices": 50000,
+      "raw_bytes": 7424443,
+      "gzip_bytes": 1052645,
+      "generate_ms": 13.07,
+      "serialize_ms": {
+        "n": 7,
+        "min": 46.016,
+        "median": 52.332,
+        "p95": 70.498,
+        "max": 70.498,
+        "mean": 54.3,
+        "raw_ms": [
+          46.016,
+          46.168,
+          51.001,
+          52.332,
+          56.847,
+          57.236,
+          70.498
+        ]
+      },
+      "parse_ms": {
+        "n": 7,
+        "min": 48.574,
+        "median": 49.458,
+        "p95": 59.322,
+        "max": 59.322,
+        "mean": 50.818,
+        "raw_ms": [
+          48.574,
+          48.699,
+          48.748,
+          49.458,
+          50.46,
+          50.468,
+          59.322
+        ]
+      },
+      "style_pass_ms": {
+        "n": 7,
+        "min": 0.652,
+        "median": 0.712,
+        "p95": 3.611,
+        "max": 3.611,
+        "mean": 1.128,
+        "raw_ms": [
+          0.652,
+          0.691,
+          0.704,
+          0.712,
+          0.736,
+          0.788,
+          3.611
+        ]
+      }
+    }
+  ]
+}

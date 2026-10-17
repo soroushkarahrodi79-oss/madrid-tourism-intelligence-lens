@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>K12 — Leaflet ceiling harness</title>
+    <link rel="stylesheet" href="/assets/leaflet/leaflet.css" />
+    <style>
+      html, body { margin: 0; height: 100%; background: #08101a; }
+      #map { position: absolute; inset: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script src="/assets/leaflet/leaflet.js"></script>
+    <script src="./rum.js"></script>
+    <script>
+      // K12 Leaflet CEILING harness. Loads SYNTHETIC geometry at a chosen count
+      // into a production-style canvas layer and measures interaction-to-paint
+      // and pan frame time. Run across the count series to find the crossing
+      // (interaction_to_paint p95 > 150 ms OR pan_frame p95 > 33 ms) — that
+      // crossing is the MapLibre trigger (thresholds.json).
+      //   ?kind=polygon&count=5675   or   ?kind=point&count=50000
+      // Synthetic generator MIRRORS leaflet_ceiling/generate_synthetic.mjs
+      // (same mulberry32, same seeds) so container and device measure identical
+      // geometry. Keep the two in sync.
+      const Q = new URLSearchParams(location.search);
+      const kind = Q.get("kind") || "polygon";
+      const count = Number(Q.get("count") || 2000);
+      const scenario = `leaflet_ceiling_${kind}_${count}`;
+      const BBOX = { west: -3.889, south: 40.312, east: -3.518, north: 40.564 };
+      const AVG_V = 194; // REAL_AMBITO_AVG_VERTICES
+
+      function mulberry32(seed) {
+        let a = seed >>> 0;
+        return function () {
+          a |= 0; a = (a + 0x6d2b79f5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+      function makePolygons(n) {
+        const rnd = mulberry32(42); const f = [];
+        for (let i = 0; i < n; i++) {
+          const cx = BBOX.west + rnd() * (BBOX.east - BBOX.west);
+          const cy = BBOX.south + rnd() * (BBOX.north - BBOX.south);
+          const r = 0.0008 + rnd() * 0.0025; const ring = [];
+          for (let v = 0; v < AVG_V; v++) {
+            const ang = (v / AVG_V) * Math.PI * 2; const j = 0.6 + rnd() * 0.8;
+            ring.push([cx + Math.cos(ang) * r * j, cy + Math.sin(ang) * r * j]);
+          }
+          ring.push(ring[0]);
+          f.push({ type: "Feature", properties: { id: `syn-poly-${i}` }, geometry: { type: "Polygon", coordinates: [ring] } });
+        }
+        return { type: "FeatureCollection", features: f };
+      }
+      function makePoints(n) {
+        const rnd = mulberry32(7); const f = [];
+        for (let i = 0; i < n; i++)
+          f.push({ type: "Feature", properties: { id: `syn-pt-${i}` }, geometry: { type: "Point", coordinates: [BBOX.west + rnd() * (BBOX.east - BBOX.west), BBOX.south + rnd() * (BBOX.north - BBOX.south)] } });
+        return { type: "FeatureCollection", features: f };
+      }
+
+      const map = L.map("map", { zoomControl: false, preferCanvas: true }).setView([40.4168, -3.7038], 12);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+      map.createPane("synPane"); map.getPane("synPane").style.zIndex = 420;
+      const R = L.canvas({ pane: "synPane", padding: 0.3 });
+      const lens = L.circle([40.4168, -3.7038], { radius: 1200, color: "#36f", weight: 2, fill: false, pane: "synPane" }).addTo(map);
+
+      async function build() {
+        const fc = kind === "point" ? makePoints(count) : makePolygons(count);
+        if (kind === "point") {
+          const g = L.layerGroup();
+          for (const feat of fc.features)
+            L.circleMarker([feat.geometry.coordinates[1], feat.geometry.coordinates[0]], { renderer: R, radius: 3, weight: 0, fillColor: "#4ad", fillOpacity: 0.7, pane: "synPane" }).addTo(g);
+          g.addTo(map);
+        } else {
+          L.geoJSON(fc, { renderer: R, style: { color: "#c84", weight: 1, fillColor: "#c84", fillOpacity: 0.12 } }).addTo(map);
+        }
+        await K12RUM.nextPaint();
+      }
+
+      let theta = 0;
+      function interactionStep() {
+        theta += 0.15;
+        lens.setLatLng([40.4168 + Math.sin(theta) * 0.004, -3.7038 + Math.cos(theta) * 0.004]);
+      }
+      function pan() {
+        return new Promise((resolve) => {
+          let i = 0; const c = map.getCenter();
+          const step = () => { i++; map.panTo([c.lat + i * 0.0006, c.lng + i * 0.0006], { animate: false }); i < 60 ? requestAnimationFrame(step) : resolve(); };
+          requestAnimationFrame(step);
+        });
+      }
+
+      window.__K12_RUN__ = async () =>
+        K12RUM.run({ scenario, renderer: "leaflet", readiness_barrier: "leaflet: synthetic layer added synchronously to the canvas renderer + double-rAF settle", device_label: Q.get("device_label") || "", cache: Q.get("cache") || "", network: Q.get("network") || "", reps: Number(Q.get("reps") || 40), ready: build, interactionStep, pan });
+      if (Q.get("auto") === "1") window.addEventListener("load", () => window.__K12_RUN__());
+    </script>
+  </body>
+</html>

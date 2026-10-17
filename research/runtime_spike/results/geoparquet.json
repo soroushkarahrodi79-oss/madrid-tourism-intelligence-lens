@@ -1,0 +1,52 @@
+{
+  "spike": "K12 runtime decision",
+  "measurement": "geoparquet_builder_side",
+  "deterministic": "all figures are byte sizes (hardware-independent)",
+  "pyarrow_version": "26.0.0",
+  "python_version": "3.13.16",
+  "browser_consumer_finding": "No browser consumer reads Parquet/GeoParquet WITHOUT a WASM reader (DuckDB-WASM or parquet-wasm). GeoParquet is therefore gated behind the DuckDB-WASM decision (NO-GO at this scale).",
+  "tabular_artifacts": [
+    {
+      "artifact": "urban_licences",
+      "rows": 11265,
+      "full_json_raw_bytes": 5240735,
+      "full_json_gzip_bytes": 295413,
+      "records_only_json_raw_bytes": 3749791,
+      "records_only_json_gzip_bytes": 281903,
+      "parquet_none_bytes": 508448,
+      "parquet_snappy_bytes": 362719,
+      "parquet_gzip_bytes": 285386,
+      "parquet_zstd_bytes": 276320
+    },
+    {
+      "artifact": "domestic_origins",
+      "rows": 14811,
+      "full_json_raw_bytes": 3711564,
+      "full_json_gzip_bytes": 257561,
+      "records_only_json_raw_bytes": 3101981,
+      "records_only_json_gzip_bytes": 248957,
+      "parquet_none_bytes": 164668,
+      "parquet_snappy_bytes": 131502,
+      "parquet_gzip_bytes": 107476,
+      "parquet_zstd_bytes": 110714
+    }
+  ],
+  "geometry_artifacts": [
+    {
+      "artifact": "ambitos",
+      "features": 724,
+      "geojson_raw_bytes": 3487156,
+      "geojson_gzip_bytes": 944842,
+      "geoparquet_zstd_bytes": 1954910,
+      "geoparquet_snappy_bytes": 2237875
+    },
+    {
+      "artifact": "admin",
+      "features": 153,
+      "geojson_raw_bytes": 2586576,
+      "geojson_gzip_bytes": 255616,
+      "geoparquet_zstd_bytes": 282070,
+      "geoparquet_snappy_bytes": 509348
+    }
+  ]
+}

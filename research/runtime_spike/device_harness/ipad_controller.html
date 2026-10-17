@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>K12 — iPad benchmark controller</title>
+    <style>
+      :root { color-scheme: dark; }
+      html, body { margin: 0; background: #08101a; color: #cfe3ff; font: 15px/1.5 -apple-system, system-ui, sans-serif; }
+      main { max-width: 760px; margin: 0 auto; padding: 16px; }
+      h1 { font-size: 20px; margin: 0 0 4px; }
+      p.sub { color: #8fb0d8; margin: 0 0 16px; font-size: 13px; }
+      section { background: #0e1b2e; border: 1px solid #22344f; border-radius: 10px; padding: 14px; margin: 0 0 14px; }
+      label { display: block; font-size: 13px; color: #9fc0e8; margin: 10px 0 4px; }
+      input[type="text"], select { width: 100%; box-sizing: border-box; font-size: 16px; padding: 10px; border-radius: 8px; border: 1px solid #2a3b55; background: #0b1524; color: #e6f0ff; }
+      .attest { display: flex; gap: 10px; align-items: flex-start; background: #10233a; border: 1px solid #2d4a6e; border-radius: 8px; padding: 12px; margin-top: 12px; }
+      .attest input { width: 22px; height: 22px; margin-top: 2px; flex: 0 0 auto; }
+      .attest span { font-size: 13px; color: #bcd6f4; }
+      button { font-size: 16px; font-weight: 600; padding: 12px 16px; border-radius: 8px; border: 0; cursor: pointer; margin: 6px 6px 0 0; }
+      button.primary { background: #2f6fed; color: #fff; }
+      button.ghost { background: #16263d; color: #cfe3ff; border: 1px solid #2a3b55; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      .bar { height: 12px; background: #0b1524; border: 1px solid #2a3b55; border-radius: 6px; overflow: hidden; margin: 10px 0 6px; }
+      .bar > div { height: 100%; background: linear-gradient(90deg, #2f6fed, #46d1a2); width: 0; transition: width .3s; }
+      .counts { font-size: 13px; color: #9fc0e8; }
+      .counts b { color: #e6f0ff; }
+      ul.scn { list-style: none; padding: 0; margin: 10px 0 0; max-height: 320px; overflow: auto; font: 11px/1.4 ui-monospace, monospace; }
+      ul.scn li { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-bottom: 1px solid #16263d; }
+      .chip { flex: 0 0 auto; padding: 1px 7px; border-radius: 999px; font-weight: 700; }
+      .pending { background: #1b2b42; color: #7f9cc0; }
+      .running { background: #3a2f0b; color: #ffd36b; }
+      .complete { background: #0f3326; color: #46d1a2; }
+      .incomplete { background: #3a1420; color: #ff8a9c; }
+      .banner { padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-top: 6px; }
+      .banner.ok { background: #0f3326; color: #9ff0cf; border: 1px solid #1d6b4c; }
+      .banner.warn { background: #3a2f0b; color: #ffe29a; border: 1px solid #7a5f12; }
+      pre { background: #0b1524; border: 1px solid #2a3b55; border-radius: 8px; padding: 10px; overflow: auto; max-height: 300px; font: 11px/1.4 ui-monospace, monospace; }
+      code { background: #0b1524; padding: 1px 5px; border-radius: 4px; }
+      details { margin-top: 10px; }
+      summary { cursor: pointer; color: #9fc0e8; font-size: 13px; }
+      .hint { font-size: 12px; color: #7f9cc0; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>K12 iPad benchmark controller</h1>
+      <p class="sub">
+        Research only. Runs the full K12 comparative matrix (Leaflet vs MapLibre,
+        same payloads/thresholds/pairs as the laptop runner) as one visible page,
+        and exports ONE consolidated JSON. Fails closed on timeouts and errors.
+      </p>
+
+      <section id="setup">
+        <label for="label">Device label (human, required) — e.g. <code>iPad-Air-M1 / iPadOS 18 / Safari</code></label>
+        <input id="label" type="text" placeholder="iPad model / iPadOS version / Safari" autocomplete="off" />
+        <label for="cache">Cache state</label>
+        <select id="cache"><option value="cold">cold (fresh private tab)</option><option value="warm">warm (reloaded once)</option></select>
+        <label for="network">Network</label>
+        <select id="network"><option value="wifi">wifi (LAN, same as laptop)</option><option value="cellular">cellular</option><option value="other">other</option></select>
+        <label class="attest" for="attest">
+          <input id="attest" type="checkbox" />
+          <span><b>Physical-device attestation.</b> I confirm this is a real, physical
+          iPad running Safari — not a desktop browser, a simulator, or device
+          emulation. The run is <b>not</b> device-grade without this, and a real iPad
+          is never inferred from the user-agent alone.</span>
+        </label>
+        <div id="envBanner" class="banner" style="margin-top:12px"></div>
+        <div style="margin-top:12px">
+          <button id="start" class="primary" disabled>▶ Start full suite</button>
+          <span class="hint" id="startHint"></span>
+        </div>
+      </section>
+
+      <section id="run" hidden>
+        <div class="bar"><div id="barFill"></div></div>
+        <div class="counts" id="counts"></div>
+        <div id="statusBanner"></div>
+        <div style="margin-top:10px">
+          <button id="resume" class="primary" hidden>▶ Resume</button>
+          <button id="export" class="ghost" hidden>⬇ Export consolidated JSON</button>
+          <button id="reset" class="ghost">✕ Discard &amp; restart</button>
+        </div>
+        <ul class="scn" id="scnList"></ul>
+        <details id="exportDetails" hidden>
+          <summary>Consolidated JSON (preview)</summary>
+          <pre id="exportPre"></pre>
+        </details>
+      </section>
+
+      <section>
+        <details>
+          <summary>How to run (Windows laptop server + iPad Safari)</summary>
+          <div class="hint" id="howto"></div>
+        </details>
+      </section>
+    </main>
+
+    <script type="module">
+      import {
+        STORAGE, createSession, nextPending, markDispatched, applyHandoff,
+        reconcileOnResume, progress, isFinished, buildConsolidated, buildScenarioUrl,
+        observedEnvironment, ipadConsistency,
+      } from "./mobile_controller_core.mjs";
+
+      const DISPATCH_DELAY_MS = 700; // visible cooldown between scenarios
+      const $ = (id) => document.getElementById(id);
+      const controllerUrl = location.origin + location.pathname; // no stale query
+
+      // Probe the real GL renderer of THIS page (same method as rum.js) so the
+      // controller can show the owner, up front, what environment it is actually in
+      // and whether it contradicts an iPad Safari run. This refutes a wrong claim; it
+      // never manufactures one.
+      function probeGlRenderer() {
+        try {
+          const c = document.createElement("canvas");
+          const gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+          if (!gl) return "NO_WEBGL";
+          const ext = gl.getExtension("WEBGL_debug_renderer_info");
+          return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+        } catch (e) { return "unknown"; }
+      }
+      const observedHere = observedEnvironment({ userAgent: navigator.userAgent, gl_renderer: probeGlRenderer() });
+      const consistencyHere = ipadConsistency({ userAgent: navigator.userAgent, gl_renderer: observedHere.gl_renderer });
+
+      const loadSession = () => { try { return JSON.parse(localStorage.getItem(STORAGE.session) || "null"); } catch (e) { return null; } };
+      const saveSession = (s) => { try { localStorage.setItem(STORAGE.session, JSON.stringify(s)); } catch (e) {} };
+      const readHandoff = () => { try { return JSON.parse(localStorage.getItem(STORAGE.handoff) || "null"); } catch (e) { return null; } };
+      const clearHandoff = () => { try { localStorage.removeItem(STORAGE.handoff); } catch (e) {} };
+
+      // ── observed-environment banner (truthful up front) ──
+      function renderEnvBanner() {
+        const o = observedHere;
+        const line = `Observed here: <b>${o.platform}</b> · <b>${o.browser}</b> · GPU <b>${o.gpu_family}</b> (<code>${(o.gl_renderer || "?").slice(0, 46)}</code>)`;
+        if (consistencyHere.ok) {
+          $("envBanner").className = "banner ok";
+          $("envBanner").innerHTML = line + "<br>Consistent with an iPad Safari run. A complete, attested run here can be device-grade.";
+        } else {
+          $("envBanner").className = "banner warn";
+          $("envBanner").innerHTML = line +
+            "<br><b>This is NOT iPad Safari.</b> You can still run it for testing, but the export will be marked <b>is_device_grade:false</b> regardless of the attestation. Blockers: " +
+            consistencyHere.blockers.map((b) => `• ${b}`).join(" ");
+        }
+      }
+      renderEnvBanner();
+
+      // ── setup gating ──
+      const gate = () => {
+        const ok = $("label").value.trim().length > 0 && $("attest").checked;
+        $("start").disabled = !ok;
+        $("startHint").textContent = ok ? "" : "Enter a device label and confirm the attestation.";
+      };
+      $("label").addEventListener("input", gate);
+      $("attest").addEventListener("change", gate);
+
+      $("start").addEventListener("click", () => {
+        const session = createSession({
+          suite: "full",
+          meta: {
+            device_label: $("label").value.trim(),
+            cache: $("cache").value,
+            network: $("network").value,
+            attested: $("attest").checked,
+            attested_at: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+          },
+        });
+        saveSession(session);
+        dispatchNext(session); // begin the chain
+      });
+
+      $("resume").addEventListener("click", () => {
+        const s = loadSession();
+        if (s) dispatchNext(s);
+      });
+
+      $("export").addEventListener("click", () => {
+        const s = loadSession();
+        if (!s) return;
+        const out = buildConsolidated(s);
+        const label = (s.meta.device_label || "ipad").replace(/[^\w.-]+/g, "_").slice(0, 40);
+        const name = `K12_iPad_${label}_${new Date().toISOString().slice(0, 10)}.json`;
+        const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        a.click();
+        $("exportDetails").hidden = false;
+        $("exportPre").textContent = JSON.stringify(out, null, 2);
+      });
+
+      $("reset").addEventListener("click", () => {
+        if (!confirm("Discard the current session and all collected measurements?")) return;
+        try { localStorage.removeItem(STORAGE.session); } catch (e) {}
+        clearHandoff();
+        location.replace(controllerUrl);
+      });
+
+      // ── dispatch chain ──
+      function dispatchNext(session) {
+        const idx = nextPending(session);
+        if (idx === null) { render(session); return; } // finished → show export
+        markDispatched(session, idx);
+        saveSession(session);
+        const url = buildScenarioUrl(location.origin, session.scenarios[idx], {
+          idx,
+          returnTo: controllerUrl,
+          deviceLabel: session.meta.device_label,
+          cache: session.meta.cache,
+          network: session.meta.network,
+          reps: session.meta.reps,
+          timeoutMs: session.meta.timeout_ms,
+        });
+        render(session, `Running ${idx + 1}/${session.scenarios.length}: ${session.scenarios[idx].id} …`);
+        setTimeout(() => { location.assign(url); }, DISPATCH_DELAY_MS);
+      }
+
+      // ── render ──
+      function render(session, note) {
+        $("run").hidden = false;
+        $("setup").hidden = isFinished(session) || progress(session).done > 0;
+        const pr = progress(session);
+        $("barFill").style.width = `${Math.round((pr.done / pr.total) * 100)}%`;
+        $("counts").innerHTML =
+          `<b>${pr.done}</b>/${pr.total} done · <b>${pr.complete}</b> complete · ` +
+          `<b>${pr.incomplete}</b> incomplete · ${pr.pending} pending`;
+
+        const finished = isFinished(session);
+        $("export").hidden = !finished;
+        $("resume").hidden = finished || !!note; // hide while a dispatch is in flight
+
+        if (note) {
+          $("statusBanner").className = "banner warn";
+          $("statusBanner").textContent = note;
+        } else if (finished) {
+          const out = buildConsolidated(session);
+          $("statusBanner").className = out.run_kind === "DEVICE_VALIDATION" ? "banner ok" : "banner warn";
+          const prov = out.provenance.consistent
+            ? ""
+            : `<br>Environment NOT consistent with iPad Safari (observed ${out.provenance.observed.platform}/${out.provenance.observed.browser}/${out.provenance.observed.gpu_family}): ` +
+              out.provenance.blockers.map((b) => `• ${b}`).join(" ");
+          $("statusBanner").innerHTML =
+            `Suite finished — <b>${out.run_kind}</b><br>` +
+            `complete=${out.complete} · comparable=${out.comparable} · is_device_grade=${out.is_device_grade}` +
+            prov +
+            (out.complete ? "" : "<br>Incomplete scenarios are recorded as such and were never skipped. Export to audit.");
+        } else {
+          $("statusBanner").className = "banner warn";
+          $("statusBanner").innerHTML = "Session interrupted or paused. Tap <b>Resume</b> to continue where it left off; completed measurements are preserved.";
+        }
+
+        const li = session.scenarios.map((s, i) => {
+          const r = s.result || {};
+          const extra = s.status === "complete"
+            ? `itp.p95=${r.interaction_to_paint_ms?.p95 ?? "-"} pan.p95=${r.pan_frame_ms?.p95 ?? "-"}`
+            : s.status === "incomplete" ? (s.error || "").slice(0, 60) : "";
+          return `<li><span class="chip ${s.status}">${s.status}</span>` +
+            `<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${i + 1}. ${s.id}</span>` +
+            `<span class="hint">${extra}</span></li>`;
+        }).join("");
+        $("scnList").innerHTML = li;
+      }
+
+      // ── boot: fold any returned measurement, reconcile, then auto-continue ──
+      function boot() {
+        let session = loadSession();
+        if (!session) { gate(); return; } // fresh setup
+
+        const handoff = readHandoff();
+        let cameBackFromScenario = false;
+        if (handoff) {
+          session = applyHandoff(session, handoff);
+          clearHandoff();
+          cameBackFromScenario = true;
+        }
+        session = reconcileOnResume(session);
+        saveSession(session);
+
+        if (isFinished(session)) { render(session); return; }
+        if (cameBackFromScenario) {
+          dispatchNext(session); // chain forward automatically after each return
+        } else {
+          render(session); // cold/interrupted open → wait for explicit Resume
+        }
+      }
+
+      $("howto").innerHTML =
+        "1. On the Windows laptop, from the repo root run " +
+        "<code>python -m http.server 8000</code> (or <code>py -3 -m http.server 8000</code>).<br>" +
+        "2. Find the laptop LAN IP: <code>ipconfig</code> → IPv4 Address (e.g. 192.168.1.20). " +
+        "Allow Node/Python through Windows Defender Firewall on Private networks if prompted.<br>" +
+        "3. On the iPad (same Wi-Fi), open Safari to<br>" +
+        "<code>http://&lt;laptop-ip&gt;:8000/research/runtime_spike/device_harness/ipad_controller.html</code><br>" +
+        "4. Fill the label, tick the attestation, tap Start, leave Safari in the foreground until it finishes, then Export.";
+
+      boot();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>K12 — Leaflet baseline harness</title>
+    <!-- Vendored production Leaflet, exactly as index.html loads it. -->
+    <link rel="stylesheet" href="/assets/leaflet/leaflet.css" />
+    <style>
+      html, body { margin: 0; height: 100%; background: #08101a; }
+      #map { position: absolute; inset: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script src="/assets/leaflet/leaflet.js"></script>
+    <script src="./rum.js"></script>
+    <script type="module">
+      // K12 Leaflet baseline harness. Measures the PRODUCTION rendering approach
+      // (Leaflet 1.9.x, preferCanvas, per-pane L.canvas) on the REAL post-#68/#71
+      // payload. A module so it can import the ACTUAL production analytical models
+      // (no production file is edited) and reproduce the full Lens recompute path.
+      //   ?layers=ambito,licence,admin  ?basemap=light|satellite  ?zoom=14
+      //   ?recompute=renderer|full  &reps=40 &device_label=.. &cache=.. &auto=1
+      // recompute=renderer → move the Lens overlay only (renderer-only latency).
+      // recompute=full     → ALSO run licencesInLens + ambitosIntersecting each
+      //                      step (the production analytical recompute the real
+      //                      Lens triggers on pointer move) → full Lens latency.
+      import { licencesInLens } from "/js/urban-licences.js";
+      import { createPlanningIndex } from "/js/planning-ambito.js";
+
+      const Q = new URLSearchParams(location.search);
+      const layers = (Q.get("layers") || "ambito").split(",").filter(Boolean);
+      const basemap = Q.get("basemap") || "light";
+      const zoom = Number(Q.get("zoom") || 14);
+      const recompute = Q.get("recompute") === "full" ? "full" : "renderer";
+      const scenario =
+        Q.get("scenario") || `leaflet_${layers.join("+") || "base"}_${basemap}_z${zoom}_${recompute}`;
+
+      const map = L.map("map", { zoomControl: false, preferCanvas: true }).setView([40.4168, -3.7038], zoom);
+      const base =
+        basemap === "satellite"
+          ? L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 })
+          : L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 });
+      base.addTo(map);
+
+      map.createPane("ambitoPane"); map.getPane("ambitoPane").style.zIndex = 420;
+      map.createPane("licencePane"); map.getPane("licencePane").style.zIndex = 440;
+      map.createPane("adminPane"); map.getPane("adminPane").style.zIndex = 410;
+      const ambitoR = L.canvas({ pane: "ambitoPane", padding: 0.3 });
+      const licenceR = L.canvas({ pane: "licencePane", padding: 0.5 });
+      const adminR = L.canvas({ pane: "adminPane", padding: 0.3 });
+      const lens = L.circle([40.4168, -3.7038], { radius: 900, color: "#36f", weight: 2, fill: false, pane: "licencePane" }).addTo(map);
+
+      async function fetchJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error(`${url} -> ${r.status}`); return r.json(); }
+
+      // data needed for the full analytical recompute (independent of what is
+      // drawn): the licence records and an ámbito planning index.
+      let licenceRecords = null;
+      let planningIndex = null;
+
+      async function build() {
+        const jobs = [];
+        let ambitoGeo = null;
+        if (layers.includes("admin"))
+          jobs.push(fetchJSON("/data/geography/madrid_admin.geojson").then((gj) =>
+            L.geoJSON(gj, { renderer: adminR, interactive: false, style: { color: "#789", weight: 1, fill: false } }).addTo(map)));
+        if (layers.includes("ambito"))
+          jobs.push(fetchJSON("/data/planning/madrid_ambitos.geojson").then((gj) => {
+            ambitoGeo = gj;
+            L.geoJSON(gj, { renderer: ambitoR, style: { color: "#c84", weight: 1, fillColor: "#c84", fillOpacity: 0.12 } }).addTo(map);
+          }));
+        if (layers.includes("licence"))
+          jobs.push(fetchJSON("/data/planning/madrid_urban_licences.json").then((art) => {
+            licenceRecords = art.records;
+            const g = L.layerGroup();
+            for (const r of art.records) {
+              const lat = +r.lat, lon = +r.lon;
+              if (!isFinite(lat) || !isFinite(lon)) continue;
+              L.circleMarker([lat, lon], { renderer: licenceR, radius: 3, weight: 0, fillColor: "#4ad", fillOpacity: 0.7, pane: "licencePane" }).addTo(g);
+            }
+            g.addTo(map);
+          }));
+        await Promise.all(jobs);
+        if (recompute === "full") {
+          // ensure recompute inputs exist even if not drawn
+          if (!licenceRecords) licenceRecords = (await fetchJSON("/data/planning/madrid_urban_licences.json")).records;
+          if (!ambitoGeo) ambitoGeo = await fetchJSON("/data/planning/madrid_ambitos.geojson");
+          planningIndex = createPlanningIndex({ geometry: ambitoGeo });
+        }
+        await K12RUM.nextPaint();
+      }
+
+      let theta = 0;
+      // Returns the synchronous analytical work time (ms) in full mode, so RUM
+      // records full-Lens recompute latency distinctly from the paint proxy.
+      function interactionStep() {
+        theta += 0.15;
+        const lat = 40.4168 + Math.sin(theta) * 0.004;
+        const lon = -3.7038 + Math.cos(theta) * 0.004;
+        lens.setLatLng([lat, lon]);
+        if (recompute !== "full") return undefined;
+        const t0 = performance.now();
+        // the production Lens recompute: in-circle licences + intersecting ámbitos
+        licencesInLens({ lat, lon, radiusM: 900 }, licenceRecords, {});
+        if (planningIndex) planningIndex.ambitosIntersecting(lon, lat, 900);
+        return performance.now() - t0;
+      }
+
+      function pan() {
+        return new Promise((resolve) => {
+          let i = 0; const c = map.getCenter();
+          const step = () => { i++; map.panTo([c.lat + i * 0.0006, c.lng + i * 0.0006], { animate: false }); i < 60 ? requestAnimationFrame(step) : resolve(); };
+          requestAnimationFrame(step);
+        });
+      }
+
+      window.__K12_RUN__ = async () =>
+        K12RUM.run({
+          scenario, renderer: "leaflet", recompute_mode: recompute,
+          readiness_barrier: "leaflet: geojson/canvas layers added synchronously + double-rAF settle (raster basemap tiles stream async and are not awaited)",
+          device_label: Q.get("device_label") || "", cache: Q.get("cache") || "", network: Q.get("network") || "",
+          reps: Number(Q.get("reps") || 40), ready: build, interactionStep, pan,
+        });
+      if (Q.get("auto") === "1") window.addEventListener("load", () => window.__K12_RUN__());
+    </script>
+  </body>
+</html>
