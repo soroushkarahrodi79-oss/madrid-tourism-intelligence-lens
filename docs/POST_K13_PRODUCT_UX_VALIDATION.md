@@ -32,8 +32,12 @@ interpretation ceiling**, and it does **not** touch HATI. Its sole artifact is t
 ### Deployed-vs-local reconciliation (Phase 0)
 
 - Deployed script versions include `evidence-registry.js?v=20261017-1` and
-  `scope-rail.js?v=20261017-1`, i.e. the live site **is** `main` after K13 (#90). No material
-  deployed-vs-local difference was observed.
+  `scope-rail.js?v=20261017-1`. These matching `?v=` asset-version tokens indicate the live site
+  is serving the **K13 asset generation** (post-#90), and no material deployed-vs-local behaviour
+  difference was observed during interaction. **They do not prove a byte-identical build of
+  `main`:** the deployment exposes no immutable fingerprint (no commit hash in a build manifest),
+  so deployment identity here is asserted **at the asset-version level, not cryptographically.**
+  A future build manifest carrying the `main` SHA would let a later audit establish this exactly.
 - Modes present and reachable: **PLACE, COMPARE, CITY**. The K11 URL-state contract is live
   (the address bar carries `m/a/b/be/al/ly/sc/rd/lg` and now `lw/hm/hb/om`); a hand-built
   COMPARE link with unequal radii restored that exact reading (see J3/J5).
@@ -53,6 +57,28 @@ interpretation ceiling**, and it does **not** touch HATI. Its sole artifact is t
 - Rendered pixel offsets are emulation measurements; treat them as order-of-magnitude, not
   device-exact.
 
+### Keyboard, focus and ES/EN checks (issue #91 explicit requirements)
+
+Issue #91 explicitly asks for keyboard navigation, focus behaviour and ES/EN semantics. These
+were assessed by **expert inspection in the emulated browser** (live DOM + real `Tab` presses +
+CSS rule inspection). **Screen-reader / assistive-technology behaviour and real-hardware keyboard
+are NOT TESTED.** Auditable outcomes:
+
+| Check | Outcome | Evidence | Confidence |
+|---|---|---|---|
+| Visible focus indicator | **PASS** | `:focus-visible` rules defined; after 3 real `Tab` presses the focused element carried `outline: solid 2px` + a box-shadow ring (live). | Expert / emulation |
+| Controls keyboard-reachable | **PASS** | Panel/rail controls are native `<button>/<select>/<input>` (reachable without explicit tabindex). | Expert / emulation |
+| Drawer focus management | **PASS** | Native `<dialog>`; Escape closes; browser-managed focus containment (verified J4/J5). | Expert / emulation |
+| Tab-order quality | **CAVEAT (not a blocker)** | The Leaflet map contributes **196 focusable marker/cluster elements**; tabbing from the top traverses map markers before reaching some rail/panel controls (live: 3 Tabs → a map cluster marker). This is Leaflet default behaviour; a skip-link or roving-tabindex would help. | Expert / emulation |
+| Skip-link / landmark/ARIA roles / SR labels | **NOT TESTED** | No assistive-technology pass was run. | — |
+| ES/EN shell + semantics | **PASS** | Switching the language select to Español flips the whole shell, mode tabs ("▦Ciudad"), brand sub ("Desarrollo urbano · Evidencia oficial"), the records pill ("registros") and the planning-absence copy ("Ningún ámbito oficial de planeamiento contiene el centro de la Lente"); EN⇄ES round-trip clean, natural (not machine-literal). | Expert / emulation |
+| ES per-surface string coverage; ES on hardware | **NOT TESTED** | Only spot surfaces checked, not every string. | — |
+
+**Scope of the accessibility claim:** where this report later says no "hard accessibility
+blocker" was found, that is scoped **to what was assessed above** (DOM touch-target geometry,
+visible focus, native-dialog handling, ES/EN shell). **A full WCAG 2.1/2.2 conformance audit and
+an assistive-technology pass were NOT conducted** and are routed to the §7 study.
+
 ---
 
 ## 2. Verdict (summary)
@@ -63,7 +89,11 @@ The evidence model is intact and trustworthy on the live deployment: provenance,
 freshness, publisher withholding, missing-vs-zero, abstention, units, scope and verbatim
 interpretation ceilings all hold and were re-verified across modes. Comparison discipline
 (unequal-window withholding, density normalization, "no ordering or recommendation") works
-live. No **correctness** or **hard accessibility** blocker was found that forces a HOLD.
+live. **Within what was assessed** — correctness of the evidence model, DOM touch-target
+geometry, visible focus, native-dialog handling and ES/EN shell (§1) — no blocker was found that
+forces a HOLD. This is **not** a statement that a full WCAG/assistive-technology audit passed:
+that audit was not conducted (§1, §7), so the GO below authorizes **design prototyping only**, not
+verified production accessibility.
 
 The remaining problems are **information-architecture, interaction and disclosure-placement**
 issues, concentrated on small screens and on one comprehension gap that survives from post-K9:
@@ -91,7 +121,7 @@ gate is **GO**, scoped to the P0/P1 items in §6, not a speculative redesign.
 | **#5** PLACE caveat density for citizens | Open (P2, hypothesis) | **OPEN (hypothesis H2).** Still multiple inline "what this is / is not" ceilings stacked per PLACE section. Needs a comprehension check, not an expert verdict. | Live PLACE panel. |
 | **H1** 10/11px metadata legibility | Hypothesis | **UNRESOLVED — needs hardware.** Not re-litigated here. | — |
 | **H3** Real iPad Safari touch behaviour | Hypothesis | **NOT TESTED (hardware).** | — |
-| **H4** Attribution/zoom overlap on small screens | Hypothesis (cosmetic) | **CONFIRMED present (emulation).** The Leaflet attribution + zoom controls overlap the map on 375/834px. | Screenshots at 375/834px. |
+| **H4** Attribution/zoom overlap on small screens | Hypothesis (cosmetic) | **CONFIRMED present (emulation), cosmetic.** Leaflet controls are *expected* to overlay the map; the specific issue is that at ≤850px the attribution box (`max-width: min(46vw,220px)`) and the zoom control sit over the map's **upper-right POI/cluster area**, obscuring a few markers there, and in CITY they crowd the lingering lens A·* badges. It does **not** block any panel/provenance content or any control. Cosmetic density only. | Screenshots at 375/834px; CSS `.leaflet-control-attribution`. |
 
 ### New surfaces since post-K9 (K11 #88, K13 #90) — first UX assessment
 
@@ -119,14 +149,28 @@ Viewports: D = desktop 1440×900, T = tablet 834×1112 (emulation), P = phone 37
   ámbito — not a zero and not the nearest ámbito."* An **absent ámbito** (explicit absence) is
   clearly distinct from an **unavailable dataset** (OFF / UNAVAILABLE copy on the layers). This
   distinction is a genuine strength.
-- **Unresolved (same as post-K9):** there is **no affordance to discover where ámbitos exist.**
-  The *Administrative boundaries* overlay offers only **Off / All district outlines / All barrio
-  outlines** — **no ámbito lattice, list or search**. So the headline "urban development" object
-  is *absent* exactly where a resident most likely starts (the consolidated historic centre),
-  and the only way to reach one is to blindly drag the Lens to the periphery. **This is the
-  single most important unresolved product-comprehension issue (Register #1).** The ámbito
-  geometry is already loaded and already drawn (`planningPane`) when the Lens is inside one, so
-  the remedy is an overlay/IA change, not new data.
+- **Unresolved (same as post-K9):** there is **no PLACE-mode affordance to discover where ámbitos
+  exist.** The *Administrative boundaries* overlay offers only **Off / All district outlines /
+  All barrio outlines** — **no ámbito lattice, list or search**. So the headline "urban
+  development" object is *absent* exactly where a resident most likely starts (the consolidated
+  historic centre), and the only way to reach one is to blindly drag the Lens to the periphery.
+  **This is the single most important unresolved product-comprehension issue (Register #1).**
+- **Distinguish from COMPARE:** this gap is **PLACE-specific spatial discovery.** COMPARE already
+  lets a user reference two ámbitos by **exact official code** (`ambitoSelect(slot, code)` with
+  known-code validation). But that presumes the user *already knows a code* — it is a selection
+  mechanism, not a way to discover *where* ámbitos are on the map. The two must not be conflated.
+- **Feasibility caveat for the proposed fix (corrected):** the ámbito **geometry is already
+  fetched**, but the live renderer `renderPlanningPolygon(containing)` paints only the **one
+  containing feature** — it does **not** draw a lattice. An always-visible "All planning ámbitos"
+  overlay therefore needs an **additional renderer over the already-fetched geometries**, not a
+  mere `planningPane` toggle. Even then, at the default zoom 14 from the central default centre
+  **the nearest ámbito polygons lie outside the visible viewport** (they sit on the periphery),
+  **especially on mobile** — so an overlay *alone* would not let a user "see where ámbitos exist"
+  without panning/zooming. A realistic fix pairs the overlay with a **user-initiated** overview /
+  "locate nearest ámbito" affordance (preserving the no-*automatic*-camera-fly contract) and must
+  not imply the polygons are complete **built-development footprints** (they are planning ámbitos;
+  m²-only, no dwelling counts per Gate L). **This is a prototype hypothesis to be tested per
+  device class, not a demonstrated fix.**
 - D/T/P: identical semantics; on T/P the planning status is reachable within the first
   bottom-sheet screen.
 
@@ -213,8 +257,10 @@ Viewports: D = desktop 1440×900, T = tablet 834×1112 (emulation), P = phone 37
     verbatim unchanged).
   - **Move:** a compact circle-summary above the administrative lead on ≤850px; a Share control
     into the panel head (not drawer-only).
-  - **Group:** rail groups **collapsed by default** on ≤850px with a count badge, so each group
-    header — including Administrative register (K9) — is reachable within one rail screen.
+  - **Group:** rail groups **collapsed by default** on ≤850px with a **layer-count badge** —
+    the *number of layers in the group* (e.g. "Operational layers · 6"), **not** a count of
+    administrative records or data points — so each group header, including Administrative
+    register (K9), is reachable within one rail screen.
   - **Add (IA only, no new data):** an **"All planning ámbitos"** option to the existing boundary
     overlay select — the J1 fix, reusing already-loaded ámbito geometry.
   - **Remove:** nothing. Adding a mode or feature is **not** assumed to help.
@@ -231,7 +277,7 @@ major viewport; P2 is a bounded polish/clarity item. "Repro" = how reliably repr
 
 | # | Pri | Issue | Affected user / task | Evidence & repro | Smallest viable remedy (no scientific change) |
 |---|---|---|---|---|---|
-| 1 | **P0** | No affordance to discover **where** planning ámbitos exist; lead object is absent at the default centre | Resident + planner / J1 | Boundary select = Off/district/barrio only; default view shows explicit absence. **Repro: always, default state.** | Add **"All planning ámbitos"** lattice option to the existing boundary overlay (reuse `planningPane` geometry already loaded). IA/overlay only. |
+| 1 | **P0** | No **PLACE-mode** affordance to discover **where** planning ámbitos exist; lead object is absent at the default centre (distinct from COMPARE official-code entry) | Resident + planner / J1 | Boundary select = Off/district/barrio only; default view shows explicit absence; `renderPlanningPolygon` paints the containing feature only. **Repro: always, default state.** | **Prototype hypothesis:** an "All planning ámbitos" overlay drawn by a **new renderer over already-fetched geometries** (not a `planningPane` toggle), **paired with a user-initiated overview/"locate nearest ámbito" affordance** because the nearest polygons fall outside the default viewport (esp. mobile). Preserve no-*automatic*-camera-fly; must not imply built-development footprints. IA/overlay only, no new data. |
 | 2 | **P1** | K9 licence toggle ~693 px down a 360 px scrollable rail on ≤850px | Analyst / J2, T+P | Measured: rail 360 px, scrollHeight 1912 px, licence row offset 693, not visible. **Repro: always ≤850px.** | Collapse rail groups by default on ≤850px (see #3); Administrative register header reachable in first rail screen. |
 | 3 | **P1** | Rail is a 1912 px control stack in a 360 px overlay on small screens (root cause of #2) | All / all journeys, T+P | Measured scrollHeight 1912 px; ~19% visible. **Repro: always ≤850px.** | Collapsible groups with count badges + clear scroll affordance; no control removed. |
 | 4 | **P1** | PLACE "Within the Lens" metrics are 4th in reading order; quick-jump mitigates but burial remains | Resident / J1, T+P | Live DOM order; chips present but order unchanged. **Repro: always ≤850px.** | Compact circle-summary band (4 figures + radius) above the administrative lead on ≤850px; provenance kept; controls stay last. |
@@ -240,7 +286,7 @@ major viewport; P2 is a bounded polish/clarity item. "Repro" = how reliably repr
 | 7 | **P2** | Reproducible-UI-state vs frozen-dataset distinction is subtle | All / J5 | Carried by copy + "deployment snapshot" pill only. **Repro: always.** | One-line clarifier in the share confirmation ("restores this view; underlying data refreshes each deploy"). Verify in study. |
 | 8 | **P2** | PLACE inline caveat density (H2) | Resident / J1 | Multiple stacked inline ceilings per section. **Repro: always.** | One inline ceiling per section; move the rest into the drawer, verbatim text unchanged. |
 | 9 | **P2** | Attribution/zoom controls overlap the map on ≤850px (H4); CITY lingering lens badges | All / J4, T+P | Screenshots at 375/834px; A·* badges in CITY. **Repro: always ≤850px / CITY.** | Reposition/condense map controls at ≤850px; dim or hide lens badges in CITY. |
-| 10 | **P2** | Quick-jump chips 30 px tall — below the app's own 44 px coarse-pointer target (meets WCAG 2.5.8 24 px) | All / J1, P | Measured chip height 30 px; mode buttons and rail switches are 44 px. **Repro: always ≤850px.** | Raise chip min-height to 44 px. |
+| 10 | **P1** | Quick-jump chips 30 px tall — **below the project's own 44 px coarse-pointer target** (though above WCAG 2.5.8's 24 px minimum) | All / J1, P | Measured chip height 30 px; mode buttons and rail switches are 44 px. **Repro: always ≤850px.** | Raise chip min-height to 44 px. **Reprioritized P2→P1:** it is a small-screen touch control that fails the product's own stated target, so it belongs with the P1 small-screen usability work, not cosmetic polish. |
 
 Touch floors otherwise hold on emulation: mode buttons 44 px, rail switches 44×44 px, drawer
 controls large. The chip (#10) and the non-DOM licence canvas points are the only sub-floor cases.
@@ -254,7 +300,9 @@ controls large. The chip (#10) and the non-DOM licence canvas points are the onl
 | Expert heuristic inspection | ✅ | IA, reading order, caveat load, journey walkthroughs |
 | Browser **device-emulation** (Chromium, in-app pane) | ✅ | Responsive layout, touch-target geometry, live interaction at 3 viewports |
 | Source / CSS / DOM measurement | ✅ | z-order, offsets, breakpoints, which post-K9 fixes shipped |
+| Keyboard / focus / ES–EN (expert, emulation) | ✅ | Focus-visible, native-dialog handling, tab-order caveat, ES/EN shell (§1 matrix) |
 | Automated unit tests | ✅ (one run) | 927 pass / 0 fail — plumbing/contracts, **not** comprehension |
+| **Full WCAG 2.1/2.2 + assistive-technology audit** | ❌ **NOT CONDUCTED** | Screen-reader semantics, SR labels, skip-links, roving-tabindex, AT focus order |
 | **Real iPad / Safari / WebKit hardware** | ❌ **NOT TESTED** | Touch-drag vs scroll vs pinch, `dvh`, momentum, real overlap |
 | **Observed human usability** | ❌ **NOT TESTED** | Whether users actually understand the evidence |
 
@@ -277,13 +325,19 @@ provenance, scope, units, five-field freshness, withholding, abstention, derivat
 untouched; HATI stays an independent optional ON/OFF layer, unmodified; no framework/MapLibre/3D/
 assistant/network change.
 
-**Rail (≤850px):** groups **collapsed by default**, each header + count badge visible; one open
-at a time; scroll affordance. Order: Base map · Boundaries · Operational layers · **Administrative
-register (K9)** · Observed activity · Context · Research (HATI). Goal: K9 reachable in the first
-rail screen.
+**Rail (≤850px):** groups **collapsed by default**, each header shows a **layer-count badge**
+(number of layers in the group, e.g. "Operational layers · 6" — never a record/data-point count);
+one open at a time; scroll affordance. Order: Base map · Boundaries · Operational layers ·
+**Administrative register (K9)** · Observed activity · Context · Research (HATI). Goal: K9
+reachable in the first rail screen.
 
 **Boundary overlay select:** `Off · active area only` | `All district outlines` | `All barrio
-outlines` | **`All planning ámbitos`** (new lattice overlay of already-loaded geometry — J1 fix).
+outlines` | **`All planning ámbitos`** (a **new lattice renderer** over the already-fetched ámbito
+geometry — the live `renderPlanningPolygon` draws only the containing feature, so this is new
+rendering, not a toggle). Because the nearest polygons lie outside the default viewport,
+**pair it with a user-initiated "locate nearest ámbito / show ámbito map" affordance** (no
+*automatic* camera fly) and label the overlay as planning ámbitos, **not** built footprints.
+This is the J1 prototype hypothesis, to be validated per device class.
 
 **PLACE panel (≤850px), top → bottom:**
 1. records pill ("… · deployment snapshot")
@@ -310,21 +364,31 @@ confusion.
 
 Each increment is a narrow PR, audit-review-gated, preserving all Gate K/L/M scientific contracts.
 
-**P0 — J1 ámbito discovery (Register #1).** *No dependency.* First prototype target.
-- AC1: boundary select gains "All planning ámbitos"; selecting it overlays the ámbito lattice
-  using existing geometry (no new artifact, no new fetch at runtime beyond already-loaded data).
-- AC2: from the default centre a user can, without moving the Lens, see where ámbitos exist and
-  move into one deliberately.
-- AC3: explicit-absence copy and the no-camera-fly contract unchanged; IA no-hide contract passes.
-- AC4: study probe (a) answered correctly by ≥5/6.
+**P0 — J1 ámbito discovery (Register #1).** *No dependency.* First prototype target. **Treat as a
+hypothesis: the prototype must demonstrate the discovery path, not assume the overlay suffices.**
+- AC1: a **new lattice renderer** draws the ámbito outlines from the already-fetched geometries
+  (no new artifact, no new runtime fetch); it is **not** a reuse of `renderPlanningPolygon`
+  (which draws only the containing feature) and **not** merely a `planningPane` toggle.
+- AC2 (**tested per device class — D, T, P**): from the default centre, a user can reach a state
+  that shows **where ámbitos exist and move into one deliberately**. Because the nearest polygons
+  fall outside the default zoom-14 viewport (especially mobile), AC2 is satisfied **only** when a
+  **user-initiated** overview / "locate nearest ámbito" affordance is present and verified to
+  bring at least one ámbito into view on each device class — the overlay alone does **not** pass.
+- AC3: the overview/locate action is **user-triggered**; the **no-*automatic*-camera-fly** contract
+  is preserved; explicit-absence copy unchanged; IA no-hide contract passes.
+- AC4: the overlay is labelled as **planning ámbitos**, and does **not** present the polygons as
+  complete built-development footprints (no dwelling counts, m²-only per Gate L).
+- AC5: study probe (a) — "where can you find a planning ámbito?" — answered correctly by ≥5/6.
 
-**P1 — small-screen rail + reading order (Registers #2, #3, #4).** *Depends on nothing; #2
-resolved via #3.*
+**P1 — small-screen rail + reading order + touch target (Registers #2, #3, #4, #10).** *Depends on
+nothing; #2 resolved via #3.*
 - AC1: at 375px the Administrative register (K9) header is reachable within one rail screen
-  (no ~693 px scroll); each group collapsible with a count badge.
+  (no ~693 px scroll); each group collapsible with a **layer-count** badge (number of layers).
 - AC2: at ≤850px the four Lens-circle figures are reachable within ~1 screen of the panel top
   (compact summary), provenance access intact, controls still last.
 - AC3: IA no-hide contract and touch-floor checks still pass; quick-jump preserved.
+- AC4 (Register #10): quick-jump chips meet the project's **44 px** coarse-pointer target at
+  ≤850px (currently 30 px).
 
 **P2 — polish & clarity (Registers #5–#10).** *After P0/P1; independent of each other.*
 - #5: licence points remain visible inside the Lens with all operational layers on.
@@ -332,8 +396,11 @@ resolved via #3.*
 - #7: share confirmation states the restore-view-vs-dataset distinction in one line; probe (d)
   ≥5/6.
 - #8: ≤1 inline ceiling per PLACE section; full ceilings still verbatim in the drawer.
-- #9: no attribution/zoom overlap of primary content at ≤850px; no lens badges painted in CITY.
-- #10: quick-jump chips ≥44 px.
+- #9: no attribution/zoom overlap of the upper-right POI/cluster area at ≤850px; no lens badges
+  painted in CITY. (Cosmetic — no control or provenance content is obstructed.)
+
+*(Register #10, the 30 px quick-jump chip, is reprioritized into P1 above, since it fails the
+project's own 44 px coarse-pointer target on small screens.)*
 
 **Ordering rationale:** P0 unblocks the primary audience's lead journey; P1 unblocks tablet/phone
 use for every audience; P2 is bounded cleanup. The human study (§7) runs alongside P0/P1 design
@@ -347,10 +414,15 @@ and gates their *final* copy/behaviour, not their start.
 + reading order), with P2 as follow-on polish and the §7 human study run in parallel to validate
 comprehension.
 
-No material correctness or hard-accessibility blocker was found: the scientific evidence model,
-withholding, abstention, units, five-field freshness and verbatim ceilings are intact and verified
-live across all three modes, and DOM touch floors hold. The open items are IA/interaction/
-disclosure — the right material for a prototype, not a reason to HOLD.
+Within what was assessed, no correctness or accessibility blocker was found: the scientific
+evidence model, withholding, abstention, units, five-field freshness and verbatim ceilings are
+intact and verified live across all three modes; DOM touch floors hold (except the 30 px
+quick-jump chip, now P1); visible focus and native-dialog handling pass; ES/EN is clean. **This
+GO authorizes design prototyping only — it is not a statement of verified production
+accessibility; a full WCAG/AT audit and real-hardware + human testing were not conducted (§1,
+§7).** The open items are IA/interaction/disclosure — the right material for a prototype, not a
+reason to HOLD. The P0 ámbito-discovery remedy is carried as a **prototype hypothesis** whose
+default-viewport discovery path must be demonstrated per device class, not assumed.
 
 **Gate rule respected:** this pass proved what is hard to understand (J1 ámbito discovery;
 small-screen rail/K9/metrics burial) first. Design the fixes next, then implement them in narrow,
