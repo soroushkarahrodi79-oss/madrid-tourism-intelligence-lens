@@ -358,9 +358,31 @@ function sourceProvenance(registry, sourceId, options = {}) {
   const source = map.get(sourceId);
   if (!source) return null;
   const baseFreshness = REGISTRY_SCOPE_API.freshnessOf(source);
-  const freshness = options.freshnessOverride
-    ? { ...baseFreshness, ...options.freshnessOverride }
-    : baseFreshness;
+  // A freshness override exists for ONE documented reason: the K7 comparison
+  // surface reports the OLDEST contributing edition's reference date in place of
+  // the source's own. Only `reference_date` may be overridden, and only with an
+  // ISO month / date / explicit null; every other freshness field is read
+  // verbatim from the registry and can never be rewritten by a caller. An
+  // override of any other field, or a malformed reference_date, is rejected — a
+  // caller must not be able to silently alter published provenance.
+  let freshness = baseFreshness;
+  const override = options.freshnessOverride;
+  if (override != null) {
+    if (!isObject(override)) {
+      throw new TypeError("sourceProvenance: freshnessOverride must be an object");
+    }
+    const keys = Object.keys(override);
+    const illegal = keys.filter((k) => k !== "reference_date");
+    if (illegal.length) {
+      throw new Error(`sourceProvenance: only reference_date may be overridden, not ${illegal.join(", ")}`);
+    }
+    if ("reference_date" in override) {
+      if (!REGISTRY_SCOPE_API.isReferenceDate(override.reference_date)) {
+        throw new Error("sourceProvenance: an overridden reference_date must be an ISO month, ISO date, or null");
+      }
+      freshness = { ...baseFreshness, reference_date: override.reference_date };
+    }
+  }
   return deepFreeze({
     id: source.id,
     scope: source.scope,
@@ -587,6 +609,17 @@ function resolveAmbitoEditionDiff(params, deps, ctx) {
       shape: SHAPE.AMBITO_EDITION_DIFF, message: "an exact official ámbito code is required",
     });
   }
+  // The edition classifier (#69) returns a comparison for ANY string, including a
+  // code in neither edition (every family CAUSE_UNRESOLVED). That is not evidence.
+  // Require the code to be a real ámbito in the published universe first, so a
+  // bogus code is OUTSIDE_SOURCE_UNIVERSE rather than a fabricated "diff".
+  const index = deps.planningIndex;
+  if (index && typeof index.featureFor === "function" && !index.featureFor(code)) {
+    return abstain(ABSTENTION_REASON.OUTSIDE_SOURCE_UNIVERSE, {
+      shape: SHAPE.AMBITO_EDITION_DIFF, scope: "PLANNING_AMBITO",
+      message: `ámbito code "${code}" is not in the published universe`,
+    });
+  }
   let comparison;
   try {
     comparison = diff(code);
@@ -596,7 +629,7 @@ function resolveAmbitoEditionDiff(params, deps, ctx) {
       message: `edition change could not be resolved for "${code}"`,
     });
   }
-  if (!comparison) {
+  if (!comparison || !comparison.state) {
     return abstain(ABSTENTION_REASON.OUTSIDE_TEMPORAL_COVERAGE, {
       shape: SHAPE.AMBITO_EDITION_DIFF, scope: "PLANNING_AMBITO",
       message: `no two-edition coverage for "${code}"`,
@@ -669,14 +702,30 @@ function resolveAmbitoCompare(params, deps, ctx) {
       shape: SHAPE.AMBITO_COMPARE, message: "two comparison inputs (a, b) are required",
     });
   }
-  // Cross-scope refusal: two values of different analytical scope are never
-  // combined without a documented basis. Geometric overlap is not a basis.
+  // Scope resolution BEFORE the model runs, and the scientific scope rule is not
+  // negotiable by a caller. Each input must declare a valid analytical scope, both
+  // must be the same scope, and for this registered shape both must be
+  // PLANNING_AMBITO. A free-text `basis` can NEVER license a cross-scope
+  // comparison here — the registered shape forbids it outright, and geometric
+  // overlap is not a basis.
   const scopeA = scopeOfInput(a);
   const scopeB = scopeOfInput(b);
-  if (scopeA && scopeB && !REGISTRY_SCOPE_API.crossScopeArithmeticAllowed(scopeA, scopeB, params.basis)) {
+  if (!scopeA || !scopeB) {
+    return abstain(ABSTENTION_REASON.AMBIGUOUS_SCOPE, {
+      shape: SHAPE.AMBITO_COMPARE,
+      message: "each comparison input must declare a valid analytical scope",
+    });
+  }
+  if (scopeA !== scopeB) {
     return prohibit(PROHIBITION.CROSS_SCOPE_COMBINATION, {
       shape: SHAPE.AMBITO_COMPARE,
-      message: `cannot compare a ${scopeA} value with a ${scopeB} value without a documented basis`,
+      message: `cannot compare a ${scopeA} value with a ${scopeB} value`,
+    });
+  }
+  if (scopeA !== "PLANNING_AMBITO") {
+    return abstain(ABSTENTION_REASON.AMBIGUOUS_SCOPE, {
+      shape: SHAPE.AMBITO_COMPARE, scope: scopeA,
+      message: `AMBITO_COMPARE compares PLANNING_AMBITO objects only; got ${scopeA}`,
     });
   }
   let model;
@@ -767,20 +816,33 @@ function resolveCityHotelDemand(params, deps, ctx) {
       message: "no hotel-demand figure is available",
     });
   }
-  // A caller may request a specific period; a period outside the published series
-  // bounds is refused, not snapped to the nearest published month. Period keys are
-  // ISO months and compare lexicographically.
-  if (isNonEmptyString(params && params.period) && isObject(model.coverage)) {
-    const { earliest, latest } = model.coverage;
-    if (
-      (typeof earliest === "string" && params.period < earliest) ||
-      (typeof latest === "string" && params.period > latest)
-    ) {
-      return abstain(ABSTENTION_REASON.OUTSIDE_TEMPORAL_COVERAGE, {
-        shape: SHAPE.CITY_HOTEL_DEMAND, scope: "MUNICIPALITY",
-        message: `period "${params.period}" is outside the published series`,
-      });
+  // This shape serves the LATEST published municipal figure — the one the
+  // destination model was built for. Its period is model.period.key. When a caller
+  // pins a specific period we must never return a DIFFERENT month's figures under
+  // that label:
+  //   * outside the published series bounds → OUTSIDE_TEMPORAL_COVERAGE (not a
+  //     nearest match);
+  //   * in coverage but not the served (latest) period → the model holds no
+  //     evidence object for that earlier month, so abstain rather than silently
+  //     returning the latest month's figures.
+  const servedPeriod = model.period && model.period.key;
+  if (isNonEmptyString(params && params.period) && params.period !== servedPeriod) {
+    if (isObject(model.coverage)) {
+      const { earliest, latest } = model.coverage;
+      if (
+        (typeof earliest === "string" && params.period < earliest) ||
+        (typeof latest === "string" && params.period > latest)
+      ) {
+        return abstain(ABSTENTION_REASON.OUTSIDE_TEMPORAL_COVERAGE, {
+          shape: SHAPE.CITY_HOTEL_DEMAND, scope: "MUNICIPALITY",
+          message: `period "${params.period}" is outside the published series`,
+        });
+      }
     }
+    return abstain(ABSTENTION_REASON.NO_EVIDENCE_FOR_SCOPE, {
+      shape: SHAPE.CITY_HOTEL_DEMAND, scope: "MUNICIPALITY",
+      message: `this shape serves the latest published period (${servedPeriod ?? "unknown"}); "${params.period}" is not resolvable here`,
+    });
   }
   return evidenceFromSource(ctx, {
     value: model,

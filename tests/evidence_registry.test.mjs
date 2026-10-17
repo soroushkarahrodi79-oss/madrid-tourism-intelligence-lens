@@ -39,6 +39,7 @@ import { createGeographyIndex } from "../js/geography.js";
 import { createPopulationIndex, buildAreaProfile, AREA_STATE } from "../js/area-profile.js";
 import { createDestinationIndex, buildDestinationContext, DESTINATION_STATE } from "../js/destination-context.js";
 import { buildAmbitoComparisonModel } from "../js/ambito-comparison.js";
+import { buildAmbitoComparison } from "../js/ambito-change.js";
 
 const read = (p) => JSON.parse(fs.readFileSync(new URL(`../${p}`, import.meta.url), "utf8"));
 const REGISTRY = read("data/source_registry.json");
@@ -55,6 +56,16 @@ const areaProfileFor = ({ lon, lat }) =>
   buildAreaProfile({ lens: { lon, lat }, located: geo.locate(lon, lat), populationIndex: pop });
 const destinationModel = buildDestinationContext({ index: dest, state: DESTINATION_STATE.AVAILABLE });
 
+// The REAL #69 edition-diff model, wired exactly as the app's adapter wires it:
+// buildAmbitoComparison over the committed change_detection block's two editions.
+const CD = STATE.change_detection;
+const ambitoEditionDiff = (code) =>
+  buildAmbitoComparison({
+    previous: { reference_date: CD.previous.reference_date, families: CD.previous.families },
+    current: { reference_date: CD.current.reference_date, families: CD.current.families },
+    exactCode: code,
+  });
+
 const DEPS = {
   registry: REGISTRY,
   planningIndex,
@@ -65,9 +76,13 @@ const DEPS = {
   destinationModel,
   destinationStateAvailable: DESTINATION_STATE.AVAILABLE,
   ambitoCompare: buildAmbitoComparisonModel,
-  ambitoEditionDiff: null, // #69 model is wired separately in the app; see its own test
+  ambitoEditionDiff, // the real #69 model (see the AMBITO_EDITION_DIFF tests below)
 };
 const reg = R.createEvidenceRegistry(DEPS);
+// A code present in BOTH committed editions — a genuine two-edition diff.
+const EDITION_CODE = Object.keys((CD.previous.families.S1 || {}).records || {}).find(
+  (code) => (CD.current.families.S1 || {}).records && (CD.current.families.S1.records[code] !== undefined)
+);
 
 // A code that HAS published state, and the Sol barrio centre, discovered once.
 const PUBLISHED_CODE = Object.keys(STATE.ambitos).find(
@@ -230,8 +245,20 @@ test("AMBITO_COMPARE runs the same-scope comparison model", () => {
   if (R.isEvidence(out)) assert.equal(out.derivation, "SAME_SCOPE_COMPARISON");
 });
 
-test("a shape whose model is not wired abstains with evidence, not a crash (AMBITO_EDITION_DIFF)", () => {
-  const out = reg.query("AMBITO_EDITION_DIFF", { code: PUBLISHED_CODE });
+test("AMBITO_EDITION_DIFF runs the real #69 edition-diff over two committed editions", () => {
+  assert.ok(EDITION_CODE, "expected a code present in both committed editions");
+  const out = reg.query("AMBITO_EDITION_DIFF", { code: EDITION_CODE });
+  assert.ok(R.isEvidence(out), `expected evidence, got ${JSON.stringify(out)}`);
+  assert.equal(out.scope, "PLANNING_AMBITO");
+  assert.equal(out.derivation, "EDITION_DIFF");
+  assert.equal(out.sourceId, "planning_ambito_state");
+  // The value is the real classifier's comparison, carrying its per-family state.
+  assert.ok(out.value && out.value.state);
+});
+
+test("AMBITO_EDITION_DIFF abstains when the #69 model is not wired (not a crash)", () => {
+  const noEdition = R.createEvidenceRegistry({ registry: REGISTRY, planningIndex, planningModule: { AMBITO_STATE, AVAILABILITY } });
+  const out = noEdition.query("AMBITO_EDITION_DIFF", { code: EDITION_CODE });
   assert.ok(R.isAbstention(out));
   assert.equal(out.reason, "NO_EVIDENCE_FOR_SCOPE");
 });
@@ -531,4 +558,100 @@ test("worked example: a cross-scope question abstains rather than apportioning",
     b: { scope: "LENS_CIRCLE" },
   });
   assert.equal(out.reason, "CROSS_SCOPE_WITHOUT_BASIS");
+});
+
+// =============================================== 12. post-review contract hardening
+
+// Finding 1 — CITY_HOTEL_DEMAND must never return a later month's figures under an
+// earlier requested month's label.
+test("CITY_HOTEL_DEMAND returns the served (latest) period when a period is pinned to it", () => {
+  const served = destinationModel.period.key;
+  const out = reg.query("CITY_HOTEL_DEMAND", { period: served });
+  assert.ok(R.isEvidence(out));
+  assert.equal(out.value.period.key, served);
+});
+
+test("CITY_HOTEL_DEMAND abstains for an in-range earlier month rather than returning the latest figure", () => {
+  const served = destinationModel.period.key;
+  const earlier = destinationModel.coverage.earliest;
+  assert.notEqual(earlier, served, "fixture must have more than one period");
+  const out = reg.query("CITY_HOTEL_DEMAND", { period: earlier });
+  assert.ok(R.isAbstention(out), `must not return the latest month for an earlier request: ${JSON.stringify(out).slice(0, 120)}`);
+  assert.equal(out.reason, "NO_EVIDENCE_FOR_SCOPE");
+});
+
+test("CITY_HOTEL_DEMAND abstains OUTSIDE_TEMPORAL_COVERAGE beyond the series, not a nearest match", () => {
+  assert.equal(reg.query("CITY_HOTEL_DEMAND", { period: "1800-01" }).reason, "OUTSIDE_TEMPORAL_COVERAGE");
+  assert.equal(reg.query("CITY_HOTEL_DEMAND", { period: "2999-12" }).reason, "OUTSIDE_TEMPORAL_COVERAGE");
+});
+
+// Finding 2 — AMBITO_COMPARE scope validation; no free-text basis bypass.
+test("AMBITO_COMPARE rejects an input with a missing or invalid scope", () => {
+  assert.equal(reg.query("AMBITO_COMPARE", { a: { code: PUBLISHED_CODE }, b: { scope: "PLANNING_AMBITO" } }).reason, "AMBIGUOUS_SCOPE");
+  assert.equal(reg.query("AMBITO_COMPARE", { a: { scope: "NOT_A_SCOPE" }, b: { scope: "PLANNING_AMBITO" } }).reason, "AMBIGUOUS_SCOPE");
+});
+
+test("AMBITO_COMPARE: a free-text basis cannot bypass the cross-scope rule", () => {
+  const out = reg.query("AMBITO_COMPARE", {
+    a: { scope: "PLANNING_AMBITO", code: PUBLISHED_CODE },
+    b: { scope: "OFFICIAL_BARRIO" },
+    basis: "a hand-waved justification",
+  });
+  assert.equal(out.reason, "CROSS_SCOPE_WITHOUT_BASIS");
+  assert.equal(out.prohibition, "CROSS_SCOPE_COMBINATION");
+});
+
+test("AMBITO_COMPARE refuses a same-scope pair that is not PLANNING_AMBITO", () => {
+  const out = reg.query("AMBITO_COMPARE", { a: { scope: "MUNICIPALITY" }, b: { scope: "MUNICIPALITY" } });
+  assert.equal(out.reason, "AMBIGUOUS_SCOPE");
+});
+
+test("AMBITO_COMPARE preserves a legitimate same-scope PLANNING_AMBITO comparison", () => {
+  const out = reg.query("AMBITO_COMPARE", {
+    a: { scope: "PLANNING_AMBITO", code: PUBLISHED_CODE },
+    b: { scope: "PLANNING_AMBITO", code: PUBLISHED_CODE },
+  });
+  assert.ok(R.isEvidence(out) || R.isAbstention(out));
+  if (R.isEvidence(out)) assert.equal(out.derivation, "SAME_SCOPE_COMPARISON");
+});
+
+// Finding 3 — provenance integrity: no arbitrary freshness rewrite; every public
+// query result's sourceId is a registered source.
+test("sourceProvenance accepts only a reference_date override (the K7 case) and rejects any other field", () => {
+  // The legitimate K7 override works and changes only reference_date.
+  const k7 = R.sourceProvenance(REGISTRY, "planning_ambito_state", { freshnessOverride: { reference_date: "2025-07-01" } });
+  assert.equal(k7.freshness.reference_date, "2025-07-01");
+  const base = R.sourceProvenance(REGISTRY, "planning_ambito_state");
+  assert.equal(k7.freshness.source_state, base.freshness.source_state); // unchanged
+  // Overriding any other freshness field is refused.
+  assert.throws(() => R.sourceProvenance(REGISTRY, "population", { freshnessOverride: { source_state: "DEFINITIVE" } }), /only reference_date/);
+  assert.throws(() => R.sourceProvenance(REGISTRY, "population", { freshnessOverride: { retrieved_at: "2099-01-01" } }), /only reference_date/);
+  // A malformed reference_date (a build clock, a bare year) is refused too.
+  assert.throws(() => R.sourceProvenance(REGISTRY, "population", { freshnessOverride: { reference_date: "2026" } }), /ISO month/);
+});
+
+test("every public query result's sourceId is a registered source", () => {
+  const registeredIds = new Set(REGISTRY.sources.map((s) => s.id));
+  const results = [
+    reg.query("SOURCE_PROVENANCE", { sourceId: "geography" }),
+    reg.query("AREA_PROFILE_AT_POINT", SOL),
+    reg.query("CITY_HOTEL_DEMAND", {}),
+    reg.query("AMBITO_PHASES", { code: PUBLISHED_CODE }),
+    reg.query("AMBITOS_IN_LENS", { lon: SOL.lon, lat: SOL.lat, radiusM: 1000 }),
+    reg.query("LICENCES_IN_LENS", { lon: SOL.lon, lat: SOL.lat, radiusM: 1000 }),
+    reg.query("AMBITO_EDITION_DIFF", { code: EDITION_CODE }),
+  ].filter(R.isEvidence);
+  assert.ok(results.length >= 6);
+  for (const ev of results) assert.ok(registeredIds.has(ev.sourceId), `unregistered sourceId: ${ev.sourceId}`);
+});
+
+// Finding 4 — AMBITO_EDITION_DIFF does not fabricate a diff for a non-existent code.
+test("AMBITO_EDITION_DIFF refuses a bogus code OUTSIDE_SOURCE_UNIVERSE, not a fabricated diff", () => {
+  const out = reg.query("AMBITO_EDITION_DIFF", { code: "ZZZ-NOT-A-CODE" });
+  assert.ok(R.isAbstention(out));
+  assert.equal(out.reason, "OUTSIDE_SOURCE_UNIVERSE");
+});
+
+test("AMBITO_EDITION_DIFF requires an exact code", () => {
+  assert.equal(reg.query("AMBITO_EDITION_DIFF", {}).reason, "AMBIGUOUS_SCOPE");
 });
