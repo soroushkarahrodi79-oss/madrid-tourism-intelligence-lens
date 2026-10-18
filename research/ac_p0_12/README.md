@@ -180,18 +180,25 @@ marker-drag / radius-drag / map-pan interactions, marks membership **freshness
 `N/A (pre-feature)`** (never a failure), and labels the report `BASELINE (main)` —
 **not** an AC-P0-12 gate verdict.
 
-What `main` *does* need is the **test-only instrumentation** (the LAN seam-gate
-widening + the read-only `mapView()` getter + this runner) — which is **not** P0-a
-functionality. Use a disposable worktree and cherry-pick only the AC-P0-12
-instrumentation commit(s):
+What `main` *does* need is the **test-only instrumentation** (the two `js/app.js`
+hooks — the LAN seam-gate widening + the read-only `mapView()` getter — plus this
+runner), which is **not** P0-a functionality. The cleanest, minimal path uses the
+committed patch `baseline_app_instrumentation.patch` (30 insertions / 1 deletion,
+verified to apply on clean `origin/main`) and copies the runner from the PR:
 
 ```powershell
-git worktree add ..\lens-main-baseline main
+cd C:\workspace\madrid-intelligence-tourism-lens
+$PR = git rev-parse HEAD
+git worktree add ..\lens-main-baseline origin/main
 cd ..\lens-main-baseline
-git cherry-pick <AC-P0-12 commit SHA(s) from PR #96>   # test-only instrumentation; NEVER merge/push
-node research/ac_p0_12/stamp_commit.mjs
+git checkout $PR -- research/ac_p0_12             # copy the runner (test-only) from the PR
+git apply ..\madrid-intelligence-tourism-lens\research\ac_p0_12\baseline_app_instrumentation.patch
+node research\ac_p0_12\stamp_commit.mjs
 python -m http.server 8001 --bind 0.0.0.0
 ```
+
+See `BASELINE_AND_PAN_INVESTIGATION.md` for the full map-pan causation analysis and
+the exact owner comparison procedure.
 
 - **Laptop:** `http://localhost:8001/research/ac_p0_12/device_runner.html`
 - **iPad/iPhone:** `http://<laptop-LAN-IP>:8001/research/ac_p0_12/device_runner.html`
@@ -217,6 +224,8 @@ rely on P0-a seam methods absent from `main`).
 | `runner_core.mjs` | the measurement engine (double-rAF proxy, frame capture, freshness, device-grade, verdict). Pure functions are unit-tested by `tests/ac_p0_12_runner.test.mjs`. |
 | `stamp_commit.mjs` | writes `commit.json` (SHA/branch/dirty) so every evidence file is stamped. Run once before serving. |
 | `commit.json` | generated, untracked. |
+| `baseline_app_instrumentation.patch` | the two test-only `js/app.js` hooks, for a clean-`main` baseline worktree (no P0-a). |
+| `BASELINE_AND_PAN_INVESTIGATION.md` | map-pan causation analysis (pre-existing vs regression), ranked bottlenecks, GO/HOLD, owner baseline steps. |
 | `results/` | committed device JSON evidence + the preserved historical Windows observation (`results/README.md`). |
 
 ## The two test-only production touches this needs
