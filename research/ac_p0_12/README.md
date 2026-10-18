@@ -168,7 +168,24 @@ A class that **cannot** pass means **HOLD rollout / redesign for that class**
 
 ---
 
-## C · Comparable baseline on clean `main` (where practical) — R5
+## C · Automated main-vs-PR pan comparison (one command) — and the manual baseline
+
+**One command, no manual steps** (builds+tears down a disposable clean-`main`
+worktree, launches real headed hardware Chrome, drives identical automated pans on
+both, writes versioned JSON to `results/`):
+
+```powershell
+node research/ac_p0_12/auto_compare.mjs            # --rounds=4 --warmup=5 --frames=50 --dpr=2
+```
+
+These are **`hardware_automated`** scripted mouse drags — **not** human physical
+gestures and **never** `device_grade`. It fails closed (`COMPARISON UNAVAILABLE`) if
+the baseline can't be built or Chrome can't run on a hardware GPU. See
+`BASELINE_AND_PAN_INVESTIGATION.md` for the method (warm-up + drift-robust paired
+deltas) and the finding: the map-pan FAIL is **pre-existing** (clean `main` fails
+too) with **no material P0-a regression**.
+
+### Manual physical baseline (optional) — R5
 
 AC-P0-12 is about the **promoted** membership. To check the promotion did not
 regress interaction latency, measure clean `main` with the **same interaction
@@ -225,7 +242,9 @@ rely on P0-a seam methods absent from `main`).
 | `stamp_commit.mjs` | writes `commit.json` (SHA/branch/dirty) so every evidence file is stamped. Run once before serving. |
 | `commit.json` | generated, untracked. |
 | `baseline_app_instrumentation.patch` | the two test-only `js/app.js` hooks, for a clean-`main` baseline worktree (no P0-a). |
-| `BASELINE_AND_PAN_INVESTIGATION.md` | map-pan causation analysis (pre-existing vs regression), ranked bottlenecks, GO/HOLD, owner baseline steps. |
+| `auto_compare.mjs` | one-command headed-Chrome `hardware_automated` main-vs-PR pan comparison (builds+tears down the baseline, warm-up + paired deltas). |
+| `BASELINE_AND_PAN_INVESTIGATION.md` | map-pan causation analysis (pre-existing confirmed; no material P0-a regression), ranked bottlenecks, GO/HOLD, the binary support-floor decision. |
+| `results/auto_compare_*.json` | versioned machine-readable `hardware_automated` evidence. |
 | `results/` | committed device JSON evidence + the preserved historical Windows observation (`results/README.md`). |
 
 ## The two test-only production touches this needs

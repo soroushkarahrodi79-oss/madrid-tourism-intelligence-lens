@@ -1,171 +1,177 @@
 # AC-P0-12 map-pan investigation — pre-existing limitation vs PR #96 regression
 
-**PR #96 · head `ab1f650` · test-only.** Investigates the owner's valid Windows 11 /
-Chrome / **Intel UHD 620** AC-P0-12 result: marker drag **PASS** (p95 136.6 ms, 61
-samples, fresh), radius drag **PASS** (p95 144.9 ms, 56 samples, fresh), **map pan
-FAIL** (p95 66.8 ms, 273 samples, vs the 33.3 ms ceiling) → overall **FAIL for this
-Windows device class**. (Owner-reported summary figures; the raw device JSON stays
-with the owner and is not published here without approval.)
+**PR #96 · investigated at head `ca81e5b` · test-only.** The owner's valid physical
+Windows 11 / Chrome / **Intel UHD 620** AC-P0-12 run (commit `ab1f650`) recorded:
+marker drag **PASS** (p95 136.6 ms, 61 samples, fresh), radius drag **PASS** (p95
+144.9 ms, 56 samples, fresh), **map pan FAIL** (p95 66.8 ms, 273 samples, vs the
+33.3 ms ceiling), at **viewport 1036×518, devicePixelRatio 2**. Overall **FAIL for
+this Windows device class**. (Owner-reported summary; the raw device JSON stays with
+the owner and is not published here without approval, and its **FAIL is preserved
+unchanged**.)
 
-**Question:** is the map-pan failure a pre-existing limitation of the Leaflet stack,
-or a regression introduced by PR #96 (the P0-a membership promotion)?
+**Question:** is the map-pan failure pre-existing, or a regression introduced by
+PR #96 (the P0-a membership promotion)?
 
-> **Honesty:** every number in §3 was produced by an **automated synthetic
-> mouse-drag** in the Claude built-in browser pane on a dev machine that happens to
-> be an Intel UHD 620. **No human physical gesture was performed by these automated
-> tests.** They are not a device validation and their absolute values are inflated
-> by the pane (devicePixelRatio 2.5, embedded webview); only the **same-machine,
-> same-session main-vs-PR comparison** is used, and only for direction and ranking.
+**Answer (two separate findings, both now backed by real-hardware measurement):**
+1. **Pre-existing absolute failure — CONFIRMED.** Clean `origin/main` also fails the
+   33.3 ms pan ceiling by a wide margin on this hardware.
+2. **Incremental PR regression — NOT materially present.** A warmed, drift-robust,
+   paired hardware comparison shows PR ≈ `main` (PR often marginally faster); **0 of
+   10 warmed pairs show PR materially slower.**
+
+> **Measurement classes are kept strictly separate.** The owner's `ab1f650` run is a
+> **physical actual-gesture device** result. Everything in §3 below is
+> **`hardware_automated`**: scripted Playwright mouse drags on real hardware Chrome.
+> These are **not human physical gestures** and are **never** `device_grade` /
+> `actual_gesture` under the AC-P0-12 manual-device contract; they do not substitute
+> for the owner's physical Safari/device validation on iPad/iPhone.
 
 ---
 
 ## 1. Diff-level evidence: PR #96 does not touch the map-pan render path
 
 - `git diff origin/main...HEAD -- js/app.js` adds **no** map `move` / `moveend` /
-  `movestart` / `drag` / pan handlers. The only `map.on(...)` handlers are
-  `zoomend`/`resize`/`click` — none fire during a pan.
-- A **pan is a drag, not a click**; `map.on("click")` (which moves the Lens and
-  calls `refresh()`) is not triggered by panning. So `refresh()` — the only path
-  that renders the promoted membership block — does **not** run during a pan.
+  `drag` / pan handlers; the only `map.on(...)` are `zoomend`/`resize`/`click`, none
+  of which fire during a pan.
+- A **pan is a drag, not a click**; `map.on("click")` (which moves the Lens and calls
+  `refresh()`) is not triggered by panning, so `refresh()` — the only path that
+  renders the promoted membership block — does **not** run during a pan.
 - The promoted membership is **panel DOM** (`#planningMembership` chips), not a map
-  layer. P0-a adds **no map geometry** and changes **no renderer**.
-- The **724 ámbito polygons are not all drawn**: `renderPlanningPolygon` draws only
-  the single *containing* ámbito (and at the default centre containment is
-  `outside_all_ambitos`, so none is drawn). The 724 are used for point-in-polygon
-  queries, not rendered. So the K12 "724-polygon pan ceiling" is **not** the real
-  per-pan cost here.
+  layer: P0-a adds **no map geometry** and changes **no renderer**.
+- The **724 ámbitos are not rendered** — `renderPlanningPolygon` draws only the
+  single *containing* ámbito (none at the default centre). They are used for
+  point-in-polygon queries, not drawn. The membership scan `ambitosIntersecting`
+  runs on marker/radius **settle**, never during a pan.
+- What repaints during a pan (identical on `main` and PR): basemap raster tiles, the
+  default-visible POI canvas markers (≈1,400 points), the admin lattice (153
+  features / 31,648 vertices), Lens/halo — all pre-existing (#68/#71, merged before
+  P0-a), all scaled by devicePixelRatio.
 
-**What actually repaints during a pan** (identical on main and PR): basemap raster
-tiles, the default-visible POI canvas markers (`stay` 613 + `bike` 631 + `rail` 148
-+ museum/info ≈ **1,400 points**), the admin geography lattice (**153 features /
-31,648 vertices**), and the Lens/halo — all pre-existing (from #68/#71, merged
-before P0-a), all scaled by devicePixelRatio.
+## 2. Automated comparison harness (one command, no manual steps)
 
-## 2. The baseline is valid and reproducible
+`node research/ac_p0_12/auto_compare.mjs [--rounds=N] [--warmup=N] [--frames=N] [--dpr=2]`
+builds a **disposable clean `origin/main` worktree**, applies **only**
+`baseline_app_instrumentation.patch` (the two test-only `js/app.js` hooks — no P0-a)
+plus the runner, serves the PR checkout and the baseline on two loopback HTTP
+servers, launches **real headed hardware-accelerated Chrome**, and drives **identical
+automated map-pan gestures** against both — then tears everything down (browser,
+servers, worktree) and writes versioned JSON to `results/`. It **fails closed**
+(`COMPARISON UNAVAILABLE`) if the baseline cannot be built or Chrome cannot run with
+a hardware (non-SwiftShader) GPU, and never touches unrelated worktrees/untracked
+files. Each run records renderer, DPR, viewport, map area, zoom, centre, layers,
+cache, both SHAs and timing.
 
-A clean `origin/main` (55fa0c7) worktree + **minimal** test instrumentation (the two
-`js/app.js` hooks — the loopback/LAN seam gate and the read-only `mapView()` getter
-— plus the runner folder) boots the runner in **BASELINE mode** (no membership
-surface; freshness N/A). The instrumentation patch
-(`baseline_app_instrumentation.patch`, 30 insertions / 1 deletion) **applies cleanly
-on clean `origin/main`** and contains **no P0-a functionality**. Owner steps: §5.
+**Methodology note — warm-up and drift (important).** The GPU/browser warms strongly
+over a session: an **un-warmed** run showed pan p50 fall from ~350 ms (first pan) to
+~66 ms (twelfth), which **swamps any arm difference** and produced a spurious
+PR-slower gap. The harness therefore **discards warm-up pans**, then runs **tight
+alternation with per-adjacent-pair deltas** (temporally adjacent PR/main cancel slow
+drift) and **flips the within-pair order each round**. A PR regression is called
+*material* only when the paired p50 delta exceeds the run-to-run noise floor **and**
+≥70 % of warmed pairs show PR slower.
 
-## 3. Same-machine automated pan comparison (Intel UHD 620, dpr 2.5)
+## 3. Results — `hardware_automated`, Intel UHD 620, dpr 2, map 1036×650
 
-Automated synthetic mouse-drag pan, ~70 active frames/rep, `pan_frame_ms` via the
-runner's active-pan-interval capture. Several reps each:
+Two independent warmed sessions (evidence JSON in `results/auto_compare_*.json`):
 
-| Configuration | median (ms) | p95 (ms) |
-|---|---|---|
-| **Clean `main` (baseline)** — default layers | ~100 | ~117–166 (≈133) |
-| **PR #96** — default layers | ~150 | ~217–233 |
-| **PR #96 — membership block `display:none`** | ~117–133 | ~150–183 |
+| Session | arm | pooled p50 | pooled p95 | vs 33.3 ms |
+|---|---|---|---|---|
+| A (4 pairs) | main | 50.0 | **83.7** | FAIL |
+| A | PR #96 | 17.0 | **83.2** | FAIL |
+| B (6 pairs, 444 frames/arm) | main | 33.4 | **83.3** | FAIL |
+| B | PR #96 | 16.8 | **83.3** | FAIL |
 
-Threshold: **33.3 ms**. Three readings matter:
+Drift-robust **paired PR − main**: session A p50 **−0.7 ms** / p95 **−16.4 ms**;
+session B p50 **−0.2 ms** / p95 **−0.1 ms**. **PR was slower in 0 of 10 warmed pairs**
+(run-to-run noise floor ≈ one 16.7 ms frame). A warmed `#planningMembership`
+display-A/B diagnostic was **inconsistent in sign across sessions** (+16.7 ms vs
+−16.9 ms ≈ ±one frame), i.e. **noise, no reproducible panel effect**.
 
-1. **Clean `main` fails the pan ceiling by a wide margin** (median ~100 ms, p95
-   ~133 ms ≫ 33.3). The owner's device likewise fails (66.8 ms). → **The map-pan
-   failure is PRE-EXISTING; P0-a did not introduce it.**
-2. PR #96 runs **~1.2–1.5× higher** than `main` on this stressed pane, and **hiding
-   the always-visible membership block recovers most of that gap** (150 → ~120
-   median). → There is **weak, confounded evidence of a smaller, secondary
-   per-pan-frame cost from the always-visible PLACE panel** (plausibly style-recalc
-   / compositing of a taller panel on weak hardware). It is **not** the cause of the
-   ceiling failure (`main` fails without it) and is **unconfirmed on real hardware**.
-3. Both sit far above 33.3 ms regardless — consistent with K12 §12 (weak Intel
-   laptop Leaflet real-payload pan 143–311 ms).
+**Reading:**
+1. **Both arms fail the 33.3 ms pan ceiling by a wide margin** (p95 ≈ 83 ms warmed),
+   consistent with the owner's physical 66.8 ms and with K12 §12 (weak Intel laptop
+   Leaflet real-payload pan fails). → **The failure is PRE-EXISTING.**
+2. **No material incremental PR overhead** once warm-up/ordering is controlled
+   (paired deltas within noise; PR often marginally faster; 0/10 pairs PR-slower). →
+   **P0-a does not materially worsen map-pan on this hardware.** This is an
+   evidence-based finding from scripted hardware runs, **not** a physical-device
+   proof; the iPad/iPhone Safari physical validations remain separately required.
+
+> This supersedes the earlier `ca81e5b` draft of this section, which (a) read the
+> owner DPR as "≈1.0–1.5" — **corrected: the owner JSON records dpr 2** — and (b)
+> reported an un-warmed PR-vs-`main` gap as a *possible incremental regression*. With
+> warm-up + paired controls that gap disappears.
 
 ## 4. Bottlenecks, ranked by evidence
 
 1. **(Dominant, high confidence) Pre-existing Leaflet canvas + raster repaint at
-   dpr-scaled resolution on a weak integrated GPU.** Evidence: clean-`main` fail
-   (§3), owner device 66.8 ms, K12 §12. Fed by the ~1,400 default POI markers + the
-   31,648-vertex admin lattice + basemap tiles — all unchanged by P0-a. This is the
-   open **K12 renderer question** (MapLibre), already decided **NOT YET / keep
-   Leaflet**, gated on whether weak integrated-GPU laptops are a hard support floor.
+   dpr-scaled resolution on a weak integrated GPU.** Evidence: clean-`main` warmed
+   p95 ≈ 83 ms (§3), owner device 66.8 ms, K12 §12. Fed by ≈1,400 default POI canvas
+   markers + the 31,648-vertex admin lattice + basemap tiles — all unchanged by P0-a.
+   Improving it is the **K12 renderer question** (MapLibre), already **NOT YET / keep
+   Leaflet**, gated on the weak-integrated-GPU support-floor decision — **out of
+   scope for P0-a**.
 2. **(Multiplier, architectural) devicePixelRatio.** Canvas work scales with dpr²;
-   the owner's standalone Chrome dpr (≈1.0–1.5) is far below this pane's 2.5, so the
-   owner's absolute numbers are lower — but still over the ceiling (66.8 ms).
-3. **(Secondary, low confidence, P0-a-attributable, unconfirmed) Always-visible
-   membership PLACE panel.** Evidence: §3.2 (hiding it recovers most of the
-   PR-vs-`main` gap). Small, confounded, does not cause the failure.
-4. **Not factors:** the 724-ámbito polygon layer (not rendered); the membership scan
-   `ambitosIntersecting` (runs on marker/radius settle, **never during a pan**).
+   the owner's device and this harness both ran at **dpr 2**.
+3. **Not a factor — the P0-a membership panel.** The warmed paired comparison shows
+   no material PR overhead, and the panel display-A/B is at the noise floor with
+   inconsistent sign. (The earlier `ca81e5b` "possible panel effect" was the
+   un-warmed artifact.)
+4. **Not factors:** the 724-ámbito polygon layer (not rendered); the
+   `ambitosIntersecting` scan (never runs during a pan).
 
-## 5. The comparison the owner must perform (Windows PowerShell, port 8001)
+## 5. Optimization — not justified for PR #96
 
-Run the **clean-`main` baseline** on the **same device, same session**, right after a
-PR #96 run, keeping everything comparable (below), then compare **map-pan `pan_frame_ms.p95`**.
+No material P0-a pan regression is supported by the evidence, so there is **nothing
+P0-a-specific to optimise**, and the owner's constraints forbid speculative work. The
+dominant cost is the **pre-existing K12 renderer limitation**, documented separately;
+addressing it is the MapLibre decision, not a P0-a change, and must not be an
+unapproved rewrite. (Had a material regression been confirmed, the smallest bounded
+mitigation would have been CSS containment that keeps the block **visible and
+accessible** — never hiding the promoted evidence — but it is not warranted.)
 
-```powershell
-# From the repo root (the PR #96 checkout), on the PR branch:
-#   serve the PR app on 8000 as before:
-python -m http.server 8000 --bind 0.0.0.0        # PR #96 (feature)  → port 8000
+## 6. The owner's physical baseline is still welcome but no longer required for causation
 
-# In a SECOND PowerShell window: build the throwaway clean-main baseline worktree.
-cd C:\workspace\madrid-intelligence-tourism-lens
-$PR = git rev-parse HEAD                          # record the PR head (ab1f650…)
-git worktree add ..\lens-main-baseline origin/main
-cd ..\lens-main-baseline
-git checkout $PR -- research/ac_p0_12             # copy the runner (test-only) from the PR
-git apply ..\madrid-intelligence-tourism-lens\research\ac_p0_12\baseline_app_instrumentation.patch
-node research\ac_p0_12\stamp_commit.mjs
-python -m http.server 8001 --bind 0.0.0.0        # clean main (baseline) → port 8001
-```
-
-- URLs (PR on **8000**, baseline on **8001**):
-  - PR #96 (feature): `http://<laptop-LAN-IP>:8000/research/ac_p0_12/device_runner.html`
-  - Baseline (clean main): `http://<laptop-LAN-IP>:8001/research/ac_p0_12/device_runner.html`
-  - If Windows Firewall prompts for port 8001, allow Python on **Private** networks (same as 8000).
-- The baseline page shows a **BASELINE mode** banner (freshness N/A; not an AC-P0-12
-  gate). Run the **actual-gesture Map pan** capture on **both** (and marker/radius if
-  you like), with the **same** physical gesture style, and compare `pan_frame_ms.p95`.
-
-**Keep comparable (and the remaining confounders to document):** same **hardware**
-(the one Windows machine), same **browser build**, same **window size / viewport**
-(so devicePixelRatio and the map pixel area match), same **zoom** (default 14), same
-**radius** (default 900 m — radius does not affect pan), same **map position**
-(default centre), same **enabled layers** (default; do not toggle licences or
-hospitality), **cold cache** (fresh private tab) on both, and **alternate** PR↔main
-runs a few times to average out thermal drift. Remaining confounders you cannot fully
-remove: thermal/background-load drift between runs, frame-time quantisation near
-60 fps multiples, and that the baseline is `origin/main` + minimal instrumentation
-(not literally the PR minus one feature). If the baseline cannot be built on the
-device, record **COMPARISON UNAVAILABLE** and do **not** attribute causation.
-
-**Expected result** (from §3): clean `main` map-pan p95 also **far exceeds 33.3 ms**
-on this device — confirming the failure is pre-existing. If PR is materially higher
-than `main` (beyond run-to-run spread), that is the secondary panel effect (§4.3) to
-investigate separately; if they are comparable, PR adds no measurable pan cost.
-
-## 6. Is optimization justified?
-
-- The **dominant** cost (bottleneck 1) is a **pre-existing renderer limitation**, and
-  improving it is the **K12 MapLibre/renderer decision** — already **NOT YET (keep
-  Leaflet)**, gated on the weak-integrated-GPU support-floor question (K12 §12.4
-  blocker 2). It is **out of scope for P0-a** and must not be a speculative redesign
-  here.
-- The **secondary** panel effect (bottleneck 3) is **unconfirmed on real hardware**.
-  **Only if** the owner's device baseline confirms a material PR-over-`main` pan
-  increment is a **small, scoped** mitigation worth evaluating (e.g. CSS
-  `contain: content` / `content-visibility` on the off-screen membership block so a
-  tall PLACE panel does not inflate per-frame work) — **after** confirmation, never
-  speculatively, and without touching scientific contracts, thresholds or HATI.
+The `hardware_automated` comparison already answers causation on the UHD 620 class.
+If the owner still wants a **physical** main-vs-PR confirmation, the one-command
+harness is `node research/ac_p0_12/auto_compare.mjs`; a manual physical baseline would
+use the port-8001 steps in the README (§C). If any baseline cannot be built, the
+harness records **COMPARISON UNAVAILABLE** and no causation is asserted.
 
 ## 7. GO / HOLD recommendation for PR #96
 
-- **Functional correctness: GO.** P0-a correctness, freshness, scientific contracts
-  and CI are unaffected by this investigation.
-- **AC-P0-12 device gate (Intel UHD 620 / weak-integrated-GPU Windows class): FAIL on
-  map pan → HOLD production merge/release for that declared class**, exactly as
-  `docs/UX_I1_P0A_MEMBERSHIP.md` §4 already prescribes ("a class that cannot be made
-  to pass → HOLD rollout / redesign"). **The HOLD is caused by a PRE-EXISTING Leaflet
-  limitation on weak integrated GPUs (the open K12 blocker 2), not by a P0-a
-  regression.** Do **not** weaken the 33.3 ms threshold.
-- **Next step is a product decision, not a P0-a fix:** run the device baseline (§5)
-  to confirm pre-existing, then decide whether the weak-integrated-GPU class is a
-  **hard support floor** (K12 §12.4). If **no**, P0-a is GO for the supported device
-  classes (verify iPad/iPhone/modern desktop with the runner); the pan HOLD applies
-  only to the unsupported weak-GPU class. If **yes**, renderer work (K12) is required
-  for that class **independently of P0-a**. Keep **PR #96 Draft and unmerged**; no
-  deploy, no HATI change.
+- **Functional correctness: GO** (unaffected; P0-a correctness, freshness, scientific
+  and accessibility contracts and CI hold).
+- **No P0-a pan regression**: the AC-P0-12 map-pan FAIL on the Intel UHD 620 class is
+  a **pre-existing Leaflet limitation**, confirmed on real hardware; PR #96 does not
+  cause or worsen it. The physical Windows FAIL stands, unchanged and correctly a
+  property of the device class, **not** of P0-a.
+- **AC-P0-12 device gate: FAIL for the Intel UHD 620 / weak-integrated-GPU class →
+  the PR remains HOLD for that class** per `docs/UX_I1_P0A_MEMBERSHIP.md` §4. The
+  threshold is **not** weakened and UHD 620 is **not** silently dropped.
+- **The only remaining blocker is a device-support policy decision** (K12 §12.4
+  blocker 2), stated precisely in §8. P0-a engineering is complete; there is no P0-a
+  fix left to make.
+
+## 8. The precise decision for the owner (binary, with consequences)
+
+**Is the Intel UHD 620 / weak-integrated-GPU laptop class a HARD supported-device
+floor for AC-P0-12 release?**
+
+- **(A) NO — it is below the supported floor** (supported floor = modern desktop +
+  the declared iPad/iPhone Safari models). **Consequence:** the UHD 620 map-pan FAIL
+  is a documented limitation of a below-floor class and **does not block PR #96**. The
+  remaining release gate is then the **physical iPad/iPhone Safari actual-gesture
+  AC-P0-12 runs** (device_grade — these cannot be produced by automation here). When
+  those pass, PR #96 can go **READY for review → merge on explicit owner
+  authorization**.
+- **(B) YES — UHD 620 is a hard floor.** **Consequence:** *no* version of P0-a — and
+  *not even clean `main`* — can meet the 33.3 ms pan ceiling on that hardware with the
+  current Leaflet stack (proven: `main` fails too). Passing it requires the **K12
+  renderer work (MapLibre)**, a separate, currently-unapproved effort. PR #96 then
+  **stays HOLD behind that renderer decision**, independent of P0-a — merging P0-a
+  would not change the UHD 620 outcome either way.
+
+Either way: **PR #96 stays Draft and unmerged; no deploy; no HATI change; no
+threshold weakening.** Automation does not substitute for the physical iPad/iPhone
+Safari approvals.
