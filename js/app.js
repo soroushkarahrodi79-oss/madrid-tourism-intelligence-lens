@@ -1730,6 +1730,26 @@ if (haloRegressionRequested && haloRegressionLocal) {
         },
         touched: [...document.querySelectorAll("#planningTouchedList > li")].map((item) => item.textContent.trim()),
         touchedCardHidden: document.getElementById("planningTouchedCard").hasAttribute("hidden"),
+        // The promoted PLACE membership block (P0-a): its honest state, its count
+        // line, its identity-only chips and the route to the full list.
+        membership: (() => {
+          const block = document.getElementById("planningMembership");
+          const seeAll = document.getElementById("planningMembershipSeeAll");
+          return {
+            hidden: block.hidden,
+            state: block.dataset.state || null,
+            busy: block.getAttribute("aria-busy"),
+            countText: document.getElementById("planningMembershipCount").textContent.trim(),
+            chips: [...document.querySelectorAll("#planningMembershipChips > li")].map((li) => ({
+              code: li.querySelector(".planning-touched-code")?.textContent.trim() || null,
+              name: li.querySelector(".planning-membership-chip-name")?.textContent.trim() || null,
+              containsCentre: Boolean(li.querySelector(".planning-touched-centre")),
+              text: li.textContent.trim(),
+            })),
+            seeAllHidden: seeAll.hidden,
+            seeAllText: seeAll.textContent.trim(),
+          };
+        })(),
         // The MODEL, so the test can assert the DOM against it rather than
         // against a hand-written expectation.
         model: containing
@@ -1753,6 +1773,20 @@ if (haloRegressionRequested && haloRegressionLocal) {
       if (detail) detail.open = true;
       renderPlanningTouched();
       renderScopeRail();
+    },
+    // Drive the IDENTICAL coalescing path the real `dragstart`/`dragend` and the
+    // slider `input`/`change` handlers take, so a regression can assert the honest
+    // pending state during motion and the exact settle on release without having
+    // to synthesise a flaky pointer drag. `begin` marks the Lens as moving (the
+    // next refresh shows "updating"); `end` clears it and settles via refresh().
+    beginPlanningMembershipInteraction,
+    endPlanningMembershipInteraction,
+    // The exact canonical membership the model returns right now, for the
+    // freshness assertions (it is the same `ambitosIntersecting` the surface reads).
+    planningMembershipNow() {
+      if (planningState !== "ready" || !planningModel.index) return null;
+      const centre = centerOf(active);
+      return planningModel.index.ambitosIntersecting(centre.lon, centre.lat, radiusFor(active));
     },
     // Drive the SHARED Bridge/Insight translator so both languages can be
     // asserted against the real render path. Test seam only: production keeps
@@ -3068,6 +3102,19 @@ let planningHint = null;
 let lastPlanningRenderKey = null;
 let planningLayer = null;
 let planningRenderer = null;
+// LENS_INTERSECT_AMBITO membership (UX-I1/P0-a, #95). Promoting the circle–ámbito
+// scan into the always-visible PLACE planning section means it would otherwise run
+// on every continuous `drag`/`oninput` event. Two guards keep that honest and cheap:
+//   * an IDENTITY GUARD caches the last scan keyed on centre+radius, so a re-render
+//     at an unchanged geometry (language switch, mode re-render, re-activation) reuses
+//     the result and never re-scans; and
+//   * COALESCING defers the scan while the Lens is actively moving — the surface shows
+//     an explicit "updating" pending state, never a stale set — and settles to the
+//     exact canonical membership on dragend, radius commit, map click and URL restore.
+// `ambitosIntersecting` remains the ONLY membership computation; these are scheduling
+// concerns and add no second geometry algorithm and no apportionment.
+let planningMembershipCache = { key: null, result: null };
+let planningMembershipInteracting = false;
 
 async function loadPlanningContext() {
   let module;
@@ -3171,9 +3218,12 @@ function renderPlanningContext() {
   ].join("|");
 
   renderPlanningPolygon(containing);
-  // The membership list depends on the Lens position and radius, not on which
-  // ámbito contains the centre, so it is refreshed on every render — and it
-  // does its own cheap signature check before touching the DOM.
+  // Membership (LENS_INTERSECT_AMBITO) depends on the Lens position and radius,
+  // not on which ámbito contains the centre, so both the promoted PLACE block
+  // and the Detail full list are refreshed on every render — each guarded so the
+  // 724-polygon scan runs at most once per changed geometry and never on a moving
+  // Lens (see the membership block above).
+  renderPlanningMembership();
   renderPlanningTouched();
   if (key === lastPlanningRenderKey) return;
   lastPlanningRenderKey = key;
@@ -3736,9 +3786,125 @@ function renderPlanningChange(exactCode) {
   section.dataset.citizenReading = JSON.stringify(citizen);
 }
 
-// LENS_INTERSECT_AMBITO. Computed only while the PLACE detail disclosure is
-// open, so dragging a Lens with the detail closed costs nothing, and it reports
-// MEMBERSHIP only: which ámbitos the circle touches, with no quantity attached.
+// The ONE canonical membership computation, shared by the promoted PLACE block
+// and the Detail full list. IDENTITY GUARD: the 724-polygon scan runs only when
+// the active Lens centre or radius changed since the last evaluation; a re-render
+// at the same geometry (a language switch, a mode re-render, a re-activation)
+// reuses the cached frozen result and never re-scans. It is `ambitosIntersecting`
+// and nothing else — no parallel geometry, no apportionment.
+function evaluatePlanningMembership() {
+  if (planningState !== "ready" || !planningModel.index) return null;
+  const centre = centerOf(active);
+  const radiusM = radiusFor(active);
+  const key = `${active}|${centre.lon}|${centre.lat}|${radiusM}`;
+  if (planningMembershipCache.key === key && planningMembershipCache.result) {
+    return planningMembershipCache.result;
+  }
+  const result = planningModel.index.ambitosIntersecting(centre.lon, centre.lat, radiusM);
+  planningMembershipCache = { key, result };
+  return result;
+}
+
+// The Lens is actively moving: defer the membership scan and show an honest
+// pending state, so a set that no longer matches the centre/radius is never
+// displayed as current. refresh() renders the pending state; the matching
+// end-call below settles to the exact canonical membership.
+function beginPlanningMembershipInteraction() {
+  planningMembershipInteracting = true;
+}
+function endPlanningMembershipInteraction() {
+  if (!planningMembershipInteracting) return;
+  planningMembershipInteracting = false;
+  refresh();
+}
+
+// MEMBERSHIP, promoted into the always-visible PLACE planning section (P0-a).
+// A count line, up to three identity-only chips and a route to the complete list
+// in Detail. It carries NO quantity, share or proportion of any ámbito.
+function renderPlanningMembership() {
+  const block = document.getElementById("planningMembership");
+  if (!block) return;
+  const countLine = document.getElementById("planningMembershipCount");
+  const chipList = document.getElementById("planningMembershipChips");
+  const seeAll = document.getElementById("planningMembershipSeeAll");
+  const ready = planningState === "ready" && planningModel.index;
+  block.hidden = !ready;
+  if (!ready) {
+    block.dataset.state = planningState === "loading" ? "loading" : "unavailable";
+    block.dataset.signature = "";
+    countLine.textContent = "";
+    chipList.replaceChildren();
+    seeAll.hidden = true;
+    return;
+  }
+  if (planningMembershipInteracting) {
+    // Honest pending state — never a stale count beside a moved Lens (AC-P0-12).
+    block.dataset.state = "updating";
+    block.dataset.signature = "";
+    block.setAttribute("aria-busy", "true");
+    countLine.textContent = shellT("planning.touchedUpdating");
+    chipList.replaceChildren();
+    seeAll.hidden = true;
+    return;
+  }
+  block.removeAttribute("aria-busy");
+  const membership = evaluatePlanningMembership();
+  const count = membership ? membership.count : 0;
+  const signature = `${membership ? membership.touched.map((entry) => entry.ambitoCode).join(",") : ""}|${document.documentElement.lang}`;
+  if (block.dataset.signature === signature) return;
+  block.dataset.signature = signature;
+  block.dataset.state = count === 0 ? "none" : "present";
+  chipList.replaceChildren();
+  seeAll.hidden = true;
+  if (count === 0) {
+    // The zero case reuses the existing, unchanged copy.
+    countLine.textContent = shellT("planning.touchedNone");
+    return;
+  }
+  countLine.textContent =
+    count === 1
+      ? shellT("planning.touchedCountOne")
+      : shellT("planning.touchedCount").replace("{n}", String(count));
+  // Up to three chips, each identity ONLY: official code + denomination (and the
+  // containment mark when the circle centre also sits inside that ámbito). No
+  // number is attached to any chip.
+  for (const entry of membership.touched.slice(0, 3)) {
+    chipList.append(planningMembershipChip(entry));
+  }
+  // The complete list — with its containment marks and the no-apportionment note
+  // — stays in the existing Detail card. "See all {n}" opens and scrolls to it;
+  // it is bounded disclosure/navigation only (no camera move, no Lens change).
+  if (count > 3) {
+    seeAll.hidden = false;
+    seeAll.textContent = shellT("planning.touchedSeeAll").replace("{n}", String(count));
+  }
+}
+
+function planningMembershipChip(entry) {
+  const item = document.createElement("li");
+  item.className = "planning-membership-chip";
+  const code = document.createElement("span");
+  code.className = "planning-touched-code";
+  code.dataset.verbatim = "";
+  code.textContent = entry.ambitoCode;
+  const name = document.createElement("span");
+  name.className = "planning-membership-chip-name";
+  name.dataset.verbatim = "";
+  name.textContent = entry.denomination || "";
+  item.append(code, name);
+  if (entry.containsCentre) {
+    const centreMark = document.createElement("span");
+    centreMark.className = "planning-touched-centre";
+    centreMark.textContent = shellT("planning.touchedCentre");
+    item.append(centreMark);
+  }
+  return item;
+}
+
+// LENS_INTERSECT_AMBITO — the Detail full list. It remains the complete list the
+// promoted block's "See all" routes to, computed from the SAME shared evaluation
+// (so no second scan), only while the Detail disclosure is open. MEMBERSHIP only:
+// which ámbitos the circle touches, with no quantity attached.
 function renderPlanningTouched() {
   const list = document.getElementById("planningTouchedList");
   const card = document.getElementById("planningTouchedCard");
@@ -3748,10 +3914,19 @@ function renderPlanningTouched() {
   card.hidden = !open;
   if (!open || planningState !== "ready" || !planningModel.index) {
     list.replaceChildren();
+    list.dataset.signature = "";
     return;
   }
-  const centre = centerOf(active);
-  const membership = planningModel.index.ambitosIntersecting(centre.lon, centre.lat, radiusFor(active));
+  if (planningMembershipInteracting) {
+    // Mirror the promoted block's honest pending state while the Lens moves.
+    list.dataset.signature = "";
+    list.replaceChildren();
+    const item = document.createElement("li");
+    item.textContent = shellT("planning.touchedUpdating");
+    list.append(item);
+    return;
+  }
+  const membership = evaluatePlanningMembership();
   const signature = `${membership.touched.map((entry) => entry.ambitoCode).join(",")}|${document.documentElement.lang}`;
   if (list.dataset.signature === signature) return;
   list.dataset.signature = signature;
@@ -5000,6 +5175,14 @@ function disableLensB() {
 
 lenses.A.marker.on("drag", () => (active !== "A" ? activateLens("A") : refresh()));
 lenses.B.marker.on("drag", () => (active !== "B" ? activateLens("B") : refresh()));
+// Membership coalescing (P0-a, #95): the 724-polygon circle–ámbito scan is
+// deferred while a Lens marker is being dragged (the surface shows an explicit
+// pending state) and settles to the exact canonical set on release. Leaflet
+// fires `drag` continuously but `dragstart`/`dragend` once each.
+lenses.A.marker.on("dragstart", beginPlanningMembershipInteraction);
+lenses.B.marker.on("dragstart", beginPlanningMembershipInteraction);
+lenses.A.marker.on("dragend", endPlanningMembershipInteraction);
+lenses.B.marker.on("dragend", endPlanningMembershipInteraction);
 map.on("click", (e) => {
   // In COMPARE + ámbito scope a map click SELECTS an official ámbito (A then B)
   // instead of moving a Lens; otherwise the Lens-move behaviour is unchanged.
@@ -5058,6 +5241,27 @@ if (placeJump) {
     panel.scrollTo({ top: Math.max(0, top), behavior: reduce ? "auto" : "smooth" });
   });
 }
+// "See all {n}" opens the existing Detail full list and scrolls to it. Bounded
+// disclosure/navigation only: it moves no camera, rebinds no Lens and changes no
+// mode or reading (AC-P0-2a is NOT MET by P0-a — a chip cannot safely open the
+// containment-keyed whole-ámbito surface — so the route to the complete reading
+// is the unchanged Detail card, not an improvised finder).
+const planningMembershipSeeAll = document.getElementById("planningMembershipSeeAll");
+if (planningMembershipSeeAll) {
+  planningMembershipSeeAll.addEventListener("click", () => {
+    const detail = document.getElementById("placeDetail");
+    if (detail) detail.open = true;
+    renderPlanningTouched();
+    renderScopeRail();
+    const card = document.getElementById("planningTouchedCard");
+    const panel = document.getElementById("analysisPanel");
+    if (!card || !panel || card.hidden) return;
+    const top = card.getBoundingClientRect().top - panel.getBoundingClientRect().top + panel.scrollTop - 8;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    panel.scrollTo({ top: Math.max(0, top), behavior: reduce ? "auto" : "smooth" });
+  });
+}
+
 function renderRadiusLabels() {
   const text = formatLensRadius(radiusFor(active));
   document.getElementById("radiusText").textContent = text;
@@ -5077,11 +5281,16 @@ radiusSlider.setAttribute("aria-label", "Lens A radius");
 renderRadiusLabels();
 
 radiusSlider.oninput = (e) => {
+  // A slider drag fires `input` continuously and `change` once on release, so
+  // membership defers while sliding and settles on commit (the same coalescing
+  // as a marker drag). Keyboard adjustment fires both, so it settles at once.
+  beginPlanningMembershipInteraction();
   setLensRadius(active, e.target.value);
   e.target.value = radiusFor(active);
   renderRadiusLabels();
   refresh();
 };
+radiusSlider.onchange = endPlanningMembershipInteraction;
 document.getElementById("basemapSelect").onchange = (e) => setBasemap(e.target.value);
 document.getElementById("boundarySelect").onchange = (e) => setBoundaryMode(e.target.value);
 // ONE document language at a time (docs/INFORMATION_ARCHITECTURE_V2.md §Language):
@@ -5262,7 +5471,6 @@ if (placeDetailDisclosure) {
 }
 
 function currentFlags() {
-  const placeDetail = document.getElementById("placeDetail");
   return {
     vut: !document.getElementById("areaVut").hidden,
     hospitality: hospitalityVisible,
@@ -5271,10 +5479,12 @@ function currentFlags() {
     // The ADDRESS_POINT licence surface is on screen only while its opt-in layer
     // is enabled, so the rail never claims a scope whose surface is not rendered.
     licences: isLicencesVisible(),
-    // LENS_INTERSECT_AMBITO is on screen only while the PLACE detail is open and
-    // the planning artifacts actually loaded, so the rail never claims a scope
-    // whose surface is not rendered.
-    planningDetail: planningState === "ready" && Boolean(placeDetail && placeDetail.open),
+    // LENS_INTERSECT_AMBITO is on screen whenever the planning artifacts loaded
+    // and PLACE is showing: P0-a (#95) promoted the membership reading out of the
+    // closed Detail disclosure into the always-visible planning section, so the
+    // rail names the scope as soon as the surface renders — no longer gated on the
+    // Detail disclosure being open.
+    planningMembership: planningState === "ready",
   };
 }
 

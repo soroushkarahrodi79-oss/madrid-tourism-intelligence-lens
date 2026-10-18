@@ -443,10 +443,19 @@ test("PA 12 every planning value opens the ONE evidence drawer with full registr
     .locator("#evidenceDrawerBody .drawer-record")
     .evaluateAll((nodes) => nodes.map((node) => node.dataset.surface));
   assert.ok(surfaces.length >= 4 && surfaces.every((s) => s.startsWith("place.planning.")), surfaces.join(","));
-  const scopes = await page
+  const records = await page
     .locator("#evidenceDrawerBody .drawer-record")
-    .evaluateAll((nodes) => nodes.map((node) => node.dataset.scope));
-  assert.ok(scopes.every((s) => s === "PLANNING_AMBITO"), scopes.join(","));
+    .evaluateAll((nodes) => nodes.map((node) => ({ surface: node.dataset.surface, scope: node.dataset.scope })));
+  // The whole-ámbito evidence is PLANNING_AMBITO, as before. P0-a (#95) promoted
+  // the membership reading into the planning section, so the section's drawer now
+  // also carries that ONE record at the DIFFERENT LENS_INTERSECT_AMBITO scope —
+  // the two scopes stay distinct, never merged, exactly as the surface registry
+  // keeps them (one is a count of areas, the other whole-ámbito quantities).
+  const wholeAmbito = records.filter((r) => r.scope === "PLANNING_AMBITO");
+  const membership = records.filter((r) => r.scope === "LENS_INTERSECT_AMBITO");
+  assert.ok(wholeAmbito.length >= 4, records.map((r) => `${r.surface}:${r.scope}`).join(","));
+  assert.ok(membership.every((r) => r.surface === "place.planning.touched"), "membership is the only non-whole-ámbito record");
+  for (const r of records) assert.ok(["PLANNING_AMBITO", "LENS_INTERSECT_AMBITO"].includes(r.scope), r.scope);
 
   // Both ceilings, VERBATIM from the registry, in the citizen reading.
   const body = (await page.locator("#evidenceDrawerBody").textContent()).replace(/\s+/g, " ");
@@ -547,24 +556,26 @@ test("PA 14 the containing ámbito renders on its own pane, in its own hue famil
 
 // ------------------------------------------------- 7. Lens ∩ ámbito membership
 
-test("PA 15 the Lens∩ámbito reading lists touched ámbitos and no quantity", async (t) => {
+test("PA 15 the Lens∩ámbito Detail list lists touched ámbitos and no quantity", async (t) => {
   const page = await newPage();
   t.after(() => closePage(page));
   await at(page, INSIDE);
 
-  // Closed by default: no membership list, and the rail does not claim the scope.
+  // The Detail FULL list is still gated on the Detail disclosure: closed by
+  // default, so its list is empty. (The promoted count line is separate — PA 21.)
   let view = await planning(page);
   assert.equal(view.touchedCardHidden, true);
   assert.equal(view.touched.length, 0);
+  // But P0-a (#95) promoted the membership reading into the always-visible
+  // planning section, so the rail names the scope even with Detail closed.
   let rail = await page.locator("#scopeRailList").textContent();
-  assert.equal(rail.includes("Lens ∩ ámbito"), false);
+  assert.ok(rail.includes("Lens ∩ ámbito"), rail);
 
   await page.evaluate(() => window.__HALO_REGRESSION__.openPlaceDetailForTest());
   view = await planning(page);
   assert.equal(view.touchedCardHidden, false);
   assert.equal(view.touched.length, view.model.membership.count);
   assert.ok(view.model.membership.count >= 1);
-  // The rail now names the real scope, because the surface is on screen.
   rail = await page.locator("#scopeRailList").textContent();
   assert.ok(rail.includes("Lens ∩ ámbito"), rail);
 
@@ -583,6 +594,149 @@ test("PA 15 the Lens∩ámbito reading lists touched ámbitos and no quantity", 
   const note = await page.locator("#planningTouchedCard .planning-block-note").textContent();
   assert.match(note, /No share, proportion or part/i);
   assert.match(note, /published quantities/i);
+});
+
+// ---------------------------------------- 7b. promoted membership disclosure (P0-a)
+
+test("PA 21 (AC-P0-1/-5) the promoted membership block states containment and membership as different questions, with identity-only chips", async (t) => {
+  const page = await newPage();
+  t.after(() => closePage(page));
+  // Without opening the Detail disclosure, moving the map or moving the Lens.
+  await at(page, INSIDE);
+  const view = await planning(page);
+
+  // The promoted block is visible and distinct from the containment answer.
+  assert.equal(view.membership.hidden, false);
+  assert.equal(view.touchedCardHidden, true, "the Detail full list is still closed");
+  assert.equal(view.membership.state, "present");
+  assert.ok(view.model.membership.count >= 1);
+  // The count line names a count of ámbitos the circle touches — a different
+  // sentence from containment, never merged with it.
+  assert.match(view.membership.countText, /touches/i);
+  assert.match(view.membership.countText, /official planning ámbito/i);
+  // Containment copy is untouched and separate: at INSIDE the identity is shown.
+  assert.equal(view.identityHidden, false);
+
+  // Up to three identity-only chips, each code + denomination, NO number.
+  assert.ok(view.membership.chips.length >= 1 && view.membership.chips.length <= 3);
+  const touchedCodes = view.model.membership.touched.map((entry) => entry.ambitoCode);
+  for (const chip of view.membership.chips) {
+    assert.ok(chip.code && touchedCodes.includes(chip.code), chip.code);
+    assert.doesNotMatch(chip.text, /m²|%|\d{3,}/, chip.text);
+  }
+  // The containing ámbito is marked as containing the centre on its chip.
+  const containingChip = view.membership.chips.find((chip) => chip.code === view.code);
+  if (containingChip) assert.equal(containingChip.containsCentre, true);
+
+  // "See all n" appears only when there are more than three; it opens the Detail
+  // full list, which then matches the model count.
+  if (view.model.membership.count > 3) {
+    assert.equal(view.membership.seeAllHidden, false);
+    assert.match(view.membership.seeAllText, new RegExp(String(view.model.membership.count)));
+    await page.locator("#planningMembershipSeeAll").click();
+    const opened = await planning(page);
+    assert.equal(opened.touchedCardHidden, false);
+    assert.equal(opened.touched.length, view.model.membership.count);
+  } else {
+    assert.equal(view.membership.seeAllHidden, true);
+  }
+});
+
+test("PA 22 (AC-P0-1) at the default centre, PLACE states no containing ámbito AND the circle membership, at three viewport classes", async (t) => {
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 834, height: 1112 },
+    { width: 375, height: 812 },
+  ]) {
+    const page = await newPage(viewport);
+    t.after(() => closePage(page));
+    // The modelled default centre: containment is outside_all_ambitos while the
+    // default Lens intersects ámbitos (UX-D1 §2).
+    await at(page, { ...OUTSIDE, code: "" });
+    const view = await planning(page);
+    const label = `${viewport.width}x${viewport.height}`;
+
+    // Containment: explicit absence, verbatim and unchanged.
+    assert.equal(view.state, "outside_all_ambitos", label);
+    assert.equal(view.outsideHidden, false, label);
+    assert.match(view.outsideText, /No official planning ámbito contains the Lens centre/i, label);
+
+    // Membership: promoted, visible, with a real count — a different question.
+    assert.equal(view.membership.hidden, false, label);
+    assert.ok(view.model.membership.count >= 1, `${label}: default Lens intersects ámbitos`);
+    assert.equal(view.membership.state, "present", label);
+    assert.match(view.membership.countText, /touches/i, label);
+    // No forced disclosure, map move or Lens move was needed to read either.
+    assert.equal(view.touchedCardHidden, true, `${label}: Detail stayed closed`);
+    // The block is visible on screen (not merely in the DOM).
+    assert.equal(await page.locator("#planningMembership").isVisible(), true, label);
+    // No horizontal overflow at this width.
+    const overflow = await page.evaluate(() => {
+      const s = document.getElementById("planningAmbito");
+      return s.scrollWidth - s.clientWidth;
+    });
+    assert.ok(overflow <= 1, `${label} planning overflow ${overflow}px`);
+  }
+});
+
+test("PA 23 (AC-P0-12) membership shows an honest pending state while the Lens moves and settles to the exact canonical set", async (t) => {
+  const page = await newPage();
+  t.after(() => closePage(page));
+  await at(page, INSIDE);
+  const settled = await planning(page);
+  assert.equal(settled.membership.state, "present");
+
+  // Begin an interaction (the identical path the real dragstart/slider-input take)
+  // and move the Lens: the block must show the pending state, never the stale set.
+  await page.evaluate(() => window.__HALO_REGRESSION__.beginPlanningMembershipInteraction());
+  await page.evaluate(([lat, lon]) => window.__HALO_REGRESSION__.moveLensToLatLng("A", lat, lon), [OUTSIDE.lat, OUTSIDE.lon]);
+  const pending = await planning(page);
+  assert.equal(pending.membership.state, "updating", "pending while moving");
+  assert.equal(pending.membership.busy, "true");
+  assert.match(pending.membership.countText, /Updating/i);
+  assert.equal(pending.membership.chips.length, 0, "no stale chips during motion");
+
+  // End the interaction: it settles to the EXACT canonical membership for the
+  // current centre and radius — the model read right now.
+  await page.evaluate(() => window.__HALO_REGRESSION__.endPlanningMembershipInteraction());
+  const after = await planning(page);
+  const canonical = await page.evaluate(() => window.__HALO_REGRESSION__.planningMembershipNow());
+  assert.equal(after.membership.state, canonical.count === 0 ? "none" : "present");
+  assert.notEqual(after.membership.busy, "true");
+  const renderedCodes = after.membership.chips.map((chip) => chip.code);
+  assert.deepEqual(renderedCodes, canonical.touched.slice(0, 3).map((entry) => entry.ambitoCode));
+
+  // A radius change settles to the exact set too.
+  await page.evaluate(() => window.__HALO_REGRESSION__.beginPlanningMembershipInteraction());
+  await page.evaluate(() => { const s = document.getElementById("radiusSlider"); s.value = s.max; s.oninput({ target: s }); });
+  const midRadius = await planning(page);
+  assert.equal(midRadius.membership.state, "updating");
+  await page.evaluate(() => { const s = document.getElementById("radiusSlider"); s.onchange(); });
+  const afterRadius = await planning(page);
+  const canonicalMax = await page.evaluate(() => window.__HALO_REGRESSION__.planningMembershipNow());
+  assert.equal(afterRadius.membership.state, canonicalMax.count === 0 ? "none" : "present");
+  assert.deepEqual(
+    afterRadius.membership.chips.map((chip) => chip.code),
+    canonicalMax.touched.slice(0, 3).map((entry) => entry.ambitoCode)
+  );
+});
+
+test("PA 24 (AC-P0-10) the promoted membership reads in ES and EN; official codes stay verbatim", async (t) => {
+  const page = await newPage();
+  t.after(() => closePage(page));
+  const english = await at(page, INSIDE);
+  assert.match(english.membership.countText, /touches/i);
+
+  await page.selectOption("#languageSelect", "es");
+  await page.waitForFunction(() => document.documentElement.lang === "es");
+  const spanish = await planning(page);
+  assert.match(spanish.membership.countText, /toca/i);
+  assert.match(spanish.membership.countText, /ámbito(s)? oficial(es)? de planeamiento/i);
+  // The official codes on the chips are the publisher's and identical in both.
+  assert.deepEqual(
+    spanish.membership.chips.map((chip) => chip.code),
+    english.membership.chips.map((chip) => chip.code)
+  );
 });
 
 // ------------------------------------------------------------- 8. language

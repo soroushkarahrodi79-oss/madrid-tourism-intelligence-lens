@@ -251,6 +251,23 @@
       </div>
       <p id="planningBuildAbsent" class="planning-absent" hidden></p>
 
+      <!-- MEMBERSHIP (LENS_INTERSECT_AMBITO), UX-I1/P0-a (#95). A DIFFERENT
+           question from containment above: which official planning ámbitos the
+           Lens CIRCLE touches. Promoted out of the closed Detail disclosure so a
+           reader learns nearby ámbitos exist without opening anything, moving the
+           map or moving the Lens. It carries a count and up to three identity-only
+           chips; the complete list stays in Detail. It is a property of the
+           circle — no share, proportion or quantity of any ámbito is shown or
+           implied — and it is kept visually and verbally separate from the
+           containment answer. While the Lens is moving it shows an explicit
+           pending state rather than a stale set (AC-P0-12). -->
+      <div id="planningMembership" class="planning-membership" data-state="">
+        <p id="planningMembershipCount" class="planning-membership-count" aria-live="polite"></p>
+        <ul id="planningMembershipChips" class="planning-membership-chips"></ul>
+        <button id="planningMembershipSeeAll" class="planning-membership-seeall" type="button" hidden></button>
+        <p class="planning-block-note" data-i18n="planning.touchedNote">Which ámbitos the Lens circle touches. No share, proportion or part of their published quantities is computed or implied.</p>
+      </div>
+
       <!-- Citizen reading. It foregrounds; it never changes a value, a unit, a
            state, a scope or a ceiling. -->
       <details id="planningCitizen" class="planning-citizen">

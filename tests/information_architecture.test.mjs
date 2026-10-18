@@ -331,7 +331,7 @@ test("F/G: the rail is derived from the surfaces on screen, one entry per distin
   // The Lens∩ámbito membership scope appears only while its surface is on
   // screen, so the rail never names a scope nothing is rendering.
   assert.ok(!place.entries.some((e) => e.scope === "LENS_INTERSECT_AMBITO"));
-  assert.ok(rail("PLACE", { planningDetail: true }).entries.some((e) => e.scope === "LENS_INTERSECT_AMBITO"));
+  assert.ok(rail("PLACE", { planningMembership: true }).entries.some((e) => e.scope === "LENS_INTERSECT_AMBITO"));
   const placeAll = rail("PLACE", FLAGS_ALL);
   assert.ok(placeAll.entries.some((e) => e.scope === "BOUNDED_STUDY_AREA"));
   assert.ok(placeAll.entries.some((e) => e.scope === "POINT_OBSERVATION"));
