@@ -109,16 +109,38 @@ export function assertStatsMatchRaw(stat, where = "stat") {
   return true;
 }
 
+// Sample sufficiency judged on the POST-WARM sample count (R4/defect-2): drop the
+// warm-up sample first, then require the surviving stored n to meet the minimum. So
+// 41 raw → n=40 meets a 40 minimum; 40 raw → n=39 does NOT; and a 48 target needs 49
+// raw (48 valid). The stat it returns satisfies n === raw.length and recomputes from
+// its own raw. This is the exact rule finishScenario applies to every scenario.
+export function samplesSufficient(rawArray, minSamples) {
+  const stat = Array.isArray(rawArray) && rawArray.length ? summarize(dropWarm(rawArray)) : null;
+  if (stat) assertStatsMatchRaw(stat, "samplesSufficient");
+  const n = stat && stat.n ? stat.n : 0;
+  return { n_post_warm: n, min_samples: minSamples, ok: n >= minSamples, stat };
+}
+
 // Pass/fail of ONE scenario against thresholds.json, SCOPED to the scenario's own
 // interaction (R1). A marker/radius scenario is graded only on interaction-to-paint
 // (≤150 ms); a pan scenario only on pan-frame p95 (≤33.3 ms). The map-pan ceiling
 // is NEVER applied to a drag/radius window, and ITP is never applied to a pan.
 // p95 ≤ acceptable passes; ≤ good is flagged good. A missing required metric is
 // NOT a silent pass (graded=false → the complete-scenario gate treats it as
-// incomplete). Freshness, where the scenario requires it, is part of its pass.
-export function gradeScenario(scenario, thresholds) {
+// incomplete).
+//
+// FRESHNESS (fail-closed in feature mode). AC-P0-12 requires a FRESH membership
+// after a marker/radius settle in PR (feature) mode: it must be explicitly present,
+// applicable AND fresh. Missing / null / N/A (applicable:false) does NOT pass in
+// feature mode — it is `freshness_status:"missing"`, which the complete-scenario
+// gate treats as INCOMPLETE. Stale (applicable but fresh:false) is
+// `freshness_status:"stale"` → the scenario fails. N/A is accepted ONLY in the
+// explicit pre-feature `main` baseline (`baselineMode:true`), and always for a pan
+// (which does not move the Lens, so membership is unchanged).
+export function gradeScenario(scenario, thresholds, { baselineMode = false } = {}) {
   const t = thresholds.thresholds || thresholds;
   const metricKey = INTERACTION_METRIC[scenario.interaction] || null;
+  const needsFreshness = metricKey === "interaction_to_paint_ms"; // marker + radius
   const checks = [];
   let graded = false;
   if (metricKey) {
@@ -137,17 +159,35 @@ export function gradeScenario(scenario, thresholds) {
     }
   }
   const metricsPass = checks.every((c) => c.pass);
-  // Freshness is required for marker/radius unless the scenario explicitly marks
-  // it not-applicable (a pre-feature `main` baseline, or a pan which does not move
-  // the Lens). freshness == null means "not checked for this interaction".
-  const freshRequired = scenario.freshness != null && scenario.freshness.applicable !== false;
-  const freshnessOk = !freshRequired || scenario.freshness.fresh === true;
+
+  const f = scenario.freshness;
+  let freshnessStatus, freshnessOk, freshnessRequired;
+  if (!needsFreshness) {
+    freshnessRequired = false;
+    freshnessStatus = "na_pan";
+    freshnessOk = true;
+  } else if (baselineMode) {
+    // Pre-feature main baseline: N/A is legitimate; a present applicable check must
+    // still be fresh if it exists.
+    freshnessRequired = false;
+    if (f == null || f.applicable === false) { freshnessStatus = "na_baseline"; freshnessOk = true; }
+    else if (f.fresh === true) { freshnessStatus = "fresh"; freshnessOk = true; }
+    else { freshnessStatus = "stale"; freshnessOk = false; }
+  } else {
+    // Feature (PR) mode — mandatory: explicitly present, applicable AND fresh.
+    freshnessRequired = true;
+    if (f == null || f.applicable !== true) { freshnessStatus = "missing"; freshnessOk = false; }
+    else if (f.fresh === true) { freshnessStatus = "fresh"; freshnessOk = true; }
+    else { freshnessStatus = "stale"; freshnessOk = false; }
+  }
   const enough = scenario.samples_ok !== false;
   return {
     graded,
     scored_metric: metricKey,
     checks,
-    freshness_required: freshRequired,
+    freshness_required: freshnessRequired,
+    freshness_status: freshnessStatus,
+    freshness_missing: freshnessStatus === "missing", // feature mode, absent → INCOMPLETE
     freshness_ok: freshnessOk,
     samples_ok: enough,
     pass: graded && metricsPass && freshnessOk && enough,
@@ -625,14 +665,19 @@ export class GestureCapture {
     if (this.interaction === "pan") this._report();
     this._rafId = w.requestAnimationFrame(this._tick);
   }
+  // The count that will SURVIVE warm-up exclusion — one sample is dropped as warm
+  // before statistics, so the live counter and the sufficiency check both reflect
+  // the post-warm count, not the raw captured length.
+  _postWarmCount() {
+    const raw = this.interaction === "pan" ? this.activePanFrames.length : this.lat.length;
+    return Math.max(0, raw - 1);
+  }
   _report() {
     if (!this.onProgress) return;
-    const samples = this.interaction === "pan" ? this.activePanFrames.length : this.lat.length;
-    this.onProgress({ samples, frames: this.allFrames.length, moves: this.genuineMoves, totalMoves: this.totalMoveEvents, min: this.minSamples });
+    this.onProgress({ samples: this._postWarmCount(), frames: this.allFrames.length, moves: this.genuineMoves, totalMoves: this.totalMoveEvents, min: this.minSamples });
   }
   get enough() {
-    const samples = this.interaction === "pan" ? this.activePanFrames.length : this.lat.length;
-    return samples >= this.minSamples;
+    return this._postWarmCount() >= this.minSamples;
   }
   stop() {
     this._running = false;
@@ -660,20 +705,22 @@ export class GestureCapture {
     // it) — not a pointer event — so inertia frames with no pointer stream still
     // count and a pointer wiggle that never pans the map does not.
     const genuine = this.interaction === "pan" ? this.activePanFrames.length > 0 : this.genuineMoves > 0;
-    if (this.error) return finishScenario(w, { ...base, error: this.error, samples_ok: false });
+    // `minSamples` is passed through so finishScenario can judge sufficiency on the
+    // POST-WARM stored n (not the pre-exclusion array length).
+    if (this.error) return finishScenario(w, { ...base, error: this.error, minSamples: this.minSamples });
     if (!genuine) {
       const why = this.interaction === "pan" ? "the map centre never moved" : "no Lens/radius change";
-      return finishScenario(w, { ...base, error: `no genuine ${this.interaction} detected (${why}) — NOT TESTED`, samples_ok: false, activePanFrames: this.activePanFrames, allFrames: this.allFrames });
+      return finishScenario(w, { ...base, error: `no genuine ${this.interaction} detected (${why}) — NOT TESTED`, minSamples: this.minSamples, activePanFrames: this.activePanFrames, allFrames: this.allFrames });
     }
     if (this.interaction === "pan") {
-      return finishScenario(w, { ...base, activePanFrames: this.activePanFrames, allFrames: this.allFrames, samples_ok: this.activePanFrames.length >= this.minSamples });
+      return finishScenario(w, { ...base, activePanFrames: this.activePanFrames, allFrames: this.allFrames, minSamples: this.minSamples });
     }
     return finishScenario(w, {
       ...base,
       lat: this.lat,
       allFrames: this.allFrames,
       freshness: checkFreshness(w),
-      samples_ok: this.lat.length >= this.minSamples,
+      minSamples: this.minSamples,
     });
   }
 }
@@ -750,13 +797,15 @@ function finishScenario(appWin, s) {
   else out.freshness = null;
 
   out.js_heap_mb = heapMB(appWin);
-  if (s.samples_ok != null) out.samples_ok = s.samples_ok;
-  else {
-    // Automated sequences do not pass an explicit count: ≥40 valid samples in the
-    // scored metric after warm-up exclusion.
-    const scored = metricKey ? out[metricKey] : null;
-    out.samples_ok = (scored && scored.n ? scored.n : 0) >= 40;
-  }
+  // Sample sufficiency is judged on the FINAL STORED sample count of the scored
+  // metric — i.e. AFTER warm-up exclusion — against the effective minimum. So a
+  // 48-sample target really needs 48 valid saved samples (49 captured, one warm
+  // dropped), and exactly 40 captured (n=39 after warm-up) is NOT sufficient at a
+  // 40 minimum. An errored/NOT-TESTED scenario is never sufficient.
+  out.min_samples = s.minSamples != null ? s.minSamples : 40;
+  const scored = metricKey ? out[metricKey] : null;
+  out.samples_n_post_warm = scored && scored.n ? scored.n : 0;
+  out.samples_ok = !s.error && out.samples_n_post_warm >= out.min_samples;
   return out;
 }
 
@@ -772,7 +821,7 @@ function finishScenario(appWin, s) {
 // R5 — in a pre-feature `main` baseline (`baselineMode`) there is no membership,
 // so freshness is N/A and the report is a BASELINE, not an AC-P0-12 gate verdict.
 export function buildReport({ env, thresholds, scenarios, testCommit, deviceClass, baselineMode = false, comparisonStatus = null }) {
-  const graded = scenarios.map((s) => ({ ...s, grade: gradeScenario(s, thresholds) }));
+  const graded = scenarios.map((s) => ({ ...s, grade: gradeScenario(s, thresholds, { baselineMode }) }));
   const actual = graded.filter((s) => s.measurement_kind === "actual_gesture");
   const conflict = detectAttestationConflict(deviceClass, env);
 
@@ -785,6 +834,9 @@ export function buildReport({ env, thresholds, scenarios, testCommit, deviceClas
   const errored = presentScenarios.filter((s) => s.error);
   const underSampled = presentScenarios.filter((s) => s.samples_ok === false);
   const ungraded = presentScenarios.filter((s) => !s.grade.graded && !s.error);
+  // Feature mode: a marker/radius scenario with absent/N/A freshness is fail-closed
+  // INCOMPLETE (not PASS). Stale freshness is handled by grade.pass → FAIL below.
+  const freshnessMissing = presentScenarios.filter((s) => !s.error && s.grade.graded && s.grade.freshness_missing);
   const allThree = missing.length === 0;
   const allGraded = allThree && presentScenarios.every((s) => s.grade.graded);
   const allPass = allThree && presentScenarios.every((s) => s.grade.pass);
@@ -815,6 +867,9 @@ export function buildReport({ env, thresholds, scenarios, testCommit, deviceClas
   } else if (ungraded.length) {
     verdict = "INCOMPLETE — METRIC MISSING";
     verdict_reason = `A required scenario is missing its scored metric: ${ungraded.map((s) => s.scenario).join(", ")}.`;
+  } else if (freshnessMissing.length) {
+    verdict = "INCOMPLETE — FRESHNESS MISSING";
+    verdict_reason = `AC-P0-12 requires a fresh membership after settle in feature mode, but it is absent/N/A for: ${freshnessMissing.map((s) => s.scenario).join(", ")}. Re-run so the drag/radius capture records the settled freshness.`;
   } else if (underSampled.length) {
     verdict = "INCOMPLETE — INSUFFICIENT SAMPLES";
     verdict_reason = `Below the sample target: ${underSampled.map((s) => s.scenario).join(", ")}. Keep the gesture going longer and re-run.`;

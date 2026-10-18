@@ -16,6 +16,7 @@ import {
   membershipSignature,
   summarize,
   assertStatsMatchRaw,
+  samplesSufficient,
   gradeScenario,
   deviceGradeFor,
   observedDeviceClass,
@@ -76,6 +77,38 @@ test("dropWarm removes exactly the first sample before stats", () => {
   assert.deepEqual(dropWarm([]), []);
 });
 
+// ── Defect 2: sample sufficiency judged on POST-WARM stored n ─────────────────
+const nRaw = (k) => Array.from({ length: k }, (_, i) => 10 + i); // k distinct samples
+test("samplesSufficient: 40 minimum — boundary 39/40/41 raw", () => {
+  const r39 = samplesSufficient(nRaw(39), 40); // 38 after warm-up
+  assert.equal(r39.n_post_warm, 38);
+  assert.equal(r39.ok, false);
+  const r40 = samplesSufficient(nRaw(40), 40); // 39 after warm-up — NOT sufficient
+  assert.equal(r40.n_post_warm, 39);
+  assert.equal(r40.ok, false);
+  const r41 = samplesSufficient(nRaw(41), 40); // 40 after warm-up — sufficient
+  assert.equal(r41.n_post_warm, 40);
+  assert.equal(r41.ok, true);
+});
+test("samplesSufficient: default 48 target really needs 48 VALID (49 raw)", () => {
+  assert.equal(samplesSufficient(nRaw(48), 48).ok, false); // 47 post-warm
+  assert.equal(samplesSufficient(nRaw(48), 48).n_post_warm, 47);
+  assert.equal(samplesSufficient(nRaw(49), 48).ok, true); // 48 post-warm
+  assert.equal(samplesSufficient(nRaw(49), 48).n_post_warm, 48);
+});
+test("samplesSufficient: returned stat satisfies n === raw.length and reproduces", () => {
+  const r = samplesSufficient(nRaw(50), 48);
+  assert.equal(r.stat.n, r.stat.raw.length);
+  assertStatsMatchRaw(r.stat, "boundary");
+  const re = summarize(r.stat.raw);
+  for (const k of ["n", "min", "median", "p95", "max"]) assert.equal(re[k], r.stat[k]);
+});
+test("samplesSufficient: empty / single sample → 0 post-warm, insufficient", () => {
+  assert.equal(samplesSufficient([], 40).ok, false);
+  assert.equal(samplesSufficient([5], 40).n_post_warm, 1); // single sample can't shed a warm frame
+  assert.equal(samplesSufficient([5], 40).ok, false);
+});
+
 // ── R3 attribution predicates ────────────────────────────────────────────────
 test("lensAnyMoved: true only when a Lens centre actually moved", () => {
   const a = { A: { lat: 40.4, lon: -3.7 }, B: { lat: 40.4, lon: -3.7 } };
@@ -120,14 +153,45 @@ test("pan is graded on pan-frame only; ITP is never applied to a pan", () => {
 test("marker/radius require freshness; pan does not", () => {
   const stale = gradeScenario({ interaction: "marker_drag", interaction_to_paint_ms: { p95: 90 }, freshness: { applicable: true, fresh: false } }, THRESHOLDS);
   assert.equal(stale.pass, false);
+  assert.equal(stale.freshness_status, "stale");
   const panNA = gradeScenario({ interaction: "pan", pan_frame_ms: { p95: 20 }, freshness: { applicable: false, fresh: null } }, THRESHOLDS);
   assert.equal(panNA.freshness_required, false);
+  assert.equal(panNA.freshness_status, "na_pan");
   assert.equal(panNA.pass, true);
 });
-test("baseline freshness N/A does not fail a marker/radius scenario (R5)", () => {
-  const g = gradeScenario({ interaction: "marker_drag", interaction_to_paint_ms: { p95: 90 }, freshness: { applicable: false, fresh: null } }, THRESHOLDS);
-  assert.equal(g.freshness_required, false);
+
+// ── Defect 1: mandatory freshness in FEATURE mode ────────────────────────────
+for (const [desc, freshness] of [["null", null], ["missing (undefined)", undefined], ["N/A applicable:false", { applicable: false, fresh: null }]]) {
+  test(`feature mode marker: freshness ${desc} → NOT fresh, status 'missing', does NOT pass`, () => {
+    const g = gradeScenario({ interaction: "marker_drag", interaction_to_paint_ms: { p95: 90 }, freshness }, THRESHOLDS); // baselineMode defaults false
+    assert.equal(g.freshness_required, true);
+    assert.equal(g.freshness_status, "missing");
+    assert.equal(g.freshness_missing, true);
+    assert.equal(g.pass, false);
+  });
+}
+test("feature mode radius: stale freshness → status 'stale', fails (not 'missing')", () => {
+  const g = gradeScenario({ interaction: "radius_slider", interaction_to_paint_ms: { p95: 90 }, freshness: { applicable: true, fresh: false } }, THRESHOLDS);
+  assert.equal(g.freshness_status, "stale");
+  assert.equal(g.freshness_missing, false);
+  assert.equal(g.pass, false);
+});
+test("feature mode marker: applicable:true + fresh:true → passes", () => {
+  const g = gradeScenario({ interaction: "marker_drag", interaction_to_paint_ms: { p95: 90 }, freshness: { applicable: true, fresh: true } }, THRESHOLDS);
+  assert.equal(g.freshness_status, "fresh");
   assert.equal(g.pass, true);
+});
+test("BASELINE mode marker: N/A (null or applicable:false) is accepted, not required", () => {
+  for (const f of [null, { applicable: false, fresh: null }]) {
+    const g = gradeScenario({ interaction: "marker_drag", interaction_to_paint_ms: { p95: 90 }, freshness: f }, THRESHOLDS, { baselineMode: true });
+    assert.equal(g.freshness_required, false);
+    assert.equal(g.freshness_status, "na_baseline");
+    assert.equal(g.pass, true);
+  }
+});
+test("BASELINE mode marker: a present applicable+stale freshness still fails", () => {
+  const g = gradeScenario({ interaction: "marker_drag", interaction_to_paint_ms: { p95: 90 }, freshness: { applicable: true, fresh: false } }, THRESHOLDS, { baselineMode: true });
+  assert.equal(g.pass, false);
 });
 test("a missing scored metric is not a silent pass", () => {
   const g = gradeScenario({ interaction: "pan", pan_frame_ms: null }, THRESHOLDS);
@@ -206,6 +270,26 @@ test("THREE but one missing its scored metric → INCOMPLETE", () => {
 test("THREE but marker freshness STALE → FAIL", () => {
   const r = rep([marker({ freshness: { applicable: true, fresh: false } }), radius(), pan()]);
   assert.match(r.verdict, /^FAIL/);
+});
+// Defect 1 at the three-scenario verdict level: absent/N/A freshness in feature mode
+// → INCOMPLETE — FRESHNESS MISSING, never PASS.
+for (const [desc, freshness] of [["null", null], ["missing", undefined], ["N/A", { applicable: false, fresh: null }]]) {
+  test(`THREE but marker freshness ${desc} (feature mode) → INCOMPLETE — FRESHNESS MISSING, never PASS`, () => {
+    const r = rep([marker({ freshness }), radius(), pan()]);
+    assert.match(r.verdict, /INCOMPLETE — FRESHNESS MISSING/);
+  });
+}
+test("THREE but radius freshness N/A (feature mode) → INCOMPLETE, never PASS", () => {
+  const r = rep([marker(), radius({ freshness: { applicable: false, fresh: null } }), pan()]);
+  assert.match(r.verdict, /INCOMPLETE — FRESHNESS MISSING/);
+});
+test("THREE all fresh (applicable+fresh) → PASS (control for the freshness gate)", () => {
+  const r = rep([marker({ freshness: { applicable: true, fresh: true } }), radius({ freshness: { applicable: true, fresh: true } }), pan()]);
+  assert.match(r.verdict, /^PASS/);
+});
+test("pan freshness N/A never blocks PASS (pan does not move the Lens)", () => {
+  const r = rep([marker(), radius(), pan({ freshness: { applicable: false, fresh: null } })]);
+  assert.match(r.verdict, /^PASS/);
 });
 test("declared phone but observed desktop → REFUSED even with three scenarios", () => {
   const r = buildReport({ env: { ...appleEnv, userAgent: "Mozilla/5.0 (Windows NT 10.0) Chrome", maxTouchPoints: 0, observed_device_class: "desktop" }, thresholds: THRESHOLDS, deviceClass: "phone", scenarios: [marker(), radius(), pan()] });
