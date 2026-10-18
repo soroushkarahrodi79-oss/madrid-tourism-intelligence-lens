@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="800" viewBox="0 0 1300 800" font-family="Inter, 'Segoe UI', system-ui, sans-serif">
+  <title>Keyboard focus path — today versus proposed, with the 196 focusable map markers</title>
+  <desc>Diagram of the current tab order, which traverses Leaflet cluster markers before reaching panel and rail controls, and the proposed skip-link route that reaches every core control without focusing a map marker.</desc>
+
+  <rect width="1300" height="800" fill="#060c14"/>
+
+  <text x="20" y="30" fill="#f3f7ff" font-size="19" font-weight="700">KEYBOARD FOCUS PATH · today vs proposed</text>
+  <text x="20" y="52" fill="#9fb1c5" font-size="13">The merged #92 audit measured 196 focusable Leaflet marker/cluster elements and reached a cluster marker on the 3rd Tab.</text>
+  <text x="20" y="72" fill="#ffb04a" font-size="12">PROPOSED — not implemented. Assistive-technology behaviour is NOT TESTED and is not claimed by this diagram.</text>
+
+  <!-- ===== TODAY ===== -->
+  <rect x="24" y="92" width="614" height="384" rx="8" fill="#0a131f" stroke="#c0794f" stroke-width="1.5"/>
+  <text x="40" y="118" fill="#c0794f" font-size="13" font-weight="700">TODAY · the map is first and it is deep</text>
+
+  <g font-size="10">
+    <rect x="40" y="132" width="180" height="34" rx="5" fill="#101d2c" stroke="#3a4654"/>
+    <text x="50" y="147" fill="#f3f7ff" font-weight="700">Tab 1 · Language select</text><text x="50" y="160" fill="#9fb1c5" font-size="8.5">header-tools</text>
+    <path d="M220 149 H246" stroke="#3a4654" stroke-width="1.5" marker-end="url(#ar)"/>
+    <rect x="248" y="132" width="180" height="34" rx="5" fill="#101d2c" stroke="#3a4654"/>
+    <text x="258" y="147" fill="#f3f7ff" font-weight="700">Tab 2 · Leaflet zoom in</text><text x="258" y="160" fill="#9fb1c5" font-size="8.5">map control</text>
+    <path d="M428 149 H454" stroke="#3a4654" stroke-width="1.5" marker-end="url(#ar)"/>
+    <rect x="456" y="132" width="166" height="34" rx="5" fill="#1a1410" stroke="#c0794f" stroke-width="1.6"/>
+    <text x="466" y="147" fill="#e8d5c4" font-weight="700">Tab 3 · a cluster marker</text><text x="466" y="160" fill="#c0794f" font-size="8.5">live measurement, #92 audit</text>
+  </g>
+
+  <rect x="40" y="182" width="582" height="92" rx="6" fill="#1a1410" stroke="#c0794f" stroke-width="1.6"/>
+  <text x="52" y="202" fill="#c0794f" font-size="11" font-weight="700">Tabs 3 … ~198 · up to 196 map markers, one at a time</text>
+  <g>
+    <g fill="#c0794f" opacity="0.8">
+      <circle cx="60" cy="222" r="5"/><circle cx="76" cy="222" r="5"/><circle cx="92" cy="222" r="5"/><circle cx="108" cy="222" r="5"/>
+      <circle cx="124" cy="222" r="5"/><circle cx="140" cy="222" r="5"/><circle cx="156" cy="222" r="5"/><circle cx="172" cy="222" r="5"/>
+      <circle cx="188" cy="222" r="5"/><circle cx="204" cy="222" r="5"/><circle cx="220" cy="222" r="5"/><circle cx="236" cy="222" r="5"/>
+      <circle cx="252" cy="222" r="5"/><circle cx="268" cy="222" r="5"/><circle cx="284" cy="222" r="5"/><circle cx="300" cy="222" r="5"/>
+      <circle cx="316" cy="222" r="5"/><circle cx="332" cy="222" r="5"/><circle cx="348" cy="222" r="5"/><circle cx="364" cy="222" r="5"/>
+      <circle cx="380" cy="222" r="5"/><circle cx="396" cy="222" r="5"/><circle cx="412" cy="222" r="5"/><circle cx="428" cy="222" r="5"/>
+      <circle cx="444" cy="222" r="5"/><circle cx="460" cy="222" r="5"/><circle cx="476" cy="222" r="5"/><circle cx="492" cy="222" r="5"/>
+      <circle cx="508" cy="222" r="5"/><circle cx="524" cy="222" r="5"/><circle cx="540" cy="222" r="5"/><circle cx="556" cy="222" r="5"/>
+      <circle cx="572" cy="222" r="5"/><circle cx="588" cy="222" r="5"/><circle cx="604" cy="222" r="5"/>
+    </g>
+    <text x="52" y="248" fill="#e8d5c4" font-size="9">Source: cluster markers are created with <tspan font-family="monospace">keyboard: true</tspan> (js/app.js:2091), which makes each one</text>
+    <text x="52" y="262" fill="#e8d5c4" font-size="9">a tab stop. There is no skip link anywhere in the document.</text>
+  </g>
+
+  <path d="M330 274 V296" stroke="#c0794f" stroke-width="1.5" marker-end="url(#ar)"/>
+  <g font-size="10">
+    <rect x="40" y="300" width="180" height="34" rx="5" fill="#101d2c" stroke="#3a4654"/>
+    <text x="50" y="315" fill="#f3f7ff" font-weight="700">… then the rail</text><text x="50" y="328" fill="#9fb1c5" font-size="8.5">10 layer toggles + 3 selects</text>
+    <path d="M220 317 H246" stroke="#3a4654" stroke-width="1.5" marker-end="url(#ar)"/>
+    <rect x="248" y="300" width="180" height="34" rx="5" fill="#101d2c" stroke="#3a4654"/>
+    <text x="258" y="315" fill="#f3f7ff" font-weight="700">… then the panel</text><text x="258" y="328" fill="#9fb1c5" font-size="8.5">modes, chips, ⓘ, Detail</text>
+    <path d="M428 317 H454" stroke="#3a4654" stroke-width="1.5" marker-end="url(#ar)"/>
+    <rect x="456" y="300" width="166" height="34" rx="5" fill="#101d2c" stroke="#3a4654"/>
+    <text x="466" y="315" fill="#f3f7ff" font-weight="700">… then controls</text><text x="466" y="328" fill="#9fb1c5" font-size="8.5">radius, evidence, reset</text>
+  </g>
+
+  <rect x="40" y="348" width="582" height="110" rx="6" fill="#0d1626" stroke="#2a3442"/>
+  <text x="52" y="368" fill="#f3f7ff" font-size="11" font-weight="700">WHAT ALREADY PASSES — and must not be regressed</text>
+  <text x="52" y="386" fill="#70dea4" font-size="9.5">✓ Visible focus: <tspan font-family="monospace">:focus-visible</tspan> gives a 2 px outline plus a ring.</text>
+  <text x="52" y="402" fill="#70dea4" font-size="9.5">✓ Every rail and panel control is a native button / select / input — reachable without an explicit tabindex.</text>
+  <text x="52" y="418" fill="#70dea4" font-size="9.5">✓ Evidence &amp; limits is a native <tspan font-family="monospace">&lt;dialog&gt;</tspan>: Escape closes it and the browser contains focus.</text>
+  <text x="52" y="438" fill="#9fb1c5" font-size="9">These were verified by expert inspection in an emulated browser in the #92 audit. Screen-reader semantics, skip-link</text>
+  <text x="52" y="452" fill="#9fb1c5" font-size="9">behaviour, landmark roles and AT focus order were NOT tested, there or here.</text>
+
+  <!-- ===== PROPOSED ===== -->
+  <rect x="662" y="92" width="614" height="384" rx="8" fill="#0a131f" stroke="#43d7ff" stroke-width="1.5"/>
+  <text x="678" y="118" fill="#43d7ff" font-size="13" font-weight="700">PROPOSED · two skip links, and the map keeps its markers</text>
+
+  <g font-size="10">
+    <rect x="678" y="132" width="268" height="40" rx="5" fill="#16314a" stroke="#43d7ff" stroke-width="1.6"/>
+    <text x="688" y="149" fill="#f3f7ff" font-weight="700">Tab 1 · “Skip to the analysis panel”</text>
+    <text x="688" y="164" fill="#9bd5ff" font-size="8.5">“Saltar al panel de análisis” · visible on focus</text>
+    <path d="M946 152 H972" stroke="#43d7ff" stroke-width="1.5" marker-end="url(#arb)"/>
+    <rect x="974" y="132" width="286" height="40" rx="5" fill="#16314a" stroke="#43d7ff" stroke-width="1.6"/>
+    <text x="984" y="149" fill="#f3f7ff" font-weight="700">Tab 2 · “Skip to the map layers”</text>
+    <text x="984" y="164" fill="#9bd5ff" font-size="8.5">“Saltar a las capas del mapa”</text>
+  </g>
+  <text x="678" y="190" fill="#9fb1c5" font-size="9">Both are the first two elements in the document, <tspan font-family="monospace">.sr-only</tspan> until focused — the class the product already ships.</text>
+
+  <g font-size="10">
+    <rect x="678" y="202" width="180" height="46" rx="5" fill="#101d2c" stroke="#43d7ff"/>
+    <text x="688" y="219" fill="#f3f7ff" font-weight="700">Panel head</text>
+    <text x="688" y="232" fill="#9fb1c5" font-size="8.5">modes · quick-jump 44 px</text>
+    <text x="688" y="243" fill="#9fb1c5" font-size="8.5">· scope rail</text>
+    <path d="M858 225 H884" stroke="#43d7ff" stroke-width="1.5" marker-end="url(#arb)"/>
+    <rect x="886" y="202" width="180" height="46" rx="5" fill="#101d2c" stroke="#43d7ff"/>
+    <text x="896" y="219" fill="#f3f7ff" font-weight="700">Circle summary ⓘ</text>
+    <text x="896" y="232" fill="#9fb1c5" font-size="8.5">then the planning section</text>
+    <text x="896" y="243" fill="#9fb1c5" font-size="8.5">and its membership line</text>
+    <path d="M1066 225 H1092" stroke="#43d7ff" stroke-width="1.5" marker-end="url(#arb)"/>
+    <rect x="1094" y="202" width="166" height="46" rx="5" fill="#16314a" stroke="#43d7ff" stroke-width="1.6"/>
+    <text x="1104" y="219" fill="#f3f7ff" font-weight="700">◎ Find planning</text>
+    <text x="1104" y="232" fill="#f3f7ff" font-weight="700">   ámbitos</text>
+    <text x="1104" y="245" fill="#9bd5ff" font-size="8.5">the whole P0 journey</text>
+  </g>
+
+  <rect x="678" y="260" width="582" height="86" rx="6" fill="#101d2c" stroke="#43d7ff"/>
+  <text x="690" y="280" fill="#43d7ff" font-size="11" font-weight="700">INSIDE THE FINDER · native &lt;dialog&gt;</text>
+  <text x="690" y="298" fill="#d9e4ef" font-size="9.5">Focus moves into the dialog and the browser contains it. Tab cycles: close · show-all switch · each ámbito row ·</text>
+  <text x="690" y="313" fill="#d9e4ef" font-size="9.5">“show the remaining n” · Close. Escape closes it and focus returns to the “Find planning ámbitos” button.</text>
+  <text x="690" y="332" fill="#70dea4" font-size="9.5">A keyboard user completes P0 — see that ámbitos exist, see which the circle touches, open one — without ever</text>
+  <text x="690" y="344" fill="#70dea4" font-size="9.5">focusing a map marker.</text>
+
+  <rect x="678" y="356" width="582" height="102" rx="6" fill="#0d1626" stroke="#2a3442"/>
+  <text x="690" y="376" fill="#f3f7ff" font-size="11" font-weight="700">WHY NOT JUST TURN THE MARKERS OFF</text>
+  <text x="690" y="394" fill="#9fb1c5" font-size="9.5">Setting <tspan font-family="monospace">keyboard: false</tspan> on cluster markers would shorten the tab order by removing keyboard access to the</text>
+  <text x="690" y="408" fill="#9fb1c5" font-size="9.5">clusters themselves. That trades one accessibility problem for another, so it is not proposed here.</text>
+  <text x="690" y="426" fill="#9fb1c5" font-size="9.5">A roving-tabindex over the marker layer — one tab stop into the map, then arrow keys between markers — is the</text>
+  <text x="690" y="440" fill="#9fb1c5" font-size="9.5">better long-term answer. It needs an assistive-technology pass to design responsibly, so it is named as follow-on</text>
+  <text x="690" y="454" fill="#9fb1c5" font-size="9.5">work and is <tspan fill="#ffb04a" font-weight="700">deliberately out of scope for P1</tspan>.</text>
+
+  <!-- ===== HONESTY BAND ===== -->
+  <rect x="24" y="496" width="1252" height="150" rx="8" fill="#1a1410" stroke="#ffb04a" stroke-width="1.5"/>
+  <text x="44" y="522" fill="#ffb04a" font-size="14" font-weight="700">WHAT THIS DIAGRAM DOES AND DOES NOT CLAIM</text>
+  <text x="44" y="548" fill="#e8d5c4" font-size="10.5">CLAIMS · that two skip links placed first in the document give a keyboard route to the panel and to the rail that does not traverse 196 marker tab stops,</text>
+  <text x="44" y="564" fill="#e8d5c4" font-size="10.5">and that a native &lt;dialog&gt; gives the finder containment, Escape and focus return without hand-rolled ARIA. Both follow from the platform behaviour the</text>
+  <text x="44" y="580" fill="#e8d5c4" font-size="10.5">product already relies on and from the DOM facts cited above.</text>
+  <text x="44" y="604" fill="#e8d5c4" font-size="10.5">DOES NOT CLAIM · that this design conforms to WCAG 2.1 or 2.2 at any level; that a screen reader announces any of it correctly; that landmark structure,</text>
+  <text x="44" y="620" fill="#e8d5c4" font-size="10.5">heading order or group semantics are adequate; or that any of it has been exercised with assistive technology or on real hardware. None of that has been</text>
+  <text x="44" y="636" fill="#e8d5c4" font-size="10.5">tested — not in the #92 audit and not in this design gate. The implementation PR and a separate accessibility gate must establish it.</text>
+
+  <text x="24" y="686" fill="#6d7f93" font-size="10">Evidence: js/app.js:2089–2091 (cluster markers created with keyboard: true) · absence of any skip-link markup in index.html · css/app.css :focus-visible and .sr-only rules ·</text>
+  <text x="24" y="702" fill="#6d7f93" font-size="10">196 focusable marker count and the 3-Tab observation are the merged #92 audit's live emulation measurements, carried forward here unchanged.</text>
+  <text x="24" y="718" fill="#6d7f93" font-size="10">The marker dots drawn above are schematic; 35 are shown to stand for up to 196.</text>
+  <text x="24" y="734" fill="#6d7f93" font-size="10">NOT TESTED: no human user, no real hardware, no assistive technology. Proposed design only.</text>
+
+  <defs>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#3a4654"/></marker>
+    <marker id="arb" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#43d7ff"/></marker>
+  </defs>
+</svg>
