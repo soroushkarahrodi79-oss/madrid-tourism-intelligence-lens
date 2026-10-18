@@ -170,6 +170,18 @@ pan-frame p95, pointer/touch drag, or any behaviour on tablet or phone Safari.
    made to pass → HOLD rollout / redesign — recording the failure is not sufficient.** Do not weaken
    the thresholds and do not substitute the proxy numbers above for a device pass.
 
+**Tooling for this gate (`research/ac_p0_12/`).** A temporary, LAN-accessible runner measures the
+real app on Windows Chrome / iPad Safari / iPhone Safari without a Mac. Its measurement semantics are
+**scoped per interaction** (independent review 5563658339): a **marker drag** and a **radius drag**
+are graded on interaction-to-paint p95 (≤ 150 ms) plus settled membership freshness; a **map pan** is
+graded on frame-time p95 (≤ 33.3 ms) measured **only** over the verified active-pan interval. The
+33.3 ms pan ceiling is **never** applied to a drag/radius window (whole-window frames there are a
+labelled, non-graded diagnostic). Every sample is attributed to a genuine Lens/radius/map change; a
+PASS requires **all three** actual-gesture scenarios; a clean-`main` baseline runs the same measures
+with freshness `N/A`. The first Windows observation (commit `fe85fa9`) is preserved and reclassified,
+**not** relabelled PASS — see `research/ac_p0_12/results/README.md`. The owner steps are in
+`research/ac_p0_12/README.md`.
+
 **Functional vs release readiness:** the implementation is **GO on functional checks** (correctness,
 freshness, scientific contracts, CI — see §5) **once F1's boundary-crossing regression passes**;
 it is **HOLD for production merge/release until this device gate is satisfied** or the owner

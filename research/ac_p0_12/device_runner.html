@@ -129,6 +129,7 @@ let thresholds = null;
 let appWin = null;
 const scenarios = [];
 let capture = null;
+let baselineMode = false;
 
 // Warn early if the host cannot expose the seam.
 if (!core.isLoopbackOrPrivateLanHost(location.hostname)) {
@@ -158,10 +159,17 @@ async function detectCommit() {
 iframe.addEventListener("load", async () => {
   try {
     appWin = iframe.contentWindow;
-    $("appStatus").textContent = "app frame loaded — waiting for planning artifacts…";
-    await core.waitForAppReady(appWin, 90000);
-    $("appStatus").textContent = "✔ app ready (planning artifacts loaded; seam active).";
+    $("appStatus").textContent = "app frame loaded — waiting for the app…";
+    const ready = await core.waitForAppReady(appWin, 90000);
+    baselineMode = ready.baseline_mode;
     enableButtons(true);
+    if (baselineMode) {
+      $("appStatus").innerHTML = "✔ app ready in <strong>BASELINE mode</strong> (pre-feature main: no membership surface). Freshness is N/A; this is a comparison baseline, not an AC-P0-12 gate.";
+      $("aAll").disabled = true; // automated sequences need P0-a seam methods absent from main
+      $("aStatus").textContent = "Automated sequences are disabled in baseline mode (they rely on P0-a seam methods not present on main). Use the actual-gesture captures.";
+    } else {
+      $("appStatus").textContent = "✔ app ready (planning artifacts loaded; seam active).";
+    }
   } catch (e) {
     $("appStatus").textContent = "✖ " + e.message;
     enableButtons(false);
@@ -203,7 +211,9 @@ function renderResults() {
     const g = s.grade || {};
     const itp = s.interaction_to_paint_ms, pan = s.pan_frame_ms, sw = s.script_work_ms;
     const cell = (v) => (v == null ? '<span class="na">—</span>' : v);
-    const fresh = s.freshness == null ? '<span class="na">n/a</span>' : (s.freshness.fresh ? '<span class="pass">yes</span>' : '<span class="fail">STALE</span>');
+    const fresh = (s.freshness == null || s.freshness.applicable === false)
+      ? '<span class="na">N/A</span>'
+      : (s.freshness.fresh ? '<span class="pass">yes</span>' : '<span class="fail">STALE</span>');
     const verdict = !g.graded ? '<span class="na">—</span>' : (g.pass ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>');
     const kindPill = s.measurement_kind === "actual_gesture" ? '<span class="pill k-gesture">gesture</span>' : '<span class="pill k-auto">auto</span>';
     const n = itp ? itp.n : (pan ? pan.n : "—");
@@ -225,6 +235,7 @@ function buildReport() {
     scenarios,
     testCommit: $("sha").value.trim() || null,
     deviceClass: $("deviceClass").value || "unknown",
+    baselineMode,
   });
 }
 
@@ -271,7 +282,8 @@ $("gStop").addEventListener("click", () => {
   capture = null;
   $("gStop").disabled = true;
   enableButtons(true);
-  if (s.samples_ok === false) $("gStatus").innerHTML = `⚠ recorded <strong>${(s.interaction_to_paint_ms||s.pan_frame_ms||{}).n||0}</strong> samples (fewer than the target). Re-run and keep the gesture going longer.`;
+  if (s.error) $("gStatus").innerHTML = `⚠ NOT TESTED — ${s.error}. Nothing was counted; re-run once the gesture genuinely moves the ${s.interaction.replace("_", " ")}.`;
+  else if (s.samples_ok === false) $("gStatus").innerHTML = `⚠ recorded <strong>${(s.interaction_to_paint_ms||s.pan_frame_ms||{}).n||0}</strong> genuine samples (fewer than the target). Re-run and keep the gesture going longer.`;
   else $("gStatus").textContent = "✔ capture recorded.";
   addScenario(s);
 });

@@ -1687,6 +1687,16 @@ if (haloRegressionRequested && haloRegressionLocal) {
     lensCenters() {
       return { A: centerOf("A"), B: centerOf("B") };
     },
+    // Read-only map centre + zoom. The AC-P0-12 device runner uses it to ATTRIBUTE
+    // a frame-time sample to a genuine map pan (the Leaflet map centre actually
+    // moved) rather than to any pointer event, and to scope pan-frame measurement
+    // to the real pan interval. It only reads Leaflet state; it moves nothing and
+    // runs no model, so it is safe to carry into a clean-`main` baseline worktree
+    // as pure test instrumentation (it is not P0-a membership functionality).
+    mapView() {
+      const c = map.getCenter();
+      return { lat: c.lat, lon: c.lng, zoom: map.getZoom() };
+    },
     // Move a Lens to a GEOGRAPHIC coordinate and recompute from real data. The
     // pixel-based moveLens() above depends on the current map view, which is the
     // wrong seam for a planning regression: an ámbito is a fixed place on the

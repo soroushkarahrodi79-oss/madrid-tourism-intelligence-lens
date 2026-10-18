@@ -79,32 +79,75 @@ export function membershipSignature(canonical, lang) {
   return `${touched.map((e) => `${e.ambitoCode}:${e.containsCentre ? 1 : 0}`).join(",")}|${lang || ""}`;
 }
 
-// Pass/fail of ONE scenario against thresholds.json. p95 at or below `acceptable`
-// passes; at or below `good` is additionally flagged "good". Missing metric = no
-// verdict for that metric (never a silent pass).
+// The three physical-gesture scenarios AC-P0-12 requires, by exact id. A global
+// PASS needs all three present, attributed, sufficiently sampled and passing
+// (R2). The interaction each one grades (R1): marker/radius are graded ONLY on
+// interaction-to-paint; pan is graded ONLY on pan-frame time.
+export const REQUIRED_ACTUAL_SCENARIOS = Object.freeze([
+  "actual_gesture_marker_drag",
+  "actual_gesture_radius",
+  "actual_gesture_pan",
+]);
+
+export const INTERACTION_METRIC = Object.freeze({
+  marker_drag: "interaction_to_paint_ms",
+  radius_slider: "interaction_to_paint_ms",
+  pan: "pan_frame_ms",
+});
+
+// R4 invariant: a stat object must recompute byte-for-byte from its stored `raw`
+// array, and n must equal raw.length. Throws if not — used by the runner and the
+// tests so a reported median/p95/max can never drift from the samples behind it.
+export function assertStatsMatchRaw(stat, where = "stat") {
+  if (stat == null) return true;
+  if (!Array.isArray(stat.raw)) throw new Error(`${where}: no raw array to reproduce from`);
+  if (stat.n !== stat.raw.length) throw new Error(`${where}: n=${stat.n} but raw.length=${stat.raw.length}`);
+  const re = summarize(stat.raw);
+  for (const k of ["n", "min", "median", "p95", "max"]) {
+    if (re[k] !== stat[k]) throw new Error(`${where}: ${k} reported ${stat[k]} but recomputes from raw as ${re[k]}`);
+  }
+  return true;
+}
+
+// Pass/fail of ONE scenario against thresholds.json, SCOPED to the scenario's own
+// interaction (R1). A marker/radius scenario is graded only on interaction-to-paint
+// (≤150 ms); a pan scenario only on pan-frame p95 (≤33.3 ms). The map-pan ceiling
+// is NEVER applied to a drag/radius window, and ITP is never applied to a pan.
+// p95 ≤ acceptable passes; ≤ good is flagged good. A missing required metric is
+// NOT a silent pass (graded=false → the complete-scenario gate treats it as
+// incomplete). Freshness, where the scenario requires it, is part of its pass.
 export function gradeScenario(scenario, thresholds) {
   const t = thresholds.thresholds || thresholds;
+  const metricKey = INTERACTION_METRIC[scenario.interaction] || null;
   const checks = [];
-  const itp = scenario.interaction_to_paint_ms;
-  if (itp && typeof itp.p95 === "number") {
-    const acc = t.interaction_to_paint_ms.acceptable_p95;
-    const good = t.interaction_to_paint_ms.good_p95;
-    checks.push({ metric: "interaction_to_paint_ms.p95", value: itp.p95, acceptable: acc, good, pass: itp.p95 <= acc, is_good: itp.p95 <= good });
+  let graded = false;
+  if (metricKey) {
+    const m = scenario[metricKey];
+    const tk = t[metricKey];
+    if (m && typeof m.p95 === "number" && tk) {
+      graded = true;
+      checks.push({
+        metric: `${metricKey}.p95`,
+        value: m.p95,
+        acceptable: tk.acceptable_p95,
+        good: tk.good_p95,
+        pass: m.p95 <= tk.acceptable_p95,
+        is_good: m.p95 <= tk.good_p95,
+      });
+    }
   }
-  const pan = scenario.pan_frame_ms;
-  if (pan && typeof pan.p95 === "number") {
-    const acc = t.pan_frame_ms.acceptable_p95;
-    const good = t.pan_frame_ms.good_p95;
-    checks.push({ metric: "pan_frame_ms.p95", value: pan.p95, acceptable: acc, good, pass: pan.p95 <= acc, is_good: pan.p95 <= good });
-  }
-  const graded = checks.length > 0;
   const metricsPass = checks.every((c) => c.pass);
-  // Freshness, when the scenario checked it, is part of the scenario's pass.
-  const freshnessOk = scenario.freshness == null ? true : scenario.freshness.fresh === true;
+  // Freshness is required for marker/radius unless the scenario explicitly marks
+  // it not-applicable (a pre-feature `main` baseline, or a pan which does not move
+  // the Lens). freshness == null means "not checked for this interaction".
+  const freshRequired = scenario.freshness != null && scenario.freshness.applicable !== false;
+  const freshnessOk = !freshRequired || scenario.freshness.fresh === true;
   const enough = scenario.samples_ok !== false;
   return {
     graded,
+    scored_metric: metricKey,
     checks,
+    freshness_required: freshRequired,
     freshness_ok: freshnessOk,
     samples_ok: enough,
     pass: graded && metricsPass && freshnessOk && enough,
@@ -239,28 +282,53 @@ function nextPaint(win) {
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Resolve when the embedded production app has booted AND the planning artifacts
-// are loaded (membership is computable). Returns the readiness barrier string.
-export async function waitForAppReady(win, timeoutMs = 60000) {
+// True when the embedded app exposes the P0-a membership surface. A clean `main`
+// baseline has the seam + map but NO membership (the feature is not merged), so
+// the runner runs in BASELINE mode there: same interaction measures, freshness
+// N/A (R5). Never ported into `main`; detected, not assumed.
+export function detectBaselineMode(win) {
+  const seam = win.__HALO_REGRESSION__;
+  const hasMembership =
+    !!seam && typeof seam.planningMembershipNow === "function" &&
+    !!win.document.getElementById("planningMembership");
+  return !hasMembership;
+}
+
+// Resolve when the embedded app has booted and is interactive. In feature mode it
+// also waits for the planning artifacts (membership computable); in baseline mode
+// it waits only for the map to be readable (mapView). Returns { barrier,
+// baseline_mode, has_map_view }.
+export async function waitForAppReady(win, timeoutMs = 90000) {
   const t0 = Date.now();
-  // 1. seam present (app.js evaluated under ?haloRegressionTest=1 on a permitted host)
   while (Date.now() - t0 < timeoutMs) {
-    if (win.__HALO_REGRESSION__ && typeof win.__HALO_REGRESSION__.planningMembershipNow === "function") break;
+    const s = win.__HALO_REGRESSION__;
+    if (s && (typeof s.mapView === "function" || typeof s.lensCenters === "function")) break;
     await sleep(100);
   }
   const seam = win.__HALO_REGRESSION__;
-  if (!seam || typeof seam.planningMembershipNow !== "function") {
+  if (!seam) {
     throw new Error(
       "Seam __HALO_REGRESSION__ not present. The app must be served from a loopback or private-LAN host AND loaded with ?haloRegressionTest=1."
     );
   }
-  // 2. planning artifacts loaded (membership computable). planningMembershipNow()
-  //    returns null until planningState === "ready".
+  const baseline = detectBaselineMode(win);
+  const hasMapView = typeof seam.mapView === "function";
+  if (!baseline) {
+    while (Date.now() - t0 < timeoutMs) {
+      if (seam.planningMembershipNow() != null) {
+        return { barrier: "planningMembershipNow() non-null (planningState=ready) + one settling frame", baseline_mode: false, has_map_view: hasMapView };
+      }
+      await sleep(150);
+    }
+    throw new Error("Planning artifacts did not load within timeout (planningMembershipNow() stayed null).");
+  }
+  // baseline: wait for a readable map centre
   while (Date.now() - t0 < timeoutMs) {
-    if (seam.planningMembershipNow() != null) return "planningMembershipNow() non-null (planningState=ready) + one settling frame";
+    try { const v = hasMapView ? seam.mapView() : null; if (v && isFinite(v.lat) && isFinite(v.lon)) break; } catch (e) {}
+    if (!hasMapView && typeof seam.lensCenters === "function") break; // map-centre attribution unavailable; still boot-ready
     await sleep(150);
   }
-  throw new Error("Planning artifacts did not load within timeout (planningMembershipNow() stayed null).");
+  return { barrier: "baseline (pre-feature main): map readable; no membership surface", baseline_mode: true, has_map_view: hasMapView };
 }
 
 export function readRenderedMembership(appDoc) {
@@ -287,6 +355,11 @@ export function readRenderedMembership(appDoc) {
 // visible ≤3 chips. Also asserts the block is not stuck in the "updating" state.
 export function checkFreshness(appWin) {
   const seam = appWin.__HALO_REGRESSION__;
+  // Baseline / pre-feature main: the membership surface does not exist, so
+  // freshness is N/A, never a failure (R5).
+  if (typeof seam.planningMembershipNow !== "function" || !appWin.document.getElementById("planningMembership")) {
+    return { applicable: false, fresh: null, note: "N/A (pre-feature main baseline — no membership surface)" };
+  }
   const canonical = seam.planningMembershipNow();
   const dom = readRenderedMembership(appWin.document);
   const lang = appWin.document.documentElement.lang;
@@ -297,6 +370,7 @@ export function checkFreshness(appWin) {
     dom.busy !== "true" &&
     dom.signature === expected;
   return {
+    applicable: true,
     fresh,
     expected_signature: expected,
     dom_signature: dom ? dom.signature : null,
@@ -403,115 +477,220 @@ function setSliderValue(appWin, value) {
 }
 
 // ── Actual-gesture capture (physical pointer/touch; the device-grade path) ────
+//
+// R3 — a generic pointermove/mousemove is NOT proof of a marker drag, radius
+// change or map pan. Every sample is ATTRIBUTED to a genuine change in the
+// production state the gesture is supposed to move:
+//   marker drag   → the active Lens centre actually moved (seam.lensCenters)
+//   radius drag   → the radius slider value actually changed
+//   map pan       → the Leaflet map centre actually moved (seam.mapView)
+// Idle/compatibility/background events change none of these and are excluded. A
+// single physical move fires pointermove+mousemove(+touchmove) compatibility
+// events; the capture listens to ONE source only, so those are not double-counted.
+// If reliable attribution is impossible (seam getter absent, no input support, or
+// nothing ever moved) the scenario is recorded NOT TESTED / INCOMPLETE — never a
+// fabricated sample.
 
-// A live capture session the owner drives with a real finger/pointer. It records,
-// on the APP window: (1) a double-rAF interaction-to-paint sample scheduled on
-// each real pointer/touch move, and (2) every rAF frame delta for the pan-frame
-// distribution. Stop when enough samples are collected (or on timeout).
+export const EPS_DEG = 1e-7; // ~1.1 cm — well below any real drag/pan step
+export function lensAnyMoved(a, b) {
+  if (!a || !b) return false;
+  for (const k of ["A", "B"]) {
+    if (!a[k] || !b[k]) continue;
+    if (Math.abs(a[k].lat - b[k].lat) > EPS_DEG || Math.abs(a[k].lon - b[k].lon) > EPS_DEG) return true;
+  }
+  return false;
+}
+export function mapMoved(a, b) {
+  if (!a || !b) return false;
+  return Math.abs(a.lat - b.lat) > EPS_DEG || Math.abs(a.lon - b.lon) > EPS_DEG || a.zoom !== b.zoom;
+}
+function readRadius(appWin) {
+  const el = appWin.document.getElementById("radiusSlider");
+  return el ? Number(el.value) : null;
+}
+function readMapCentre(seam) {
+  try { return typeof seam.mapView === "function" ? seam.mapView() : null; } catch (e) { return null; }
+}
+function chooseMoveEvent(appWin) {
+  if (appWin.PointerEvent) return "pointermove";
+  if ("ontouchstart" in appWin || (appWin.navigator && appWin.navigator.maxTouchPoints > 0)) return "touchmove";
+  return "mousemove";
+}
+const isVisible = (appWin) => {
+  try { return appWin.document.visibilityState === "visible"; } catch (e) { return true; }
+};
+
 export class GestureCapture {
   constructor(appWin, { interaction, minSamples = 40, onProgress } = {}) {
     this.appWin = appWin;
     this.interaction = interaction; // "marker_drag" | "radius_slider" | "pan"
     this.minSamples = minSamples;
     this.onProgress = onProgress;
-    this.lat = [];
-    this.frames = [];
-    this.moveEvents = 0;
+    this.lat = [];            // double-rAF ITP samples (marker/radius), one per genuine move
+    this.allFrames = [];      // every rAF delta while visible — DIAGNOSTIC, never graded for drag/radius
+    this.activePanFrames = []; // rAF deltas during a VERIFIED active pan (map centre moving)
+    this.totalMoveEvents = 0;
+    this.genuineMoves = 0;
+    this.excludedIdle = 0;
+    this.excludedHidden = 0;
+    this.error = null;
     this._running = false;
     this._rafId = null;
     this._lastFrame = 0;
     this._pendingPaint = false;
+    this._lastCentre = null;
+    this._lastRadius = null;
+    this._lastMoveMap = null;
+    this._lastFrameMap = null;
     this._onMove = this._onMove.bind(this);
     this._tick = this._tick.bind(this);
   }
   start() {
     const w = this.appWin;
+    const seam = w.__HALO_REGRESSION__;
+    // Fail closed if attribution is impossible for this interaction (R3).
+    if (this.interaction === "marker_drag" && typeof seam.lensCenters !== "function") {
+      this.error = "marker attribution unavailable (seam.lensCenters absent) — NOT TESTED";
+    } else if (this.interaction === "radius_slider" && !w.document.getElementById("radiusSlider")) {
+      this.error = "radius attribution unavailable (#radiusSlider absent) — NOT TESTED";
+    } else if (this.interaction === "pan" && typeof seam.mapView !== "function") {
+      this.error = "map-centre attribution unavailable (seam.mapView absent) — NOT TESTED";
+    }
+    this._moveSource = chooseMoveEvent(w);
+    this._lastCentre = typeof seam.lensCenters === "function" ? seam.lensCenters() : null;
+    this._lastRadius = readRadius(w);
+    this._lastMoveMap = readMapCentre(seam);
+    this._lastFrameMap = this._lastMoveMap;
     this._running = true;
     this._lastFrame = w.performance.now();
     this._rafId = w.requestAnimationFrame(this._tick);
-    // Capture-phase listeners so we see the real gesture even if the app also
-    // handles it. passive:true — we never preventDefault, so we never alter the
-    // gesture. pointermove covers mouse+touch+pen; touchmove is a Safari fallback.
-    const target = w.document;
-    this._target = target;
-    target.addEventListener("pointermove", this._onMove, { capture: true, passive: true });
-    target.addEventListener("touchmove", this._onMove, { capture: true, passive: true });
-    target.addEventListener("mousemove", this._onMove, { capture: true, passive: true });
+    // ONE move source only (dedupe compatibility streams). passive — never
+    // preventDefault, so the real gesture is never altered.
+    this._target = w.document;
+    this._target.addEventListener(this._moveSource, this._onMove, { capture: true, passive: true });
   }
   _onMove() {
     if (!this._running) return;
-    this.moveEvents += 1;
-    // For pan, frame deltas are the metric; for drag/radius we also want itp.
-    if (this.interaction !== "pan" && !this._pendingPaint) {
-      this._pendingPaint = true;
-      const w = this.appWin;
-      const t0 = w.performance.now();
-      w.requestAnimationFrame(() =>
-        w.requestAnimationFrame(() => {
-          this.lat.push(w.performance.now() - t0);
-          this._pendingPaint = false;
-          this._report();
-        })
-      );
-    } else if (this.interaction === "pan") {
-      this._report();
+    this.totalMoveEvents += 1;
+    const w = this.appWin;
+    if (!isVisible(w)) { this.excludedHidden += 1; return; }
+    const seam = w.__HALO_REGRESSION__;
+    if (this.interaction === "pan") {
+      // Pan attribution is per-frame (below); here just track genuine map motion
+      // for the move-count transparency fields.
+      const cur = readMapCentre(seam);
+      if (mapMoved(this._lastMoveMap, cur)) { this.genuineMoves += 1; this._lastMoveMap = cur; }
+      else this.excludedIdle += 1;
+      return;
     }
+    // marker drag / radius: verify the real production state actually changed.
+    let changed = false;
+    if (this.interaction === "marker_drag") {
+      const cur = typeof seam.lensCenters === "function" ? seam.lensCenters() : null;
+      if (lensAnyMoved(this._lastCentre, cur)) { changed = true; this._lastCentre = cur; }
+    } else if (this.interaction === "radius_slider") {
+      const r = readRadius(w);
+      if (r != null && r !== this._lastRadius) { changed = true; this._lastRadius = r; }
+    }
+    if (!changed) { this.excludedIdle += 1; return; }
+    this.genuineMoves += 1;
+    if (this._pendingPaint) return; // one double-rAF sample in flight at a time
+    this._pendingPaint = true;
+    const t0 = w.performance.now();
+    w.requestAnimationFrame(() =>
+      w.requestAnimationFrame(() => {
+        this.lat.push(w.performance.now() - t0);
+        this._pendingPaint = false;
+        this._report();
+      })
+    );
   }
   _tick(now) {
     if (!this._running) return;
+    const w = this.appWin;
     const d = now - this._lastFrame;
     this._lastFrame = now;
-    if (d > 0 && d < 2000) this.frames.push(d); // drop absurd gaps (tab blur)
-    this._rafId = this.appWin.requestAnimationFrame(this._tick);
+    if (!isVisible(w)) { this.excludedHidden += 1; this._rafId = w.requestAnimationFrame(this._tick); return; }
+    if (d > 0 && d < 2000) {
+      this.allFrames.push(d);
+      if (this.interaction === "pan") {
+        // A frame counts as a PAN sample only if the map centre actually moved
+        // across it — this scopes the pan-frame metric to the real pan interval
+        // (and captures inertia frames the pointer stream does not).
+        const cur = readMapCentre(w.__HALO_REGRESSION__);
+        if (mapMoved(this._lastFrameMap, cur)) this.activePanFrames.push(d);
+        this._lastFrameMap = cur;
+      }
+    }
+    if (this.interaction === "pan") this._report();
+    this._rafId = w.requestAnimationFrame(this._tick);
   }
   _report() {
     if (!this.onProgress) return;
-    const primary = this.interaction === "pan" ? this.frames.length : this.lat.length;
-    this.onProgress({ samples: primary, frames: this.frames.length, moves: this.moveEvents, min: this.minSamples });
+    const samples = this.interaction === "pan" ? this.activePanFrames.length : this.lat.length;
+    this.onProgress({ samples, frames: this.allFrames.length, moves: this.genuineMoves, totalMoves: this.totalMoveEvents, min: this.minSamples });
   }
   get enough() {
-    const primary = this.interaction === "pan" ? this.frames.length : this.lat.length;
-    return primary >= this.minSamples;
+    const samples = this.interaction === "pan" ? this.activePanFrames.length : this.lat.length;
+    return samples >= this.minSamples;
   }
   stop() {
     this._running = false;
     const w = this.appWin;
     if (this._rafId) w.cancelAnimationFrame(this._rafId);
-    this._target.removeEventListener("pointermove", this._onMove, { capture: true });
-    this._target.removeEventListener("touchmove", this._onMove, { capture: true });
-    this._target.removeEventListener("mousemove", this._onMove, { capture: true });
-    // Pan has no interaction-to-paint (it is a continuous animation, not a
-    // discrete recompute), so the frames ARE the metric. Drag/radius report both.
-    const common = { moveEvents: this.moveEvents, frames: this.frames };
-    if (this.interaction === "pan") {
-      return finishScenario(w, {
-        scenario: "actual_gesture_pan",
-        label: "Actual gesture · map pan",
-        measurement_kind: "actual_gesture",
-        interaction: "pan",
-        lat: null,
-        work: null,
-        frames: this.frames,
-        samples_ok: this.frames.length >= this.minSamples,
-      });
-    }
-    const freshness = checkFreshness(w);
-    return finishScenario(w, {
-      scenario: this.interaction === "radius_slider" ? "actual_gesture_radius" : "actual_gesture_marker_drag",
-      label: this.interaction === "radius_slider" ? "Actual gesture · radius drag" : "Actual gesture · marker drag",
+    if (this._target) this._target.removeEventListener(this._moveSource, this._onMove, { capture: true });
+    const attribution = {
+      move_source: this._moveSource,
+      total_move_events: this.totalMoveEvents,
+      genuine_moves: this.genuineMoves,
+      excluded_idle_events: this.excludedIdle,
+      excluded_hidden: this.excludedHidden,
+    };
+    const idFor = { marker_drag: "actual_gesture_marker_drag", radius_slider: "actual_gesture_radius", pan: "actual_gesture_pan" };
+    const labelFor = { marker_drag: "Actual gesture · marker drag", radius_slider: "Actual gesture · radius drag", pan: "Actual gesture · map pan" };
+    const base = {
+      scenario: idFor[this.interaction],
+      label: labelFor[this.interaction],
       measurement_kind: "actual_gesture",
       interaction: this.interaction,
+      attribution,
+    };
+    // Fail closed: attribution impossible, or nothing genuine ever moved. For a
+    // pan, "genuine" is a VERIFIED active-pan frame (the map centre moved across
+    // it) — not a pointer event — so inertia frames with no pointer stream still
+    // count and a pointer wiggle that never pans the map does not.
+    const genuine = this.interaction === "pan" ? this.activePanFrames.length > 0 : this.genuineMoves > 0;
+    if (this.error) return finishScenario(w, { ...base, error: this.error, samples_ok: false });
+    if (!genuine) {
+      const why = this.interaction === "pan" ? "the map centre never moved" : "no Lens/radius change";
+      return finishScenario(w, { ...base, error: `no genuine ${this.interaction} detected (${why}) — NOT TESTED`, samples_ok: false, activePanFrames: this.activePanFrames, allFrames: this.allFrames });
+    }
+    if (this.interaction === "pan") {
+      return finishScenario(w, { ...base, activePanFrames: this.activePanFrames, allFrames: this.allFrames, samples_ok: this.activePanFrames.length >= this.minSamples });
+    }
+    return finishScenario(w, {
+      ...base,
       lat: this.lat,
-      work: null,
-      frames: this.frames,
-      freshness,
+      allFrames: this.allFrames,
+      freshness: checkFreshness(w),
       samples_ok: this.lat.length >= this.minSamples,
-      ...common,
     });
   }
 }
 
 // ── Scenario assembly ────────────────────────────────────────────────────────
+
+// Drop the first sample of a measured array as warm-up (R4) BEFORE any statistic
+// is computed, so the reported n, median, p95 and max always recompute byte-for-
+// byte from the stored `raw` and n === raw.length. Never post-trim `raw`.
+export function dropWarm(arr) {
+  return Array.isArray(arr) && arr.length > 1 ? arr.slice(1) : arr || [];
+}
+function summarizeChecked(arr, where) {
+  const s = arr && arr.length ? summarize(arr) : null;
+  if (s) assertStatsMatchRaw(s, where);
+  return s;
+}
 
 function finishScenario(appWin, s) {
   const out = {
@@ -524,76 +703,145 @@ function finishScenario(appWin, s) {
   if (s.radiusM != null) out.radiusM = s.radiusM;
   if (s.radiusRange) out.radiusRange = s.radiusRange;
   if (s.reps != null) out.reps = s.reps;
-  if (s.moveEvents != null) out.move_events = s.moveEvents;
-  out.interaction_to_paint_ms = s.lat && s.lat.length ? summarize(s.lat) : null;
-  out.interaction_to_paint_method = "double-rAF proxy (two frames); frame-quantised; not a true paint timestamp";
-  out.script_work_ms = s.work && s.work.length ? summarize(s.work) : null;
+  if (s.attribution) out.attribution = s.attribution;
+  if (s.error) out.error = s.error;
+
+  const metricKey = INTERACTION_METRIC[s.interaction];
+  // R1 — metrics are SCOPED to the interaction. Marker/radius grade ONLY on
+  // interaction-to-paint; pan grades ONLY on pan-frame time. The other metric is
+  // null here so it can never be graded against the wrong threshold, and any
+  // whole-window frame data for a drag/radius capture is a NAMED, non-graded
+  // diagnostic (`capture_frame_ms_diagnostic`), never a map-pan benchmark.
+  if (metricKey === "interaction_to_paint_ms") {
+    out.interaction_to_paint_ms = summarizeChecked(dropWarm(s.lat), "interaction_to_paint_ms");
+    out.interaction_to_paint_method = "double-rAF proxy (two frames), one sample per genuine move; frame-quantised; not a true paint timestamp; first sample dropped as warm-up";
+    out.pan_frame_ms = null;
+    if (s.allFrames && s.allFrames.length) {
+      out.capture_frame_ms_diagnostic = summarizeChecked(dropWarm(s.allFrames), "capture_frame_ms_diagnostic");
+      out.capture_frame_ms_diagnostic_note =
+        "DIAGNOSTIC ONLY — whole-capture rAF frame deltas including non-gesture/idle intervals. NOT a map-pan benchmark and NOT graded against the 33.3 ms pan ceiling (R1). Interpret the dedicated map-pan scenario for that.";
+    } else {
+      out.capture_frame_ms_diagnostic = null;
+    }
+  } else if (metricKey === "pan_frame_ms") {
+    out.pan_frame_ms = summarizeChecked(dropWarm(s.activePanFrames), "pan_frame_ms");
+    out.pan_frame_note = "rAF frame deltas recorded ONLY while the map centre was actually moving (verified active-pan interval); first delta dropped as warm-up";
+    out.interaction_to_paint_ms = null;
+    out.active_pan_frames = s.activePanFrames ? s.activePanFrames.length : 0;
+    out.total_frames = s.allFrames ? s.allFrames.length : 0;
+    if (s.allFrames && s.allFrames.length) {
+      out.capture_frame_ms_diagnostic = summarizeChecked(dropWarm(s.allFrames), "capture_frame_ms_diagnostic");
+      out.capture_frame_ms_diagnostic_note = "DIAGNOSTIC — all visible frames in the capture window (active + idle), for context only; the graded metric is pan_frame_ms over the active-pan interval.";
+    }
+  }
+
+  // script_work only exists for automated sequences (the synchronous production
+  // call time). Actual gestures do not own the call, so it is null there.
+  out.script_work_ms = summarizeChecked(dropWarm(s.work), "script_work_ms");
   out.script_work_note =
     s.measurement_kind === "automated_sequence"
-      ? "synchronous wall time of the production interaction call (moveLensToLatLng / slider oninput → refresh())"
+      ? "synchronous wall time of the production interaction call (moveLensToLatLng / slider oninput → refresh()); first sample dropped as warm-up"
       : "not captured for an actual gesture (the app owns the call; only interaction-to-paint and frame time are observed)";
-  out.pan_frame_ms = s.frames && s.frames.length ? summarize(s.frames) : null;
-  out.pan_frame_note = "rAF frame deltas on the app window during the pan window; first delta dropped as warm";
-  if (s.frames && s.frames.length) out.pan_frame_ms.raw = out.pan_frame_ms.raw.slice(1); // drop warm frame
-  out.freshness = s.freshness || null;
+
+  // Freshness: required for marker/radius in feature mode; N/A for a pan (the Lens
+  // does not move) and for a pre-feature main baseline (R5).
+  if (s.freshness) out.freshness = s.freshness;
+  else if (s.interaction === "pan") out.freshness = { applicable: false, fresh: null, note: "N/A — a map pan does not move the Lens; membership is unchanged" };
+  else out.freshness = null;
+
   out.js_heap_mb = heapMB(appWin);
-  const samplesOk =
-    s.samples_ok != null
-      ? s.samples_ok
-      : s.interaction === "pan"
-      ? (out.pan_frame_ms?.n || 0) >= 40
-      : (out.interaction_to_paint_ms?.n || 0) >= 40;
-  out.samples_ok = samplesOk;
+  if (s.samples_ok != null) out.samples_ok = s.samples_ok;
+  else {
+    // Automated sequences do not pass an explicit count: ≥40 valid samples in the
+    // scored metric after warm-up exclusion.
+    const scored = metricKey ? out[metricKey] : null;
+    out.samples_ok = (scored && scored.n ? scored.n : 0) >= 40;
+  }
   return out;
 }
 
 // Build the final consolidated report object for download.
-export function buildReport({ env, thresholds, scenarios, testCommit, deviceClass }) {
+//
+// R2 — the global verdict is PASS only when ALL THREE required actual-gesture
+// scenarios (marker drag, radius drag, map pan) are present, correctly attributed,
+// device-grade, sufficiently sampled, within their OWN threshold, and (for
+// drag/radius) fresh after settle. Missing or under-sampled scenarios, missing
+// scored metrics, or a failed freshness → INCOMPLETE / FAIL, never PASS, and never
+// excused by the automated sequences.
+//
+// R5 — in a pre-feature `main` baseline (`baselineMode`) there is no membership,
+// so freshness is N/A and the report is a BASELINE, not an AC-P0-12 gate verdict.
+export function buildReport({ env, thresholds, scenarios, testCommit, deviceClass, baselineMode = false, comparisonStatus = null }) {
   const graded = scenarios.map((s) => ({ ...s, grade: gradeScenario(s, thresholds) }));
   const actual = graded.filter((s) => s.measurement_kind === "actual_gesture");
   const conflict = detectAttestationConflict(deviceClass, env);
-  const anyActual = actual.length > 0;
-  const allActualGraded = anyActual && actual.every((s) => s.grade.graded);
-  const allActualPass = anyActual && actual.every((s) => s.grade.pass);
-  const minSamplesOk = anyActual && actual.every((s) => s.samples_ok !== false);
+
+  // Exactly the three required scenario ids, de-duplicated (a re-run overwrites).
+  const byId = new Map();
+  for (const s of actual) byId.set(s.scenario, s);
+  const present = REQUIRED_ACTUAL_SCENARIOS.filter((id) => byId.has(id));
+  const missing = REQUIRED_ACTUAL_SCENARIOS.filter((id) => !byId.has(id));
+  const presentScenarios = present.map((id) => byId.get(id));
+  const errored = presentScenarios.filter((s) => s.error);
+  const underSampled = presentScenarios.filter((s) => s.samples_ok === false);
+  const ungraded = presentScenarios.filter((s) => !s.grade.graded && !s.error);
+  const allThree = missing.length === 0;
+  const allGraded = allThree && presentScenarios.every((s) => s.grade.graded);
+  const allPass = allThree && presentScenarios.every((s) => s.grade.pass);
+  const allSampled = allThree && presentScenarios.every((s) => s.samples_ok !== false);
+
   const dg = deviceGradeFor(env, {
     label: env.device_label,
-    measurement_kind: anyActual ? "actual_gesture" : "automated_sequence",
-    samples_ok: minSamplesOk,
+    measurement_kind: present.length ? "actual_gesture" : "automated_sequence",
+    samples_ok: allSampled,
     attestation_conflict: conflict,
   });
-  // The runner NEVER declares AC-P0-12 PASS from automated proxies alone, and
-  // never from a non-device-grade environment. PASS is only reached when every
-  // actual-gesture scenario is device-grade, graded, within thresholds, fresh,
-  // and backed by ≥40 samples. Otherwise the verdict is explicit about why.
+
   let verdict, verdict_reason;
-  if (!anyActual) {
-    verdict = "INCOMPLETE — NO ACTUAL-GESTURE RUN";
+  if (baselineMode) {
+    const status = comparisonStatus || (dg.basis.gl_is_software ? "COMPARISON UNAVAILABLE" : "BASELINE RECORDED");
+    verdict = `BASELINE (main) — ${status}`;
     verdict_reason =
-      "Only automated-sequence proxies were recorded. AC-P0-12 requires a physical pointer/touch gesture on the declared device; run the Actual gesture captures.";
+      "Pre-feature main baseline: membership freshness is N/A and this is NOT an AC-P0-12 gate verdict. Compare its interaction-to-paint / pan-frame against the PR run; do not infer causation from either run alone.";
   } else if (conflict) {
     verdict = "REFUSED — ATTESTATION CONFLICT";
     verdict_reason = `The observed environment (${env.observed_device_class}) contradicts the declared device class (${deviceClass}); not recorded as a device validation.`;
+  } else if (!allThree) {
+    verdict = "INCOMPLETE — MISSING REQUIRED SCENARIOS";
+    verdict_reason = `AC-P0-12 needs all three actual-gesture scenarios. Missing: ${missing.join(", ") || "none"}. Automated sequences do not substitute.`;
+  } else if (errored.length) {
+    verdict = "INCOMPLETE — SCENARIO NOT TESTED";
+    verdict_reason = `A required scenario could not be attributed to a genuine interaction: ${errored.map((s) => `${s.scenario} (${s.error})`).join("; ")}.`;
+  } else if (ungraded.length) {
+    verdict = "INCOMPLETE — METRIC MISSING";
+    verdict_reason = `A required scenario is missing its scored metric: ${ungraded.map((s) => s.scenario).join(", ")}.`;
+  } else if (underSampled.length) {
+    verdict = "INCOMPLETE — INSUFFICIENT SAMPLES";
+    verdict_reason = `Below the sample target: ${underSampled.map((s) => s.scenario).join(", ")}. Keep the gesture going longer and re-run.`;
   } else if (!dg.device_grade) {
     verdict = "NOT DEVICE-GRADE";
-    verdict_reason = "The environment did not certify as device-grade (software GPU, missing label, or too few samples). See device_grade.basis.";
-  } else if (!allActualGraded) {
-    verdict = "INCOMPLETE — METRICS MISSING";
-    verdict_reason = "An actual-gesture scenario is missing a required metric (interaction-to-paint and/or pan frame time).";
+    verdict_reason = "The environment did not certify as device-grade (software GPU or missing label). See device_grade.basis.";
   } else {
-    verdict = allActualPass ? "PASS (this device)" : "FAIL (this device)";
-    verdict_reason = allActualPass
-      ? "Every actual-gesture scenario is within the AC-P0-12 thresholds, fresh after settle, device-grade, ≥40 samples."
-      : "At least one actual-gesture scenario exceeded a threshold or failed freshness. AC-P0-12 → HOLD / redesign for this device class.";
+    verdict = allPass ? "PASS (this device)" : "FAIL (this device)";
+    verdict_reason = allPass
+      ? "All three actual-gesture scenarios are within their AC-P0-12 thresholds (marker/radius ≤150 ms interaction-to-paint + fresh after settle; map pan ≤33.3 ms frame p95), device-grade, ≥ sample target."
+      : "At least one actual-gesture scenario exceeded its threshold or failed freshness. AC-P0-12 → HOLD / redesign for this device class.";
   }
+
   return {
     tool: "AC-P0-12 device-validation runner (research/ac_p0_12)",
-    acceptance_criterion: "AC-P0-12 — interaction latency + pan-frame + membership freshness after drag/radius settle",
-    measures: "the REAL PR #96 production application (index.html + js/app.js) via the opt-in __HALO_REGRESSION__ seam",
+    acceptance_criterion: "AC-P0-12 — interaction latency (marker/radius) + pan-frame time (map pan) + membership freshness after drag/radius settle",
+    measures: baselineMode
+      ? "a clean pre-feature main baseline (same interaction measures; NO P0-a membership) via the opt-in __HALO_REGRESSION__ seam"
+      : "the REAL PR #96 production application (index.html + js/app.js) via the opt-in __HALO_REGRESSION__ seam",
     honesty:
-      "interaction_to_paint_ms is a double-rAF proxy (frame-quantised, not a true paint timestamp); script_work_ms is the synchronous production call time; pan_frame_ms is rAF frame deltas. actual_gesture and automated_sequence are reported separately and NEVER equated; a PASS requires actual_gesture runs.",
+      "Metrics are SCOPED per interaction: marker/radius graded on double-rAF interaction-to-paint only; map pan graded on rAF frame p95 over the verified active-pan interval only. Whole-capture frame deltas for a drag/radius window are a named diagnostic, never the map-pan ceiling. Every sample is attributed to a genuine Lens/radius/map change; idle and compatibility events are excluded. n equals raw.length and every stat recomputes from raw. actual_gesture and automated_sequence are reported separately and NEVER equated; a PASS requires all three actual_gesture scenarios.",
     test_commit: testCommit || null,
     declared_device_class: deviceClass || "unknown",
+    baseline_mode: baselineMode,
+    required_actual_scenarios: REQUIRED_ACTUAL_SCENARIOS,
+    present_actual_scenarios: present,
+    missing_actual_scenarios: missing,
     env,
     device_grade: dg,
     thresholds: thresholds.thresholds || thresholds,
