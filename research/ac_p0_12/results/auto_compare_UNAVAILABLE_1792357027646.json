@@ -1,0 +1,12 @@
+{
+  "tool": "AC-P0-12 auto_compare",
+  "status": "COMPARISON UNAVAILABLE",
+  "reason": "H2 positional drift exceeded tolerance: max 0.027061° > 0.005°",
+  "prSha": "b6ab37fea7735a81ddc51785f1b44fa42457db85",
+  "drift": {
+    "ok": false,
+    "max_drift_deg": 0.027061,
+    "tol_deg": 0.005
+  },
+  "generatedAt": "2026-10-18T20:57:07.644Z"
+}

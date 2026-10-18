@@ -179,11 +179,19 @@ node research/ac_p0_12/auto_compare.mjs            # --rounds=4 --warmup=5 --fra
 ```
 
 These are **`hardware_automated`** scripted mouse drags — **not** human physical
-gestures and **never** `device_grade`. It fails closed (`COMPARISON UNAVAILABLE`) if
-the baseline can't be built or Chrome can't run on a hardware GPU. See
-`BASELINE_AND_PAN_INVESTIGATION.md` for the method (warm-up + drift-robust paired
-deltas) and the finding: the map-pan FAIL is **pre-existing** (clean `main` fails
-too) with **no material P0-a regression**.
+gestures and **never** `device_grade`. The harness **fails closed**
+(`COMPARISON UNAVAILABLE`) on: a software/unknown GPU (H1), too-few samples or an
+incomparable PR/main environment or excess positional drift (H2); it **awaits**
+teardown and reports worktree-removal failure (H3); its guards are unit-tested in
+`tests/ac_p0_12_auto_compare.test.mjs`; and `--self=pr` runs a **null control**
+(same build both arms → paired delta ≈ 0) proving no arm bias. Flags: `--rounds`,
+`--warmup`, `--frames`, `--dpr`, `--self=pr|main`.
+
+**Finding** (see `BASELINE_AND_PAN_INVESTIGATION.md`): on Intel UHD 620 the map-pan
+FAIL is **pre-existing** (clean `main` fails 33.3 ms by ~4×), **and** the trustworthy
+harness **detects a ~50–66 ms P0-a overhead** that is not localizable to any DOM or
+per-frame path and is immaterial to the (already-failing) UHD 620 gate. Minimal
+Leaflet remediation (before MapLibre) is assessed in `K12_UHD620_REMEDIATION.md`.
 
 ### Manual physical baseline (optional) — R5
 
@@ -242,9 +250,11 @@ rely on P0-a seam methods absent from `main`).
 | `stamp_commit.mjs` | writes `commit.json` (SHA/branch/dirty) so every evidence file is stamped. Run once before serving. |
 | `commit.json` | generated, untracked. |
 | `baseline_app_instrumentation.patch` | the two test-only `js/app.js` hooks, for a clean-`main` baseline worktree (no P0-a). |
-| `auto_compare.mjs` | one-command headed-Chrome `hardware_automated` main-vs-PR pan comparison (builds+tears down the baseline, warm-up + paired deltas). |
-| `BASELINE_AND_PAN_INVESTIGATION.md` | map-pan causation analysis (pre-existing confirmed; no material P0-a regression), ranked bottlenecks, GO/HOLD, the binary support-floor decision. |
-| `results/auto_compare_*.json` | versioned machine-readable `hardware_automated` evidence. |
+| `auto_compare.mjs` | one-command headed-Chrome `hardware_automated` main-vs-PR pan comparison (fail-closed H1/H2/H3, warm steady-state, re-centered, null control). |
+| `auto_compare_guards.mjs` | pure fail-closed guards (hardware GPU, sample sufficiency, comparability, drift), unit-tested. |
+| `BASELINE_AND_PAN_INVESTIGATION.md` | map-pan analysis: pre-existing failure confirmed + a detected (non-localizable, immaterial) P0-a overhead; GO/HOLD + the binary support-floor decision. |
+| `K12_UHD620_REMEDIATION.md` | evidence-led minimal-Leaflet-tuning assessment (before MapLibre); not implemented in PR #96. |
+| `results/auto_compare_*.json` | versioned `hardware_automated` evidence (incl. a null control and a fail-closed `UNAVAILABLE` sample). |
 | `results/` | committed device JSON evidence + the preserved historical Windows observation (`results/README.md`). |
 
 ## The two test-only production touches this needs
