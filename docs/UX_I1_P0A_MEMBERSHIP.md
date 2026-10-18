@@ -124,7 +124,13 @@ interaction if nothing coalesces it: roughly half a 16.7 ms frame at the default
 frame at the maximum. The containing query is ~200× cheaper, confirming the coalescing is aimed at
 the right call.
 
-### Arm 2 — real drag, script + layout, headless Chromium 1440×900 (NOT rendering FPS, NOT a device)
+### Arm 2 — scripted Lens movement, script + layout proxy, headless Chromium 1440×900 (NOT a pointer/touch drag, NOT rendering FPS, NOT a device)
+
+This arm is **not an actual pointer or touch drag**: it runs 120 synchronous
+`__HALO_REGRESSION__.moveLens()` calls through the production `refresh()` in one `page.evaluate()`,
+forces a layout flush each move, and averages over seven warmed runs with `--disable-gpu`. It is a
+DOM/layout proxy for comparing scheduling strategies on the same build — not a frame-rate and not
+drag-event timing.
 
 | Arm | Median | p95 |
 |---|---|---|
@@ -141,11 +147,33 @@ moving. Per-interaction cost returns to the baseline `refresh()` level during th
 ### Device-grade latency and pan-frame (AC-P0-12 / AC-P0-13 physical devices)
 
 **NOT TESTED — release-validation pending.** No owner-declared supported device (desktop class,
-tablet Safari, phone Safari) was measured in this environment. Interaction-to-paint (≤100 ms target
-/ ≤150 ms max) and pan frame p95 (≤16.7/33.3 ms) on each supported device class remain an owner
-release gate. The headless-desktop numbers above are a script+layout proxy and are **not** a pass.
-No pass is invented. If an explicitly supported device fails, rollout HOLDs with the measured
-regression recorded.
+tablet Safari, phone Safari) was available in this execution environment (a Windows development
+laptop running Node and headless Chromium only). The two arms above are a CPU-only proxy and a
+headless script+layout proxy respectively; neither is interaction-to-paint, rendered frame-rate, or
+a physical device, and **no device-grade pass is claimed or invented**.
+
+**What *was* measured, precisely:** (Arm 1) the wall-clock cost of one `ambitosIntersecting` call
+in Node on this laptop; (Arm 2) the script+layout cost of a scripted `moveLens` sweep in headless
+Chromium at 1440×900 with the GPU disabled. **What was NOT measured:** interaction-to-paint latency,
+pan-frame p95, pointer/touch drag, or any behaviour on tablet or phone Safari.
+
+**Required release-gate procedure (owner, before production merge/release):**
+1. The owner declares the supported-device floor **before** the result is interpreted (the open
+   K12 decision), e.g. {a desktop class, a tablet Safari model, a phone Safari model}.
+2. On each declared device, with membership promoted, measure **interaction-to-paint p95** during a
+   real Lens drag and a radius drag (target ≤ 100 ms, maximum ≤ 150 ms) and **pan-frame p95**
+   (target ≤ 16.7 ms, maximum ≤ 33.3 ms), using the K12 methodology (`docs/RUNTIME_DECISION_SPIKE.md`).
+3. Confirm **freshness** on-device: after a drag, a radius change and a K11 URL-state restore, the
+   displayed membership set equals the canonical `ambitosIntersecting` set (covered functionally by
+   PA 23 / PA 25; re-confirm no stale paint on-device).
+4. **Pass/fail consequence:** every declared supported class must pass. **A class that cannot be
+   made to pass → HOLD rollout / redesign — recording the failure is not sufficient.** Do not weaken
+   the thresholds and do not substitute the proxy numbers above for a device pass.
+
+**Functional vs release readiness:** the implementation is **GO on functional checks** (correctness,
+freshness, scientific contracts, CI — see §5) **once F1's boundary-crossing regression passes**;
+it is **HOLD for production merge/release until this device gate is satisfied** or the owner
+documents a non-production staging path that keeps the gate effective.
 
 ---
 
@@ -153,14 +181,62 @@ regression recorded.
 
 | Criterion | Outcome |
 |---|---|
-| **AC-P0-1** containment + membership as different questions, no forced move/disclosure, 3 widths | **MET** — PA 22 (1440×900 / 834×1112 / 375×812), PA 21 |
+| **AC-P0-1** containment + membership as different questions, no forced move/disclosure, 3 widths | **MET** — PA 22 (1440×900 / 834×1112 / 375×812), PA 21. The block renders on initial PLACE render with no forced disclosure or map/Lens move; it sits **below the initial fold** at all three widths (§6), reachable by ordinary panel scroll — unscrolled discoverability is not claimed. |
 | **AC-P0-2a** named ámbito's whole-ámbito evidence in ≤2 actions | **NOT MET, recorded & deferred** — §2; chips are bounded disclosure; route to the complete list is the `Detail` card |
 | **AC-P0-5** only canonical membership, no share/quantity apportionment; tests | **MET** — pure-model guard (`tests/planning_ambito.test.mjs`), `tests/planning_membership.test.mjs`, PA 21 |
 | **AC-P0-10** new EN/ES keys present, non-empty, documented | **MET** — `tests/planning_membership.test.mjs`, IA "M", PA 24 |
 | **AC-P0-11** `planning.outside` byte-identical | **MET** — `tests/planning_membership.test.mjs` |
-| **AC-P0-12** latency + freshness after drag/radius/URL-restore; no stale display | **freshness MET** (PA 23, URL restore settles via `refresh()`); **device latency NOT TESTED** — §4 |
-| **AC-P0-13** real-browser render of the default state at three widths | **MET (emulation)** — PA 22 renders and asserts visibility/overflow at three widths; explicitly browser **emulation**, not physical-device Safari |
+| **AC-P0-12** latency + freshness after drag/radius/URL-restore; no stale display | **freshness MET** (PA 23 **and PA 25**: boundary-crossing with an unchanged code set updates the `containsCentre` marks — no stale containment claim; URL restore settles via `refresh()`); **device latency NOT TESTED** — §4 |
+| **AC-P0-13** real-browser render of the default state at three widths | **DOM-visible at three emulated widths** — PA 22 renders and asserts DOM/CSS visibility and no horizontal overflow at 1440×900 / 834×1112 / 375×812, and records whether the block is inside the **unscrolled** panel viewport (see §6). **Unscrolled user discovery is not independently established**, and this is browser **emulation**, not physical-device Safari. |
 
 **Non-goals honoured:** no lattice, no finder, no fourth `boundarySelect`, no nearest/distance
 algorithm, no new programmatic camera move, no P1/P2 work, no HATI change, no dataset/score/model
 change.
+
+---
+
+## 6. Cold-start viewport (F3b)
+
+PA 22 measures, at each width and with the panel **unscrolled** (`scrollTop === 0`), whether the
+promoted membership block's top sits inside the panel's visible region
+(`block.top < panel.top + panel.clientHeight`). `isVisible()` alone proves DOM/CSS visibility, not
+that a user sees the block without scrolling, so the fold position is measured and reported rather
+than assumed:
+
+| Width | panel unscrolled | block top | panel visible bottom | within initial viewport? |
+|---|---|---|---|---|
+| 1440 × 900 (desktop) | yes (`scrollTop = 0`) | 848 px | 808 px | **no — below the fold** |
+| 834 × 1112 (tablet) | yes | 1284 px | 1100 px | **no — below the fold** |
+| 375 × 812 (phone) | yes | 1304 px | 800 px | **no — below the fold** |
+
+(Headless Chromium emulation, cold start, default centre.) **Honest result: at all three emulated
+widths the membership block renders unconditionally but sits *below the initial fold* — the reader
+reaches it by the panel's ordinary vertical scroll, which is not a disclosure and not a map/Lens
+move.** So AC-P0-1 ("shown on initial render, no forced disclosure or map/Lens move") holds, but
+**immediate unscrolled discoverability is NOT established** and is not claimed. The block is third
+in the planning section, which is itself the third PLACE section, so the administrative area and the
+containing-ámbito reading precede it — exactly the reading order UX-D1 §5.1 specifies.
+
+Making the block reliably above the fold at the narrow widths is the **P1 responsive-IA track**
+(register #3, the 1,912 px stack in a 360 px overlay) and is explicitly **out of scope** for P0-a.
+This increment states the fold position honestly; it does not claim immediate unscrolled
+discoverability it has not established.
+
+---
+
+## 7. Corrections round (independent review of `fd298f7`)
+
+| Finding | Resolution |
+|---|---|
+| **F1** (blocking) stale `containsCentre` — DOM signature ignored the per-entry containment bit | Both renderers' signatures now encode `code:containsCentre`; a boundary crossing with an unchanged code set re-renders the marks. New regression **PA 25** (both directions, EN + ES, consistency with `planningContaining`, not only code equality); **PA 23** strengthened to compare `containsCentre`. |
+| **F2** (blocking for production) device gate still unverified | Stated explicitly as **GO on functional checks / HOLD release pending AC-P0-12 hardware**; §4 adds the required owner measurement procedure, supported-device decision and pass/fail consequence. No device pass invented. |
+| **F3a** benchmark "REAL DRAG" misnamed | Renamed to **scripted Lens movement (script + layout proxy)** in the script, this doc and the PR; numbers and caveats preserved. |
+| **F3b** cold-start visibility over-claimed | AC-P0-13 reworded to "DOM-visible at three emulated widths; unscrolled discovery not established"; §6 measures and reports the fold position per width. |
+
+### Verdict
+
+**GO on functional correctness** — F1 regression passes, scientific contracts hold, freshness is
+enforced, CI is green. **HOLD for production merge/release** until the AC-P0-12 device gate (§4) is
+satisfied on the owner-declared supported-device floor, or the owner documents a non-production
+staging path that keeps the gate effective. AC-P0-2a remains a recorded, deferred negative (§2),
+not a blocker for P0-a.

@@ -17,9 +17,13 @@
 //      to defeat any caching. This reproduces UX-D1 §5.5's order-of-magnitude
 //      figures. It is NOT a device measurement and NOT interaction-to-paint.
 //
-//   2. REAL DRAG (headless Chromium, script + layout): median ms per interaction
-//      along a fixed pixel drag path driven through the production refresh() via
-//      __HALO_REGRESSION__.moveLens, each followed by a forced layout flush.
+//   2. SCRIPTED LENS MOVEMENT (headless Chromium, script + layout proxy): median
+//      ms per interaction along a fixed pixel path, driven by 120 synchronous
+//      __HALO_REGRESSION__.moveLens() calls through the production refresh(),
+//      each followed by a forced layout flush, over seven warmed runs, with
+//      --disable-gpu. This is NOT an actual pointer/touch drag, NOT a rendered
+//      frame-rate and NOT drag-event timing — it is a DOM/layout proxy for
+//      comparing scheduling strategies on the same build.
 //      Measured in two sub-arms that isolate the coalescing strategy:
 //        a. PROMOTED, NO COALESCING  — every move runs the scan (the naive cost
 //           of promotion: the regression the strategy must avoid).
@@ -110,8 +114,8 @@ async function cpuProxy() {
   };
 }
 
-// ----------------------------------------------------------- Arm 2: real drag
-async function realDrag() {
+// -------------------------------------- Arm 2: scripted Lens movement (proxy)
+async function scriptedLensMovement() {
   const { chromium } = await import("playwright");
   const MIME = {
     ".css": "text/css", ".geojson": "application/geo+json", ".html": "text/html",
@@ -192,7 +196,7 @@ async function realDrag() {
 
     const naive = await run(false);
     const coalesced = await run(true);
-    return { viewport: "1440x900 headless, script+layout only", naive, coalesced, marginal: +(naive.median - coalesced.median).toFixed(3) };
+    return { viewport: "1440x900 headless, script+layout proxy (not a pointer drag, not FPS)", naive, coalesced, marginal: +(naive.median - coalesced.median).toFixed(3) };
   } finally {
     await shutdown();
   }
@@ -202,7 +206,7 @@ async function realDrag() {
 const cpu = await cpuProxy();
 let drag = null;
 if (!cpuOnly) {
-  try { drag = await realDrag(); }
+  try { drag = await scriptedLensMovement(); }
   catch (error) { drag = { error: String(error && error.message || error) }; }
 }
 
@@ -219,14 +223,14 @@ if (asJson) {
   console.log(`  ambitoContaining (contrast): median ${ms(cpu.containing.median)}  p95 ${ms(cpu.containing.p95)}`);
   console.log("");
   if (drag && !drag.error) {
-    console.log(`Arm 2 — REAL DRAG, ${drag.viewport} (median ms/interaction):`);
+    console.log(`Arm 2 — SCRIPTED LENS MOVEMENT, ${drag.viewport} (median ms/interaction):`);
     console.log(`  PROMOTED, no coalescing (scan every move): median ${ms(drag.naive.median)}  p95 ${ms(drag.naive.p95)}`);
     console.log(`  PROMOTED, coalesced (shipped)            : median ${ms(drag.coalesced.median)}  p95 ${ms(drag.coalesced.p95)}  (+1 settle scan ${ms(drag.coalesced.settleMedian)} on release)`);
     console.log(`  marginal per-interaction removed by coalescing: ${ms(drag.marginal)}`);
     console.log("  NOTE: script+layout on a headless desktop; NOT rendering FPS and NOT a mobile device (AC-P0-12).");
   } else if (drag) {
-    console.log(`Arm 2 — REAL DRAG: not run (${drag.error})`);
+    console.log(`Arm 2 — SCRIPTED LENS MOVEMENT: not run (${drag.error})`);
   } else {
-    console.log("Arm 2 — REAL DRAG: skipped (--cpu-only)");
+    console.log("Arm 2 — SCRIPTED LENS MOVEMENT: skipped (--cpu-only)");
   }
 }

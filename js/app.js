@@ -1788,6 +1788,15 @@ if (haloRegressionRequested && haloRegressionLocal) {
       const centre = centerOf(active);
       return planningModel.index.ambitosIntersecting(centre.lon, centre.lat, radiusFor(active));
     },
+    // A SIDE-EFFECT-FREE canonical membership query at an arbitrary point and
+    // radius — it does not move the Lens or render. A boundary-crossing
+    // regression uses it to search for a point just outside an ámbito whose
+    // touched CODE SET is identical to a point just inside it, so the test can
+    // then drive the real render at both and prove the centre mark is not stale.
+    planningMembershipAt(lat, lon, radiusM) {
+      if (planningState !== "ready" || !planningModel.index) return null;
+      return planningModel.index.ambitosIntersecting(Number(lon), Number(lat), Number(radiusM));
+    },
     // Drive the SHARED Bridge/Insight translator so both languages can be
     // asserted against the real render path. Test seam only: production keeps
     // following the document language, which this seam deliberately does NOT
@@ -3850,7 +3859,12 @@ function renderPlanningMembership() {
   block.removeAttribute("aria-busy");
   const membership = evaluatePlanningMembership();
   const count = membership ? membership.count : 0;
-  const signature = `${membership ? membership.touched.map((entry) => entry.ambitoCode).join(",") : ""}|${document.documentElement.lang}`;
+  // The signature encodes each touched ámbito's code AND its containsCentre bit,
+  // so a Lens that crosses a polygon boundary while still intersecting the same
+  // codes (its membership set unchanged but a containment flipped) forces a
+  // re-render. Code-only signatures would early-return and leave a stale
+  // "contains the Lens centre" mark contradicting the containment answer.
+  const signature = `${membership ? membership.touched.map((entry) => `${entry.ambitoCode}:${entry.containsCentre ? 1 : 0}`).join(",") : ""}|${document.documentElement.lang}`;
   if (block.dataset.signature === signature) return;
   block.dataset.signature = signature;
   block.dataset.state = count === 0 ? "none" : "present";
@@ -3927,7 +3941,9 @@ function renderPlanningTouched() {
     return;
   }
   const membership = evaluatePlanningMembership();
-  const signature = `${membership.touched.map((entry) => entry.ambitoCode).join(",")}|${document.documentElement.lang}`;
+  // Encode containsCentre per entry (see renderPlanningMembership): a boundary
+  // crossing with an unchanged code set must still refresh the centre marks.
+  const signature = `${membership.touched.map((entry) => `${entry.ambitoCode}:${entry.containsCentre ? 1 : 0}`).join(",")}|${document.documentElement.lang}`;
   if (list.dataset.signature === signature) return;
   list.dataset.signature = signature;
   list.replaceChildren();

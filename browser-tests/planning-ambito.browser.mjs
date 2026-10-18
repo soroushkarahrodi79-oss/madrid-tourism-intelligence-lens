@@ -668,7 +668,7 @@ test("PA 22 (AC-P0-1) at the default centre, PLACE states no containing ámbito 
     assert.match(view.membership.countText, /touches/i, label);
     // No forced disclosure, map move or Lens move was needed to read either.
     assert.equal(view.touchedCardHidden, true, `${label}: Detail stayed closed`);
-    // The block is visible on screen (not merely in the DOM).
+    // The block is DOM/CSS-visible (not merely present).
     assert.equal(await page.locator("#planningMembership").isVisible(), true, label);
     // No horizontal overflow at this width.
     const overflow = await page.evaluate(() => {
@@ -676,6 +676,29 @@ test("PA 22 (AC-P0-1) at the default centre, PLACE states no containing ámbito 
       return s.scrollWidth - s.clientWidth;
     });
     assert.ok(overflow <= 1, `${label} planning overflow ${overflow}px`);
+
+    // F3b — cold-start viewport. isVisible() proves DOM/CSS visibility, not that
+    // the block is inside the UNSCROLLED panel viewport. Measure the fold
+    // position honestly: with the panel not scrolled, is the block's top within
+    // the panel's visible region? We MEASURE and report; we do not assert the
+    // block is above the fold (making it so at narrow widths is the P1 track).
+    const fold = await page.evaluate(() => {
+      const panel = document.getElementById("analysisPanel");
+      const block = document.getElementById("planningMembership");
+      const p = panel.getBoundingClientRect();
+      const b = block.getBoundingClientRect();
+      return {
+        panelScrollTop: panel.scrollTop,
+        panelVisibleBottom: p.top + panel.clientHeight,
+        blockTop: b.top,
+        blockBottom: b.bottom,
+        withinInitialViewport: b.top >= p.top && b.top < p.top + panel.clientHeight,
+      };
+    });
+    // Cold start: the panel is not pre-scrolled, so the measurement is honest.
+    assert.equal(fold.panelScrollTop, 0, `${label}: panel is not pre-scrolled at cold start`);
+    assert.equal(typeof fold.withinInitialViewport, "boolean");
+    console.log(`[cold-start-fold] ${label}: withinInitialViewport=${fold.withinInitialViewport} blockTop=${Math.round(fold.blockTop)} panelVisibleBottom=${Math.round(fold.panelVisibleBottom)}`);
   }
 });
 
@@ -705,6 +728,15 @@ test("PA 23 (AC-P0-12) membership shows an honest pending state while the Lens m
   assert.notEqual(after.membership.busy, "true");
   const renderedCodes = after.membership.chips.map((chip) => chip.code);
   assert.deepEqual(renderedCodes, canonical.touched.slice(0, 3).map((entry) => entry.ambitoCode));
+  // Not only the codes: each displayed chip's containsCentre mark matches the
+  // canonical model, and nothing contradicts the containment answer.
+  for (const chip of after.membership.chips) {
+    const entry = canonical.touched.find((e) => e.ambitoCode === chip.code);
+    assert.equal(chip.containsCentre, Boolean(entry && entry.containsCentre), `${chip.code} centre mark`);
+  }
+  if (after.state === "outside_all_ambitos") {
+    assert.ok(after.membership.chips.every((chip) => chip.containsCentre === false), "no centre mark while outside all ámbitos");
+  }
 
   // A radius change settles to the exact set too.
   await page.evaluate(() => window.__HALO_REGRESSION__.beginPlanningMembershipInteraction());
@@ -737,6 +769,113 @@ test("PA 24 (AC-P0-10) the promoted membership reads in ES and EN; official code
     spanish.membership.chips.map((chip) => chip.code),
     english.membership.chips.map((chip) => chip.code)
   );
+});
+
+// Read the Detail full-list item for a given official code: whether it carries
+// the "contains the Lens centre" mark.
+async function detailItemCentre(page, code) {
+  return page.locator("#planningTouchedList > li").evaluateAll((nodes, code) => {
+    for (const node of nodes) {
+      const c = node.querySelector(".planning-touched-code")?.textContent.trim();
+      if (c === code) return { present: true, containsCentre: Boolean(node.querySelector(".planning-touched-centre")) };
+    }
+    return { present: false, containsCentre: false };
+  }, code);
+}
+
+test("PA 25 (AC-P0-12 / F1) a boundary crossing with an UNCHANGED code set still updates containsCentre marks — no stale containment claim", async (t) => {
+  const page = await newPage();
+  t.after(() => closePage(page));
+
+  // At the maximum radius the touched set is dominated by polygons well inside
+  // the 5 km disk, so a short centre move across one polygon's boundary flips
+  // that polygon's containsCentre while leaving the touched CODE SET identical —
+  // the exact condition a code-only DOM signature would skip.
+  await at(page, INSIDE);
+  await page.evaluate(() => { const s = document.getElementById("radiusSlider"); s.value = s.max; s.oninput({ target: s }); s.onchange(); });
+  const radiusM = await page.evaluate(() => window.__HALO_REGRESSION__.planningMembershipNow().radiusM);
+
+  const base = await page.evaluate(([lat, lon, r]) => window.__HALO_REGRESSION__.planningMembershipAt(lat, lon, r), [INSIDE.lat, INSIDE.lon, radiusM]);
+  const baseCodes = base.touched.map((e) => e.ambitoCode).join(",");
+  const containing = base.touched.find((e) => e.ambitoCode === INSIDE.code);
+  assert.ok(containing && containing.containsCentre === true, "the inside point contains its ámbito centre");
+
+  // Search nearby points (side-effect-free model queries) for one just OUTSIDE
+  // APR.02.09 whose touched code set is byte-identical to the inside point's.
+  let outside = null;
+  const steps = [];
+  for (let ring = 1; ring <= 20 && !outside; ring += 1) {
+    const d = ring * 0.0004; // ≈ 44 m per ring
+    for (const [dlat, dlon] of [[d, 0], [-d, 0], [0, d], [0, -d], [d, d], [-d, -d], [d, -d], [-d, d]]) {
+      steps.push([INSIDE.lat + dlat, INSIDE.lon + dlon]);
+    }
+  }
+  for (const [lat, lon] of steps) {
+    const probe = await page.evaluate(([lat, lon, r]) => window.__HALO_REGRESSION__.planningMembershipAt(lat, lon, r), [lat, lon, radiusM]);
+    const probeCodes = probe.touched.map((e) => e.ambitoCode).join(",");
+    const entry = probe.touched.find((e) => e.ambitoCode === INSIDE.code);
+    if (probeCodes === baseCodes && entry && entry.containsCentre === false) { outside = { lat, lon }; break; }
+  }
+  assert.ok(outside, "found a point outside the ámbito with the identical touched code set");
+
+  // Open the Detail full list (it always carries every touched entry) and drive
+  // the REAL render at the inside point: APR.02.09 is marked as containing.
+  await page.evaluate(() => window.__HALO_REGRESSION__.openPlaceDetailForTest());
+  await page.evaluate(([lat, lon]) => window.__HALO_REGRESSION__.moveLensToLatLng("A", lat, lon), [INSIDE.lat, INSIDE.lon]);
+  let inView = await planning(page);
+  assert.equal(inView.state, "resolved");
+  assert.equal(inView.code, INSIDE.code);
+  let insideItem = await detailItemCentre(page, INSIDE.code);
+  assert.equal(insideItem.present, true);
+  assert.equal(insideItem.containsCentre, true, "inside: Detail item marks the centre");
+
+  // Move the REAL Lens to the outside point. The touched code set is unchanged,
+  // so a code-only signature would early-return and keep the stale centre mark.
+  await page.evaluate(([lat, lon]) => window.__HALO_REGRESSION__.moveLensToLatLng("A", lat, lon), [outside.lat, outside.lon]);
+  const outView = await planning(page);
+  // The code set really did not change.
+  assert.deepEqual(
+    outView.model.membership.touched.map((e) => e.ambitoCode).join(","),
+    baseCodes,
+    "the touched code set is unchanged across the boundary"
+  );
+  // Containment now says the centre is inside NO ámbito (or a different one).
+  const canonicalOut = await page.evaluate(() => window.__HALO_REGRESSION__.planningMembershipNow());
+  const outContaining = canonicalOut.touched.find((e) => e.ambitoCode === INSIDE.code);
+  assert.equal(outContaining.containsCentre, false, "the model no longer contains APR.02.09's centre");
+  // The Detail item's mark must have updated — not stale.
+  let outsideItem = await detailItemCentre(page, INSIDE.code);
+  assert.equal(outsideItem.present, true, "same code still in the membership list");
+  assert.equal(outsideItem.containsCentre, false, "outside: the stale centre mark was removed");
+  // And every Detail item / chip agrees with the canonical model.
+  const detailMarks = await page.locator("#planningTouchedList > li").evaluateAll((nodes) =>
+    nodes.map((node) => ({ code: node.querySelector(".planning-touched-code")?.textContent.trim(), centre: Boolean(node.querySelector(".planning-touched-centre")) }))
+  );
+  for (const mark of detailMarks) {
+    const entry = canonicalOut.touched.find((e) => e.ambitoCode === mark.code);
+    assert.equal(mark.centre, Boolean(entry && entry.containsCentre), `Detail ${mark.code} centre mark agrees with the model`);
+  }
+  for (const chip of outView.membership.chips) {
+    const entry = canonicalOut.touched.find((e) => e.ambitoCode === chip.code);
+    assert.equal(chip.containsCentre, Boolean(entry && entry.containsCentre), `chip ${chip.code} centre mark agrees with the model`);
+  }
+  // If the centre is now outside every ámbito, no mark may claim containment.
+  if (outView.state === "outside_all_ambitos") {
+    assert.ok(detailMarks.every((m) => m.centre === false), "no Detail centre mark while outside all ámbitos");
+    assert.ok(outView.membership.chips.every((c) => c.containsCentre === false), "no chip centre mark while outside all ámbitos");
+  }
+
+  // Reverse direction (outside → inside): the mark comes back.
+  await page.evaluate(([lat, lon]) => window.__HALO_REGRESSION__.moveLensToLatLng("A", lat, lon), [INSIDE.lat, INSIDE.lon]);
+  insideItem = await detailItemCentre(page, INSIDE.code);
+  assert.equal(insideItem.containsCentre, true, "reverse: the centre mark returns inside");
+
+  // The same holds in Spanish: crossing the boundary updates the mark there too.
+  await page.selectOption("#languageSelect", "es");
+  await page.waitForFunction(() => document.documentElement.lang === "es");
+  await page.evaluate(([lat, lon]) => window.__HALO_REGRESSION__.moveLensToLatLng("A", lat, lon), [outside.lat, outside.lon]);
+  const esOutsideItem = await detailItemCentre(page, INSIDE.code);
+  assert.equal(esOutsideItem.containsCentre, false, "ES outside: no stale centre mark");
 });
 
 // ------------------------------------------------------------- 8. language
