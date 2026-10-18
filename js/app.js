@@ -1387,11 +1387,45 @@ function updateHalo() {
   updateHaloLayout();
 }
 
+// True only for a loopback, RFC1918 private-LAN, link-local, or mDNS (.local)
+// host — i.e. a developer machine or a device on the same private network, never
+// a routable public host such as the GitHub Pages deployment. Pure and
+// host-string-only. An identical, unit-tested copy lives in
+// research/ac_p0_12/runner_core.mjs (isLoopbackOrPrivateLanHost); keep them in
+// sync — the node test tests that copy, this classic script cannot be imported.
+function isLoopbackOrPrivateLanHost(hostname) {
+  const h = String(hostname || "").toLowerCase().replace(/^\[|\]$/g, "");
+  if (h === "localhost" || h.endsWith(".localhost")) return true;
+  if (h === "::1") return true; // IPv6 loopback
+  if (h.startsWith("fe80:")) return true; // IPv6 link-local
+  if (/\.local$/.test(h)) return true; // mDNS / Bonjour
+  const v4 = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const o = v4.slice(1).map(Number);
+    if (o.some((n) => n > 255)) return false;
+    if (o[0] === 127) return true; // 127.0.0.0/8 loopback
+    if (o[0] === 10) return true; // 10.0.0.0/8
+    if (o[0] === 192 && o[1] === 168) return true; // 192.168.0.0/16
+    if (o[0] === 172 && o[1] >= 16 && o[1] <= 31) return true; // 172.16.0.0/12
+    if (o[0] === 169 && o[1] === 254) return true; // 169.254.0.0/16 link-local
+    return false;
+  }
+  return false;
+}
+
 // Browser regression tests exercise the production Leaflet renderer with
 // deterministic evidence and map geometry. The seam is opt-in by query string
 // and is absent during normal use.
 const haloRegressionRequested = new URLSearchParams(window.location.search).get("haloRegressionTest") === "1";
-const haloRegressionLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
+// The seam is reachable only from the developer's own machine. Loopback covers a
+// laptop running the harness against itself; the private-LAN / mDNS / link-local
+// cases additionally let a physically-attached iPad or iPhone — which reaches the
+// laptop by its LAN IP, never "localhost" — drive the real app for the AC-P0-12
+// device-validation runner (research/ac_p0_12/). The public GitHub Pages host is a
+// routable domain, never a loopback or RFC1918 address, so it never matches; and
+// the explicit ?haloRegressionTest=1 opt-in is still required on top of this, so
+// the seam remains absent in all normal use regardless of host.
+const haloRegressionLocal = isLoopbackOrPrivateLanHost(window.location.hostname);
 if (haloRegressionRequested && haloRegressionLocal) {
   window.__HALO_REGRESSION__ = Object.freeze({
     fixture: Object.freeze({
