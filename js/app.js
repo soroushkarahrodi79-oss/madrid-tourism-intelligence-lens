@@ -5389,7 +5389,7 @@ document.getElementById("hatiFrameButton").onclick = () => {
 };
 
 // PLACE quick-jump (narrow screens). Scrolls the panel's internal scroll to the
-// four Lens-circle figures or the Detail disclosure, so the core local evidence
+// canonical compact Lens-circle projection or the Detail disclosure, so the core local evidence
 // is reachable in one tap instead of several screens of scrolling. Pure
 // navigation: it never changes a value, a mode, a layer or the reading order.
 const placeJump = document.getElementById("placeJump");
@@ -5400,7 +5400,7 @@ if (placeJump) {
     const target =
       chip.dataset.jump === "detail"
         ? document.getElementById("placeDetail")
-        : document.getElementById("withinLensHead");
+        : document.getElementById("placeCircleSummary");
     const panel = document.getElementById("analysisPanel");
     if (!target || !panel) return;
     const top =
@@ -5612,6 +5612,40 @@ function renderRailGroupBadges() {
   }
 }
 
+// The whole layer rail is opt-in on phones, without hiding its ten toggles or
+// changing their values. Tablets keep P1's six-group visible accordion.
+const mobileRailMedia = window.matchMedia("(max-width: 560px)");
+const mobileRailButton = document.getElementById("mobileLayersButton");
+const mobileRail = document.getElementById("layerRail");
+function setMobileRailOpen(requestedOpen, restoreFocus = false) {
+  const visible = mobileRailMedia.matches && Boolean(requestedOpen);
+  mobileRail.hidden = mobileRailMedia.matches && !visible;
+  mobileRailButton.setAttribute("aria-expanded", String(visible));
+  mobileRailButton.setAttribute("aria-label", shellT(visible ? "aside.closeLayers" : "aside.openLayers"));
+  if (restoreFocus && mobileRailMedia.matches) mobileRailButton.focus({ preventScroll: true });
+}
+setMobileRailOpen(false);
+mobileRailButton.addEventListener("click", () => setMobileRailOpen(mobileRail.hidden));
+if (typeof mobileRailMedia.addEventListener === "function") {
+  mobileRailMedia.addEventListener("change", () => setMobileRailOpen(false));
+} else mobileRailMedia.addListener(() => setMobileRailOpen(false));
+document.addEventListener("pointerdown", (event) => {
+  if (mobileRailMedia.matches && !mobileRail.hidden &&
+      !mobileRail.contains(event.target) && !mobileRailButton.contains(event.target)) {
+    setMobileRailOpen(false);
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && mobileRailMedia.matches && !mobileRail.hidden &&
+      (mobileRail.contains(document.activeElement) || document.activeElement === mobileRailButton)) {
+    // Do not intercept Escape from an open Evidence & limits dialog.
+    if (!document.getElementById("evidenceDrawer").open) {
+      event.preventDefault();
+      setMobileRailOpen(false, true);
+    }
+  }
+});
+
 const narrowRailMedia = window.matchMedia("(max-width: 850px)");
 function configureRailGroups(event = narrowRailMedia) {
   const narrow = event.matches;
@@ -5642,6 +5676,7 @@ for (const link of document.querySelectorAll(".skip-link")) {
     const target = document.querySelector(link.getAttribute("href"));
     if (!target) return;
     event.preventDefault();
+    if (target === mobileRail && mobileRailMedia.matches) setMobileRailOpen(true);
     target.focus({ preventScroll: true });
     target.scrollIntoView({ block: "start" });
   });
@@ -5704,6 +5739,7 @@ function applyShellCopy() {
     button.setAttribute("aria-label", `${shellT("rail.open")} ${shellT(button.dataset.evidenceName)}`);
   }
   renderRailGroupBadges();
+  setMobileRailOpen(!mobileRail.hidden);
   renderRadiusLabels();
   renderCircleSummary();
   document.getElementById("hospitalityLanguageLabel").textContent = "Idioma / Language";

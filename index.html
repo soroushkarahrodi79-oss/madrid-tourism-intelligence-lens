@@ -6,7 +6,7 @@
 <title>Madrid Urban Evidence Lens</title>
 <meta name="description" content="A place-first, source-disciplined lens for Madrid: read what official sources document about the city and the limits of that evidence. Urban development is the authorized next organising frame; tourism remains a documented domain. Not real-time; not a recommendation engine.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261019-p1">
+<link rel="stylesheet" href="css/app.css?v=20261020-mapfirst">
 </head>
 <body>
 <a class="sr-only skip-link" href="#analysisPanel" data-i18n="a11y.skipToPanel">Skip to the analysis panel</a>
@@ -27,6 +27,8 @@
   </div>
 </header>
 
+<!-- Phone map-first entry; the complete rail is unchanged and shown on request. -->
+<button type="button" id="mobileLayersButton" class="mobile-layers-button" aria-expanded="false" aria-controls="layerRail" data-i18n-attr="aria-label:aside.openLayers"><span aria-hidden="true">☷</span><span data-i18n="aside.mobileLayers">Layers</span></button>
 <aside class="left" id="layerRail" tabindex="-1" aria-label="Map layers" data-i18n-attr="aria-label:a11y.layersLandmark">
   <details class="rail-group" data-rail-group="map" name="rail" open>
     <summary><span class="rail-group-copy"><span data-i18n="aside.map">Map display</span></span><span class="rail-group-badge" data-rail-settings="2"></span></summary>
@@ -153,7 +155,7 @@
          add no evidence, hide nothing and change no reading order; on wide
          screens and outside PLACE they are display:none. -->
     <nav id="placeJump" class="place-jump" aria-label="Jump to a section of this place" data-i18n-attr="aria-label:place.jumpAria">
-      <button type="button" class="place-jump-chip" data-jump="withinLens" data-i18n="sec.withinLens">Within the Lens</button>
+      <button type="button" class="place-jump-chip" data-jump="withinLens" data-i18n="place.circleSummary">In this Lens circle</button>
       <button type="button" class="place-jump-chip" data-jump="detail" data-i18n="sec.detail">Detail</button>
     </nav>
     <section id="scopeRail" class="scope-rail" aria-label="Scope and freshness of the evidence on screen">
@@ -840,6 +842,6 @@
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20261019-p1"></script>
+<script src="js/app.js?v=20261020-mapfirst"></script>
 </body>
 </html>

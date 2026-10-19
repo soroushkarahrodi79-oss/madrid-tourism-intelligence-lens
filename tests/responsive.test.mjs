@@ -24,6 +24,13 @@ test("coarse-pointer controls share the universal 44px floor", () => {
   assert.doesNotMatch(css, /\.place-jump-chip\{[^}]*min-height:(?:[0-3]\d|4[0-3])px/);
 });
 
+test("P1 map-first phone disclosure keeps the complete layer rail available on demand", () => {
+  assert.match(html, /id="mobileLayersButton"[^>]*aria-expanded="false"[^>]*aria-controls="layerRail"/);
+  assert.match(css, /@media\(max-width:560px\)\{[\s\S]*?\.mobile-layers-button\{display:inline-flex\}/);
+  assert.match(css, /\.left\[hidden\]\{display:none!important\}/);
+  assert.match(css, /\.leaflet-control-attribution a\[href\]\{display:inline;min-width:0;min-height:0\}/);
+});
+
 test("P1 small-screen rail uses six native disclosure groups and preserves all ten layer switches", () => {
   assert.equal((html.match(/<details class="rail-group"/g) || []).length, 6);
   assert.equal((html.match(/<summary>/g) || []).length >= 6, true);

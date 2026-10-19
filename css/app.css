@@ -64,6 +64,9 @@ header{
   max-height:calc(100vh - 108px - var(--safe-top) - var(--safe-bottom));max-height:calc(100dvh - 108px - var(--safe-top) - var(--safe-bottom));overflow:auto;overscroll-behavior:contain;
   border-radius:var(--r-large);background:var(--panel);backdrop-filter:blur(18px);box-shadow:0 14px 40px rgba(0,0,0,.28)
 }
+.left[hidden]{display:none!important}
+.mobile-layers-button{display:none;position:absolute;z-index:1101;left:calc(10px + var(--safe-left));top:calc(73px + var(--safe-top));min-height:44px;min-width:108px;align-items:center;justify-content:center;gap:var(--s-2);padding:var(--s-2) var(--s-3);border:1px solid rgba(142,164,187,.36);border-radius:var(--r-small);background:#0b1a29;color:#e4f2ff;font-size:var(--t-label);font-weight:700;box-shadow:0 8px 22px rgba(0,0,0,.32);cursor:pointer}
+.mobile-layers-button[aria-expanded="true"]{border-color:#6fbaff;background:#12304a}
 .left h3,.panel h3{font-size:var(--t-micro);letter-spacing:.14em;text-transform:uppercase;color:#788ba2;margin:0 0 var(--s-2)}
 .left h3~h3{margin-top:var(--s-3)}
 .rail-group{margin:0;border:0}
@@ -805,7 +808,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .hospitality-meta-grid{grid-template-columns:1fr 1fr}
   .leaflet-top.leaflet-left{top:calc(73px + var(--safe-top));left:auto;right:calc(10px + var(--safe-right))}
   .leaflet-bottom.leaflet-right{top:calc(158px + var(--safe-top));bottom:auto;left:auto;right:calc(10px + var(--safe-right))}
-  .leaflet-control-attribution{max-width:min(46vw,220px);!important;text-align:right}
+  .leaflet-control-attribution{max-width:min(46vw,220px);text-align:right}
 }
 
 @media(pointer:coarse){
@@ -975,6 +978,12 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .detail-disclosure>summary{}
   .header-tools select{min-width:88px;padding:var(--s-1) var(--s-2)}
 }
+@media(max-width:560px){
+  /* Map-first on phones: an explicit 44px control replaces the always-open rail.
+     The entire original six-group rail remains reachable when requested. */
+  .mobile-layers-button{display:inline-flex}
+  .left{top:calc(125px + var(--safe-top));width:min(240px,calc(100vw - 72px - var(--safe-left) - var(--safe-right)));max-height:min(50vh,400px);max-height:min(50dvh,400px)}
+}
 @media(max-width:420px){
   /* Phone widths: readable evidence states without changing any canonical value. */
   .place-circle-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1025,6 +1034,9 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
   :where(button,select,summary,a[href],[role="button"],input[type="range"],input[type="checkbox"]){min-width:44px;min-height:44px}
   .rail-group>summary{min-height:44px}
   a[href]{display:inline-flex;align-items:center}
+  /* Leaflet's legal/source attribution is NOT an application action.
+     Do not turn every inline attribution link into a 44px-wide flex box. */
+  .leaflet-control-attribution a[href]{display:inline;min-width:0;min-height:0}
   .switch{width:44px;height:44px}
   .switch input{inset:0;width:100%;height:100%}
   .switch span{inset:10px 1px;border-radius:14px}

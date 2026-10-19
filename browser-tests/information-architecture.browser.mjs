@@ -614,24 +614,25 @@ test("IA 22 the mobile PLACE quick-jump reaches the Lens metrics, is localized, 
   const jump = page.locator("#placeJump");
   assert.notEqual(await jump.evaluate((n) => getComputedStyle(n).display), "none", "the quick-jump is shown on a narrow PLACE panel");
   const chips = (await page.locator("#placeJump .place-jump-chip").allTextContents()).map((s) => s.trim());
-  assert.deepEqual(chips, ["Within the Lens", "Detail"]);
+  assert.deepEqual(chips, ["In this Lens circle", "Detail"]);
 
-  // The four Lens figures start well below the panel fold, and one tap brings them to the top.
-  const metricsTop = () => page.evaluate(() => {
+  // One tap must reach the compact canonical projection, not bypass it for
+  // the older, deeper full-metrics section.
+  const summaryTop = () => page.evaluate(() => {
     const panel = document.getElementById("analysisPanel");
-    return document.querySelector("#modePlace .metrics").getBoundingClientRect().top - panel.getBoundingClientRect().top;
+    return document.getElementById("placeCircleSummary").getBoundingClientRect().top - panel.getBoundingClientRect().top;
   });
-  assert.ok((await metricsTop()) > 300, "the Lens metrics start far below the fold");
+  assert.ok((await summaryTop()) > 250, "compact readings are initially below the panel fold");
   await page.locator('#placeJump .place-jump-chip[data-jump="withinLens"]').click();
   await page.waitForFunction(() => {
     const panel = document.getElementById("analysisPanel");
-    return document.querySelector("#modePlace .metrics").getBoundingClientRect().top - panel.getBoundingClientRect().top < 140;
+    return document.getElementById("placeCircleSummary").getBoundingClientRect().top - panel.getBoundingClientRect().top < 140;
   });
 
   // Localized: chip text and the nav's accessible name follow the document language.
   await page.locator("#languageSelect").selectOption("es");
   const esChips = (await page.locator("#placeJump .place-jump-chip").allTextContents()).map((s) => s.trim());
-  assert.deepEqual(esChips, ["Dentro de la Lente", "Detalle"]);
+  assert.deepEqual(esChips, ["En este círculo de Lente", "Detalle"]);
   assert.equal(await jump.getAttribute("aria-label"), "Ir a una sección de este lugar");
   await page.locator("#languageSelect").selectOption("en");
 
@@ -651,6 +652,12 @@ test("P1 AC1/2/6/8/10: six small-screen rail groups fit, report live state, pres
   assert.equal(await page.locator(".rail-group").count(), 6);
   assert.equal(await page.locator('[data-layer]').count(), 10);
   assert.equal(await page.locator(".rail-group[open]").count(), 0, "all groups start collapsed at <=850px");
+  assert.equal(await page.locator("#layerRail").isVisible(), false, "map-first phone hides the rail until requested");
+  assert.equal(await page.locator("#mobileLayersButton").isVisible(), true);
+  assert.equal(await page.locator("#mobileLayersButton").getAttribute("aria-expanded"), "false");
+  await page.locator("#mobileLayersButton").click();
+  assert.equal(await page.locator("#layerRail").isVisible(), true);
+  assert.equal(await page.locator("#mobileLayersButton").getAttribute("aria-expanded"), "true");
   assert.deepEqual(await page.locator(".rail-group-badge").allTextContents(), [
     "2 settings", "5 of 5 on", "0 of 1 on", "0 of 1 on", "0 of 2 on", "0 of 1 on",
   ]);
@@ -689,6 +696,8 @@ test("P1 AC1/2/6/8/10: six small-screen rail groups fit, report live state, pres
 
   const desktop = await newPage({ width: 1440, height: 900 });
   t.after(() => closePage(desktop));
+  assert.equal(await desktop.locator("#mobileLayersButton").isVisible(), false, "desktop has no mobile Layers button");
+  assert.equal(await desktop.locator("#layerRail").isVisible(), true);
   assert.equal(await desktop.locator(".rail-group[open]").count(), 6, "desktop groups stay expanded");
   assert.equal(await desktop.locator('.rail-group[name="rail"]').count(), 0, "desktop is not forced into accordion behaviour");
   assert.equal(await desktop.locator(".rail-group-content:visible").count(), 6);
@@ -770,8 +779,64 @@ test("P1 AC3/5/7: compact PLACE band mirrors all four canonical readings, live r
   assert.equal(await page.locator("#placeCircleSummary .place-circle-summary-head > span").first().textContent(), "En este círculo de Lente");
   assert.match(await page.locator("#placeCircleSummaryRadius").textContent(), /de radio/);
   assert.equal(await page.locator('.rail-group[data-rail-group="operational"] .rail-group-badge').textContent(), "5 de 5 activas");
+  assert.equal(await page.locator("#mobileLayersButton").textContent(), "☷Capas");
+  assert.equal(await page.locator("#mobileLayersButton").getAttribute("aria-label"), "Mostrar capas del mapa");
 });
 
+
+test("P1 map-first: explicit phone layer drawer, Escape, outside tap and responsive restoration preserve layer state", async (t) => {
+  const page = await newPage({ width: 375, height: 812 }, { hasTouch: true });
+  t.after(() => closePage(page));
+  const toggle = page.locator("#mobileLayersButton");
+  const rail = page.locator("#layerRail");
+  assert.equal(await rail.isVisible(), false);
+  assert.equal(await toggle.getAttribute("aria-controls"), "layerRail");
+  assert.ok((await toggle.boundingBox()).height >= 44);
+  const before = await page.locator("[data-layer]").evaluateAll((nodes) => nodes.map((n) => [n.dataset.layer, n.checked]));
+  await toggle.click();
+  assert.equal(await rail.isVisible(), true);
+  await rail.locator('.rail-group[data-rail-group="operational"] > summary').click();
+  await rail.locator('[data-layer="museum"]').evaluate((node) => {
+    node.checked = false;
+    node.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await rail.locator('.rail-group[data-rail-group="operational"] > summary').focus();
+  await page.keyboard.press("Escape");
+  assert.equal(await rail.isVisible(), false);
+  assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "mobileLayersButton");
+  await toggle.click();
+  assert.equal(await rail.locator('[data-layer="museum"]').isChecked(), false);
+  // Closing the drawer must not call a map click handler or reposition the Lens.
+  const mapBefore = await page.evaluate(() => window.__HALO_REGRESSION__.lensCenters());
+  await page.locator("#modeNav").click({ position: { x: 4, y: 4 } });
+  assert.equal(await rail.isVisible(), false);
+  assert.deepEqual(await page.evaluate(() => window.__HALO_REGRESSION__.lensCenters()), mapBefore);
+  await page.setViewportSize({ width: 834, height: 1112 });
+  assert.equal(await rail.isVisible(), true, "tablet displays the rail without the phone button");
+  assert.equal(await toggle.isVisible(), false);
+  assert.equal(await rail.locator('[data-layer="museum"]').isChecked(), false, "resize preserves data-layer state");
+  await page.setViewportSize({ width: 375, height: 812 });
+  assert.equal(await rail.isVisible(), false, "returning to phone restores the map-first initial state");
+  assert.equal((await page.locator("[data-layer]").evaluateAll((nodes) => nodes.map((n) => [n.dataset.layer, n.checked]))).length, before.length);
+});
+
+test("P1 Leaflet credits: map attribution links remain navigable but never inherit 44px product targets", async (t) => {
+  const page = await newPage({ width: 375, height: 812 }, { hasTouch: true });
+  t.after(() => closePage(page));
+  const links = page.locator(".leaflet-control-attribution a[href]");
+  assert.ok(await links.count() > 0);
+  const geometry = await links.evaluateAll((nodes) => nodes.map((el) => ({
+    display: getComputedStyle(el).display,
+    width: el.getBoundingClientRect().width,
+    height: el.getBoundingClientRect().height,
+    href: el.href,
+  })));
+  assert.ok(geometry.every((row) => row.display === "inline"), JSON.stringify(geometry));
+  assert.ok(geometry.every((row) => row.width < 150 && row.height < 44 && row.href.startsWith("http")), JSON.stringify(geometry));
+  const attribution = await page.locator(".leaflet-control-attribution").boundingBox();
+  assert.ok(attribution && attribution.height < 90, JSON.stringify(attribution));
+});
 test("P1 AC4: quick-jump controls meet 44px with a coarse pointer", async (t) => {
   const page = await newPage({ width: 375, height: 812 }, { hasTouch: true });
   t.after(() => closePage(page));
@@ -797,5 +862,6 @@ test("P1 AC9: the first two keyboard stops are visible skip links and Leaflet ma
   assert.equal(await second.evaluate(() => document.activeElement?.getAttribute("href")), "#layerRail");
   await second.keyboard.press("Enter");
   assert.equal(await second.evaluate(() => document.activeElement?.id), "layerRail");
+  assert.equal(await second.locator("#layerRail").isVisible(), true, "skip-link opens hidden mobile layer rail");
   assert.ok(await second.locator('.leaflet-marker-icon[tabindex="0"]').count() > 0, "map marker keyboard access is unchanged");
 });
