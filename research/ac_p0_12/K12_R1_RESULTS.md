@@ -30,12 +30,14 @@ harness is unbiased at the (noisier) POI-ON workload.
 ## Second gate — ranked A/B (POI-ON, 6 warmed ABBA pairs, drift < 0.0001°)
 
 Candidate = optimization ON (`?k12opt=…`), baseline = OFF, **same build**. Negative Δ
-= faster (improvement). Raw JSON in `results/auto_compare_55fa0c70_*.json`.
+= faster (improvement). Raw JSON in `results/auto_compare_55fa0c70_*.json`; the
+authoritative hardened re-measure is `results/auto_compare_6b2f85b3_*.json` (stamped
+with this PR's committed SHA for R4 provenance).
 
 | Lever | baseline pan p95 | candidate pan p95 | **paired Δ p95** | Δ p50 | pairs faster | CDP Δ task/pan | Verdict |
 |---|---|---|---|---|---|---|---|
 | **`thin`** — hide POI cluster icons only *while actively dragging* the map (restored on release) | 316.6 ms | **83.4 ms** | **−233.1 ms (−74%)** | −150.4 | 6/6 | −206 ms | **GO (pending explicit UX sign-off)** |
-| **`thin` (hardened, drag-gated)** re-measure | 350.1 ms | **116.4 ms** | **−199.5 ms (−57%)** | −133.8 | 6/6 | −317 ms | win holds after UX hardening |
+| **`thin` (hardened, drag-gated)** clean re-measure @ `6b2f85b` | 283.3 ms | **83.7 ms** | **−199.7 ms (−70%)** | −116.7 | 3/3 | −161 ms task | win holds after UX hardening |
 | `idle` — `updateWhenIdle:true` + `updateWhenZooming:false` on raster tiles | 233.5 ms | 233.4 ms | **+0.1 ms** | −0.1 | 6/6 (≈0) | −24 ms | marginal — within noise; keep behind flag |
 | `idle,thin` combined | 250 ms | **67.2 ms** | −166.1 ms | −133.3 | 6/6 | −170 ms | win, dominated by `thin` |
 | `noretina` — 1× CARTO tiles at dpr 2 | — | — | not locally measurable (local basemap is keyless OSM, already 1×) | — | — | — | implemented; needs a **keyed CARTO deploy** to measure |
