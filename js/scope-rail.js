@@ -72,7 +72,7 @@ const SURFACES = Object.freeze({
   "place.planning.surface": { mode: "PLACE", scope: "PLANNING_AMBITO", sources: ["planning_ambito_state"], unit: "unit.squareMetres", derivation: "derive.published" },
   "place.planning.buildability": { mode: "PLACE", scope: "PLANNING_AMBITO", sources: ["planning_ambito_state"], unit: "unit.buildability", derivation: "derive.published" },
   "place.planning.change": { mode: "PLACE", scope: "PLANNING_AMBITO", sources: ["planning_ambito_state"], unit: "unit.ambitoChange", derivation: "derive.published" },
-  "place.planning.touched": { mode: "PLACE", scope: "LENS_INTERSECT_AMBITO", sources: ["planning_ambito_geometry"], unit: "unit.touchedAmbitos", derivation: "derive.ambitoMembership", when: "planningDetail" },
+  "place.planning.touched": { mode: "PLACE", scope: "LENS_INTERSECT_AMBITO", sources: ["planning_ambito_geometry"], unit: "unit.touchedAmbitos", derivation: "derive.ambitoMembership", when: "planningMembership" },
   "place.detail.mix": { mode: "PLACE", scope: "LENS_CIRCLE", sources: ["museum", "info", "stay", "bike", "rail"], unit: "unit.share", derivation: "derive.lensShare" },
   "place.detail.nearest": { mode: "PLACE", scope: "LENS_CIRCLE", sources: ["museum", "info", "stay", "bike", "rail"], unit: "unit.metres", derivation: "derive.nearest" },
   "place.pedestrian": { mode: "PLACE", scope: "LENS_CIRCLE", sources: ["pedestrian"], unit: "unit.pedestrians", derivation: "derive.lensMean", when: "pedestrian" },

@@ -370,6 +370,23 @@ header{
 .planning-touched-code{font-size:var(--t-meta);font-weight:700;letter-spacing:.04em;color:#e3ecf6;font-variant-numeric:tabular-nums}
 .planning-touched-centre{font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:#8ba0b7}
 
+/* MEMBERSHIP (P0-a, #95), promoted into the always-visible planning section.
+   It sits visually SEPARATE from the containment answer above (its own ruled
+   block in the reserved neutral family) because it answers a different question
+   at a different scope — which ámbitos the circle touches, never a share. */
+.planning-membership{margin-top:var(--s-3);padding:var(--s-3) var(--s-3) var(--s-2);border:1px solid var(--line);border-left:2px solid var(--planning-neutral);border-radius:var(--r-small);background:rgba(255,255,255,.022)}
+.planning-membership[hidden]{display:none}
+.planning-membership-count{margin:0;font-size:var(--t-body);line-height:1.5;color:#cfe0f0}
+.planning-membership[data-state="updating"] .planning-membership-count{color:#9fb3c8;font-style:italic}
+.planning-membership-chips{list-style:none;margin:var(--s-2) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s-1)}
+.planning-membership-chip{display:inline-flex;align-items:baseline;gap:var(--s-1);max-width:100%;padding:var(--s-1) var(--s-2);border:1px solid var(--line2);border-radius:var(--r-small);background:rgba(255,255,255,.03)}
+.planning-membership-chip .planning-touched-code{flex:none}
+.planning-membership-chip-name{min-width:0;font-size:var(--t-meta);color:#a9bbcf;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.planning-membership-seeall{margin:var(--s-2) 0 0;padding:var(--s-1) var(--s-2);border:1px solid var(--line2);border-radius:var(--r-small);background:transparent;color:#cfe0f0;font:inherit;font-size:var(--t-meta);cursor:pointer}
+.planning-membership-seeall[hidden]{display:none}
+.planning-membership-seeall:hover{border-color:var(--planning-neutral)}
+.planning-membership-seeall:focus-visible{outline:2px solid var(--planning-neutral);outline-offset:2px}
+
 /* The containing ámbito on the map: its own reserved neutral family, never a
    Lens hue, and never a hue that encodes a phase. */
 .admin-active-pane .planning-ambito-label,.planning-ambito-label{background:rgba(8,16,27,.9);border:1px solid var(--planning-neutral);color:#e6eef8;font-size:var(--t-micro);letter-spacing:.05em}

@@ -1,0 +1,79 @@
+{
+  "tool": "AC-P0-12 auto_compare",
+  "status": "COMPARISON UNAVAILABLE",
+  "reason": "H2 PR/main environment not comparable: overlay markers 195 vs 110",
+  "prSha": "90d579aad13cfb8de715da781dc6b98c00fc36ca",
+  "comparability": {
+    "ok": false,
+    "mismatches": [
+      "overlay markers 195 vs 110"
+    ],
+    "pr_render": {
+      "tiles": 20,
+      "canvases": 3,
+      "markers": 195,
+      "paths": 3
+    },
+    "main_render": {
+      "tiles": 20,
+      "canvases": 3,
+      "markers": 110,
+      "paths": 3
+    }
+  },
+  "pr_env": {
+    "gl_renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "gl_is_software": false,
+    "dpr": 2.0000000298023224,
+    "viewport": {
+      "w": 1036,
+      "h": 650,
+      "dpr": 2.0000000298023224
+    },
+    "map": {
+      "w": 1036,
+      "h": 650
+    },
+    "zoom": 14,
+    "centre": {
+      "lat": 40.415,
+      "lon": -3.692
+    },
+    "hasMembership": true,
+    "render": {
+      "tiles": 20,
+      "canvases": 3,
+      "markers": 195,
+      "paths": 3
+    },
+    "data_ready": true
+  },
+  "main_env": {
+    "gl_renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "gl_is_software": false,
+    "dpr": 2.0000000298023224,
+    "viewport": {
+      "w": 1036,
+      "h": 650,
+      "dpr": 2.0000000298023224
+    },
+    "map": {
+      "w": 1036,
+      "h": 650
+    },
+    "zoom": 14,
+    "centre": {
+      "lat": 40.415,
+      "lon": -3.692
+    },
+    "hasMembership": false,
+    "render": {
+      "tiles": 20,
+      "canvases": 3,
+      "markers": 110,
+      "paths": 3
+    },
+    "data_ready": true
+  },
+  "generatedAt": "2026-10-19T07:25:46.064Z"
+}

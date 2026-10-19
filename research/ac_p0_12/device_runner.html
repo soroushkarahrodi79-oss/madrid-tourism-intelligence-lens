@@ -120,7 +120,12 @@ import * as core from "./runner_core.mjs";
 
 const qs = new URLSearchParams(location.search);
 const appPath = qs.get("app") || "../../index.html";
-const appUrl = appPath + (appPath.includes("?") ? "&" : "?") + "haloRegressionTest=1";
+// P0-a (#95) ships OFF by default behind a staging gate (PR #96 comment
+// 6273771576) — &p0aStaging=1 is required on loopback/private-LAN hosts (which
+// this runner always is) to opt the real app into the ON state this physical
+// device gate is actually validating. Without it, the device would measure the
+// pre-P0-a (OFF) surface, not the feature this gate exists to validate.
+const appUrl = appPath + (appPath.includes("?") ? "&" : "?") + "haloRegressionTest=1&p0aStaging=1";
 const iframe = document.getElementById("app");
 iframe.src = appUrl;
 

@@ -310,8 +310,15 @@ async function main() {
     // initial fresh load; arm A (candidate) carries the gated ?k12opt flag in --opt
     // mode. POI layers default OFF (deterministic) but default ON for an --opt A/B
     // (the shipped default workload), unless overridden by --layers.
-    const prEnv0 = await freshLoad(prPage, prSrv.port, OPT ? `k12opt=${OPT}` : "");
-    const baseEnv0 = await freshLoad(basePage, baseSrv.port);
+    // Both arms also carry ?p0aStaging=1: P0-a (#95) ships OFF by default behind a
+    // staging gate (PR #96 comment 6273771576), so this harness — whose whole
+    // purpose is measuring P0-a's own cost — must explicitly opt the real app build
+    // into the ON state it is measuring. The flag is a harmless no-op on the clean
+    // `wt` main worktree (that code does not exist there), so every SELF/OPT
+    // combination above keeps serving the SAME flag on both arms, preserving the
+    // null-control (`--self=pr`/`--self=main`) same-build-same-state guarantee.
+    const prEnv0 = await freshLoad(prPage, prSrv.port, [OPT ? `k12opt=${OPT}` : "", "p0aStaging=1"].filter(Boolean).join("&"));
+    const baseEnv0 = await freshLoad(basePage, baseSrv.port, "p0aStaging=1");
     const layersMode = args.layers === "on" ? "on" : args.layers === "off" ? "off" : OPT ? "on" : "off";
     if (layersMode === "off") {
       log("disabling non-deterministic POI layers on both arms (deterministic equal render state)…");
