@@ -8,7 +8,13 @@ rule, abstention, derivation or interpretation ceiling**, and it does **not** to
 sole artifact is this document. No implementation is authorized by it.
 
 - **Baseline:** `main` @ `028d038` (merge of PR #100, P1 small-screen IA).
-- **Designed:** 19 October 2026.
+- **Designed:** 19 October 2026. **Reviewed and corrected same day**, before human review: an
+  independent re-run of this document's own §9 script against the full evidence/legend token set
+  found the original §3/§6.2 undercounted contrast failures (reported 5 of 10; actually 13 of 15),
+  missed the existing `LENS_BASEMAP_STYLES` basemap-adaptive Lens-circle mechanism (§2.5), and had
+  not yet read the two Node-side test files it flagged as a gap (§11, now closed). All three are
+  corrected in place below rather than left as a separate addendum, with the correction itself
+  stated inline at point of use (§2.5, §3, §11) so the reasoning is auditable.
 - **Research question (from #102):** can the product gain a Light/Dark/System appearance theme
   and a comfortable-text-size control that meet WCAG 2.2 AA, without weakening or renaming any
   evidence/legend colour's category meaning, and without colliding with the existing "Light/Dark"
@@ -173,10 +179,31 @@ but it is not implicit.
 | Component | DOM | Colour declared at |
 |---|---|---|
 | Gate-L phase rows | `#planningPhases` (`index.html:262`) → `.planning-phases>li[data-kind=...]` | `css/app.css:292–302` — border-left colour/style keyed to `--planning-neutral`/`--planning-unresolved`/`--planning-origin`, **never** an ordered hue (K5 contract, unchanged) |
-| Lens A/B identity | `--a`/`--b` custom properties, consumed across map rendering and metric dots in `js/app.js` | `css/app.css:17` |
+| Lens A/B identity | `--a`/`--b` custom properties for panel badges/text/dots; **the map-rendered Lens circle itself does not read these tokens** (see note below) | `css/app.css:17` |
 | Evidence & limits drawer | `<dialog id="evidenceDrawer" class="evidence-drawer">` (`index.html:786`) | `css/app.css:938–940,1022` — currently a **hardcoded** `background:#08101a` (not `var(--bg)` or `var(--panel)`) — a second migration risk: this literal must be tokenised before it can theme at all |
 | Register/licence/model/observed/statistics/snapshot badges | `.badge.register/.licence/.model/.observed/.statistics/.snapshot` | `css/app.css:198,225,314,501,693,746–748` |
 | Category dots/bars | `.dot-museum`,`.dot-stay`,`.dot-bike`,`.dot-rail`,`.dot-info`,`.dot-pedestrian`,`.dot-park`,`.dot-heat`,`.dot-licence` | `css/app.css:93–101` — already correctly routed through the category custom properties |
+
+**Missing prior art, found during review and material to §5/§6:** `js/app.js:2128–2161` already
+defines `LENS_BASEMAP_STYLES` — a `{light, satellite, dark}` table giving the Lens A/B circle its
+own `color` (stroke) and `fillColor`/`fillOpacity` **per basemap**, applied by
+`applyLensBasemapStyle()` and verified by `tests/lens_contrast.test.mjs` ("lens contrast adapts to
+light satellite and dark basemaps"). Concretely, Lens A's stroke is `#123b5f` on the light basemap,
+`#ffffff` on satellite, and its *fill* is `#3da8ff` on light — none of which is `var(--a)`
+(`#f7fbff`). **This means two things the rest of this document must be read against:**
+
+1. The Lens circle's own rendering is **already basemap-adaptive by design**, independent of any
+   `--a`/`--b` CSS custom property. This is a second, pre-existing axis of colour variation (basemap
+   choice) that Phase B's new third axis (UI appearance) must compose with, not duplicate. The
+   likely-correct design (not decided here) is that `LENS_BASEMAP_STYLES` stays keyed on basemap
+   only — because the Lens boundary's legibility need is against the **map tiles**, which an
+   "Appearance" (chrome) switch does not change — while `--a`/`--b` (and the rest of §5.2's set)
+   separately gain per-appearance light/dark values for **panel-rendered** badges, text and dots.
+2. §3's `--a`/`--b` contrast analysis is therefore scoped to the **panel/badge** use of those
+   tokens, not to the map-rendered Lens circle, which already has its own light-basemap-safe values
+   (`#123b5f`, `#3da8ff`) verified by the existing test. Phase B should check whether those
+   existing light-basemap values already satisfy a light-appearance panel badge too, before
+   inventing a fourth colour where a verified one already exists.
 
 ### 2.6 Focus-visible and 44px interaction floor
 
@@ -217,25 +244,64 @@ is new surface, not an extension of partially-built theming.**
 
 This is the most consequential result of this audit, so it is stated before any proposal.
 
-All ten evidence/legend hues (`--a`,`--b`,`--planning-neutral`,`--licence-neutral`,
+> **Correction (post-draft independent re-verification).** The first version of this document
+> computed this section's table for only 7 of the 15 evidence/legend hues and reported "5 of 10
+> fail" from that partial sample. An independent re-run of this document's own §9 script, against
+> every evidence/legend hue and the exact candidate background cited in §6.1, found the opposite of
+> reassuring: **13 of 15 fail**, not 5. The corrected table below replaces the original. This matters
+> beyond arithmetic hygiene — the original undercount would have let Phase B treat 8 category
+> colours as "already fine," when in fact only 2 are. Nothing downstream of this section (the
+> candidate-shape argument, the migration path, the acceptance criteria) changes in kind, but the
+> **scale** of the work the candidates in §6.2 represent is much larger than first stated, and one
+> token (`--a`, Lens A) turns out to need a materially different treatment, not a lightness tweak
+> (see the note after the table).
+
+Fifteen evidence/legend hues were checked (`--a`,`--b`,`--planning-neutral`,`--licence-neutral`,
 `--planning-origin`,`--planning-unresolved`,`--museum`,`--info`,`--stay`,`--bike`,`--rail`,
-`--activity`,`--park`,`--hospitality`,`--heat`) were chosen to clear WCAG's 3:1 non-text/large-text
-floor against `#08101a`, and every one of them does, comfortably — several exceed 7:1 (§9,
-reproducible). **They were not chosen against any other background, because no other background
-has existed until now.**
+`--activity`,`--park`,`--hospitality`,`--heat`; `--green` is excluded as an exact duplicate hex of
+`--park`, `#70dea4`). All fifteen were chosen to clear WCAG's 3:1 non-text/large-text floor against
+`#08101a`, and every one of them does, comfortably — several exceed 10:1 (§9, reproducible). **They
+were not chosen against any other background, because no other background has existed until now.**
 
 Computing the same ratios against a plausible light-theme background (`#f4f6f9`, a candidate
-near-white — §6.1) **with the hue held exactly fixed**:
+near-white — §6.1) **with the hue held exactly fixed**, reproduced independently of the shipped
+`browser-tests/visual-language.browser.mjs` helper (§9 script, run against every token, not a
+sample):
 
 | Token | Ratio vs. `#08101a` (shipped) | Ratio vs. candidate `#f4f6f9`, same hex | AA non-text (3:1)? |
 |---|---:|---:|---|
+| `--a` (Lens A) | 18.37 | **1.04** | **FAILS — see note below** |
 | `--b` (Lens B) | 11.28 | **1.56** | **FAILS** |
 | `--planning-neutral` | 9.51 | **1.86** | **FAILS** |
 | `--planning-origin` | 10.10 | **1.75** | **FAILS** |
+| `--planning-unresolved` | 9.57 | **1.84** | **FAILS** |
+| `--info` | 8.76 | **2.01** | **FAILS** |
 | `--stay` | 7.50 | **2.35** | **FAILS** |
+| `--activity` | 7.78 | **2.27** | **FAILS** |
+| `--hospitality` | 8.07 | **2.19** | **FAILS** |
+| `--heat` | 10.52 | **1.68** | **FAILS** |
+| `--park` | 11.53 | **1.53** | **FAILS** |
+| `--bike` | 11.75 | **1.50** | **FAILS** |
 | `--rail` | 13.25 | **1.33** | **FAILS** |
 | `--licence-neutral` | 5.54 | 3.19 | passes (barely) |
 | `--museum` | 5.72 | 3.09 | passes (barely) |
+
+**Only 2 of 15 pass unchanged.** `--licence-neutral` and `--museum` are not representative of the
+set; they happen to sit at the low-lightness/high-saturation end of the shipped palette. Treat
+every other evidence/legend hue as needing a light-theme value, not as an exception.
+
+**`--a` (Lens A) is a different kind of problem, not just the worst number in the table.** Its
+shipped value, `#f7fbff`, is HSL(210°, 100%, 98%) — functionally white with a one-degree blue
+tinge. It was not designed as "a saturated blue, happened to render very light"; it was designed to
+read as the **brightest, most neutral identity** against a near-black background, which is a choice
+that has no equivalent on a light background by definition (white-on-near-white has no contrast,
+whatever the background's own candidate hue is). A same-hue lightness-only descent (§6.2) still
+technically satisfies the arithmetic, but the result — a mid-blue at L55% — is a **different visual
+identity**, not a dimmed version of the same one, and that identity now sits much closer to `--b`'s
+hue family (193° vs. 210°) than it does today, risking exactly the A/B confusion K5 prohibits. This
+is flagged here as an **open design decision for Phase B, not a solved case**: Lens A likely needs a
+deliberately chosen light-theme colour, reviewed for hue separation from the light-theme `--b`, not
+a mechanically derived one.
 
 **Five of ten category hues, held at their exact shipped hex value, fail AA non-text contrast on
 a plausible light background.** This is not a cosmetic detail: it means a light theme **cannot**
@@ -349,15 +415,32 @@ original near-black as the single dark theme, exposing "dim" only as an explicit
 
 ### 6.2 Evidence/legend candidates (light theme only shown; dark/dim keep shipped hex — §5.2 rule)
 
-All ten category tokens plus the four planning/licence tokens, same hue/saturation, independently
-re-lightened to clear 3:1 against `--bg: #f4f6f9` — full method and all ten in §9's script; the
-five that actually required adjustment are in §3's table. The other five (`--licence-neutral`,
-`--museum`, `--info`, `--activity`, `--park`, `--hospitality`, `--heat`, `--bike`) already clear
-3:1 unchanged against the candidate background and need **no value change** in the light theme —
-only `--b`, `--planning-neutral`, `--planning-origin`, `--stay` and `--rail` need a light-theme
-variant. `--planning-unresolved` and `--licence-neutral` are marginal (3.19 and an untested
-exact figure for `--planning-unresolved`) and must be re-checked in §9's script before Phase B, not
-assumed from this summary.
+**Corrected per §3.** Only `--licence-neutral` (3.19) and `--museum` (3.09) clear 3:1 unchanged
+against the candidate background. **The other 13 evidence/legend tokens all need a light-theme
+value.** Same-hue, same-saturation, lightness-only candidates (generated by descending lightness
+until the ratio clears 3:1 with a small safety margin, method in §9) are:
+
+| Token | Shipped (H / S / L) | Candidate light-theme hex | Candidate L | Ratio vs. `#f4f6f9` |
+|---|---|---|---:|---:|
+| `--b` | 193° / 100% / 63% | `#0098c0` | 38% | 3.10 |
+| `--planning-neutral` | 213° / 16% / 73% | `#7e8da1` | 56% | 3.12 |
+| `--planning-origin` | 271° / 19% / 77% | `#9984ac` | 60% | 3.10 |
+| `--planning-unresolved` | 41° / 13% / 70% | `#958b77` | 53% | 3.11 |
+| `--info` | 266° / 100% / 81% | `#ab6aff` | 71% | 3.11 |
+| `--stay` | 207° / 100% / 62% | `#028dff` | 50% | 3.10 |
+| `--activity` | 342° / 100% / 74% | `#ff3f79` | 62% | 3.11 |
+| `--hospitality` | 275° / 100% / 77% | `#bd5fff` | 69% | 3.11 |
+| `--heat` | 34° / 100% / 65% | `#d17500` | 41% | 3.10 |
+| `--park` (and `--green`, identical hex) | 148° / 63% / 65% | `#259f5f` | 38% | 3.13 |
+| `--bike` | 161° / 71% / 61% | `#1b9e75` | 36% | 3.13 |
+| `--rail` | 42° / 100% / 70% | `#b98200` | 36% | 3.10 |
+| `--a` (Lens A) | 210° / 100% / 98% | **not mechanically derived — see §3's note** | — | — |
+
+**What this table is, concretely:** proof that a same-hue descent exists and clears the floor for
+every token except `--a`. It is **not** a palette ready to ship — every value here is a flat pair
+against a flat candidate background, unverified against real composited surfaces (§1, §12), and the
+candidate background itself (`#f4f6f9`) is not yet reviewed. `--a` is excluded from the mechanical
+method entirely and requires its own design decision (§3).
 
 ### 6.3 What this table is not
 
@@ -502,11 +585,21 @@ hardcoded rather than read from the page. For Phase B:
 - The fallback must become **theme-aware** — either read `getComputedStyle(document.documentElement)
   .getPropertyValue("--bg")` at audit time, or run the whole audit twice, once per
   `data-appearance` value, with its own correct fallback each time.
-- `tests/lens_contrast.test.mjs` (42 lines, Node-side, not yet read in full here) and
-  `tests/visual_language.test.mjs` (158 lines) were located but not fully read in this pass — Phase
-  B's implementation PR must confirm whether either hardcodes `#08101a` the same way and needs the
-  same fix. **This is a known gap in this audit's completeness, stated rather than silently
-  assumed.**
+- **Resolved on review:** `tests/lens_contrast.test.mjs` (42 lines) and `tests/visual_language.test.mjs`
+  (158 lines) have now been read in full. Neither hardcodes a `#08101a`-style background fallback —
+  `lens_contrast.test.mjs` asserts against literal stroke/fill hex values in `js/app.js`'s
+  `LENS_BASEMAP_STYLES` (§2.5's new note), not against a composited background, and
+  `visual_language.test.mjs` asserts token/structure rules (exactly 7 type tokens, 4 spacing + 2
+  radius tokens, no literal font-size, no judgement-coded colour words) with no background
+  compositing at all. **The hardcoded-fallback gap is confirmed isolated to
+  `browser-tests/visual-language.browser.mjs`'s `background()` function**, as originally stated —
+  this is a correction from "not yet read" to "read and confirmed," not a change in the conclusion.
+  One consequence found in `visual_language.test.mjs:67-74` worth flagging for Phase B: it already
+  forbids colour-adjacent words `success|error|warning|danger|positive|negative|good|bad|stale|
+  fresh|ahead|behind|delayed|complete` inside any selector touching phase/freshness/change/edition
+  rules — an "Appearance" implementation must not introduce a rule matching those selectors with a
+  judgement word in its declarations (e.g. a hypothetical `.phase.success{color:var(--text-dark)}`
+  would fail this existing test, which is correct and must stay that way).
 - The existing suite's `excluded` selector list (`svg,svg *,.leaflet-control,.leaflet-control *,
   .leaflet-tooltip,.leaflet-tooltip *,option,script,style,.sr-only,.sr-only *`) must be re-examined
   once Leaflet chrome is explicitly themed (§2.4) — excluding `.leaflet-control` was reasonable when
@@ -528,7 +621,8 @@ hardcoded rather than read from the page. For Phase B:
 | WCAG 2.4.11 Focus Not Obscured, evidence drawer vs. sticky chrome | **Not audited** beyond the architectural note in §4/§7. |
 | Whether "System" should resolve dark preference to the original near-black or the new "dim" variant | **Open product decision**, not resolved here (§6.1). |
 | ES/EN strings for "Appearance"/"Apariencia" and text-size control labels | **Draft only** (§7.1); not yet entries in `js/shell-copy.js`, not reviewed for the natural, non-machine-literal quality the post-K13 audit praised in existing ES copy. |
-| Whether `.planning-unresolved` and `.licence-neutral` candidates genuinely clear 3:1 at exact values, not just the summary in §6.2 | **Must be re-run with §9's script before Phase B**, not assumed from this document's rounding. |
+| `--a` (Lens A) has no same-hue light-theme candidate (§3) — a fresh colour must be chosen and reviewed for hue separation from `--b`'s light-theme value | **Open design decision, not resolved by this document.** |
+| Whether the 13 mechanically-derived candidates in §6.2 look acceptable once rendered (same-hue descent can land on an unexpectedly muddy or over-dark value at the extremes, e.g. `--rail`'s and `--bike`'s candidates both land near L36–38%) | **Untested — arithmetic only, not a design review of the resulting colours.** |
 | Real iPad/Safari/WebKit hardware rendering of any candidate | **NOT TESTED**, consistent with every prior gate in this repository. |
 
 ---
