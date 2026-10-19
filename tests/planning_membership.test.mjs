@@ -138,3 +138,37 @@ test("AC-P0-12: the recomputation strategy — identity guard, coalescing and ho
   assert.match(app, /planning\.touchedUpdating/);
   assert.match(app, /function endPlanningMembershipInteraction\(\)[\s\S]*refresh\(\)/);
 });
+
+// ------------------------------------------- P0-a staging gate (#95, PR #96
+//                                              comment 6273771576)
+
+test("staging gate: P0A_ENABLED is fail-closed — the SAME loopback/private-LAN predicate K12's ?k12opt= already proves false for a public host, ANDed with the explicit query flag", () => {
+  // The exact composition: a public host (isLoopbackOrPrivateLanHost === false,
+  // proven in tests/ac_p0_12_runner.test.mjs and tests/radial_halo.test.mjs
+  // against the kept-in-sync runner_core.mjs copy, e.g. "pages.github.io") can
+  // never satisfy this AND regardless of what the query string carries.
+  assert.match(
+    app,
+    /const P0A_ENABLED = isLoopbackOrPrivateLanHost\(window\.location\.hostname\) && new URLSearchParams\(window\.location\.search\)\.get\("p0aStaging"\) === "1";/
+  );
+});
+
+test("staging gate OFF: every P0-a-added production surface is wrapped behind P0A_ENABLED — none of it runs unconditionally", () => {
+  // The promoted block's renderer refuses to render/scan when the flag is off.
+  assert.match(app, /function renderPlanningMembership\(\)[\s\S]{0,400}if \(!P0A_ENABLED\) \{/);
+  // The coalescing listeners (marker dragstart/dragend) are installed only when
+  // the flag is on — OFF means these handlers do not exist at all.
+  assert.match(app, /if \(P0A_ENABLED\) \{\s*\n\s*lenses\.A\.marker\.on\("dragstart", beginPlanningMembershipInteraction\);/);
+  // The radius-slider coalescing hooks are likewise conditional.
+  assert.match(app, /if \(P0A_ENABLED\) beginPlanningMembershipInteraction\(\);/);
+  assert.match(app, /if \(P0A_ENABLED\) radiusSlider\.onchange = endPlanningMembershipInteraction;/);
+  // The "See all" listener only attaches when the flag is on.
+  assert.match(app, /if \(P0A_ENABLED && planningMembershipSeeAll\)/);
+  // The scope-rail claim reproduces the OLD planningDetail-gated semantics when
+  // off, and the NEW always-on-while-ready semantics when on — never a single
+  // unconditional value.
+  assert.match(
+    app,
+    /planningMembership: P0A_ENABLED\s*\n\s*\? planningState === "ready"\s*\n\s*: planningState === "ready" && Boolean\(placeDetail && placeDetail\.open\),/
+  );
+});

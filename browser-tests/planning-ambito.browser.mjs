@@ -122,7 +122,12 @@ async function newPage(viewport = { width: 1366, height: 900 }, contextOptions =
     if (url.hostname !== "127.0.0.1" && url.hostname !== "localhost") return route.abort();
     return route.continue();
   });
-  await page.goto(`http://127.0.0.1:${port}/?haloRegressionTest=1`, { waitUntil: "domcontentloaded" });
+  // P0-a (#95) ships OFF by default behind a staging gate (PR #96 comment
+  // 6273771576); this whole acceptance suite (PA 1-25) tests the ON surface, so
+  // it explicitly opts in via ?p0aStaging=1 on this loopback host. The OFF
+  // regressions proving the flag reproduces pre-P0-a main's behaviour live in
+  // browser-tests/p0a-staging-gate.browser.mjs.
+  await page.goto(`http://127.0.0.1:${port}/?haloRegressionTest=1&p0aStaging=1`, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => Boolean(window.__HALO_REGRESSION__));
   // The planning surface is ready once the artifacts have loaded and the
   // section has been rendered out of its initial hidden state.

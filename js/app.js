@@ -1495,6 +1495,21 @@ const haloRegressionRequested = new URLSearchParams(window.location.search).get(
 // the explicit ?haloRegressionTest=1 opt-in is still required on top of this, so
 // the seam remains absent in all normal use regardless of host.
 const haloRegressionLocal = isLoopbackOrPrivateLanHost(window.location.hostname);
+
+// P0-a STAGING GATE (#95, owner-reviewed non-production integration route,
+// PR #96 comment 6273771576). OFF by default EVERYWHERE, including the public
+// GitHub Pages deployment: with this flag false, every P0-a-added surface below
+// (the promoted #planningMembership block, its scope-rail claim, the identity
+// guard/coalescing scan it schedules, and the dragstart/dragend/slider-change
+// hooks that drive it) stays byte-for-byte the pre-P0-a production behaviour —
+// the planning Detail list, its scope-rail claim and its own membership query
+// are untouched by this flag either way (they predate P0-a). ON requires BOTH a
+// loopback/private-LAN host (same fail-closed predicate as K12's ?k12opt=) AND
+// the explicit ?p0aStaging=1 query flag, so a public host can never activate it
+// by query string alone — this is a staging-only gate, not a production default;
+// activating P0-a for real users remains a separate, explicit owner decision.
+const P0A_ENABLED = isLoopbackOrPrivateLanHost(window.location.hostname) && new URLSearchParams(window.location.search).get("p0aStaging") === "1";
+
 if (haloRegressionRequested && haloRegressionLocal) {
   window.__HALO_REGRESSION__ = Object.freeze({
     fixture: Object.freeze({
@@ -3949,6 +3964,19 @@ function renderPlanningMembership() {
   const countLine = document.getElementById("planningMembershipCount");
   const chipList = document.getElementById("planningMembershipChips");
   const seeAll = document.getElementById("planningMembershipSeeAll");
+  if (!P0A_ENABLED) {
+    // STAGING GATE OFF: the promoted block never renders and never scans — the
+    // 724-polygon evaluatePlanningMembership() is not called from here, so this
+    // path costs nothing beyond these few DOM writes, matching pre-P0-a main.
+    block.hidden = true;
+    block.dataset.state = "";
+    block.dataset.signature = "";
+    block.removeAttribute("aria-busy");
+    countLine.textContent = "";
+    chipList.replaceChildren();
+    seeAll.hidden = true;
+    return;
+  }
   const ready = planningState === "ready" && planningModel.index;
   block.hidden = !ready;
   if (!ready) {
@@ -5307,11 +5335,15 @@ lenses.B.marker.on("drag", () => (active !== "B" ? activateLens("B") : refresh()
 // Membership coalescing (P0-a, #95): the 724-polygon circle–ámbito scan is
 // deferred while a Lens marker is being dragged (the surface shows an explicit
 // pending state) and settles to the exact canonical set on release. Leaflet
-// fires `drag` continuously but `dragstart`/`dragend` once each.
-lenses.A.marker.on("dragstart", beginPlanningMembershipInteraction);
-lenses.B.marker.on("dragstart", beginPlanningMembershipInteraction);
-lenses.A.marker.on("dragend", endPlanningMembershipInteraction);
-lenses.B.marker.on("dragend", endPlanningMembershipInteraction);
+// fires `drag` continuously but `dragstart`/`dragend` once each. STAGING GATE:
+// these listeners are installed at all only when P0A_ENABLED — OFF means no
+// extra per-drag handler exists, matching pre-P0-a main exactly.
+if (P0A_ENABLED) {
+  lenses.A.marker.on("dragstart", beginPlanningMembershipInteraction);
+  lenses.B.marker.on("dragstart", beginPlanningMembershipInteraction);
+  lenses.A.marker.on("dragend", endPlanningMembershipInteraction);
+  lenses.B.marker.on("dragend", endPlanningMembershipInteraction);
+}
 map.on("click", (e) => {
   // In COMPARE + ámbito scope a map click SELECTS an official ámbito (A then B)
   // instead of moving a Lens; otherwise the Lens-move behaviour is unchanged.
@@ -5376,7 +5408,7 @@ if (placeJump) {
 // containment-keyed whole-ámbito surface — so the route to the complete reading
 // is the unchanged Detail card, not an improvised finder).
 const planningMembershipSeeAll = document.getElementById("planningMembershipSeeAll");
-if (planningMembershipSeeAll) {
+if (P0A_ENABLED && planningMembershipSeeAll) {
   planningMembershipSeeAll.addEventListener("click", () => {
     const detail = document.getElementById("placeDetail");
     if (detail) detail.open = true;
@@ -5413,13 +5445,15 @@ radiusSlider.oninput = (e) => {
   // A slider drag fires `input` continuously and `change` once on release, so
   // membership defers while sliding and settles on commit (the same coalescing
   // as a marker drag). Keyboard adjustment fires both, so it settles at once.
-  beginPlanningMembershipInteraction();
+  // STAGING GATE: the begin-interaction call is skipped entirely when
+  // P0A_ENABLED is false, matching pre-P0-a main's oninput exactly.
+  if (P0A_ENABLED) beginPlanningMembershipInteraction();
   setLensRadius(active, e.target.value);
   e.target.value = radiusFor(active);
   renderRadiusLabels();
   refresh();
 };
-radiusSlider.onchange = endPlanningMembershipInteraction;
+if (P0A_ENABLED) radiusSlider.onchange = endPlanningMembershipInteraction;
 document.getElementById("basemapSelect").onchange = (e) => setBasemap(e.target.value);
 document.getElementById("boundarySelect").onchange = (e) => setBoundaryMode(e.target.value);
 // ONE document language at a time (docs/INFORMATION_ARCHITECTURE_V2.md §Language):
@@ -5600,6 +5634,13 @@ if (placeDetailDisclosure) {
 }
 
 function currentFlags() {
+  // STAGING GATE OFF: reproduce pre-P0-a main's own rail claim for this scope —
+  // LENS_INTERSECT_AMBITO was only on screen while the Detail disclosure was open
+  // (the membership query ran inside the closed #placeDetail, not in an
+  // always-visible block). ON: P0-a (#95) promoted the reading out of Detail into
+  // the always-visible planning section, so the rail names the scope as soon as
+  // the surface renders, independent of Detail being open.
+  const placeDetail = P0A_ENABLED ? null : document.getElementById("placeDetail");
   return {
     vut: !document.getElementById("areaVut").hidden,
     hospitality: hospitalityVisible,
@@ -5608,12 +5649,9 @@ function currentFlags() {
     // The ADDRESS_POINT licence surface is on screen only while its opt-in layer
     // is enabled, so the rail never claims a scope whose surface is not rendered.
     licences: isLicencesVisible(),
-    // LENS_INTERSECT_AMBITO is on screen whenever the planning artifacts loaded
-    // and PLACE is showing: P0-a (#95) promoted the membership reading out of the
-    // closed Detail disclosure into the always-visible planning section, so the
-    // rail names the scope as soon as the surface renders — no longer gated on the
-    // Detail disclosure being open.
-    planningMembership: planningState === "ready",
+    planningMembership: P0A_ENABLED
+      ? planningState === "ready"
+      : planningState === "ready" && Boolean(placeDetail && placeDetail.open),
   };
 }
 
