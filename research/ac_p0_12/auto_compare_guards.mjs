@@ -17,6 +17,15 @@ const isFiniteNum = (x) => typeof x === "number" && Number.isFinite(x);
 // this gate enforces the tight bound the report claims, not a loose ~500 m.
 export const DRIFT_TOL_DEG = 2e-4;
 
+// R5 (review 5569508884) — the emitted config.layers MUST truthfully reflect the
+// measured workload (POI layers OFF vs the shipped default ON), never a stale
+// "default (no licences/hospitality toggled)" when disablePoiLayers() ran.
+export function layersLabel(mode) {
+  return mode === "off"
+    ? "POI layers (museum/stay/bike/rail/info) DISABLED for a deterministic, equal render state — NOT the shipped default workload; does not establish POI-ON behaviour"
+    : "default POI layers ON (shipped default workload: museum/info/stay/bike/rail)";
+}
+
 // H1 — a run is hardware-grade ONLY when a real GPU is POSITIVELY established:
 // not software/SwiftShader/llvmpipe, not NO_WEBGL/unknown/missing, AND a recognised
 // GPU vendor token is present.

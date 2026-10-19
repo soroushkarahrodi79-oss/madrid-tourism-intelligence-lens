@@ -9,8 +9,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { summarize } from "../research/ac_p0_12/runner_core.mjs";
 import {
-  isHardwareGpu, hardwareCheck, validSample, comparableEnv, driftCheck, DRIFT_TOL_DEG,
+  isHardwareGpu, hardwareCheck, validSample, comparableEnv, driftCheck, DRIFT_TOL_DEG, layersLabel,
 } from "../research/ac_p0_12/auto_compare_guards.mjs";
+import { readFileSync } from "node:fs";
 
 const UHD620 = "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)";
 // A genuine pan_frame_ms (raw-backed, stats recompute) of n samples.
@@ -120,4 +121,17 @@ test("R1 driftCheck enforces the documented strict tolerance (≈500 m is NOT al
   assert.equal(DRIFT_TOL_DEG <= 2e-4, true);
   assert.equal(driftCheck([{ lat: 40.415 + 5e-3, lon: -3.692 }], DEF).ok, false); // ~500 m → fail
   assert.equal(driftCheck([{ lat: 40.415 + 1e-4, lon: -3.692 }], DEF).ok, true);
+});
+
+// ── R5: config.layers truthfully reflects the measured workload ──────────────
+test("R5 layersLabel: OFF says DISABLED/not-shipped-default; ON says shipped default", () => {
+  assert.match(layersLabel("off"), /DISABLED/);
+  assert.match(layersLabel("off"), /NOT the shipped default/);
+  assert.doesNotMatch(layersLabel("off"), /^default POI layers ON/);
+  assert.match(layersLabel("on"), /default POI layers ON/);
+});
+test("R5 auto_compare emits layers_mode and derives config.layers from layersLabel (no stale 'default' when POIs off)", () => {
+  const src = readFileSync(new URL("../research/ac_p0_12/auto_compare.mjs", import.meta.url), "utf8");
+  assert.match(src, /layers_mode: layersMode, layers: layersLabel\(layersMode\)/);
+  assert.doesNotMatch(src, /layers: "default \(no licences\/hospitality toggled\)"/);
 });

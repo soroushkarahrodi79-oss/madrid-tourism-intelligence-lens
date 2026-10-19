@@ -28,7 +28,7 @@ import { readFileSync, existsSync, mkdirSync, copyFileSync, writeFileSync, statS
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve, extname } from "node:path";
 import os from "node:os";
-import { hardwareCheck, validSample, comparableEnv, driftCheck, DRIFT_TOL_DEG } from "./auto_compare_guards.mjs";
+import { hardwareCheck, validSample, comparableEnv, driftCheck, DRIFT_TOL_DEG, layersLabel } from "./auto_compare_guards.mjs";
 import { MADRID_CENTRE } from "./runner_core.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -108,8 +108,9 @@ const renderCounts = (page) => page.evaluate(() => ({
   markers: document.querySelectorAll("#map .leaflet-marker-icon").length,
   paths: document.querySelectorAll("#map svg path").length,
 }));
-async function freshLoad(page, port) {
-  await page.goto(`http://127.0.0.1:${port}/index.html?haloRegressionTest=1`, { waitUntil: "load", timeout: 60000 });
+async function freshLoad(page, port, extraQuery = "") {
+  const q = `haloRegressionTest=1${extraQuery ? "&" + extraQuery : ""}`;
+  await page.goto(`http://127.0.0.1:${port}/index.html?${q}`, { waitUntil: "load", timeout: 60000 });
   await page.waitForFunction(() => window.__HALO_REGRESSION__ && typeof window.__HALO_REGRESSION__.mapView === "function" && typeof window.__HALO_REGRESSION__.lensCenters === "function", { timeout: 60000 });
   await page.waitForFunction(() => { const s = window.__HALO_REGRESSION__; try { const v = s.mapView(); return v && isFinite(v.lat); } catch { return false; } }, { timeout: 60000 });
   // R2 — WAIT (do not suppress) for the basemap AND the overlay (canvases + POI
@@ -264,10 +265,15 @@ async function main() {
   // trustworthy harness must report paired delta ≈ 0 (any structured difference is
   // arm/port/page bias to fix, not a real regression).
   const SELF = args.self === "pr" || args.self === "main" ? args.self : null;
+  // OPTIMIZATION A/B (issue #97): --opt=<csv> serves the SAME build on both arms and
+  // enables the gated ?k12opt=<csv> test-only pan optimization on arm A (candidate)
+  // only; arm B (baseline) has it off. Paired candidate−baseline = the opt's effect.
+  const OPT = args.opt ? String(args.opt) : null;
+  const sameBuild = !!SELF || !!OPT;
   try {
     let baseRoot = wt;
-    // 1. disposable baseline worktree (fail closed) — skipped in null-control mode
-    if (!SELF || SELF === "main") {
+    // 1. disposable baseline worktree (fail closed) — skipped in same-build modes
+    if (!sameBuild || SELF === "main") {
       log("building disposable clean-main worktree…");
       git(REPO, "worktree", "add", "--detach", wt, mainSha); worktreeAdded = true;
       git(wt, "apply", PATCH);
@@ -279,6 +285,7 @@ async function main() {
     }
     if (SELF === "pr") { baseRoot = REPO; log("NULL CONTROL: both arms serve the PR build (expect paired delta ≈ 0)."); }
     if (SELF === "main") { baseRoot = wt; log("NULL CONTROL: both arms serve clean main (expect paired delta ≈ 0)."); }
+    if (OPT) { baseRoot = REPO; log(`OPT A/B: candidate (arm A) = ?k12opt=${OPT} ON; baseline (arm B) = off; same build.`); }
 
     // 2. serve both
     const prSrv = await serve(SELF === "main" ? wt : REPO); const baseSrv = await serve(baseRoot); servers = [prSrv, baseSrv];
@@ -300,16 +307,19 @@ async function main() {
     if (cdpBase) await cdpBase.send("Performance.enable").catch(() => {});
     const cdpOf = (which) => (which === "PR" ? cdpPr : cdpBase);
 
-    // initial fresh load (POIs on), then DISABLE the non-deterministic POI layers on
-    // both arms so the comparison measures a deterministic, equal render state.
-    const prEnv0 = await freshLoad(prPage, prSrv.port);
+    // initial fresh load; arm A (candidate) carries the gated ?k12opt flag in --opt
+    // mode. POI layers default OFF (deterministic) but default ON for an --opt A/B
+    // (the shipped default workload), unless overridden by --layers.
+    const prEnv0 = await freshLoad(prPage, prSrv.port, OPT ? `k12opt=${OPT}` : "");
     const baseEnv0 = await freshLoad(basePage, baseSrv.port);
-    const layersMode = args.layers === "on" ? "on" : "off";
+    const layersMode = args.layers === "on" ? "on" : args.layers === "off" ? "off" : OPT ? "on" : "off";
     if (layersMode === "off") {
       log("disabling non-deterministic POI layers on both arms (deterministic equal render state)…");
       await disablePoiLayers(prPage); await reReadRenderEnv(prPage, prEnv0);
       await disablePoiLayers(basePage); await reReadRenderEnv(basePage, baseEnv0);
       log(`render state after disable — PR ${JSON.stringify(prEnv0.render)} | main ${JSON.stringify(baseEnv0.render)}`);
+    } else {
+      log(`POI layers ON (shipped default workload) — PR ${JSON.stringify(prEnv0.render)} | main ${JSON.stringify(baseEnv0.render)}`);
     }
     const hwRenderer = prEnv0.gl_renderer;
     log(`GPU pr=[${prEnv0.gl_renderer}] main=[${baseEnv0.gl_renderer}] | dpr ${prEnv0.dpr} | map ${prEnv0.map.w}x${prEnv0.map.h}`);
@@ -424,13 +434,13 @@ async function main() {
     };
 
     const out = {
-      tool: "AC-P0-12 auto_compare", version: 2, measurement_class: "hardware_automated", null_control: SELF || false,
+      tool: "AC-P0-12 auto_compare", version: 2, measurement_class: "hardware_automated", null_control: SELF || false, candidate_opt: OPT || null,
       disclaimer: "Scripted Playwright mouse drags on real hardware Chrome. NOT human physical gestures, NOT device_grade/actual_gesture. Does not substitute for the owner's physical Safari/device validation. 0/N paired comparisons is evidence of NO DETECTED P0-a overhead in this environment, not proof none can exist.",
       generatedAt: new Date().toISOString(),
       config: { pr_sha: prSha, main_sha: mainSha, rounds: ROUNDS, frames_target: FRAMES, dpr: DPR, zoom: ZOOM,
         gpu_renderer: hwRenderer, viewport: prEnv0.viewport, map_area: prEnv0.map,
         centre: prEnv0.centre, cache: "warm steady-state (one load per arm)",
-        layers_mode: layersMode, layers: layersMode === "off" ? "POI layers (museum/stay/bike/rail/info) DISABLED for a deterministic, equal render state (clustering marker count is non-deterministic across instances — the confound behind the apparent gap)" : "default POI layers ON (render state may be non-deterministic — comparability guard may refuse)",
+        layers_mode: layersMode, layers: layersLabel(layersMode),
         pr_has_membership: prEnv0.hasMembership, main_has_membership: baseEnv0.hasMembership },
       integrity: { hardware: hw, comparability: comp, drift, samples_all_valid: invalid.length === 0, pr_env: prEnv0, main_env: baseEnv0, drift_control: "closed-loop pan (net-zero displacement); one load per arm; warm steady-state" },
       warmup_per_arm: WARMUP,

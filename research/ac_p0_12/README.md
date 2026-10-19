@@ -1,9 +1,13 @@
-# AC-P0-12 physical-device validation runner
+# AC-P0-12 physical-device validation runner (shared with K12-R1)
 
 **Test-only. Not shipped.** Nothing in this folder is referenced by `index.html`,
 `css/` or `js/`. It exists so the owner can satisfy the **AC-P0-12 device gate**
 for PR #96 (`docs/UX_I1_P0A_MEMBERSHIP.md` §4) from a Windows laptop + a physical
-iPad and iPhone, **without a Mac and without Safari Web Inspector**.
+iPad and iPhone, **without a Mac and without Safari Web Inspector** — and the same
+`auto_compare.mjs` harness is reused by K12-R1 (issue #97, PR #98, merged) to
+A/B-measure the gated `?k12opt=` Leaflet pan optimizations via `--self`/`--opt`
+(see *Flags* below). The two uses are independent: P0-a membership measurement
+never touches `?k12opt=`, and the K12 A/B never touches membership/HATI.
 
 It measures the **real PR #96 production app** (`index.html` + `js/app.js`) — not
 the isolated K12 Leaflet harness. It loads the actual app in a same-origin iframe
@@ -185,7 +189,9 @@ incomparable PR/main environment or excess positional drift (H2); it **awaits**
 teardown and reports worktree-removal failure (H3); its guards are unit-tested in
 `tests/ac_p0_12_auto_compare.test.mjs`; and `--self=pr` runs a **null control**
 (same build both arms → paired delta ≈ 0) proving no arm bias. Flags: `--rounds`,
-`--warmup`, `--frames`, `--dpr`, `--self=pr|main`.
+`--warmup`, `--frames`, `--dpr`, `--self=pr|main`, `--layers=on|off`, and K12-R1's
+`--opt=<csv>` (candidate arm loads the gated `?k12opt=<csv>` pan optimization,
+baseline off, same build, POI layers ON by default — see `K12_R1_RESULTS.md`).
 
 **Finding** (see `BASELINE_AND_PAN_INVESTIGATION.md`): on Intel UHD 620 the map-pan
 FAIL is **pre-existing** (clean `main` fails 33.3 ms even with POI layers off). The
@@ -259,6 +265,7 @@ rely on P0-a seam methods absent from `main`).
 | `auto_compare_guards.mjs` | pure fail-closed guards (hardware GPU, sample sufficiency, comparability, drift), unit-tested. |
 | `BASELINE_AND_PAN_INVESTIGATION.md` | map-pan analysis: pre-existing failure confirmed + a detected (non-localizable, immaterial) P0-a overhead; GO/HOLD + the binary support-floor decision. |
 | `K12_UHD620_REMEDIATION.md` | evidence-led minimal-Leaflet-tuning assessment (before MapLibre); not implemented in PR #96. |
+| `K12_R1_RESULTS.md` | K12-R1's measured `--opt` A/B outcomes + GO/HOLD for issue #97 (merged PR #98; gated test-only, no production default). |
 | `results/auto_compare_*.json` | versioned `hardware_automated` evidence (incl. a null control and a fail-closed `UNAVAILABLE` sample). |
 | `results/` | committed device JSON evidence + the preserved historical Windows observation (`results/README.md`). |
 
