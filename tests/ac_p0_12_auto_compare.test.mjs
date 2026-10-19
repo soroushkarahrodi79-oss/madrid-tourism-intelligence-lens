@@ -1,78 +1,123 @@
 // AC-P0-12 auto_compare — regression tests for the harness-integrity guards
-// (research/ac_p0_12/auto_compare_guards.mjs), covering review 5564383172's
-// H1 (fail-closed hardware GPU) and H2 (sample sufficiency + PR/main
-// comparability + positional drift) with SYNTHETIC FAIL CONDITIONS. Run by CI.
+// (research/ac_p0_12/auto_compare_guards.mjs). Covers review 5564383172 (H1/H2/H3)
+// AND review 5567748806 R1/R2 hardening: finite raw post-warm samples with
+// independently-recomputed statistics and genuine movement; finite comparable
+// fields incl. rendered layer/tile/marker counts; non-empty start-centre array;
+// a strict, enforced drift tolerance. Run by CI.
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import { summarize } from "../research/ac_p0_12/runner_core.mjs";
 import {
-  isHardwareGpu, hardwareCheck, validSample, comparableEnv, driftCheck,
+  isHardwareGpu, hardwareCheck, validSample, comparableEnv, driftCheck, DRIFT_TOL_DEG,
 } from "../research/ac_p0_12/auto_compare_guards.mjs";
 
 const UHD620 = "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)";
+// A genuine pan_frame_ms (raw-backed, stats recompute) of n samples.
+const realPF = (n) => summarize(Array.from({ length: n }, (_, i) => 16.7 + (i % 5)));
+const realSample = (n = 60) => ({ pan_frame_ms: realPF(n), active_pan_frames: n + 1 });
 
 // ── H1: fail-closed hardware GPU ─────────────────────────────────────────────
-test("H1 isHardwareGpu: a recognised hardware GPU is accepted", () => {
+test("H1 isHardwareGpu: recognised hardware accepted; software/generic/missing rejected", () => {
   assert.equal(isHardwareGpu(UHD620, false), true);
   assert.equal(isHardwareGpu("Apple GPU", false), true);
-  assert.equal(isHardwareGpu("ANGLE (NVIDIA, NVIDIA GeForce RTX 3080 Direct3D11)", false), true);
+  for (const r of ["ANGLE (Google, Vulkan SwiftShader driver)", "llvmpipe (LLVM 15)", "Microsoft Basic Render Driver", "NO_WEBGL", "unknown", "", null, "Some Future Renderer 9000"]) assert.equal(isHardwareGpu(r, false), false, `${r}`);
+  assert.equal(isHardwareGpu(UHD620, true), false); // gl_is_software overrides
 });
-test("H1 isHardwareGpu: software / generic / missing renderers are REJECTED (fail closed)", () => {
-  for (const r of ["ANGLE (Google, Vulkan SwiftShader driver)", "llvmpipe (LLVM 15)", "Microsoft Basic Render Driver", "Mesa OffScreen", "NO_WEBGL", "unknown", "", null, undefined]) {
-    assert.equal(isHardwareGpu(r, false), false, `${r} must be rejected`);
-  }
-});
-test("H1 isHardwareGpu: gl_is_software=true overrides even a vendor-looking string", () => {
-  assert.equal(isHardwareGpu(UHD620, true), false);
-});
-test("H1 isHardwareGpu: unrecognised-but-non-software renderer is NOT positively hardware", () => {
-  assert.equal(isHardwareGpu("Some Future Renderer 9000", false), false);
-});
-test("H1 hardwareCheck: both arms hardware → ok; either software → UNAVAILABLE", () => {
+test("H1 hardwareCheck: both hardware → ok; either software → UNAVAILABLE", () => {
   const hw = (gl, sw = false) => ({ gl_renderer: gl, gl_is_software: sw });
   assert.equal(hardwareCheck(hw(UHD620), hw(UHD620)).ok, true);
-  const bad = hardwareCheck(hw(UHD620), hw("SwiftShader", true));
-  assert.equal(bad.ok, false);
-  assert.match(bad.reason, /not positively established/);
+  assert.equal(hardwareCheck(hw(UHD620), hw("SwiftShader", true)).ok, false);
   assert.equal(hardwareCheck(hw("NO_WEBGL"), hw(UHD620)).ok, false);
 });
 
-// ── H2a: sample sufficiency / validity ───────────────────────────────────────
-test("H2 validSample: ≥48 post-warm frames, no error → ok", () => {
-  assert.equal(validSample({ pan_frame_ms: { n: 48 } }, 48).ok, true);
-  assert.equal(validSample({ pan_frame_ms: { n: 74 } }, 48).ok, true);
+// ── R1 H2a: sample validity — real raw, recomputed stats, genuine movement ───
+test("H2 validSample: a genuine raw-backed ≥48-frame sample passes", () => {
+  assert.equal(validSample(realSample(60), 48).ok, true);
+  assert.equal(validSample(realSample(48), 48).ok, true);
 });
-test("H2 validSample: errored / too-few / missing captures are rejected", () => {
+test("R1 validSample REJECTS a fabricated {n:48} with no raw samples", () => {
+  const r = validSample({ pan_frame_ms: { n: 48 } }, 48);
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /no raw samples/);
+});
+test("R1 validSample REJECTS n !== raw.length", () => {
+  const pf = realPF(60); pf.n = 59;
+  assert.equal(validSample({ pan_frame_ms: pf, active_pan_frames: 61 }, 48).ok, false);
+});
+test("R1 validSample REJECTS non-finite raw samples", () => {
+  const pf = realPF(60); pf.raw = [...pf.raw.slice(0, -1), Infinity];
+  const r = validSample({ pan_frame_ms: pf, active_pan_frames: 61 }, 48);
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /non-finite|recompute/);
+});
+test("R1 validSample REJECTS statistics that do not recompute from raw", () => {
+  const pf = realPF(60); pf.p95 = 9999; // tampered
+  const r = validSample({ pan_frame_ms: pf, active_pan_frames: 61 }, 48);
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /recompute/);
+});
+test("R1 validSample REJECTS non-finite p50/median", () => {
+  const pf = realPF(60); pf.median = NaN;
+  assert.equal(validSample({ pan_frame_ms: pf, active_pan_frames: 61 }, 48).ok, false);
+});
+test("H2 validSample REJECTS errored / too-few / missing captures", () => {
   assert.equal(validSample({ error: "map centre never moved" }, 48).ok, false);
-  assert.equal(validSample({ pan_frame_ms: { n: 47 } }, 48).ok, false);
+  assert.equal(validSample({ pan_frame_ms: realPF(47), active_pan_frames: 48 }, 48).ok, false);
   assert.equal(validSample({ pan_frame_ms: null }, 48).ok, false);
   assert.equal(validSample(null, 48).ok, false);
-  assert.match(validSample({ pan_frame_ms: { n: 10 } }, 48).reason, /too few/);
+});
+test("R1 validSample REJECTS too-few genuine active-pan frames", () => {
+  assert.equal(validSample({ pan_frame_ms: realPF(60), active_pan_frames: 10 }, 48).ok, false);
 });
 
-// ── H2b: PR/main environment comparability ───────────────────────────────────
-const E = (over = {}) => ({ map: { w: 1036, h: 650 }, zoom: 14, dpr: 2, centre: { lat: 40.415, lon: -3.692 }, data_ready: true, ...over });
-test("H2 comparableEnv: identical envs are comparable", () => {
+// ── R1/R2 H2b: comparability — finite fields + render-state counts ───────────
+const R = { tiles: 15, canvases: 6, markers: 3, paths: 0 };
+const E = (over = {}) => ({ map: { w: 1036, h: 650 }, zoom: 14, dpr: 2, centre: { lat: 40.415, lon: -3.692 }, data_ready: true, render: { ...R }, ...over });
+test("H2 comparableEnv: identical envs comparable", () => {
   assert.equal(comparableEnv(E(), E()).ok, true);
 });
-test("H2 comparableEnv: mismatched map area / zoom / dpr / centre / readiness fail closed", () => {
+test("R1 comparableEnv REJECTS missing/NaN numeric fields (Math.abs(NaN) pitfall closed)", () => {
+  assert.equal(comparableEnv(E(), E({ map: { w: 1036, h: NaN } })).ok, false);
+  assert.equal(comparableEnv(E(), E({ dpr: undefined })).ok, false);
+  assert.equal(comparableEnv(E(), E({ centre: { lat: 40.415, lon: NaN } })).ok, false);
+  assert.equal(comparableEnv(E(), E({ zoom: undefined })).ok, false);
+});
+test("H2 comparableEnv REJECTS mismatched map area / zoom / dpr / centre / readiness", () => {
   assert.equal(comparableEnv(E(), E({ map: { w: 1036, h: 600 } })).ok, false);
   assert.equal(comparableEnv(E(), E({ zoom: 15 })).ok, false);
   assert.equal(comparableEnv(E(), E({ dpr: 1 })).ok, false);
   assert.equal(comparableEnv(E(), E({ centre: { lat: 40.5, lon: -3.692 } })).ok, false);
-  const nr = comparableEnv(E(), E({ data_ready: false }));
-  assert.equal(nr.ok, false);
-  assert.ok(nr.mismatches.some((m) => /data_ready/.test(m)));
+  assert.equal(comparableEnv(E(), E({ data_ready: false })).ok, false);
 });
-test("H2 comparableEnv: tiny sub-tolerance differences are allowed", () => {
-  assert.equal(comparableEnv(E(), E({ map: { w: 1037, h: 650 }, centre: { lat: 40.41505, lon: -3.692 } })).ok, true);
+test("R2 comparableEnv REQUIRES equal render-state (canvas/marker/path) counts", () => {
+  assert.equal(comparableEnv(E(), E({ render: { ...R, canvases: 7 } })).ok, false);
+  assert.equal(comparableEnv(E(), E({ render: { ...R, markers: 4 } })).ok, false);
+  assert.equal(comparableEnv(E(), E({ render: { ...R, paths: 2 } })).ok, false);
+});
+test("R2 comparableEnv allows tiny tile-count timing differences, rejects large ones", () => {
+  assert.equal(comparableEnv(E(), E({ render: { ...R, tiles: 16 } })).ok, true); // within tol
+  assert.equal(comparableEnv(E(), E({ render: { ...R, tiles: 30 } })).ok, false);
+});
+test("R2 comparableEnv REJECTS when render-state counts are missing on one arm", () => {
+  assert.equal(comparableEnv(E({ render: undefined }), E()).ok, false);
 });
 
-// ── H2c: positional drift ────────────────────────────────────────────────────
+// ── R1 H2c: drift — non-empty, strict tolerance, finite centres ──────────────
 const DEF = { lat: 40.415, lon: -3.692 };
-test("H2 driftCheck: centres near default pass; far centres fail; reports max drift", () => {
-  assert.equal(driftCheck([{ lat: 40.4151, lon: -3.6921 }, { lat: 40.4149, lon: -3.6919 }], DEF).ok, true);
-  const bad = driftCheck([{ lat: 40.45, lon: -3.692 }], DEF);
-  assert.equal(bad.ok, false);
-  assert.ok(bad.max_drift_deg >= 0.03);
+test("H2 driftCheck: near-default centres within the strict tolerance pass", () => {
+  assert.equal(driftCheck([{ lat: 40.41505, lon: -3.69195 }], DEF).ok, true);
+});
+test("R1 driftCheck REJECTS an EMPTY start-centre set (no silent pass)", () => {
+  const r = driftCheck([], DEF);
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /no start centres/);
+});
+test("R1 driftCheck REJECTS non-finite start centres", () => {
+  assert.equal(driftCheck([{ lat: NaN, lon: -3.692 }], DEF).ok, false);
+});
+test("R1 driftCheck enforces the documented strict tolerance (≈500 m is NOT allowed)", () => {
+  assert.equal(DRIFT_TOL_DEG <= 2e-4, true);
+  assert.equal(driftCheck([{ lat: 40.415 + 5e-3, lon: -3.692 }], DEF).ok, false); // ~500 m → fail
+  assert.equal(driftCheck([{ lat: 40.415 + 1e-4, lon: -3.692 }], DEF).ok, true);
 });

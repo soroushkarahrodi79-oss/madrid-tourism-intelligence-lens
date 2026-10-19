@@ -188,10 +188,15 @@ teardown and reports worktree-removal failure (H3); its guards are unit-tested i
 `--warmup`, `--frames`, `--dpr`, `--self=pr|main`.
 
 **Finding** (see `BASELINE_AND_PAN_INVESTIGATION.md`): on Intel UHD 620 the map-pan
-FAIL is **pre-existing** (clean `main` fails 33.3 ms by ~4×), **and** the trustworthy
-harness **detects a ~50–66 ms P0-a overhead** that is not localizable to any DOM or
-per-frame path and is immaterial to the (already-failing) UHD 620 gate. Minimal
-Leaflet remediation (before MapLibre) is assessed in `K12_UHD620_REMEDIATION.md`.
+FAIL is **pre-existing** (clean `main` fails 33.3 ms even with POI layers off). The
+earlier "~50–66 ms P0-a overhead" was a **measurement confound** — unequal
+POI-cluster rendering between the two instances, which the hardened render-state
+guard now catches (`COMPARISON UNAVAILABLE`). With a **deterministic, equal** render
+state (POI layers disabled) PR ≈ `main` across runs + both null controls, and Chrome
+CDP tracing shows equal per-pan Script/Layout/RecalcStyle/heap/nodes — **no material
+P0-a pan regression.** Minimal Leaflet remediation of the pre-existing cost (before
+MapLibre) is assessed in `K12_UHD620_REMEDIATION.md`. Flag `--layers=on` keeps POIs
+on (render state may be non-deterministic → the guard may refuse).
 
 ### Manual physical baseline (optional) — R5
 

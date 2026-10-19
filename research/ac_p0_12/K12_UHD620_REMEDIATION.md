@@ -43,17 +43,14 @@ UX-affecting ones (1, 2, 5) only as needed and with explicit product sign-off
 (especially #2, which changes what is visible mid-pan). **Re-run the physical device
 measurement** to confirm; automation is directional only.
 
-## The separate P0-a overhead (~50 ms) — not a Leaflet lever
+## The apparent P0-a overhead was a confound — no separate P0-a lever needed
 
-The detected P0-a-over-`main` pan overhead (`BASELINE_AND_PAN_INVESTIGATION.md` §4)
-is **not** in the Leaflet render path and not in any DOM; it tracks the larger PR
-`js/app.js` + the always-on membership computation retaining the 724-ámbito index.
-If UHD 620 is a supported floor, the candidate there is to **reduce that retained
-footprint** (e.g. build the ámbito spatial index lazily / release it when PLACE is
-not active, or compute membership without holding the full index), investigated and
-measured on its own — again, not a speculative edit inside PR #96. It is immaterial
-to the UHD 620 gate (both arms already fail by ~4×) but could matter on a
-near-threshold device, which the physical iPad/iPhone runs will show.
+The earlier "~50–66 ms P0-a overhead" was a **measurement confound** (unequal
+POI-cluster rendering between the two instances), **disproven** under a controlled
+equal render state with CDP trace evidence (`BASELINE_AND_PAN_INVESTIGATION.md` §3–§4).
+So there is **no P0-a-specific pan remediation to do** — the whole target is the
+**pre-existing** Leaflet cost below. (The physical iPad/iPhone Safari runs remain the
+device-grade gate.)
 
 ## Escalation to MapLibre — only if minimal tuning is insufficient
 

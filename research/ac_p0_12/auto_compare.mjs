@@ -28,7 +28,7 @@ import { readFileSync, existsSync, mkdirSync, copyFileSync, writeFileSync, statS
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve, extname } from "node:path";
 import os from "node:os";
-import { hardwareCheck, validSample, comparableEnv, driftCheck } from "./auto_compare_guards.mjs";
+import { hardwareCheck, validSample, comparableEnv, driftCheck, DRIFT_TOL_DEG } from "./auto_compare_guards.mjs";
 import { MADRID_CENTRE } from "./runner_core.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -102,27 +102,64 @@ async function measurePan(page, mapSel = "#map") {
 // the recorded environment including data_ready. Steady-state warm panning then
 // happens on this loaded page (no reload per run → JIT stays warm); the closed-loop
 // pan controls positional drift instead.
+const renderCounts = (page) => page.evaluate(() => ({
+  tiles: document.querySelectorAll("#map .leaflet-tile-loaded").length,
+  canvases: document.querySelectorAll("#map canvas").length,
+  markers: document.querySelectorAll("#map .leaflet-marker-icon").length,
+  paths: document.querySelectorAll("#map svg path").length,
+}));
 async function freshLoad(page, port) {
   await page.goto(`http://127.0.0.1:${port}/index.html?haloRegressionTest=1`, { waitUntil: "load", timeout: 60000 });
   await page.waitForFunction(() => window.__HALO_REGRESSION__ && typeof window.__HALO_REGRESSION__.mapView === "function" && typeof window.__HALO_REGRESSION__.lensCenters === "function", { timeout: 60000 });
   await page.waitForFunction(() => { const s = window.__HALO_REGRESSION__; try { const v = s.mapView(); return v && isFinite(v.lat); } catch { return false; } }, { timeout: 60000 });
-  // default data/layer readiness: the basemap + overlay canvases exist and a
-  // settle frame has passed. Both arms get identical treatment.
-  await page.waitForFunction(() => document.querySelectorAll("#map canvas, #map .leaflet-tile-loaded").length > 0, { timeout: 60000 }).catch(() => {});
-  await page.waitForTimeout(800);
+  // R2 — WAIT (do not suppress) for the basemap AND the overlay (canvases + POI
+  // markers/clusters) to be READY, then wait until the WHOLE render state (tiles,
+  // canvases, markers, paths) STABILISES for 3 consecutive polls, so both arms
+  // measure a fully-loaded, EQUAL rendering state. (The earlier readiness only
+  // waited on tiles, so one arm could be panned with its POI/cluster layers not yet
+  // rendered — a confound this closes.)
+  let dataReady = false;
+  try { await page.waitForFunction(() => document.querySelectorAll("#map .leaflet-tile-loaded").length >= 4 && document.querySelectorAll("#map canvas").length > 0 && document.querySelectorAll("#map .leaflet-marker-icon").length > 1, { timeout: 60000 }); dataReady = true; } catch { dataReady = false; }
+  let prev = "", stable = 0;
+  for (let i = 0; i < 60 && dataReady; i++) {
+    const c = await renderCounts(page); const key = `${c.tiles}|${c.canvases}|${c.markers}|${c.paths}`;
+    if (key === prev && c.tiles > 0 && c.canvases > 0) { if (++stable >= 3) break; } else stable = 0;
+    prev = key; await page.waitForTimeout(300);
+  }
   await page.addScriptTag({ type: "module", content: `import * as m from '/research/ac_p0_12/runner_core.mjs'; window.__RC = m;` });
   await page.waitForFunction(() => !!window.__RC && !!window.__RC.GestureCapture, { timeout: 30000 });
-  return page.evaluate(() => {
+  const render = await renderCounts(page);
+  const env = await page.evaluate(() => {
     const e = window.__RC.captureEnv(window, {});
     const seam = window.__HALO_REGRESSION__;
     const v = seam.mapView();
     return { gl_renderer: e.gl_renderer, gl_is_software: e.gl_is_software, dpr: window.devicePixelRatio, viewport: e.viewport,
       map: (() => { const m = document.getElementById("map").getBoundingClientRect(); return { w: Math.round(m.width), h: Math.round(m.height) }; })(),
-      zoom: v.zoom, centre: { lat: v.lat, lon: v.lon }, data_ready: document.querySelectorAll("#map canvas, #map .leaflet-tile-loaded").length > 0,
-      hasMembership: !!document.getElementById("planningMembership") };
+      zoom: v.zoom, centre: { lat: v.lat, lon: v.lon }, hasMembership: !!document.getElementById("planningMembership") };
   });
+  env.render = render;
+  env.data_ready = dataReady && render.tiles > 0 && render.canvases > 0;
+  return env;
 }
 
+// The default POI layers render via clustering, whose marker COUNT is
+// non-deterministic across two separately-loaded instances (load order / settle
+// timing) — the confound behind the apparent PR→main gap. Disable them on both arms
+// so the measured render state is DETERMINISTIC and EQUAL (just the admin lattice +
+// basemap + lens), isolating any true P0-a overhead. Re-read the render counts.
+const POI_LAYERS = ["museum", "stay", "bike", "rail", "info"];
+async function disablePoiLayers(page) {
+  await page.evaluate((lyrs) => { for (const l of lyrs) { const cb = document.querySelector(`input[type=checkbox][data-layer="${l}"]`); if (cb && cb.checked) cb.click(); } }, POI_LAYERS);
+  let prev = -1;
+  for (let i = 0; i < 24; i++) { const n = await page.evaluate(() => document.querySelectorAll("#map .leaflet-marker-icon").length); if (n === prev && n <= 6) break; prev = n; await page.waitForTimeout(250); }
+}
+async function reReadRenderEnv(page, env) {
+  env.render = await renderCounts(page);
+  const v = await page.evaluate(() => { const x = window.__HALO_REGRESSION__.mapView(); return { lat: x.lat, lon: x.lon, zoom: x.zoom }; });
+  env.centre = { lat: v.lat, lon: v.lon }; env.zoom = v.zoom;
+  env.data_ready = env.render.canvases > 0;
+  return env;
+}
 const mapCentre = (page) => page.evaluate(() => { const v = window.__HALO_REGRESSION__.mapView(); return { lat: v.lat, lon: v.lon, zoom: v.zoom }; });
 async function mapBoxCentre(page) {
   const b = await page.evaluate(() => { const m = document.getElementById("map").getBoundingClientRect(); return { x: m.left, y: m.top, w: m.width, h: m.height }; });
@@ -133,6 +170,11 @@ async function dragBy(page, cx, cy, dx, dy) {
   const n = 8; for (let i = 1; i <= n; i++) await page.mouse.move(cx + (dx * i) / n, cy + (dy * i) / n, { steps: 1 });
   await page.mouse.up(); await page.waitForTimeout(80);
 }
+// Chrome DevTools Performance.getMetrics snapshot/delta (R3 trace evidence).
+const PERF_KEYS = ["ScriptDuration", "LayoutDuration", "RecalcStyleDuration", "TaskDuration", "LayoutCount", "RecalcStyleCount", "JSHeapUsedSize", "Nodes", "JSEventListeners"];
+async function perfSnap(cdp) { if (!cdp) return null; try { const { metrics } = await cdp.send("Performance.getMetrics"); const m = Object.fromEntries(metrics.map((x) => [x.name, x.value])); return Object.fromEntries(PERF_KEYS.map((k) => [k, m[k]])); } catch { return null; } }
+function perfDelta(a, b) { if (!a || !b) return null; const r = (x) => Math.round(x * 1000) / 1000; const d = {}; for (const k of ["ScriptDuration", "LayoutDuration", "RecalcStyleDuration", "TaskDuration"]) d[k + "_ms"] = r(((b[k] || 0) - (a[k] || 0)) * 1000); for (const k of ["LayoutCount", "RecalcStyleCount"]) d[k] = (b[k] || 0) - (a[k] || 0); d.JSHeapUsedSize_end_mb = r((b.JSHeapUsedSize || 0) / 1048576); d.Nodes = b.Nodes; d.JSEventListeners = b.JSEventListeners; return d; }
+const perfAgg = (arr) => { const v = arr.filter(Boolean); if (!v.length) return null; const avg = (k) => Math.round((v.reduce((s, x) => s + (x[k] || 0), 0) / v.length) * 1000) / 1000; return { n: v.length, ScriptDuration_ms: avg("ScriptDuration_ms"), LayoutDuration_ms: avg("LayoutDuration_ms"), RecalcStyleDuration_ms: avg("RecalcStyleDuration_ms"), TaskDuration_ms: avg("TaskDuration_ms"), LayoutCount: avg("LayoutCount"), RecalcStyleCount: avg("RecalcStyleCount"), JSHeapUsedSize_end_mb: avg("JSHeapUsedSize_end_mb"), Nodes: avg("Nodes"), JSEventListeners: avg("JSEventListeners") }; };
 // Calibrate how many degrees of map-centre move per pixel of mouse drag (Leaflet
 // pan is axis-aligned, no rotation), so re-centering is exact regardless of
 // zoom/inertia sign conventions.
@@ -148,27 +190,29 @@ async function calibrate(page) {
 // "reset the map centre before each run", so successive pans measure the same tiles.
 async function recenter(page, def, cal) {
   const { cx, cy } = await mapBoxCentre(page);
-  for (let it = 0; it < 4; it++) {
+  for (let it = 0; it < 6; it++) {
     const c = await mapCentre(page);
     const dLat = c.lat - def.lat, dLon = c.lon - def.lon;
-    if (Math.max(Math.abs(dLat), Math.abs(dLon)) < 5e-4) return true;
+    if (Math.max(Math.abs(dLat), Math.abs(dLon)) < 1e-4) return true;
     const dx = cal.kLonX ? -dLon / cal.kLonX : 0;
     const dy = cal.kLatY ? -dLat / cal.kLatY : 0;
     await dragBy(page, cx, cy, Math.max(-400, Math.min(400, dx)), Math.max(-400, Math.min(400, dy)));
   }
   const c = await mapCentre(page);
-  return Math.max(Math.abs(c.lat - def.lat), Math.abs(c.lon - def.lon)) < 2e-3;
+  return Math.max(Math.abs(c.lat - def.lat), Math.abs(c.lon - def.lon)) <= DRIFT_TOL_DEG;
 }
 // One steady-state (no-reload) measured pan on an already-loaded page: re-center to
 // default FIRST (drift control), capture the start centre, optionally A/B-toggle the
-// membership block (always restored), then measure. Returns { result, centre }.
-async function pan(page, def, cal, { hideMembership = false } = {}) {
-  await recenter(page, def, cal);
+// membership block (always restored), then measure. Returns { result, centre, recentered }.
+async function pan(page, def, cal, { hideMembership = false, cdp = null } = {}) {
+  const recentered = await recenter(page, def, cal);
   const centre = await page.evaluate(() => { const v = window.__HALO_REGRESSION__.mapView(); return { lat: v.lat, lon: v.lon }; });
   if (hideMembership) await page.evaluate(() => { const b = document.getElementById("planningMembership"); if (b) b.style.display = "none"; });
+  const p0 = await perfSnap(cdp); // only around the measured pan, not the re-center
   const result = await measurePan(page);
+  const p1 = await perfSnap(cdp);
   if (hideMembership) await page.evaluate(() => { const b = document.getElementById("planningMembership"); if (b) b.style.display = ""; });
-  return { result, centre };
+  return { result, centre, recentered, perf: perfDelta(p0, p1) };
 }
 
 function summarize(raw) {
@@ -247,10 +291,26 @@ async function main() {
     const context = await browser.newContext({ viewport: { width: 1036, height: 650 }, deviceScaleFactor: DPR });
     const prPage = await context.newPage();
     const basePage = await context.newPage();
+    // R3 — Chrome DevTools Performance metrics, so the pan cost is localised to a
+    // category (Script / Layout / RecalcStyle / GC / heap) with real trace evidence
+    // rather than an assumed GC/JIT explanation.
+    const cdpPr = await context.newCDPSession(prPage).catch(() => null);
+    const cdpBase = await context.newCDPSession(basePage).catch(() => null);
+    if (cdpPr) await cdpPr.send("Performance.enable").catch(() => {});
+    if (cdpBase) await cdpBase.send("Performance.enable").catch(() => {});
+    const cdpOf = (which) => (which === "PR" ? cdpPr : cdpBase);
 
-    // initial fresh load → env for the H1 hardware + H2 comparability gates
+    // initial fresh load (POIs on), then DISABLE the non-deterministic POI layers on
+    // both arms so the comparison measures a deterministic, equal render state.
     const prEnv0 = await freshLoad(prPage, prSrv.port);
     const baseEnv0 = await freshLoad(basePage, baseSrv.port);
+    const layersMode = args.layers === "on" ? "on" : "off";
+    if (layersMode === "off") {
+      log("disabling non-deterministic POI layers on both arms (deterministic equal render state)…");
+      await disablePoiLayers(prPage); await reReadRenderEnv(prPage, prEnv0);
+      await disablePoiLayers(basePage); await reReadRenderEnv(basePage, baseEnv0);
+      log(`render state after disable — PR ${JSON.stringify(prEnv0.render)} | main ${JSON.stringify(baseEnv0.render)}`);
+    }
     const hwRenderer = prEnv0.gl_renderer;
     log(`GPU pr=[${prEnv0.gl_renderer}] main=[${baseEnv0.gl_renderer}] | dpr ${prEnv0.dpr} | map ${prEnv0.map.w}x${prEnv0.map.h}`);
 
@@ -280,15 +340,17 @@ async function main() {
     log(`warming up ${WARMUP} pans/arm (steady-state, discarded)…`);
     for (let i = 0; i < WARMUP; i++) { await prPage.bringToFront(); await pan(prPage, DEF, calPr); await basePage.bringToFront(); await pan(basePage, DEF, calBase); }
 
-    const prRuns = [], baseRuns = [], pairs = [], startCentres = [], invalid = [];
+    const prRuns = [], baseRuns = [], pairs = [], startCentres = [], invalid = [], recenterFailures = [], prPerf = [], basePerf = [];
     const take = async (which) => {
       const page = pageOf(which);
       await page.bringToFront();
-      const { result, centre } = await pan(page, DEF, calOf(which));
+      const { result, centre, recentered, perf } = await pan(page, DEF, calOf(which), { cdp: cdpOf(which) });
       startCentres.push(centre);
+      if (!recentered) recenterFailures.push(which);
+      (which === "PR" ? prPerf : basePerf).push(perf);
       const v = validSample(result, 48); if (!v.ok) invalid.push(`${which}: ${v.reason}`);
       (which === "PR" ? prRuns : baseRuns).push(result);
-      const st = result.pan_frame_ms; log(`  ${which}: p50=${st && st.median} p95=${st && st.p95} n=${st && st.n}${result.error ? " ERR:" + result.error : ""}`);
+      const st = result.pan_frame_ms; log(`  ${which}: p50=${st && st.median} p95=${st && st.p95} n=${st && st.n} script=${perf && perf.ScriptDuration_ms}ms layout=${perf && perf.LayoutDuration_ms}ms${result.error ? " ERR:" + result.error : ""}`);
       return st;
     };
     log(`running ${ROUNDS} warmed alternating pairs…`);
@@ -328,10 +390,12 @@ async function main() {
     fixProbe.planning_section_removed_p50 = p50s(fixProbe.planning_section_removed);
     const fixedP50 = fixProbe.membership_removed_p50;
 
-    // H2a/H2c — FAIL CLOSED on any invalid/too-few sample or excessive drift.
+    // H2a/H2c — FAIL CLOSED on any invalid/too-few sample, failed re-centering, or
+    // excessive drift (strict DRIFT_TOL_DEG, non-empty start-centre set).
     const drift = driftCheck(startCentres, MADRID_CENTRE);
+    if (recenterFailures.length) fail(`H2 re-centering failed (drift not brought within ${DRIFT_TOL_DEG}°) on: ${recenterFailures.join(", ")}`, { prSha, recenterFailures });
     if (invalid.length) fail(`H2 invalid or too-few attributable samples: ${invalid.join("; ")}`, { prSha, invalid });
-    if (!drift.ok) fail(`H2 positional drift exceeded tolerance: max ${drift.max_drift_deg}° > ${drift.tol_deg}°`, { prSha, drift });
+    if (!drift.ok) fail(`H2 positional drift: ${drift.reason || `max ${drift.max_drift_deg}° > ${drift.tol_deg}°`}`, { prSha, drift });
 
     // analysis — drift-robust
     const prAgg = agg(prRuns), baseAgg = agg(baseRuns);
@@ -365,13 +429,15 @@ async function main() {
       generatedAt: new Date().toISOString(),
       config: { pr_sha: prSha, main_sha: mainSha, rounds: ROUNDS, frames_target: FRAMES, dpr: DPR, zoom: ZOOM,
         gpu_renderer: hwRenderer, viewport: prEnv0.viewport, map_area: prEnv0.map,
-        centre: prEnv0.centre, cache: "warm steady-state (one load per arm)", layers: "default (no licences/hospitality toggled)",
+        centre: prEnv0.centre, cache: "warm steady-state (one load per arm)",
+        layers_mode: layersMode, layers: layersMode === "off" ? "POI layers (museum/stay/bike/rail/info) DISABLED for a deterministic, equal render state (clustering marker count is non-deterministic across instances — the confound behind the apparent gap)" : "default POI layers ON (render state may be non-deterministic — comparability guard may refuse)",
         pr_has_membership: prEnv0.hasMembership, main_has_membership: baseEnv0.hasMembership },
       integrity: { hardware: hw, comparability: comp, drift, samples_all_valid: invalid.length === 0, pr_env: prEnv0, main_env: baseEnv0, drift_control: "closed-loop pan (net-zero displacement); one load per arm; warm steady-state" },
       warmup_per_arm: WARMUP,
       pr: { aggregate: prAgg, runs: prRuns.map((r) => r.pan_frame_ms) },
       main: { aggregate: baseAgg, runs: baseRuns.map((r) => r.pan_frame_ms) },
       paired_deltas: pairs,
+      profiling_cdp: { note: "Chrome Performance.getMetrics deltas averaged per measured pan (R3 trace evidence: where the per-pan time goes).", pr: perfAgg(prPerf), main: perfAgg(basePerf) },
       panel_display_diagnostic: diag,
       candidate_mitigation_probe: fixProbe,
       analysis,
@@ -387,6 +453,11 @@ async function main() {
     log(`paired PR−main (drift-robust): p50 ${pairedP50} ms, p95 ${pairedP95} ms  (PR slower in ${prSlowerPairs}/${pairs.length} pairs; noise floor ~${round(materialThreshold)} ms)`);
     log(`panel display none−visible (diag): p50 ${diagDelta} ms | drift ${drift.max_drift_deg}° | cleanup worktree_removed=${cleanupStatus.worktree_removed}`);
     log(`ablation (warm, PR): control p50=${fixProbe.control_p50} | membership removed=${fixProbe.membership_removed_p50} | +section removed=${fixProbe.planning_section_removed_p50} | main p50=${baseP50}`);
+    { const pp = perfAgg(prPerf), mp = perfAgg(basePerf); if (pp && mp) {
+      log(`CDP/pan PR  : script=${pp.ScriptDuration_ms} layout=${pp.LayoutDuration_ms} recalcStyle=${pp.RecalcStyleDuration_ms} task=${pp.TaskDuration_ms} ms | layoutCount=${pp.LayoutCount} recalcCount=${pp.RecalcStyleCount} | heap=${pp.JSHeapUsedSize_end_mb}MB nodes=${pp.Nodes} listeners=${pp.JSEventListeners}`);
+      log(`CDP/pan main: script=${mp.ScriptDuration_ms} layout=${mp.LayoutDuration_ms} recalcStyle=${mp.RecalcStyleDuration_ms} task=${mp.TaskDuration_ms} ms | layoutCount=${mp.LayoutCount} recalcCount=${mp.RecalcStyleCount} | heap=${mp.JSHeapUsedSize_end_mb}MB nodes=${mp.Nodes} listeners=${mp.JSEventListeners}`);
+      log(`CDP/pan Δ(PR−main): script=${round(pp.ScriptDuration_ms-mp.ScriptDuration_ms)} layout=${round(pp.LayoutDuration_ms-mp.LayoutDuration_ms)} recalcStyle=${round(pp.RecalcStyleDuration_ms-mp.RecalcStyleDuration_ms)} task=${round(pp.TaskDuration_ms-mp.TaskDuration_ms)} ms`);
+    } }
     log(`=> material PR regression: ${regressionMaterial ? "YES" : "NO DETECTED (PR≈main within noise)"}`);
     log(`evidence → ${outPath}`);
     log("hardware_automated — NOT a physical-device validation.");
