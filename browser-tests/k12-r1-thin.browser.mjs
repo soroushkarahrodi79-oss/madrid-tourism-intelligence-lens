@@ -46,16 +46,41 @@ const browser = await chromium.launch({ headless: true });
 async function newPage() {
   const context = await browser.newContext({ viewport: { width: 1200, height: 860 } });
   const page = await context.newPage();
-  page.setDefaultTimeout(20000);
+  // Headless Linux CI boots the full POI layer noticeably slower than a warm local
+  // run, so use the same generous readiness budget the measurement harness proves
+  // reliable (60s), not a tight 20s.
+  page.setDefaultTimeout(60000);
+  const pageErrors = [];
+  page.on("pageerror", (e) => pageErrors.push(String(e)));
+  page.on("console", (m) => { if (m.type() === "error") pageErrors.push(m.text()); });
   await page.route("**/*", (route) => {
     const url = new URL(route.request().url());
     if (url.hostname !== "127.0.0.1" && url.hostname !== "localhost") return route.abort();
     return route.continue();
   });
-  await page.goto(`http://127.0.0.1:${port}/?haloRegressionTest=1&k12opt=thin`, { waitUntil: "domcontentloaded" });
+  // `load` (not domcontentloaded): boot()'s POI fetch/render runs after load, and the
+  // cluster count is what these tests act on, so wait for the whole page to settle.
+  await page.goto(`http://127.0.0.1:${port}/?haloRegressionTest=1&k12opt=thin`, { waitUntil: "load", timeout: 60000 });
   await page.waitForFunction(() => Boolean(window.__HALO_REGRESSION__ && window.__K12_THIN__));
-  // POI clusters rendered (the workload `thin` optimises).
-  await page.waitForFunction(() => document.querySelectorAll(".poi-cluster-icon").length > 5);
+  // Drive to the harness's deterministic dense-cluster view (zoom 14) so the
+  // cluster population does not depend on the default fit, which varies with the
+  // laid-out map size across platforms/headless.
+  await page.waitForFunction(() => { try { const v = window.__HALO_REGRESSION__.mapView(); return v && isFinite(v.lat); } catch { return false; } });
+  await page.evaluate(() => window.__HALO_REGRESSION__.setZoom(14));
+  // POI clusters rendered (the workload `thin` optimises). On timeout, surface a
+  // diagnostic (counts + any page error) so a CI-only failure is self-explaining.
+  try {
+    await page.waitForFunction(() => document.querySelectorAll(".poi-cluster-icon").length > 5);
+  } catch (e) {
+    const diag = await page.evaluate(() => ({
+      clusterIcons: document.querySelectorAll(".poi-cluster-icon").length,
+      markerIcons: document.querySelectorAll(".leaflet-marker-icon").length,
+      canvases: document.querySelectorAll("#map canvas").length,
+      zoom: (() => { try { return window.__HALO_REGRESSION__.mapView().zoom; } catch { return null; } })(),
+    })).catch(() => ({}));
+    console.error(`[k12-thin] cluster readiness failed: ${JSON.stringify(diag)} pageErrors=${JSON.stringify(pageErrors.slice(0, 5))}`);
+    throw e;
+  }
   page.context_ = context;
   return page;
 }
