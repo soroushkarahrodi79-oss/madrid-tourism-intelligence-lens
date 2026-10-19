@@ -5811,7 +5811,12 @@ function renderModeUi() {
   const placeSection = document.getElementById("modePlace");
   const compareHost = document.getElementById("compareAreaHost");
   if (mode === "COMPARE") compareHost.appendChild(area);
-  else if (area.parentElement !== placeSection) placeSection.insertBefore(area, placeSection.firstElementChild);
+  else if (area.parentElement !== placeSection) {
+    // P1 compact projection remains the PLACE first reading after mode switches.
+    // Never reinsert the whole-barrio lead ahead of the Lens-circle band.
+    const band = document.getElementById("placeCircleSummary");
+    placeSection.insertBefore(area, band ? band.nextSibling : placeSection.firstElementChild);
+  }
   shell.signature = "";
   renderScopeRail();
 }

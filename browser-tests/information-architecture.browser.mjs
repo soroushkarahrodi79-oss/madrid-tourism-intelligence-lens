@@ -639,6 +639,10 @@ test("IA 22 the mobile PLACE quick-jump reaches the Lens metrics, is localized, 
   // Hidden outside PLACE at the same narrow width.
   await setMode(page, "COMPARE");
   assert.equal(await jump.evaluate((n) => getComputedStyle(n).display), "none", "the quick-jump is not shown outside PLACE");
+  await setMode(page, "PLACE");
+  assert.deepEqual(await page.locator("#modePlace > :is(section,div)").evaluateAll(
+    (nodes) => nodes.slice(0, 2).map((node) => node.id),
+  ), ["placeCircleSummary", "areaProfile"], "returning from COMPARE cannot bury the compact band behind the whole-barrio lead");
 
   // Hidden on desktop.
   const desktop = await newPage({ width: 1366, height: 900 });
