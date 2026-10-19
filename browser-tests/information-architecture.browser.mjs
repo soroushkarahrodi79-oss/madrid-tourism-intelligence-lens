@@ -827,10 +827,13 @@ test("P1 map-first: explicit phone layer drawer, Escape, outside tap and respons
   await page.locator("#modeNav").click({ position: { x: 4, y: 4 } });
   assert.equal(await rail.isVisible(), false, "other controls close the rail without hijacking their click");
   await page.setViewportSize({ width: 834, height: 1112 });
+  // MediaQueryList change is asynchronous after setViewportSize in Chromium.
+  await page.waitForFunction(() => window.innerWidth > 560 && !document.getElementById("layerRail").hidden);
   assert.equal(await rail.isVisible(), true, "tablet displays the rail without the phone button");
   assert.equal(await toggle.isVisible(), false);
   assert.equal(await rail.locator('[data-layer="museum"]').isChecked(), false, "resize preserves data-layer state");
   await page.setViewportSize({ width: 375, height: 812 });
+  await page.waitForFunction(() => window.innerWidth <= 560 && document.getElementById("layerRail").hidden);
   assert.equal(await rail.isVisible(), false, "returning to phone restores the map-first initial state");
   assert.equal((await page.locator("[data-layer]").evaluateAll((nodes) => nodes.map((n) => [n.dataset.layer, n.checked]))).length, before.length);
 });
