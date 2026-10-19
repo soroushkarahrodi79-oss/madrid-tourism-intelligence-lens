@@ -2398,6 +2398,7 @@ function syncPedestrianUi(on) {
 function setLayerVisible(name, on) {
   if (name === "hospitality") {
     setHospitalityVisible(on);
+    renderRailGroupBadges();
     return;
   }
   if (on) {
@@ -2418,6 +2419,7 @@ function setLayerVisible(name, on) {
     syncLicencesUi(on);
     refresh();
   }
+  renderRailGroupBadges();
 }
 
 function centerOf(which) {
@@ -5273,6 +5275,7 @@ function refresh() {
   // very projection they drew, so the PLACE capture below reuses those objects
   // instead of recomputing them. The export never recomputes a displayed figure.
   const heat = renderHeatMetric(heatStatsFor(active));
+  renderCircleSummary();
   const pedestrian = renderPedestrianMetric(pedestrianStatsFor(active));
   const mix = renderMix(s);
   renderNearest(s);
@@ -5436,6 +5439,8 @@ function renderRadiusLabels() {
   // The lens section states its own geometry, so "within the lens" can never be
   // read as the administrative area above it.
   document.getElementById("lensScopeHint").textContent = `${text} circle`;
+  const summaryRadius = document.getElementById("placeCircleSummaryRadius");
+  if (summaryRadius) summaryRadius.textContent = shellTemplate("place.circleSummaryRadius", { n: text });
 }
 const radiusSlider = document.getElementById("radiusSlider");
 radiusSlider.min = LENS_RADIUS.minM;
@@ -5551,7 +5556,10 @@ document.getElementById("resetButton").onclick = () => {
   map.panTo(defaults[active]);
   refresh();
 };
-document.querySelectorAll("[data-layer]").forEach((x) => (x.onchange = () => setLayerVisible(x.dataset.layer, x.checked)));
+document.querySelectorAll("[data-layer]").forEach((x) => (x.onchange = () => {
+  setLayerVisible(x.dataset.layer, x.checked);
+  renderRailGroupBadges();
+}));
 syncHatiUi(false);
 syncPedestrianUi(false);
 syncHospitalityUi(false);
@@ -5574,6 +5582,92 @@ for (const id of ["licFrom", "licTo"]) {
 function shellLanguage() {
   return String(document.documentElement.lang || "en").toLowerCase().split("-")[0] === "es" ? "es" : "en";
 }
+
+// P1 responsive rail: the five layer groups report the actual checked state of
+// their ten existing switches. The map-display group reports its two settings,
+// never a dataset count. Collapsing a group only changes disclosure state.
+function shellTemplate(key, replacements = {}) {
+  let value = shellT(key);
+  for (const [token, replacement] of Object.entries(replacements)) {
+    value = value.replace(`{${token}}`, String(replacement));
+  }
+  return value;
+}
+
+function renderRailGroupBadges() {
+  for (const group of document.querySelectorAll(".rail-group")) {
+    const badge = group.querySelector(".rail-group-badge");
+    if (!badge) continue;
+    if (badge.dataset.railSettings) {
+      const count = Number(badge.dataset.railSettings);
+      badge.textContent = shellTemplate("aside.groupBadgeSettings", { n: count });
+      badge.removeAttribute("aria-label");
+      continue;
+    }
+    const toggles = [...group.querySelectorAll("input[data-layer]")];
+    const on = toggles.filter((toggle) => toggle.checked).length;
+    const total = toggles.length;
+    badge.textContent = shellTemplate("aside.groupBadge", { n: on, m: total });
+    badge.setAttribute("aria-label", shellTemplate("aside.groupAria", { n: on, m: total }));
+  }
+}
+
+const narrowRailMedia = window.matchMedia("(max-width: 850px)");
+function configureRailGroups(event = narrowRailMedia) {
+  const narrow = event.matches;
+  for (const group of document.querySelectorAll(".rail-group")) {
+    const summary = group.querySelector(":scope > summary");
+    if (narrow) {
+      group.setAttribute("name", "rail");
+      group.open = false;
+      if (summary) summary.tabIndex = 0;
+    } else {
+      group.removeAttribute("name");
+      group.open = true;
+      if (summary) summary.tabIndex = -1;
+    }
+  }
+}
+configureRailGroups();
+if (typeof narrowRailMedia.addEventListener === "function") narrowRailMedia.addEventListener("change", configureRailGroups);
+else narrowRailMedia.addListener(configureRailGroups);
+for (const summary of document.querySelectorAll(".rail-group > summary")) {
+  summary.addEventListener("click", (event) => {
+    if (!narrowRailMedia.matches) event.preventDefault();
+  });
+}
+
+for (const link of document.querySelectorAll(".skip-link")) {
+  link.addEventListener("click", (event) => {
+    const target = document.querySelector(link.getAttribute("href"));
+    if (!target) return;
+    event.preventDefault();
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ block: "start" });
+  });
+}
+
+// The compact band is a projection of the canonical four PLACE readings. It
+// copies both the displayed value and its state/provenance line after those
+// canonical nodes render, so zero, unavailable, OFF and abstention never merge.
+function renderCircleSummary() {
+  const readings = [
+    ["tourismValue", "tourismFoot", "placeCircleTourismValue", "placeCircleTourismState"],
+    ["stayValue", "stayFoot", "placeCircleStayValue", "placeCircleStayState"],
+    ["mobilityValue", "mobilityFoot", "placeCircleMobilityValue", "placeCircleMobilityState"],
+    ["heatValue", "heatFoot", "placeCircleHeatValue", "placeCircleHeatState"],
+  ];
+  for (const [sourceValueId, sourceStateId, targetValueId, targetStateId] of readings) {
+    const sourceValue = document.getElementById(sourceValueId);
+    const sourceState = document.getElementById(sourceStateId);
+    const targetValue = document.getElementById(targetValueId);
+    const targetState = document.getElementById(targetStateId);
+    if (!sourceValue || !sourceState || !targetValue || !targetState) continue;
+    targetValue.textContent = sourceValue.textContent;
+    targetValue.classList.toggle("abstain", sourceValue.classList.contains("abstain"));
+    targetState.textContent = sourceState.textContent;
+  }
+}
 function shellT(key) {
   if (shell.i18n) return shell.i18n.t(key);
   const dictionary = SHELL_DICTIONARIES[shellLanguage()] || SHELL_DICTIONARIES.en;
@@ -5593,14 +5687,6 @@ const SHELL_BINDINGS = [
   ["#compareLine > .section-head > span", "sec.compare"],
   ["#compareLine > .section-head > small", "sec.circleOnly"],
   [".brand-sub", "brand.sub"],
-  [".left > h3:nth-of-type(1)", "aside.map"],
-  [".left > h3:nth-of-type(2)", "aside.layers"],
-  [".activity-divider > span", "aside.observed"],
-  [".activity-divider > small", "aside.observedNote"],
-  [".context-divider > span", "aside.context"],
-  [".context-divider > small", "aside.contextNote"],
-  [".research-divider > span", "aside.research"],
-  [".research-divider > small", "aside.researchNote"],
 ];
 function applyShellCopy() {
   for (const el of document.querySelectorAll("[data-i18n]")) el.textContent = shellT(el.dataset.i18n);
@@ -5617,6 +5703,9 @@ function applyShellCopy() {
   for (const button of document.querySelectorAll(".evidence-link")) {
     button.setAttribute("aria-label", `${shellT("rail.open")} ${shellT(button.dataset.evidenceName)}`);
   }
+  renderRailGroupBadges();
+  renderRadiusLabels();
+  renderCircleSummary();
   document.getElementById("hospitalityLanguageLabel").textContent = "Idioma / Language";
 }
 

@@ -8,7 +8,7 @@ const workflow = fs.readFileSync(new URL("../.github/workflows/deploy-pages.yml"
 const builder = fs.readFileSync(new URL("../scripts/build_pedestrian_activity.py", import.meta.url), "utf8");
 
 test("observed pedestrian activity is opt-in and separate from operational POIs", () => {
-  assert.match(html, /<span>Observed activity<\/span>/);
+  assert.match(html, /data-i18n="aside\.observed">Observed activity<\/span>/);
   assert.match(html, /Pedestrian counters/);
   assert.match(html, /data-layer="pedestrian" type="checkbox"[^>]*aria-checked="false"/);
   assert.doesNotMatch(html, /data-layer="pedestrian"[^>]*type="checkbox"\s+checked(?:\s|>)/);

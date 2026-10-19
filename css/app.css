@@ -66,6 +66,15 @@ header{
 }
 .left h3,.panel h3{font-size:var(--t-micro);letter-spacing:.14em;text-transform:uppercase;color:#788ba2;margin:0 0 var(--s-2)}
 .left h3~h3{margin-top:var(--s-3)}
+.rail-group{margin:0;border:0}
+.rail-group+.rail-group{margin-top:var(--s-3)}
+.rail-group>summary{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--s-2);min-height:22px;margin:0 0 var(--s-2);color:#788ba2;cursor:default;list-style:none}
+.rail-group>summary::-webkit-details-marker{display:none}
+.rail-group>summary:before{display:none}
+.rail-group-copy{grid-column:1;grid-row:1;min-width:0;font-size:var(--t-micro);font-weight:650;letter-spacing:.12em;line-height:1.25;text-transform:uppercase}
+.rail-group-badge{display:none;grid-column:2;grid-row:1;max-width:82px;padding:var(--s-1) var(--s-2);border:1px solid rgba(142,164,187,.2);border-radius:var(--r-small);background:rgba(142,164,187,.07);color:#a9bbcf;font-size:var(--t-micro);font-weight:650;letter-spacing:0;line-height:1.15;text-align:center;text-transform:none;font-variant-numeric:tabular-nums}
+.rail-group-content{min-width:0}
+.rail-group-note{margin:0 0 var(--s-1);color:#8fa5bb;font-size:var(--t-micro);line-height:1.35}
 .map-display{margin:0 0 var(--s-2);padding-bottom:var(--s-2);border-bottom:1px solid rgba(255,255,255,.07)}
 .basemap-control,.map-control,.language-control{margin:0 0 var(--s-2)}
 .map-display>*:last-child{margin-bottom:0}
@@ -238,6 +247,7 @@ header{
 /* Available to assistive technology, absent from the visual layout: it names
    the quantity a compact figure leaves implicit. */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skip-link:focus{position:fixed;z-index:3000;top:calc(8px + var(--safe-top));left:calc(8px + var(--safe-left));width:auto;height:auto;margin:0;padding:var(--s-3) var(--s-4);overflow:visible;clip:auto;white-space:normal;border:2px solid #9bd5ff;border-radius:var(--r-small);background:#08101a;color:#fff;font-size:var(--t-body);font-weight:700}
 
 /* ===== PLANNING ÁMBITO EVIDENCE (K6, #68) ===================================
    A second lead-level evidence object in PLACE, deliberately distinct from the
@@ -464,6 +474,16 @@ header{
 .metric-head{display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);color:#9eb0c4}.metric-head .dot{width:6px;height:6px}
 .metric-value{font-size:var(--t-title);font-weight:780;letter-spacing:-.04em;margin-top:var(--s-2);line-height:1}
 .metric-foot{font-size:var(--t-micro);color:#74879c;margin-top:var(--s-1)}.metric-value small{font-size:var(--t-micro);color:#94a6ba;font-weight:550;letter-spacing:0}
+.place-circle-summary{display:none}
+.place-circle-summary-head{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:var(--s-2);margin-bottom:var(--s-2);color:#d9e8f5;font-size:var(--t-label);font-weight:700}
+.place-circle-summary-head>span:nth-child(2){color:#a9bbcf;font-size:var(--t-meta);font-weight:600;font-variant-numeric:tabular-nums}
+.place-circle-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-1)}
+.place-circle-reading{min-width:0;padding:var(--s-2);border:1px solid rgba(255,255,255,.08);border-radius:var(--r-small);background:rgba(255,255,255,.025)}
+.place-circle-reading>span,.place-circle-reading>small{display:block;overflow-wrap:anywhere}
+.place-circle-reading>span{min-height:2.3em;color:#8fa5bb;font-size:var(--t-micro);line-height:1.15}
+.place-circle-reading>strong{display:block;margin-top:var(--s-1);color:#f0f7ff;font-size:var(--t-figure);line-height:1;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.place-circle-reading>strong.abstain{color:#94a6ba;font-size:var(--t-meta);line-height:1.15}
+.place-circle-reading>small{margin-top:var(--s-1);color:#74879c;font-size:var(--t-micro);line-height:1.15}
 .abstain{font-size:var(--t-body)!important;letter-spacing:-.01em!important;color:#a8b6c7!important}
 
 .controlbox{margin-top:var(--s-2);padding:var(--s-3);border:1px solid var(--line);border-radius:var(--r-small);background:rgba(255,255,255,.02)}
@@ -737,6 +757,13 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   header{left:calc(10px + var(--safe-left));right:calc(10px + var(--safe-right));top:calc(9px + var(--safe-top));height:54px}
   .brand{padding:var(--s-2) var(--s-3);max-width:100%;min-width:0}.brand>div:last-child{min-width:0}.brand-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.brand-sub{}
   .left{left:calc(10px + var(--safe-left));top:calc(73px + var(--safe-top));width:174px;padding:var(--s-2);max-height:min(52vh,430px);max-height:min(52dvh,430px);overflow:auto}
+  .rail-group+.rail-group{margin-top:var(--s-1)}
+  .rail-group>summary{grid-template-columns:1fr;grid-template-rows:auto auto;gap:0;min-height:44px;margin:0;padding:var(--s-1) var(--s-2);border:1px solid rgba(255,255,255,.08);border-radius:var(--r-small);background:rgba(255,255,255,.025);cursor:pointer}
+  .rail-group>summary:before{display:none}
+  .rail-group-copy{grid-column:1;grid-row:1;padding-left:0;letter-spacing:.08em}
+  .rail-group-badge{display:inline-block;grid-column:1;grid-row:2;justify-self:start;max-width:none;padding:0 var(--s-1)}
+  .rail-group[open]>summary{border-color:rgba(75,175,255,.35);background:rgba(75,175,255,.08)}
+  .rail-group-content{padding:var(--s-2) var(--s-1) var(--s-1)}
   .panel{left:calc(10px + var(--safe-left));right:calc(10px + var(--safe-right));top:auto;bottom:calc(10px + var(--safe-bottom));width:auto;min-width:0;max-width:none;height:auto;min-height:0;max-height:42vh;max-height:42dvh;padding:var(--s-3)}
   .panel-resize-handle{display:none}
   .title{}.metrics{grid-template-columns:repeat(4,1fr)}.metric{min-height:61px;padding:var(--s-2)}.metric-value{}.metric-head{}.metric-foot{}
@@ -864,7 +891,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
    ≤850px rule below reveals them in PLACE only. They scroll the panel to the
    Lens figures / Detail. The type size lives here, never in a @media block. */
 .place-jump{display:none;flex-wrap:wrap;gap:var(--s-2);margin:var(--s-1) 0 0}
-.place-jump-chip{min-height:30px;padding:var(--s-1) var(--s-3);border:1px solid var(--line2);border-radius:var(--r-small);background:rgba(255,255,255,.05);color:#cfe0f0;font:inherit;font-size:var(--t-micro);cursor:pointer}
+.place-jump-chip{min-height:44px;padding:var(--s-1) var(--s-3);border:1px solid var(--line2);border-radius:var(--r-small);background:rgba(255,255,255,.05);color:#cfe0f0;font:inherit;font-size:var(--t-micro);cursor:pointer}
 .place-jump-chip:before{content:"▾ "}
 .place-jump-chip:hover{color:#fff}
 
@@ -943,6 +970,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .mode-question{display:none}
   /* Reveal the PLACE quick-jump chips on narrow screens, in PLACE only. */
   .panel[data-mode="PLACE"] .place-jump{display:flex}
+  .panel[data-mode="PLACE"] .place-circle-summary{display:block;margin:0 0 var(--s-2);padding:var(--s-2);border:1px solid rgba(75,175,255,.24);border-radius:var(--r-small);background:rgba(16,42,67,.58)}
   .evidence-drawer{left:calc(10px + var(--safe-left));right:calc(10px + var(--safe-right));top:auto;bottom:calc(10px + var(--safe-bottom));width:auto;max-height:82dvh}
   .detail-disclosure>summary{}
   .header-tools select{min-width:88px;padding:var(--s-1) var(--s-2)}
@@ -967,7 +995,7 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 .area-value{font-size:var(--t-display)}
 .metric-value,.activity-card-value,.area-vut-value,.hospitality-value,.destination-metric-value,.cb-value{font-size:var(--t-figure)}
 .drawer-head h2,.destination-place,.hospitality-area-name{font-size:var(--t-title)}
-.left h3,.panel h3,.section-head span,.area-value-label,.area-vut-title,.hospitality-field-label,.destination-metric-head,.comparetable thead th,.domestic-origin-table-wrap th,.drawer-fields dt,.drawer-ceiling b,.drawer-notes>h3{font-size:var(--t-label)}
+.left h3,.rail-group-copy,.panel h3,.section-head span,.area-value-label,.area-vut-title,.hospitality-field-label,.destination-metric-head,.comparetable thead th,.domestic-origin-table-wrap th,.drawer-fields dt,.drawer-ceiling b,.drawer-notes>h3{font-size:var(--t-label)}
 .brand-sub,.status small,.area-codes,.area-period,.area-vut-state,.metric-foot,.activity-card-foot,.comparison-mode-cue,.cb-sub,.cb-radius,.di-status,.di-guard,.ss-status,.ss-guard,.destination-period-label,.destination-provisional,.destination-metric-exact,.destination-metric-change,.destination-state,.scope-rail-freshness,.drawer-filter,.drawer-fields dd{font-size:var(--t-meta)}
 .area-scope p,.activity-card-note,.evidence-note,.destination-composition,.destination-ceiling,.domestic-origin-universe,.domestic-origin-dynamics-relationship,.comparetable,.domestic-origin-table-wrap table,.drawer-ceiling,.drawer-notes .halo-legend,.drawer-notes .source{font-size:var(--t-body)}
 .scope-rail-item,.mode-btn,.detail-disclosure>summary,.evidence-route,.layer-action,.reading-btn,.card-title,.metric-head,.controltop,.domestic-origin-controls{font-size:var(--t-label)}
@@ -993,6 +1021,7 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 
 @media(pointer:coarse){
   :where(button,select,summary,a[href],[role="button"],input[type="range"],input[type="checkbox"]){min-width:44px;min-height:44px}
+  .rail-group>summary{min-height:44px}
   a[href]{display:inline-flex;align-items:center}
   .switch{width:44px;height:44px}
   .switch input{inset:0;width:100%;height:100%}
