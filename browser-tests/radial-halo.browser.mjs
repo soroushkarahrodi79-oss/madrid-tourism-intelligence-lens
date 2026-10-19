@@ -1837,9 +1837,11 @@ test("SS 14(3) the category transition is driven by one production helper, reach
   }
 
   // 3) Every seam member, including the new ones, stays inside the query-gated
-  //    AND localhost-only block. Nothing test-only is reachable in production.
+  //    AND loopback/private-LAN-only block. Nothing test-only is reachable in
+  //    production: the opt-in query flag is still required and a public host
+  //    (GitHub Pages) never matches the host predicate.
   assert.match(app, /const haloRegressionRequested = new URLSearchParams\(window\.location\.search\)\.get\("haloRegressionTest"\) === "1";/);
-  assert.match(app, /const haloRegressionLocal = window\.location\.hostname === "127\.0\.0\.1" \|\| window\.location\.hostname === "localhost";/);
+  assert.match(app, /const haloRegressionLocal = isLoopbackOrPrivateLanHost\(window\.location\.hostname\);/);
   assert.match(app, /if \(haloRegressionRequested && haloRegressionLocal\) \{\s*window\.__HALO_REGRESSION__ = Object\.freeze\(\{/);
   const seamStart = app.indexOf("if (haloRegressionRequested && haloRegressionLocal) {");
   // The boundary is the gate's own CLOSING BRACE, not the next statement:

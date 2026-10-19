@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>AC-P0-12 device runner</title>
+<style>
+  :root { color-scheme: light dark; --fg:#12202f; --bg:#f6f8fb; --card:#fff; --line:#d3dde8; --accent:#1f6feb; --good:#137333; --warn:#b36b00; --bad:#c5221f; --muted:#5a6b7b; }
+  @media (prefers-color-scheme: dark) { :root { --fg:#e6edf3; --bg:#0b1320; --card:#121c2b; --line:#28364a; --accent:#4a90ff; --good:#56d364; --warn:#e3b341; --bad:#ff6b63; --muted:#9fb0c0; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--fg); background:var(--bg); -webkit-text-size-adjust:100%; }
+  .wrap { max-width:1100px; margin:0 auto; padding:16px; }
+  h1 { font-size:20px; margin:4px 0 2px; }
+  h2 { font-size:16px; margin:20px 0 8px; }
+  .sub { color:var(--muted); margin:0 0 12px; font-size:13px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; margin:12px 0; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; }
+  label { display:block; font-size:12px; color:var(--muted); margin-bottom:3px; }
+  input, select { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--fg); font-size:15px; }
+  button { font-size:15px; padding:11px 14px; border-radius:9px; border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; min-height:44px; }
+  button.secondary { background:transparent; color:var(--accent); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .pill { display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid var(--line); color:var(--muted); }
+  .k-auto { border-color:var(--warn); color:var(--warn); }
+  .k-gesture { border-color:var(--good); color:var(--good); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; }
+  .pass { color:var(--good); font-weight:700; } .fail { color:var(--bad); font-weight:700; } .na { color:var(--muted); }
+  .status { font-size:13px; color:var(--muted); min-height:20px; }
+  .big { font-size:18px; font-weight:800; }
+  iframe { width:100%; height:520px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+  ol { padding-left:20px; } li { margin:3px 0; }
+  code { background:rgba(127,127,127,.15); padding:1px 5px; border-radius:5px; font-size:12px; }
+  .warnbox { border-color:var(--warn); }
+  details summary { cursor:pointer; color:var(--accent); }
+  .counter { font-variant-numeric:tabular-nums; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AC-P0-12 — physical-device validation runner</h1>
+  <p class="sub">Measures the <strong>real</strong> production Lens app (PR&nbsp;#96) on this device. It drives the production interaction paths through the opt-in test seam and records interaction-to-paint, pan frame time, and membership freshness. It changes no data, model or layout.</p>
+
+  <div class="card warnbox" id="hostWarn" hidden></div>
+
+  <div class="card">
+    <h2 style="margin-top:0">1 · Identify this device</h2>
+    <div class="grid">
+      <div><label for="deviceLabel">Device label (required)</label><input id="deviceLabel" placeholder="e.g. iPad Air M2 / iPadOS 18 / Safari" /></div>
+      <div><label for="deviceClass">Declared class (required)</label>
+        <select id="deviceClass">
+          <option value="">— choose —</option>
+          <option value="desktop">Desktop / laptop (Windows Chrome)</option>
+          <option value="tablet">Tablet (iPad Safari)</option>
+          <option value="phone">Phone (iPhone Safari)</option>
+        </select></div>
+      <div><label for="cache">Cache</label><select id="cache"><option value="cold">cold (fresh/private tab)</option><option value="warm">warm (reloaded once)</option></select></div>
+      <div><label for="network">Network</label><select id="network"><option value="wifi">wifi (LAN)</option><option value="cellular">cellular</option><option value="unknown">unknown</option></select></div>
+      <div><label for="sha">Test commit SHA</label><input id="sha" placeholder="auto-detected" /></div>
+      <div><label for="minSamples">Min samples / scenario</label><input id="minSamples" type="number" value="48" min="40" /></div>
+    </div>
+    <p class="sub" style="margin:10px 0 0">Device/browser/OS, viewport and GPU are detected automatically and recorded in the JSON. A desktop browser shrunk to a phone size is <strong>not</strong> a phone — the runner records the observed environment and refuses a device verdict that contradicts your declared class.</p>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">2 · The real app (loaded below)</h2>
+    <p class="sub">This is the actual PR&nbsp;#96 app with the measurement seam enabled. Scroll its PLACE panel to the <em>planning ámbito membership</em> block if you want to watch it update. Status: <span id="appStatus" class="status">loading…</span></p>
+    <iframe id="app" title="Madrid Urban Evidence Lens (under test)"></iframe>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">3 · Run the measurements</h2>
+    <p class="sub"><span class="pill k-gesture">actual gesture</span> is the device-grade path — you physically drag/pan. <span class="pill k-auto">automated</span> drives the same production code in a loop (reproducible, but not a physical gesture). They are reported separately and never equated. <strong>AC-P0-12 PASS requires the actual-gesture runs.</strong></p>
+
+    <h3 style="font-size:14px;margin:8px 0 4px">Actual gestures (device-grade)</h3>
+    <div class="row">
+      <button id="gDrag" class="secondary">▶ Capture: marker drag</button>
+      <button id="gRadius" class="secondary">▶ Capture: radius drag</button>
+      <button id="gPan" class="secondary">▶ Capture: map pan</button>
+      <button id="gStop" disabled>■ Stop capture</button>
+    </div>
+    <p class="status" id="gStatus">Pick a capture, then keep performing that one gesture on the map above until it reaches the sample target, then Stop.</p>
+
+    <h3 style="font-size:14px;margin:14px 0 4px">Automated sequences (reproducible proxy)</h3>
+    <div class="row">
+      <button id="aAll">▶ Run all automated (drag r=900, r=5000, radius sweep)</button>
+    </div>
+    <p class="status" id="aStatus"></p>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="big" id="verdict">No results yet</div>
+      <button id="download" class="secondary" disabled>⬇ Download JSON evidence</button>
+    </div>
+    <p class="sub" id="verdictReason"></p>
+    <div style="overflow:auto"><table id="results"><thead><tr>
+      <th>Scenario</th><th>Kind</th><th>n</th><th>ITP p95 (ms)</th><th>Pan p95 (ms)</th><th>Script p95 (ms)</th><th>Fresh?</th><th>Verdict</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <details><summary>How each number is produced (honesty notes)</summary>
+      <ul>
+        <li><strong>interaction-to-paint</strong> — a <em>double-rAF proxy</em> (two frames), frame-quantised; it floors near one frame on a fast path and is <em>not</em> a true paint timestamp.</li>
+        <li><strong>script work</strong> — the synchronous wall time of the production interaction call (<code>moveLensToLatLng</code> / slider <code>oninput</code> → <code>refresh()</code>). Captured for automated runs only.</li>
+        <li><strong>pan frame time</strong> — the distribution of <code>requestAnimationFrame</code> deltas during the pan; the first (warm) frame is dropped.</li>
+        <li><strong>freshness</strong> — after the gesture settles, the whole displayed membership set (code + “contains the Lens centre” bit + language, read from <code>#planningMembership</code>’s signature) must equal the canonical <code>ambitosIntersecting</code> set right now.</li>
+        <li><strong>device-grade</strong> — a non-software GPU, a human label, an actual gesture, ≥ the sample target, and no conflict with the declared class.</li>
+      </ul>
+      Thresholds (from <code>research/runtime_spike/device_harness/thresholds.json</code>): interaction-to-paint p95 ≤ 100 ms good / ≤ 150 ms acceptable; pan frame p95 ≤ 16.7 ms good / ≤ 33.3 ms acceptable.
+    </details>
+  </div>
+</div>
+
+<script type="module">
+import * as core from "./runner_core.mjs";
+
+const qs = new URLSearchParams(location.search);
+const appPath = qs.get("app") || "../../index.html";
+const appUrl = appPath + (appPath.includes("?") ? "&" : "?") + "haloRegressionTest=1";
+const iframe = document.getElementById("app");
+iframe.src = appUrl;
+
+const $ = (id) => document.getElementById(id);
+let thresholds = null;
+let appWin = null;
+const scenarios = [];
+let capture = null;
+let baselineMode = false;
+
+// Warn early if the host cannot expose the seam.
+if (!core.isLoopbackOrPrivateLanHost(location.hostname)) {
+  const w = $("hostWarn");
+  w.hidden = false;
+  w.innerHTML = `<strong>⚠ This host (<code>${location.hostname}</code>) cannot enable the measurement seam.</strong> Serve the repo from the laptop and open this page via <code>http://localhost:PORT/…</code> (on the laptop) or <code>http://&lt;laptop-LAN-IP&gt;:PORT/…</code> (on the iPad/iPhone). A public domain will never work by design.`;
+}
+
+async function loadThresholds() {
+  const candidates = ["../runtime_spike/device_harness/thresholds.json", "./thresholds.json"];
+  for (const u of candidates) {
+    try { const r = await fetch(u); if (r.ok) return await r.json(); } catch (e) {}
+  }
+  // Last-resort inline copy (kept identical to the K12 file).
+  return { thresholds: {
+    interaction_to_paint_ms: { good_p95: 100, acceptable_p95: 150 },
+    pan_frame_ms: { good_p95: 16.7, acceptable_p95: 33.3 },
+  } };
+}
+
+async function detectCommit() {
+  if (qs.get("sha")) return qs.get("sha");
+  try { const r = await fetch("./commit.json", { cache: "no-store" }); if (r.ok) { const j = await r.json(); return j.sha || null; } } catch (e) {}
+  return null;
+}
+
+iframe.addEventListener("load", async () => {
+  try {
+    appWin = iframe.contentWindow;
+    $("appStatus").textContent = "app frame loaded — waiting for the app…";
+    const ready = await core.waitForAppReady(appWin, 90000);
+    baselineMode = ready.baseline_mode;
+    enableButtons(true);
+    if (baselineMode) {
+      $("appStatus").innerHTML = "✔ app ready in <strong>BASELINE mode</strong> (pre-feature main: no membership surface). Freshness is N/A; this is a comparison baseline, not an AC-P0-12 gate.";
+      $("aAll").disabled = true; // automated sequences need P0-a seam methods absent from main
+      $("aStatus").textContent = "Automated sequences are disabled in baseline mode (they rely on P0-a seam methods not present on main). Use the actual-gesture captures.";
+    } else {
+      $("appStatus").textContent = "✔ app ready (planning artifacts loaded; seam active).";
+    }
+  } catch (e) {
+    $("appStatus").textContent = "✖ " + e.message;
+    enableButtons(false);
+  }
+});
+
+function enableButtons(on) {
+  for (const id of ["gDrag", "gRadius", "gPan", "aAll"]) $(id).disabled = !on;
+}
+
+function env() {
+  return core.captureEnv(appWin, {
+    device_label: $("deviceLabel").value,
+    device_class_claimed: $("deviceClass").value || "unknown",
+    cache: $("cache").value,
+    network: $("network").value,
+  });
+}
+
+function requireIdentity() {
+  if (!$("deviceLabel").value.trim()) { alert("Enter a device label first."); return false; }
+  if (!$("deviceClass").value) { alert("Choose the declared device class first."); return false; }
+  return true;
+}
+
+function addScenario(s) {
+  // Replace a prior run of the same scenario id (re-runs overwrite).
+  const i = scenarios.findIndex((x) => x.scenario === s.scenario);
+  if (i >= 0) scenarios.splice(i, 1, s); else scenarios.push(s);
+  renderResults();
+}
+
+function renderResults() {
+  const tb = $("results").querySelector("tbody");
+  tb.innerHTML = "";
+  const report = buildReport();
+  for (const s of report.scenarios) {
+    const tr = document.createElement("tr");
+    const g = s.grade || {};
+    const itp = s.interaction_to_paint_ms, pan = s.pan_frame_ms, sw = s.script_work_ms;
+    const cell = (v) => (v == null ? '<span class="na">—</span>' : v);
+    const fresh = (s.freshness == null || s.freshness.applicable === false)
+      ? '<span class="na">N/A</span>'
+      : (s.freshness.fresh ? '<span class="pass">yes</span>' : '<span class="fail">STALE</span>');
+    const verdict = !g.graded ? '<span class="na">—</span>' : (g.pass ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>');
+    const kindPill = s.measurement_kind === "actual_gesture" ? '<span class="pill k-gesture">gesture</span>' : '<span class="pill k-auto">auto</span>';
+    const n = itp ? itp.n : (pan ? pan.n : "—");
+    tr.innerHTML = `<td>${s.label}</td><td>${kindPill}</td><td>${n}</td>
+      <td>${cell(itp && itp.p95)}</td><td>${cell(pan && pan.p95)}</td><td>${cell(sw && sw.p95)}</td>
+      <td>${fresh}</td><td>${verdict}</td>`;
+    tb.appendChild(tr);
+  }
+  $("verdict").textContent = report.verdict;
+  $("verdict").className = "big " + (report.verdict.startsWith("PASS") ? "pass" : report.verdict.startsWith("FAIL") || report.verdict.startsWith("REFUSED") ? "fail" : "na");
+  $("verdictReason").textContent = report.verdict_reason;
+  $("download").disabled = scenarios.length === 0;
+}
+
+function buildReport() {
+  return core.buildReport({
+    env: env(),
+    thresholds,
+    scenarios,
+    testCommit: $("sha").value.trim() || null,
+    deviceClass: $("deviceClass").value || "unknown",
+    baselineMode,
+  });
+}
+
+// ── Automated ────────────────────────────────────────────────────────────────
+$("aAll").addEventListener("click", async () => {
+  if (!requireIdentity()) return;
+  const reps = Math.max(40, Number($("minSamples").value) || 48);
+  setBusy(true);
+  try {
+    $("aStatus").textContent = "Running marker drag r=900…";
+    addScenario(await core.runAutomatedMarkerDrag(appWin, { radiusM: core.RADII.DEFAULT_M, reps, onProgress: (i, n) => ($("aStatus").textContent = `marker drag r=900 … ${i}/${n}`) }));
+    $("aStatus").textContent = "Running marker drag r=5000…";
+    addScenario(await core.runAutomatedMarkerDrag(appWin, { radiusM: core.RADII.MAX_M, reps, onProgress: (i, n) => ($("aStatus").textContent = `marker drag r=5000 … ${i}/${n}`) }));
+    $("aStatus").textContent = "Running radius sweep…";
+    addScenario(await core.runAutomatedRadiusSweep(appWin, { reps, onProgress: (i, n) => ($("aStatus").textContent = `radius sweep … ${i}/${n}`) }));
+    $("aStatus").textContent = "✔ automated sequences done.";
+  } catch (e) {
+    $("aStatus").textContent = "✖ " + e.message;
+  } finally { setBusy(false); }
+});
+
+// ── Actual gestures ───────────────────────────────────────────────────────────
+function startCapture(interaction, human) {
+  if (!requireIdentity()) return;
+  const minSamples = Math.max(40, Number($("minSamples").value) || 48);
+  capture = new core.GestureCapture(appWin, {
+    interaction, minSamples,
+    onProgress: (p) => {
+      const ok = p.samples >= p.min;
+      $("gStatus").innerHTML = `<span class="counter">${human}: ${p.samples}/${p.min} samples</span> (${p.moves} moves, ${p.frames} frames) ${ok ? "— target reached, you can Stop" : "— keep going"}`;
+    },
+  });
+  capture.start();
+  $("gStop").disabled = false;
+  for (const id of ["gDrag", "gRadius", "gPan", "aAll"]) $(id).disabled = true;
+  $("gStatus").textContent = `${human}: perform the gesture on the map above now…`;
+}
+$("gDrag").addEventListener("click", () => startCapture("marker_drag", "Marker drag"));
+$("gRadius").addEventListener("click", () => startCapture("radius_slider", "Radius drag"));
+$("gPan").addEventListener("click", () => startCapture("pan", "Map pan"));
+$("gStop").addEventListener("click", () => {
+  if (!capture) return;
+  const s = capture.stop();
+  capture = null;
+  $("gStop").disabled = true;
+  enableButtons(true);
+  if (s.error) $("gStatus").innerHTML = `⚠ NOT TESTED — ${s.error}. Nothing was counted; re-run once the gesture genuinely moves the ${s.interaction.replace("_", " ")}.`;
+  else if (s.samples_ok === false) $("gStatus").innerHTML = `⚠ recorded <strong>${(s.interaction_to_paint_ms||s.pan_frame_ms||{}).n||0}</strong> genuine samples (fewer than the target). Re-run and keep the gesture going longer.`;
+  else $("gStatus").textContent = "✔ capture recorded.";
+  addScenario(s);
+});
+
+function setBusy(b) { for (const id of ["gDrag", "gRadius", "gPan", "aAll"]) $(id).disabled = b; }
+
+$("download").addEventListener("click", () => {
+  const report = buildReport();
+  const label = (report.env.device_label || "device").replace(/[^a-z0-9]+/gi, "_").slice(0, 40);
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `AC_P0_12_${label}_${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+});
+
+(async () => {
+  thresholds = await loadThresholds();
+  const sha = await detectCommit();
+  if (sha) $("sha").value = sha;
+  enableButtons(false);
+})();
+</script>
+</body>
+</html>

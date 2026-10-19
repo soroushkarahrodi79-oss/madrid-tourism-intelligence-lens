@@ -138,51 +138,76 @@ let lensStyleController = null;
 let adminStyleController = null;
 let hospitalityStyleController = null;
 
+// [K12-R1 TEST-ONLY — issue #97] Bounded Leaflet pan optimizations, gated to a
+// loopback/private-LAN host AND an explicit ?k12opt= flag, so they are ABSENT in
+// normal use and on the public deployment. Each flag is A/B-measured on Intel UHD
+// 620 by research/ac_p0_12/auto_compare.mjs BEFORE any becomes a production default.
+// It changes no scientific geometry, data visibility, accessibility or evidence
+// semantics — only tile fetch/placement timing and tile pixel resolution.
+const k12PanOpts = (() => {
+  try {
+    if (!isLoopbackOrPrivateLanHost(window.location.hostname)) return new Set();
+    const q = new URLSearchParams(window.location.search).get("k12opt") || "";
+    return new Set(q.split(",").map((s) => s.trim()).filter(Boolean));
+  } catch (e) { return new Set(); }
+})();
+// `idle`: defer raster tile fetch/placement until the pan/zoom settles (Leaflet
+// updateWhenIdle/updateWhenZooming) — fewer mid-pan tile DOM ops, no visual loss
+// once settled.
+function k12TileOptions(opts) {
+  const o = { ...opts };
+  if (k12PanOpts.has("idle")) { o.updateWhenIdle = true; o.updateWhenZooming = false; }
+  return o;
+}
+// `noretina`: request 1× instead of 2× CARTO tiles at HiDPI — ~¼ the basemap pixels
+// to composite (explicit visual-quality trade-off; only affects keyed CARTO tiles).
+function k12CartoRetina() { return k12PanOpts.has("noretina") ? "" : "{r}"; }
+
 function createOsmBasemap() {
-  return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", k12TileOptions({
     maxZoom: 19,
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  });
+  }));
 }
 
 function createCartoBasemap(style) {
   if (!cartoBasemapKey) return createOsmBasemap();
   const url =
-    `https://basemaps.cartocdn.com/rastertiles/${style}/{z}/{x}/{y}{r}.png` +
+    `https://basemaps.cartocdn.com/rastertiles/${style}/{z}/{x}/{y}${k12CartoRetina()}.png` +
     `?key=${encodeURIComponent(cartoBasemapKey)}`;
-  return L.tileLayer(url, {
+  return L.tileLayer(url, k12TileOptions({
     maxZoom: 20,
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  });
+  }));
 }
 
 function createSatelliteBasemap() {
   const imagery = L.tileLayer(
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    {
+    k12TileOptions({
       maxZoom: 19,
       zIndex: 200,
       attribution:
         'Tiles &copy; Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
-    }
+    })
   );
 
   const transportation = L.tileLayer(
     "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",
-    {
+    k12TileOptions({
       maxZoom: 19,
       zIndex: 300,
-    }
+    })
   );
 
   const labels = L.tileLayer(
     "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
-    {
+    k12TileOptions({
       maxZoom: 19,
       zIndex: 310,
-    }
+    })
   );
 
   const hybrid = L.layerGroup([imagery, transportation, labels]);
@@ -240,6 +265,50 @@ const groups = {
   // until requested, never counted into the POI metrics.
   licences: L.layerGroup(),
 };
+
+// [K12-R1 TEST-ONLY — issue #97 / review 5571780753] `thin`: while the user is
+// actively DRAGGING the map (not zoom, not a programmatic camera move, not a marker
+// drag), hide only the POI CLUSTER ICONS so the ~195 DOM cluster markers are not
+// re-laid-out/painted during the gesture, then restore them the instant the drag
+// ends. The basemap, admin lattice and the Lens stay visible, so spatial orientation
+// is preserved; the clusters fade back in on release. A FOCUSED cluster is never
+// hidden (keyboard/screen-reader safety), and the simplification is removed on EVERY
+// termination path (dragend, inertia/moveend, zoom, blur, tab-hide, pointer/touch
+// cancel) so the map is never left in the k12-panning state. No evidence is ever
+// permanently removed. Gated/test-only until A/B-measured and UX-approved; never a
+// production default here.
+if (k12PanOpts.has("thin")) {
+  try {
+    const st = document.createElement("style");
+    st.textContent =
+      ".k12-panning .poi-cluster-icon:not(:focus){display:none!important}" +
+      ".k12-reappear .poi-cluster-icon{animation:k12ClusterFade .18s ease-out}" +
+      "@keyframes k12ClusterFade{from{opacity:0}to{opacity:1}}" +
+      "@media (prefers-reduced-motion:reduce){.k12-reappear .poi-cluster-icon{animation:none}}";
+    document.head.appendChild(st);
+    const container = () => map.getContainer();
+    let reappearTimer = null;
+    const thinOn = () => container().classList.add("k12-panning");
+    const thinOff = () => {
+      const c = container();
+      if (!c.classList.contains("k12-panning")) return;
+      c.classList.remove("k12-panning");
+      c.classList.add("k12-reappear"); // smooth fade-in (post-drag; no perf cost during pan)
+      clearTimeout(reappearTimer);
+      reappearTimer = setTimeout(() => c.classList.remove("k12-reappear"), 240);
+    };
+    map.on("dragstart", thinOn); // user map drag only
+    map.on("dragend", thinOff);
+    map.on("moveend", thinOff); // inertia end / any settle
+    map.on("zoomstart", thinOff); // a drag that becomes a zoom
+    window.addEventListener("blur", thinOff); // window/app blur mid-drag
+    document.addEventListener("visibilitychange", thinOff); // tab hidden mid-drag
+    container().addEventListener("pointercancel", thinOff, true);
+    container().addEventListener("touchcancel", thinOff, true);
+    // Expose a read-only state probe for the acceptance tests (gated flag only).
+    window.__K12_THIN__ = { active: () => container().classList.contains("k12-panning") };
+  } catch (e) {}
+}
 
 let poiPoints = [];
 let pedestrianStations = [];
@@ -1387,11 +1456,34 @@ function updateHalo() {
   updateHaloLayout();
 }
 
+// [AC-P0-12 BASELINE INSTRUMENTATION — test-only, not part of main] Permit the
+// opt-in seam on a loopback/private-LAN host so a physical device can drive the
+// real app over the LAN. Identical to the PR; mirrored+tested in runner_core.mjs.
+function isLoopbackOrPrivateLanHost(hostname) {
+  const h = String(hostname || "").toLowerCase().replace(/^\[|\]$/g, "");
+  if (h === "localhost" || h.endsWith(".localhost")) return true;
+  if (h === "::1") return true;
+  if (h.startsWith("fe80:")) return true;
+  if (/\.local$/.test(h)) return true;
+  const v4 = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const o = v4.slice(1).map(Number);
+    if (o.some((n) => n > 255)) return false;
+    if (o[0] === 127) return true;
+    if (o[0] === 10) return true;
+    if (o[0] === 192 && o[1] === 168) return true;
+    if (o[0] === 172 && o[1] >= 16 && o[1] <= 31) return true;
+    if (o[0] === 169 && o[1] === 254) return true;
+    return false;
+  }
+  return false;
+}
+
 // Browser regression tests exercise the production Leaflet renderer with
 // deterministic evidence and map geometry. The seam is opt-in by query string
 // and is absent during normal use.
 const haloRegressionRequested = new URLSearchParams(window.location.search).get("haloRegressionTest") === "1";
-const haloRegressionLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
+const haloRegressionLocal = isLoopbackOrPrivateLanHost(window.location.hostname);
 if (haloRegressionRequested && haloRegressionLocal) {
   window.__HALO_REGRESSION__ = Object.freeze({
     fixture: Object.freeze({
@@ -1652,6 +1744,12 @@ if (haloRegressionRequested && haloRegressionLocal) {
     // analytical geography was left untouched.
     lensCenters() {
       return { A: centerOf("A"), B: centerOf("B") };
+    },
+    // [AC-P0-12 BASELINE INSTRUMENTATION — test-only] read-only map centre + zoom
+    // for pan attribution. Reads Leaflet state only; no model/interaction change.
+    mapView() {
+      const c = map.getCenter();
+      return { lat: c.lat, lon: c.lng, zoom: map.getZoom() };
     },
     // Move a Lens to a GEOGRAPHIC coordinate and recompute from real data. The
     // pixel-based moveLens() above depends on the current map view, which is the

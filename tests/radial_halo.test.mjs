@@ -396,10 +396,16 @@ test("the renderer prints raw values, uses shared references, and supports metri
   assert.match(app, /halo:metricfocus/);
 });
 
-test("browser regression API requires both its query flag and a local hostname", () => {
+test("browser regression API requires both its query flag and a local/private-LAN hostname", () => {
   const app = fs.readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
   assert.match(app, /const haloRegressionRequested = new URLSearchParams\(window\.location\.search\)\.get\("haloRegressionTest"\) === "1";/);
-  assert.match(app, /const haloRegressionLocal = window\.location\.hostname === "127\.0\.0\.1" \|\| window\.location\.hostname === "localhost";/);
+  // The host gate is now a loopback/private-LAN predicate (so a physically
+  // attached iPad/iPhone reaching the laptop by its LAN IP can drive the real app
+  // for the AC-P0-12 runner), still AND-ed with the opt-in query flag. The
+  // predicate itself (loopback + RFC1918 + link-local + mDNS, public hosts
+  // refused) is exhaustively tested in tests/ac_p0_12_runner.test.mjs.
+  assert.match(app, /function isLoopbackOrPrivateLanHost\(hostname\)/);
+  assert.match(app, /const haloRegressionLocal = isLoopbackOrPrivateLanHost\(window\.location\.hostname\);/);
   assert.match(app, /if \(haloRegressionRequested && haloRegressionLocal\) \{\s*window\.__HALO_REGRESSION__ = Object\.freeze\(/);
 });
 
