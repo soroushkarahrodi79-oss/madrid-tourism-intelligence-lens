@@ -89,7 +89,11 @@ contract (`browser-tests/k12-r1-thin.browser.mjs`, 7 tests, all pass) now defend
   return reads as a settle rather than a pop.
 
 **Visual review (6 PNGs, desktop 1200×860 + tablet 834×1112, before/during/after a
-pan at the ~195-cluster scene):** during the active drag the heavy DOM **cluster
+pan):** the representative frames shown to the owner were captured at the
+production-density ~195-cluster scene (from the deploy-time `runtime_poi.json`); the
+committed acceptance test captures the same before/during/after sequence against a
+deterministic POI fixture, because that artifact is git-ignored and absent on a clean
+CI checkout. During the active drag the heavy DOM **cluster
 count-circles are hidden, but the lightweight POI dots, the admin-boundary lattice,
 the Lens circle and the panel all remain painted** — so spatial orientation is
 maintained throughout the gesture (it is **not** an abrupt blanking of the map). On
