@@ -483,7 +483,7 @@ header{
 .place-circle-reading>span{min-height:2.3em;color:#8fa5bb;font-size:var(--t-micro);line-height:1.15}
 .place-circle-reading>strong{display:block;margin-top:var(--s-1);color:#f0f7ff;font-size:var(--t-figure);line-height:1;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .place-circle-reading>strong.abstain{color:#94a6ba;font-size:var(--t-meta);line-height:1.15}
-.place-circle-reading>small{margin-top:var(--s-1);color:#74879c;font-size:var(--t-micro);line-height:1.15}
+.place-circle-reading>small{margin-top:var(--s-1);color:#9eb0c4;font-size:var(--t-micro);line-height:1.35}
 .abstain{font-size:var(--t-body)!important;letter-spacing:-.01em!important;color:#a8b6c7!important}
 
 .controlbox{margin-top:var(--s-2);padding:var(--s-3);border:1px solid var(--line);border-radius:var(--r-small);background:rgba(255,255,255,.02)}
@@ -976,6 +976,8 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .header-tools select{min-width:88px;padding:var(--s-1) var(--s-2)}
 }
 @media(max-width:420px){
+  /* Phone widths: readable evidence states without changing any canonical value. */
+  .place-circle-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .scope-rail-item{padding:var(--s-1) var(--s-2)}
   .scope-rail-freshness{}
   .mode-btn{gap:var(--s-1);padding:var(--s-1)}

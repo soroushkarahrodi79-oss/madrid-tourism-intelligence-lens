@@ -292,7 +292,7 @@ test("IA 11 the drawer carries each contributing source's ceiling VERBATIM, in b
 test("IA 12 a per-value evidence button opens the drawer and focus returns to that exact button", async (t) => {
   const page = await newPage();
   t.after(() => closePage(page));
-  const button = page.locator('.evidence-link[data-evidence-prefix="place.metric."]');
+  const button = page.locator('#withinLensHead > .evidence-link[data-evidence-prefix="place.metric."]');
   await button.focus();
   await page.keyboard.press("Enter");
   assert.equal(await page.locator("#evidenceDrawer").evaluate((n) => n.open), true);
@@ -700,6 +700,21 @@ test("P1 AC3/5/7: compact PLACE band mirrors all four canonical readings, live r
   t.after(() => closePage(page));
   await page.waitForFunction(() => document.getElementById("tourismValue").textContent.trim() !== "—");
   assert.equal(await page.locator("#placeCircleSummary").isVisible(), true);
+  // The phone summary must keep each evidence state legible in a real two-column grid,
+  // not four 75px-wide cells. Desktop and tablet retain four columns.
+  const gridGeometry = await page.locator(".place-circle-summary-grid").evaluate((node) => {
+    const columns = getComputedStyle(node).gridTemplateColumns.split(/\s+/).map(parseFloat);
+    return { columns, clientWidth: node.clientWidth, scrollWidth: node.scrollWidth };
+  });
+  assert.equal(gridGeometry.columns.length, 2, JSON.stringify(gridGeometry));
+  assert.ok(gridGeometry.columns.every((width) => width >= 125), JSON.stringify(gridGeometry));
+  assert.ok(gridGeometry.scrollWidth <= gridGeometry.clientWidth + 1, "no summary horizontal overflow");
+  const tablet = await newPage({ width: 834, height: 1112 });
+  t.after(() => closePage(tablet));
+  const tabletColumns = await tablet.locator(".place-circle-summary-grid").evaluate(
+    (node) => getComputedStyle(node).gridTemplateColumns.split(/\s+/).length,
+  );
+  assert.equal(tabletColumns, 4, "the narrow-phone fix leaves the tablet four-column summary intact");
   assert.equal(await page.locator("#modePlace .metrics").count(), 1, "the full metrics block remains in the DOM");
   const compactGeometry = await page.evaluate(() => {
     const panel = document.getElementById("analysisPanel").getBoundingClientRect();
