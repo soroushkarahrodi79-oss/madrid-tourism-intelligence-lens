@@ -266,18 +266,47 @@ const groups = {
   licences: L.layerGroup(),
 };
 
-// [K12-R1 TEST-ONLY] `thin`: hide the POI CLUSTER ICONS only WHILE actively panning
-// (movestart→moveend), restoring them the instant panning stops — so the ~195 DOM
-// cluster markers are not re-laid-out/painted during the gesture. No evidence is
-// permanently removed; this is the explicit-UX-decision lever (markers blink out
-// only during the drag). Gated/test-only until A/B-measured and UX-approved.
+// [K12-R1 TEST-ONLY — issue #97 / review 5571780753] `thin`: while the user is
+// actively DRAGGING the map (not zoom, not a programmatic camera move, not a marker
+// drag), hide only the POI CLUSTER ICONS so the ~195 DOM cluster markers are not
+// re-laid-out/painted during the gesture, then restore them the instant the drag
+// ends. The basemap, admin lattice and the Lens stay visible, so spatial orientation
+// is preserved; the clusters fade back in on release. A FOCUSED cluster is never
+// hidden (keyboard/screen-reader safety), and the simplification is removed on EVERY
+// termination path (dragend, inertia/moveend, zoom, blur, tab-hide, pointer/touch
+// cancel) so the map is never left in the k12-panning state. No evidence is ever
+// permanently removed. Gated/test-only until A/B-measured and UX-approved; never a
+// production default here.
 if (k12PanOpts.has("thin")) {
   try {
     const st = document.createElement("style");
-    st.textContent = ".k12-panning .poi-cluster-icon{display:none!important}";
+    st.textContent =
+      ".k12-panning .poi-cluster-icon:not(:focus){display:none!important}" +
+      ".k12-reappear .poi-cluster-icon{animation:k12ClusterFade .18s ease-out}" +
+      "@keyframes k12ClusterFade{from{opacity:0}to{opacity:1}}" +
+      "@media (prefers-reduced-motion:reduce){.k12-reappear .poi-cluster-icon{animation:none}}";
     document.head.appendChild(st);
-    map.on("movestart", () => map.getContainer().classList.add("k12-panning"));
-    map.on("moveend", () => map.getContainer().classList.remove("k12-panning"));
+    const container = () => map.getContainer();
+    let reappearTimer = null;
+    const thinOn = () => container().classList.add("k12-panning");
+    const thinOff = () => {
+      const c = container();
+      if (!c.classList.contains("k12-panning")) return;
+      c.classList.remove("k12-panning");
+      c.classList.add("k12-reappear"); // smooth fade-in (post-drag; no perf cost during pan)
+      clearTimeout(reappearTimer);
+      reappearTimer = setTimeout(() => c.classList.remove("k12-reappear"), 240);
+    };
+    map.on("dragstart", thinOn); // user map drag only
+    map.on("dragend", thinOff);
+    map.on("moveend", thinOff); // inertia end / any settle
+    map.on("zoomstart", thinOff); // a drag that becomes a zoom
+    window.addEventListener("blur", thinOff); // window/app blur mid-drag
+    document.addEventListener("visibilitychange", thinOff); // tab hidden mid-drag
+    container().addEventListener("pointercancel", thinOff, true);
+    container().addEventListener("touchcancel", thinOff, true);
+    // Expose a read-only state probe for the acceptance tests (gated flag only).
+    window.__K12_THIN__ = { active: () => container().classList.contains("k12-panning") };
   } catch (e) {}
 }
 
