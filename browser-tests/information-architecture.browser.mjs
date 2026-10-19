@@ -292,7 +292,7 @@ test("IA 11 the drawer carries each contributing source's ceiling VERBATIM, in b
 test("IA 12 a per-value evidence button opens the drawer and focus returns to that exact button", async (t) => {
   const page = await newPage();
   t.after(() => closePage(page));
-  const button = page.locator('.evidence-link[data-evidence-prefix="place.metric."]');
+  const button = page.locator('#withinLensHead > .evidence-link[data-evidence-prefix="place.metric."]');
   await button.focus();
   await page.keyboard.press("Enter");
   assert.equal(await page.locator("#evidenceDrawer").evaluate((n) => n.open), true);
@@ -424,7 +424,7 @@ test("IA 19 one document language: the switch re-labels the shell, drawer, rail 
   assert.match(await page.locator("#scopeRailFreshness").textContent(), /^Referencia · no publicada · Estado · /);
   assert.equal(await page.locator("#placeDetail > summary").textContent(), "Detalle");
   assert.match(await page.locator("#hatiFrameButton").textContent(), /Mostrar el piloto HATI/);
-  assert.equal(await page.locator(".left h3").first().textContent(), "Visualización del mapa");
+  assert.equal(await page.locator('.rail-group[data-rail-group="map"] .rail-group-copy').textContent(), "Visualización del mapa");
   // Hospitality surfaces follow the SAME language, with no separate selector.
   // Dictionary-backed modules load asynchronously: poll for the language, never race it.
   await page.waitForFunction(() => /Contexto de hostelería/.test(document.getElementById("hospitalityLayerName").textContent));
@@ -530,7 +530,7 @@ test("IA 20 ES: representative real surfaces in PLACE, COMPARE and CITY carry no
   assert.equal(await page.locator("#radiusSlider").getAttribute("aria-label"), "Radio de la Lente A");
   assert.equal(await page.locator("#timeSelect").getAttribute("aria-label"), "Hora del modelo HATI");
   assert.match(await page.locator("#layerSourceNote").textContent(), /Museos:/);
-  assert.equal(await page.locator(".left h3").first().textContent(), "Visualización del mapa");
+  assert.equal(await page.locator('.rail-group[data-rail-group="map"] .rail-group-copy').textContent(), "Visualización del mapa");
   assert.match(await page.locator("#stayKindFilter option").first().textContent(), /Todo el alojamiento/, "select option copy is localised");
   for (const selector of ["header", ".left", "#analysisPanel"]) assertNoEnglish(await productCopy(page, selector), `PLACE ${selector}`);
 
@@ -582,7 +582,7 @@ test("IA 20 ES: representative real surfaces in PLACE, COMPARE and CITY carry no
   assert.equal(await page.locator("#resetButton").textContent(), "Reset active lens");
   assert.equal(await page.locator("#lensBButton").textContent(), "+ Enable Lens B");
   assert.match(await page.locator("#areaScopeNote").textContent(), /Whole official barrio — not the Lens circle\./);
-  assert.equal(await page.locator(".left h3").first().textContent(), "Map display");
+  assert.equal(await page.locator('.rail-group[data-rail-group="map"] .rail-group-copy').textContent(), "Map display");
   assert.equal(await page.locator("#radiusSlider").getAttribute("aria-label"), "Lens A radius");
   assert.match(await page.locator("#tourismFoot").textContent(), /within lens|deployment snapshot|sample/);
   assert.equal(await page.locator("#timeSelect").getAttribute("aria-label"), "HATI model time");
@@ -614,33 +614,271 @@ test("IA 22 the mobile PLACE quick-jump reaches the Lens metrics, is localized, 
   const jump = page.locator("#placeJump");
   assert.notEqual(await jump.evaluate((n) => getComputedStyle(n).display), "none", "the quick-jump is shown on a narrow PLACE panel");
   const chips = (await page.locator("#placeJump .place-jump-chip").allTextContents()).map((s) => s.trim());
-  assert.deepEqual(chips, ["Within the Lens", "Detail"]);
+  assert.deepEqual(chips, ["In this Lens circle", "Detail"]);
 
-  // The four Lens figures start well below the panel fold, and one tap brings them to the top.
-  const metricsTop = () => page.evaluate(() => {
+  // One tap must reach the compact canonical projection, not bypass it for
+  // the older, deeper full-metrics section.
+  const summaryTop = () => page.evaluate(() => {
     const panel = document.getElementById("analysisPanel");
-    return document.querySelector("#modePlace .metrics").getBoundingClientRect().top - panel.getBoundingClientRect().top;
+    return document.getElementById("placeCircleSummary").getBoundingClientRect().top - panel.getBoundingClientRect().top;
   });
-  assert.ok((await metricsTop()) > 300, "the Lens metrics start far below the fold");
+  assert.ok((await summaryTop()) > 250, "compact readings are initially below the panel fold");
   await page.locator('#placeJump .place-jump-chip[data-jump="withinLens"]').click();
   await page.waitForFunction(() => {
     const panel = document.getElementById("analysisPanel");
-    return document.querySelector("#modePlace .metrics").getBoundingClientRect().top - panel.getBoundingClientRect().top < 140;
+    return document.getElementById("placeCircleSummary").getBoundingClientRect().top - panel.getBoundingClientRect().top < 140;
   });
 
   // Localized: chip text and the nav's accessible name follow the document language.
   await page.locator("#languageSelect").selectOption("es");
   const esChips = (await page.locator("#placeJump .place-jump-chip").allTextContents()).map((s) => s.trim());
-  assert.deepEqual(esChips, ["Dentro de la Lente", "Detalle"]);
+  assert.deepEqual(esChips, ["En este círculo de Lente", "Detalle"]);
   assert.equal(await jump.getAttribute("aria-label"), "Ir a una sección de este lugar");
   await page.locator("#languageSelect").selectOption("en");
 
   // Hidden outside PLACE at the same narrow width.
   await setMode(page, "COMPARE");
   assert.equal(await jump.evaluate((n) => getComputedStyle(n).display), "none", "the quick-jump is not shown outside PLACE");
+  await setMode(page, "PLACE");
+  assert.deepEqual(await page.locator("#modePlace > :is(section,div)").evaluateAll(
+    (nodes) => nodes.slice(0, 2).map((node) => node.id),
+  ), ["placeCircleSummary", "areaProfile"], "returning from COMPARE cannot bury the compact band behind the whole-barrio lead");
 
   // Hidden on desktop.
   const desktop = await newPage({ width: 1366, height: 900 });
   t.after(() => closePage(desktop));
   assert.equal(await desktop.locator("#placeJump").evaluate((n) => getComputedStyle(n).display), "none", "the quick-jump is desktop-hidden");
+});
+
+test("P1 AC1/2/6/8/10: six small-screen rail groups fit, report live state, preserve toggles, and leave desktop expanded", async (t) => {
+  const page = await newPage({ width: 375, height: 812 }, { hasTouch: true });
+  t.after(() => closePage(page));
+  assert.equal(await page.locator(".rail-group").count(), 6);
+  assert.equal(await page.locator('[data-layer]').count(), 10);
+  assert.equal(await page.locator(".rail-group[open]").count(), 0, "all groups start collapsed at <=850px");
+  assert.equal(await page.locator("#layerRail").isVisible(), false, "map-first phone hides the rail until requested");
+  assert.equal(await page.locator("#mobileLayersButton").isVisible(), true);
+  assert.equal(await page.locator("#mobileLayersButton").getAttribute("aria-expanded"), "false");
+  await page.locator("#mobileLayersButton").click();
+  assert.equal(await page.locator("#layerRail").isVisible(), true);
+  assert.equal(await page.locator("#mobileLayersButton").getAttribute("aria-expanded"), "true");
+  assert.deepEqual(await page.locator(".rail-group-badge").allTextContents(), [
+    "2 settings", "5 of 5 on", "0 of 1 on", "0 of 1 on", "0 of 2 on", "0 of 1 on",
+  ]);
+  const geometry = await page.evaluate(() => {
+    const rail = document.getElementById("layerRail");
+    const railBox = rail.getBoundingClientRect();
+    return {
+      scrollTop: rail.scrollTop,
+      clientHeight: rail.clientHeight,
+      scrollHeight: rail.scrollHeight,
+      headers: [...rail.querySelectorAll(".rail-group > summary")].map((summary) => {
+        const box = summary.getBoundingClientRect();
+        return { top: box.top - railBox.top, bottom: box.bottom - railBox.top, height: box.height };
+      }),
+    };
+  });
+  assert.equal(geometry.scrollTop, 0);
+  assert.ok(geometry.headers.every((header) => header.top >= 0 && header.bottom <= geometry.clientHeight + 1), JSON.stringify(geometry));
+  assert.ok(geometry.headers.every((header) => header.height >= 44), "every disclosure summary meets the touch floor");
+
+  const operational = page.locator('.rail-group[data-rail-group="operational"]');
+  await operational.locator(":scope > summary").click();
+  assert.equal(await operational.getAttribute("open"), "");
+  await operational.locator('[data-layer="museum"]').evaluate((node) => {
+    node.checked = false;
+    node.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  assert.equal(await operational.locator(".rail-group-badge").textContent(), "4 of 5 on");
+  await operational.locator(":scope > summary").click();
+  await operational.locator(":scope > summary").click();
+  assert.equal(await operational.locator('[data-layer="museum"]').isChecked(), false, "collapse/expand preserves layer state");
+  const administrative = page.locator('.rail-group[data-rail-group="administrative"]');
+  await administrative.locator(":scope > summary").click();
+  assert.equal(await operational.getAttribute("open"), null, "the small-screen native name group keeps one disclosure open");
+  assert.equal(await administrative.locator(".rail-group-badge").textContent(), "0 of 1 on");
+
+  const desktop = await newPage({ width: 1440, height: 900 });
+  t.after(() => closePage(desktop));
+  assert.equal(await desktop.locator("#mobileLayersButton").isVisible(), false, "desktop has no mobile Layers button");
+  assert.equal(await desktop.locator("#layerRail").isVisible(), true);
+  assert.equal(await desktop.locator(".rail-group[open]").count(), 6, "desktop groups stay expanded");
+  assert.equal(await desktop.locator('.rail-group[name="rail"]').count(), 0, "desktop is not forced into accordion behaviour");
+  assert.equal(await desktop.locator(".rail-group-content:visible").count(), 6);
+  assert.equal(await desktop.locator("#placeCircleSummary").isVisible(), false, "the compact projection does not alter the desktop reading order");
+});
+
+test("P1 AC3/5/7: compact PLACE band mirrors all four canonical readings, live radius, states and provenance", async (t) => {
+  const page = await newPage({ width: 375, height: 812 }, { hasTouch: true });
+  t.after(() => closePage(page));
+  await page.waitForFunction(() => document.getElementById("tourismValue").textContent.trim() !== "—");
+  assert.equal(await page.locator("#placeCircleSummary").isVisible(), true);
+  // The phone summary must keep each evidence state legible in a real two-column grid,
+  // not four 75px-wide cells. Desktop and tablet retain four columns.
+  const gridGeometry = await page.locator(".place-circle-summary-grid").evaluate((node) => {
+    const columns = getComputedStyle(node).gridTemplateColumns.split(/\s+/).map(parseFloat);
+    return { columns, clientWidth: node.clientWidth, scrollWidth: node.scrollWidth };
+  });
+  assert.equal(gridGeometry.columns.length, 2, JSON.stringify(gridGeometry));
+  assert.ok(gridGeometry.columns.every((width) => width >= 125), JSON.stringify(gridGeometry));
+  assert.ok(gridGeometry.scrollWidth <= gridGeometry.clientWidth + 1, "no summary horizontal overflow");
+  const tablet = await newPage({ width: 834, height: 1112 });
+  t.after(() => closePage(tablet));
+  const tabletColumns = await tablet.locator(".place-circle-summary-grid").evaluate(
+    (node) => getComputedStyle(node).gridTemplateColumns.split(/\s+/).length,
+  );
+  assert.equal(tabletColumns, 4, "the narrow-phone fix leaves the tablet four-column summary intact");
+  assert.equal(await page.locator("#modePlace .metrics").count(), 1, "the full metrics block remains in the DOM");
+  const compactGeometry = await page.evaluate(() => {
+    const panel = document.getElementById("analysisPanel").getBoundingClientRect();
+    const summary = document.getElementById("placeCircleSummary").getBoundingClientRect();
+    return { panelHeight: panel.height, summaryBottomFromPanelTop: summary.bottom - panel.top };
+  });
+  assert.ok(
+    compactGeometry.summaryBottomFromPanelTop <= compactGeometry.panelHeight * 2,
+    `the four compact readings are reachable within one panel-height scroll: ${JSON.stringify(compactGeometry)}`,
+  );
+  const pairs = await page.evaluate(() => [
+    ["tourismValue", "tourismFoot", "placeCircleTourismValue", "placeCircleTourismState"],
+    ["stayValue", "stayFoot", "placeCircleStayValue", "placeCircleStayState"],
+    ["mobilityValue", "mobilityFoot", "placeCircleMobilityValue", "placeCircleMobilityState"],
+    ["heatValue", "heatFoot", "placeCircleHeatValue", "placeCircleHeatState"],
+  ].map((ids) => ids.map((id) => document.getElementById(id).textContent.trim())));
+  for (const [sourceValue, sourceState, compactValue, compactState] of pairs) {
+    assert.equal(compactValue, sourceValue);
+    assert.equal(compactState, sourceState);
+  }
+  assert.equal(pairs[3][0], "Off", "canonical HATI OFF survives compression");
+
+  await page.evaluate(() => {
+    const slider = document.getElementById("radiusSlider");
+    slider.value = "1400";
+    slider.oninput({ target: slider });
+  });
+  assert.match(await page.locator("#placeCircleSummaryRadius").textContent(), /1\.4 km radius/);
+  assert.equal((await page.locator("#placeCircleSummaryRadius").textContent()).includes(await page.locator("#radiusText").textContent()), true);
+
+  await page.evaluate(() => {
+    const value = document.getElementById("tourismValue");
+    value.textContent = "0";
+    value.className = "metric-value";
+    document.getElementById("tourismFoot").textContent = "observed zero";
+    const unavailable = document.getElementById("stayValue");
+    unavailable.textContent = "No data";
+    unavailable.className = "metric-value abstain";
+    document.getElementById("stayFoot").textContent = "source unavailable";
+    window.renderCircleSummary();
+  });
+  assert.equal(await page.locator("#placeCircleTourismValue").textContent(), "0", "zero stays zero");
+  assert.equal((await page.locator("#placeCircleTourismValue").getAttribute("class")) || "", "", "zero is not styled as abstention");
+  assert.equal(await page.locator("#placeCircleStayValue").textContent(), "No data");
+  assert.match(await page.locator("#placeCircleStayValue").getAttribute("class"), /abstain/, "unavailable stays distinct from zero");
+
+  await page.locator("#placeCircleSummary .evidence-link").click();
+  assert.equal(await page.locator("#evidenceDrawer").evaluate((node) => node.open), true, "provenance is reachable from the band");
+  assert.match(await page.locator("#evidenceDrawerBody").textContent(), /Tourism POIs|Hotels & stays|Mobility nodes|Mean UTCI/);
+  await page.keyboard.press("Escape");
+
+  await page.locator("#languageSelect").selectOption("es");
+  assert.equal(await page.locator("#placeCircleSummary .place-circle-summary-head > span").first().textContent(), "En este círculo de Lente");
+  assert.match(await page.locator("#placeCircleSummaryRadius").textContent(), /de radio/);
+  assert.equal(await page.locator('.rail-group[data-rail-group="operational"] .rail-group-badge').textContent(), "5 de 5 activas");
+  assert.equal(await page.locator("#mobileLayersButton").textContent(), "☷Capas");
+  assert.equal(await page.locator("#mobileLayersButton").getAttribute("aria-label"), "Mostrar capas del mapa");
+});
+
+
+test("P1 map-first: explicit phone layer drawer, Escape, outside tap and responsive restoration preserve layer state", async (t) => {
+  const page = await newPage({ width: 375, height: 812 }, { hasTouch: true });
+  t.after(() => closePage(page));
+  const toggle = page.locator("#mobileLayersButton");
+  const rail = page.locator("#layerRail");
+  assert.equal(await rail.isVisible(), false);
+  assert.equal(await toggle.getAttribute("aria-controls"), "layerRail");
+  assert.ok((await toggle.boundingBox()).height >= 44);
+  const before = await page.locator("[data-layer]").evaluateAll((nodes) => nodes.map((n) => [n.dataset.layer, n.checked]));
+  await toggle.click();
+  assert.equal(await rail.isVisible(), true);
+  await rail.locator('.rail-group[data-rail-group="operational"] > summary').click();
+  await rail.locator('[data-layer="museum"]').evaluate((node) => {
+    node.checked = false;
+    node.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await rail.locator('.rail-group[data-rail-group="operational"] > summary').focus();
+  await page.keyboard.press("Escape");
+  assert.equal(await rail.isVisible(), false);
+  assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "mobileLayersButton");
+  await toggle.click();
+  assert.equal(await rail.locator('[data-layer="museum"]').isChecked(), false);
+  // The first map click dismisses the rail, without reaching Leaflet or moving Lens.
+  const mapBefore = await page.evaluate(() => window.__HALO_REGRESSION__.lensCenters());
+  const reachedMap = await page.evaluate(() => {
+    const map = document.getElementById("map");
+    let fired = false;
+    map.addEventListener("click", () => { fired = true; }, { once: true });
+    map.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    return fired;
+  });
+  assert.equal(reachedMap, false, "dismissal click is consumed before it reaches Leaflet");
+  assert.equal(await rail.isVisible(), false);
+  assert.deepEqual(await page.evaluate(() => window.__HALO_REGRESSION__.lensCenters()), mapBefore);
+  await toggle.click();
+  await page.locator("#modeNav").click({ position: { x: 4, y: 4 } });
+  assert.equal(await rail.isVisible(), false, "other controls close the rail without hijacking their click");
+  await page.setViewportSize({ width: 834, height: 1112 });
+  // MediaQueryList change is asynchronous after setViewportSize in Chromium.
+  await page.waitForFunction(() => window.innerWidth > 560 && !document.getElementById("layerRail").hidden);
+  assert.equal(await rail.isVisible(), true, "tablet displays the rail without the phone button");
+  assert.equal(await toggle.isVisible(), false);
+  assert.equal(await rail.locator('[data-layer="museum"]').isChecked(), false, "resize preserves data-layer state");
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.waitForFunction(() => window.innerWidth <= 560 && document.getElementById("layerRail").hidden);
+  assert.equal(await rail.isVisible(), false, "returning to phone restores the map-first initial state");
+  assert.equal((await page.locator("[data-layer]").evaluateAll((nodes) => nodes.map((n) => [n.dataset.layer, n.checked]))).length, before.length);
+});
+
+test("P1 Leaflet credits: map attribution links remain navigable but never inherit 44px product targets", async (t) => {
+  const page = await newPage({ width: 375, height: 812 }, { hasTouch: true });
+  t.after(() => closePage(page));
+  const links = page.locator(".leaflet-control-attribution a[href]");
+  assert.ok(await links.count() > 0);
+  const geometry = await links.evaluateAll((nodes) => nodes.map((el) => ({
+    display: getComputedStyle(el).display,
+    width: el.getBoundingClientRect().width,
+    height: el.getBoundingClientRect().height,
+    href: el.href,
+  })));
+  assert.ok(geometry.every((row) => row.display === "inline"), JSON.stringify(geometry));
+  assert.ok(geometry.every((row) => row.width < 150 && row.height < 44 && row.href.startsWith("http")), JSON.stringify(geometry));
+  const attribution = await page.locator(".leaflet-control-attribution").boundingBox();
+  assert.ok(attribution && attribution.height < 90, JSON.stringify(attribution));
+});
+test("P1 AC4: quick-jump controls meet 44px with a coarse pointer", async (t) => {
+  const page = await newPage({ width: 375, height: 812 }, { hasTouch: true });
+  t.after(() => closePage(page));
+  const heights = await page.locator(".place-jump-chip").evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().height));
+  assert.equal(heights.length, 2);
+  assert.ok(heights.every((height) => height >= 44), heights.join(", "));
+});
+
+test("P1 AC9: the first two keyboard stops are visible skip links and Leaflet markers remain keyboard-accessible", async (t) => {
+  const page = await newPage({ width: 375, height: 812 });
+  t.after(() => closePage(page));
+  await page.keyboard.press("Tab");
+  assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("href")), "#analysisPanel");
+  const firstBox = await page.locator('.skip-link[href="#analysisPanel"]').boundingBox();
+  assert.ok(firstBox && firstBox.width > 1 && firstBox.height >= 44, "first skip link is visible on focus");
+  await page.keyboard.press("Enter");
+  assert.equal(await page.evaluate(() => document.activeElement?.id), "analysisPanel");
+
+  const second = await newPage({ width: 375, height: 812 });
+  t.after(() => closePage(second));
+  await second.keyboard.press("Tab");
+  await second.keyboard.press("Tab");
+  assert.equal(await second.evaluate(() => document.activeElement?.getAttribute("href")), "#layerRail");
+  await second.keyboard.press("Enter");
+  assert.equal(await second.evaluate(() => document.activeElement?.id), "layerRail");
+  assert.equal(await second.locator("#layerRail").isVisible(), true, "skip-link opens hidden mobile layer rail");
+  assert.ok(await second.locator('.leaflet-marker-icon[tabindex="0"]').count() > 0, "map marker keyboard access is unchanged");
 });

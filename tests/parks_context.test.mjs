@@ -7,8 +7,8 @@ const app = fs.readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
 const builder = fs.readFileSync(new URL("../scripts/build_runtime_poi.mjs", import.meta.url), "utf8");
 
 test("principal parks are a distinct context layer and off by default", () => {
-  assert.match(html, /<span>Context<\/span>/);
-  assert.match(html, /<small>not in metrics<\/small>/);
+  assert.match(html, /data-i18n="aside\.context">Context<\/span>/);
+  assert.match(html, /data-i18n="aside\.contextNote">not in metrics<\/p>/);
   assert.match(html, /Principal parks/);
   assert.match(html, /data-layer="park" type="checkbox"/);
   assert.doesNotMatch(html, /data-layer="park" type="checkbox" checked/);

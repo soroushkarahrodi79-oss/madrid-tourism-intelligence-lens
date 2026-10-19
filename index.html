@@ -6,9 +6,11 @@
 <title>Madrid Urban Evidence Lens</title>
 <meta name="description" content="A place-first, source-disciplined lens for Madrid: read what official sources document about the city and the limits of that evidence. Urban development is the authorized next organising frame; tourism remains a documented domain. Not real-time; not a recommendation engine.">
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261015-1">
+<link rel="stylesheet" href="css/app.css?v=20261020-mapfirst">
 </head>
 <body>
+<a class="sr-only skip-link" href="#analysisPanel" data-i18n="a11y.skipToPanel">Skip to the analysis panel</a>
+<a class="sr-only skip-link" href="#layerRail" data-i18n="a11y.skipToLayers">Skip to the map layers</a>
 <div id="map"></div>
 
 <header>
@@ -25,9 +27,12 @@
   </div>
 </header>
 
-<aside class="left">
-  <h3>Map display</h3>
-  <div class="map-display">
+<!-- Phone map-first entry; the complete rail is unchanged and shown on request. -->
+<button type="button" id="mobileLayersButton" class="mobile-layers-button" aria-expanded="false" aria-controls="layerRail" data-i18n-attr="aria-label:aside.openLayers"><span aria-hidden="true">☷</span><span data-i18n="aside.mobileLayers">Layers</span></button>
+<aside class="left" id="layerRail" tabindex="-1" aria-label="Map layers" data-i18n-attr="aria-label:a11y.layersLandmark">
+  <details class="rail-group" data-rail-group="map" name="rail" open>
+    <summary><span class="rail-group-copy"><span data-i18n="aside.map">Map display</span></span><span class="rail-group-badge" data-rail-settings="2"></span></summary>
+    <div class="rail-group-content map-display">
     <div class="basemap-control">
       <label for="basemapSelect" data-i18n="aside.basemap">Base map</label>
       <select id="basemapSelect" aria-label="Base map">
@@ -44,82 +49,90 @@
         <option value="barrio">All barrio outlines</option>
       </select>
     </div>
-  </div>
-  <h3>Operational layers</h3>
-  <div class="layer"><div class="layer-left"><i class="dot dot-museum"></i><span data-i18n="layer.museum">Museums</span></div><label class="switch"><input data-layer="museum" type="checkbox" checked><span></span></label></div>
-  <div class="layer"><div class="layer-left"><i class="dot dot-stay"></i><span data-i18n="layer.stay">Hotels & stays</span></div><label class="switch"><input data-layer="stay" type="checkbox" checked><span></span></label></div>
-  <div class="stay-filter">
-    <label for="stayKindFilter" data-i18n="aside.accommodation">Accommodation category</label>
-    <select id="stayKindFilter" aria-label="Accommodation category">
-      <option value="all" data-label="All accommodation" selected>All accommodation</option>
-      <option value="hotel" data-kind="hotel" data-label="Hotels">Hotels</option>
-      <option value="hostal" data-kind="hostal" data-label="Hostales">Hostales</option>
-      <option value="apartment" data-kind="apartment" data-label="Apartahotels / apartments">Apartahotels / apartments</option>
-      <option value="hostel" data-kind="hostel" data-label="Albergues">Albergues</option>
-      <option value="guest" data-kind="guest" data-label="Pensions / guest houses">Pensions / guest houses</option>
-      <option value="residence" data-kind="residence" data-label="Student residences">Student residences</option>
-      <option value="camping" data-kind="camping" data-label="Camping">Camping</option>
-      <option value="other" data-kind="other" data-label="Other / unclassified">Other / unclassified</option>
-    </select>
-  </div>
-  <div class="layer"><div class="layer-left"><i class="dot dot-bike"></i>BiciMAD</div><label class="switch"><input data-layer="bike" type="checkbox" checked><span></span></label></div>
-  <div class="layer"><div class="layer-left"><i class="dot dot-rail"></i>Metro & Cercanías</div><label class="switch"><input data-layer="rail" type="checkbox" checked><span></span></label></div>
-  <div class="layer"><div class="layer-left"><i class="dot dot-info"></i><span data-i18n="layer.info">Tourist info</span></div><label class="switch"><input data-layer="info" type="checkbox" checked><span></span></label></div>
+    </div>
+  </details>
 
-  <!-- Administrative register (K9, #71). Placed directly under the operational
-       layers — not buried below Observed activity / Context / Research — so the
-       granted-licence toggle is reachable without deep scrolling in the narrow
-       floating rail on small screens. It stays its own labelled group and OFF by
-       default; promoting its position never enables its data. -->
-  <div class="administrative-divider">
-    <span data-i18n="aside.administrative">Administrative register</span>
-    <small data-i18n="aside.administrativeNote">granted ≠ built</small>
-  </div>
-  <div class="layer administrative-layer"><div class="layer-left"><i class="dot dot-licence"></i><span data-i18n="layer.licences">Granted urban licences</span></div><label class="switch"><input data-layer="licences" type="checkbox" aria-label="Toggle the granted urban-licence register" data-i18n-attr="aria-label:lic.toggleAria" aria-checked="false"><span></span></label></div>
-
-  <div class="activity-divider">
-    <span>Observed activity</span>
-    <small>not tourism-specific</small>
-  </div>
-  <div class="layer activity-layer"><div class="layer-left"><i class="dot dot-pedestrian"></i><span data-i18n="layer.pedestrian">Pedestrian counters</span></div><label class="switch"><input data-layer="pedestrian" type="checkbox" aria-label="Toggle observed pedestrian activity" aria-checked="false"><span></span></label></div>
-
-  <div class="context-divider">
-    <span>Context</span>
-    <small>not in metrics</small>
-  </div>
-  <div class="layer context-layer"><div class="layer-left"><i class="dot dot-park"></i><span data-i18n="layer.park">Principal parks</span></div><label class="switch"><input data-layer="park" type="checkbox" aria-label="Toggle principal municipal parks"><span></span></label></div>
-  <div id="hospitalityLayerRow" class="layer context-layer hospitality-layer"><div class="layer-left"><i class="dot hospitality-dot"></i><span id="hospitalityLayerName">Contexto de hostelería y actividad comercial</span></div><label class="switch"><input id="hospitalityToggle" data-layer="hospitality" type="checkbox" aria-label="Mostrar contexto de hostelería y actividad comercial" aria-checked="false"><span></span></label></div>
-  <div class="layer-panel">
-    <div id="hospitalityControls" class="hospitality-controls" hidden>
-      <label id="hospitalityMetricLabel" for="hospitalityMetricSelect">Métrica</label>
-      <div class="hospitality-select-wrap">
-        <span id="hospitalityMetricSelectValue" class="hospitality-select-value" aria-hidden="true"></span>
-        <select id="hospitalityMetricSelect" aria-labelledby="hospitalityMetricLabel"></select>
+  <details class="rail-group" data-rail-group="operational" name="rail" open>
+    <summary><span class="rail-group-copy"><span data-i18n="aside.layers">Operational layers</span></span><span class="rail-group-badge" data-rail-badge></span></summary>
+    <div class="rail-group-content">
+      <div class="layer"><div class="layer-left"><i class="dot dot-museum"></i><span data-i18n="layer.museum">Museums</span></div><label class="switch"><input data-layer="museum" type="checkbox" checked><span></span></label></div>
+      <div class="layer"><div class="layer-left"><i class="dot dot-stay"></i><span data-i18n="layer.stay">Hotels & stays</span></div><label class="switch"><input data-layer="stay" type="checkbox" checked><span></span></label></div>
+      <div class="stay-filter">
+        <label for="stayKindFilter" data-i18n="aside.accommodation">Accommodation category</label>
+        <select id="stayKindFilter" aria-label="Accommodation category">
+          <option value="all" data-label="All accommodation" selected>All accommodation</option>
+          <option value="hotel" data-kind="hotel" data-label="Hotels">Hotels</option>
+          <option value="hostal" data-kind="hostal" data-label="Hostales">Hostales</option>
+          <option value="apartment" data-kind="apartment" data-label="Apartahotels / apartments">Apartahotels / apartments</option>
+          <option value="hostel" data-kind="hostel" data-label="Albergues">Albergues</option>
+          <option value="guest" data-kind="guest" data-label="Pensions / guest houses">Pensions / guest houses</option>
+          <option value="residence" data-kind="residence" data-label="Student residences">Student residences</option>
+          <option value="camping" data-kind="camping" data-label="Camping">Camping</option>
+          <option value="other" data-kind="other" data-label="Other / unclassified">Other / unclassified</option>
+        </select>
       </div>
-      <div id="hospitalityScale" class="hospitality-scale" aria-live="polite"></div>
-      <p id="hospitalitySelectorHint" class="hospitality-selector-hint">Polígonos oficiales de barrio · no se calcula dentro del círculo Lens</p>
+      <div class="layer"><div class="layer-left"><i class="dot dot-bike"></i>BiciMAD</div><label class="switch"><input data-layer="bike" type="checkbox" checked><span></span></label></div>
+      <div class="layer"><div class="layer-left"><i class="dot dot-rail"></i>Metro & Cercanías</div><label class="switch"><input data-layer="rail" type="checkbox" checked><span></span></label></div>
+      <div class="layer"><div class="layer-left"><i class="dot dot-info"></i><span data-i18n="layer.info">Tourist info</span></div><label class="switch"><input data-layer="info" type="checkbox" checked><span></span></label></div>
+      <div id="layerSourceNote" class="layer-source-note"></div>
     </div>
-  </div>
+  </details>
 
-  <div class="research-divider">
-    <span>Research evidence</span>
-    <small>bounded pilot</small>
-  </div>
-  <div class="layer research-layer"><div class="layer-left"><i class="dot dot-heat"></i><span data-i18n="layer.hati">HATI · thermal pilot</span></div><label class="switch"><input data-layer="heat" type="checkbox" aria-label="Toggle HATI thermal pilot" aria-checked="false"><span></span></label></div>
-  <button type="button" id="hatiFrameButton" class="layer-action" data-i18n="hati.frame">Show HATI pilot on the map</button>
-
-  <div id="layerSourceNote" class="layer-source-note"></div>
-  <div id="hatiEvidenceDetails" hidden>
-    <div class="heat-scale"></div>
-    <div class="scale-labels"><span>32°C</span><span>38</span><span>46+</span></div>
-    <div class="evidence-note" data-i18n-html="hati.note">
-      <b>Evidence ceiling</b><br>
-      HATI UTCI is <b>model-derived</b> (SOLWEIG), not measured comfort. Bounded to the locked 21 Aug 2023 Madrid pilot; no interpolation beyond the 14 sampled outdoor assets.<br><br>The dashed orange rectangle marks the original ≈3.5 km² HATI study-area boundary. It is <b>not</b> a continuous heat surface.
+  <details class="rail-group" data-rail-group="administrative" name="rail" open>
+    <summary><span class="rail-group-copy"><span data-i18n="aside.administrative">Administrative register</span></span><span class="rail-group-badge" data-rail-badge></span></summary>
+    <div class="rail-group-content">
+      <p class="rail-group-note" data-i18n="aside.administrativeNote">granted ≠ built</p>
+      <div class="layer administrative-layer"><div class="layer-left"><i class="dot dot-licence"></i><span data-i18n="layer.licences">Granted urban licences</span></div><label class="switch"><input data-layer="licences" type="checkbox" aria-label="Toggle the granted urban-licence register" data-i18n-attr="aria-label:lic.toggleAria" aria-checked="false"><span></span></label></div>
     </div>
-  </div>
+  </details>
+
+  <details class="rail-group" data-rail-group="observed" name="rail" open>
+    <summary><span class="rail-group-copy"><span data-i18n="aside.observed">Observed activity</span></span><span class="rail-group-badge" data-rail-badge></span></summary>
+    <div class="rail-group-content">
+      <p class="rail-group-note" data-i18n="aside.observedNote">not tourism-specific</p>
+      <div class="layer activity-layer"><div class="layer-left"><i class="dot dot-pedestrian"></i><span data-i18n="layer.pedestrian">Pedestrian counters</span></div><label class="switch"><input data-layer="pedestrian" type="checkbox" aria-label="Toggle observed pedestrian activity" aria-checked="false"><span></span></label></div>
+    </div>
+  </details>
+
+  <details class="rail-group" data-rail-group="context" name="rail" open>
+    <summary><span class="rail-group-copy"><span data-i18n="aside.context">Context</span></span><span class="rail-group-badge" data-rail-badge></span></summary>
+    <div class="rail-group-content">
+      <p class="rail-group-note" data-i18n="aside.contextNote">not in metrics</p>
+      <div class="layer context-layer"><div class="layer-left"><i class="dot dot-park"></i><span data-i18n="layer.park">Principal parks</span></div><label class="switch"><input data-layer="park" type="checkbox" aria-label="Toggle principal municipal parks"><span></span></label></div>
+      <div id="hospitalityLayerRow" class="layer context-layer hospitality-layer"><div class="layer-left"><i class="dot hospitality-dot"></i><span id="hospitalityLayerName">Contexto de hostelería y actividad comercial</span></div><label class="switch"><input id="hospitalityToggle" data-layer="hospitality" type="checkbox" aria-label="Mostrar contexto de hostelería y actividad comercial" aria-checked="false"><span></span></label></div>
+      <div class="layer-panel">
+        <div id="hospitalityControls" class="hospitality-controls" hidden>
+          <label id="hospitalityMetricLabel" for="hospitalityMetricSelect">Métrica</label>
+          <div class="hospitality-select-wrap">
+            <span id="hospitalityMetricSelectValue" class="hospitality-select-value" aria-hidden="true"></span>
+            <select id="hospitalityMetricSelect" aria-labelledby="hospitalityMetricLabel"></select>
+          </div>
+          <div id="hospitalityScale" class="hospitality-scale" aria-live="polite"></div>
+          <p id="hospitalitySelectorHint" class="hospitality-selector-hint">Polígonos oficiales de barrio · no se calcula dentro del círculo Lens</p>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <details class="rail-group" data-rail-group="research" name="rail" open>
+    <summary><span class="rail-group-copy"><span data-i18n="aside.research">Research evidence</span></span><span class="rail-group-badge" data-rail-badge></span></summary>
+    <div class="rail-group-content">
+      <p class="rail-group-note" data-i18n="aside.researchNote">bounded pilot</p>
+      <div class="layer research-layer"><div class="layer-left"><i class="dot dot-heat"></i><span data-i18n="layer.hati">HATI · thermal pilot</span></div><label class="switch"><input data-layer="heat" type="checkbox" aria-label="Toggle HATI thermal pilot" aria-checked="false"><span></span></label></div>
+      <button type="button" id="hatiFrameButton" class="layer-action" data-i18n="hati.frame">Show HATI pilot on the map</button>
+      <div id="hatiEvidenceDetails" hidden>
+        <div class="heat-scale"></div>
+        <div class="scale-labels"><span>32°C</span><span>38</span><span>46+</span></div>
+        <div class="evidence-note" data-i18n-html="hati.note">
+          <b>Evidence ceiling</b><br>
+          HATI UTCI is <b>model-derived</b> (SOLWEIG), not measured comfort. Bounded to the locked 21 Aug 2023 Madrid pilot; no interpolation beyond the 14 sampled outdoor assets.<br><br>The dashed orange rectangle marks the original ≈3.5 km² HATI study-area boundary. It is <b>not</b> a continuous heat surface.
+        </div>
+      </div>
+    </div>
+  </details>
 </aside>
 
-<section class="panel" id="analysisPanel" data-mode="PLACE" aria-label="Spatial analysis panel">
+<section class="panel" id="analysisPanel" data-mode="PLACE" aria-label="Spatial analysis panel" tabindex="-1">
   <button id="panelResizeHandle" class="panel-resize-handle" type="button" aria-label="Resize analysis panel" title="Drag to resize · double-click to reset"></button>
   <div class="status"><span id="liveBadge" class="live"><i></i><span>Loading spatial sources…</span></span><small>Central Madrid<br>v0.1</small></div>
 
@@ -142,7 +155,7 @@
          add no evidence, hide nothing and change no reading order; on wide
          screens and outside PLACE they are display:none. -->
     <nav id="placeJump" class="place-jump" aria-label="Jump to a section of this place" data-i18n-attr="aria-label:place.jumpAria">
-      <button type="button" class="place-jump-chip" data-jump="withinLens" data-i18n="sec.withinLens">Within the Lens</button>
+      <button type="button" class="place-jump-chip" data-jump="withinLens" data-i18n="place.circleSummary">In this Lens circle</button>
       <button type="button" class="place-jump-chip" data-jump="detail" data-i18n="sec.detail">Detail</button>
     </nav>
     <section id="scopeRail" class="scope-rail" aria-label="Scope and freshness of the evidence on screen">
@@ -154,6 +167,19 @@
 
   <!-- ============================== PLACE ============================== -->
   <div id="modePlace" class="mode-section" data-mode-section="PLACE">
+    <section id="placeCircleSummary" class="place-circle-summary" aria-label="Summary of the four readings inside this Lens circle" data-i18n-attr="aria-label:place.circleSummaryAria">
+      <div class="place-circle-summary-head">
+        <span data-i18n="place.circleSummary">In this Lens circle</span>
+        <span id="placeCircleSummaryRadius" data-i18n="place.circleSummaryRadius">◎ 900 m radius</span>
+        <button type="button" class="evidence-link" data-evidence-prefix="place.metric." data-evidence-name="place.circleSummary" aria-haspopup="dialog"><span aria-hidden="true">i</span></button>
+      </div>
+      <div class="place-circle-summary-grid">
+        <div class="place-circle-reading"><span data-i18n="metric.tourism">Tourism POIs</span><strong id="placeCircleTourismValue">—</strong><small id="placeCircleTourismState">—</small></div>
+        <div class="place-circle-reading"><span data-i18n="metric.stays">Hotels &amp; stays</span><strong id="placeCircleStayValue">—</strong><small id="placeCircleStayState">—</small></div>
+        <div class="place-circle-reading"><span data-i18n="metric.mobility">Mobility nodes</span><strong id="placeCircleMobilityValue">—</strong><small id="placeCircleMobilityState">—</small></div>
+        <div class="place-circle-reading"><span data-i18n="metric.utci">Mean UTCI</span><strong id="placeCircleHeatValue">—</strong><small id="placeCircleHeatState">—</small></div>
+      </div>
+    </section>
     <!-- LEAD ANSWER: the place the Lens centre sits in, and what the official
          registers say about that whole barrio. -->
   <section id="areaProfile" class="area" aria-label="Administrative area of the active lens">
@@ -816,6 +842,6 @@
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20261015-1"></script>
+<script src="js/app.js?v=20261020-mapfirst"></script>
 </body>
 </html>

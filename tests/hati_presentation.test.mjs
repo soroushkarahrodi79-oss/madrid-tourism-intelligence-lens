@@ -5,7 +5,7 @@ import test from "node:test";
 const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
 test("HATI is presented as research evidence, not an operational layer", () => {
-  assert.match(html, /<h3>Operational layers<\/h3>/);
+  assert.match(html, /data-i18n="aside\.layers">Operational layers<\/span>/);
   assert.match(html, /Research evidence/);
   assert.match(html, /HATI · thermal pilot/);
   assert.doesNotMatch(html, />HATI UTCI samples</);

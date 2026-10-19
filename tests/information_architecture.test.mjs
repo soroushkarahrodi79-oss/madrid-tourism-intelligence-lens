@@ -475,6 +475,26 @@ test("J: the old provenance-deleting rules are gone", () => {
   assert.match(css, /@media\(pointer:coarse\)\{[\s\S]*?\.mode-btn[\s\S]*?min-height:44px/);
 });
 
+test("P1: compact Lens summary is additive, precedes the administrative lead, and projects canonical readings", () => {
+  const summaryAt = html.indexOf('id="placeCircleSummary"');
+  const areaAt = html.indexOf('id="areaProfile"');
+  const fullMetricsAt = html.indexOf('<div class="metrics">');
+  assert.ok(summaryAt > 0 && summaryAt < areaAt && areaAt < fullMetricsAt, "summary precedes the existing reading order without replacing it");
+  for (const id of ["tourismValue", "stayValue", "mobilityValue", "heatValue"]) assert.match(html, new RegExp(`id="${id}"`));
+  for (const id of ["placeCircleTourismValue", "placeCircleStayValue", "placeCircleMobilityValue", "placeCircleHeatValue"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(app, /\["tourismValue", "tourismFoot", "placeCircleTourismValue", "placeCircleTourismState"\]/);
+  assert.match(app, /targetValue\.textContent = sourceValue\.textContent/);
+  assert.match(app, /targetState\.textContent = sourceState\.textContent/);
+  assert.match(app, /placeCircleSummaryRadius/);
+});
+
+test("P1: live rail badges are derived only from the existing checked switches", () => {
+  assert.match(app, /group\.querySelectorAll\("input\[data-layer\]"\)/);
+  assert.match(app, /toggles\.filter\(\(toggle\) => toggle\.checked\)\.length/);
+  assert.match(app, /aside\.groupBadge/);
+  assert.doesNotMatch(html.slice(html.indexOf('id="layerRail"'), html.indexOf('<section class="panel"')), /11,265|1,470|724/);
+});
+
 // ------------------------------------------------------------ structure rules
 
 test("structure: controls are never between results and the panel keeps one reading order", () => {
