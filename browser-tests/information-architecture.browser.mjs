@@ -811,11 +811,21 @@ test("P1 map-first: explicit phone layer drawer, Escape, outside tap and respons
   assert.equal(await page.evaluate(() => document.activeElement.id), "mobileLayersButton");
   await toggle.click();
   assert.equal(await rail.locator('[data-layer="museum"]').isChecked(), false);
-  // Closing the drawer must not call a map click handler or reposition the Lens.
+  // The first map click dismisses the rail, without reaching Leaflet or moving Lens.
   const mapBefore = await page.evaluate(() => window.__HALO_REGRESSION__.lensCenters());
-  await page.locator("#modeNav").click({ position: { x: 4, y: 4 } });
+  const reachedMap = await page.evaluate(() => {
+    const map = document.getElementById("map");
+    let fired = false;
+    map.addEventListener("click", () => { fired = true; }, { once: true });
+    map.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    return fired;
+  });
+  assert.equal(reachedMap, false, "dismissal click is consumed before it reaches Leaflet");
   assert.equal(await rail.isVisible(), false);
   assert.deepEqual(await page.evaluate(() => window.__HALO_REGRESSION__.lensCenters()), mapBefore);
+  await toggle.click();
+  await page.locator("#modeNav").click({ position: { x: 4, y: 4 } });
+  assert.equal(await rail.isVisible(), false, "other controls close the rail without hijacking their click");
   await page.setViewportSize({ width: 834, height: 1112 });
   assert.equal(await rail.isVisible(), true, "tablet displays the rail without the phone button");
   assert.equal(await toggle.isVisible(), false);

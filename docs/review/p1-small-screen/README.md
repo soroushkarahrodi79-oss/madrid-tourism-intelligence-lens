@@ -51,3 +51,8 @@ The old PNGs above still describe earlier commits. Fresh browser screenshots,
 physical Safari, human usability and assistive-technology validation remain
 separate sign-off gates. No source, HATI, data builder, scope, score, algorithm,
 geometry, Lens camera behaviour or public-production gate is changed.
+
+**Outside-map dismissal safety:** the first click on the map while the mobile
+rail is open is consumed after closing that rail, so it cannot also select a
+different Lens centre. A second deliberate map click retains normal behavior.
+This is an interaction guard, not a change to the map renderer or camera API.

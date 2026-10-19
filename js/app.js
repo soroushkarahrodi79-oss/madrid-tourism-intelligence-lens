@@ -5629,12 +5629,18 @@ mobileRailButton.addEventListener("click", () => setMobileRailOpen(mobileRail.hi
 if (typeof mobileRailMedia.addEventListener === "function") {
   mobileRailMedia.addEventListener("change", () => setMobileRailOpen(false));
 } else mobileRailMedia.addListener(() => setMobileRailOpen(false));
-document.addEventListener("pointerdown", (event) => {
-  if (mobileRailMedia.matches && !mobileRail.hidden &&
-      !mobileRail.contains(event.target) && !mobileRailButton.contains(event.target)) {
-    setMobileRailOpen(false);
+// Capture the first outside click. If it lands on the map, consume that click:
+// dismissing the rail must never also select a new Lens centre.
+document.addEventListener("click", (event) => {
+  if (!mobileRailMedia.matches || mobileRail.hidden ||
+      mobileRail.contains(event.target) || mobileRailButton.contains(event.target)) return;
+  const onMap = Boolean(event.target.closest("#map"));
+  setMobileRailOpen(false);
+  if (onMap) {
+    event.preventDefault();
+    event.stopPropagation();
   }
-});
+}, true);
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && mobileRailMedia.matches && !mobileRail.hidden &&
       (mobileRail.contains(document.activeElement) || document.activeElement === mobileRailButton)) {
