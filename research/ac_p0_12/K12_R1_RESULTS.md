@@ -56,65 +56,89 @@ with this PR's committed SHA for R4 provenance).
 - **`noretina`** halves basemap tile pixels at dpr 2 but cannot be measured on the
   keyless local OSM basemap; it is implemented and must be measured on a keyed CARTO
   deploy before adoption.
-- **Even with `thin`, the aggressive automated pan is 83–116 ms p95 — still above
-  33.3 ms.** The automated 3-loop drag is far heavier than a single physical gesture,
+- **Even with `thin`, the aggressive automated pan is 83.4–83.7 ms p95 — still above
+  33.3 ms.** (83.4 ms is the original 6-pair benchmark at `55fa0c7`; 83.7 ms is the
+  hardened 3-pair re-measure at `6b2f85b` after the dragstart UX hardening — the win
+  holds, it was not re-widened to 116 ms; 116.7/150.4 ms were Δp50 deltas, not p95
+  absolutes, and are not comparable to the p95 figures above.) The automated 3-loop
+  drag is far heavier than a single physical gesture,
   so this does not establish the physical result; a −74%/−57% reduction is very likely
   sufficient for a real single-gesture pan, but only a **physical UHD 620
   re-measure** can confirm (release gate). A −74% automated reduction is **not**
   extrapolated to a predicted device PASS.
 
-## UX hardening, acceptance tests & visual review (review 5571780753)
+## UX hardening, acceptance tests & visual review (reviews 5571780753, 5572587267)
 
-The reviewer's blocking condition was that `movestart` is **not** synonymous with a
-human drag, and that a naive hide could strand the map in a thinned state or hide a
-focused element. The implementation was tightened accordingly, and an acceptance
-contract (`browser-tests/k12-r1-thin.browser.mjs`, 7 tests, all pass) now defends it:
+The first review's blocking condition was that `movestart` is **not** synonymous with
+a human drag, and that a naive hide could strand the map in a thinned state or hide a
+focused element. The second review additionally required the restoration proof to
+compare actual cluster identity/content (not count alone), and broader termination-path
+coverage. The implementation and its acceptance contract
+(`browser-tests/k12-r1-thin.browser.mjs`, 12 tests, all pass) were extended accordingly:
 
 - **Activation is drag-only.** `thin` turns on for `dragstart` (a user map drag) and
-  **not** for zoom, programmatic camera moves, or dragging a Lens marker. *(tests:
-  drag hides/restores; zoom does not thin; marker-drag does not thin.)*
-- **Restoration on every termination path.** Cleared on `dragend`, `moveend`
-  (covers inertia/programmatic settle), `zoomstart`, window `blur`,
-  `visibilitychange`, and `pointercancel`/`touchcancel`. The map is **never** left in
-  `k12-panning`. *(test: blur mid-drag with pointer still down restores clusters.)*
+  **not** for zoom, programmatic camera moves, dragging a Lens marker, or keyboard
+  panning. *(tests: drag hides/restores; zoom does not thin; marker-drag does not
+  thin; keyboard arrow-key pan does not thin.)*
+- **Restoration on every termination path exercised here.** Cleared on `dragend`,
+  `moveend` (covers inertia/programmatic settle, exercised by the drag test),
+  `zoomstart`, window `blur`, `visibilitychange`, and `pointercancel`/`touchcancel`.
+  The map is **never** left in `k12-panning`. *(tests: blur, pointercancel,
+  touchcancel and visibilitychange each mid-drag with the mouse button still down —
+  four separate termination-path tests.)* Native touch-driven drag and pinch-zoom are
+  not exercised here (no touch hardware in this harness); Leaflet's own touch/pinch
+  handling is independent of this dragstart-gated listener and is left for the
+  physical-device release gate.
 - **Focus/keyboard/SR safety.** The hide rule is
   `.k12-panning .poi-cluster-icon:not(:focus)` — a **focused** cluster is never
   `display:none`, so keyboard/screen-reader focus is never dropped on a hidden node.
   *(test: focused cluster stays displayed during a drag.)*
-- **Identity preserved.** Clusters are deterministic (pixel-grid bucketing); after the
-  gesture the DOM count and `{screen-pos:count-text}` signature are restored. Geometry,
-  labels, the Lens circle and panels are untouched. *(test: ES + satellite restore.)*
-- **Professional reinstatement.** Icons fade back over 0.18 s
-  (`@keyframes k12ClusterFade`), suppressed under `prefers-reduced-motion`, so the
-  return reads as a settle rather than a pop.
+- **Identity/content proof, not count alone.** Clusters are deterministic
+  (pixel-grid bucketing). The drag test captures the `{screen-pos:count-text}`
+  signature before the gesture, drags, restores, recentres the view to the exact
+  original lat/lon/zoom (`setMapView`), and asserts the **post-drag signature is
+  byte-identical to the pre-drag one** — proving identity/content/placement, not just
+  a post-drag count threshold. Geometry, labels, the Lens circle and panels are
+  untouched. *(tests: drag identity match; ES + satellite restore.)*
+- **Reduced-motion preserved.** Icons fade back over 0.18 s
+  (`@keyframes k12ClusterFade`); under `prefers-reduced-motion: reduce` the animation
+  is asserted `none`, so the CSS contract — not just its intent — is tested.
 
 **Visual review (6 PNGs, desktop 1200×860 + tablet 834×1112, before/during/after a
-pan):** the representative frames shown to the owner were captured at the
-production-density ~195-cluster scene (from the deploy-time `runtime_poi.json`); the
-committed acceptance test captures the same before/during/after sequence against a
-deterministic POI fixture, because that artifact is git-ignored and absent on a clean
-CI checkout. During the active drag the heavy DOM **cluster
-count-circles are hidden, but the lightweight POI dots, the admin-boundary lattice,
-the Lens circle and the panel all remain painted** — so spatial orientation is
-maintained throughout the gesture (it is **not** an abrupt blanking of the map). On
-release the clusters fade back at their new positions with no popping or missing
+pan):** these are **ephemeral test output written to `os.tmpdir()`** at test time, not
+files committed to this PR or to the repository — they are regenerated by
+`browser-tests/k12-r1-thin.browser.mjs`'s visual-capture test on any run and are not
+themselves reviewable evidence in the Draft PR. The representative frames the owner
+was shown were captured at the production-density ~195-cluster scene (from the
+deploy-time `runtime_poi.json`); the committed test re-creates the same
+before/during/after sequence against the deterministic POI fixture instead, because
+that production artifact is git-ignored and absent on a clean CI checkout. During the
+active drag the heavy DOM **cluster count-circles are hidden, but the lightweight POI
+dots, the admin-boundary lattice, the Lens circle and the panel all remain painted** —
+so spatial orientation is maintained throughout the gesture (it is **not** an abrupt
+blanking of the map). On release the clusters fade back with no popping or missing
 nodes. This is a materially better outcome than "icons blink out", and it is what the
 measured win costs visually.
 
 ## Final UX decision: CONDITIONAL GO (candidate), HOLD (production default / release)
 
 - **CONDITIONAL GO — keep `thin` as the preferred candidate, still behind the flag.**
-  It is a measured −74% / −57% pan-p95 win across two independent POI-ON runs (6/6
-  pairs both times), now hardened to drag-only activation with all-path restoration,
-  focus/SR safety, and a reduced-motion-aware fade-in, and defended by a 7-test
-  acceptance contract plus a before/during/after visual review. It preserves geometry,
-  evidence semantics, both basemaps, and ES/EN. Per the owner's instruction it is **not
-  enabled as the production default** in this PR — it stays gated (`?k12opt=thin`,
+  It is a measured pan-p95 win confirmed in **two separate benchmarks run at different
+  points in this track**: the original −74% (316.6→83.4 ms, 6 warmed ABBA pairs) at
+  `55fa0c7`, and after the dragstart UX hardening a −70% re-measure (283.3→83.7 ms,
+  3 warmed ABBA pairs) at `6b2f85b` — these are a 6-pair and a 3-pair benchmark
+  respectively, not "two 6/6 runs". Both are win, not noise: 6/6 and 3/3 pairs
+  improved. It is now hardened to drag-only activation with all-path restoration,
+  focus/SR safety, and a reduced-motion-aware fade-in, and defended by a 12-test
+  acceptance contract (including an exact post-drag cluster-identity assertion) plus
+  a before/during/after visual review. It preserves geometry, evidence semantics, both
+  basemaps, and ES/EN. Per the owner's instruction it is **not enabled as the
+  production default** in this PR — it stays gated (`?k12opt=thin`,
   loopback/private-LAN only) pending the owner's explicit UX sign-off.
 - **HOLD — production default, READY, and merge.** Making `thin` the default requires
   the owner's explicit approval of the during-drag simplification. The release gate is
-  **not** met: automated pan is still 83–116 ms p95 (> 33.3 ms), and the physical UHD
-  620 FAIL (66.8 ms) stands until a physical re-measure. No failed-gate merge.
+  **not** met: automated pan is still 83.4–83.7 ms p95 (> 33.3 ms), and the physical
+  UHD 620 FAIL (66.8 ms) stands until a physical re-measure. No failed-gate merge.
 - **Not adopted:** `idle` (no demonstrated win), `noretina` (unmeasured locally —
   needs a keyed CARTO deploy). **No MapLibre** proposed; `thin` addresses the dominant
   DOM-marker cost within Leaflet.

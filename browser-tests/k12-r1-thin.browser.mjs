@@ -6,17 +6,26 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
-// K12-R1 (#97 / review 5571780753) — acceptance contract for the gated `thin`
-// pan optimization (?k12opt=thin, loopback host only). It defends the UX/a11y
-// requirements the review asked for BEFORE `thin` could ever become a default:
+// K12-R1 (#97 / reviews 5571780753, 5572587267) — acceptance contract for the
+// gated `thin` pan optimization (?k12opt=thin, loopback host only). It defends
+// the UX/a11y requirements the reviews asked for BEFORE `thin` could ever
+// become a default:
 //   * it activates ONLY for a user-initiated MAP DRAG (not zoom, not programmatic
-//     camera moves, not a marker drag);
-//   * it restores the POI cluster icons on EVERY termination path (dragend,
-//     inertia/moveend, blur, pointer/touch cancel) — the map is never left thinned;
-//   * cluster DOM identity/content/placement is restored exactly after the gesture;
-//   * a FOCUSED cluster is never hidden (keyboard/screen-reader safety);
-//   * it works in ES and EN and on both basemaps;
-//   * `.poi-cluster` geometry/labels and the Lens are untouched.
+//     camera moves, not a marker drag, not keyboard panning);
+//   * it restores the POI cluster icons on EVERY termination path exercised here
+//     (dragend/moveend via the drag test, blur, pointercancel, touchcancel,
+//     visibilitychange) — the map is never left thinned;
+//   * cluster DOM identity/content/placement is restored EXACTLY (same
+//     {screen-pos:count-text} signature, not just a count) once the view is
+//     put back to where it was before the drag;
+//   * a FOCUSED cluster is never hidden (keyboard/screen-reader safety), and the
+//     reappearance fade is suppressed under prefers-reduced-motion;
+//   * it works in ES and EN and on both basemaps.
+// Not covered here (synthetic/dispatched events only, no real touch hardware):
+// native touch-driven drag and pinch-zoom gestures. Leaflet's own touch/pinch
+// handling is independent of the dragstart-gated `thin` listener and out of
+// scope for this bounded test-only increment; a physical-device pass remains
+// the AC-P0-12 release gate regardless.
 // Nothing here changes scientific geometry, HATI or AC-P0-12 thresholds.
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -139,6 +148,7 @@ async function mapDragPoint(page) {
 test("thin: a user map DRAG hides cluster icons during the drag and restores them after", async () => {
   const page = await newPage();
   try {
+    const originalView = await page.evaluate(() => window.__HALO_REGRESSION__.mapView());
     const before = await clusterSignature(page);
     const beforeCount = await visibleClusterCount(page);
     assert.ok(beforeCount > 5, "clusters present before");
@@ -151,13 +161,18 @@ test("thin: a user map DRAG hides cluster icons during the drag and restores the
     assert.equal(await visibleClusterCount(page), 0, "cluster icons hidden during drag");
     await page.mouse.up();
     await page.waitForFunction(() => window.__K12_THIN__.active() === false);
-    // AFTER: restored, same count, and (recentred to the same place) exact identity.
-    await page.evaluate(() => window.__HALO_REGRESSION__.setZoom(14)); // settle view deterministically
-    await page.waitForFunction((n) => document.querySelectorAll(".poi-cluster-icon").length >= n, Math.min(beforeCount, 5));
     assert.equal(await thinActive(page), false, "thin cleared after drag");
     assert.ok((await visibleClusterCount(page)) > 5, "clusters visible again after drag");
     // the container must not be left in either transient class
     assert.equal(await page.evaluate(() => { const c = document.getElementById("map"); return c.classList.contains("k12-panning"); }), false);
+    // Identity/content proof: the drag moved the map, so screen positions are not
+    // directly comparable to `before` until the view is put back exactly where it
+    // started. Once recentred, the deterministic pixel-grid clustering must
+    // reproduce the identical {screen-pos:count-text} signature — not just a count.
+    await page.evaluate(({ lat, lon, zoom }) => window.__HALO_REGRESSION__.setMapView(lat, lon, zoom), originalView);
+    await page.waitForFunction((n) => document.querySelectorAll(".poi-cluster-icon").length >= n, Math.min(beforeCount, 5));
+    const after = await clusterSignature(page);
+    assert.equal(after, before, "cluster identity/content/placement restored exactly at the original view");
   } finally { await close(page); }
 });
 
@@ -195,6 +210,82 @@ test("thin: restores on window BLUR mid-drag (never stuck)", async () => {
     await page.waitForFunction(() => window.__K12_THIN__.active() === false);
     assert.equal(await thinActive(page), false, "blur restores clusters even with pointer still down");
     await page.mouse.up();
+  } finally { await close(page); }
+});
+
+test("thin: restores on POINTERCANCEL mid-drag (never stuck)", async () => {
+  const page = await newPage();
+  try {
+    const p = await mapDragPoint(page);
+    await page.mouse.move(p.x, p.y); await page.mouse.down();
+    await page.mouse.move(p.x + 60, p.y + 40, { steps: 4 });
+    assert.equal(await thinActive(page), true, "thin active mid-drag");
+    await page.evaluate(() => document.getElementById("map").dispatchEvent(new PointerEvent("pointercancel", { bubbles: true })));
+    await page.waitForFunction(() => window.__K12_THIN__.active() === false);
+    assert.equal(await thinActive(page), false, "pointercancel restores clusters even with the mouse button still down");
+    await page.mouse.up();
+  } finally { await close(page); }
+});
+
+test("thin: restores on TOUCHCANCEL mid-drag (never stuck)", async () => {
+  const page = await newPage();
+  try {
+    const p = await mapDragPoint(page);
+    await page.mouse.move(p.x, p.y); await page.mouse.down();
+    await page.mouse.move(p.x + 60, p.y + 40, { steps: 4 });
+    assert.equal(await thinActive(page), true, "thin active mid-drag");
+    await page.evaluate(() => document.getElementById("map").dispatchEvent(new Event("touchcancel", { bubbles: true })));
+    await page.waitForFunction(() => window.__K12_THIN__.active() === false);
+    assert.equal(await thinActive(page), false, "touchcancel restores clusters even with the mouse button still down");
+    await page.mouse.up();
+  } finally { await close(page); }
+});
+
+test("thin: restores on tab VISIBILITYCHANGE mid-drag (never stuck)", async () => {
+  const page = await newPage();
+  try {
+    const p = await mapDragPoint(page);
+    await page.mouse.move(p.x, p.y); await page.mouse.down();
+    await page.mouse.move(p.x + 60, p.y + 40, { steps: 4 });
+    assert.equal(await thinActive(page), true, "thin active mid-drag");
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await page.waitForFunction(() => window.__K12_THIN__.active() === false);
+    assert.equal(await thinActive(page), false, "visibilitychange restores clusters even with the mouse button still down");
+    await page.mouse.up();
+  } finally { await close(page); }
+});
+
+test("thin: KEYBOARD map panning (arrow keys) does NOT activate the simplification", async () => {
+  // Leaflet's keyboard pan is a `move`/`moveend` sequence with no `dragstart` —
+  // it must stay fully unaffected by a mouse-drag-only optimization, so keyboard
+  // and screen-reader users never see clusters disappear.
+  const page = await newPage();
+  try {
+    await page.evaluate(() => document.getElementById("map").focus());
+    await page.keyboard.down("ArrowRight");
+    await page.waitForTimeout(150);
+    const duringKeyboardPan = await thinActive(page);
+    await page.keyboard.up("ArrowRight");
+    await page.waitForTimeout(150);
+    assert.equal(duringKeyboardPan, false, "keyboard map pan must not thin");
+    assert.ok((await visibleClusterCount(page)) > 0, "clusters stay visible on keyboard pan");
+  } finally { await close(page); }
+});
+
+test("thin: reduced-motion preference suppresses the reappearance fade", async () => {
+  const page = await newPage();
+  try {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const matches = await page.evaluate(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    assert.equal(matches, true, "test harness honours the reduced-motion emulation");
+    const animationNone = await page.evaluate(() => {
+      const probe = document.querySelector(".poi-cluster-icon");
+      probe.classList.add("k12-reappear");
+      const name = getComputedStyle(probe).animationName;
+      probe.classList.remove("k12-reappear");
+      return name;
+    });
+    assert.equal(animationNone, "none", "the k12ClusterFade animation is suppressed under prefers-reduced-motion");
   } finally { await close(page); }
 });
 
