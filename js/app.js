@@ -1497,13 +1497,17 @@ const haloRegressionRequested = new URLSearchParams(window.location.search).get(
 const haloRegressionLocal = isLoopbackOrPrivateLanHost(window.location.hostname);
 
 // P0-a STAGING GATE (#95, owner-reviewed non-production integration route,
-// PR #96 comment 6273771576). OFF by default EVERYWHERE, including the public
-// GitHub Pages deployment: with this flag false, every P0-a-added surface below
-// (the promoted #planningMembership block, its scope-rail claim, the identity
-// guard/coalescing scan it schedules, and the dragstart/dragend/slider-change
-// hooks that drive it) stays byte-for-byte the pre-P0-a production behaviour —
-// the planning Detail list, its scope-rail claim and its own membership query
-// are untouched by this flag either way (they predate P0-a). ON requires BOTH a
+// PR #96 comments 6273771576 / 6274388935). OFF by default EVERYWHERE, including
+// the public GitHub Pages deployment: with this flag false, every P0-a-added
+// surface below (the promoted #planningMembership block, its scope-rail claim,
+// the identity guard/coalescing scan it schedules, and the dragstart/dragend/
+// slider-change hooks that drive it) is unreachable — no new computation runs,
+// no new listener is installed, and the markup stays hidden — so the USER-VISIBLE
+// Detail/rail behaviour is the same as pre-P0-a production (the implementation
+// bytes necessarily differ; see docs/UX_I1_P0A_MEMBERSHIP.md §4a for exactly what
+// this equivalence does and does not claim). The planning Detail list, its own
+// scope-rail claim and its own membership query are untouched by this flag
+// either way (they predate P0-a). ON requires BOTH a
 // loopback/private-LAN host (same fail-closed predicate as K12's ?k12opt=) AND
 // the explicit ?p0aStaging=1 query flag, so a public host can never activate it
 // by query string alone — this is a staging-only gate, not a production default;

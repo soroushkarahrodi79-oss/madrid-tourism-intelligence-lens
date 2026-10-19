@@ -184,8 +184,63 @@ with freshness `N/A`. The first Windows observation (commit `fe85fa9`) is preser
 
 **Functional vs release readiness:** the implementation is **GO on functional checks** (correctness,
 freshness, scientific contracts, CI — see §5) **once F1's boundary-crossing regression passes**;
-it is **HOLD for production merge/release until this device gate is satisfied** or the owner
-documents a non-production staging path that keeps the gate effective.
+it is **HOLD for production merge/release until this device gate is satisfied** — the
+non-production staging path that keeps the gate effective is implemented and documented in §4a.
+
+---
+
+## 4a. Non-production staging gate (`P0A_ENABLED`) — PR #96 review 6273771576 / 6274388935
+
+This section documents the owner-reviewed route that lets the reconciled PR #96 merge to `main`
+**without activating P0-a for any real visitor**, so the device gate in §4 can remain open while
+the branch itself stops drifting from `main`. It is a merge-readiness mechanism, **not** a
+release decision — read the distinction below carefully; the two are deliberately kept separate.
+
+**What the flag is.** `js/app.js` defines `P0A_ENABLED`, true only when the page is served from a
+loopback/private-LAN/mDNS host (the identical `isLoopbackOrPrivateLanHost` predicate K12's
+`?k12opt=` already uses, proven false for a public host such as `pages.github.io` in
+`tests/ac_p0_12_runner.test.mjs` and `tests/radial_halo.test.mjs`) **and** the URL explicitly
+carries `?p0aStaging=1`. The public GitHub Pages deployment is never a loopback/private-LAN host,
+so it cannot satisfy this condition by query string alone, under any circumstance.
+
+**OFF (the public default, including on `main` after a staging merge).** Every surface P0-a added
+is unreachable: `renderPlanningMembership()` returns before it ever calls the membership evaluator,
+so the 724-polygon scan never runs from that path; the `#planningMembership` markup is `hidden` in
+the static HTML itself; the marker `dragstart`/`dragend` coalescing listeners and the radius
+slider's `oninput`/`onchange` coalescing calls are never installed; the "See all" click handler is
+never attached; and the scope-rail `planningMembership` flag reverts to the exact pre-P0-a
+`planningDetail` condition (claimed only while the Detail disclosure is open). **What this proves:**
+the real, pre-existing planning Detail list, its own membership query, and its scope-rail claim are
+unaffected and continue to render exactly as they did before P0-a, verified by
+`browser-tests/p0a-staging-gate.browser.mjs`. **What this does NOT claim:** the source file itself
+is unavoidably different — new functions, a new flag constant and new conditionals now exist in
+`js/app.js` and `index.html` that did not exist on `main` before P0-a. "OFF reproduces pre-P0-a
+main" is a claim about the **rendered, user-visible outcome and the absence of any new unflagged
+computation or listener** for every scenario this gate's own tests cover — it is not a literal
+byte-for-byte diff of the file, and it has not been exhaustively checked against every interaction
+sequence the full application supports, only the scenarios in
+`browser-tests/p0a-staging-gate.browser.mjs` and the pre-existing suites (`browser-tests/ambito-
+comparison.browser.mjs`, `information-architecture.browser.mjs`, `urban-licences.browser.mjs`,
+`visual-language.browser.mjs`, `radial-halo.browser.mjs`), which all continue to load the app
+without `?p0aStaging=1` and so exercise the real OFF default already.
+
+**ON.** Every P0-a contract in §1-§7 of this document is unchanged — freshness, `containsCentre`,
+the identity guard, coalescing, ES/EN, accessibility. `browser-tests/planning-ambito.browser.mjs`
+(PA 1-25) now opts in via `?p0aStaging=1` to continue exercising it, and
+`research/ac_p0_12/auto_compare.mjs` / `device_runner.html` now pass the same flag on their
+loopback hosts so the AC-P0-12 harness and the owner's physical device runner keep measuring the
+real ON feature rather than silently measuring the new OFF default.
+
+**Staging merge vs. production activation — two separate, non-substitutable decisions:**
+
+| | Staging merge (what this section enables) | Production activation (still a separate decision) |
+|---|---|---|
+| What changes | PR #96 merges to `main`; the public deployment's behaviour is unchanged (flag OFF) | `P0A_ENABLED`'s default would need to flip to true for real visitors |
+| What it requires | This flag, its tests, and full CI green (this section) | The AC-P0-12 physical-device gate in §4, satisfied on the owner-declared supported-device floor |
+| Status | Implemented; pending owner merge authorization | **Still HOLD** — unaffected by the staging merge; no device PASS is invented or implied by it |
+
+A staging merge **never** by itself satisfies, weakens, or substitutes for the AC-P0-12 release
+gate. It only stops the branch drifting against `main` while that gate remains open.
 
 ---
 
@@ -248,7 +303,10 @@ discoverability it has not established.
 ### Verdict
 
 **GO on functional correctness** — F1 regression passes, scientific contracts hold, freshness is
-enforced, CI is green. **HOLD for production merge/release** until the AC-P0-12 device gate (§4) is
-satisfied on the owner-declared supported-device floor, or the owner documents a non-production
-staging path that keeps the gate effective. AC-P0-2a remains a recorded, deferred negative (§2),
-not a blocker for P0-a.
+enforced, CI is green. **Staging merge: READY** — the non-production staging gate (§4a) is
+implemented, tested OFF/ON, and does not touch K12, HATI or any AC-P0-12 threshold; it stops the
+branch drifting from `main` without activating P0-a for any real visitor. **Production activation:
+still HOLD** — unaffected by the staging gate — until the AC-P0-12 device gate (§4) is satisfied on
+the owner-declared supported-device floor. These are two separate decisions (§4a); satisfying the
+first never substitutes for the second. AC-P0-2a remains a recorded, deferred negative (§2), not a
+blocker for P0-a.
