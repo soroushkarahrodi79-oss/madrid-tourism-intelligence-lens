@@ -1,0 +1,126 @@
+{
+  "schema": "ux-t1-a1-shared-chrome-screenshots/1.0",
+  "baselineSource": "028d0389454b4248180654075022e4397b14fd5b",
+  "candidateSource": "111ce56022542610d9a7ec7eb4a770b078ec0192",
+  "candidateCssSha256": "ca32202595a3ec20b00f8b3b47caec16f6939eac41cc744a303fdfed527f8a9f",
+  "poiSha256": "981449c5b52fac59835a826f89d163eae99d13a042a72acb80bcdc08acb88a70",
+  "note": "Candidate screenshots are durable here; base-side screenshots were captured in the same Chromium run from the clean pinned source, but are omitted to avoid duplicate bulk. Existing T-a0 screenshots and their hashes are in PR #104. Live map tile imagery can change between runs.",
+  "captures": [
+    {
+      "id": "desktop-place-light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "candidateScreenshot": {
+        "file": "screenshots/desktop-place-light.png",
+        "sha256": "39c015a9a97bae64835a3ea628526d02afdfe3cbb6be1ea94aeef202d60d762c",
+        "bytes": 1053219
+      },
+      "baselineSource": {
+        "pullRequest": 104,
+        "sourceCommit": "028d0389454b4248180654075022e4397b14fd5b",
+        "file": "research/ux_t1_ta0_minimum/screenshots/01-desktop-place-light.png",
+        "sha256": "c007ff778f0d9a19854cdd19b530a235b4c7f628954ba4526ebcea93cd2b36f3"
+      },
+      "language": "en",
+      "mode": "PLACE",
+      "basemap": "light",
+      "actions": [
+        "loaded initial PLACE state"
+      ]
+    },
+    {
+      "id": "desktop-compare-light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "candidateScreenshot": {
+        "file": "screenshots/desktop-compare-light.png",
+        "sha256": "0c6c9c51952ecc47e71970ec1ff7642f8486019a5c6cc5feeac90d7d680f2f30",
+        "bytes": 1043170
+      },
+      "baselineSource": {
+        "pullRequest": 104,
+        "sourceCommit": "028d0389454b4248180654075022e4397b14fd5b",
+        "file": "research/ux_t1_ta0_minimum/screenshots/02-desktop-compare-light.png",
+        "sha256": "0c6c9c51952ecc47e71970ec1ff7642f8486019a5c6cc5feeac90d7d680f2f30"
+      },
+      "language": "en",
+      "mode": "COMPARE",
+      "basemap": "light",
+      "actions": [
+        "clicked COMPARE",
+        "opened Detail disclosure",
+        "selected first comparison metric",
+        "scrolled until Lens A and Lens B labels were visible"
+      ],
+      "visibleLensLabels": [
+        "Lens A",
+        "Lens B"
+      ]
+    },
+    {
+      "id": "tablet-compare-dark",
+      "viewport": {
+        "width": 834,
+        "height": 1112
+      },
+      "candidateScreenshot": {
+        "file": "screenshots/tablet-compare-dark.png",
+        "sha256": "fe60db4adfaf90b5139f0d1295b80f2a2baac70b3f6956cc6136863e7a194619",
+        "bytes": 660842
+      },
+      "baselineSource": {
+        "pullRequest": 104,
+        "sourceCommit": "028d0389454b4248180654075022e4397b14fd5b",
+        "file": "research/ux_t1_ta0_minimum/screenshots/04-tablet-compare-dark.png",
+        "sha256": "fe60db4adfaf90b5139f0d1295b80f2a2baac70b3f6956cc6136863e7a194619"
+      },
+      "language": "en",
+      "mode": "COMPARE",
+      "basemap": "dark",
+      "actions": [
+        "expanded visible map display group if collapsed",
+        "selected Dark in basemap control",
+        "clicked COMPARE"
+      ]
+    },
+    {
+      "id": "mobile-layers-dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "candidateScreenshot": {
+        "file": "screenshots/mobile-layers-dark.png",
+        "sha256": "47e7c28169a1af37dd4e8a317e522818b4547731e36a0c1b12550961f287fd37",
+        "bytes": 184863
+      },
+      "baselineSource": {
+        "pullRequest": 104,
+        "sourceCommit": "028d0389454b4248180654075022e4397b14fd5b",
+        "file": "research/ux_t1_ta0_minimum/screenshots/06-mobile-layers-dark.png",
+        "sha256": "47e7c28169a1af37dd4e8a317e522818b4547731e36a0c1b12550961f287fd37"
+      },
+      "language": "en",
+      "mode": "PLACE",
+      "basemap": "dark",
+      "actions": [
+        "clicked mobile Layers button",
+        "expanded visible map display group if collapsed",
+        "selected Dark in the visible basemap control"
+      ],
+      "mobileLayersExpanded": true
+    }
+  ],
+  "browser": {
+    "name": "Chromium",
+    "version": "153.0.8010.12",
+    "headless": true,
+    "deviceScaleFactor": 1
+  },
+  "deploymentManifestSha256": "bdbc5c1c85f9d9f47893b7444b824921a42245dfd3d0be362bb648be39006133",
+  "productionSnapshotState": "verified production deployment snapshot (1,556 records across six layers)"
+}
