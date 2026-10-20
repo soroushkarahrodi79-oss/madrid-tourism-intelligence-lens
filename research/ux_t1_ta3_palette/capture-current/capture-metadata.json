@@ -8,14 +8,62 @@
   "poiSha256": "a482ba871adcfd195167bde82a0609b62377c82cd69c59bf7a3366687c10a68b",
   "poiSourceMode": "deployment-snapshot",
   "screenshots": [
-    "01-shipped-dark-reference-en.png",
-    "02-shipped-dark-reference-es.png",
-    "03-light-navy-b-text-safe-en.png",
-    "04-light-graphite-b-text-safe-es.png",
-    "05-light-navy-existing-cyan.png",
-    "06-light-graphite-text-safe-satellite.png",
-    "07-light-navy-graphic-dark-basemap.png",
-    "08-grayscale-a-b-structural-check.png"
+    {
+      "file": "01-shipped-dark-reference-en.png",
+      "sha256": "cc33ef14ff8e89d48024e8c8edc71ad4a9bf612712a78183187742189efed863",
+      "width": 1440,
+      "height": 900,
+      "bytes": 1035455
+    },
+    {
+      "file": "02-shipped-dark-reference-es.png",
+      "sha256": "b45980eaa3df4640173d23f0b73cacf2641b5b334fa45217ce9ee45d5cd5bf2e",
+      "width": 1440,
+      "height": 900,
+      "bytes": 1038272
+    },
+    {
+      "file": "03-light-navy-b-text-safe-en.png",
+      "sha256": "291beb80a580663a047d213a6d056aa57e71be4a4a5db3bdc49bb6cdf6071298",
+      "width": 1440,
+      "height": 900,
+      "bytes": 923618
+    },
+    {
+      "file": "04-light-graphite-b-text-safe-es.png",
+      "sha256": "1cd429484292b462cf1020de2426da552895accef7ea20ed1f36a59d202fd909",
+      "width": 1440,
+      "height": 900,
+      "bytes": 927946
+    },
+    {
+      "file": "05-light-navy-existing-cyan.png",
+      "sha256": "7fa961ff6b6810e5686b81e48d66c15e4d5777971ccfb463076996c517e2da65",
+      "width": 1440,
+      "height": 900,
+      "bytes": 929134
+    },
+    {
+      "file": "06-light-graphite-text-safe-satellite.png",
+      "sha256": "39b4a7304a17bc7315de567e3b92d57844f6dbb810ad79463688213099d4f46b",
+      "width": 1440,
+      "height": 900,
+      "bytes": 1847769
+    },
+    {
+      "file": "07-light-navy-graphic-dark-basemap.png",
+      "sha256": "29e106056af6a50129d22bc2cd91658b03ecad318f330b607ac5db7f9d900efb",
+      "width": 1440,
+      "height": 900,
+      "bytes": 1007849
+    },
+    {
+      "file": "08-grayscale-a-b-structural-check.png",
+      "sha256": "e2b433ef9a03e01a258d28003b3c0ad69dcbfa1881463e1691d891725114da9d",
+      "width": 1440,
+      "height": 900,
+      "bytes": 640491
+    }
   ],
   "badgeTextContrast": {
     "samples": [
@@ -123,5 +171,20 @@
     "panelSurfaceAfterBodyComposite": "#fefeff"
   },
   "pageErrors": [],
-  "note": "Preview CSS and badge samples exist only in this Playwright page; LENS_BASEMAP_STYLES is not overridden. Contrast computation uses computed foregrounds and browser-composited ancestor backgrounds for preview badge rows; map marks are treated as heterogeneous backgrounds and visually reviewed, not certified by one ratio."
+  "previewOwnership": {
+    "simulatedAppearanceOwned": [
+      "T-a3 badge foreground/tint samples",
+      "Lens A/B panel and button identity",
+      "Lens A/B center marker and SVG halo colors"
+    ],
+    "unchangedBasemapOwned": [
+      "LENS_BASEMAP_STYLES and circle geometry",
+      "Leaflet attribution control",
+      "Leaflet zoom controls",
+      "Leaflet tooltips",
+      "basemap tiles and provider styling"
+    ],
+    "injectedLeafletOverrides": []
+  },
+  "note": "Preview CSS and badge samples exist only in this Playwright page. No T-a4 Leaflet control or tooltip selectors are overridden. Contrast computation uses computed foregrounds and browser-composited ancestor backgrounds for preview badge rows; map marks are treated as heterogeneous backgrounds and visually reviewed, not certified by one ratio."
 }

@@ -5,14 +5,56 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { existsSync, renameSync } from "node:fs";
 import { chromium } from "playwright";
 
 const SITE = "https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens";
 const EXPECTED_COMMIT = "216cfbd3549c5d9575da0e89013f8e4a95f7fe5b";
 const EXPECTED_MANIFEST_SHA256 = "104bace30bc747f1dd9eb9d4c2bfa8ac060fc411a3fedd33f727e8208e7f61e2";
 const EXPECTED_POI_SHA256 = "a482ba871adcfd195167bde82a0609b62377c82cd69c59bf7a3366687c10a68b";
-const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), "screenshots");
+const PACKAGE = path.dirname(fileURLToPath(import.meta.url));
+const CURRENT = path.join(PACKAGE, "capture-current");
+const RUN_ID = `${Date.now()}-${process.pid}`;
+const STAGE = path.join(PACKAGE, `.capture-stage-${RUN_ID}`);
+const BACKUP = path.join(PACKAGE, `.capture-backup-${RUN_ID}`);
+const OUT = path.join(STAGE, "screenshots");
+const EXPECTED_SCREENSHOTS = [
+  "01-shipped-dark-reference-en.png", "02-shipped-dark-reference-es.png",
+  "03-light-navy-b-text-safe-en.png", "04-light-graphite-b-text-safe-es.png",
+  "05-light-navy-existing-cyan.png", "06-light-graphite-text-safe-satellite.png",
+  "07-light-navy-graphic-dark-basemap.png", "08-grayscale-a-b-structural-check.png",
+];
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
+
+function pngInfo(bytes) {
+  if (bytes.length < 24 || bytes.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a") return null;
+  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+}
+
+async function validatePackage(root, { requireHashes = false } = {}) {
+  const metadataPath = path.join(root, "capture-metadata.json");
+  const metadata = JSON.parse(await fs.readFile(metadataPath, "utf8"));
+  if (metadata.schema !== "ux-t1-ta3-rendered-preview/1.0" || metadata.sourceCommit !== EXPECTED_COMMIT || metadata.pagesCommit !== EXPECTED_COMMIT || metadata.manifestSha256 !== EXPECTED_MANIFEST_SHA256 || metadata.poiSha256 !== EXPECTED_POI_SHA256 || metadata.poiSourceMode !== "deployment-snapshot") throw new Error(`Existing/staged evidence metadata is not pinned as expected: ${metadataPath}`);
+  const entries = Array.isArray(metadata.screenshots) && typeof metadata.screenshots[0] === "object"
+    ? metadata.screenshots : metadata.screenshots.map((file) => ({ file }));
+  if (entries.length !== EXPECTED_SCREENSHOTS.length || EXPECTED_SCREENSHOTS.some((file) => !entries.some((entry) => entry.file === file))) throw new Error(`Expected exactly the eight named images in ${root}`);
+  for (const entry of entries) {
+    const bytes = await fs.readFile(path.join(root, "screenshots", entry.file));
+    const info = pngInfo(bytes);
+    if (!info || info.width !== 1440 || info.height !== 900 || bytes.length < 100_000) throw new Error(`Invalid PNG/dimensions/size: ${entry.file}`);
+    if (entry.sha256 && sha256(bytes) !== entry.sha256) throw new Error(`PNG digest mismatch: ${entry.file}`);
+    if (requireHashes && !entry.sha256) throw new Error(`Missing committed PNG digest: ${entry.file}`);
+    if (entry.width && (entry.width !== info.width || entry.height !== info.height)) throw new Error(`PNG dimension metadata mismatch: ${entry.file}`);
+  }
+  if (metadata.pageErrors?.length) throw new Error(`Page errors in evidence package: ${metadata.pageErrors.join("; ")}`);
+  return metadata;
+}
+
+async function recoverLastPackage() {
+  if (existsSync(CURRENT)) return;
+  const backups = (await fs.readdir(PACKAGE)).filter((name) => name.startsWith(".capture-backup-")).sort().reverse();
+  if (backups.length) renameSync(path.join(PACKAGE, backups[0]), CURRENT);
+}
 
 const manifestResponse = await fetch(`${SITE}/data/deployment_manifest.json`, { cache: "no-store" });
 if (!manifestResponse.ok) throw new Error(`manifest HTTP ${manifestResponse.status}`);
@@ -29,8 +71,17 @@ const poi = JSON.parse(poiBytes);
 if (sha256(poiBytes) !== EXPECTED_POI_SHA256) throw new Error("Runtime POI digest changed; stop and review the deployed data.");
 if (poi.sourceMode !== "deployment-snapshot") throw new Error(`unexpected POI mode ${poi.sourceMode}`);
 
+await recoverLastPackage();
+await validatePackage(CURRENT);
+for (const name of await fs.readdir(PACKAGE)) {
+  if (name.startsWith(".capture-stage-")) await fs.rm(path.join(PACKAGE, name), { recursive: true, force: true });
+}
 await fs.mkdir(OUT, { recursive: true });
-for (const name of await fs.readdir(OUT)) await fs.rm(path.join(OUT, name), { recursive: true, force: true });
+// The shipped-dark references are unaffected by the T-a4 selector correction.
+// Copy them into staging; regenerate only simulated candidate images 03–08.
+for (const name of EXPECTED_SCREENSHOTS.slice(0, 2)) {
+  await fs.copyFile(path.join(CURRENT, "screenshots", name), path.join(OUT, name));
+}
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
@@ -111,8 +162,6 @@ const previewStyle = `
   body.ta3-light .marker-a{color:var(--ta3-a)!important} body.ta3-light .marker-b{color:var(--ta3-b-graphic)!important}
   body.ta3-light .halo-glyph.halo-a{--halo-color:var(--ta3-a-graphic)!important} body.ta3-light .halo-glyph.halo-b{--halo-color:var(--ta3-b-graphic)!important}
   body.ta3-light .halo-value,body.ta3-light .halo-state-mark{stroke:#08101a}
-  body.ta3-light .leaflet-control-attribution,body.ta3-light .leaflet-control-zoom a{background:#fff!important;color:#273747!important;border-color:#aab7c4!important}
-  body.ta3-light .leaflet-tooltip{background:#fff;color:#16222f;border-color:#aab7c4}
   body.ta3-light .ta3-id.a{color:var(--ta3-a)} body.ta3-light .ta3-id.b{color:var(--ta3-b-text)}
 `;
 await page.addStyleTag({ content: previewStyle });
@@ -174,15 +223,7 @@ async function save(name, label, candidate, language, basemap, halo = true, gray
 await chooseLanguage("en");
 await chooseBasemap("light");
 await setModeCompare();
-await page.locator("#ta3-preview-banner").evaluate((n) => { n.textContent = "T-a3 · SHIPPED DARK REFERENCE · LIGHT BASEMAP · EN"; });
 await page.locator("#ta3-review-card").evaluate((n) => n.remove());
-await page.screenshot({ path: path.join(OUT, "01-shipped-dark-reference-en.png") });
-await page.evaluate(() => {
-  document.querySelector("#ta3-preview-banner").textContent = "T-a3 · SHIPPED DARK REFERENCE · ES LABELS · LIGHT BASEMAP";
-});
-await page.locator("#languageSelect").selectOption("es");
-await page.waitForTimeout(250);
-await page.screenshot({ path: path.join(OUT, "02-shipped-dark-reference-es.png") });
 
 await page.evaluate(() => {
   const card = document.createElement("section"); card.id = "ta3-review-card";
@@ -233,12 +274,37 @@ const contrast = await page.evaluate(() => {
   return {samples:rows, identityRoles:roles, bodyBackground:style.backgroundColor,panelBackground:getComputedStyle(document.querySelector(".panel")).backgroundColor,panelSurfaceAfterBodyComposite:hex(panel)};
 });
 
-await fs.writeFile(path.join(path.dirname(OUT), "capture-metadata.json"), JSON.stringify({
+const screenshotMetadata = [];
+for (const file of EXPECTED_SCREENSHOTS) {
+  const bytes = await fs.readFile(path.join(OUT, file));
+  const dimensions = pngInfo(bytes);
+  if (!dimensions || dimensions.width !== 1440 || dimensions.height !== 900 || bytes.length < 100_000) throw new Error(`Screenshot failed PNG integrity check: ${file}`);
+  screenshotMetadata.push({ file, sha256: sha256(bytes), width: dimensions.width, height: dimensions.height, bytes: bytes.length });
+}
+await fs.writeFile(path.join(STAGE, "capture-metadata.json"), JSON.stringify({
   schema:"ux-t1-ta3-rendered-preview/1.0", simulated:true, productionAssetsChanged:false,
   sourceCommit:EXPECTED_COMMIT,pagesCommit:manifest.commit,manifestSha256:sha256(manifestBytes),poiSha256:sha256(poiBytes),poiSourceMode:poi.sourceMode,
-  screenshots:(await fs.readdir(OUT)).sort(), badgeTextContrast:contrast, pageErrors,
-  note:"Preview CSS and badge samples exist only in this Playwright page; LENS_BASEMAP_STYLES is not overridden. Contrast computation uses computed foregrounds and browser-composited ancestor backgrounds for preview badge rows; map marks are treated as heterogeneous backgrounds and visually reviewed, not certified by one ratio."
+  screenshots:screenshotMetadata, badgeTextContrast:contrast, pageErrors,
+  previewOwnership:{
+    simulatedAppearanceOwned:["T-a3 badge foreground/tint samples","Lens A/B panel and button identity","Lens A/B center marker and SVG halo colors"],
+    unchangedBasemapOwned:["LENS_BASEMAP_STYLES and circle geometry","Leaflet attribution control","Leaflet zoom controls","Leaflet tooltips","basemap tiles and provider styling"],
+    injectedLeafletOverrides:[]
+  },
+  note:"Preview CSS and badge samples exist only in this Playwright page. No T-a4 Leaflet control or tooltip selectors are overridden. Contrast computation uses computed foregrounds and browser-composited ancestor backgrounds for preview badge rows; map marks are treated as heterogeneous backgrounds and visually reviewed, not certified by one ratio."
 },null,2)+"\n");
+await validatePackage(STAGE, { requireHashes: true });
 await browser.close();
 if (pageErrors.length) throw new Error(`browser errors: ${pageErrors.join("; ")}`);
-console.log(`Captured 8 simulated/reference PNGs from ${EXPECTED_COMMIT}; manifest=${sha256(manifestBytes)}; poi=${sha256(poiBytes)}`);
+// The previous package remains recoverable until the new staged package has
+// passed its complete hash/dimension/metadata checks and is in place.
+renameSync(CURRENT, BACKUP);
+try {
+  renameSync(STAGE, CURRENT);
+  await validatePackage(CURRENT, { requireHashes: true });
+  await fs.rm(BACKUP, { recursive: true, force: true });
+} catch (error) {
+  if (existsSync(CURRENT)) await fs.rm(CURRENT, { recursive: true, force: true });
+  if (existsSync(BACKUP)) renameSync(BACKUP, CURRENT);
+  throw error;
+}
+console.log(`Captured and validated ${screenshotMetadata.length} reference/candidate PNGs from ${EXPECTED_COMMIT}; manifest=${sha256(manifestBytes)}; poi=${sha256(poiBytes)}`);

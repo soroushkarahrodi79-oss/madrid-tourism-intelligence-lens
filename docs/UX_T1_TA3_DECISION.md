@@ -27,20 +27,20 @@ The compact capture package is [`research/ux_t1_ta3_palette/`](../research/ux_t1
 
 | Image | What to review |
 |---|---|
-| [01 · shipped dark, EN, Light basemap](../research/ux_t1_ta3_palette/screenshots/01-shipped-dark-reference-en.png) | Current production reference |
-| [02 · shipped dark, ES, Light basemap](../research/ux_t1_ta3_palette/screenshots/02-shipped-dark-reference-es.png) | Current Spanish reference |
-| [03 · simulated Light, navy A, B text `#00718f` / graphic `#0098c0`, EN](../research/ux_t1_ta3_palette/screenshots/03-light-navy-b-text-safe-en.png) | Navy candidate, current Light basemap and all seven badge classes |
-| [04 · simulated Light, graphite A, same B role split, ES](../research/ux_t1_ta3_palette/screenshots/04-light-graphite-b-text-safe-es.png) | Graphite candidate and Spanish labels |
-| [05 · simulated Light, navy A, shipped B cyan `#43d7ff`](../research/ux_t1_ta3_palette/screenshots/05-light-navy-existing-cyan.png) | Shows why retaining shipped cyan for light-theme normal text is not viable |
-| [06 · simulated Light, graphite A, B text/graphic `#00718f`, Satellite](../research/ux_t1_ta3_palette/screenshots/06-light-graphite-text-safe-satellite.png) | App markers/halos against actual satellite context |
-| [07 · simulated Light, navy A, B graphic `#0098c0`, Dark basemap, ES](../research/ux_t1_ta3_palette/screenshots/07-light-navy-graphic-dark-basemap.png) | Same candidate identity over dark tiles; basemap boundary colors stay source-owned |
-| [08 · grayscale structural check](../research/ux_t1_ta3_palette/screenshots/08-grayscale-a-b-structural-check.png) | Lens labels and solid/dashed cues remain visible when hue is removed |
+| [01 · shipped dark, EN, Light basemap](../research/ux_t1_ta3_palette/capture-current/screenshots/01-shipped-dark-reference-en.png) | Current production reference |
+| [02 · shipped dark, ES, Light basemap](../research/ux_t1_ta3_palette/capture-current/screenshots/02-shipped-dark-reference-es.png) | Current Spanish reference |
+| [03 · simulated Light, navy A, B text `#00718f` / graphic `#0098c0`, EN](../research/ux_t1_ta3_palette/capture-current/screenshots/03-light-navy-b-text-safe-en.png) | Navy candidate, current Light basemap and all seven badge classes |
+| [04 · simulated Light, graphite A, same B role split, ES](../research/ux_t1_ta3_palette/capture-current/screenshots/04-light-graphite-b-text-safe-es.png) | Graphite candidate and Spanish labels |
+| [05 · simulated Light, navy A, shipped B cyan `#43d7ff`](../research/ux_t1_ta3_palette/capture-current/screenshots/05-light-navy-existing-cyan.png) | Shows why retaining shipped cyan for light-theme normal text is not viable |
+| [06 · simulated Light, graphite A, B text/graphic `#00718f`, Satellite](../research/ux_t1_ta3_palette/capture-current/screenshots/06-light-graphite-text-safe-satellite.png) | App markers/halos against actual satellite context |
+| [07 · simulated Light, navy A, B graphic `#0098c0`, Dark basemap, ES](../research/ux_t1_ta3_palette/capture-current/screenshots/07-light-navy-graphic-dark-basemap.png) | Same candidate identity over dark tiles; basemap boundary colors stay source-owned |
+| [08 · grayscale structural check](../research/ux_t1_ta3_palette/capture-current/screenshots/08-grayscale-a-b-structural-check.png) | Lens labels and solid/dashed cues remain visible when hue is removed |
 
-T-a0/T-a2 set verified the pinned app assets; this preview pins the current Pages manifest (`104bace3…`, SHA-256 in metadata) and runtime POI (`a482ba87…`). The basemap tiles themselves are remote and may change. Screenshots are not implemented-theme screenshots, device testing, a comprehensive WCAG audit, or proof that small map text survives every tile.
+T-a0/T-a2 set verified the pinned app assets; this preview pins the current Pages manifest (`104bace3…`, SHA-256 in the [capture metadata](../research/ux_t1_ta3_palette/capture-current/capture-metadata.json)) and runtime POI (`a482ba87…`). The simulated overrides apply only to T-a3 appearance-owned badge and Lens identity consumers (including center marker and SVG halo candidate colors). The preview leaves Leaflet attribution, zoom controls and tooltips at their shipped styling; those T-a4 surfaces remain visibly distinct from the simulated light chrome. `LENS_BASEMAP_STYLES`, geometry and basemap tiles are not modified. The basemap tiles themselves are remote and may change. Screenshots are not implemented-theme screenshots, device testing, a comprehensive WCAG audit, or proof that small map text survives every tile.
 
 ## 3. Contrast applicability and results
 
-Capture details and exact measurements are in [`capture-metadata.json`](../research/ux_t1_ta3_palette/capture-metadata.json). Ratios use WCAG 2.x sRGB luminance arithmetic. The badge result samples browser-computed text and backgrounds after ancestor/tint compositing in the preview. A/B role results composite the browser-computed light panel (`rgba(255,255,255,.94)` over `#f4f6f9`, rendered as `#fefeff`) and each 8% candidate tint. Audit §6 values for the flat background are repeated for context.
+Capture details and exact measurements are in [`capture-metadata.json`](../research/ux_t1_ta3_palette/capture-current/capture-metadata.json). Ratios use WCAG 2.x sRGB luminance arithmetic. The badge result samples browser-computed text and backgrounds after ancestor/tint compositing in the preview. A/B role results composite the browser-computed light panel (`rgba(255,255,255,.94)` over `#f4f6f9`, rendered as `#fefeff`) and each 8% candidate tint. Audit §6 values for the flat background are repeated for context.
 
 | Consumer/value | Flat `#f4f6f9` | Composited panel | Own 8% tint | Criterion and result |
 |---|---:|---:|---:|---|
