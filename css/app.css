@@ -16,7 +16,7 @@
   --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.18);
   --text:#f3f7ff; --muted:#a9bbcf; --text-meta:#9fb1c5; --a:#f7fbff; --b:#43d7ff;
   /* T-a1 shared-chrome roles. These resolve to the existing dark values;
-     evidence/category identities, focus and map-owned colours remain separate. */
+     evidence/category identities and map-owned colours remain separate. */
   --chrome-page-background:var(--bg);
   --chrome-header-surface:rgba(6,12,21,.90);
   --chrome-panel-surface:var(--panel);
@@ -39,6 +39,17 @@
   --chrome-mobile-control-open-border:#6fbaff;
   --chrome-mobile-control-open-surface:#12304a;
   --chrome-divider:rgba(255,255,255,.07);
+  --chrome-drawer-surface:#08101a;
+  --chrome-drawer-border:var(--line2);
+  --chrome-drawer-divider:var(--chrome-border);
+  --chrome-drawer-control-surface:rgba(255,255,255,.06);
+  --chrome-drawer-record-surface:rgba(255,255,255,.025);
+  --chrome-drawer-neutral-surface:rgba(255,255,255,.04);
+  --chrome-drawer-share-surface:rgba(13,24,39,.55);
+  --chrome-focus-ring-color:#9bd5ff;
+  --chrome-focus-separation-color:#08101a;
+  --chrome-focus-ring-subtle-color:rgba(87,184,255,.75);
+  --chrome-focus-inline-indicator-color:rgba(160,180,205,.7);
   /* Reserved for future planning geometry. The neutral family is deliberately
      separate from Lens A/B and carries no order, progress or judgement. */
   --planning-neutral:#aeb8c4;
@@ -127,7 +138,7 @@ header{
 .switch{position:relative;width:27px;height:15px;flex:0 0 auto}.switch input{position:absolute;width:1px;height:1px;opacity:0}.switch span{position:absolute;inset:0;background:#253344;border-radius:10px;cursor:pointer;transition:.2s}
 .switch span:after{content:"";position:absolute;width:11px;height:11px;left:2px;top:2px;border-radius:50%;background:#8da0b7;transition:.2s}
 .switch input:checked+span{background:#1f5472}.switch input:checked+span:after{left:14px;background:#eaf8ff}
-.switch input:focus-visible+span{outline:2px solid #9bd5ff;outline-offset:3px}
+.switch input:focus-visible+span{outline:2px solid var(--chrome-focus-ring-color);outline-offset:3px}
 .layer-source-note{margin-top:var(--s-2);font-size:var(--t-micro);line-height:1.5;color:#6d8199}
 .layer-source-note b{color:#9bb0c6}
 .activity-divider,.context-divider,.research-divider{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);margin:var(--s-3) 0 var(--s-1);padding-top:var(--s-2);border-top:1px solid rgba(255,255,255,.09)}
@@ -147,12 +158,12 @@ header{
 .hospitality-controls[hidden]{display:none}
 .hospitality-controls label{display:block;margin-bottom:var(--s-1);font-size:var(--t-micro);letter-spacing:.07em;text-transform:uppercase;color:#6f849b}
 .hospitality-select-wrap{position:relative;min-height:32px;border:1px solid var(--line);border-radius:var(--r-small);background:#0c1826}
-.hospitality-select-wrap:focus-within{outline:2px solid #9bd5ff;outline-offset:2px}
+.hospitality-select-wrap:focus-within{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
 .hospitality-select-value{display:block;padding:var(--s-2) calc(4 * var(--s-2)) var(--s-2) var(--s-2);font-size:var(--t-micro);line-height:1.35;color:#d9e4ef;overflow-wrap:anywhere}
 .hospitality-controls select{position:absolute;inset:0;width:100%;height:100%;padding:0;font-size:var(--t-figure);background:transparent;color:transparent;border:0;border-radius:var(--r-small);cursor:pointer}
 .hospitality-controls select option{background:#0c1826;color:#d9e4ef}
 .hospitality-controls select:focus-visible{outline:0}
-.language-control select:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px}
+.language-control select:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
 .hospitality-scale{height:6px;margin-top:var(--s-2);border-radius:999px;background:linear-gradient(90deg,rgba(208,140,255,.12),#d08cff);position:relative}
 .hospitality-scale:before,.hospitality-scale:after{position:absolute;top:8px;font-size:var(--t-micro);color:#8296ac;font-variant-numeric:tabular-nums}
 .hospitality-scale:before{content:attr(data-min);left:0}.hospitality-scale:after{content:attr(data-max);right:0}
@@ -181,7 +192,7 @@ header{
 .panel-resize-handle:before{width:12px;height:12px}
 .panel-resize-handle:after{width:7px;height:7px}
 .panel-resize-handle:hover,.panel-resize-handle:focus-visible{opacity:1}
-.panel-resize-handle:focus-visible{outline:1px solid rgba(87,184,255,.75);outline-offset:2px;border-radius:5px}
+.panel-resize-handle:focus-visible{outline:1px solid var(--chrome-focus-ring-subtle-color);outline-offset:2px;border-radius:5px}
 .panel.panel-resizing{user-select:none}
 .panel::-webkit-scrollbar{width:6px}.panel::-webkit-scrollbar-thumb{background:#2c4055;border-radius:9px}
 .status{display:flex;justify-content:space-between;align-items:center;gap:var(--s-2);margin-bottom:var(--s-3)}
@@ -259,7 +270,7 @@ header{
 .area-other-body b{color:#dbe6f3;font-weight:650}
 .area-source-toggle{margin-top:var(--s-2);padding:0;border:0;background:transparent;color:#7d92a9;font-size:var(--t-micro);letter-spacing:.05em;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(125,146,169,.45)}
 .area-source-toggle:hover{color:#b3c5d8}
-.area-source-toggle:focus-visible{outline:1px solid rgba(87,184,255,.75);outline-offset:3px;border-radius:var(--r-small)}
+.area-source-toggle:focus-visible{outline:1px solid var(--chrome-focus-ring-subtle-color);outline-offset:3px;border-radius:var(--r-small)}
 .area-source-toggle[aria-expanded=true]:after{content:" ▴"}
 .area-source-toggle[aria-expanded=false]:after{content:" ▾"}
 .area-source-details{margin-top:var(--s-2);padding:var(--s-2);border:1px solid var(--line);border-radius:var(--r-small);background:rgba(255,255,255,.02);display:flex;flex-direction:column;gap:var(--s-1);font-size:var(--t-micro);line-height:1.55;color:#8fa3b8}
@@ -274,7 +285,7 @@ header{
 /* Available to assistive technology, absent from the visual layout: it names
    the quantity a compact figure leaves implicit. */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.skip-link:focus{position:fixed;z-index:3000;top:calc(8px + var(--safe-top));left:calc(8px + var(--safe-left));width:auto;height:auto;margin:0;padding:var(--s-3) var(--s-4);overflow:visible;clip:auto;white-space:normal;border:2px solid #9bd5ff;border-radius:var(--r-small);background:#08101a;color:#fff;font-size:var(--t-body);font-weight:700}
+.skip-link:focus{position:fixed;z-index:3000;top:calc(8px + var(--safe-top));left:calc(8px + var(--safe-left));width:auto;height:auto;margin:0;padding:var(--s-3) var(--s-4);overflow:visible;clip:auto;white-space:normal;border:2px solid var(--chrome-focus-ring-color);border-radius:var(--r-small);background:#08101a;color:#fff;font-size:var(--t-body);font-weight:700}
 
 /* ===== PLANNING ÁMBITO EVIDENCE (K6, #68) ===================================
    A second lead-level evidence object in PLACE, deliberately distinct from the
@@ -447,7 +458,7 @@ header{
 .lic-window-controls{display:flex;flex-wrap:wrap;gap:var(--s-2);margin-top:var(--s-2)}
 .lic-window-field{display:flex;flex-direction:column;gap:var(--s-1);flex:1 1 120px;font-size:var(--t-micro);color:#9aaec4}
 .lic-window-field input{width:100%;padding:var(--s-2);font-size:var(--t-micro);background:#0c1826;color:#d9e4ef;border:1px solid var(--line);border-radius:var(--r-small);font-variant-numeric:tabular-nums}
-.lic-window-field input:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px}
+.lic-window-field input:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
 .lic-window-applied{margin:var(--s-2) 0 0;font-size:var(--t-meta);line-height:1.5;color:#cdb79f;font-variant-numeric:tabular-nums}
 .lic-window-clamped{margin:var(--s-1) 0 0;font-size:var(--t-micro);color:#d99a6e}
 .lic-window-clamped[hidden]{display:none}
@@ -477,7 +488,7 @@ header{
 .hospitality-field-label{display:block;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:#8195ab;margin-bottom:var(--s-1)}
 .hospitality-area-name{margin:0;font-size:var(--t-figure);line-height:1.15;color:#ecf3fb}
 .hospitality-clear{width:26px;height:26px;border:1px solid var(--line);border-radius:var(--r-small);background:rgba(255,255,255,.025);color:#a9bbcf;cursor:pointer;font-size:var(--t-figure);line-height:1}
-.hospitality-clear:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px}
+.hospitality-clear:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
 .hospitality-field{margin-top:var(--s-2);color:#a9bbcf;font-size:var(--t-micro);line-height:1.4}
 .hospitality-field strong{font-weight:620;color:#c8d5e4}
 .hospitality-value-row{display:flex;align-items:baseline;gap:var(--s-2);margin-top:var(--s-2);flex-wrap:wrap}
@@ -542,7 +553,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .comparison-mode-cue{margin:0 var(--s-1) var(--s-1);font-size:var(--t-micro);line-height:1.4;color:#a9bacb}
 .halo-toggle{display:flex;align-items:center;gap:var(--s-2);min-height:36px;padding:var(--s-1) var(--s-2);margin:var(--s-1) 0 var(--s-1);border:1px solid rgba(255,255,255,.08);border-radius:var(--r-small);background:rgba(255,255,255,.02);font-size:var(--t-micro);color:#c5d3e1;cursor:pointer}
 .halo-toggle input{width:17px;height:17px;margin:0;accent-color:#dcefff}
-.halo-toggle input:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px}
+.halo-toggle input:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
 .halo-toggle small{margin-left:auto;font-size:var(--t-micro);color:#7e93a9}
 .halo-legend{font-size:var(--t-micro);line-height:1.4;color:#8194a9;margin:0 var(--s-1) var(--s-2)}
 /* COMPARISON BRIDGE: the focused reading of one metric. An analytical
@@ -651,7 +662,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .ss-actions{display:flex;flex-wrap:wrap;gap:var(--s-1);margin:var(--s-2) 0 0}
 .ss-button{flex:1 1 auto;min-width:0;min-height:24px;padding:var(--s-1) var(--s-2);border:1px solid rgba(155,213,255,.35);border-radius:var(--r-small);background:rgba(120,190,255,.1);color:#dfecf8;font:inherit;font-size:var(--t-micro);font-weight:650;letter-spacing:.02em;text-align:center;cursor:pointer;overflow-wrap:anywhere}
 .ss-button:hover{background:rgba(120,190,255,.18);border-color:rgba(155,213,255,.6)}
-.ss-button:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px}
+.ss-button:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
 .ss-button-quiet{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.035);color:#bdcbd9}
 .ss-button-quiet:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.3)}
 .ss-button[hidden]{display:none}
@@ -660,7 +671,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
    table keeps its row-header semantics while the panel can drive the halo. */
 .cmp-metric-focus{display:inline;margin:0;padding:0;border:0;background:none;font:inherit;color:inherit;letter-spacing:inherit;text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.22);text-underline-offset:2px}
 .cmp-metric-focus:hover{text-decoration-color:rgba(155,213,255,.8)}
-.cmp-metric-focus:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px;border-radius:var(--r-small)}
+.cmp-metric-focus:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px;border-radius:var(--r-small)}
 .cmp-metric-focus[aria-pressed="true"]{color:#eaf3fb;text-decoration-color:#9bd5ff}
 .comparetable-wrap{overflow-x:auto;overscroll-behavior-x:contain}
 .comparetable{width:100%;border-collapse:collapse;font-size:var(--t-micro);font-variant-numeric:tabular-nums}
@@ -895,7 +906,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
    collapse; they are never deleted. */
 .header-tools{pointer-events:auto;margin-left:auto;display:flex;align-items:center}
 .header-tools select{width:auto;min-width:96px;padding:var(--s-2) var(--s-3);font-size:var(--t-meta);border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-header-surface);color:var(--chrome-text-control-value)}
-.header-tools select:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px}
+.header-tools select:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
 
 .mode-section[hidden],[data-controls-for][hidden],[data-drawer-mode][hidden]{display:none!important}
 
@@ -904,7 +915,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .panel-head{position:sticky;top:-15px;z-index:4;margin:0 calc(-1 * var(--s-4)) var(--s-1);padding:var(--s-1) var(--s-4) var(--s-2);background:var(--chrome-panel-surface);border-bottom:1px solid var(--chrome-border)}
 .mode-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-1);padding:var(--s-1);border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-control-group-surface)}
 .mode-btn{display:flex;align-items:center;justify-content:center;gap:var(--s-2);min-height:38px;padding:var(--s-2);border:1px solid transparent;border-radius:var(--r-small);background:transparent;color:var(--chrome-text-metadata);font:inherit;font-size:var(--t-meta);cursor:pointer}
-.mode-btn:focus-visible,.scope-rail button:focus-visible,.evidence-link:focus-visible,.evidence-route:focus-visible,.detail-disclosure>summary:focus-visible,.layer-action:focus-visible,.drawer-close:focus-visible,.reading-btn:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px}
+.mode-btn:focus-visible,.scope-rail button:focus-visible,.evidence-link:focus-visible,.evidence-route:focus-visible,.detail-disclosure>summary:focus-visible,.layer-action:focus-visible,.drawer-close:focus-visible,.reading-btn:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
 /* The current mode is shown by a filled state, a visible rule AND a check glyph,
    never by colour alone. */
 .mode-btn[aria-pressed="true"]{background:#102a43;color:#fff;border-color:rgba(75,175,255,.55);font-weight:700;box-shadow:inset 0 -2px 0 #4bafff}
@@ -959,26 +970,26 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 /* ONE evidence drawer. Native <dialog>: Escape closes, focus is trapped while it
    is open and returns to the opener. It overlays the panel column on desktop and
    is a bottom sheet on narrow screens. */
-.evidence-drawer{position:fixed;margin:0;inset:auto;right:calc(18px + var(--safe-right));top:calc(90px + var(--safe-top));bottom:auto;width:min(460px,calc(100vw - 36px));max-height:calc(100dvh - 108px - var(--safe-top) - var(--safe-bottom));overflow:auto;padding:0 var(--s-3) var(--s-3);border:1px solid var(--line2);border-radius:var(--r-large);background:#08101a;color:var(--text);box-shadow:0 22px 60px rgba(0,0,0,.55);overscroll-behavior:contain;z-index:2000}
+.evidence-drawer{position:fixed;margin:0;inset:auto;right:calc(18px + var(--safe-right));top:calc(90px + var(--safe-top));bottom:auto;width:min(460px,calc(100vw - 36px));max-height:calc(100dvh - 108px - var(--safe-top) - var(--safe-bottom));overflow:auto;padding:0 var(--s-3) var(--s-3);border:1px solid var(--chrome-drawer-border);border-radius:var(--r-large);background:var(--chrome-drawer-surface);color:var(--text);box-shadow:0 22px 60px rgba(0,0,0,.55);overscroll-behavior:contain;z-index:2000}
 .evidence-drawer::backdrop{background:rgba(2,6,12,.5)}
 .evidence-drawer:not([open]){display:none}
-.drawer-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);margin:0 calc(-1 * var(--s-3));padding:var(--s-3) var(--s-3) var(--s-2);background:#08101a;border-bottom:1px solid var(--line)}
+.drawer-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);margin:0 calc(-1 * var(--s-3));padding:var(--s-3) var(--s-3) var(--s-2);background:var(--chrome-drawer-surface);border-bottom:1px solid var(--chrome-drawer-divider)}
 .drawer-head h2{margin:0;font-size:var(--t-figure);letter-spacing:-.01em}
-.drawer-close{min-height:36px;padding:var(--s-2) var(--s-3);border:1px solid var(--line2);border-radius:var(--r-small);background:rgba(255,255,255,.06);color:#fff;font:inherit;font-size:var(--t-meta);cursor:pointer}
+.drawer-close{min-height:36px;padding:var(--s-2) var(--s-3);border:1px solid var(--chrome-drawer-border);border-radius:var(--r-small);background:var(--chrome-drawer-control-surface);color:#fff;font:inherit;font-size:var(--t-meta);cursor:pointer}
 .drawer-tools{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-2) var(--s-3);margin:var(--s-2) 0 var(--s-1)}
-.drawer-reading{display:inline-flex;gap:var(--s-1);padding:var(--s-1);border:1px solid var(--line);border-radius:var(--r-small)}
+.drawer-reading{display:inline-flex;gap:var(--s-1);padding:var(--s-1);border:1px solid var(--chrome-drawer-divider);border-radius:var(--r-small)}
 .reading-btn{min-height:30px;padding:var(--s-1) var(--s-2);border:1px solid transparent;border-radius:var(--r-small);background:transparent;color:#9fb1c5;font:inherit;font-size:var(--t-micro);cursor:pointer}
 .reading-btn[aria-pressed="true"]{background:#102a43;color:#fff;border-color:rgba(75,175,255,.5);font-weight:700}
 .reading-btn[aria-pressed="true"]:before{content:"✓ "}
 .drawer-filter{margin:0;font-size:var(--t-micro);color:#9aaec4}
-.drawer-record{margin:var(--s-2) 0 0;padding:var(--s-3);border:1px solid var(--line);border-radius:var(--r-small);background:rgba(255,255,255,.025)}
+.drawer-record{margin:var(--s-2) 0 0;padding:var(--s-3);border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-drawer-record-surface)}
 .drawer-record>h3{display:flex;align-items:baseline;gap:var(--s-2);margin:0 0 var(--s-1);font-size:var(--t-meta);letter-spacing:0;text-transform:none;color:#e8f1fa}
-.drawer-source{margin:var(--s-2) 0 0;padding-top:var(--s-2);border-top:1px solid rgba(255,255,255,.07)}
+.drawer-source{margin:var(--s-2) 0 0;padding-top:var(--s-2);border-top:1px solid var(--chrome-divider)}
 .drawer-source>h4{margin:0 0 var(--s-1);font-size:var(--t-micro);color:#d2e1f0}
 .drawer-fields{display:grid;grid-template-columns:minmax(88px,.42fr) minmax(0,1fr);gap:var(--s-1) var(--s-2);margin:0;font-size:var(--t-micro);line-height:1.4}
 .drawer-fields dt{color:#8ba0b7}
 .drawer-fields dd{margin:0;color:#dbe7f3;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
-.drawer-ceiling{margin:var(--s-2) 0 0;padding:var(--s-2);border-left:3px solid #c9a24a;background:rgba(255,255,255,.04);font-size:var(--t-micro);line-height:1.45;color:#e6eef6}
+.drawer-ceiling{margin:var(--s-2) 0 0;padding:var(--s-2);border-left:3px solid #c9a24a;background:var(--chrome-drawer-neutral-surface);font-size:var(--t-micro);line-height:1.45;color:#e6eef6}
 .drawer-ceiling b{display:block;margin-bottom:var(--s-1);font-size:var(--t-micro);letter-spacing:.08em;text-transform:uppercase;color:#c8d7e6}
 .drawer-notes{margin:var(--s-4) 0 0}
 .drawer-notes>h3{margin:0 0 var(--s-2);font-size:var(--t-micro);letter-spacing:.12em;text-transform:uppercase;color:#8ba0b7}
@@ -1049,9 +1060,9 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 /* A single high-contrast focus language covers native and custom application
    controls, including SVG controls exposed through role=button. */
 :where(button,select,input,summary,a[href],[role="button"]):focus-visible{
-  outline:2px solid #9bd5ff;
+  outline:2px solid var(--chrome-focus-ring-color);
   outline-offset:3px;
-  box-shadow:0 0 0 1px #08101a;
+  box-shadow:0 0 0 1px var(--chrome-focus-separation-color);
 }
 
 @media(pointer:coarse){
@@ -1157,7 +1168,7 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 /* K10 ámbito Bridge, Decision Insight, within-metric bars, dates (K5 tokens). */
 .ambito-metric-focus{background:none;border:0;padding:0;margin:0;font:inherit;
   color:inherit;text-align:left;cursor:pointer;border-bottom:1px dotted transparent}
-.ambito-metric-focus:hover,.ambito-metric-focus:focus-visible{border-bottom-color:rgba(160,180,205,.7);outline:none}
+.ambito-metric-focus:hover,.ambito-metric-focus:focus-visible{border-bottom-color:var(--chrome-focus-inline-indicator-color);outline:none}
 .ambito-metric-focus[aria-pressed="true"]{color:var(--text);border-bottom-color:var(--b)}
 .ambito-reason{color:var(--text-meta);font-size:var(--t-micro);font-style:italic}
 
@@ -1191,14 +1202,14 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
    next to the provenance they make portable; a page-level notice reports a
    partial or refused restore. Reuses the existing tokens and visual language —
    no new design system. */
-.drawer-share{margin:var(--s-2) 0 var(--s-1);padding:var(--s-3);border:1px solid var(--line);border-radius:var(--r-small);background:rgba(13,24,39,.55)}
+.drawer-share{margin:var(--s-2) 0 var(--s-1);padding:var(--s-3);border:1px solid var(--chrome-drawer-divider);border-radius:var(--r-small);background:var(--chrome-drawer-share-surface)}
 .drawer-share-title{margin:0 0 var(--s-1);font-size:var(--t-label);letter-spacing:.02em;color:var(--text)}
 .drawer-share-lede{margin:0 0 var(--s-2);font-size:var(--t-meta);color:var(--muted)}
 .drawer-share-actions{display:flex;flex-wrap:wrap;gap:var(--s-2)}
-.drawer-action{min-height:36px;padding:var(--s-2) var(--s-3);border:1px solid var(--line2);border-radius:var(--r-small);background:rgba(16,42,67,.9);color:#fff;font:inherit;font-size:var(--t-meta);cursor:pointer}
+.drawer-action{min-height:36px;padding:var(--s-2) var(--s-3);border:1px solid var(--chrome-drawer-border);border-radius:var(--r-small);background:rgba(16,42,67,.9);color:#fff;font:inherit;font-size:var(--t-meta);cursor:pointer}
 .drawer-action:hover{background:#15344f}
 .drawer-action:disabled{opacity:.55;cursor:default}
-.drawer-action:focus-visible,.k11-notice-dismiss:focus-visible{outline:2px solid #9bd5ff;outline-offset:2px}
+.drawer-action:focus-visible,.k11-notice-dismiss:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
 .drawer-share-status{margin:var(--s-2) 0 0;font-size:var(--t-meta);color:var(--muted);min-height:1.2em}
 .drawer-share-status[data-tone="ok"]{color:#8fe3bf}
 .drawer-share-status[data-tone="error"]{color:#ff9bb0}
