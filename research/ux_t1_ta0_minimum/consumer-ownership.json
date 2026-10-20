@@ -1,0 +1,43 @@
+{
+  "schema": "ux-t1-ta0-minimum-consumer-ownership/1.0",
+  "sourceCommit": "028d0389454b4248180654075022e4397b14fd5b",
+  "scope": "Bounded ownership summary for the shared-chrome T-a1 decision; not a replacement for the lost full historical colour-consumer inventory.",
+  "owners": [
+    {
+      "owner": "shared-ui-chrome",
+      "scope": "body background and text; header brand surface; map-layer rail; analysis panel; generic form, card, border and surface roles",
+      "source": ["css/app.css:1-30", "css/app.css:50-75", "css/app.css:1020-1032"],
+      "browserEvidence": ["desktop PLACE", "tablet COMPARE", "mobile PLACE", "desktop body/header/rail/panel computed styles"],
+      "tA1": "IN SCOPE: role tokens may be introduced only while preserving current dark computed values."
+    },
+    {
+      "owner": "evidence-drawer-and-focus",
+      "scope": "native Evidence & limits dialog/backdrop and application focus indicators, including the native comparison-halo checkbox",
+      "source": ["css/app.css:1027-1032", "css/app.css:521-522", "css/app.css:938-940", "index.html:786-820"],
+      "browserEvidence": ["Spanish Evidence & limits drawer screenshot and computed dialog/backdrop styles", "keyboard-focused #haloToggle computed style"],
+      "tA1": "OUT OF SCOPE per Phase A §10; reserved for T-a2."
+    },
+    {
+      "owner": "evidence-badges-and-lens-identity",
+      "scope": "register/observed/snapshot/category badge treatments and panel-facing Lens A/B labels",
+      "source": ["css/app.css:198-225", "css/app.css:501", "css/app.css:538-542", "css/app.css:693", "css/app.css:746-748"],
+      "browserEvidence": ["register badge computed style", "Lens A/B panel label computed styles", "snapshot badge absent under available production snapshot"],
+      "tA1": "OUT OF SCOPE per Phase A §10; reserved for T-a3. Preserve category meaning and A/B identity."
+    },
+    {
+      "owner": "basemap-aware-map-marks",
+      "scope": "basemap-dependent Lens boundaries, map markers, SVG halo glyphs and application-owned planning geometry",
+      "source": ["js/app.js:376", "js/app.js:2128-2161", "js/app.js:2807-2814", "css/app.css:653-657"],
+      "browserEvidence": ["Satellite markers and boundaries screenshot", "resolved planning-ámbito screenshot"],
+      "tA1": "OUT OF SCOPE; map marks remain separate from shared UI chrome."
+    },
+    {
+      "owner": "leaflet-and-map-chrome",
+      "scope": "zoom, attribution, tooltip and provider-control surfaces",
+      "source": ["css/app.css:36-45", "css/app.css:811-824"],
+      "browserEvidence": ["map controls appear in desktop, tablet, mobile and satellite screenshots"],
+      "tA1": "OUT OF SCOPE per Phase A §10; reserved for T-a4."
+    }
+  ],
+  "consumerBoundary": "A shared-chrome token must not automatically recolor evidence-category hues, Lens A/B identity, map symbols, basemap-aware outlines, badges, the evidence drawer/focus ring, or Leaflet-owned controls."
+}
