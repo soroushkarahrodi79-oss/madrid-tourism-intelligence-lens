@@ -21,6 +21,9 @@ Production changes are limited to `css/app.css`. T-a2 names evidence-drawer surf
 | `--chrome-drawer-record-surface` | `rgba(255,255,255,.025)` |
 | `--chrome-drawer-neutral-surface` | `rgba(255,255,255,.04)` |
 | `--chrome-drawer-share-surface` | `rgba(13,24,39,.55)` |
+| `--chrome-drawer-backdrop` | `rgba(2,6,12,.5)` |
+| `--chrome-drawer-provenance-divider` | `rgba(255,255,255,.08)` |
+| `--chrome-drawer-edition-border` | `rgba(183,197,212,.14)` |
 | `--chrome-focus-ring-color` | `#9bd5ff` |
 | `--chrome-focus-separation-color` | `#08101a` |
 | `--chrome-focus-ring-subtle-color` | `rgba(87,184,255,.75)` |
@@ -32,18 +35,21 @@ Explicit exceptions retain their existing owners: Lens A/B and map-owned `.halo-
 
 ## Measured parity
 
-`parity.json` was produced by `compare.mjs` in Chromium `153.0.8010.12`, DPR 1, using the clean base worktree and this candidate against the same verified deployed manifest and runtime snapshot. It samples **24 selector groups Ã— 21 properties** (including box geometry) over six states: desktop 1440Ã—900, tablet 834Ã—1112 and mobile 390Ã—844, each with the drawer closed and open.
+The committed `parity.json` and six PNGs preserve the original T-a2 evidence run at the initial PR head (`9a1af5bf75cf0933196528582b96becad32cc580`): 24 selector groups × 21 properties, with exact computed styles and the small panel-edge rasterization differences recorded there. They are retained as historical evidence and are not overwritten by reruns.
 
-- Computed styles, visibility and geometry: exact across all 6 states; no differing selectors.
+The final-correction rerun used a clean pinned base worktree and a committed candidate. Its report was written outside both source worktrees. It sampled **26 selector groups × 21 properties** over desktop 1440×900, tablet 834×1112 and mobile 390×844, with the drawer closed and open. It also opened the K7 change-provenance drawer using the existing loopback regression seam and sampled the provenance section and all three edition blocks.
+
+- Computed styles, visibility and geometry: exact across all six responsive states and the K7 provenance drawer; no differing sampled selectors.
+- Screenshot pixels: exact in all six responsive states in the final-correction run; zero changed pixels.
 - Page errors: none in either arm.
-- Screenshot pixels: tablet and mobile open/closed are exact. Desktop differs by 5 pixels when closed and 2 when open, maximum channel delta 1. Both differences fall in a 4Ã—3px patch at `(960, 198)` on the panel edge; no changed CSS value or geometry is present. This matches the tiny panel-edge rasterization variance noted in the T-a1 evidence. No intentional visual change was made.
-- Candidate screenshots are in `screenshots/`; baseline hashes, pixel deltas and full computed samples are in `parity.json`, avoiding duplicate baseline screenshots.
+- Candidate CSS SHA-256: `746d6db831f52355d9069da3e53ed59e2aadaaba5a85343ca69f7046ad4b2eb0`.
+- Candidate screenshots and fresh `parity.json` are generated only in the selected external output directory. The committed original baseline images and JSON remain untouched.
 
 ## Focus and drawer behavior
 
-Keyboard-modality focus samples match baseline for the language header control, PLACE mode button, scope rail button, drawer close button and `#haloToggle`. The first browser Tab stop is the visible skip link. The native dialog receives focus on open, the close button is visible and focus-visible, Escape closes it, and focus returns to the exact rail opener. Existing Playwright IA cases additionally cover per-value evidence open/close and the 360px drawer case. Existing tests cover the visually hidden switch input and wrapper-owned select indicator. The historical actual-Tab `#haloToggle` measurement from T-a0 remains unchanged; this runâ€™s candidate and baseline computed focus values also match.
+The comparison separates genuine Tab traversal from isolated programmatic focus. Its `actualTabTraversal` evidence records the first real page Tab stop, the drawer's initial focus after Enter from an isolated programmatic opener, real forward Tab and reverse Shift+Tab within the drawer, Escape return to that opener, and real Tab traversal from COMPARE activation to the native `#haloToggle` checkbox. Header, PLACE mode and rail computed rings are reported under `programmaticFocusAfterKeyboardInput` with `reachedByTab: false`; these controls were focused with Playwright `.focus()` after keyboard modality had been established, so those samples validate their rendered `:focus-visible` styles rather than a Tab path to each control. Existing Playwright IA cases cover evidence open/close, and existing tests cover the visually hidden switch input and wrapper-owned select indicator.
 
-Chromium `forced-colors: active` emulation maps the focused mode button to the same 2px system outline in both arms and suppresses box-shadow in both. This is an emulated forced-colours inspection, not a claim of WCAG conformance or a physical Windows High Contrast run. No focused target was found obscured by the drawerâ€™s sticky heading in exercised states; the close action remains visible. WCAG 2.2 SC 2.4.11 is not claimed as fully audited by these automated checks.
+The historical T-a0 `#haloToggle` measurement did use real Tab traversal from COMPARE and remains the separately pinned historical evidence; it is not presented as traversal performed by the T-a2 comparison. The historical 3px `currentColor` report was not reproduced. Chromium `forced-colors: active` emulation maps the focused mode button to the same 2px system outline in both arms and suppresses box-shadow in both. This is an emulated forced-colours inspection, not a physical Windows High Contrast run or WCAG conformance claim. The exercised drawer focus path returns to its opener and remains visible around the sticky heading; SC 2.4.11 was not comprehensively audited across every state.
 
 ## Verification
 
@@ -53,7 +59,22 @@ Chromium `forced-colors: active` emulation maps the focused mode button to the s
 - `git diff --check` â€” passed.
 - Safari/WebKit and physical iPad hardware were not tested. Chromium emulation does not substitute for those environments.
 
-To reproduce the T-a2 comparison from this checkout, create a clean detached worktree at the recorded base SHA, install the existing Playwright dependency with `npm ci`, then set `TA2_BASE_ROOT` to that worktree and run `node research/ux_t1_ta2_focus_drawer/compare.mjs`. The script refuses a different base or deployed source/build identity and records only candidate screenshots plus baseline hashes and pixel deltas.
+## Reproduction
+
+Run from a clean, committed T-a2 candidate checkout. Create or reuse a separate clean worktree at the pinned baseline SHA and install Playwright dependencies in the candidate checkout. `TA2_CANDIDATE_SHA` pins the actual candidate commit (it must equal candidate `HEAD`); the script verifies that it descends from the pinned base, that the only production change is `css/app.css`, that research changes stay inside this evidence package, and that the candidate CSS bytes match the committed CSS SHA-256. The baseline worktree must be exactly the pinned base and clean. The live Pages manifest must still identify that same source/build.
+
+Fresh screenshots and `parity.json` are written to a new external output directory. By default this is a timestamped directory under the system temporary folder; set `TA2_OUTPUT_DIR` to another new empty location outside both worktrees to choose where. The committed screenshots and original `parity.json` are never overwritten by a reproduction run.
+
+```powershell
+# From the T-a2 candidate checkout, after committing all candidate changes:
+$env:TA2_BASE_ROOT = (Resolve-Path ..\madrid-ta2-base).Path
+$env:TA2_CANDIDATE_SHA = (git rev-parse HEAD).Trim()
+$env:TA2_OUTPUT_DIR = Join-Path $env:TEMP ("madrid-ta2-repro-" + (Get-Date -Format 'yyyyMMdd-HHmmss'))
+node research/ux_t1_ta2_focus_drawer/compare.mjs
+Remove-Item Env:TA2_BASE_ROOT,Env:TA2_CANDIDATE_SHA,Env:TA2_OUTPUT_DIR
+```
+
+The script refuses a dirty source worktree, a wrong baseline, an unexpected file scope, a CSS mismatch, or a changed deployed source/build identity. It prints the candidate SHA, committed CSS SHA-256, output directory, computed-style parity, screenshot pixel deltas, page errors, explicit Tab-traversal evidence, programmatic focus samples and Chromium forced-colours results.
 
 ## Recommendation
 
