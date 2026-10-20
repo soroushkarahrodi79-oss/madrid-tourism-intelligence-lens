@@ -373,7 +373,6 @@ const lenses = {
 
 // Eight reusable Leaflet SVG markers form the screen-space halo. Each marker is
 // anchored at its radial bar origin and recomputed from the live map projection.
-const HALO_GLYPH_COLORS = Object.freeze({ A: "#f7fbff", B: "#43d7ff" });
 const HALO_INNER_GAP_PX = HALO_RADIAL_GEOMETRY.RADIAL_GAP;
 const HALO_FULL_TRACK_PX = HALO_RADIAL_GEOMETRY.MAX_BAR_LENGTH;
 const HALO_COMPACT_TRACK_PX = HALO_FULL_TRACK_PX;
@@ -423,8 +422,7 @@ function getHaloUtciBand() {
 }
 
 function haloIcon(which, metric) {
-  const color = HALO_GLYPH_COLORS[which];
-  const html = `<svg class="halo-glyph halo-${which.toLowerCase()} halo-slot-${metric.slot}" viewBox="0 0 220 140" width="220" height="140" data-metric="${metric.id}" role="button" tabindex="0" aria-pressed="false" aria-label="Lens ${which}, ${metric.label}; focus to compare this metric" style="--halo-color:${color};--halo-thickness:${HALO_RADIAL_GEOMETRY.BAR_THICKNESS}px">
+  const html = `<svg class="halo-glyph halo-${which.toLowerCase()} halo-slot-${metric.slot}" viewBox="0 0 220 140" width="220" height="140" data-metric="${metric.id}" role="button" tabindex="0" aria-pressed="false" aria-label="Lens ${which}, ${metric.label}; focus to compare this metric" style="--halo-thickness:${HALO_RADIAL_GEOMETRY.BAR_THICKNESS}px">
     <line class="halo-track"/>
     <line class="halo-fill"/>
     <circle class="halo-zero" r="3.2"/>
