@@ -1,6 +1,6 @@
 # UX-T1 T-a3 — bounded identity and palette decision gate
 
-Status: **HOLD for production implementation; GO for human design review of these bounded candidates.** This package supplies the requested consumer ownership and rendered comparison evidence. It does not choose a final palette, activate an appearance control, or change production code.
+Status: **GO for the bounded T-a3 Draft implementation approved by the project owner on 2026-10-20.** This PR remains documentation-only. The approval records design direction; it does not turn the preview measurements into universal validation, activate an appearance control, or authorize merge/deployment.
 
 Base and deployed source are `216cfbd3549c5d9575da0e89013f8e4a95f7fe5b`; PRs #103–106 are merged. Latest `Test` and `Deploy to GitHub Pages` workflows succeeded on that SHA (runs [39411220819](https://github.com/soroushkarahrodi79-oss/madrid-tourism-intelligence-lens/actions/runs/39411220819) and [39411220764](https://github.com/soroushkarahrodi79-oss/madrid-tourism-intelligence-lens/actions/runs/39411220764)). The deployed app returned HTTP 200 and its manifest reports `build_state: pass`. Current T-a0/T-a1 ownership and T-a2 drawer/focus baselines were reused. No historical 1,286-record inventory was rebuilt.
 
@@ -20,6 +20,18 @@ Roles and thresholds below follow the actual consumer. SC 1.4.3 applies to text 
 | Planning source-state marks and unrelated geometry | planning phase tokens and their solid/dashed/dotted line styles (`css/app.css` 340–352; `docs/VISUAL_LANGUAGE.md` Gate L contract) | Published phase/source states with labels; planning geometry uses its own neutral family | Preserve source wording and independent states; no ordinal scale or progress semantics. Any retained essential mark needs 3:1, text needs 4.5:1 | Category/state semantics are source-owned. Keep planning origin/unresolved distinct from Lens identities; geometry/calculations are out of scope |
 
 `LAYER_COLOR` swatches and map points are included in this bounded ownership map because they are real category consumers. Their category meanings stay fixed. The arithmetic candidates in §2 are only graphic screening candidates; their actual three-basemap point contrast remains an open visual review item. POI markers, polygon geometry, Leaflet controls and `LENS_BASEMAP_STYLES` were not recolored in the preview.
+
+## Human design approval — bounded T-a3
+
+The project owner approved the following direction for a separate, bounded T-a3 Draft implementation:
+
+- Lens A light-UI identity: navy `#123b5f`.
+- Lens B light-UI text: `#00718f`.
+- Lens B light-UI graphics: `#0098c0` only when the particular rendered consumer passes its applicable contrast and map-legibility checks. A failing or unvalidated consumer keeps its shipped behavior and is reported.
+- Existing Dark identities remain unchanged. Lens A stays solid and Lens B stays dashed.
+- No category-map color candidate is blanket-approved; category hue, mapping and meaning remain as shipped unless a separate consumer-specific decision authorizes a change.
+
+This approval selects the design direction, not a universal use of `#0098c0`. The arithmetic results and limitations in §§3–5 remain the original evidence and are not upgraded by the decision. This PR records the approval only; implementation is tracked separately.
 
 ## 2. Rendered comparisons
 
@@ -77,12 +89,12 @@ The A options have nearly equal luminance and become nearly indistinguishable fr
 
 Shortlist by rendered role: current near-white A for shipped dark; navy or graphite A for light UI text; B `#00718f` for normal light-surface text; B `#0098c0` only as an essential-graphic candidate; original category hues on dark; audited same-hue graphic candidates only where the concrete mark’s applicable criterion and appearance are reviewed. No one hex is approved for every consumer.
 
-## 6. Minimal proposed T-a3 implementation diff (not authorized yet)
+## 6. Approved bounded T-a3 implementation scope
 
-After a human selects A and accepts a role split for B, keep the production patch to:
+Keep the separate implementation patch to:
 
-1. `css/app.css`: appearance-scoped role variables for badge foreground/tints/borders, Lens A/B text, A/B controls and comparison identifiers; replace the listed hardcoded panel uses. Keep the current dark computed values byte-for-byte equivalent.
-2. `css/app.css` + `js/app.js`: make SVG halo A/B colors consume the same graphic-role values as the app marker icons, without changing halo geometry, value rendering, opacity, dash or state logic. Add only category graphic overrides actually selected after the category-by-layer review; keep category assignments untouched.
-3. No changes to `LENS_BASEMAP_STYLES`, basemap tiles, Leaflet controls, geometry, category assignments, calculations, evidence states/values, provenance, planning interpretation, or Appearance switching. Theme activation remains a later separately authorized phase.
+1. `css/app.css`: role tokens for evidence-badge text/neutral background/border; Lens A/B text and UI graphics; and Comparison Bridge A/B identifiers and controls. Migrate only those owned consumers. Store approved Light role values without adding a switch or activating Light. Preserve the shipped Dark computed values exactly.
+2. For appearance-facing SVG/halo and center-marker consumers, keep CSS and `HALO_GLYPH_COLORS` on the same role architecture. Apply approved light graphic values only to consumers that pass their own rendered contrast and visibility gates across Light, Dark and Satellite map contexts; unsupported consumers retain their existing values and are listed in the validation report. Do not change halo geometry, calculations, labels, opacity, dash or rendering states.
+3. Preserve category assignments and hues, `LENS_BASEMAP_STYLES`, map boundaries/geometry, basemap tiles, Leaflet controls, calculations, evidence states/values, provenance and planning interpretation. Do not add an Appearance switch or activate Light/Dark/System.
 
-This is a diff outline, not a production diff. Required review remains: choose navy or graphite; decide if the graphic-only `#0098c0` mark and text-safe `#00718f` are acceptable as one coherent B identity; inspect the thin map marks across three actual basemaps and grayscale; and approve per-layer category graphic changes or explicitly keep their current hues. Therefore **T-a3 production implementation is HOLD pending human palette decision**. No T-a4 or appearance-switching work is included.
+The original candidate arithmetic and preview screenshots remain unchanged. The separate implementation must report per-consumer rendered results, retain `#0098c0` only where validated, and keep labels plus Lens A solid / Lens B dashed as redundant identifiers. No T-a4 or appearance-switching work is included.
