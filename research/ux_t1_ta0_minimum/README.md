@@ -40,16 +40,19 @@ No screenshot or computed value claims WCAG conformance. Screenshot similarity, 
 
 ## Reproduction
 
-Run at the baseline commit with Node and the repository’s existing Playwright development dependency; Chromium must be installed for Playwright. The script downloads and verifies the current published manifest and POI object, starts a loopback-only server, proxies the public runtime configuration in memory without printing or storing it, launches Chromium, performs the UI interactions above, and rewrites this package’s screenshot/style manifests.
+Run the utility from a checkout of the T-a0 evidence branch, while serving the application from a separate, clean worktree at the pinned baseline SHA. The script itself is not present at the application baseline SHA. `npm ci` and Playwright run in the evidence-branch checkout; `TA0_APP_ROOT` points the server at the baseline application worktree. The utility verifies the application worktree `HEAD` and rejects tracked changes, then checks the deployment manifest and POI hashes before staging any replacement evidence. It proxies the public runtime configuration in memory without printing or storing it. All screenshots and JSON outputs are written to a fresh staging directory and replace the current package only after every capture succeeds; promotion uses same-directory renames with rollback on failure. Existing generated POI data is reused only when its digest matches, otherwise it is preserved and the run stops.
 
 ```powershell
-git checkout 028d0389454b4248180654075022e4397b14fd5b
+git fetch origin main
+git worktree add --detach ..\madrid-ta0-source 028d0389454b4248180654075022e4397b14fd5b
 npm ci
 npx playwright install chromium
+$env:TA0_APP_ROOT = (Resolve-Path ..\madrid-ta0-source).Path
 node research/ux_t1_ta0_minimum/capture_baseline.mjs
+Remove-Item Env:TA0_APP_ROOT
 ```
 
-The capture command fails closed if the deployed source SHA, deployment-manifest hash, build state, or POI hash changes. A later Pages deployment may therefore require a newly reviewed baseline rather than silently substituting data. The generated `data/runtime_poi.json` remains ignored and must not be committed.
+Run these commands from the checkout of the T-a0 evidence branch. If the named baseline worktree already exists, verify its exact SHA and clean tracked state, then reuse its path rather than replacing it. The capture command fails closed if the deployed source SHA, deployment-manifest hash, build state, or POI hash changes. A later Pages deployment may therefore require a newly reviewed baseline rather than silently substituting data. The generated `data/runtime_poi.json` is written only to the ignored baseline-worktree path and must not be committed.
 
 To verify the checked-in screenshot hashes without recapturing:
 

@@ -2,6 +2,7 @@
 // Development-only evidence capture. No app styles or hidden states are injected.
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,12 +12,39 @@ const SOURCE_SHA = "028d0389454b4248180654075022e4397b14fd5b";
 const DEPLOYMENT_MANIFEST_SHA = "bdbc5c1c85f9d9f47893b7444b824921a42245dfd3d0be362bb648be39006133";
 const POI_SHA = "981449c5b52fac59835a826f89d163eae99d13a042a72acb80bcdc08acb88a70";
 const SITE = "https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens";
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const PACKAGE = path.join(ROOT, "research/ux_t1_ta0_minimum");
-const SCREENSHOTS = path.join(PACKAGE, "screenshots");
+const PACKAGE = path.dirname(fileURLToPath(import.meta.url));
+const APP_ROOT = path.resolve(process.env.TA0_APP_ROOT || path.resolve(PACKAGE, "../.."));
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
+function verifyApplicationSource() {
+  const git = (...args) => execFileSync("git", ["-C", APP_ROOT, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  const head = git("rev-parse", "HEAD");
+  if (head !== SOURCE_SHA) throw new Error(`Application source HEAD is ${head}; expected exact baseline ${SOURCE_SHA}.`);
+  try {
+    execFileSync("git", ["-C", APP_ROOT, "diff", "--quiet", "HEAD", "--"], { stdio: "ignore" });
+  } catch {
+    throw new Error("Application worktree has tracked changes; refusing to capture a modified source tree.");
+  }
+  if (git("ls-files", "--others", "--exclude-standard")) {
+    throw new Error("Application worktree has untracked, non-ignored files; refusing to capture a modified source tree.");
+  }
+  try {
+    git("ls-files", "--error-unmatch", "--", "data/runtime_poi.json");
+    throw new Error("data/runtime_poi.json is tracked; refusing to write generated production data.");
+  } catch (error) {
+    if (String(error.message).includes("tracked; refusing")) throw error;
+    // Expected: this deployment-generated snapshot is not tracked in the pinned source.
+  }
+  try {
+    git("check-ignore", "--quiet", "--", "data/runtime_poi.json");
+  } catch {
+    throw new Error("data/runtime_poi.json is not ignored in the application worktree; refusing to write it.");
+  }
+  return head;
+}
+
 async function fetchVerifiedDeployment() {
+  const sourceCommit = verifyApplicationSource();
   const manifestResponse = await fetch(`${SITE}/data/deployment_manifest.json`, { cache: "no-store" });
   if (!manifestResponse.ok) throw new Error(`Deployment manifest HTTP ${manifestResponse.status}`);
   const manifestBytes = Buffer.from(await manifestResponse.arrayBuffer());
@@ -31,8 +59,56 @@ async function fetchVerifiedDeployment() {
   if (sha256(poiBytes) !== POI_SHA) throw new Error("Production POI SHA-256 changed; stop and review.");
   const poi = JSON.parse(poiBytes);
   if (poi.sourceMode !== "deployment-snapshot") throw new Error(`Unexpected POI sourceMode: ${poi.sourceMode}`);
-  await fs.writeFile(path.join(ROOT, "data/runtime_poi.json"), poiBytes);
-  return { manifest, manifestBytes, poi, poiBytes };
+  return { manifest, manifestBytes, poi, poiBytes, sourceCommit };
+}
+
+async function installVerifiedPoiSnapshot(poiBytes) {
+  const target = path.join(APP_ROOT, "data/runtime_poi.json");
+  try {
+    const existing = await fs.readFile(target);
+    if (sha256(existing) !== POI_SHA) throw new Error("An ignored data/runtime_poi.json already exists with different contents; preserving it and stopping.");
+    return;
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+  await fs.writeFile(target, poiBytes, { flag: "wx" });
+}
+
+async function promoteCapture(stageRoot) {
+  const backupRoot = await fs.mkdtemp(path.join(PACKAGE, ".ta0-backup-"));
+  const artifacts = [
+    { name: "screenshots", directory: true },
+    { name: "screenshot-manifest.json", directory: false },
+    { name: "computed-styles.json", directory: false },
+  ];
+  const backedUp = [];
+  const installed = [];
+  try {
+    for (const artifact of artifacts) {
+      const destination = path.join(PACKAGE, artifact.name);
+      const staged = path.join(stageRoot, artifact.name);
+      const backup = path.join(backupRoot, artifact.name);
+      try {
+        await fs.rename(destination, backup);
+        backedUp.push(artifact.name);
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+      }
+      await fs.rename(staged, destination);
+      installed.push(artifact.name);
+    }
+  } catch (error) {
+    for (const name of installed.reverse()) {
+      await fs.rm(path.join(PACKAGE, name), { recursive: true, force: true }).catch(() => {});
+    }
+    for (const name of backedUp.reverse()) {
+      await fs.rename(path.join(backupRoot, name), path.join(PACKAGE, name)).catch(() => {});
+    }
+    throw error;
+  }
+  await fs.rm(backupRoot, { recursive: true, force: true }).catch((error) => {
+    console.warn(`Capture succeeded; previous verified package remains in ${backupRoot} because cleanup failed: ${error.message}`);
+  });
 }
 
 const MIME = new Map([
@@ -56,8 +132,8 @@ async function startLocalServer() {
     }
     let decoded;
     try { decoded = decodeURIComponent(pathname); } catch { res.writeHead(400).end(); return; }
-    const target = path.resolve(ROOT, `.${decoded === "/" ? "/index.html" : decoded}`);
-    if (target !== ROOT && !target.startsWith(`${ROOT}${path.sep}`)) { res.writeHead(403).end(); return; }
+    const target = path.resolve(APP_ROOT, `.${decoded === "/" ? "/index.html" : decoded}`);
+    if (target !== APP_ROOT && !target.startsWith(`${APP_ROOT}${path.sep}`)) { res.writeHead(403).end(); return; }
     try {
       const bytes = await fs.readFile(target);
       res.writeHead(200, { "content-type": MIME.get(path.extname(target).toLowerCase()) || "application/octet-stream", "cache-control": "no-store" });
@@ -144,21 +220,27 @@ async function openMapDisplayIfCollapsed(page) {
 }
 
 async function main() {
-  await fs.rm(SCREENSHOTS, { recursive: true, force: true });
-  await fs.mkdir(SCREENSHOTS, { recursive: true });
-  const { manifest: deployment, manifestBytes, poi, poiBytes } = await fetchVerifiedDeployment();
-  const { server, url } = await startLocalServer();
-  const browser = await chromium.launch({ headless: true });
+  const { manifest: deployment, manifestBytes, poi, poiBytes, sourceCommit } = await fetchVerifiedDeployment();
+  await installVerifiedPoiSnapshot(poiBytes);
+  const stageRoot = await fs.mkdtemp(path.join(PACKAGE, ".ta0-stage-"));
+  const stagedScreenshots = path.join(stageRoot, "screenshots");
+  await fs.mkdir(stagedScreenshots);
+  let server;
+  let browser;
   const screenshots = [];
   const computedRecords = [];
   const capture = async (id, file, page, actions, extra = {}) => {
     await page.waitForTimeout(1000);
-    const filePath = path.join(SCREENSHOTS, file);
+    const filePath = path.join(stagedScreenshots, file);
     await page.screenshot({ path: filePath, fullPage: false, animations: "disabled" });
     const bytes = await fs.readFile(filePath);
     screenshots.push({ id, file: `screenshots/${file}`, sha256: sha256(bytes), bytes: bytes.length, ...await stateOf(page), actions, pageErrors: page.__ta0Errors, ...extra });
   };
   try {
+    const started = await startLocalServer();
+    server = started.server;
+    browser = await chromium.launch({ headless: true });
+    const url = started.url;
     // 1 — desktop PLACE, light basemap.
     let opened = await openApp(browser, url, { width: 1440, height: 900 });
     let page = opened.page;
@@ -271,22 +353,24 @@ async function main() {
     const pageErrors = screenshots.flatMap((screenshot) => screenshot.pageErrors || []);
     if (pageErrors.length) throw new Error(`Browser page errors: ${JSON.stringify(pageErrors)}`);
     if (screenshots.length < 6 || screenshots.length > 9) throw new Error(`Unexpected screenshot count: ${screenshots.length}`);
-    await fs.writeFile(path.join(PACKAGE, "screenshot-manifest.json"), JSON.stringify({
+    await fs.writeFile(path.join(stageRoot, "screenshot-manifest.json"), JSON.stringify({
       schema: "ux-t1-ta0-minimum-visual-baseline/1.0",
-      baselineSource: { repository: "soroushkarahrodi79-oss/madrid-tourism-intelligence-lens", commit: SOURCE_SHA, ref: "origin/main" },
+      baselineSource: { repository: "soroushkarahrodi79-oss/madrid-tourism-intelligence-lens", commit: sourceCommit, ref: "origin/main" },
       deployment: { manifestUrl: `${SITE}/data/deployment_manifest.json`, manifestSha256: sha256(manifestBytes), sourceCommit: deployment.commit, generatedAt: deployment.generated_at, buildState: deployment.build_state, workflowRunId: deployment.workflow_run, manifestUrlIsMutable: true, workflowArtifactRetentionDays: 30 },
       productionData: { url: `${SITE}/data/runtime_poi.json`, sha256: sha256(poiBytes), bytes: poiBytes.length, sourceMode: poi.sourceMode, generatedAt: poi.generatedAt, recordsByLayer: Object.fromEntries(Object.entries(poi.layers).map(([key, records]) => [key, records.length])), totalRecords: Object.values(poi.layers).reduce((sum, records) => sum + records.length, 0), storedInRepository: false },
-      environment: { browser: "Chromium via Playwright", browserVersion: browser.version(), headless: true, deviceScaleFactor: 1, appServedFrom: "isolated worktree at baseline source commit", mapTiles: "live OSM/CARTO/Esri providers; tile content is not version-pinned", runtimeConfig: "proxied in memory from the current public deployment; never written to disk or emitted" },
+      environment: { browser: "Chromium via Playwright", browserVersion: browser.version(), headless: true, deviceScaleFactor: 1, appServedFrom: `isolated clean worktree at exact source commit ${sourceCommit}`, mapTiles: "live OSM/CARTO/Esri providers; tile content is not version-pinned", runtimeConfig: "proxied in memory from the current public deployment; never written to disk or emitted" },
       focusAnomaly: { result: "HISTORICAL ANOMALY — NOT REPRODUCED", conditions: "Chromium 153.0.8010.12 headless; isolated local source at baseline SHA; first-party production runtime config proxied in memory; actual keyboard Tab from COMPARE mode button to visible native #haloToggle checkbox; no styles injected; computed 2px solid rgb(155, 213, 255), 2px offset, and 1px box shadow. Cross-browser follow-up deferred to T-a2." },
       capturedAt: new Date().toISOString(), screenshots,
     }, null, 2) + "\n");
-    await fs.writeFile(path.join(PACKAGE, "computed-styles.json"), JSON.stringify({
+    await fs.writeFile(path.join(stageRoot, "computed-styles.json"), JSON.stringify({
       schema: "ux-t1-ta0-computed-styles/1.0", sourceCommit: SOURCE_SHA, browser: "Chromium via Playwright", note: "Actual computed CSS values from the named rendered states. These are not WCAG conformance results and are separate from screenshot pixels and source declarations.", records: computedRecords,
     }, null, 2) + "\n");
-    console.log(JSON.stringify({ screenshots: screenshots.map(({ id, file, sha256, bytes, viewport, mode, basemap, language, planningCode, focus }) => ({ id, file, sha256, bytes, viewport, mode, basemap, language, planningCode, focus: focus?.outline })), browser: browser.version(), source: SOURCE_SHA, poiSha256: sha256(poiBytes) }, null, 2));
+    await promoteCapture(stageRoot);
+    console.log(JSON.stringify({ screenshots: screenshots.map(({ id, file, sha256, bytes, viewport, mode, basemap, language, planningCode, focus }) => ({ id, file, sha256, bytes, viewport, mode, basemap, language, planningCode, focus: focus?.outline })), browser: browser.version(), source: sourceCommit, poiSha256: sha256(poiBytes) }, null, 2));
   } finally {
-    await browser.close();
-    await new Promise((resolve) => server.close(resolve));
+    if (browser) await browser.close();
+    if (server) await new Promise((resolve) => server.close(resolve));
+    await fs.rm(stageRoot, { recursive: true, force: true });
   }
 }
 
