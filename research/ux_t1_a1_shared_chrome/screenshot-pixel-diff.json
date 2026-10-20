@@ -1,0 +1,59 @@
+{
+  "schema": "ux-t1-a1-shared-chrome-pixel-diff/1.0",
+  "baselineSource": "028d0389454b4248180654075022e4397b14fd5b",
+  "implementationCommit": "111ce56022542610d9a7ec7eb4a770b078ec0192",
+  "comparison": {
+    "method": "Exact RGB channel difference, no tolerance threshold",
+    "tool": "Pillow 12.2.0",
+    "browser": "Chromium 153.0.8010.12",
+    "dataSha256": "981449c5b52fac59835a826f89d163eae99d13a042a72acb80bcdc08acb88a70",
+    "mapTiles": "Live providers; not version-pinned"
+  },
+  "screens": [
+    {
+      "id": "desktop-place-light",
+      "baseline": "PR #104 screenshots/01-desktop-place-light.png",
+      "candidate": "screenshots/desktop-place-light.png",
+      "viewport": [1440, 900],
+      "changedPixels": 5,
+      "totalPixels": 1296000,
+      "changedFraction": 0.000003858,
+      "meanAbsoluteRgbDelta": 0.00001,
+      "changedBounds": [960, 198, 964, 201],
+      "sharedSurfaceCrops": {
+        "header": { "changedPixels": 0, "totalPixels": 45000 },
+        "leftRail": { "changedPixels": 0, "totalPixels": 214500 },
+        "analysisPanel": { "changedPixels": 5, "totalPixels": 448200, "cropRelativeBounds": [60, 128, 64, 131] }
+      },
+      "assessment": "Five pixels inside the translucent analysis panel differ within a 4x3 px area. Computed styles and geometry are equal; the screenshot alone does not establish the cause."
+    },
+    {
+      "id": "desktop-compare-light",
+      "baseline": "PR #104 screenshots/02-desktop-compare-light.png",
+      "candidate": "screenshots/desktop-compare-light.png",
+      "viewport": [1440, 900],
+      "changedPixels": 0,
+      "totalPixels": 1296000,
+      "changedFraction": 0
+    },
+    {
+      "id": "tablet-compare-dark",
+      "baseline": "PR #104 screenshots/04-tablet-compare-dark.png",
+      "candidate": "screenshots/tablet-compare-dark.png",
+      "viewport": [834, 1112],
+      "changedPixels": 0,
+      "totalPixels": 927408,
+      "changedFraction": 0
+    },
+    {
+      "id": "mobile-layers-dark",
+      "baseline": "PR #104 screenshots/06-mobile-layers-dark.png",
+      "candidate": "screenshots/mobile-layers-dark.png",
+      "viewport": [390, 844],
+      "changedPixels": 0,
+      "totalPixels": 329160,
+      "changedFraction": 0
+    }
+  ],
+  "limitations": "Tile imagery, browser rasterization and font rasterization can vary across time or environments. Three captures were pixel-identical to T-a0; the fourth has only the documented localized difference. This is not a cross-browser or WCAG result."
+}
