@@ -8,13 +8,13 @@ rule, abstention, derivation or interpretation ceiling**, and it does **not** to
 sole artifact is this document. No implementation is authorized by it.
 
 - **Baseline:** `main` @ `028d038` (merge of PR #100, P1 small-screen IA).
-- **Designed:** 19 October 2026. **Reviewed and corrected same day**, before human review: an
-  independent re-run of this document's own §9 script against the full evidence/legend token set
-  found the original §3/§6.2 undercounted contrast failures (reported 5 of 10; actually 13 of 15),
-  missed the existing `LENS_BASEMAP_STYLES` basemap-adaptive Lens-circle mechanism (§2.5), and had
-  not yet read the two Node-side test files it flagged as a gap (§11, now closed). All three are
-  corrected in place below rather than left as a separate addendum, with the correction itself
-  stated inline at point of use (§2.5, §3, §11) so the reasoning is auditable.
+- **Designed:** 19 October 2026. **Independently corrected:** 20 October 2026 against PR #103 head
+  `7d138fa` and `origin/main` `028d0389454b4248180654075022e4397b14fd5b`. The correction
+  preserves the 13/15 arithmetic result but withdraws the earlier implication that all 13 are
+  established WCAG failures; inventories the separate A/B colour owners; evaluates text and
+  graphics candidates; replaces the broad T-a refactor with bounded future increments; and makes
+  the calculation and Phase B matrix reproducible. PR #103 had two commits and only this document
+  changed when the correction began; no review had been submitted and all three checks were green.
 - **Research question (from #102):** can the product gain a Light/Dark/System appearance theme
   and a comfortable-text-size control that meet WCAG 2.2 AA, without weakening or renaming any
   evidence/legend colour's category meaning, and without colliding with the existing "Light/Dark"
@@ -52,13 +52,13 @@ sole artifact is this document. No implementation is authorized by it.
 
 | Activity | Done? | What it can support |
 |---|---|---|
-| Source reading of `css/app.css` (1,196 lines), `index.html` (847 lines), and the theme-relevant parts of `js/app.js` | ✅ | Exact selectors, token declarations, literal colour census, breakpoints, focus rules, existing persistence patterns |
+| Source reading of `css/app.css` (1,196 lines), `index.html` (847 lines), and the theme-relevant parts of `js/app.js` | ✅ | Exact selectors, token declarations, literal colour census, breakpoints, focus rules, existing persistence patterns and independent A/B renderers |
 | Confirming no existing theme/appearance-switching code | ✅ | `grep` for `matchMedia`, `prefers-color-scheme`, `data-theme`, theme-related `localStorage` keys across `js/app.js` and `index.html` — **none found** except `prefers-reduced-motion` (unrelated) and the pre-existing `PANEL_SIZE_STORAGE_KEY` (a reusable persistence *pattern*, not a theme) |
 | WCAG relative-luminance arithmetic over literal values already shipped | ✅ | Exact, reproducible contrast ratios for the **current, shipped** dark theme (§3, §6) |
 | WCAG relative-luminance arithmetic over **candidate** light-theme values | ✅ | A falsifiable prediction for an unbuilt theme — not a measurement of anything rendered |
 | Research of WCAG 2.2, Esri Calcite, GitHub Primer, IBM Carbon, Observable Framework | ✅ | External precedent for the token architecture and migration strategy (§4) |
 | Rendering anything proposed here in a browser | ❌ | — |
-| Running the existing Playwright contrast suite (`browser-tests/visual-language.browser.mjs`) against any proposed change | ❌ | Phase A changes no file the suite reads; it was read, not re-run, to confirm its mechanics (§11) |
+| Running the existing browser contrast suite against a proposed light theme | ❌ | No light theme exists. The current dark baseline was run (10/10 pass), but it cannot validate unimplemented candidates (§11). |
 | Device testing, assistive-technology testing, or any human participant | ❌ | — |
 
 ### What is NOT established by this document
@@ -105,17 +105,21 @@ sole artifact is this document. No implementation is authorized by it.
 | `--safe-top/right/bottom/left` | `env(safe-area-inset-*,0px)` | Device safe-area | Structural |
 
 **K5's rule carries forward unchanged by this audit:** the Evidence/legend row is the exact set
-the "colour is category, never judgement" rule in `docs/VISUAL_LANGUAGE.md` governs. **These 16
-tokens must never be redefined to mean something different between themes** — only their
-*luminance*, not their *hue family or category membership*, may change to clear contrast on a
-different background (§3, §6.2).
+the "colour is category, never judgement" rule governs. There are 16 token names but only 15
+distinct shipped values because `--park` and `--green` are both `#70dea4`; §3 and §9 screen the
+15 distinct values and report the duplicate explicitly. A future theme must not silently change
+category meaning. Luminance adjustment is one option, not an automatic requirement: the rendered
+role, text/graphic threshold, non-colour cues and any SC 1.4.11 exemption must first be established.
 
 ### 2.2 Hardcoded colour literals outside the token set
 
-`css/app.css` contains **320 distinct lines** with a raw `#hex` or `rgb(a)` literal not routed
-through a custom property — against **26 declared colour tokens**. This is real migration debt:
-a literal-colour reskin is not a drop-in `:root` swap. The most frequent literals and their
-approximate selector families:
+The earlier draft called this "320 distinct lines". Re-running a comment-stripped, line-based
+census on the PR head finds **415 source lines containing a raw `#hex` or `rgb(a)` literal**, of
+which **406 are outside the opening `:root` block**, and **314 distinct literal strings**. These
+figures are deliberately described as census indicators, not as 406 independent consumers or
+refactor sites: minified multi-declaration lines, repeated values, pseudo-elements, map renderers,
+and paired foreground/background declarations make line count a poor work estimate. T-a0 must
+produce a selector/property/owner inventory before any migration scope is approved.
 
 | Literal family (representative hex) | Approx. occurrences | Selector family | UI-chrome or Evidence? |
 |---|---:|---|---|
@@ -184,26 +188,37 @@ but it is not implicit.
 | Register/licence/model/observed/statistics/snapshot badges | `.badge.register/.licence/.model/.observed/.statistics/.snapshot` | `css/app.css:198,225,314,501,693,746–748` |
 | Category dots/bars | `.dot-museum`,`.dot-stay`,`.dot-bike`,`.dot-rail`,`.dot-info`,`.dot-pedestrian`,`.dot-park`,`.dot-heat`,`.dot-licence` | `css/app.css:93–101` — already correctly routed through the category custom properties |
 
-**Missing prior art, found during review and material to §5/§6:** `js/app.js:2128–2161` already
-defines `LENS_BASEMAP_STYLES` — a `{light, satellite, dark}` table giving the Lens A/B circle its
-own `color` (stroke) and `fillColor`/`fillOpacity` **per basemap**, applied by
-`applyLensBasemapStyle()` and verified by `tests/lens_contrast.test.mjs` ("lens contrast adapts to
-light satellite and dark basemaps"). Concretely, Lens A's stroke is `#123b5f` on the light basemap,
-`#ffffff` on satellite, and its *fill* is `#3da8ff` on light — none of which is `var(--a)`
-(`#f7fbff`). **This means two things the rest of this document must be read against:**
+#### A/B colour ownership — four independent systems
 
-1. The Lens circle's own rendering is **already basemap-adaptive by design**, independent of any
-   `--a`/`--b` CSS custom property. This is a second, pre-existing axis of colour variation (basemap
-   choice) that Phase B's new third axis (UI appearance) must compose with, not duplicate. The
-   likely-correct design (not decided here) is that `LENS_BASEMAP_STYLES` stays keyed on basemap
-   only — because the Lens boundary's legibility need is against the **map tiles**, which an
-   "Appearance" (chrome) switch does not change — while `--a`/`--b` (and the rest of §5.2's set)
-   separately gain per-appearance light/dark values for **panel-rendered** badges, text and dots.
-2. §3's `--a`/`--b` contrast analysis is therefore scoped to the **panel/badge** use of those
-   tokens, not to the map-rendered Lens circle, which already has its own light-basemap-safe values
-   (`#123b5f`, `#3da8ff`) verified by the existing test. Phase B should check whether those
-   existing light-basemap values already satisfy a light-appearance panel badge too, before
-   inventing a fourth colour where a verified one already exists.
+Source verification shows that "Lens colour" is not one token path:
+
+1. **Appearance-dependent UI chrome.** `--bg`, panels, generic text, borders and focus treatment
+   belong to the appearance theme and carry no A/B identity.
+2. **Panel A/B labels and legends.** CSS declares `--a:#f7fbff`, but there are **zero**
+   `var(--a)` consumers. CSS declares `--b:#43d7ff` and has three consumers:
+   `.area-other-lens-b`, `.area-label-b b`, and the active underline of
+   `.ambito-metric-focus`. Other panel representations bypass both tokens: `.cb-side-a .cb-lens`
+   is `#eef5fc`, `.cb-side-b .cb-lens` is `#43d7ff`, active Lens buttons use white/`#74e3ff`
+   plus hardcoded borders/tints, and ámbito comparison tags/borders/bars use `#9ccdff` for A and
+   `#43d7ff` for B. These are appearance-facing consumers and require explicit ownership in T-a3.
+3. **Basemap-dependent Lens boundaries.** `js/app.js:2128–2161` defines
+   `LENS_BASEMAP_STYLES` for Light, Satellite and Dark tiles, applied by
+   `applyLensBasemapStyle()`. Light uses A stroke/fill `#123b5f`/`#3da8ff` and B
+   `#00768f`/`#43d7ff`; Satellite and Dark use white A strokes and `#64f0ff` B strokes with
+   separate fills/opacities. `tests/lens_contrast.test.mjs` protects the adaptive table and call
+   path, but does not calculate rendered tile contrast. Appearance must not overwrite this
+   basemap-owned decision.
+4. **Map markers and SVG halo colours.** `.marker-a`/`.marker-b` hardcode white/`#43d7ff`.
+   `HALO_GLYPH_COLORS` independently hardcodes A `#f7fbff` and B `#43d7ff`, injecting them into
+   each SVG as `--halo-color`; halo values, strokes and state marks then consume that local
+   property. Application-owned ámbito polygons also hardcode A/B strokes/fills in `js/app.js`.
+   These marks sit over map content, have dark paint-order outlines or structural dash cues, and
+   cannot be validated by pairing their source hex with a panel background.
+
+Therefore changing `--a` or `--b` does **not** automatically update every A/B representation.
+Conversely, changing `LENS_BASEMAP_STYLES` would affect boundaries but not panels or halos. T-a0
+must record each consumer, visual background, semantic owner and structural cue before any shared
+token is proposed.
 
 ### 2.6 Focus-visible and 44px interaction floor
 
@@ -244,51 +259,65 @@ is new surface, not an extension of partially-built theming.**
 
 This is the most consequential result of this audit, so it is stated before any proposal.
 
-> **Correction (post-draft independent re-verification).** The first version of this document
-> computed this section's table for only 7 of the 15 evidence/legend hues and reported "5 of 10
-> fail" from that partial sample. An independent re-run of this document's own §9 script, against
-> every evidence/legend hue and the exact candidate background cited in §6.1, found the opposite of
-> reassuring: **13 of 15 fail**, not 5. The corrected table below replaces the original. This matters
-> beyond arithmetic hygiene — the original undercount would have let Phase B treat 8 category
-> colours as "already fine," when in fact only 2 are. Nothing downstream of this section (the
-> candidate-shape argument, the migration path, the acceptance criteria) changes in kind, but the
-> **scale** of the work the candidates in §6.2 represent is much larger than first stated, and one
-> token (`--a`, Lens A) turns out to need a materially different treatment, not a lightness tweak
-> (see the note after the table).
+> **Correction (post-draft independent re-verification).** The first version reported "5 of 10"
+> without enumerating a complete reproducible set. The full §9 script now enumerates all 15
+> distinct shipped values and finds **13 of 15 below the 3:1 screening threshold** against the
+> hypothetical flat light background. That is a colour-pair triage result, not 13 established WCAG
+> violations. The earlier count and every remaining "five of ten" conclusion are withdrawn.
 
-Fifteen evidence/legend hues were checked (`--a`,`--b`,`--planning-neutral`,`--licence-neutral`,
+Fifteen distinct evidence/legend values were checked (`--a`,`--b`,`--planning-neutral`,`--licence-neutral`,
 `--planning-origin`,`--planning-unresolved`,`--museum`,`--info`,`--stay`,`--bike`,`--rail`,
 `--activity`,`--park`,`--hospitality`,`--heat`; `--green` is excluded as an exact duplicate hex of
-`--park`, `#70dea4`). All fifteen were chosen to clear WCAG's 3:1 non-text/large-text floor against
-`#08101a`, and every one of them does, comfortably — several exceed 10:1 (§9, reproducible). **They
-were not chosen against any other background, because no other background has existed until now.**
+`--park`, `#70dea4`). Each pair happens to exceed 3:1 against `#08101a`; that arithmetic does not
+establish that every use is governed by 3:1 or that the values were originally selected through a
+WCAG conformance process.
 
 Computing the same ratios against a plausible light-theme background (`#f4f6f9`, a candidate
 near-white — §6.1) **with the hue held exactly fixed**, reproduced independently of the shipped
 `browser-tests/visual-language.browser.mjs` helper (§9 script, run against every token, not a
 sample):
 
-| Token | Ratio vs. `#08101a` (shipped) | Ratio vs. candidate `#f4f6f9`, same hex | AA non-text (3:1)? |
+| Token | Ratio vs. `#08101a` (shipped) | Ratio vs. candidate `#f4f6f9`, same hex | 3:1 flat-pair screen |
 |---|---:|---:|---|
-| `--a` (Lens A) | 18.37 | **1.04** | **FAILS — see note below** |
-| `--b` (Lens B) | 11.28 | **1.56** | **FAILS** |
-| `--planning-neutral` | 9.51 | **1.86** | **FAILS** |
-| `--planning-origin` | 10.10 | **1.75** | **FAILS** |
-| `--planning-unresolved` | 9.57 | **1.84** | **FAILS** |
-| `--info` | 8.76 | **2.01** | **FAILS** |
-| `--stay` | 7.50 | **2.35** | **FAILS** |
-| `--activity` | 7.78 | **2.27** | **FAILS** |
-| `--hospitality` | 8.07 | **2.19** | **FAILS** |
-| `--heat` | 10.52 | **1.68** | **FAILS** |
-| `--park` | 11.53 | **1.53** | **FAILS** |
-| `--bike` | 11.75 | **1.50** | **FAILS** |
-| `--rail` | 13.25 | **1.33** | **FAILS** |
-| `--licence-neutral` | 5.54 | 3.19 | passes (barely) |
-| `--museum` | 5.72 | 3.09 | passes (barely) |
+| `--a` (Lens A) | 18.37 | **1.04** | **BELOW — see note below** |
+| `--b` (Lens B) | 11.28 | **1.56** | **BELOW** |
+| `--planning-neutral` | 9.51 | **1.86** | **BELOW** |
+| `--planning-origin` | 10.10 | **1.75** | **BELOW** |
+| `--planning-unresolved` | 9.57 | **1.84** | **BELOW** |
+| `--info` | 8.76 | **2.01** | **BELOW** |
+| `--stay` | 7.50 | **2.35** | **BELOW** |
+| `--activity` | 7.78 | **2.27** | **BELOW** |
+| `--hospitality` | 8.07 | **2.19** | **BELOW** |
+| `--heat` | 10.52 | **1.68** | **BELOW** |
+| `--park` | 11.53 | **1.53** | **BELOW** |
+| `--bike` | 11.75 | **1.50** | **BELOW** |
+| `--rail` | 13.25 | **1.33** | **BELOW** |
+| `--licence-neutral` | 5.54 | 3.19 | MEETS (barely) |
+| `--museum` | 5.72 | 3.09 | MEETS (barely) |
 
-**Only 2 of 15 pass unchanged.** `--licence-neutral` and `--museum` are not representative of the
-set; they happen to sit at the low-lightness/high-saturation end of the shipped palette. Treat
-every other evidence/legend hue as needing a light-theme value, not as an exception.
+**Screening result: only 2 of 15 distinct source values reach 3:1 in this hypothetical flat pair.**
+This is a useful triage result, not 13 established WCAG violations and not proof that the two
+passing pairs conform in their components.
+
+WCAG interpretation is use-specific:
+
+- **[SC 1.4.3 Text Contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html)**
+  applies when a colour renders text. Normal-sized text requires
+  4.5:1; 3:1 applies only to WCAG-large text. Lens B is used as 10px label text today, so a
+  3.10:1 candidate cannot be approved for that use.
+- **[SC 1.4.11 Non-text Contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)**
+  applies at 3:1 to the visual information needed to identify a
+  user-interface component or to understand an essential graphical object, against adjacent
+  colours. The adjacent colour is the rendered local surface or map content, not automatically
+  `--bg`.
+- A coloured mark can still be in scope even when labels, shapes, patterns or line styles also
+  encode its identity; those redundant cues reduce colour-only dependence but do not erase a
+  contrast requirement when the coloured boundary/mark itself is needed to perceive the object.
+  Conversely, a purely decorative tint, glow, redundant fill, disabled control treatment, or
+  incidental mark may be exempt from SC 1.4.11. Applicability must be documented per consumer.
+- Labels, Lens B's dashed halo/boundary/ámbito treatments, Lens A's solid counterparts, phase-row
+  border styles and glyphs, and explicit state words satisfy K5's structural redundancy rule.
+  They do not convert this flat-pair screen into a browser accessibility validation.
 
 **`--a` (Lens A) is a different kind of problem, not just the worst number in the table.** Its
 shipped value, `#f7fbff`, is HSL(210°, 100%, 98%) — functionally white with a one-degree blue
@@ -303,36 +332,18 @@ is flagged here as an **open design decision for Phase B, not a solved case**: L
 deliberately chosen light-theme colour, reviewed for hue separation from the light-theme `--b`, not
 a mechanically derived one.
 
-**Five of ten category hues, held at their exact shipped hex value, fail AA non-text contrast on
-a plausible light background.** This is not a cosmetic detail: it means a light theme **cannot**
-be "the same colours on a white background" — a literal colour-only inversion would silently make
-Lens B, the planning-ámbito neutral, the origin-marker neutral, the hospitality-stay colour and
-the Metro/Cercanías colour illegible or non-conformant exactly where K5 says colour alone is never
-sufficient *anyway*, compounding an accessibility failure onto a semantic one.
+The consistent statement is therefore **13 of 15 screened pairs are below 3:1**. A light theme
+cannot safely assume the shipped values remain suitable on light surfaces, but each actual
+consumer must be classified and measured before it is called a failure or changed.
 
 **What must not happen in response:** reassigning any of these hues to a *different* category, or
 abandoning the hue family to "whatever is legible." Both would violate K5's "colour is category,
 never judgement" contract and the Gate-L neutral-hue separation.
 
-**What the arithmetic supports instead:** each failing hue has a lightness-adjusted variant, same
-hue angle and saturation, that clears 3:1 on the candidate background (§6.2, computed in §9):
-
-| Token | Shipped (dark-theme) hex | Candidate light-theme hex (same hue/sat, lower lightness) | Ratio vs. `#f4f6f9` |
-|---|---|---|---:|
-| `--b` | `#43d7ff` (HSL L 63%) | `#0099c3` (L 38%) | 3.06 |
-| `--planning-neutral` | `#aeb8c4` (L 73%) | `#7f8fa2` (L 57%) | 3.05 |
-| `--planning-origin` | `#c4b8cf` (L 77%) | `#9984ac` (L 60%) | 3.10 |
-| `--stay` | `#3da8ff` (L 62%) | `#058fff` (L 51%) | 3.04 |
-| `--rail` | `#ffd166` (L 70%) | `#bd8400` (L 37%) | 3.00 |
-
-This is the shape of the correct solution: **a per-theme lightness variant of each evidence
-token, same hue and saturation, each independently meeting the floor for its own use (3:1 for
-non-text/large, 4.5:1 if a token is ever used for body text) against its own theme's background.**
-It is a prediction to be verified by rendering, not a final palette — the candidate background
-itself (§6.1) is not yet reviewed, and real composited surfaces (panel tints, badge backgrounds)
-will differ from a flat pairing. But the *shape* of the fix — lightness-only adjustment per theme,
-hue and category identity frozen — is the part this audit can already support arithmetically, and
-it is the one constraint a safe migration path must hold to.
+The arithmetic supports candidate exploration, not a universal lightness-only prescription.
+Candidates must be selected to the strictest rendered role they serve, then checked on actual
+composited surfaces, in grayscale, alongside neighbouring categories and with the existing
+label/shape/pattern/line-style cues intact. §6 applies that discipline to Lens A/B.
 
 ---
 
@@ -367,16 +378,17 @@ hardcoded `#08101a`, §2.5), `--focus-ring` (replacing the 15-site literal `#9bd
 (replacing the Leaflet-chrome literals in §2.4), and a **badge-text** token separated from each
 badge's category-tint background (closing the mixed-role defect in §2.2).
 
-### 5.2 Evidence/legend tokens (frozen category identity; only lightness varies per theme)
+### 5.2 Evidence/legend tokens (frozen category meaning; rendered role governs the value)
 
-The exact 16-token set in §2.1's Evidence/legend column. **Rule, binding on Phase B:** a theme may
-supply a different *hex value* for `--stay` or `--planning-neutral`, but the value must (a) stay
-within the same hue family (±~10° hue, same relative saturation ordering against its siblings) and
-(b) independently clear its own contrast floor against that theme's own background. **No theme may
-reassign which token a category uses, merge two categories' tokens, or introduce a theme-only
-colour that has no counterpart in the other theme.** This is the direct continuation of K5's
-"colour is category, never judgement" and Gate-L's "no theme reassigns a neutral" contracts into a
-two-theme world.
+The exact 16-token-name set in §2.1's Evidence/legend column. A theme may supply a different
+literal value, but it must preserve category meaning, avoid judgement or implied ordering, and be
+reviewed with sibling categories and redundant structural cues. Same-hue lightness adjustment is
+a useful starting constraint for most categories, not an absolute rule: Lens A is currently
+near-white and cannot retain that identity on near-white chrome, while map-boundary colours are
+owned by the basemap palette rather than appearance. **No theme may silently reassign which token
+a category uses or merge categories.** The applicable contrast threshold is determined from the
+rendered consumer—4.5:1 normal text, 3:1 WCAG-large text or applicable essential graphics—not
+from the token name.
 
 ### 5.3 What is explicitly NOT a token in either family
 
@@ -402,23 +414,19 @@ as a transform of the whole scale, not a per-token change).
 | `--surface-drawer` *(new)* | `#08101a` (currently hardcoded) | `#0c1620` | `#ffffff` |
 | `--focus-ring` *(new)* | `#9bd5ff` | unchanged | `#0a63c7` |
 
-**Why a "dim-dark" and not only one dark variant:** the task names "dim-dark" explicitly, and
-Primer's precedent (§4) is exactly a *second*, lower-contrast dark theme, not a relabeling of the
-first. Here it is modelled as a **lift of `--bg` only, a few percent off true black**, which is
-the documented reason Primer ships "dark dimmed" as its own stylesheet rather than a filter over
-"dark" — very dark, saturated UI chrome against true black can itself cause halation/glare for
-some readers, which a "dim" background (not dimmed *text*) mitigates. This candidate is the
-smallest change that honours that distinction without inventing a third full theme; **Phase B
-must decide whether "System" maps the OS dark preference to this dim variant or keeps the
-original near-black as the single dark theme, exposing "dim" only as an explicit manual choice**
-— this is an open product decision, not resolved by this document (§12).
+**Why the earlier draft included a "dim-dark" candidate:** Primer provides precedent for a
+distinct dimmed-dark token set. That does not make it a requirement for this product, whose issue
+names only Light/Dark/System. The row is retained solely as an unapproved comparison. Phase B must
+either justify and separately scope it or remove it; System must resolve to one documented Dark
+appearance, not silently introduce an unreviewed fourth user-visible choice.
 
 ### 6.2 Evidence/legend candidates (light theme only shown; dark/dim keep shipped hex — §5.2 rule)
 
-**Corrected per §3.** Only `--licence-neutral` (3.19) and `--museum` (3.09) clear 3:1 unchanged
-against the candidate background. **The other 13 evidence/legend tokens all need a light-theme
-value.** Same-hue, same-saturation, lightness-only candidates (generated by descending lightness
-until the ratio clears 3:1 with a small safety margin, method in §9) are:
+**Corrected per §3.** Only `--licence-neutral` (3.19) and `--museum` (3.09) clear the 3:1
+flat-pair screening threshold unchanged. The other 13 require consumer-level investigation; a
+new value is required only where the rendered use is in scope and fails its applicable threshold.
+The following same-hue candidates show that a 3:1 essential-graphic option is arithmetically
+possible for 12 of them; they are not text candidates or approvals:
 
 | Token | Shipped (H / S / L) | Candidate light-theme hex | Candidate L | Ratio vs. `#f4f6f9` |
 |---|---|---|---:|---:|
@@ -442,12 +450,55 @@ against a flat candidate background, unverified against real composited surfaces
 candidate background itself (`#f4f6f9`) is not yet reviewed. `--a` is excluded from the mechanical
 method entirely and requires its own design decision (§3).
 
-### 6.3 What this table is not
+### 6.3 Lens B candidate evaluation
 
-It is not a statement that these exact hex values ship. It is a statement that **values with this
-shape — same hue, independently re-lightened per theme, each clearing its own floor — exist and
-are computable**, which is what a "safe migration path" requires: proof the constraint is
-satisfiable before committing to build against it.
+Method: WCAG 2.x sRGB relative luminance, without rounding before the final ratio. The flat light
+background is `#f4f6f9`. A representative primary panel is `rgba(255,255,255,.92)` composited
+over it (`rgb(254.12,254.28,254.52)`); the secondary panel candidate composites back to
+`#f4f6f9`. The final column uses an 8% tint derived from the same candidate over the primary
+panel, representing the current active-button/badge pattern. These are modelled surfaces, not DOM
+measurements.
+
+| Lens B value | Flat `#f4f6f9` | Primary panel | Secondary panel | Own 8% tint | Appropriate interpretation |
+|---|---:|---:|---:|---:|---|
+| shipped `#43d7ff` | 1.564 | 1.683 | 1.564 | 1.607 | Fails both text and applicable essential-graphic thresholds on these light surfaces. |
+| audit candidate `#0098c0` | 3.102 | 3.338 | 3.102 | 3.048 | Candidate for essential non-text marks with margin risk; **not** normal text. |
+| alternative `#00718f` | 5.161 | 5.552 | 5.161 | 4.958 | Clears normal-text arithmetic on these modelled surfaces; still not automatically approved. |
+
+`#0098c0` is insufficient wherever Lens B is normal-sized text, including the current 10px
+comparison label. `#00718f` provides numerical margin for text and graphics, but darkening B also
+makes its grayscale luminance more similar to the Lens A candidates below and may make thin marks
+less salient over heterogeneous map imagery. Rendering, local compositing, font weight,
+anti-aliasing, map-tile backgrounds and category-neighbour comparisons remain unresolved. A
+single B token may therefore be the wrong architecture: text, panel graphics and map/SVG marks
+may need role-specific values under a shared Lens B identity.
+
+### 6.4 Lens A conceptual options
+
+Lens A's shipped `#f7fbff` is functionally white and has no useful light-chrome equivalent.
+Two defensible concepts are carried forward, without selecting a production palette:
+
+| Concept | Value | Flat light ratio | Primary-panel ratio | Relation to B `#0098c0` / `#00718f` | Assessment |
+|---|---:|---:|---:|---:|---|
+| Existing light-basemap navy | `#123b5f` | 10.678 | 11.488 | pairwise 3.442 / 2.069 | Strong light-surface text/graphic contrast and architectural reuse; both A and B remain blue-family, so rendered identity and map/UI ownership need review. |
+| Neutral graphite | `#343a40` | 10.627 | 11.433 | pairwise 3.425 / 2.059 | Strong UI legibility and hue separation from cyan B; risks weakening A's established cool identity and looking like generic chrome rather than evidence identity. |
+
+The navy and graphite have almost identical relative luminance (0.04083 and 0.04126), so they are
+effectively indistinguishable from each other in grayscale; that is acceptable because they are
+alternatives, not simultaneous categories. Against `#0098c0`, each has about a 3.4:1 luminance
+separation; against darker text-safe `#00718f`, separation falls to about 2.06:1. The A/B system
+must therefore retain explicit "Lens A"/"Lens B" labels and its existing solid-versus-dashed
+structure. K5 permits category colour but forbids colour-only meaning and reserves B's dashed
+distinction; both concepts can be compatible only if those contracts remain. Neither option is
+approved until rendered across panel surfaces, halos, markers and every basemap, including a
+grayscale review.
+
+### 6.5 What these tables are not
+
+They do not select production hex values or prove a complete palette. They establish only that
+same-hue graphic candidates can be computed for most categories, that Lens B needs a darker value
+for normal text than for a 3:1 graphic screen, and that Lens A has at least two defensible concept
+directions with different identity risks. Rendered evidence—not arithmetic alone—must decide.
 
 ---
 
@@ -484,11 +535,10 @@ the naming collision at the layout level even with different words.
 
 - Appearance and the base-map `<select>` are **read and written independently**; selecting a
   basemap must never change `data-appearance`, and vice versa.
-- Appearance changes **CSS custom-property values only**. It must not alter `js/app.js` state,
-  evidence computation, or any rendered *geometry* — the map tile layer, Lens circles, licence
-  points, planning polygons and HATI layer are drawn by Leaflet/canvas with their own colours
-  (`--a`, `--b`, category tokens) which this document treats as Evidence/legend tokens (§5.2),
-  resolved the same way chrome tokens are, but never substituted with a chrome colour.
+- Appearance must not alter evidence computation, rendered geometry, basemap selection or HATI.
+  It may resolve CSS values for panel consumers, but Lens boundaries remain basemap-owned and
+  SVG halos/markers/application overlays require explicit consumer decisions (§2.5); they do not
+  inherit `--a`/`--b` automatically and must never be substituted with a generic chrome colour.
 
 ---
 
@@ -523,55 +573,173 @@ breaking the rule silently:
 
 ## 9. Reproducibility of every figure in this document
 
-All ratios in §3 and §6 were computed with the WCAG 2.x relative-luminance formula
-(`(L1+0.05)/(L2+0.05)`, `sRGB→linear` gamma correction), implemented independently of the
-product's own test helper (`browser-tests/visual-language.browser.mjs`) for a second, cross-checked
-computation path. Reproduce with:
+The following self-contained script enumerates all 15 distinct shipped evidence/legend values,
+states the hypothetical light background, implements the WCAG sRGB-to-linear transfer and
+relative-luminance formula, reports every pair, and makes the `--park`/`--green` duplicate
+explicit. Save it as `contrast.mjs` and run `node contrast.mjs`:
 
 ```js
-// Save as contrast.mjs, run with: node contrast.mjs
-function hexToRgb(hex){hex=hex.replace("#","");if(hex.length===3)hex=hex.split("").map(c=>c+c).join("");const n=parseInt(hex,16);return[(n>>16)&255,(n>>8)&255,n&255];}
-function luminance([r,g,b]){const c=[r,g,b].map(v=>{const x=v/255;return x<=.04045?x/12.92:((x+.055)/1.055)**2.4;});return .2126*c[0]+.7152*c[1]+.0722*c[2];}
-function ratio(a,b){const l1=luminance(hexToRgb(a)),l2=luminance(hexToRgb(b));const[hi,lo]=l1>l2?[l1,l2]:[l2,l1];return(hi+.05)/(lo+.05);}
-// e.g. ratio("#43d7ff","#08101a") -> 11.28 ; ratio("#43d7ff","#f4f6f9") -> 1.56
-console.log(ratio(process.argv[2], process.argv[3]));
+const PAIRS = Object.freeze({
+  "--a": "#f7fbff", "--b": "#43d7ff", "--planning-neutral": "#aeb8c4",
+  "--licence-neutral": "#c0794f", "--planning-origin": "#c4b8cf",
+  "--planning-unresolved": "#bdb7aa", "--museum": "#9d72ff", "--info": "#c79cff",
+  "--stay": "#3da8ff", "--bike": "#54e2b5", "--rail": "#ffd166",
+  "--activity": "#ff7aa2", "--park (--green duplicate)": "#70dea4",
+  "--hospitality": "#d08cff", "--heat": "#ffb04a"
+});
+const DARK = "#08101a";
+const LIGHT = "#f4f6f9"; // hypothetical flat light background, not rendered UI
+function rgb(hex) {
+  const value = hex.replace(/^#/, "");
+  if (!/^[0-9a-f]{6}$/i.test(value)) throw new Error(`bad hex ${hex}`);
+  const n = Number.parseInt(value, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function relativeLuminance(hex) {
+  const [r, g, b] = rgb(hex).map((value) => {
+    const srgb = value / 255;
+    return srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function contrast(a, b) {
+  const [hi, lo] = [relativeLuminance(a), relativeLuminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+let below = 0;
+console.log(`hypothetical light background: ${LIGHT}; shipped dark background: ${DARK}`);
+for (const [name, value] of Object.entries(PAIRS)) {
+  const dark = contrast(value, DARK);
+  const light = contrast(value, LIGHT);
+  if (light < 3) below += 1;
+  console.log(`${name.padEnd(28)} ${value} dark=${dark.toFixed(2)} light=${light.toFixed(2)} screen=${light < 3 ? "BELOW" : "MEETS"}`);
+}
+console.log(`summary: ${below}/${Object.keys(PAIRS).length} distinct pairs below 3:1 on ${LIGHT}`);
+console.log("duplicate: --green is #70dea4, identical to --park, so it is not counted twice");
+for (const value of ["#43d7ff", "#0098c0", "#00718f"])
+  console.log(`Lens B ${value} vs ${LIGHT} = ${contrast(value, LIGHT).toFixed(3)}`);
 ```
 
-All shipped-token hex values quoted are taken verbatim from `css/app.css:1-30` (cited inline
-throughout). The candidate light-theme background `#f4f6f9` and the re-lightened category
-candidates in §3/§6.2 are this document's own proposals, not sourced from the codebase — every
-place they appear is labelled "candidate."
+Executed output on Node v24.11.0:
+
+```text
+hypothetical light background: #f4f6f9; shipped dark background: #08101a
+--a                          #f7fbff dark=18.37 light=1.04 screen=BELOW
+--b                          #43d7ff dark=11.28 light=1.56 screen=BELOW
+--planning-neutral           #aeb8c4 dark=9.51 light=1.86 screen=BELOW
+--licence-neutral            #c0794f dark=5.54 light=3.19 screen=MEETS
+--planning-origin            #c4b8cf dark=10.10 light=1.75 screen=BELOW
+--planning-unresolved        #bdb7aa dark=9.57 light=1.84 screen=BELOW
+--museum                     #9d72ff dark=5.72 light=3.09 screen=MEETS
+--info                       #c79cff dark=8.76 light=2.01 screen=BELOW
+--stay                       #3da8ff dark=7.50 light=2.35 screen=BELOW
+--bike                       #54e2b5 dark=11.75 light=1.50 screen=BELOW
+--rail                       #ffd166 dark=13.25 light=1.33 screen=BELOW
+--activity                   #ff7aa2 dark=7.78 light=2.27 screen=BELOW
+--park (--green duplicate)   #70dea4 dark=11.53 light=1.53 screen=BELOW
+--hospitality                #d08cff dark=8.07 light=2.19 screen=BELOW
+--heat                       #ffb04a dark=10.52 light=1.68 screen=BELOW
+summary: 13/15 distinct pairs below 3:1 on #f4f6f9
+duplicate: --green is #70dea4, identical to --park, so it is not counted twice
+Lens B #43d7ff vs #f4f6f9 = 1.564
+Lens B #0098c0 vs #f4f6f9 = 3.102
+Lens B #00718f vs #f4f6f9 = 5.161
+```
+
+The 13/15 result is **numerical reproduction only**. It neither resolves SC 1.4.11 applicability
+nor measures rendered text, alpha compositing, anti-aliasing, SVG paint order, map tiles or
+browser forced-colours behaviour. Browser accessibility validation requires actual components,
+computed styles, adjacent rendered colours and interaction states across the §13 matrix.
 
 ---
 
 ## 10. Migration path — bounded increments for Phase B
 
-Each increment independently reviewable, in the spirit of P0-a/P0-b1/P0-b2's separable-increment
-structure (`docs/POST_K13_P0_P1_DESIGN_PROTOTYPE.md` §4):
+The earlier single T-a proposal treated hundreds of literal-bearing lines as one low-risk refactor.
+That is not defensible. The following are **future implementation proposals only**; this gate
+implements none of them. Each increment is separately reviewable and must preserve exact computed
+dark-theme styles unless its own approved scope says otherwise.
 
-1. **T-a — Token consolidation, no visual change.** Replace the ~320 literal-colour sites (§2.2)
-   with references to the *existing* dark-theme token values, 1:1, choosing/adding the UI-chrome
-   tokens named in §5.1 where no token exists yet (`--surface-drawer`, `--focus-ring`, the four
-   Leaflet-chrome tokens, the badge-text token). **Acceptance: zero visual diff** — this step is
-   pure refactor, verifiable by the existing contrast suite passing unchanged and a manual
-   before/after screenshot diff at the same breakpoints `browser-tests/visual-language.browser.mjs`
-   already audits.
-2. **T-b — Dim-dark and light `:root[data-appearance]` blocks**, populated with §6's candidate
-   values (verified by rendering, not copied blindly from this document), plus the `data-appearance`
-   attribute mechanism and no-flash inline script (§7.2). **No control is exposed to the user yet**
-   — this increment is reachable only via a query-string or dev-tools override, so it can be
-   reviewed and contrast-tested on the real DOM before anyone can switch themes in production.
-3. **T-c — The Appearance control itself** (header UI, System `matchMedia` live-binding,
-   persistence), gated on T-b's contrast results holding on the real page.
-4. **T-d — Comfortable text size** (§8), independent of T-a/b/c; could ship before, after, or
-   alongside.
-5. **T-e — `forced-colors` mode check** (§12) and **WCAG 2.4.11 focus-not-obscured check** (§4),
-   both audits rather than builds, run once T-b exists to look at.
+### T-a0 — inventory and visual baselines (documentation only)
 
-T-a is the only increment with no user-visible behaviour change and is the safest place to start;
-it is also the increment that retires the most risk (the mixed-role badge declarations, the
-hardcoded drawer background, the 15-site focus-ring literal) before any theme-dependent value is
-introduced.
+- **Scope:** produce a machine-readable selector/property/value inventory; classify each consumer
+  as chrome, panel A/B identity, basemap boundary, marker/SVG/map overlay, or third-party Leaflet;
+  record shared literals, inheritance, alpha layers, pseudo-elements and high-risk selectors.
+  Capture reproducible baseline screenshots and computed-style assertions for all §13 surfaces,
+  appearances currently possible (dark only), basemaps, widths, languages and interaction states.
+- **Dependencies:** the exact accepted Phase A document and a pinned `main` SHA.
+- **Exclusions:** no CSS/HTML/JS/test change, token creation, palette selection or visual change.
+- **Risks:** incomplete dynamic states, nondeterministic map tiles/fonts, and false equivalence
+  between a literal count and a consumer count.
+- **Acceptance:** every source literal maps to at least one owner or an explicit third-party/out-of-
+  scope classification; baseline commands, viewport, data state and artifact names reproduce;
+  A/B and focus consumers have computed-style assertions in addition to screenshots.
+- **Rollback:** documentation-only commit can be reverted with no production effect.
+- **Advance condition:** reviewer approves inventory completeness and baseline reproducibility;
+  unresolved ownership blocks T-a1 rather than being guessed.
+
+### T-a1 — shared UI chrome
+
+- **Scope:** header, rail/panels, generic cards/surfaces, generic typography, borders and form
+  chrome only; introduce role tokens while preserving current dark computed values exactly.
+- **Dependencies:** accepted T-a0 inventory/baselines and stable K5 tests.
+- **Exclusions:** evidence drawer/focus, category badges, A/B identity, SVG/map marks, Leaflet
+  chrome, appearance switching and text scaling.
+- **Risks:** inheritance changes, alpha-order differences, selector-specific overrides and
+  accidental changes to provenance/admin/licence text.
+- **Acceptance:** scoped computed styles equal baseline; pixel diffs are either zero or explained
+  rendering noise; Node and relevant browser suites pass; no out-of-scope selector changes.
+- **Rollback:** one isolated commit reverting only T-a1 token declarations/usages.
+- **Advance condition:** dark baseline parity and reviewer-confirmed diff scope; otherwise hold.
+
+### T-a2 — evidence drawer and focus
+
+- **Scope:** drawer/backdrop/sticky heading/provenance surfaces plus every application-owned
+  `:focus-visible` treatment; introduce drawer/focus role tokens with current dark output preserved.
+- **Dependencies:** T-a1 surface tokens and T-a0 focused/open-drawer baselines.
+- **Exclusions:** evidence badge identities, A/B palette, Leaflet/SVG focus, theme control and
+  scientific content.
+- **Risks:** modal stacking/compositing, sticky content obscuring focus, inconsistent separation
+  rings and forced-colours suppression.
+- **Acceptance:** keyboard path and focus visibility on every drawer/control state; SC 2.4.11
+  focus-not-obscured check; forced-colours inspection; computed drawer surfaces match baseline;
+  no focus literal remains without an explicit exception.
+- **Rollback:** revert the isolated drawer/focus commit; prior generic chrome remains valid.
+- **Advance condition:** focus and modal checks pass in both languages at responsive widths.
+
+### T-a3 — evidence badges and Lens identities
+
+- **Scope:** category badge foreground/tint/border roles, panel labels/legends, A/B buttons and
+  relevant application SVG/halo consumers; preserve category meaning and structural distinctions.
+- **Dependencies:** approved consumer ownership from T-a0, stable surfaces from T-a1/T-a2, and
+  rendered palette evidence for §6 candidates.
+- **Exclusions:** `LENS_BASEMAP_STYLES`, basemap tiles, Leaflet controls, geometry, calculations,
+  category reassignment and final light-theme activation.
+- **Risks:** text and graphics sharing an under-strength token, alpha tints collapsing identity,
+  A/B convergence in grayscale, and JS-injected SVG colours drifting from CSS.
+- **Acceptance:** per-consumer SC 1.4.3/1.4.11 applicability ledger; correct thresholds on rendered
+  surfaces; labels plus solid/dashed/pattern cues persist; A/B and category screenshots/computed
+  styles pass in ES/EN; no scientific meaning changes.
+- **Rollback:** revert T-a3 as one identity-layer commit without reverting chrome foundations.
+- **Advance condition:** human visual review plus automated rendered checks approve all identity
+  consumers; unresolved A/B palette keeps T-a3 and later appearance work on hold.
+
+### T-a4 — Leaflet/application map chrome
+
+- **Scope:** application overrides for zoom, tooltip, attribution and application-owned map
+  overlays/labels; establish explicit ownership boundaries with basemap-dependent boundaries.
+- **Dependencies:** T-a0 map-state baselines and accepted T-a1–T-a3 role separation.
+- **Exclusions:** tile providers, geometry, pane order, interaction, `LENS_BASEMAP_STYLES` values
+  unless separately authorized, HATI and third-party internals not overridden by the app.
+- **Risks:** heterogeneous tile contrast, excluded selectors in the current browser audit,
+  tooltip arrows/hover states, attribution legibility and appearance/basemap coupling.
+- **Acceptance:** all three basemaps at required appearance states; zoom/tooltip/attribution and
+  owned overlays explicitly tested; no appearance action changes basemap or geometry; tile/API
+  requests and map state remain unchanged.
+- **Rollback:** isolated map-chrome commit; restore exact prior overrides without touching T-a1–3.
+- **Advance condition:** the full §13 appearance×basemap×surface matrix passes and a reviewer
+  confirms no theme/basemap coupling. Only then may a separate Appearance implementation be
+  planned.
 
 ---
 
@@ -605,9 +773,13 @@ hardcoded rather than read from the page. For Phase B:
   once Leaflet chrome is explicitly themed (§2.4) — excluding `.leaflet-control` was reasonable when
   only one theme existed and Leaflet defaults were visually subordinate; a themed `.leaflet-control`
   with wrong-theme colours would currently pass this test by being excluded from it.
-- `node --test tests/*.test.mjs` and `npm run test:browser` were **not run in this pass** — this
-  audit added/changed no file either suite reads, so a baseline run was not required to validate
-  it, but Phase B's own PR must run both and report pass counts, per repo convention.
+- Verification for this correction: `node --test tests/lens_contrast.test.mjs
+  tests/visual_language.test.mjs` → **15 pass, 0 fail**; `node --test tests/*.test.mjs` →
+  **1,011 pass, 0 fail**; focused `node --test --test-concurrency=1
+  browser-tests/visual-language.browser.mjs` → **10 pass, 0 fail** across its six widths and
+  interaction/focus/motion/phase checks. The full multi-file `npm run test:browser` suite was not
+  run because this is a one-document correction and the focused visual-language browser baseline
+  is the relevant rendered regression. No proposed light theme exists for either suite to test.
 
 ---
 
@@ -621,44 +793,55 @@ hardcoded rather than read from the page. For Phase B:
 | WCAG 2.4.11 Focus Not Obscured, evidence drawer vs. sticky chrome | **Not audited** beyond the architectural note in §4/§7. |
 | Whether "System" should resolve dark preference to the original near-black or the new "dim" variant | **Open product decision**, not resolved here (§6.1). |
 | ES/EN strings for "Appearance"/"Apariencia" and text-size control labels | **Draft only** (§7.1); not yet entries in `js/shell-copy.js`, not reviewed for the natural, non-machine-literal quality the post-K13 audit praised in existing ES copy. |
-| `--a` (Lens A) has no same-hue light-theme candidate (§3) — a fresh colour must be chosen and reviewed for hue separation from `--b`'s light-theme value | **Open design decision, not resolved by this document.** |
-| Whether the 13 mechanically-derived candidates in §6.2 look acceptable once rendered (same-hue descent can land on an unexpectedly muddy or over-dark value at the extremes, e.g. `--rail`'s and `--bike`'s candidates both land near L36–38%) | **Untested — arithmetic only, not a design review of the resulting colours.** |
+| Lens A has no useful same-hue light-theme equivalent; §6.4's navy and graphite concepts have not been rendered with either Lens B candidate | **Open design decision; concepts evaluated arithmetically, not approved.** |
+| Whether the 12 mechanically-derived candidates in §6.2 look acceptable once rendered (same-hue descent can land on an unexpectedly muddy or over-dark value at the extremes, e.g. `--rail` and `--bike` near L36–38%) | **Untested — arithmetic only, not a design review of the resulting colours.** |
 | Real iPad/Safari/WebKit hardware rendering of any candidate | **NOT TESTED**, consistent with every prior gate in this repository. |
 
 ---
 
 ## 13. Acceptance criteria for Phase B
 
-Restated from issue #102, made checkable:
+Phase B must execute and report the Cartesian matrix below; sampling one convenient combination
+does not satisfy the gate.
 
-- **AC1 (contrast):** `browser-tests/visual-language.browser.mjs` (extended per §11) passes AA
-  (4.5:1 text / 3:1 non-text) for every visible text node and every evidence/legend colour's
-  non-text use, independently in Light, Dark and the "dim" dark variant if shipped, at the same six
-  widths the suite already audits (360/420/560/850/1100/1440px).
-- **AC2 (no flash):** the inline resolution script (§7.2) sets `data-appearance` before first
-  paint; a Playwright trace shows no intermediate incorrect-theme frame on cold load for each of
-  Light/Dark/System×OS-light/System×OS-dark.
-- **AC3 (independence):** changing Appearance never changes the basemap `<select>`'s value or
-  vice versa; changing either never alters any evidence value, geometry, or K11 URL-state key.
-- **AC4 (category integrity):** every Evidence/legend token (§5.2) keeps its hue family and
-  category meaning across both themes; a visual diff review confirms no two categories become
-  indistinguishable in either theme and no phase sequence or ordering is introduced (Gate-L
-  contract, unchanged).
-- **AC5 (keyboard/focus):** `--focus-ring` (or its per-theme value) meets 3:1 non-text contrast
-  against its own theme's chrome in both themes; WCAG 2.4.11 check (§4) passes for the drawer and
-  any sticky control.
-- **AC6 (text resize):** both the existing browser-level 200% zoom (SC 1.4.4) and the in-app
-  comfortable-text-size control (§8) reflow without clipping or overlap at the already-audited
-  breakpoints.
-- **AC7 (reduced motion / forced colors):** any new transition (theme cross-fade, if proposed in
-  Phase B) collapses under `prefers-reduced-motion:reduce`, consistent with K5; `forced-colors`
-  behaviour is at minimum not worsened by this work, ideally audited and fixed if found broken.
-- **AC8 (regression):** `node --test tests/*.test.mjs` and `npm run test:browser` stay green;
-  real-device Safari stays explicitly marked **NOT TESTED** until actually run on hardware,
-  consistent with every predecessor gate's honesty convention.
-- **AC9 (performance):** no measured regression in interaction-to-paint or frame time attributable
-  to theme-switching machinery, measured against the method and thresholds in
-  `docs/RUNTIME_DECISION_SPIKE.md` on at least the device classes that document already covers.
+| Axis | Required values |
+|---|---|
+| Appearance | Light; Dark; System resolved to Light; System resolved to Dark |
+| Basemap | Light; Dark; Satellite |
+| Information surface | PLACE; COMPARE; CITY; Evidence & limits drawer; Lens A/B labels; SVG halo metrics; source/provenance disclosures; administrative planning and licence surfaces |
+
+At every relevant matrix cell and at responsive widths (including 360, 420, 560, 850, 1100 and
+1440px), the following are acceptance requirements:
+
+- **Correct WCAG 2.2 AA interpretation:** normal text ≥4.5:1, WCAG-large text ≥3:1, and essential
+  graphical objects/UI component indicators ≥3:1 where SC 1.4.11 applies. Decorative/exempt uses
+  are identified with rationale; passing a source-hex screen is not accepted as component proof.
+- **Keyboard and focus:** complete keyboard operation; visible focus against each adjacent surface;
+  focus not entirely obscured by sticky/fixed content (SC 2.4.11); dialog open/close and return
+  focus verified.
+- **Resize and layout:** browser zoom at 200% independently passes; each optional comfortable
+  text-size setting also passes at 100% and 200% browser zoom without lost content, clipping,
+  overlap or two-dimensional scrolling except where WCAG permits it.
+- **Forced colours and motion:** usable focus, boundaries, controls and state distinctions under
+  `forced-colors: active`; no required meaning depends on author colour; any new motion collapses
+  under `prefers-reduced-motion: reduce`.
+- **Responsive and localized behaviour:** ES and EN labels, wrapping and control names pass at all
+  responsive layouts; category meaning and provenance remain complete.
+- **A/B and category integrity:** explicit labels and solid/dashed/shape/pattern cues remain;
+  grayscale review does not collapse the structural interpretation; Gate-L neutrals acquire no
+  ordering or judgement.
+- **Independence:** appearance choice never changes basemap and basemap never changes appearance.
+  System resolution only follows the OS while System is selected. Cold-load traces show no
+  incorrect-theme frame for all four appearance cases.
+- **Scientific regression:** no evidence calculation, state, scope, date, rounding, withholding,
+  abstention, geometry, provenance, export, URL-state meaning, interpretation ceiling or HATI
+  behaviour changes. Node and browser suites remain green, and network/data requests are stable.
+- **Performance:** theme/text controls introduce no measured interaction-to-paint or frame-time
+  regression against the repository's declared device classes and runtime method.
+
+Chromium viewport/touch emulation is useful matrix coverage but **does not equal validation on a
+real iPad running Safari/WebKit**. Real iPad/Safari hardware remains explicitly NOT TESTED until a
+physical-device run is reported; emulation must never be used to close that gap.
 
 ---
 
@@ -668,15 +851,13 @@ Restated from issue #102, made checkable:
 own instruction, it is submitted as a **Draft PR containing only this document**, for review
 against issue #102, before any Phase B code is written.
 
-Within what this gate establishes: the token architecture (§5), the migration path (§10) and the
-Appearance/text-size mechanisms (§7–§8) are internally consistent with K5, Gate L, WCAG 2.2 and
-the four researched precedent systems, and the central contrast risk (§3) — category hues tuned
-for one background are not safely portable to a second by hue alone — has a demonstrated,
-computable resolution shape. What it does **not** establish is covered exhaustively in §12 and must
-be closed by Phase B's own implementation PR, re-audited against the real rendered DOM, before any
-claim of shipped WCAG 2.2 AA conformance is made.
+Within its evidence limits, the corrected audit is suitable for Phase A review: it reports a
+reproducible 13/15 **screening** result without converting it into 13 WCAG violations; records the
+separate A/B ownership paths; carries text-safe and graphic-only candidates with their trade-offs;
+and makes later work conditional on rendered evidence. No candidate is a production decision and
+no shipped-conformance claim is made.
 
-**Recommended disposition: proceed to Phase B planning on increment T-a only** (§10) — the
-zero-visual-diff token consolidation — pending human review of this document, with T-b onward
-each separately gated on T-a's review and on real-DOM re-verification of §3's and §6's predicted
-values.
+**Phase A audit acceptance recommendation: GO**, subject to human review of this corrected Draft
+PR. **Future T-a0 planning recommendation: GO** for the documentation-only inventory and baseline
+work in §10. **T-a1 and all later implementation remain HOLD** until T-a0 is reviewed and explicit
+authorization is given. This verdict does not authorize Phase B, a new issue/PR, merge or deploy.
