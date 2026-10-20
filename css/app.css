@@ -15,6 +15,54 @@
   --bg:#08101a; --panel:rgba(8,16,27,.92); --panel2:rgba(13,24,39,.90);
   --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.18);
   --text:#f3f7ff; --muted:#a9bbcf; --text-meta:#9fb1c5; --a:#f7fbff; --b:#43d7ff;
+  /* T-a3 identity roles. Dark values preserve the shipped appearance. The
+     appearance-scoped Light values below remain dormant until a later,
+     separately approved theme activation. Map glyphs stay on their shipped
+     values until their tile-dependent legibility gate is passed. */
+  --ta3-badge-neutral-text:#16222f;
+  --ta3-badge-neutral-background:#f2f4f7;
+  --ta3-badge-neutral-border:#c7ced7;
+  --ta3-badge-register-text:#bdd6ef;
+  --ta3-badge-register-background:rgba(143,189,232,.12);
+  --ta3-badge-register-border:rgba(143,189,232,.26);
+  --ta3-badge-licence-text:#aebed0;
+  --ta3-badge-licence-background:rgba(162,178,198,.085);
+  --ta3-badge-licence-border:rgba(162,178,198,.2);
+  --ta3-badge-planning-text:#d4dde7;
+  --ta3-badge-planning-background:rgba(174,184,196,.1);
+  --ta3-badge-planning-border:rgba(174,184,196,.3);
+  --ta3-badge-observed-text:#ff9abb;
+  --ta3-badge-observed-background:rgba(255,122,162,.08);
+  --ta3-badge-observed-border:rgba(255,122,162,.25);
+  --ta3-badge-statistics-text:#9fd4c2;
+  --ta3-badge-statistics-background:rgba(126,196,178,.1);
+  --ta3-badge-statistics-border:rgba(126,196,178,.22);
+  --ta3-badge-model-text:#ffc36d;
+  --ta3-badge-model-background:rgba(255,176,74,.12);
+  --ta3-badge-model-border:rgba(255,176,74,.2);
+  --ta3-badge-snapshot-text:#c2cedb;
+  --ta3-badge-snapshot-background:rgba(151,166,183,.14);
+  --ta3-badge-snapshot-border:rgba(151,166,183,.24);
+  --ta3-lens-a-text:#eef5fc;
+  --ta3-lens-a-area-text:#e9f1fb;
+  --ta3-lens-a-control-text:#fff;
+  --ta3-lens-a-control-background:rgba(255,255,255,.08);
+  --ta3-lens-a-control-border:rgba(255,255,255,.38);
+  --ta3-lens-b-text:#43d7ff;
+  --ta3-lens-b-control-text:#74e3ff;
+  --ta3-lens-b-control-background:rgba(67,215,255,.08);
+  --ta3-lens-b-control-border:rgba(67,215,255,.45);
+  --ta3-bridge-a-graphic:#9ccdff;
+  --ta3-bridge-a-tag-background:#9ccdff;
+  --ta3-bridge-a-tag-text:#07202f;
+  --ta3-bridge-b-graphic:#43d7ff;
+  --ta3-bridge-b-outline:#0a3a49;
+  --ta3-bridge-b-tag-background:#43d7ff;
+  --ta3-bridge-b-tag-text:#07202f;
+  --ta3-map-center-a:#fff;
+  --ta3-map-center-b:#43d7ff;
+  --ta3-map-halo-a:#f7fbff;
+  --ta3-map-halo-b:#43d7ff;
   /* T-a1 shared-chrome roles. These resolve to the existing dark values;
      evidence/category identities and map-owned colours remain separate. */
   --chrome-page-background:var(--bg);
@@ -233,7 +281,7 @@ header{
 .area:not([data-residents="available"]):not([data-residents="unavailable"]) .area-scope p{margin:0}
 .area-identity[hidden]{display:none}
 .area-identity[hidden]+.area-figure{margin-top:var(--s-2)}
-.badge.register{background:rgba(143,189,232,.12);color:#bdd6ef;border:1px solid rgba(143,189,232,.26);margin-left:0}
+.badge.register{background:var(--ta3-badge-register-background);color:var(--ta3-badge-register-text);border:1px solid var(--ta3-badge-register-border);margin-left:0}
 .area:not([data-residents="available"]) .badge.register{display:none}
 /* Licensed VUT context: the second administrative figure for the same whole
    barrio. Deliberately quieter than the resident figure above it - a lighter
@@ -260,15 +308,15 @@ header{
    would read as a quantity of something. */
 .area-vut:not([data-state="available"]) .area-vut-unit{display:none}
 .area-vut:not([data-state="available"]) .badge.licence{display:none}
-.badge.licence{flex:0 0 auto;margin-left:0;font-size:var(--t-micro);padding:var(--s-1) var(--s-2);background:rgba(162,178,198,.085);color:#aebed0;border:1px solid rgba(162,178,198,.2)}
+.badge.licence{flex:0 0 auto;margin-left:0;font-size:var(--t-micro);padding:var(--s-1) var(--s-2);background:var(--ta3-badge-licence-background);color:var(--ta3-badge-licence-text);border:1px solid var(--ta3-badge-licence-border)}
 /* The other lens's area: one line, never a second profile card. Two centres in
    one barrio point at one statistic, and the copy says so instead of repeating
    the figure. */
 .area-other{display:flex;align-items:baseline;gap:var(--s-2);margin-top:var(--s-2);padding-top:var(--s-2);border-top:1px solid var(--line);font-size:var(--t-micro);line-height:1.45;color:#93a6bb}
 .area-other:empty{display:none}
 .area-other-lens{flex:0 0 auto;font-size:var(--t-micro);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8ba0b7}
-.area-other-lens-a{color:#e9f1fb}
-.area-other-lens-b{color:var(--b)}
+.area-other-lens-a{color:var(--ta3-lens-a-area-text)}
+.area-other-lens-b{color:var(--ta3-lens-b-text)}
 .area-other-body{min-width:0;font-variant-numeric:tabular-nums}
 .area-other-body b{color:#dbe6f3;font-weight:650}
 .area-source-toggle{margin-top:var(--s-2);padding:0;border:0;background:transparent;color:#7d92a9;font-size:var(--t-micro);letter-spacing:.05em;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(125,146,169,.45)}
@@ -349,7 +397,7 @@ header{
 /* Available buildability. Every figure carries its unit and its whole-ámbito
    scope, so it can never be read as a Lens-circle or barrio quantity. */
 .planning-scope-note{display:flex;align-items:baseline;gap:var(--s-2);flex-wrap:wrap;margin:var(--s-2) 0 0;font-size:var(--t-meta);line-height:1.5;color:#a9bbcf}
-.badge.planning-scope-badge{flex:0 0 auto;margin-left:0;background:rgba(174,184,196,.1);color:#d4dde7;border:1px solid rgba(174,184,196,.3)}
+.badge.planning-scope-badge{flex:0 0 auto;margin-left:0;background:var(--ta3-badge-planning-background);color:var(--ta3-badge-planning-text);border:1px solid var(--ta3-badge-planning-border)}
 .planning-build-row{margin-top:var(--s-2);padding-top:var(--s-2);border-top:1px solid var(--line)}
 .planning-build-row:first-child{margin-top:var(--s-2);padding-top:0;border-top:0}
 .planning-situacion{margin:0 0 var(--s-1);font-size:var(--t-meta);line-height:1.45;color:#9cb0c4}
@@ -507,8 +555,8 @@ header{
 .hospitality-barrio-selected{filter:drop-shadow(0 0 2px rgba(255,255,255,.72))}
 
 .lensbar{display:flex;gap:var(--s-2);margin:var(--s-1) 0 var(--s-3)}.lensbtn{flex:1;border:1px solid var(--line);background:rgba(255,255,255,.025);color:#9aacbf;border-radius:var(--r-small);padding:var(--s-2) var(--s-3);font-size:var(--t-micro);cursor:pointer}
-.lensbtn.active.a{color:white;border-color:rgba(255,255,255,.38);background:rgba(255,255,255,.08)}
-.lensbtn.active.b{color:#74e3ff;border-color:rgba(67,215,255,.45);background:rgba(67,215,255,.08)}
+.lensbtn.active.a{color:var(--ta3-lens-a-control-text);border-color:var(--ta3-lens-a-control-border);background:var(--ta3-lens-a-control-background)}
+.lensbtn.active.b{color:var(--ta3-lens-b-control-text);border-color:var(--ta3-lens-b-control-border);background:var(--ta3-lens-b-control-background)}
 
 .metrics{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-2)}
 .metric{padding:var(--s-3);border:1px solid var(--line);background:rgba(255,255,255,.025);border-radius:var(--r-small);min-height:73px}
@@ -536,7 +584,7 @@ header{
 .activity-card-value{font-size:var(--t-title);font-weight:780;letter-spacing:-.035em;margin-top:var(--s-2)}
 .activity-card-foot{font-size:var(--t-micro);color:#7d90a5;margin-top:var(--s-1)}
 .activity-card-note{font-size:var(--t-micro);line-height:1.4;color:#8fa1b7;border-left:1px solid rgba(255,122,162,.16);padding-left:var(--s-2)}
-.badge.observed{border:1px solid rgba(255,122,162,.25);background:rgba(255,122,162,.08);color:#ff9abb}
+.badge.observed{border:1px solid var(--ta3-badge-observed-border);background:var(--ta3-badge-observed-background);color:var(--ta3-badge-observed-text)}
 input[type=range]{width:100%;accent-color:#57b8ff}
 .row-controls{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-2);margin-top:var(--s-2)}
 select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;color:#d9e4ef;border-radius:var(--r-small);padding:var(--s-2);font-size:var(--t-micro);outline:none}
@@ -576,8 +624,8 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .cb-side{display:flex;flex-direction:column;gap:var(--s-1);min-width:0}
 .cb-side-b{text-align:right;align-items:flex-end}
 .cb-lens{font-size:var(--t-micro);font-weight:720;letter-spacing:.08em;text-transform:uppercase;color:#8ba0b7}
-.cb-side-a .cb-lens{color:#eef5fc}
-.cb-side-b .cb-lens{color:#43d7ff}
+.cb-side-a .cb-lens{color:var(--ta3-lens-a-text)}
+.cb-side-b .cb-lens{color:var(--ta3-lens-b-text)}
 .cb-value{font-size:var(--t-figure);font-weight:760;color:#f2f8ff;font-variant-numeric:tabular-nums;line-height:1.12;overflow-wrap:anywhere}
 .cb-sub{font-size:var(--t-micro);color:#9fb1c5;line-height:1.3;overflow-wrap:anywhere}
 .cb-radius{font-size:var(--t-micro);color:#8296ac;font-variant-numeric:tabular-nums}
@@ -699,6 +747,8 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
    well as by hue, so A/B never relies on colour alone. */
 .halo-track{stroke:rgba(7,16,27,.62);stroke-width:1.4;stroke-linecap:round}
 .halo-fill{stroke:var(--halo-color);stroke-width:var(--halo-thickness);stroke-linecap:round}
+.halo-glyph.halo-a{--halo-color:var(--ta3-map-halo-a)}
+.halo-glyph.halo-b{--halo-color:var(--ta3-map-halo-b)}
 .halo-glyph.halo-b .halo-fill{stroke-width:var(--halo-thickness);stroke-dasharray:2.4 1.8}
 /* Density at or above the Madrid reference: the bar is clamped to full length,
    so a subtle glow marks the clamp while the raw number keeps the real value. */
@@ -728,7 +778,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .destination .section-head{margin-top:0}
 .destination-identity{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap}
 .destination-place{margin:0;font-size:var(--t-figure);font-weight:700;letter-spacing:-.02em;line-height:1.15;color:#e9f1fb}
-.badge.statistics{flex:0 0 auto;margin-left:0;font-size:var(--t-micro);padding:var(--s-1) var(--s-2);background:rgba(126,196,178,.1);color:#9fd4c2;border:1px solid rgba(126,196,178,.22)}
+.badge.statistics{flex:0 0 auto;margin-left:0;font-size:var(--t-micro);padding:var(--s-1) var(--s-2);background:var(--ta3-badge-statistics-background);color:var(--ta3-badge-statistics-text);border:1px solid var(--ta3-badge-statistics-border)}
 .destination-period{display:flex;align-items:baseline;gap:var(--s-2);margin-top:var(--s-1);flex-wrap:wrap}
 .destination-period-label{font-size:var(--t-micro);color:#a4b7cb;font-weight:600}
 /* Provisional is a fact about the figure, not a warning about it. */
@@ -773,7 +823,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .area-label-b{border-color:rgba(67,215,255,.45)}
 .area-label-b b{color:var(--b)}
 .marker-center{width:18px;height:18px;border-radius:50%;border:2px solid currentColor;background:rgba(8,16,27,.75);box-shadow:0 0 0 5px color-mix(in srgb,currentColor 15%,transparent),0 3px 15px rgba(0,0,0,.5)}
-.marker-a{color:white}.marker-b{color:#43d7ff}
+.marker-a{color:var(--ta3-map-center-a)}.marker-b{color:var(--ta3-map-center-b)}
 .poi-cluster-icon{background:transparent!important;border:0!important}
 .poi-cluster{width:100%;height:100%;display:flex;align-items:center;justify-content:center;border:2px solid currentColor;border-radius:50%;background:rgba(8,16,27,.92);box-shadow:0 0 0 5px color-mix(in srgb,currentColor 14%,transparent),0 7px 20px rgba(0,0,0,.4);font-size:var(--t-meta);font-weight:800;letter-spacing:-.02em;color:white;backdrop-filter:blur(6px);transition:transform .15s ease,box-shadow .15s ease}
 .poi-cluster:hover{transform:scale(1.06);box-shadow:0 0 0 7px color-mix(in srgb,currentColor 16%,transparent),0 9px 24px rgba(0,0,0,.44)}
@@ -782,8 +832,8 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .cluster-stay{color:var(--stay)}
 .cluster-bike{color:var(--bike)}
 .badge{display:inline-block;padding:var(--s-1) var(--s-2);border-radius:var(--r-small);font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;margin-left:var(--s-1)}
-.badge.model{background:rgba(255,176,74,.12);color:#ffc36d;border:1px solid rgba(255,176,74,.2)}
-.badge.snapshot{background:rgba(151,166,183,.14);color:#c2cedb;border:1px solid rgba(151,166,183,.24)}
+.badge.model{background:var(--ta3-badge-model-background);color:var(--ta3-badge-model-text);border:1px solid var(--ta3-badge-model-border)}
+.badge.snapshot{background:var(--ta3-badge-snapshot-background);color:var(--ta3-badge-snapshot-text);border:1px solid var(--ta3-badge-snapshot-border)}
 
 @media(max-width:1100px) and (min-width:851px){
   .left{width:200px}
@@ -1110,8 +1160,8 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 .ambito-pick-field{flex:1;display:flex;align-items:center;gap:var(--s-1);font-size:var(--t-meta)}
 .ambito-pick-tag{width:18px;height:18px;flex:none;display:inline-flex;align-items:center;justify-content:center;
   border-radius:var(--r-small);font-weight:700;font-size:var(--t-micro);color:#07202f}
-.ambito-pick-tag.ac-a{background:#9ccdff}
-.ambito-pick-tag.ac-b{background:#43d7ff;border:1px dashed #0a3a49}
+.ambito-pick-tag.ac-a{background:var(--ta3-bridge-a-tag-background);color:var(--ta3-bridge-a-tag-text)}
+.ambito-pick-tag.ac-b{background:var(--ta3-bridge-b-tag-background);color:var(--ta3-bridge-b-tag-text);border:1px dashed var(--ta3-bridge-b-outline)}
 .ambito-select{flex:1;min-width:0;min-height:32px;background:rgba(14,24,38,.75);color:var(--text);
   border:1px solid rgba(160,180,205,.35);border-radius:var(--r-small);font:inherit;font-size:var(--t-meta);padding:var(--s-1) var(--s-1)}
 .ambito-pick-hint{font-size:var(--t-micro);color:var(--text-meta);margin:var(--s-1) 0 var(--s-2)}
@@ -1120,8 +1170,8 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 
 .ambito-identities{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-2);margin:var(--s-1) 0 var(--s-2)}
 .ambito-id{border:1px solid rgba(160,180,205,.3);border-radius:var(--r-small);padding:var(--s-2) var(--s-2);display:flex;flex-direction:column;gap:var(--s-1)}
-.ambito-id.ac-a{border-left:3px solid #9ccdff}
-.ambito-id.ac-b{border-left:3px dashed #43d7ff}
+.ambito-id.ac-a{border-left:3px solid var(--ta3-bridge-a-graphic)}
+.ambito-id.ac-b{border-left:3px dashed var(--ta3-bridge-b-graphic)}
 .ambito-id-tag{font-size:var(--t-micro);font-weight:700;letter-spacing:.08em;color:var(--text-meta)}
 .ambito-id-code{font-size:var(--t-label);color:var(--text)}
 .ambito-id-denom{font-size:var(--t-micro);color:var(--muted);overflow-wrap:anywhere}
@@ -1188,8 +1238,8 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 .ambito-scale-cell{text-align:left;min-width:64px}
 .ambito-bars{display:flex;flex-direction:column;gap:var(--s-1)}
 .ambito-bar-track{display:block;height:5px;background:rgba(160,180,205,.18)}
-.ambito-bar-track.ac-a .ambito-bar-fill{background:#9ccdff}
-.ambito-bar-track.ac-b .ambito-bar-fill{background:#43d7ff}
+.ambito-bar-track.ac-a .ambito-bar-fill{background:var(--ta3-bridge-a-graphic)}
+.ambito-bar-track.ac-b .ambito-bar-fill{background:var(--ta3-bridge-b-graphic)}
 .ambito-bar-fill{display:block;height:100%}
 
 .ambito-insight{margin:var(--s-2) 0 0}
@@ -1232,3 +1282,49 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
   .drawer-action,.k11-notice-dismiss{min-height:44px}
 }
 .k11-export-link{display:inline-block;margin:var(--s-1) var(--s-2) 0 0;font-size:var(--t-meta);color:#9bd5ff;text-decoration:underline}
+
+/* T-a3 Light identity roles are prepared, not activated. No production code
+   writes data-appearance; the later appearance gate owns activation and the
+   rest of the Light surface system. */
+:root[data-appearance="light"]{
+  --ta3-badge-neutral-text:#16222f;
+  --ta3-badge-neutral-background:#f2f4f7;
+  --ta3-badge-neutral-border:#c7ced7;
+  --ta3-lens-a-text:#123b5f;
+  --ta3-lens-a-area-text:#123b5f;
+  --ta3-lens-a-control-text:#123b5f;
+  --ta3-lens-a-control-background:#fff;
+  --ta3-lens-a-control-border:#123b5f;
+  --ta3-lens-b-text:#00718f;
+  --ta3-lens-b-control-text:#00718f;
+  --ta3-lens-b-control-background:#fff;
+  --ta3-lens-b-control-border:#0098c0;
+  --ta3-bridge-a-graphic:#123b5f;
+  --ta3-bridge-a-tag-background:#fff;
+  --ta3-bridge-a-tag-text:#123b5f;
+  --ta3-bridge-b-graphic:#0098c0;
+  --ta3-bridge-b-outline:#0098c0;
+  --ta3-bridge-b-tag-background:#fff;
+  --ta3-bridge-b-tag-text:#00718f;
+  /* Tile-dependent marker and halo colours remain the shipped values because
+     #0098c0 has not passed a per-pixel gate across all three basemaps. */
+}
+:root[data-appearance="light"] .badge.register,
+:root[data-appearance="light"] .badge.licence,
+:root[data-appearance="light"] .badge.planning-scope-badge,
+:root[data-appearance="light"] .badge.observed,
+:root[data-appearance="light"] .badge.statistics,
+:root[data-appearance="light"] .badge.model,
+:root[data-appearance="light"] .badge.snapshot{
+  color:var(--ta3-badge-neutral-text);
+  background:var(--ta3-badge-neutral-background);
+  border-color:var(--ta3-badge-neutral-border);
+}
+:root[data-appearance="light"] .lensbtn.active.a{border-style:solid}
+:root[data-appearance="light"] .lensbtn.active.b{border-style:dashed}
+:root[data-appearance="light"] .ambito-pick-tag.ac-a{border:1px solid var(--ta3-bridge-a-graphic)}
+:root[data-appearance="light"] .ambito-pick-tag.ac-b{border:1px dashed var(--ta3-bridge-b-graphic)}
+:root[data-appearance="light"] .ambito-id.ac-a .ambito-id-tag,
+:root[data-appearance="light"] .ab-side.ac-a{color:var(--ta3-lens-a-text)}
+:root[data-appearance="light"] .ambito-id.ac-b .ambito-id-tag,
+:root[data-appearance="light"] .ab-side.ac-b{color:var(--ta3-lens-b-text)}
