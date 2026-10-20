@@ -1,0 +1,127 @@
+{
+  "schema": "ux-t1-ta3-rendered-preview/1.0",
+  "simulated": true,
+  "productionAssetsChanged": false,
+  "sourceCommit": "216cfbd3549c5d9575da0e89013f8e4a95f7fe5b",
+  "pagesCommit": "216cfbd3549c5d9575da0e89013f8e4a95f7fe5b",
+  "manifestSha256": "104bace30bc747f1dd9eb9d4c2bfa8ac060fc411a3fedd33f727e8208e7f61e2",
+  "poiSha256": "a482ba871adcfd195167bde82a0609b62377c82cd69c59bf7a3366687c10a68b",
+  "poiSourceMode": "deployment-snapshot",
+  "screenshots": [
+    "01-shipped-dark-reference-en.png",
+    "02-shipped-dark-reference-es.png",
+    "03-light-navy-b-text-safe-en.png",
+    "04-light-graphite-b-text-safe-es.png",
+    "05-light-navy-existing-cyan.png",
+    "06-light-graphite-text-safe-satellite.png",
+    "07-light-navy-graphic-dark-basemap.png",
+    "08-grayscale-a-b-structural-check.png"
+  ],
+  "badgeTextContrast": {
+    "samples": [
+      {
+        "badge": "REGISTER",
+        "foreground": "rgb(22, 34, 47)",
+        "backgroundHex": "#f1f7fc",
+        "textContrast": 14.898790033337674,
+        "textSizePx": 10,
+        "criterion": "SC 1.4.3; normal text ≥ 4.5:1"
+      },
+      {
+        "badge": "OBSERVED",
+        "foreground": "rgb(22, 34, 47)",
+        "backgroundHex": "#ffeff4",
+        "textContrast": 14.458401074182616,
+        "textSizePx": 10,
+        "criterion": "SC 1.4.3; normal text ≥ 4.5:1"
+      },
+      {
+        "badge": "SNAPSHOT",
+        "foreground": "rgb(22, 34, 47)",
+        "backgroundHex": "#f0f2f5",
+        "textContrast": 14.379539746779937,
+        "textSizePx": 10,
+        "criterion": "SC 1.4.3; normal text ≥ 4.5:1"
+      },
+      {
+        "badge": "MODEL",
+        "foreground": "rgb(22, 34, 47)",
+        "backgroundHex": "#fff5e9",
+        "textContrast": 14.954544788544133,
+        "textSizePx": 10,
+        "criterion": "SC 1.4.3; normal text ≥ 4.5:1"
+      },
+      {
+        "badge": "STATISTICS",
+        "foreground": "rgb(22, 34, 47)",
+        "backgroundHex": "#f2f9f7",
+        "textContrast": 15.055293352109597,
+        "textSizePx": 10,
+        "criterion": "SC 1.4.3; normal text ≥ 4.5:1"
+      },
+      {
+        "badge": "LICENCE",
+        "foreground": "rgb(22, 34, 47)",
+        "backgroundHex": "#f7f8fa",
+        "textContrast": 15.147694770551633,
+        "textSizePx": 10,
+        "criterion": "SC 1.4.3; normal text ≥ 4.5:1"
+      },
+      {
+        "badge": "PLANNING SCOPE",
+        "foreground": "rgb(22, 34, 47)",
+        "backgroundHex": "#f7f8f9",
+        "textContrast": 15.090926316224722,
+        "textSizePx": 10,
+        "criterion": "SC 1.4.3; normal text ≥ 4.5:1"
+      }
+    ],
+    "identityRoles": [
+      {
+        "role": "Lens A navy #123b5f",
+        "value": "#123b5f",
+        "panelSurface": "#fefeff",
+        "contrastOnPanel": 11.506185370860058,
+        "contrastOnOwn8PercentTint": 9.993490093621444,
+        "ownTintSurface": "#ebeff2"
+      },
+      {
+        "role": "Lens A graphite #343a40",
+        "value": "#343a40",
+        "panelSurface": "#fefeff",
+        "contrastOnPanel": 11.451227316630783,
+        "contrastOnOwn8PercentTint": 9.975666963564992,
+        "ownTintSurface": "#eeefef"
+      },
+      {
+        "role": "Lens B shipped cyan #43d7ff",
+        "value": "#43d7ff",
+        "panelSurface": "#fefeff",
+        "contrastOnPanel": 1.6852247928557655,
+        "contrastOnOwn8PercentTint": 1.6092262179180377,
+        "ownTintSurface": "#effbff"
+      },
+      {
+        "role": "Lens B graphic #0098c0",
+        "value": "#0098c0",
+        "panelSurface": "#fefeff",
+        "contrastOnPanel": 3.342940300762636,
+        "contrastOnOwn8PercentTint": 3.0529425438367177,
+        "ownTintSurface": "#eaf6fa"
+      },
+      {
+        "role": "Lens B text #00718f",
+        "value": "#00718f",
+        "panelSurface": "#fefeff",
+        "contrastOnPanel": 5.560871248589262,
+        "contrastOnOwn8PercentTint": 4.965251902597039,
+        "ownTintSurface": "#eaf3f6"
+      }
+    ],
+    "bodyBackground": "rgb(244, 246, 249)",
+    "panelBackground": "rgba(255, 255, 255, 0.94)",
+    "panelSurfaceAfterBodyComposite": "#fefeff"
+  },
+  "pageErrors": [],
+  "note": "Preview CSS and badge samples exist only in this Playwright page; LENS_BASEMAP_STYLES is not overridden. Contrast computation uses computed foregrounds and browser-composited ancestor backgrounds for preview badge rows; map marks are treated as heterogeneous backgrounds and visually reviewed, not certified by one ratio."
+}
