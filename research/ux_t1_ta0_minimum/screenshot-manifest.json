@@ -1,0 +1,481 @@
+{
+  "schema": "ux-t1-ta0-minimum-visual-baseline/1.0",
+  "baselineSource": {
+    "repository": "soroushkarahrodi79-oss/madrid-tourism-intelligence-lens",
+    "commit": "028d0389454b4248180654075022e4397b14fd5b",
+    "ref": "origin/main"
+  },
+  "deployment": {
+    "manifestUrl": "https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens/data/deployment_manifest.json",
+    "manifestSha256": "bdbc5c1c85f9d9f47893b7444b824921a42245dfd3d0be362bb648be39006133",
+    "sourceCommit": "028d0389454b4248180654075022e4397b14fd5b",
+    "generatedAt": "2026-10-19T22:33:23.154Z",
+    "buildState": "pass",
+    "workflowRunId": "39335736493",
+    "manifestUrlIsMutable": true,
+    "workflowArtifactRetentionDays": 30
+  },
+  "productionData": {
+    "url": "https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens/data/runtime_poi.json",
+    "sha256": "981449c5b52fac59835a826f89d163eae99d13a042a72acb80bcdc08acb88a70",
+    "bytes": 390017,
+    "sourceMode": "deployment-snapshot",
+    "generatedAt": "2026-10-19T22:33:17.983Z",
+    "recordsByLayer": {
+      "museum": 68,
+      "info": 10,
+      "bike": 631,
+      "rail": 148,
+      "park": 86,
+      "stay": 613
+    },
+    "totalRecords": 1556,
+    "storedInRepository": false
+  },
+  "environment": {
+    "browser": "Chromium via Playwright",
+    "browserVersion": "153.0.8010.12",
+    "headless": true,
+    "deviceScaleFactor": 1,
+    "appServedFrom": "isolated worktree at baseline source commit",
+    "mapTiles": "live OSM/CARTO/Esri providers; tile content is not version-pinned",
+    "runtimeConfig": "proxied in memory from the current public deployment; never written to disk or emitted"
+  },
+  "focusAnomaly": {
+    "result": "HISTORICAL ANOMALY — NOT REPRODUCED",
+    "conditions": "Chromium 153.0.8010.12 headless; isolated local source at baseline SHA; first-party production runtime config proxied in memory; actual keyboard Tab from COMPARE mode button to visible native #haloToggle checkbox; no styles injected; computed 2px solid rgb(155, 213, 255), 2px offset, and 1px box shadow. Cross-browser follow-up deferred to T-a2."
+  },
+  "capturedAt": "2026-10-20T08:29:54.968Z",
+  "screenshots": [
+    {
+      "id": "desktop-place-light",
+      "file": "screenshots/01-desktop-place-light.png",
+      "sha256": "c007ff778f0d9a19854cdd19b530a235b4c7f628954ba4526ebcea93cd2b36f3",
+      "bytes": 1053218,
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "language": "en",
+      "mode": "PLACE",
+      "basemap": "light",
+      "boundaries": "off",
+      "mobileLayersExpanded": false,
+      "deploymentSnapshotLabelPresent": true,
+      "visibleLensLabels": [],
+      "poiClusters": 191,
+      "evidenceDrawerOpen": false,
+      "planningCode": null,
+      "planningIdentityVisible": false,
+      "mapBox": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 900
+      },
+      "layerRailBox": {
+        "x": 18,
+        "y": 90,
+        "width": 222,
+        "height": 792
+      },
+      "activeElement": {
+        "tag": "BODY",
+        "id": null,
+        "text": "Skip to the analysis panel Skip to the map layers 235332624442922268752447931825",
+        "focusVisible": false
+      },
+      "actions": [
+        "loaded default PLACE state",
+        "production deployment snapshot verified"
+      ],
+      "pageErrors": []
+    },
+    {
+      "id": "desktop-compare-light",
+      "file": "screenshots/02-desktop-compare-light.png",
+      "sha256": "0c6c9c51952ecc47e71970ec1ff7642f8486019a5c6cc5feeac90d7d680f2f30",
+      "bytes": 1043170,
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "language": "en",
+      "mode": "COMPARE",
+      "basemap": "light",
+      "boundaries": "off",
+      "mobileLayersExpanded": false,
+      "deploymentSnapshotLabelPresent": true,
+      "visibleLensLabels": [
+        "Lens A",
+        "Lens B"
+      ],
+      "poiClusters": 191,
+      "evidenceDrawerOpen": false,
+      "planningCode": null,
+      "planningIdentityVisible": false,
+      "mapBox": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 900
+      },
+      "layerRailBox": {
+        "x": 18,
+        "y": 90,
+        "width": 222,
+        "height": 792
+      },
+      "activeElement": {
+        "tag": "BUTTON",
+        "id": null,
+        "text": "Tourism POIs",
+        "focusVisible": false
+      },
+      "actions": [
+        "clicked COMPARE mode control",
+        "opened Detail disclosure",
+        "selected the first visible comparison metric to render the A/B bridge"
+      ],
+      "pageErrors": []
+    },
+    {
+      "id": "desktop-evidence-drawer-es",
+      "file": "screenshots/03-desktop-evidence-drawer-es.png",
+      "sha256": "603daf17a09da214786d085b44f1e1c6e5e10781d49876c65374e0841e3c08ed",
+      "bytes": 880495,
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "language": "es",
+      "mode": "PLACE",
+      "basemap": "light",
+      "boundaries": "off",
+      "mobileLayersExpanded": false,
+      "deploymentSnapshotLabelPresent": false,
+      "visibleLensLabels": [],
+      "poiClusters": 191,
+      "evidenceDrawerOpen": true,
+      "planningCode": null,
+      "planningIdentityVisible": false,
+      "mapBox": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 900
+      },
+      "layerRailBox": {
+        "x": 18,
+        "y": 90,
+        "width": 222,
+        "height": 792
+      },
+      "activeElement": {
+        "tag": "BUTTON",
+        "id": "evidenceDrawerClose",
+        "text": "Cerrar",
+        "focusVisible": false
+      },
+      "actions": [
+        "selected Español in the visible language selector",
+        "clicked the visible Evidence & limits route"
+      ],
+      "pageErrors": []
+    },
+    {
+      "id": "tablet-compare-dark",
+      "file": "screenshots/04-tablet-compare-dark.png",
+      "sha256": "fe60db4adfaf90b5139f0d1295b80f2a2baac70b3f6956cc6136863e7a194619",
+      "bytes": 660842,
+      "viewport": {
+        "width": 834,
+        "height": 1112,
+        "deviceScaleFactor": 1
+      },
+      "language": "en",
+      "mode": "COMPARE",
+      "basemap": "dark",
+      "boundaries": "off",
+      "mobileLayersExpanded": false,
+      "deploymentSnapshotLabelPresent": true,
+      "visibleLensLabels": [],
+      "poiClusters": 191,
+      "evidenceDrawerOpen": false,
+      "planningCode": null,
+      "planningIdentityVisible": false,
+      "mapBox": {
+        "x": 0,
+        "y": 0,
+        "width": 834,
+        "height": 1112
+      },
+      "layerRailBox": {
+        "x": 10,
+        "y": 73,
+        "width": 174,
+        "height": 430
+      },
+      "activeElement": {
+        "tag": "BUTTON",
+        "id": "modeCompareButton",
+        "text": "⇄Compare",
+        "focusVisible": false
+      },
+      "actions": [
+        "selected Dark basemap in the visible map-layer rail",
+        "clicked COMPARE mode"
+      ],
+      "pageErrors": []
+    },
+    {
+      "id": "mobile-place-light",
+      "file": "screenshots/05-mobile-place-light.png",
+      "sha256": "f4a4f548c4050a72dfa3a78e9d1fec3ed4f9624409526712fc308be70ea497fa",
+      "bytes": 282103,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "language": "en",
+      "mode": "PLACE",
+      "basemap": "light",
+      "boundaries": "off",
+      "mobileLayersExpanded": false,
+      "deploymentSnapshotLabelPresent": true,
+      "visibleLensLabels": [],
+      "poiClusters": 191,
+      "evidenceDrawerOpen": false,
+      "planningCode": null,
+      "planningIdentityVisible": false,
+      "mapBox": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844
+      },
+      "layerRailBox": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "activeElement": {
+        "tag": "BODY",
+        "id": null,
+        "text": "Skip to the analysis panel Skip to the map layers 235332624442922268752447931825",
+        "focusVisible": false
+      },
+      "actions": [
+        "loaded default PLACE state"
+      ],
+      "pageErrors": []
+    },
+    {
+      "id": "mobile-layers-dark",
+      "file": "screenshots/06-mobile-layers-dark.png",
+      "sha256": "47e7c28169a1af37dd4e8a317e522818b4547731e36a0c1b12550961f287fd37",
+      "bytes": 184863,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "language": "en",
+      "mode": "PLACE",
+      "basemap": "dark",
+      "boundaries": "off",
+      "mobileLayersExpanded": true,
+      "deploymentSnapshotLabelPresent": true,
+      "visibleLensLabels": [],
+      "poiClusters": 191,
+      "evidenceDrawerOpen": false,
+      "planningCode": null,
+      "planningIdentityVisible": false,
+      "mapBox": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844
+      },
+      "layerRailBox": {
+        "x": 10,
+        "y": 125,
+        "width": 240,
+        "height": 400
+      },
+      "activeElement": {
+        "tag": "SUMMARY",
+        "id": null,
+        "text": "Map display2 settings",
+        "focusVisible": false
+      },
+      "actions": [
+        "clicked mobile Layers button",
+        "selected Dark basemap through visible Layers UI"
+      ],
+      "pageErrors": []
+    },
+    {
+      "id": "desktop-satellite-markers-overlays",
+      "file": "screenshots/07-desktop-satellite-markers-overlays.png",
+      "sha256": "3fa2660cd1762987d39d157e94cdc22c9ede62f3cbcbf4ab17a8935a31038cc6",
+      "bytes": 2122439,
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "language": "en",
+      "mode": "PLACE",
+      "basemap": "satellite",
+      "boundaries": "district",
+      "mobileLayersExpanded": false,
+      "deploymentSnapshotLabelPresent": true,
+      "visibleLensLabels": [],
+      "poiClusters": 191,
+      "evidenceDrawerOpen": false,
+      "planningCode": null,
+      "planningIdentityVisible": false,
+      "mapBox": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 900
+      },
+      "layerRailBox": {
+        "x": 18,
+        "y": 90,
+        "width": 222,
+        "height": 792
+      },
+      "activeElement": {
+        "tag": "INPUT",
+        "id": null,
+        "text": "Toggle principal municipal parks",
+        "focusVisible": false
+      },
+      "actions": [
+        "selected Satellite + labels in base-map selector",
+        "selected district outlines",
+        "opened Context group and clicked Principal parks switch label"
+      ],
+      "pageErrors": [],
+      "additionalControls": {
+        "principalParks": true
+      }
+    },
+    {
+      "id": "keyboard-halo-checkbox-focus",
+      "file": "screenshots/08-keyboard-halo-checkbox-focus.png",
+      "sha256": "eed0425cfb117f8e9298d85c30f26e35f28d271e3694b06c5d6f63f8039d3ba4",
+      "bytes": 1037566,
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "language": "en",
+      "mode": "COMPARE",
+      "basemap": "light",
+      "boundaries": "off",
+      "mobileLayersExpanded": false,
+      "deploymentSnapshotLabelPresent": true,
+      "visibleLensLabels": [],
+      "poiClusters": 191,
+      "evidenceDrawerOpen": false,
+      "planningCode": null,
+      "planningIdentityVisible": false,
+      "mapBox": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 900
+      },
+      "layerRailBox": {
+        "x": 18,
+        "y": 90,
+        "width": 222,
+        "height": 792
+      },
+      "activeElement": {
+        "tag": "INPUT",
+        "id": "haloToggle",
+        "text": "Show comparison halo around Lens A and Lens B",
+        "focusVisible": true
+      },
+      "actions": [
+        "clicked COMPARE mode",
+        "pressed Tab repeatedly from the mode control until the visible native Comparison halo checkbox received focus; no script focus() call"
+      ],
+      "pageErrors": [],
+      "focus": {
+        "tag": "INPUT",
+        "id": "haloToggle",
+        "className": "",
+        "text": "Show comparison halo around Lens A and Lens B",
+        "focusVisible": true,
+        "outline": "rgb(155, 213, 255) solid 2px",
+        "outlineColor": "rgb(155, 213, 255)",
+        "outlineWidth": "2px",
+        "outlineStyle": "solid",
+        "outlineOffset": "2px",
+        "boxShadow": "rgb(8, 16, 26) 0px 0px 0px 1px"
+      },
+      "historicalAnomaly": "HISTORICAL ANOMALY — NOT REPRODUCED"
+    },
+    {
+      "id": "desktop-place-inside-planning-ambito",
+      "file": "screenshots/09-desktop-place-planning-ambito.png",
+      "sha256": "c712d8f35fe9ea3156b2f5ad2d8fb9a67458bdcc37b3457031058fc6ba5659d1",
+      "bytes": 1049309,
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "language": "en",
+      "mode": "PLACE",
+      "basemap": "light",
+      "boundaries": "off",
+      "mobileLayersExpanded": false,
+      "deploymentSnapshotLabelPresent": true,
+      "visibleLensLabels": [],
+      "poiClusters": 191,
+      "evidenceDrawerOpen": false,
+      "planningCode": "APE.03.06",
+      "planningIdentityVisible": true,
+      "mapBox": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 900
+      },
+      "layerRailBox": {
+        "x": 18,
+        "y": 90,
+        "width": 222,
+        "height": 792
+      },
+      "activeElement": {
+        "tag": "DIV",
+        "id": null,
+        "text": "",
+        "focusVisible": false
+      },
+      "actions": [
+        "dragged the visible Lens A marker with pointer input to validated interior coordinate",
+        "application rendered APE.03.06 / JERÓNIMOS"
+      ],
+      "pageErrors": [],
+      "targetCoordinate": {
+        "lat": 40.41384035,
+        "lon": -3.69162065
+      }
+    }
+  ]
+}

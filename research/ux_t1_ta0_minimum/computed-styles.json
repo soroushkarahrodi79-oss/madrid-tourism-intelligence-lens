@@ -1,0 +1,402 @@
+{
+  "schema": "ux-t1-ta0-computed-styles/1.0",
+  "sourceCommit": "028d0389454b4248180654075022e4397b14fd5b",
+  "browser": "Chromium via Playwright",
+  "note": "Actual computed CSS values from the named rendered states. These are not WCAG conformance results and are separate from screenshot pixels and source declarations.",
+  "records": [
+    {
+      "state": "desktop-place-light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "styles": [
+        {
+          "selector": "body",
+          "pseudo": null,
+          "note": "shared page chrome",
+          "present": true,
+          "visible": true,
+          "text": "Skip to the analysis panel Skip to the map layers 23533262444292226875244793182522349685433232242255",
+          "computed": {
+            "color": "rgb(243, 247, 255)",
+            "backgroundColor": "rgb(8, 16, 26)",
+            "borderTopColor": "rgb(243, 247, 255)",
+            "borderTopWidth": "0px",
+            "borderTopStyle": "none",
+            "boxShadow": "none",
+            "backdropFilter": "none",
+            "fontSize": "14px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "borderRadius": "0px",
+            "display": "block",
+            "opacity": "1"
+          },
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "selector": ".brand",
+          "pseudo": null,
+          "note": "header surface",
+          "present": true,
+          "visible": true,
+          "text": "Madrid Urban Evidence LensMadrid · Urban development · Official evidence",
+          "computed": {
+            "color": "rgb(243, 247, 255)",
+            "backgroundColor": "rgba(6, 12, 21, 0.9)",
+            "borderTopColor": "rgba(255, 255, 255, 0.1)",
+            "borderTopWidth": "1px",
+            "borderTopStyle": "solid",
+            "boxShadow": "rgba(0, 0, 0, 0.28) 0px 12px 35px 0px",
+            "backdropFilter": "blur(20px)",
+            "fontSize": "14px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "borderRadius": "16px",
+            "display": "flex",
+            "opacity": "1"
+          },
+          "box": {
+            "x": 18,
+            "y": 15,
+            "width": 314,
+            "height": 62
+          }
+        },
+        {
+          "selector": ".left",
+          "pseudo": null,
+          "note": "map layer rail",
+          "present": true,
+          "visible": true,
+          "text": "Map layers",
+          "computed": {
+            "color": "rgb(243, 247, 255)",
+            "backgroundColor": "rgba(8, 16, 27, 0.92)",
+            "borderTopColor": "rgba(255, 255, 255, 0.1)",
+            "borderTopWidth": "1px",
+            "borderTopStyle": "solid",
+            "boxShadow": "rgba(0, 0, 0, 0.28) 0px 14px 40px 0px",
+            "backdropFilter": "blur(18px)",
+            "fontSize": "14px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "borderRadius": "16px",
+            "display": "block",
+            "opacity": "1"
+          },
+          "box": {
+            "x": 18,
+            "y": 90,
+            "width": 222,
+            "height": 792
+          }
+        },
+        {
+          "selector": "#analysisPanel",
+          "pseudo": null,
+          "note": "shared analysis panel",
+          "present": true,
+          "visible": true,
+          "text": "Spatial analysis panel",
+          "computed": {
+            "color": "rgb(243, 247, 255)",
+            "backgroundColor": "rgba(8, 16, 27, 0.92)",
+            "borderTopColor": "rgba(255, 255, 255, 0.1)",
+            "borderTopWidth": "1px",
+            "borderTopStyle": "solid",
+            "boxShadow": "rgba(0, 0, 0, 0.38) 0px 18px 55px 0px",
+            "backdropFilter": "blur(22px)",
+            "fontSize": "14px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "borderRadius": "16px",
+            "display": "block",
+            "opacity": "1"
+          },
+          "box": {
+            "x": 942,
+            "y": 90,
+            "width": 480,
+            "height": 720
+          }
+        },
+        {
+          "selector": ".badge.register",
+          "pseudo": null,
+          "note": "representative administrative evidence badge",
+          "present": true,
+          "visible": true,
+          "text": "Official register",
+          "computed": {
+            "color": "rgb(189, 214, 239)",
+            "backgroundColor": "rgba(143, 189, 232, 0.12)",
+            "borderTopColor": "rgba(143, 189, 232, 0.26)",
+            "borderTopWidth": "1px",
+            "borderTopStyle": "solid",
+            "boxShadow": "none",
+            "backdropFilter": "none",
+            "fontSize": "10px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "borderRadius": "8px",
+            "display": "inline-block",
+            "opacity": "1"
+          },
+          "box": {
+            "x": 1181,
+            "y": 417,
+            "width": 113,
+            "height": 24
+          }
+        },
+        {
+          "selector": ".badge.snapshot",
+          "pseudo": null,
+          "note": "snapshot fallback badge; absent when production snapshot is available",
+          "present": false
+        }
+      ]
+    },
+    {
+      "state": "desktop-compare-light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "styles": [
+        {
+          "selector": ".cb-side-a .cb-lens",
+          "pseudo": null,
+          "note": "Lens A panel identity label",
+          "present": true,
+          "visible": true,
+          "text": "Lens A",
+          "computed": {
+            "color": "rgb(238, 245, 252)",
+            "backgroundColor": "rgba(0, 0, 0, 0)",
+            "borderTopColor": "rgb(238, 245, 252)",
+            "borderTopWidth": "0px",
+            "borderTopStyle": "none",
+            "boxShadow": "none",
+            "backdropFilter": "none",
+            "fontSize": "10px",
+            "lineHeight": "normal",
+            "fontWeight": "720",
+            "borderRadius": "0px",
+            "display": "block",
+            "opacity": "1"
+          },
+          "box": {
+            "x": 972,
+            "y": 485,
+            "width": 152,
+            "height": 14
+          }
+        },
+        {
+          "selector": ".cb-side-b .cb-lens",
+          "pseudo": null,
+          "note": "Lens B panel identity label",
+          "present": true,
+          "visible": true,
+          "text": "Lens B",
+          "computed": {
+            "color": "rgb(67, 215, 255)",
+            "backgroundColor": "rgba(0, 0, 0, 0)",
+            "borderTopColor": "rgb(67, 215, 255)",
+            "borderTopWidth": "0px",
+            "borderTopStyle": "none",
+            "boxShadow": "none",
+            "backdropFilter": "none",
+            "fontSize": "10px",
+            "lineHeight": "normal",
+            "fontWeight": "720",
+            "borderRadius": "0px",
+            "display": "block",
+            "opacity": "1"
+          },
+          "box": {
+            "x": 1354,
+            "y": 485,
+            "width": 38,
+            "height": 14
+          }
+        },
+        {
+          "selector": ".badge.observed",
+          "pseudo": null,
+          "note": "observed evidence badge, if present in current reading",
+          "present": true,
+          "visible": false,
+          "text": "observed",
+          "computed": {
+            "color": "rgb(255, 154, 187)",
+            "backgroundColor": "rgba(255, 122, 162, 0.08)",
+            "borderTopColor": "rgba(255, 122, 162, 0.25)",
+            "borderTopWidth": "1px",
+            "borderTopStyle": "solid",
+            "boxShadow": "none",
+            "backdropFilter": "none",
+            "fontSize": "10px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "borderRadius": "8px",
+            "display": "block",
+            "opacity": "1"
+          },
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "selector": ".halo-toggle input",
+          "pseudo": null,
+          "note": "native comparison-halo checkbox",
+          "present": true,
+          "visible": true,
+          "text": "Show comparison halo around Lens A and Lens B",
+          "computed": {
+            "color": "rgb(0, 0, 0)",
+            "backgroundColor": "rgba(0, 0, 0, 0)",
+            "borderTopColor": "rgb(0, 0, 0)",
+            "borderTopWidth": "0px",
+            "borderTopStyle": "none",
+            "boxShadow": "none",
+            "backdropFilter": "none",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "borderRadius": "0px",
+            "display": "block",
+            "opacity": "1"
+          },
+          "box": {
+            "x": 968,
+            "y": 1961,
+            "width": 17,
+            "height": 17
+          }
+        }
+      ]
+    },
+    {
+      "state": "desktop-evidence-drawer-es",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "styles": [
+        {
+          "selector": "#evidenceDrawer",
+          "pseudo": null,
+          "note": "native modal dialog surface",
+          "present": true,
+          "visible": true,
+          "text": "Evidencia y límites Cerrar Ciudadana Analista Toda la evidencia en pantalla en este modo Compartir y",
+          "computed": {
+            "color": "rgb(243, 247, 255)",
+            "backgroundColor": "rgb(8, 16, 26)",
+            "borderTopColor": "rgba(255, 255, 255, 0.18)",
+            "borderTopWidth": "1px",
+            "borderTopStyle": "solid",
+            "boxShadow": "rgba(0, 0, 0, 0.55) 0px 22px 60px 0px",
+            "backdropFilter": "none",
+            "fontSize": "14px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "borderRadius": "16px",
+            "display": "block",
+            "opacity": "1"
+          },
+          "box": {
+            "x": 962,
+            "y": 90,
+            "width": 460,
+            "height": 792
+          }
+        },
+        {
+          "selector": "#evidenceDrawer",
+          "pseudo": "::backdrop",
+          "note": "native dialog backdrop",
+          "present": true,
+          "visible": true,
+          "text": "Evidencia y límites Cerrar Ciudadana Analista Toda la evidencia en pantalla en este modo Compartir y",
+          "computed": {
+            "color": "rgb(243, 247, 255)",
+            "backgroundColor": "rgba(2, 6, 12, 0.5)",
+            "borderTopColor": "rgb(243, 247, 255)",
+            "borderTopWidth": "0px",
+            "borderTopStyle": "none",
+            "boxShadow": "none",
+            "backdropFilter": "none",
+            "fontSize": "14px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "borderRadius": "0px",
+            "display": "block",
+            "opacity": "1"
+          },
+          "box": {
+            "x": 962,
+            "y": 90,
+            "width": 460,
+            "height": 792
+          }
+        }
+      ]
+    },
+    {
+      "state": "keyboard-halo-checkbox-focus",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "styles": [
+        {
+          "selector": "#haloToggle",
+          "pseudo": null,
+          "note": "real keyboard-focused native comparison-halo checkbox",
+          "present": true,
+          "visible": true,
+          "text": "Show comparison halo around Lens A and Lens B",
+          "computed": {
+            "color": "rgb(0, 0, 0)",
+            "backgroundColor": "rgba(0, 0, 0, 0)",
+            "borderTopColor": "rgb(0, 0, 0)",
+            "borderTopWidth": "0px",
+            "borderTopStyle": "none",
+            "boxShadow": "rgb(8, 16, 26) 0px 0px 0px 1px",
+            "backdropFilter": "none",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "borderRadius": "0px",
+            "display": "block",
+            "opacity": "1",
+            "outlineColor": "rgb(155, 213, 255)",
+            "outlineStyle": "solid",
+            "outlineWidth": "2px",
+            "outlineOffset": "2px"
+          },
+          "box": {
+            "x": 968,
+            "y": 762,
+            "width": 17,
+            "height": 17
+          }
+        }
+      ]
+    }
+  ]
+}
