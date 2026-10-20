@@ -21,6 +21,76 @@
     @media(max-width:720px){.wrap{width:min(calc(100% - 28px),var(--max))}.nav-row{height:64px}.brand-name{max-width:156px;line-height:1.2}.nav-links{display:none}.nav .action.small{margin-left:auto;padding:10px 11px;font-size:11px}.hero{padding:48px 0 38px}.hero h1{font-size:clamp(43px,12vw,65px)}.lead{font-size:15px}.spatial{padding:0;min-height:395px}.map-window{height:390px;border-radius:16px}.map-head{top:15px;left:15px;right:15px}.map-status{font-size:8px;padding:7px}.map-bottom{left:13px;right:13px;bottom:13px}.lens-a{width:140px;height:140px;left:13%;top:28%}.lens-b{width:105px;height:105px;left:53%;top:44%}.f-tag{width:22px;height:22px}.a-tag{left:26%;top:33%}.b-tag{left:63%;top:45%}.data-card{padding:12px;width:210px}.data-card strong{font-size:13px}.data-card p{font-size:10px}.visual-disclaimer{font-size:8px;max-width:90px}.stat-strip{grid-template-columns:1fr;padding:2px 15px}.stat{padding:16px 6px}.stat:not(:last-child){border-right:0;border-bottom:1px solid #e5e9ed}section.content{padding:74px 0}.section-title{font-size:38px}.workspace{grid-template-columns:1fr}.tabs{border-right:0;border-bottom:1px solid var(--border);padding:13px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px}.tab{padding:14px 9px;margin:0}.tab strong{font-size:15px}.tab span:last-child{display:none}.scene{padding:27px 22px;min-height:360px}.scene h3{font-size:26px}.scope-card{padding:13px}.principles{grid-template-columns:1fr}.principle{min-height:auto}.principle h3{margin-top:15px}.statement{padding:29px;display:block}.statement p{font-size:18px}.statement .mini{margin-top:15px}.cta-panel{padding:45px 28px;margin-bottom:35px}.footer-row{align-items:start;flex-direction:column}}
     @media(max-width:520px){.nav .action.small{display:none}.lang{margin-left:auto}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.action{transition:none}.action:hover{transform:none}}
+  
+    /* Discover V2: editorial motion without changing the analytical application */
+    .map-status span[data-i18n="mapStatus"]{display:inline;width:auto;height:auto;background:none;margin:0;border-radius:0}
+    .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    #journey,#method,#principles{scroll-margin-top:80px}
+    .spatial{min-width:0}
+    .lens-connector{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
+    .lens-connector line{stroke:#b9d6ff;stroke-width:2;stroke-dasharray:10 9;vector-effect:non-scaling-stroke;opacity:.7}
+    .lens-handle{appearance:none;z-index:4;display:grid;place-items:center;touch-action:none;cursor:grab;user-select:none;color:white;padding:0;transition:box-shadow .2s ease,background-color .2s ease}
+    .lens-handle:active{cursor:grabbing}
+    .lens-handle.is-active{box-shadow:0 0 0 12px #78aaff22,0 0 0 1px #d1e4ff,inset 0 0 38px #70a2ee14}
+    .lens-b.is-active{box-shadow:0 0 0 12px #8ce9c733,0 0 0 1px #c6ffef,inset 0 0 38px #8ce9c722}
+    .lens-handle:focus-visible,.demo-buttons button:focus-visible{outline:3px solid #f5d277;outline-offset:4px}
+    .lens-handle.lens-a{left:34%;top:46%;transform:translate(-50%,-50%)}
+    .lens-handle.lens-b{left:70%;top:60%;transform:translate(-50%,-50%)}
+    .lens-handle:before{opacity:.45}
+    .lens-id{position:relative;z-index:2;display:grid;place-items:center;border-radius:50%;width:30px;height:30px;background:#3578db;box-shadow:0 4px 18px #06162dbb;font-size:12px;font-weight:780;pointer-events:none}
+    .lens-b .lens-id{background:#368d82}
+    .map-head,.map-bottom{z-index:5;pointer-events:none}
+    .map-identity,.map-status,.data-card,.visual-disclaimer{pointer-events:none}
+    .demo-toolbar{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px 2px 20px}
+    .demo-caption{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#315c9e;font-size:10px;font-weight:760;letter-spacing:.06em}
+    .demo-signal{width:7px;height:7px;border-radius:50%;background:#367cbd;box-shadow:0 0 0 4px #dbe9fb}
+    .demo-explain{color:#69788c;font-weight:500;letter-spacing:0}
+    .demo-buttons{display:flex;align-items:center;gap:5px;flex-shrink:0}
+    .demo-buttons button{cursor:pointer;min-height:36px;border:1px solid #d6e0ed;border-radius:9px;background:white;color:#34516f;font-size:11px;font-weight:800;padding:0 12px}
+    .demo-select.is-active{background:#1c427c!important;color:#fff!important;border-color:#1c427c!important}
+    .demo-buttons .demo-reset{font-weight:590;color:#54687f}
+    .story{background:#101e35;color:#f8fbff;padding:90px 0;overflow:clip;position:relative}
+    .story:before{content:"";position:absolute;inset:-10% 0 auto 0;height:650px;background:radial-gradient(ellipse at 4% 40%,#2a56894d,transparent 52%);pointer-events:none}
+    .story-layout{display:grid;grid-template-columns:1.03fr .97fr;gap:clamp(28px,6vw,80px);align-items:start;position:relative}
+    .story-visual{position:sticky;top:clamp(92px,13vh,140px);height:min(67vh,570px);min-height:430px;display:flex;flex-direction:column;gap:20px}
+    .story-vessel{position:relative;flex:1;border-radius:26px;overflow:hidden;border:1px solid #5c789069;background:radial-gradient(ellipse at 58% 25%,#294667,#142944 56%,#101d34)}
+    .story-grid{position:absolute;inset:-10%;background:repeating-linear-gradient(0deg,transparent 0 60px,#a8c9e01a 61px 62px),repeating-linear-gradient(90deg,transparent 0 60px,#a8c9e01a 61px 62px);transform:rotate(-12deg) scale(1.2);transition:transform 1.1s cubic-bezier(.2,.8,.3,1),opacity .8s}
+    .story-territory{position:absolute;inset:13% 16%;border:1px solid #6387b8;border-radius:47% 25% 40% 32%;transform:rotate(-17deg);background:#3b64801c;transition:inset 1s,transform 1s,opacity .9s}
+    .story-radar{position:absolute;inset:5%;border-radius:50%;background:radial-gradient(circle,#5bb3ff08 0 21%,transparent 22% 34%,#8bb7e910 35%,transparent 36% 49%,#8bb7e91c 50%,transparent 51%);transition:opacity .6s}
+    .story-lens{position:absolute;width:37%;aspect-ratio:1;left:33%;top:37%;transform:translate(-50%,-50%);border:2px solid #83b3ff;background:#639ffb1a;box-shadow:0 0 0 13px #568dc61c,inset 0 0 70px #599cd11b;border-radius:50%;display:grid;place-items:center;transition:left 1.1s cubic-bezier(.2,.8,.25,1),top 1.1s cubic-bezier(.2,.8,.25,1),width 1.1s,opacity .75s}
+    .story-lens i{font-size:18px;font-weight:800;font-style:normal;border-radius:50%;background:#3679da;padding:9px 14px;box-shadow:0 5px 30px #071223}
+    .story-lens-two{width:29%;left:67%;top:62%;opacity:0;border-color:#6cd9c5;background:#6cd9c51a;box-shadow:0 0 0 11px #73cfbf1c}
+    .story-lens-two i{background:#2d918a}
+    .story-city-outline{position:absolute;inset:12% 11%;border:2px solid #91d8bd;border-radius:28% 43% 20% 35%;opacity:0;transform:rotate(8deg) scale(.8);transition:opacity .9s,transform .9s}
+    .story-caption{position:absolute;left:25px;bottom:25px;display:flex;flex-direction:column;gap:5px;font-size:11px;letter-spacing:.16em;color:#bbd2ef}
+    .story-caption b{font-weight:780;color:white;font-size:24px;letter-spacing:-.03em}
+    .story-caption small{font-size:10px;letter-spacing:0;color:#abc0d5}
+    .story-progress{display:flex;gap:6px;justify-content:center}
+    .story-progress span{display:block;width:50px;height:3px;background:#446280;border-radius:3px;transition:background .4s}
+    .story-visual[data-mode="place"] .story-progress span:nth-child(1),.story-visual[data-mode="compare"] .story-progress span:nth-child(-n+2),.story-visual[data-mode="city"] .story-progress span{background:#98ccf9}
+    .story-visual[data-mode="compare"] .story-lens-one{left:27%;top:38%;width:30%}
+    .story-visual[data-mode="compare"] .story-lens-two{left:70%;top:58%;opacity:1}
+    .story-visual[data-mode="city"] .story-lens-one{left:34%;top:46%;width:20%;opacity:.32}
+    .story-visual[data-mode="city"] .story-lens-two{left:68%;top:57%;width:19%;opacity:.25}
+    .story-visual[data-mode="city"] .story-city-outline{opacity:1;transform:rotate(8deg) scale(1)}
+    .story-visual[data-mode="city"] .story-territory{inset:11% 11%;opacity:.35;transform:rotate(0deg)}
+    .story-narrative{position:relative;z-index:2}
+    .story-head{padding:10px 0 25px}
+    .story-head .eyebrow{color:#a0c9ff}
+    .story-head h2{font-size:clamp(38px,4.5vw,62px);line-height:1.07;letter-spacing:-.056em;margin:18px 0}
+    .story-head h2 em{font-style:normal;color:#9ecaff}
+    .story-head p{font-size:14px;line-height:1.8;color:#b2c5dc;max-width:460px}
+    .story-step{min-height:52vh;padding:35px 0 40px 20px;border-left:2px solid #415a77;opacity:.57;transition:opacity .4s,border-color .4s}
+    .story-step.is-current{opacity:1;border-color:#7dbeff}
+    .story-number{color:#a2cbff;font-size:11px;letter-spacing:.14em;font-weight:800}
+    .story-step h3{font-size:clamp(30px,3vw,42px);letter-spacing:-.045em;margin:20px 0 12px}
+    .story-step p{max-width:460px;color:#d0dded;font-size:15px;line-height:1.85}
+    .story-key{display:inline-block;border:1px solid #53799c;padding:9px 13px;border-radius:8px;color:#bcd6f2;font-size:11px;margin-top:16px}
+    @media(max-width:1050px){.story-layout{grid-template-columns:.94fr 1.06fr;gap:25px}.story-visual{min-height:375px}}
+    @media(max-width:720px){.spatial{min-height:0}.demo-toolbar{padding:13px 2px 4px;align-items:flex-start}.demo-explain{flex-basis:100%;font-size:10px}.demo-buttons button{min-height:40px}.story{padding:65px 0 45px}.story-layout{display:block}.story-visual{position:sticky;top:68px;height:205px;min-height:0;z-index:3;margin-bottom:22px;background:#101e35;box-shadow:0 16px 0 #101e35;order:0}.story-vessel{border-radius:18px}.story-narrative{order:1}.story-head{padding-bottom:5px}.story-head h2{font-size:42px}.story-step{min-height:240px;padding:30px 0 25px 18px}.story-lens{width:27%}.story-lens-two{width:23%}.story-visual[data-mode="compare"] .story-lens-one{width:25%}}
+    @media(max-width:420px){.demo-toolbar{flex-wrap:wrap}.demo-buttons{width:100%;justify-content:flex-end}.story-visual{height:195px}.story-caption{left:16px;bottom:16px}.story-step{min-height:270px}.story-head h2{font-size:37px}}
+    @media(prefers-reduced-motion:reduce){.lens-handle,.story-grid,.story-territory,.story-lens,.story-city-outline,.story-step,.story-progress span{transition:none!important}.story{scroll-behavior:auto}}
+
   </style>
 </head>
 <body>
@@ -39,7 +109,7 @@
       <span class="eyebrow" data-i18n="heroKicker">Madrid · Inteligencia espacial</span>
       <h1 data-i18n="heroTitle">La ciudad merece <em>evidencia</em>, no suposiciones.</h1>
       <p class="lead" data-i18n="heroLead">Explora cómo se transforma Madrid, compara lugares y entiende exactamente qué documentan las fuentes oficiales — y qué no permiten concluir.</p>
-      <div class="hero-actions"><a class="action primary" href="../"><span data-i18n="explore">Explorar Madrid</span><span aria-hidden="true" class="arrow">↗</span></a><a class="action outline" href="#method"><span data-i18n="seeHow">Descubre cómo funciona</span><span aria-hidden="true">↓</span></a></div>
+      <div class="hero-actions"><a class="action primary" href="../"><span data-i18n="explore">Explorar Madrid</span><span aria-hidden="true" class="arrow">↗</span></a><a class="action outline" href="#journey"><span data-i18n="seeHow">Descubre cómo funciona</span><span aria-hidden="true">↓</span></a></div>
       <div class="microcopy"><i aria-hidden="true"></i><span data-i18n="micro">Evidencia verificable · Ámbitos explícitos · Límites visibles</span></div>
     </div>
     <div class="spatial" aria-label="Visualización esquemática de dos áreas de análisis, no un mapa con datos reales">
@@ -52,13 +122,40 @@
           <path d="M392 33 422 70 415 137 379 159 360 124 369 69Z" fill="#315a60" stroke="#4b7d79" opacity=".78"/><path d="M80 357 131 362 146 424 83 435 67 398Z" fill="#315a60" stroke="#4b7d79" opacity=".7"/>
           <g fill="#98adc9" font-family="Arial,sans-serif" font-size="11" letter-spacing="1.5" opacity=".65"><text x="370" y="202">CENTRO</text><text x="74" y="96">CHAMBERÍ</text><text x="476" y="418">RETIRO</text></g>
         </svg>
-        <div class="map-overlay"></div><div class="lens-a" aria-hidden="true"></div><div class="lens-b" aria-hidden="true"></div><div class="line-ab" aria-hidden="true"></div><span class="f-tag a-tag" aria-hidden="true">A</span><span class="f-tag b-tag" style="background:#4c9d95" aria-hidden="true">B</span>
+        <div class="map-overlay"></div>
+        <svg class="lens-connector" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true"><line id="lensConnection" x1="340" y1="460" x2="700" y2="600"/></svg>
+        <button class="lens-handle lens-a is-active" type="button" data-lens="a" aria-pressed="true" aria-describedby="demoHelp" aria-label="Lente A: arrastra o usa las flechas para moverla"><span class="lens-id" aria-hidden="true">A</span></button>
+        <button class="lens-handle lens-b" type="button" data-lens="b" aria-pressed="false" aria-describedby="demoHelp" aria-label="Lente B: arrastra o usa las flechas para moverla"><span class="lens-id" aria-hidden="true">B</span></button>
         <div class="map-head"><div class="map-identity">MADRID <span class="map-sub" data-i18n="mapSub">Spatial evidence workspace</span></div><div class="map-status"><span></span><span data-i18n="mapStatus">DOS ÁREAS · COMPARACIÓN</span></div></div>
         <div class="map-bottom"><div class="data-card"><span class="label" data-i18n="cardKicker">FUENTE · ÁMBITO · FECHA</span><strong data-i18n="cardTitle">Dos lugares. Una lectura verificable.</strong><p data-i18n="cardText">Contrasta lo documentado sin confundir recuentos, escalas o fechas.</p></div><span class="visual-disclaimer" data-i18n="disclaimer">Ilustración conceptual · no es un mapa ni una medición real</span></div>
       </div>
+      <div class="demo-toolbar" aria-label="Controles de demostración conceptual" role="group" id="demoToolbar">
+        <div class="demo-caption"><span class="demo-signal" aria-hidden="true"></span><span data-i18n="demoKicker">PRUEBA EL CONCEPTO</span><span class="demo-explain" data-i18n="demoHelp" id="demoHelp">Arrastra A o B · flechas para mover · sin datos reales</span></div>
+        <div class="demo-buttons"><button type="button" data-select-lens="a" aria-pressed="true" class="demo-select is-active">A</button><button type="button" data-select-lens="b" aria-pressed="false" class="demo-select">B</button><button type="button" id="demoReset" class="demo-reset" data-i18n="demoReset">Reiniciar ↺</button></div>
+      </div>
+      <span class="sr-only" id="demoAnnouncer" aria-live="polite" aria-atomic="true"></span>
     </div>
   </div></section>
   <div class="wrap stat-strip" aria-label="Características"><div class="stat"><span class="dot"></span><div><strong data-i18n="strip1">Del lugar a la evidencia</strong><span data-i18n="strip1Sub">Investiga una ubicación concreta</span></div></div><div class="stat"><span class="dot"></span><div><strong data-i18n="strip2">Comparación disciplinada</strong><span data-i18n="strip2Sub">Escalas y periodos explícitos</span></div></div><div class="stat"><span class="dot"></span><div><strong data-i18n="strip3">Lecturas reproducibles</strong><span data-i18n="strip3Sub">Fuentes, límites y exportación</span></div></div></div>
+  <section class="story" id="journey" aria-labelledby="storyHeading">
+    <div class="wrap story-layout">
+      <div class="story-visual" data-mode="place" aria-hidden="true">
+        <div class="story-vessel">
+          <span class="story-grid"></span><span class="story-territory"></span><span class="story-radar"></span>
+          <span class="story-lens story-lens-one"><i>A</i></span><span class="story-lens story-lens-two"><i>B</i></span>
+          <span class="story-city-outline"></span>
+          <span class="story-caption">MADRID / <b data-story-marker>PLACE</b><small data-i18n="storyVisualNote">Ilustración explicativa · sin mediciones</small></span>
+        </div>
+        <div class="story-progress" aria-hidden="true"><span></span><span></span><span></span></div>
+      </div>
+      <div class="story-narrative">
+        <div class="story-head"><span class="eyebrow" data-i18n="storyKicker">DE UN PUNTO A UNA LECTURA</span><h2 id="storyHeading" data-i18n="storyTitle">Tres escalas. <em>Una misma disciplina.</em></h2><p data-i18n="storyLead">Desplázate para ver cómo cambia la pregunta, no la integridad de las fuentes.</p></div>
+        <article class="story-step is-current" data-story="place"><span class="story-number">01 / PLACE</span><h3 data-i18n="storyPlaceTitle">Empieza aquí.</h3><p data-i18n="storyPlaceCopy">Delimita un círculo, identifica el ámbito que lo contiene y consulta lo documentado sin tratar geometrías distintas como equivalentes.</p><span class="story-key" data-i18n="storyPlaceKey">Círculo ≠ barrio ≠ ámbito</span></article>
+        <article class="story-step" data-story="compare"><span class="story-number">02 / COMPARE</span><h3 data-i18n="storyCompareTitle">Después, contrasta.</h3><p data-i18n="storyCompareCopy">Dos lentes. Dos contextos. Una comparación condicionada por el ámbito, el radio, la fecha y las reglas explícitas de compatibilidad.</p><span class="story-key" data-i18n="storyCompareKey">Comparar no es atribuir causas</span></article>
+        <article class="story-step" data-story="city"><span class="story-number">03 / CITY</span><h3 data-i18n="storyCityTitle">Y sitúalo en Madrid.</h3><p data-i18n="storyCityCopy">Vuelve al contexto municipal sin trasladar sus cifras automáticamente a la calle o al círculo que estás estudiando.</p><span class="story-key" data-i18n="storyCityKey">El contexto no sustituye la evidencia local</span></article>
+      </div>
+    </div>
+  </section>
   <section id="method" class="content"><div class="wrap"><span class="eyebrow" data-i18n="sectionKicker">Una manera distinta de leer Madrid</span><h2 class="section-title" data-i18n="sectionTitle">Empieza por una pregunta. Termina con evidencia.</h2><p class="section-copy" data-i18n="sectionLead">Lens separa cada escala espacial y conserva la trazabilidad de lo que ves. Explora tres formas de lectura de la misma información, sin inventar conclusiones.</p>
     <div class="workspace"><div class="tabs" role="tablist" aria-label="Modos de Lens"><button class="tab" type="button" role="tab" id="tab-place" aria-controls="scene-place" aria-selected="true" tabindex="0" data-tab="place"><span class="tab-number">01 / PLACE</span><strong data-i18n="placeTitle">Explorar</strong><span data-i18n="placeDesc">Qué documentan las fuentes sobre un lugar preciso.</span></button><button class="tab" type="button" role="tab" id="tab-compare" aria-controls="scene-compare" aria-selected="false" tabindex="-1" data-tab="compare"><span class="tab-number">02 / COMPARE</span><strong data-i18n="compareTitle">Comparar</strong><span data-i18n="compareDesc">Contrastar dos lugares bajo reglas explícitas.</span></button><button class="tab" type="button" role="tab" id="tab-city" aria-controls="scene-city" aria-selected="false" tabindex="-1" data-tab="city"><span class="tab-number">03 / CITY</span><strong data-i18n="cityTitle">Contextualizar</strong><span data-i18n="cityDesc">Situar una lectura local en el contexto de la ciudad.</span></button></div>
       <div id="scene-place" class="scene" role="tabpanel" aria-labelledby="tab-place"><div class="scene-inner"><div class="scene-breadcrumb">PLACE / 01</div><h3 data-i18n="placeSceneTitle">Primero, el lugar.</h3><p data-i18n="placeSceneText">Mueve la lente por el mapa y consulta la evidencia asociada al círculo o al ámbito administrativo, sin mezclarlos.</p><div class="scope-cards"><div class="scope-card"><small data-i18n="scopeTitle1">Geometría</small><strong data-i18n="scopeVal1">Círculo Lens</strong><em data-i18n="scopeInfo1">Radio controlado</em></div><div class="scope-card"><small data-i18n="scopeTitle2">Registro oficial</small><strong data-i18n="scopeVal2">Ámbito urbanístico</strong><em data-i18n="scopeInfo2">Límite publicado</em></div></div><div class="result-note" data-i18n="scopeNote">La superficie de un barrio nunca se presenta como si fuera la del círculo.</div></div></div>
@@ -74,14 +171,66 @@
 (()=>{
 const copy={
  es:{},
- en:{navHow:'How it works',navPrinciples:'Principles',openApp:'Open Lens',heroKicker:'Madrid · Spatial intelligence',heroTitle:'The city deserves <em>evidence</em>, not assumptions.',heroLead:'Explore how Madrid changes, compare places and understand exactly what official sources document — and what they cannot establish.',explore:'Explore Madrid',seeHow:'See how it works',micro:'Traceable evidence · Explicit scopes · Visible limitations',mapSub:'Spatial evidence workspace',mapStatus:'TWO AREAS · COMPARISON',cardKicker:'SOURCE · SCOPE · DATE',cardTitle:'Two places. One defensible reading.',cardText:'Compare documented facts without mixing counts, scales or dates.',disclaimer:'Concept illustration · not a real map or measurement',strip1:'From place to evidence',strip1Sub:'Investigate a specific location',strip2:'Disciplined comparisons',strip2Sub:'Explicit scopes and periods',strip3:'Reproducible readings',strip3Sub:'Sources, limits and exports',sectionKicker:'A different way to read Madrid',sectionTitle:'Start with a question. End with evidence.',sectionLead:'Lens distinguishes geographic scopes and preserves traceability. Explore three ways to read the same evidence without inventing conclusions.',placeTitle:'Explore',placeDesc:'What sources document about a specific place.',compareTitle:'Compare',compareDesc:'Contrast two places under explicit rules.',cityTitle:'Contextualize',cityDesc:'Place the local reading in city-wide context.',placeSceneTitle:'Start with a place.',placeSceneText:'Move the lens across the map and read evidence linked to the circle or the administrative planning area, without conflating them.',scopeTitle1:'Geometry',scopeVal1:'Lens circle',scopeInfo1:'Controlled radius',scopeTitle2:'Official register',scopeVal2:'Planning area',scopeInfo2:'Published boundary',scopeNote:'An entire barrio area is never presented as if it were the lens circle.',compareSceneTitle:'Compare without misleading.',compareSceneText:'Compare A and B respecting geometry, unit and reference date. When a difference is invalid, Lens explains why.',compareVal1:'Place A',compareInfo1:'Explicit scope',compareVal2:'Place B',compareInfo2:'Explicit scope',compareNote:'Incompatible comparison = withheld reading with an explanation. Not a score.',citySceneTitle:'Understand the context.',citySceneText:'Read published municipality-wide context without automatically assigning it to a barrio or your lens.',cityLabel1:'Scope',cityVal1:'Municipality',cityInfo1:'City context',cityLabel2:'Transparency',cityVal2:'Date and source',cityInfo2:'Always inspectable',cityNote:'Municipality context must not become an unsupported local inference.',principleKicker:'Designed for trust, not impressive numbers',principleTitle:'Precision is also a design decision.',p1Title:'Scope matters.',p1Text:'A barrio, planning area and analysis circle are different spatial units.',p2Title:'Source matters.',p2Text:'A granted permit does not mean construction is complete; a register does not prove operational activity.',p3Title:'Limits matter.',p3Text:'A descriptive comparison does not establish causality, forecast impacts or generate rankings.',statement:'Not a map claiming to explain everything. A tool to show <b>what we know, where it comes from and where the evidence stops.</b>',statementMinor:'For planning, research and critical city reading.',ctaKicker:'Madrid Urban Evidence Lens',ctaTitle:'Your next question starts on the map.',ctaText:'Open the analytical workspace, choose a place and examine the evidence yourself. Real data, sources and limits belong to the application, not this visual demonstration.',ctaButton:'Enter the analytical workspace',footerLeft:'Independent visual prototype; no real measurements presented.',footerApp:'Open application'}
+ en:{navHow:'How it works',navPrinciples:'Principles',openApp:'Open Lens',heroKicker:'Madrid · Spatial intelligence',heroTitle:'The city deserves <em>evidence</em>, not assumptions.',heroLead:'Explore how Madrid changes, compare places and understand exactly what official sources document — and what they cannot establish.',explore:'Explore Madrid',seeHow:'See how it works',micro:'Traceable evidence · Explicit scopes · Visible limitations',mapSub:'Spatial evidence workspace',mapStatus:'TWO AREAS · COMPARISON',cardKicker:'SOURCE · SCOPE · DATE',cardTitle:'Two places. One defensible reading.',cardText:'Compare documented facts without mixing counts, scales or dates.',disclaimer:'Concept illustration · not a real map or measurement',strip1:'From place to evidence',strip1Sub:'Investigate a specific location',strip2:'Disciplined comparisons',strip2Sub:'Explicit scopes and periods',strip3:'Reproducible readings',strip3Sub:'Sources, limits and exports',sectionKicker:'A different way to read Madrid',sectionTitle:'Start with a question. End with evidence.',sectionLead:'Lens distinguishes geographic scopes and preserves traceability. Explore three ways to read the same evidence without inventing conclusions.',placeTitle:'Explore',placeDesc:'What sources document about a specific place.',compareTitle:'Compare',compareDesc:'Contrast two places under explicit rules.',cityTitle:'Contextualize',cityDesc:'Place the local reading in city-wide context.',placeSceneTitle:'Start with a place.',placeSceneText:'Move the lens across the map and read evidence linked to the circle or the administrative planning area, without conflating them.',scopeTitle1:'Geometry',scopeVal1:'Lens circle',scopeInfo1:'Controlled radius',scopeTitle2:'Official register',scopeVal2:'Planning area',scopeInfo2:'Published boundary',scopeNote:'An entire barrio area is never presented as if it were the lens circle.',compareSceneTitle:'Compare without misleading.',compareSceneText:'Compare A and B respecting geometry, unit and reference date. When a difference is invalid, Lens explains why.',compareVal1:'Place A',compareInfo1:'Explicit scope',compareVal2:'Place B',compareInfo2:'Explicit scope',compareNote:'Incompatible comparison = withheld reading with an explanation. Not a score.',citySceneTitle:'Understand the context.',citySceneText:'Read published municipality-wide context without automatically assigning it to a barrio or your lens.',cityLabel1:'Scope',cityVal1:'Municipality',cityInfo1:'City context',cityLabel2:'Transparency',cityVal2:'Date and source',cityInfo2:'Always inspectable',cityNote:'Municipality context must not become an unsupported local inference.',principleKicker:'Designed for trust, not impressive numbers',principleTitle:'Precision is also a design decision.',p1Title:'Scope matters.',p1Text:'A barrio, planning area and analysis circle are different spatial units.',p2Title:'Source matters.',p2Text:'A granted permit does not mean construction is complete; a register does not prove operational activity.',p3Title:'Limits matter.',p3Text:'A descriptive comparison does not establish causality, forecast impacts or generate rankings.',statement:'Not a map claiming to explain everything. A tool to show <b>what we know, where it comes from and where the evidence stops.</b>',statementMinor:'For planning, research and critical city reading.',ctaKicker:'Madrid Urban Evidence Lens',ctaTitle:'Your next question starts on the map.',ctaText:'Open the analytical workspace, choose a place and examine the evidence yourself. Real data, sources and limits belong to the application, not this visual demonstration.',ctaButton:'Enter the analytical workspace',footerLeft:'Independent visual prototype; no real measurements presented.',footerApp:'Open application',demoKicker:'TRY THE CONCEPT',demoHelp:'Drag A or B · arrow keys to move · no real data',demoReset:'Reset ↺',storyKicker:'FROM A POINT TO A READING',storyTitle:'Three scales. <em>One consistent discipline.</em>',storyLead:'Scroll to see how the question changes — not the integrity of the sources.',storyVisualNote:'Explanatory illustration · no measurements',storyPlaceTitle:'Start here.',storyPlaceCopy:'Define a circle, identify its containing planning area, and inspect the documented evidence without equating different geometries.',storyPlaceKey:'Circle ≠ barrio ≠ planning area',storyCompareTitle:'Then contrast.',storyCompareCopy:'Two lenses. Two contexts. Comparison is conditional on scope, radius, date and explicit compatibility rules.',storyCompareKey:'Comparison is not causation',storyCityTitle:'And situate it in Madrid.',storyCityCopy:'Return to municipality-wide context without automatically assigning those figures to a street or an analysis circle.',storyCityKey:'Context is not local evidence'}
 };
 const buttons=[...document.querySelectorAll('[data-lang]')];
-function applyLang(lang){document.documentElement.lang=lang;document.querySelectorAll('[data-i18n]').forEach(node=>{if(!node.dataset.es)node.dataset.es=node.innerHTML;node.innerHTML=lang==='es'?node.dataset.es:(copy.en[node.dataset.i18n]||node.dataset.es)});buttons.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.lang===lang)));}
+function applyLang(lang){document.documentElement.lang=lang;document.querySelectorAll('[data-i18n]').forEach(node=>{if(!node.dataset.es)node.dataset.es=node.innerHTML;node.innerHTML=lang==='es'?node.dataset.es:(copy.en[node.dataset.i18n]||node.dataset.es)});buttons.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.lang===lang)));const phrase=lang==='en'?'Drag or use arrow keys to move lens ':'Arrastra o usa las flechas para mover la lente ';document.querySelectorAll('[data-lens]').forEach(b=>b.setAttribute('aria-label',phrase+b.dataset.lens.toUpperCase()));document.querySelector('.spatial').setAttribute('aria-label',lang==='en'?'Interactive conceptual comparison of two areas; not a real map or measurement':'Comparación conceptual interactiva de dos áreas; no es un mapa ni una medición real');document.getElementById('demoToolbar').setAttribute('aria-label',lang==='en'?'Concept demonstration controls':'Controles de demostración conceptual');}
 buttons.forEach(b=>b.addEventListener('click',()=>applyLang(b.dataset.lang)));
 const tabs=[...document.querySelectorAll('[data-tab]')];
 function choose(name,focus=false){tabs.forEach(t=>{const on=t.dataset.tab===name;t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;document.getElementById('scene-'+t.dataset.tab).hidden=!on;if(on&&focus)t.focus()})}
 tabs.forEach((t,i)=>{t.addEventListener('click',()=>choose(t.dataset.tab));t.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();let next=e.key==='Home'?0:e.key==='End'?tabs.length-1:(i+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;choose(tabs[next].dataset.tab,true)})});
+
+// V2 is an isolated conceptual visualization: positions are UI pixels, never spatial data.
+const map=document.querySelector('.map-window');
+const rings={a:map.querySelector('[data-lens="a"]'),b:map.querySelector('[data-lens="b"]')};
+const line=map.querySelector('#lensConnection');
+const selectButtons=[...document.querySelectorAll('[data-select-lens]')];
+const announce=document.getElementById('demoAnnouncer');
+const initial={a:{x:.34,y:.46},b:{x:.70,y:.60}};
+const pos={a:{...initial.a},b:{...initial.b}};
+let active='a';let pointer=null;
+const clamp=(n,low,high)=>Math.min(high,Math.max(low,n));
+function bounds(lens){const rect=map.getBoundingClientRect();const circle=rings[lens].getBoundingClientRect();return {minX:circle.width/2/rect.width,maxX:1-circle.width/2/rect.width,minY:circle.height/2/rect.height,maxY:1-circle.height/2/rect.height}}
+function paint(){for(const k of ['a','b']){rings[k].style.left=(pos[k].x*100).toFixed(3)+'%';rings[k].style.top=(pos[k].y*100).toFixed(3)+'%'}line.setAttribute('x1',String(pos.a.x*1000));line.setAttribute('y1',String(pos.a.y*1000));line.setAttribute('x2',String(pos.b.x*1000));line.setAttribute('y2',String(pos.b.y*1000))}
+function move(k,x,y){const b=bounds(k);pos[k].x=clamp(x,b.minX,b.maxX);pos[k].y=clamp(y,b.minY,b.maxY);paint()}
+function select(k){active=k;for(const key of ['a','b']){rings[key].classList.toggle('is-active',key===k);rings[key].setAttribute('aria-pressed',String(key===k))}selectButtons.forEach(b=>{const on=b.dataset.selectLens===k;b.classList.toggle('is-active',on);b.setAttribute('aria-pressed',String(on))})}
+for(const key of ['a','b']){
+ const el=rings[key];
+ el.addEventListener('pointerdown',e=>{if(e.button!==0)return;select(key);pointer={id:e.pointerId,key};el.setPointerCapture(e.pointerId);e.preventDefault()});
+ el.addEventListener('pointermove',e=>{if(!pointer||pointer.id!==e.pointerId||pointer.key!==key)return;const r=map.getBoundingClientRect();move(key,(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height)});
+ const finish=e=>{if(pointer?.id===e.pointerId){pointer=null;announce.textContent=(document.documentElement.lang==='en'?'Lens ':'Lente ')+key.toUpperCase()+(document.documentElement.lang==='en'?' moved.':' movida.')}};
+ el.addEventListener('pointerup',finish);el.addEventListener('pointercancel',finish);el.addEventListener('lostpointercapture',()=>pointer=null);
+ el.addEventListener('click',()=>select(key));
+ el.addEventListener('keydown',e=>{const vectors={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};if(!vectors[e.key])return;e.preventDefault();select(key);const [dx,dy]=vectors[e.key];const r=map.getBoundingClientRect();move(key,pos[key].x+dx*12/r.width,pos[key].y+dy*12/r.height)});
+}
+selectButtons.forEach(b=>b.addEventListener('click',()=>{select(b.dataset.selectLens);rings[active].focus({preventScroll:true})}));
+document.getElementById('demoReset').addEventListener('click',()=>{for(const k of ['a','b']){pos[k]={...initial[k]}};select('a');paint();announce.textContent=document.documentElement.lang==='en'?'Concept demo reset.':'Demostración reiniciada.'});
+window.addEventListener('resize',()=>{for(const k of ['a','b']){const b=bounds(k);pos[k].x=clamp(pos[k].x,b.minX,b.maxX);pos[k].y=clamp(pos[k].y,b.minY,b.maxY)}paint()},{passive:true});
+paint();
+
+// A screen-reader-safe story: all three descriptions stay in document order.
+const storyVisual=document.querySelector('.story-visual');
+const chapters=[...document.querySelectorAll('[data-story]')];
+function setStory(name){storyVisual.dataset.mode=name;storyVisual.querySelector('[data-story-marker]').textContent=name.toUpperCase();chapters.forEach(c=>c.classList.toggle('is-current',c.dataset.story===name))}
+if('IntersectionObserver' in window){
+ const observer=new IntersectionObserver(entries=>{const showing=entries.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio);if(showing.length)setStory(showing[0].target.dataset.story)},{threshold:[.15,.3,.5,.75],rootMargin:'-16% 0px -24% 0px'});
+ chapters.forEach(c=>observer.observe(c));
+}
+
+// GSAP + ScrollTrigger are optional progressive enhancements from a pinned CDN.
+// The offline/reduced-motion experience remains fully functional without third-party scripts.
+const motionReduced=window.matchMedia('(prefers-reduced-motion: reduce)');
+function initGsap(){if(motionReduced.matches||!window.gsap||!window.ScrollTrigger)return;
+ const gsap=window.gsap;gsap.registerPlugin(window.ScrollTrigger);
+ if(window.scrollY<180){gsap.from('.hero-copy > *',{opacity:0,y:26,duration:.85,stagger:.11,ease:'power2.out',clearProps:'all'});
+ gsap.from('.map-window',{opacity:0,y:35,scale:.96,duration:1.15,ease:'power3.out',clearProps:'all'});}
+ gsap.to('.map-grid',{yPercent:-6,ease:'none',scrollTrigger:{trigger:'.hero',start:'top top',end:'bottom top',scrub:.8}});
+ for(const chapter of chapters){window.ScrollTrigger.create({trigger:chapter,start:'top 70%',end:'bottom 35%',onEnter:()=>setStory(chapter.dataset.story),onEnterBack:()=>setStory(chapter.dataset.story)});}
+}
+function loadScript(url,timeoutMs=3800){return new Promise((resolve,reject)=>{const script=document.createElement('script');script.async=true;script.src=url;let done=false;const finish=(error)=>{if(done)return;done=true;clearTimeout(timer);script.onload=null;script.onerror=null;error?reject(error):resolve()};const timer=setTimeout(()=>{script.remove();finish(new Error('motion CDN timed out'))},timeoutMs);script.onload=()=>finish();script.onerror=()=>finish(new Error('motion CDN unavailable'));document.head.appendChild(script)})}
+motionReduced.addEventListener('change',e=>{if(e.matches&&window.gsap){window.gsap.globalTimeline.clear();window.ScrollTrigger?.getAll().forEach(trigger=>trigger.kill());window.gsap.set('.map-grid',{clearProps:'transform'})}});
+if(!motionReduced.matches){const cdn='https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/';loadScript(cdn+'gsap.min.js').then(()=>loadScript(cdn+'ScrollTrigger.min.js')).then(initGsap).catch(()=>{/* no animation dependency required for content or interaction */})}
+
 })();
 </script>
 </body>
