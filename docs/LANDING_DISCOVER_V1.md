@@ -33,3 +33,42 @@ These are references, not imported code or dependencies.
 3. Check focus order, reduced motion, semantic headings, accessibility contrast, and internationalization.
 4. No invalid interpretations: planning ámbito, barrio, circle and city-wide evidence remain distinct.
 5. Only merge after explicit owner approval.
+
+
+---
+
+## Discover V2 — Cinematic concept prototype (2026-10-21)
+
+V2 evolves **only** `discover/index.html`. All evidence models, map controls, data, sharing/export contracts, and main application routing remain unchanged. This landing is NOT a geospatial-analysis engine.
+
+### Implemented
+
+- Concept map has two keyboard and pointer-draggable Lens A/B controls. Relative screen positions only; never geocoordinates. Controls are clamped to their map window, visibly selected, keyboard-accessible with arrow keys, and have a reset action plus live status for assistive technology.
+- Three editorial scroll chapters (PLACE / COMPARE / CITY) with a persistent illustrative visual on desktop and a compact mobile treatment. IntersectionObserver selects the displayed concept phase.
+- Optional GSAP 3.12.5 and ScrollTrigger progressive enhancements: timed hero entrance, shallow map parallax and scroll chapter activation. Motion code loads from cdnjs only when motion is allowed, with timeout and silent nonanimated fallback. CDN policy/privacy and any required vendoring must be reviewed prior to publication.
+- Full ES/EN copy for newly added sections and controls. The interface works without GSAP, React Bits or Lenis. Importing a second scrolling library would add complexity without a demonstrated benefit; React Bits has not been vendored.
+- Reduced-motion styling, keyboard focus, mobile interaction, visible scientific non-measurement labels, and no fictional numeric results.
+
+### Local validation actually performed
+
+| Check | Result |
+|---|---|
+| Standalone inline JS syntax (`node --check`) | PASS |
+| Chromium `page.set_content` at 1440, 768, 390 and 320 px | PASS |
+| Horizontal overflow at those widths | NONE |
+| Pointer drag / arrow movement / reset / active lens state | PASS |
+| ES/EN switch including drag-control accessible labels | PASS |
+| Roving keyboard tabs / Compare panel visibility | PASS |
+| Simulated `prefers-reduced-motion: reduce` | PASS |
+| Page errors with CDN network request explicitly aborted | NONE |
+| Full HTTP browser navigation via localhost | BLOCKED_BY_ADMINISTRATOR (not PASS) |
+| Real hardware, production hosting, visual human review, cross-browser, formal screen-reader accessibility | NOT TESTED |
+
+### Acceptance criteria / remaining HOLD
+
+1. Review the desktop/mobile visuals and confirm institutional tone, mobile scroll overlap and legibility.
+2. Test loading the actual `/discover/` static route under a trusted preview; verify all `../` app CTAs and original deep-link state restoration.
+3. Audit accessibility (keyboard, focus, voice, contrast), battery/GPU motion cost, and offline/no-CDN behavior on real devices.
+4. Explicitly approve a CDN/vendor policy or ship motion locally after licence review.
+5. Obtain owner approval before merge/deployment. **Current PR remains Draft.**
+
