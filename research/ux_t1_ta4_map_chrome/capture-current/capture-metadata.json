@@ -27,11 +27,11 @@
     "basemapTilesOrLENS_BASEMAP_STYLESChanged": false,
     "focus": {
       "dark": "current shared application treatment: 2px #9bd5ff outline, 3px offset, 1px #08101a separation",
-      "light": "test-only map focus: 2px #0a63c7 outline, 3px offset, 1px #f4f6f9 separation"
+      "light": "reuse the existing T-a2 --chrome-focus-ring-color and --chrome-focus-separation-color; no map-specific focus override"
     },
     "unsupported": [
-      "Only top-directed POI tooltips were exercised; bottom/left/right Leaflet arrows remain provider defaults (white), although visible POI/cluster tooltips are bound top. A B area label appeared in the Light/COMPARE capture with #00718f text; this is one rendered sample only, not validation across tile backgrounds or Dark appearance.",
-      "A real zoom-out sequence reached Leaflet map zoom 0 and applied .leaflet-disabled / aria-disabled=true in both Dark and simulated Light. Dark keeps white disabled text because the app's #fff !important masks Leaflet gray; Light preview disabled text is #667586 and measures 4.28:1 on its hover surface.",
+      "Only top-directed POI tooltips were exercised; bottom/left/right Leaflet arrows remain provider defaults. The Light arrow is redundant with the pointer-held feature association; its sampled adjacent Light-basemap contrast was 2.17:1, so no tile-independent edge-conformance claim is made. A B area label appeared in the Light/COMPARE capture; both A and B labels were not sampled over every basemap.",
+      "A real zoom-out sequence reached map zoom 0; a pointer click on the .leaflet-disabled / aria-disabled=true control left the map at zoom 0 in both modes. Light #667586 on #f2f4f7 is 4.28:1; WCAG exempts genuinely inactive components from the 4.5:1 text contrast requirement. Dark uses opacity .56 because the app important active colors mask Leaflet disabled colors.",
       "Open-data tile imagery is live and may change independently of this pinned application snapshot.",
       "T-a3 center-marker and SVG-halo colors remain shipped Dark values by design; this evidence does not validate those marks for Light."
     ]
@@ -39,8 +39,8 @@
   "screenshots": [
     {
       "file": "screenshots/01-dark-reference-desktop-en-light.png",
-      "sha256": "24dd3ed81c5fb343977d4f031fc883da3772a39da3d7c28b95c6ba873aabac19",
-      "bytes": 1053206,
+      "sha256": "d1a289f64332b192195f5873804bf69199e522d85f357d55b6d7f3935421eeef",
+      "bytes": 1052644,
       "viewport": [
         1440,
         900
@@ -48,11 +48,12 @@
       "language": "en",
       "basemap": "light",
       "mode": "PLACE",
-      "chrome": "shipped-dark",
+      "chrome": "dark-attribution-correction-preview",
       "interaction": [
-        "fresh production load",
-        "Light basemap already selected",
-        "no injected CSS"
+        "pinned production source snapshot",
+        "sampled corrected attribution over Light, Dark and Satellite tiles",
+        "restored Light basemap",
+        "test-only Dark attribution text correction and persistent link underline"
       ],
       "rendered": {
         "documentLanguage": "en",
@@ -74,7 +75,7 @@
         },
         "attribution": {
           "background": "rgba(5, 8, 12, 0.75)",
-          "foreground": "rgb(135, 152, 171)",
+          "foreground": "rgb(170, 185, 202)",
           "rect": [
             254,
             861,
@@ -155,8 +156,8 @@
     },
     {
       "file": "screenshots/02-light-desktop-es-light-zoom-tooltip.png",
-      "sha256": "a9a54e6ef53f920e48b8dd67f7eb968a94962d6d433158352c83096e040de64b",
-      "bytes": 970037,
+      "sha256": "7cf82cdc7d7855902551a98c6fc0f97d849d606f1fc04e46e296cbddec18f36f",
+      "bytes": 970237,
       "viewport": [
         1440,
         900
@@ -166,16 +167,16 @@
       "mode": "COMPARE",
       "chrome": "simulated-light",
       "interaction": [
-        "select Español",
-        "select Light · CARTO Positron",
+        "select Spanish",
+        "select Light / CARTO Positron",
         "click Zoom in once",
         "hover visible application POI layer until top tooltip is fully inside map viewport"
       ],
       "rendered": {
         "documentLanguage": "es",
         "basemap": "light",
-        "tileCount": 24,
-        "loadedTileCount": 24,
+        "tileCount": 32,
+        "loadedTileCount": 32,
         "mapBackground": {
           "background": "rgb(244, 246, 249)",
           "foreground": "rgb(243, 247, 255)",
@@ -217,7 +218,7 @@
         "zoom": {
           "background": "rgb(255, 255, 255)",
           "foreground": "rgb(22, 34, 47)",
-          "border": "rgb(199, 206, 215)",
+          "border": "rgb(116, 128, 142)",
           "shadow": "none",
           "outline": "rgb(22, 34, 47) none 3px",
           "rect": [
@@ -230,7 +231,7 @@
         "zoomOut": {
           "background": "rgb(255, 255, 255)",
           "foreground": "rgb(22, 34, 47)",
-          "border": "rgb(199, 206, 215)",
+          "border": "rgb(116, 128, 142)",
           "shadow": "none",
           "outline": "rgb(22, 34, 47) none 3px",
           "rect": [
@@ -245,8 +246,8 @@
           "textPresent": true,
           "background": "rgba(255, 255, 255, 0.96)",
           "foreground": "rgb(22, 34, 47)",
-          "border": "rgb(170, 182, 196)",
-          "arrowTop": "rgb(170, 182, 196)",
+          "border": "rgb(116, 128, 142)",
+          "arrowTop": "rgb(116, 128, 142)",
           "rect": [
             427,
             421,
@@ -257,7 +258,7 @@
         "areaLabel": {
           "background": "rgba(255, 255, 255, 0.94)",
           "foreground": "rgb(22, 34, 47)",
-          "border": "rgba(22, 34, 47, 0.3)",
+          "border": "rgb(116, 128, 142)",
           "shadow": "rgba(16, 24, 34, 0.16) 0px 6px 18px 0px",
           "outline": "rgb(22, 34, 47) none 3px",
           "rect": [
@@ -272,8 +273,8 @@
     },
     {
       "file": "screenshots/03-light-desktop-en-dark-attribution-focus.png",
-      "sha256": "fe2f03113eafcef4bbd9755d9b79294a00dfb6cb58692c087255fa1858a79e5e",
-      "bytes": 895420,
+      "sha256": "019d2d3880bff5222e5fb0e32cdea6e229a3b1d41592b1d366d0c34e3a58cb25",
+      "bytes": 815001,
       "viewport": [
         1440,
         900
@@ -284,15 +285,15 @@
       "chrome": "simulated-light",
       "interaction": [
         "select English",
-        "select Dark · CARTO Dark Matter",
+        "select Dark / CARTO Dark Matter",
         "click Zoom in once",
         "keyboard Tab traversal to a real attribution link (:focus-visible)"
       ],
       "rendered": {
         "documentLanguage": "en",
         "basemap": "dark",
-        "tileCount": 42,
-        "loadedTileCount": 42,
+        "tileCount": 47,
+        "loadedTileCount": 47,
         "mapBackground": {
           "background": "rgb(244, 246, 249)",
           "foreground": "rgb(243, 247, 255)",
@@ -319,8 +320,8 @@
             "background": "rgba(0, 0, 0, 0)",
             "foreground": "rgb(10, 99, 199)",
             "border": "rgb(10, 99, 199)",
-            "shadow": "rgb(244, 246, 249) 0px 0px 0px 1px",
-            "outline": "rgb(10, 99, 199) solid 2px",
+            "shadow": "rgb(8, 16, 26) 0px 0px 0px 1px",
+            "outline": "rgb(155, 213, 255) solid 2px",
             "rect": [
               259,
               862,
@@ -328,13 +329,13 @@
               19
             ]
           },
-          "linkFocusOutline": "rgb(10, 99, 199) solid 2px",
+          "linkFocusOutline": "rgb(155, 213, 255) solid 2px",
           "responsiveMaxWidth": "520px"
         },
         "zoom": {
           "background": "rgb(255, 255, 255)",
           "foreground": "rgb(22, 34, 47)",
-          "border": "rgb(199, 206, 215)",
+          "border": "rgb(116, 128, 142)",
           "shadow": "none",
           "outline": "rgb(22, 34, 47) none 3px",
           "rect": [
@@ -347,7 +348,7 @@
         "zoomOut": {
           "background": "rgb(255, 255, 255)",
           "foreground": "rgb(22, 34, 47)",
-          "border": "rgb(199, 206, 215)",
+          "border": "rgb(116, 128, 142)",
           "shadow": "none",
           "outline": "rgb(22, 34, 47) none 3px",
           "rect": [
@@ -362,10 +363,10 @@
           "textPresent": true,
           "background": "rgba(255, 255, 255, 0.94)",
           "foreground": "rgb(22, 34, 47)",
-          "border": "rgba(22, 34, 47, 0.3)",
+          "border": "rgb(116, 128, 142)",
           "arrowTop": "rgb(22, 34, 47)",
           "rect": [
-            495,
+            364,
             671,
             98,
             24
@@ -374,11 +375,11 @@
         "areaLabel": {
           "background": "rgba(255, 255, 255, 0.94)",
           "foreground": "rgb(22, 34, 47)",
-          "border": "rgba(22, 34, 47, 0.3)",
+          "border": "rgb(116, 128, 142)",
           "shadow": "rgba(16, 24, 34, 0.16) 0px 6px 18px 0px",
           "outline": "rgb(22, 34, 47) none 3px",
           "rect": [
-            495,
+            364,
             671,
             98,
             24
@@ -389,8 +390,8 @@
     },
     {
       "file": "screenshots/04-light-mobile-es-satellite.png",
-      "sha256": "602dceaa5cf5886783dae67fb194edbd5654dcdd43396712b2040accb07d989a",
-      "bytes": 437005,
+      "sha256": "3aac95498bf7cf006e9673db3a00ca335278c061cf4b3b8ea3430f1133d60e92",
+      "bytes": 439168,
       "viewport": [
         390,
         844
@@ -403,15 +404,15 @@
         "mobile viewport with coarse pointer",
         "open Layers through visible mobile button",
         "open Map display disclosure",
-        "select Español and Satellite + labels · Esri",
+        "select Spanish and Satellite with labels / Esri",
         "close Layers",
         "click Zoom in once"
       ],
       "rendered": {
         "documentLanguage": "es",
         "basemap": "satellite",
-        "tileCount": 36,
-        "loadedTileCount": 36,
+        "tileCount": 24,
+        "loadedTileCount": 24,
         "mapBackground": {
           "background": "rgb(244, 246, 249)",
           "foreground": "rgb(243, 247, 255)",
@@ -453,7 +454,7 @@
         "zoom": {
           "background": "rgb(242, 244, 247)",
           "foreground": "rgb(22, 34, 47)",
-          "border": "rgb(199, 206, 215)",
+          "border": "rgb(116, 128, 142)",
           "shadow": "none",
           "outline": "rgb(22, 34, 47) none 3px",
           "rect": [
@@ -466,7 +467,7 @@
         "zoomOut": {
           "background": "rgb(255, 255, 255)",
           "foreground": "rgb(22, 34, 47)",
-          "border": "rgb(199, 206, 215)",
+          "border": "rgb(116, 128, 142)",
           "shadow": "none",
           "outline": "rgb(22, 34, 47) none 3px",
           "rect": [
@@ -481,7 +482,7 @@
           "textPresent": true,
           "background": "rgba(255, 255, 255, 0.94)",
           "foreground": "rgb(22, 34, 47)",
-          "border": "rgba(22, 34, 47, 0.3)",
+          "border": "rgb(116, 128, 142)",
           "arrowTop": "rgb(22, 34, 47)",
           "rect": [
             310,
@@ -493,7 +494,7 @@
         "areaLabel": {
           "background": "rgba(255, 255, 255, 0.94)",
           "foreground": "rgb(22, 34, 47)",
-          "border": "rgba(22, 34, 47, 0.3)",
+          "border": "rgb(116, 128, 142)",
           "shadow": "rgba(16, 24, 34, 0.16) 0px 6px 18px 0px",
           "outline": "rgb(22, 34, 47) none 3px",
           "rect": [
@@ -505,9 +506,156 @@
         },
         "areaLabelB": null
       }
+    },
+    {
+      "file": "screenshots/05-light-desktop-en-satellite-top-tooltip.png",
+      "sha256": "4e615bab242b843e13747d72cb4e8a46f25c31d636be6aca6a48feb7143d5cbf",
+      "bytes": 2079558,
+      "viewport": [
+        1440,
+        900
+      ],
+      "language": "en",
+      "basemap": "satellite",
+      "mode": "PLACE",
+      "chrome": "simulated-light",
+      "interaction": [
+        "select English",
+        "select Satellite basemap",
+        "click Zoom in once",
+        "hover a real POI tooltip to inspect the top arrow against satellite tiles"
+      ],
+      "rendered": {
+        "documentLanguage": "en",
+        "basemap": "satellite",
+        "tileCount": 72,
+        "loadedTileCount": 72,
+        "mapBackground": {
+          "background": "rgb(244, 246, 249)",
+          "foreground": "rgb(243, 247, 255)",
+          "border": "rgb(243, 247, 255)",
+          "shadow": "none",
+          "outline": "rgb(243, 247, 255) none 3px",
+          "rect": [
+            0,
+            0,
+            1440,
+            900
+          ]
+        },
+        "attribution": {
+          "background": "rgba(255, 255, 255, 0.92)",
+          "foreground": "rgb(68, 84, 104)",
+          "rect": [
+            254,
+            843,
+            520,
+            39
+          ],
+          "link": {
+            "background": "rgba(0, 0, 0, 0)",
+            "foreground": "rgb(10, 99, 199)",
+            "border": "rgb(10, 99, 199)",
+            "shadow": "none",
+            "outline": "rgb(10, 99, 199) none 3px",
+            "rect": [
+              259,
+              844,
+              59,
+              19
+            ]
+          },
+          "linkFocusOutline": "rgb(10, 99, 199) none 3px",
+          "responsiveMaxWidth": "520px"
+        },
+        "zoom": {
+          "background": "rgb(255, 255, 255)",
+          "foreground": "rgb(22, 34, 47)",
+          "border": "rgb(116, 128, 142)",
+          "shadow": "none",
+          "outline": "rgb(22, 34, 47) none 3px",
+          "rect": [
+            256,
+            92,
+            36,
+            36
+          ]
+        },
+        "zoomOut": {
+          "background": "rgb(255, 255, 255)",
+          "foreground": "rgb(22, 34, 47)",
+          "border": "rgb(116, 128, 142)",
+          "shadow": "none",
+          "outline": "rgb(22, 34, 47) none 3px",
+          "rect": [
+            256,
+            128,
+            36,
+            36
+          ]
+        },
+        "tooltip": {
+          "className": "leaflet-tooltip leaflet-zoom-animated leaflet-tooltip-top",
+          "textPresent": true,
+          "background": "rgba(255, 255, 255, 0.96)",
+          "foreground": "rgb(22, 34, 47)",
+          "border": "rgb(116, 128, 142)",
+          "arrowTop": "rgb(116, 128, 142)",
+          "rect": [
+            427,
+            421,
+            309,
+            46
+          ]
+        },
+        "areaLabel": {
+          "background": "rgba(255, 255, 255, 0.94)",
+          "foreground": "rgb(22, 34, 47)",
+          "border": "rgb(116, 128, 142)",
+          "shadow": "rgba(16, 24, 34, 0.16) 0px 6px 18px 0px",
+          "outline": "rgb(22, 34, 47) none 3px",
+          "rect": [
+            835,
+            468,
+            98,
+            24
+          ]
+        },
+        "areaLabelB": null
+      }
     }
   ],
   "observations": [
+    {
+      "name": "Dark attribution rendered contrast samples",
+      "method": "modal pixel from actual attribution background with link/text glyphs temporarily hidden; live tiles; screenshot crops were not retained",
+      "samples": [
+        {
+          "basemap": "light",
+          "foreground": "#aab9ca",
+          "sampledBackground": "#424447",
+          "contrast": 4.89,
+          "linkForeground": "#b9c7d7",
+          "linkContrast": 5.68
+        },
+        {
+          "basemap": "dark",
+          "foreground": "#aab9ca",
+          "sampledBackground": "#06080b",
+          "contrast": 10.03,
+          "linkForeground": "#b9c7d7",
+          "linkContrast": 11.66
+        },
+        {
+          "basemap": "satellite",
+          "foreground": "#aab9ca",
+          "sampledBackground": "#040609",
+          "contrast": 10.14,
+          "linkForeground": "#b9c7d7",
+          "linkContrast": 11.8
+        }
+      ]
+    },
     {
       "name": "Dark zoom hover",
       "effective": {
@@ -550,7 +698,7 @@
       "name": "Dark zoom-out lower-bound probe",
       "state": {
         "clicksToDisabled": 14,
-        "noZoomChange": false,
+        "noZoomChange": true,
         "zoom": {
           "current": 0,
           "minimum": 0,
@@ -580,8 +728,8 @@
         "hit": true,
         "target": "Acercar",
         "focusVisible": true,
-        "outline": "rgb(10, 99, 199) solid 2px",
-        "separation": "rgb(244, 246, 249) 0px 0px 0px 1px"
+        "outline": "rgb(155, 213, 255) solid 2px",
+        "separation": "rgb(8, 16, 26) 0px 0px 0px 1px"
       }
     },
     {
@@ -598,8 +746,8 @@
         "position": "top",
         "background": "rgba(255, 255, 255, 0.96)",
         "foreground": "rgb(22, 34, 47)",
-        "border": "rgb(170, 182, 196)",
-        "arrowTop": "rgb(170, 182, 196)",
+        "border": "rgb(116, 128, 142)",
+        "arrowTop": "rgb(116, 128, 142)",
         "rect": [
           427,
           421,
@@ -620,7 +768,7 @@
       "name": "Light zoom-out lower-bound probe",
       "state": {
         "clicksToDisabled": 15,
-        "noZoomChange": false,
+        "noZoomChange": true,
         "zoom": {
           "current": 0,
           "minimum": 0,
@@ -638,14 +786,35 @@
       }
     },
     {
-      "name": "Attribution keyboard focus",
+      "name": "Dark-basemap Light chrome interaction",
       "zoomLevel": 15,
+      "tooltip": {
+        "trigger": "hover on visible application POI layer",
+        "category": "museum",
+        "point": [
+          593,
+          469
+        ],
+        "textPresent": true,
+        "position": "top",
+        "background": "rgba(255, 255, 255, 0.96)",
+        "foreground": "rgb(22, 34, 47)",
+        "border": "rgb(116, 128, 142)",
+        "arrowTop": "rgb(116, 128, 142)",
+        "rect": [
+          427,
+          421,
+          309,
+          46
+        ],
+        "fullyVisibleInMap": true
+      },
       "keyboardFocus": {
         "hit": true,
         "target": "Leaflet",
         "focusVisible": true,
-        "outline": "rgb(10, 99, 199) solid 2px",
-        "separation": "rgb(244, 246, 249) 0px 0px 0px 1px"
+        "outline": "rgb(155, 213, 255) solid 2px",
+        "separation": "rgb(8, 16, 26) 0px 0px 0px 1px"
       }
     },
     {
@@ -667,12 +836,87 @@
           "minHeight": "44px"
         }
       ]
+    },
+    {
+      "name": "Satellite top tooltip",
+      "zoomLevel": 15,
+      "tooltip": {
+        "trigger": "hover on visible application POI layer",
+        "category": "museum",
+        "point": [
+          593,
+          469
+        ],
+        "textPresent": true,
+        "position": "top",
+        "background": "rgba(255, 255, 255, 0.96)",
+        "foreground": "rgb(22, 34, 47)",
+        "border": "rgb(116, 128, 142)",
+        "arrowTop": "rgb(116, 128, 142)",
+        "rect": [
+          427,
+          421,
+          309,
+          46
+        ],
+        "fullyVisibleInMap": true
+      }
+    },
+    {
+      "name": "Light top-tooltip rendered text contrast",
+      "method": "modal pixel from real tooltip surface after hiding only text glyphs in an in-memory locator screenshot",
+      "samples": [
+        {
+          "basemap": "light",
+          "foreground": "#16222f",
+          "sampledBackground": "#dee0e1",
+          "contrast": 12.16
+        },
+        {
+          "basemap": "dark",
+          "foreground": "#16222f",
+          "sampledBackground": "#dddee0",
+          "contrast": 11.96
+        },
+        {
+          "basemap": "satellite",
+          "foreground": "#16222f",
+          "sampledBackground": "#dedfe0",
+          "contrast": 12.07
+        }
+      ]
+    },
+    {
+      "name": "Light top-arrow adjacent rendered samples",
+      "method": "single pixel 7 CSS px beyond the live top-arrow tip in an in-memory viewport screenshot; not retained",
+      "samples": [
+        {
+          "basemap": "light",
+          "foreground": "#74808e",
+          "sampledAdjacent": "#434c56",
+          "contrast": 2.17,
+          "point": [
+            582,
+            474
+          ]
+        },
+        {
+          "basemap": "satellite",
+          "foreground": "#74808e",
+          "sampledAdjacent": "#0d1520",
+          "contrast": 4.56,
+          "point": [
+            582,
+            474
+          ]
+        }
+      ]
     }
   ],
   "caveats": [
     "Simulated Light map chrome only; the rest of the application remains in its shipped Dark appearance.",
     "Screenshot sampling and contrast arithmetic are bounded observations, not a WCAG conformance claim over heterogeneous map imagery.",
     "Chromium desktop/mobile emulation is not physical iPad or Safari testing.",
-    "No Phase B appearance × basemap × information-surface Cartesian matrix was run."
+    "No Phase B appearance by basemap by information-surface Cartesian matrix was run."
   ]
 }

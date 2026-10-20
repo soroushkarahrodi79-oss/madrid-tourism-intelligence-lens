@@ -1,10 +1,23 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { inflateSync } from "node:zlib";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { promoteVerifiedCapturePackage } from "./capture_package.mjs";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "capture-current");
+const PACKAGE_PARENT = path.dirname(fileURLToPath(import.meta.url));
+const RUN_ID = `${Date.now()}-${process.pid}`;
+const ROOT = path.join(PACKAGE_PARENT, `.capture-staging-${RUN_ID}`);
+const CURRENT = path.join(PACKAGE_PARENT, "capture-current");
+const BACKUP = path.join(PACKAGE_PARENT, `.capture-previous-${RUN_ID}`);
+const REQUIRED_SCREENSHOTS = [
+  "screenshots/01-dark-reference-desktop-en-light.png",
+  "screenshots/02-light-desktop-es-light-zoom-tooltip.png",
+  "screenshots/03-light-desktop-en-dark-attribution-focus.png",
+  "screenshots/04-light-mobile-es-satellite.png",
+  "screenshots/05-light-desktop-en-satellite-top-tooltip.png",
+];
 const APP_URL = "https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens/";
 const EXPECTED = {
   commit: "9a7d2f20debdffce0823bbca81850060069ccb4d",
@@ -19,66 +32,162 @@ const EXPECTED = {
 };
 const LIGHT_MAP_CSS = `
 :root {
-  --leaflet-map-fallback-bg: #f4f6f9;
-  --leaflet-attribution-bg: rgba(255,255,255,.92);
-  --leaflet-attribution-text: #445468;
-  --leaflet-attribution-link: #0a63c7;
-  --leaflet-zoom-bg: #ffffff;
-  --leaflet-zoom-text: #16222f;
-  --leaflet-zoom-border: #c7ced7;
-  --leaflet-zoom-shadow: 0 8px 24px rgba(16,24,34,.18);
-  --leaflet-zoom-hover-bg: #f2f4f7;
-  --leaflet-zoom-disabled-text: #667586;
-  --leaflet-tooltip-bg: rgba(255,255,255,.96);
-  --leaflet-tooltip-border: #aab6c4;
-  --leaflet-tooltip-text: #16222f;
-  --leaflet-tooltip-shadow: 0 10px 28px rgba(16,24,34,.18);
-  --map-label-bg: rgba(255,255,255,.94);
-  --map-label-border: rgba(22,34,47,.30);
+  --map-fallback-surface: #f4f6f9;
+  --map-attribution-surface: rgba(255,255,255,.92);
+  --map-attribution-text: #445468;
+  --map-attribution-link: #0a63c7;
+  --map-zoom-surface: #fff;
+  --map-zoom-text: #16222f;
+  --map-zoom-edge: #74808e;
+  --map-zoom-hover-surface: #f2f4f7;
+  --map-zoom-disabled-text: #667586;
+  --map-zoom-disabled-opacity: 1;
+  --map-zoom-shadow: 0 8px 24px rgba(16,24,34,.18);
+  --map-tooltip-surface: rgba(255,255,255,.96);
+  --map-tooltip-text: #16222f;
+  --map-tooltip-edge: #74808e;
+  --map-tooltip-arrow: #74808e;
+  --map-tooltip-shadow: 0 10px 28px rgba(16,24,34,.18);
+  --map-label-surface: rgba(255,255,255,.94);
   --map-label-text: #16222f;
+  --map-label-edge: #74808e;
+  --map-label-shadow: 0 6px 18px rgba(16,24,34,.16);
+  --map-label-b-edge: #00718f;
   --map-label-b-text: #00718f;
 }
-#map, .leaflet-container { background: var(--leaflet-map-fallback-bg) !important; }
+#map, .leaflet-container { background: var(--map-fallback-surface) !important; }
 .leaflet-control-attribution {
-  background: var(--leaflet-attribution-bg) !important;
-  color: var(--leaflet-attribution-text) !important;
+  background: var(--map-attribution-surface) !important;
+  color: var(--map-attribution-text) !important;
 }
 .leaflet-control-attribution a,
-.leaflet-control-attribution a:hover { color: var(--leaflet-attribution-link) !important; }
-.leaflet-control-zoom { box-shadow: var(--leaflet-zoom-shadow) !important; }
+.leaflet-control-attribution a:hover { color: var(--map-attribution-link) !important; text-decoration: underline; text-underline-offset: 2px; }
+.leaflet-control-zoom { box-shadow: var(--map-zoom-shadow) !important; }
 .leaflet-control-zoom a {
-  background: var(--leaflet-zoom-bg) !important;
-  color: var(--leaflet-zoom-text) !important;
-  border-color: var(--leaflet-zoom-border) !important;
+  background: var(--map-zoom-surface) !important;
+  color: var(--map-zoom-text) !important;
+  border-color: var(--map-zoom-edge) !important;
 }
 .leaflet-control-zoom a:hover {
-  background: var(--leaflet-zoom-hover-bg) !important;
-  color: var(--leaflet-zoom-text) !important;
+  background: var(--map-zoom-hover-surface) !important;
+  color: var(--map-zoom-text) !important;
 }
-.leaflet-control-zoom a.leaflet-disabled { color: var(--leaflet-zoom-disabled-text) !important; }
+.leaflet-control-zoom a.leaflet-disabled { color: var(--map-zoom-disabled-text) !important; opacity: var(--map-zoom-disabled-opacity); }
 .leaflet-tooltip {
-  background: var(--leaflet-tooltip-bg) !important;
-  border-color: var(--leaflet-tooltip-border) !important;
-  color: var(--leaflet-tooltip-text) !important;
-  box-shadow: var(--leaflet-tooltip-shadow) !important;
+  background: var(--map-tooltip-surface) !important;
+  border-color: var(--map-tooltip-edge) !important;
+  color: var(--map-tooltip-text) !important;
+  box-shadow: var(--map-tooltip-shadow) !important;
 }
-.leaflet-tooltip-top:before { border-top-color: var(--leaflet-tooltip-border) !important; }
+.leaflet-tooltip-top:before { border-top-color: var(--map-tooltip-arrow) !important; }
 .area-label {
-  background: var(--map-label-bg) !important;
-  border-color: var(--map-label-border) !important;
+  background: var(--map-label-surface) !important;
+  border-color: var(--map-label-edge) !important;
   color: var(--map-label-text) !important;
-  box-shadow: 0 6px 18px rgba(16,24,34,.16) !important;
+  box-shadow: var(--map-label-shadow) !important;
 }
-.area-label-b { border-color: rgba(0,113,143,.45) !important; }
+.area-label-b { border-color: var(--map-label-b-edge) !important; }
 .area-label-b b { color: var(--map-label-b-text) !important; }
-.leaflet-control-zoom a:focus-visible,
-.leaflet-control-attribution a:focus-visible {
-  outline: 2px solid #0a63c7 !important;
-  outline-offset: 3px;
-  box-shadow: 0 0 0 1px #f4f6f9 !important;
-}
+`;
+const DARK_ATTRIBUTION_FIX_CSS = `
+.leaflet-control-attribution { color: #aab9ca !important; }
+.leaflet-control-attribution a { text-decoration: underline; text-underline-offset: 2px; }
+.leaflet-control-zoom a.leaflet-disabled { opacity: .56; }
 `;
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const rgbHex = (rgb) => `#${rgb.map((value) => value.toString(16).padStart(2, "0")).join("")}`;
+function luminance(rgb) {
+  const linear = rgb.map((channel) => {
+    const value = channel / 255;
+    return value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4;
+  });
+  return .2126 * linear[0] + .7152 * linear[1] + .0722 * linear[2];
+}
+function contrastRatio(first, second) {
+  const a = luminance(first), b = luminance(second);
+  return (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
+}
+function decodePngRgb(bytes) {
+  let offset = 8, width, height, bitDepth, colorType;
+  const imageData = [];
+  while (offset < bytes.length) {
+    const length = bytes.readUInt32BE(offset);
+    const type = bytes.toString("ascii", offset + 4, offset + 8);
+    const data = bytes.subarray(offset + 8, offset + 8 + length);
+    if (type === "IHDR") {
+      width = data.readUInt32BE(0); height = data.readUInt32BE(4);
+      bitDepth = data[8]; colorType = data[9];
+    } else if (type === "IDAT") imageData.push(data);
+    else if (type === "IEND") break;
+    offset += length + 12;
+  }
+  const channels = colorType === 6 ? 4 : colorType === 2 ? 3 : 0;
+  if (!width || !height || bitDepth !== 8 || !channels) throw new Error("Unsupported browser screenshot PNG encoding");
+  const stride = width * channels, raw = inflateSync(Buffer.concat(imageData));
+  const pixels = Buffer.alloc(height * stride);
+  const paeth = (a, b, c) => {
+    const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
+    return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+  };
+  for (let y = 0; y < height; y++) {
+    const source = y * (stride + 1), filter = raw[source], row = y * stride, above = row - stride;
+    for (let i = 0; i < stride; i++) {
+      const left = i >= channels ? pixels[row + i - channels] : 0;
+      const up = y ? pixels[above + i] : 0;
+      const upperLeft = y && i >= channels ? pixels[above + i - channels] : 0;
+      const prediction = filter === 0 ? 0 : filter === 1 ? left : filter === 2 ? up :
+        filter === 3 ? Math.floor((left + up) / 2) : filter === 4 ? paeth(left, up, upperLeft) : null;
+      if (prediction == null) throw new Error(`Unsupported PNG filter ${filter}`);
+      pixels[row + i] = (raw[source + 1 + i] + prediction) & 255;
+    }
+  }
+  return { width, height, channels, pixels };
+}
+function modalRenderedRgb(png) {
+  const { width, height, channels, pixels } = decodePngRgb(png), counts = new Map();
+  for (let y = 3; y < height - 3; y++) for (let x = 3; x < width - 3; x++) {
+    const at = (y * width + x) * channels;
+    const key = `${pixels[at]},${pixels[at + 1]},${pixels[at + 2]}`;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  const [key] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0] || [];
+  if (!key) throw new Error("Rendered surface screenshot has no sampleable interior");
+  return key.split(",").map(Number);
+}
+async function renderedAttributionSurfaceRgb(page) {
+  const style = await page.addStyleTag({ content: `
+    .leaflet-control-attribution { color: transparent !important; text-shadow: none !important; }
+    .leaflet-control-attribution a[href] { color: transparent !important; text-decoration: none !important; text-shadow: none !important; }
+  ` });
+  try {
+    const bytes = await page.locator(".leaflet-control-attribution").screenshot({ animations: "disabled" });
+    return modalRenderedRgb(bytes);
+  } finally { await style.evaluate((element) => element.remove()); }
+}
+async function renderedTooltipSurfaceRgb(page) {
+  const style = await page.addStyleTag({ content: `
+    .leaflet-tooltip:not(.area-label), .leaflet-tooltip:not(.area-label) * {
+      color: transparent !important; text-shadow: none !important;
+    }
+  ` });
+  try {
+    const bytes = await page.locator(".leaflet-tooltip:not(.area-label):visible").first()
+      .screenshot({ animations: "disabled" });
+    return modalRenderedRgb(bytes);
+  } finally { await style.evaluate((element) => element.remove()); }
+}
+async function topArrowAdjacentRgb(page) {
+  const point = await page.locator(".leaflet-tooltip-top:not(.area-label):visible").first().evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { x: Math.round(rect.x + rect.width / 2), y: Math.round(rect.bottom + 7) };
+  });
+  const screenshot = decodePngRgb(await page.screenshot({ animations: "disabled" }));
+  if (point.x < 0 || point.y < 0 || point.x >= screenshot.width || point.y >= screenshot.height) {
+    throw new Error("Top-arrow adjacent sample is outside the rendered viewport");
+  }
+  const at = (point.y * screenshot.width + point.x) * screenshot.channels;
+  return { point: [point.x, point.y], rgb: [0, 1, 2].map((channel) => screenshot.pixels[at + channel]) };
+}
 async function getBytes(url) {
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error(`Pinned resource returned HTTP ${response.status}`);
@@ -135,6 +244,7 @@ async function selectState(page, language, basemap) {
   await page.waitForTimeout(1400);
 }
 async function installLightMapPreview(page) { await page.addStyleTag({ content: LIGHT_MAP_CSS }); }
+async function installDarkAttributionCorrection(page) { await page.addStyleTag({ content: DARK_ATTRIBUTION_FIX_CSS }); }
 async function selectMobileState(page, language, basemap) {
   await page.locator("#mobileLayersButton").click();
   await page.waitForFunction(() => document.querySelector("#mobileLayersButton")?.getAttribute("aria-expanded") === "true");
@@ -221,6 +331,12 @@ async function observeZoomOutDisabled(page) {
   if (boundary.current <= boundary.minimum && !(await button.evaluate((e) => e.classList.contains("leaflet-disabled")))) {
     await button.click();
     await page.waitForTimeout(500);
+    noZoomChange = (await page.evaluate(() => eval("map").getZoom())) === boundary.current;
+  }
+  if (boundary.current <= boundary.minimum && await button.evaluate((e) => e.classList.contains("leaflet-disabled"))) {
+    const bounds = await button.boundingBox();
+    await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+    await page.waitForTimeout(250);
     noZoomChange = (await page.evaluate(() => eval("map").getZoom())) === boundary.current;
   }
   const rendered = await button.evaluate((e) => ({
@@ -327,17 +443,36 @@ async function save(page, file, state, interaction, rows) {
   });
 }
 
-await mkdir(path.join(ROOT, "screenshots"), { recursive: true });
 const snapshot = await assertSnapshot();
+await mkdir(path.join(ROOT, "screenshots"), { recursive: true });
 const browser = await chromium.launch({ headless: true });
-const browserVersion = browser.version(), captures = [], notes = [];
+const browserVersion = browser.version(), captures = [], notes = [], lightTooltipSamples = [], lightArrowSamples = [];
 try {
   {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, locale: "en-GB" });
     const page = await openMap(context);
+    await installDarkAttributionCorrection(page);
+    const darkAttributionSamples = [];
+    for (const basemap of ["light", "dark", "satellite"]) {
+      if (basemap !== "light") await selectState(page, "en", basemap);
+      const background = await renderedAttributionSurfaceRgb(page);
+      const foreground = [170, 185, 202];
+    const linkForeground = [185, 199, 215];
+      darkAttributionSamples.push({
+        basemap, foreground: rgbHex(foreground), sampledBackground: rgbHex(background),
+        contrast: Number(contrastRatio(foreground, background).toFixed(2)),
+      linkForeground: rgbHex(linkForeground), linkContrast: Number(contrastRatio(linkForeground, background).toFixed(2)),
+      });
+    }
+    await selectState(page, "en", "light");
+    notes.push({
+      name: "Dark attribution rendered contrast samples",
+      method: "modal pixel from actual attribution background with link/text glyphs temporarily hidden; live tiles; screenshot crops were not retained",
+      samples: darkAttributionSamples,
+    });
     await save(page, "01-dark-reference-desktop-en-light.png",
-      { language: "en", basemap: "light", chrome: "shipped-dark" },
-      ["fresh production load", "Light basemap already selected", "no injected CSS"], captures);
+      { language: "en", basemap: "light", chrome: "dark-attribution-correction-preview" },
+      ["pinned production source snapshot", "sampled corrected attribution over Light, Dark and Satellite tiles", "restored Light basemap", "test-only Dark attribution text correction and persistent link underline"], captures);
     await page.locator(".leaflet-control-zoom-in").hover();
     notes.push({ name: "Dark zoom hover", effective: await page.locator(".leaflet-control-zoom-in").evaluate((e) => ({
       background: getComputedStyle(e).backgroundColor, foreground: getComputedStyle(e).color,
@@ -358,9 +493,15 @@ try {
     await page.locator("#modeCompareButton").click();
     await page.waitForFunction(() => document.querySelector("#analysisPanel")?.dataset.mode === "COMPARE");
     const zoomLevel = await clickZoomOnce(page), tooltip = await hoverBoundTooltip(page);
+    const tooltipSurface = await renderedTooltipSurfaceRgb(page);
+    lightTooltipSamples.push({ basemap: "light", foreground: "#16222f", sampledBackground: rgbHex(tooltipSurface),
+      contrast: Number(contrastRatio([22, 34, 47], tooltipSurface).toFixed(2)) });
+    const arrowSample = await topArrowAdjacentRgb(page);
+    lightArrowSamples.push({ basemap: "light", foreground: "#74808e", sampledAdjacent: rgbHex(arrowSample.rgb),
+      contrast: Number(contrastRatio([116, 128, 142], arrowSample.rgb).toFixed(2)), point: arrowSample.point });
     await save(page, "02-light-desktop-es-light-zoom-tooltip.png",
       { language: "es", basemap: "light", mode: "COMPARE", chrome: "simulated-light" },
-      ["select Espaأ±ol", "select Light آ· CARTO Positron", "click Zoom in once", "hover visible application POI layer until top tooltip is fully inside map viewport"], captures);
+      ["select Spanish", "select Light / CARTO Positron", "click Zoom in once", "hover visible application POI layer until top tooltip is fully inside map viewport"], captures);
     await page.locator(".leaflet-control-zoom-in").hover();
     notes.push({ name: "Light zoom hover", effective: await page.locator(".leaflet-control-zoom-in").evaluate((e) => ({
       background: getComputedStyle(e).backgroundColor, foreground: getComputedStyle(e).color,
@@ -380,12 +521,15 @@ try {
     const page = await openMap(context);
     await installLightMapPreview(page);
     await selectState(page, "en", "dark");
-    const zoomLevel = await clickZoomOnce(page), focus = await focusAttributionByKeyboard(page);
-    await page.mouse.move(1180, 760);
+    const zoomLevel = await clickZoomOnce(page), tooltip = await hoverBoundTooltip(page);
+    const tooltipSurface = await renderedTooltipSurfaceRgb(page);
+    lightTooltipSamples.push({ basemap: "dark", foreground: "#16222f", sampledBackground: rgbHex(tooltipSurface),
+      contrast: Number(contrastRatio([22, 34, 47], tooltipSurface).toFixed(2)) });
+    const focus = await focusAttributionByKeyboard(page);
     await save(page, "03-light-desktop-en-dark-attribution-focus.png",
       { language: "en", basemap: "dark", chrome: "simulated-light" },
-      ["select English", "select Dark آ· CARTO Dark Matter", "click Zoom in once", "keyboard Tab traversal to a real attribution link (:focus-visible)"], captures);
-    notes.push({ name: "Attribution keyboard focus", zoomLevel, keyboardFocus: focus });
+      ["select English", "select Dark / CARTO Dark Matter", "click Zoom in once", "keyboard Tab traversal to a real attribution link (:focus-visible)"], captures);
+    notes.push({ name: "Dark-basemap Light chrome interaction", zoomLevel, tooltip, keyboardFocus: focus });
     await context.close();
   }
   {
@@ -400,8 +544,26 @@ try {
     }));
     await save(page, "04-light-mobile-es-satellite.png",
       { language: "es", basemap: "satellite", chrome: "simulated-light" },
-      ["mobile viewport with coarse pointer", "open Layers through visible mobile button", "open Map display disclosure", "select Espaأ±ol and Satellite + labels آ· Esri", "close Layers", "click Zoom in once"], captures);
+      ["mobile viewport with coarse pointer", "open Layers through visible mobile button", "open Map display disclosure", "select Spanish and Satellite with labels / Esri", "close Layers", "click Zoom in once"], captures);
     notes.push({ name: "Coarse-pointer zoom targets", zoomLevel, controls: sizes });
+    await context.close();
+  }
+  {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, locale: "en-GB" });
+    const page = await openMap(context);
+    await installLightMapPreview(page);
+    await selectState(page, "en", "satellite");
+    const zoomLevel = await clickZoomOnce(page), tooltip = await hoverBoundTooltip(page);
+    const tooltipSurface = await renderedTooltipSurfaceRgb(page);
+    lightTooltipSamples.push({ basemap: "satellite", foreground: "#16222f", sampledBackground: rgbHex(tooltipSurface),
+      contrast: Number(contrastRatio([22, 34, 47], tooltipSurface).toFixed(2)) });
+    const arrowSample = await topArrowAdjacentRgb(page);
+    lightArrowSamples.push({ basemap: "satellite", foreground: "#74808e", sampledAdjacent: rgbHex(arrowSample.rgb),
+      contrast: Number(contrastRatio([116, 128, 142], arrowSample.rgb).toFixed(2)), point: arrowSample.point });
+    await save(page, "05-light-desktop-en-satellite-top-tooltip.png",
+      { language: "en", basemap: "satellite", chrome: "simulated-light" },
+      ["select English", "select Satellite basemap", "click Zoom in once", "hover a real POI tooltip to inspect the top arrow against satellite tiles"], captures);
+    notes.push({ name: "Satellite top tooltip", zoomLevel, tooltip });
     await context.close();
   }
   const metadata = {
@@ -412,11 +574,11 @@ try {
       geometryChanged: false, markerColorsChanged: false, basemapTilesOrLENS_BASEMAP_STYLESChanged: false,
       focus: {
         dark: "current shared application treatment: 2px #9bd5ff outline, 3px offset, 1px #08101a separation",
-        light: "test-only map focus: 2px #0a63c7 outline, 3px offset, 1px #f4f6f9 separation",
+        light: "reuse the existing T-a2 --chrome-focus-ring-color and --chrome-focus-separation-color; no map-specific focus override",
       },
       unsupported: [
-        "Only top-directed POI tooltips were exercised; bottom/left/right Leaflet arrows remain provider defaults (white), although visible POI/cluster tooltips are bound top. A B area label appeared in the Light/COMPARE capture with #00718f text; this is one rendered sample only, not validation across tile backgrounds or Dark appearance.",
-        "A real zoom-out sequence reached Leaflet map zoom 0 and applied .leaflet-disabled / aria-disabled=true in both Dark and simulated Light. Dark keeps white disabled text because the app's #fff !important masks Leaflet gray; Light preview disabled text is #667586 and measures 4.28:1 on its hover surface.",
+        "Only top-directed POI tooltips were exercised; bottom/left/right Leaflet arrows remain provider defaults. The Light arrow is redundant with the pointer-held feature association; its sampled adjacent Light-basemap contrast was 2.17:1, so no tile-independent edge-conformance claim is made. A B area label appeared in the Light/COMPARE capture; both A and B labels were not sampled over every basemap.",
+        "A real zoom-out sequence reached map zoom 0; a pointer click on the .leaflet-disabled / aria-disabled=true control left the map at zoom 0 in both modes. Light #667586 on #f2f4f7 is 4.28:1; WCAG exempts genuinely inactive components from the 4.5:1 text contrast requirement. Dark uses opacity .56 because the app's important active colors mask Leaflet's default disabled colors.",
         "Open-data tile imagery is live and may change independently of this pinned application snapshot.",
         "T-a3 center-marker and SVG-halo colors remain shipped Dark values by design; this evidence does not validate those marks for Light.",
       ],
@@ -426,14 +588,23 @@ try {
       "Simulated Light map chrome only; the rest of the application remains in its shipped Dark appearance.",
       "Screenshot sampling and contrast arithmetic are bounded observations, not a WCAG conformance claim over heterogeneous map imagery.",
       "Chromium desktop/mobile emulation is not physical iPad or Safari testing.",
-      "No Phase B appearance أ— basemap أ— information-surface Cartesian matrix was run.",
+      "No Phase B appearance by basemap by information-surface Cartesian matrix was run.",
     ],
   };
+  notes.push({ name: "Light top-tooltip rendered text contrast", method: "modal pixel from real tooltip surface after hiding only text glyphs in an in-memory locator screenshot", samples: lightTooltipSamples });
+  notes.push({ name: "Light top-arrow adjacent rendered samples", method: "single pixel 7 CSS px beyond the live top-arrow tip in an in-memory viewport screenshot; not retained", samples: lightArrowSamples });
   await writeFile(path.join(ROOT, "capture-metadata.json"), JSON.stringify(metadata, null, 2) + "\n", "utf8");
+  await promoteVerifiedCapturePackage({
+    stagingPath: ROOT, currentPath: CURRENT, backupPath: BACKUP,
+    expectedSnapshot: snapshot, requiredFiles: REQUIRED_SCREENSHOTS,
+  });
   console.log(JSON.stringify({
     sourceSnapshot: snapshot,
     screenshots: captures.map(({ file, sha256, bytes, viewport, language, basemap, interaction }) =>
       ({ file, sha256, bytes, viewport, language, basemap, interaction })),
     observations: notes,
   }, null, 2));
+} catch (error) {
+  await rm(ROOT, { recursive: true, force: true });
+  throw error;
 } finally { await browser.close(); }
