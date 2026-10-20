@@ -69,7 +69,9 @@ const auditVisibleText = (page) => page.evaluate(() => {
   const background = (node) => {
     const chain = [];
     for (let current = node; current; current = current.parentElement) chain.push(current);
-    let result = [8, 16, 26, 1]; // product-owned map/body fallback under translucent chrome
+    // Appearance owns the compositing floor. Using the current --bg avoids
+    // testing Light translucent surfaces over the historical Dark fallback.
+    let result = parse(getComputedStyle(document.documentElement).getPropertyValue("--bg").trim());
     for (const current of chain.reverse()) result = over(parse(getComputedStyle(current).backgroundColor), result);
     return result;
   };
@@ -104,12 +106,15 @@ for (const width of [360, 420, 560, 850, 1100, 1440]) {
     const page = await openApp(width);
     t.after(() => closePage(page));
     const rows = [];
-    for (const mode of ["PLACE", "COMPARE", "CITY"]) {
-      await setMode(page, mode);
-      rows.push(...await auditVisibleText(page));
-      await page.locator(`[data-evidence-mode="${mode}"]`).click();
-      rows.push(...await auditVisibleText(page));
-      await page.keyboard.press("Escape");
+    for (const appearance of ["light", "dark"]) {
+      await page.locator("#appearanceSelect").selectOption(appearance);
+      for (const mode of ["PLACE", "COMPARE", "CITY"]) {
+        await setMode(page, mode);
+        rows.push(...(await auditVisibleText(page)).map((row) => ({ ...row, appearance })));
+        await page.locator(`[data-evidence-mode="${mode}"]`).click();
+        rows.push(...(await auditVisibleText(page)).map((row) => ({ ...row, appearance, drawer: true })));
+        await page.keyboard.press("Escape");
+      }
     }
     const minimumSize = Math.min(...rows.map((row) => row.size));
     const minimumContrast = Math.min(...rows.map((row) => row.contrast));

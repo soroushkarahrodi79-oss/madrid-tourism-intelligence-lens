@@ -1,0 +1,148 @@
+{
+  "schema": "ux-t1-appearance-visual-proof/1.0",
+  "capturedAt": "2026-10-20T19:15:59.195Z",
+  "browser": "Chromium 153.0.8010.12 via Playwright",
+  "source": "local implementation branch; repository fallback data; deployed runtime basemap config proxied in memory; live tiles (not version-pinned)",
+  "screenshots": [
+    {
+      "file": "screenshots/01-desktop-place-dark.png",
+      "sha256": "06c1602514480033df1466d3d26b7038cc54ef8ccf441f61ed8f7284ab573597",
+      "bytes": 785001,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "dark",
+      "resolved": "dark",
+      "basemap": "light",
+      "language": "en",
+      "mode": "PLACE"
+    },
+    {
+      "file": "screenshots/02-desktop-place-light.png",
+      "sha256": "248a0c91ac04a1a98747fd81f02a6eb435f598dea65c12643adb4d65dbbf9ffe",
+      "bytes": 788581,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "light",
+      "resolved": "light",
+      "basemap": "light",
+      "language": "en",
+      "mode": "PLACE"
+    },
+    {
+      "file": "screenshots/03-desktop-compare-dark.png",
+      "sha256": "1310d73d8e338c181b261fd063fbba84897c47d4b986a6b030362250a8f2698d",
+      "bytes": 969868,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "dark",
+      "resolved": "dark",
+      "basemap": "light",
+      "language": "en",
+      "mode": "COMPARE"
+    },
+    {
+      "file": "screenshots/04-desktop-compare-light.png",
+      "sha256": "2dc6f852edd0ddc792d966961affd4a49440f5794933cdb4051c2bef7ff844a1",
+      "bytes": 942861,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "light",
+      "resolved": "light",
+      "basemap": "light",
+      "language": "en",
+      "mode": "COMPARE"
+    },
+    {
+      "file": "screenshots/05-city-light-es.png",
+      "sha256": "8c39d9f6a7dab8aa2db0543372bc05373d59960ba4d2380fae540d99df7cf450",
+      "bytes": 938594,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "light",
+      "resolved": "light",
+      "basemap": "light",
+      "language": "es",
+      "mode": "CITY"
+    },
+    {
+      "file": "screenshots/06-evidence-drawer-light.png",
+      "sha256": "15394f32c27f2a118fca939fb38ebfb7211d6ad77124adbb34d6a3ac205a85e2",
+      "bytes": 872306,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "light",
+      "resolved": "light",
+      "basemap": "light",
+      "language": "en",
+      "mode": "PLACE"
+    },
+    {
+      "file": "screenshots/07-mobile-light.png",
+      "sha256": "0a659a1e41d28dc01ea250b873f377a35c0bcbdc5dd0cd2ebf0a205a6caab85e",
+      "bytes": 176792,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "preference": "light",
+      "resolved": "light",
+      "basemap": "light",
+      "language": "en",
+      "mode": "PLACE"
+    },
+    {
+      "file": "screenshots/08-light-ui-dark-basemap.png",
+      "sha256": "dba9fe3c4a97b395f52e5271897f8fe3901fc7ede92665d9bc3a3cb33081855e",
+      "bytes": 1064536,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "light",
+      "resolved": "light",
+      "basemap": "dark",
+      "language": "en",
+      "mode": "PLACE"
+    },
+    {
+      "file": "screenshots/09-dark-ui-light-basemap.png",
+      "sha256": "5902a365da5d34bdab4243a71872a085de58a87d1f6e5b7383c0220aa9a9d136",
+      "bytes": 968586,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "dark",
+      "resolved": "dark",
+      "basemap": "light",
+      "language": "en",
+      "mode": "PLACE"
+    },
+    {
+      "file": "screenshots/10-system-after-os-dark.png",
+      "sha256": "2b3d9dadd7c023b5d99b4159e8b2db7bb9e73d09f247a8a3edca723928df6474",
+      "bytes": 974769,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "system",
+      "resolved": "dark",
+      "basemap": "light",
+      "language": "en",
+      "mode": "PLACE"
+    }
+  ]
+}

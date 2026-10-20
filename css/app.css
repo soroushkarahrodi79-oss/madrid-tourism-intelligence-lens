@@ -983,7 +983,8 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
    governs everything below: NO breakpoint may hide a source, a date, a unit, a
    scope label or an interpretation ceiling. Supporting figures and tables may
    collapse; they are never deleted. */
-.header-tools{pointer-events:auto;margin-left:auto;display:flex;align-items:center}
+.header-tools{pointer-events:auto;margin-left:auto;display:flex;align-items:center;gap:var(--s-2)}
+.appearance-control{display:flex;align-items:center;gap:var(--s-2);color:var(--chrome-text-brand-subtle);font-size:var(--t-micro);font-weight:650;letter-spacing:.04em}
 .header-tools select{width:auto;min-width:96px;padding:var(--s-2) var(--s-3);font-size:var(--t-meta);border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-header-surface);color:var(--chrome-text-control-value)}
 .header-tools select:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
 
@@ -1093,6 +1094,8 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .header-tools select{min-width:88px;padding:var(--s-1) var(--s-2)}
 }
 @media(max-width:560px){
+  .appearance-control>span{position:absolute;width:1px;height:1px;padding:0;margin:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+  #appearanceSelect{min-width:82px}
   /* Map-first on phones: an explicit 44px control replaces the always-open rail.
      The entire original six-group rail remains reachable when requested. */
   .mobile-layers-button{display:inline-flex}
@@ -1309,10 +1312,54 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 }
 .k11-export-link{display:inline-block;margin:var(--s-1) var(--s-2) 0 0;font-size:var(--t-meta);color:#9bd5ff;text-decoration:underline}
 
-/* T-a3 Light identity roles are prepared, not activated. No production code
-   writes data-appearance; the later appearance gate owns activation and the
-   rest of the Light surface system. */
+/* Appearance theme. The runtime always resolves System to one of these two
+   concrete values before paint. Evidence/category and basemap-owned colours
+   remain outside this surface system. */
 :root[data-appearance="light"]{
+  color-scheme:light;
+  --bg:#f4f6f9;
+  --panel:rgba(255,255,255,.96);
+  --panel2:rgba(247,249,252,.96);
+  --line:rgba(22,34,47,.14);
+  --line2:rgba(22,34,47,.26);
+  --text:#16222f;
+  --muted:#445468;
+  --text-meta:#526277;
+  --chrome-page-background:#f4f6f9;
+  --chrome-header-surface:rgba(255,255,255,.96);
+  --chrome-panel-surface:rgba(255,255,255,.96);
+  --chrome-card-surface:#f8fafc;
+  --chrome-control-group-surface:#eef2f6;
+  --chrome-form-surface:#fff;
+  --chrome-text-primary:#16222f;
+  --chrome-text-metadata:#445468;
+  --chrome-text-brand-subtle:#445468;
+  --chrome-text-section:#526277;
+  --chrome-text-control-label:#526277;
+  --chrome-text-control-value:#16222f;
+  --chrome-text-control-caption:#445468;
+  --chrome-text-control-strong:#16222f;
+  --chrome-text-card-title:#445468;
+  --chrome-border:rgba(22,34,47,.16);
+  --chrome-mobile-control-border:#9aa7b5;
+  --chrome-mobile-control-surface:#fff;
+  --chrome-mobile-control-text:#16222f;
+  --chrome-mobile-control-open-border:#123b5f;
+  --chrome-mobile-control-open-surface:#e5edf5;
+  --chrome-divider:rgba(22,34,47,.11);
+  --chrome-drawer-surface:#fff;
+  --chrome-drawer-border:rgba(22,34,47,.22);
+  --chrome-drawer-control-surface:#eef2f6;
+  --chrome-drawer-record-surface:#f8fafc;
+  --chrome-drawer-neutral-surface:#f2f4f7;
+  --chrome-drawer-share-surface:#f4f7fa;
+  --chrome-drawer-backdrop:rgba(18,32,47,.34);
+  --chrome-drawer-provenance-divider:rgba(22,34,47,.12);
+  --chrome-drawer-edition-border:rgba(22,34,47,.2);
+  --chrome-focus-ring-color:#075f9a;
+  --chrome-focus-separation-color:#fff;
+  --chrome-focus-ring-subtle-color:#075f9a;
+  --chrome-focus-inline-indicator-color:#075f9a;
   --map-fallback-surface:#f4f6f9;
   --map-attribution-surface:rgba(255,255,255,.92);
   --map-attribution-text:#445468;
@@ -1357,6 +1404,80 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
   /* Tile-dependent marker and halo colours remain the shipped values because
      #0098c0 has not passed a per-pixel gate across all three basemaps. */
 }
+:root[data-appearance="dark"]{color-scheme:dark}
+
+/* Complete Light application chrome. These rules change product surfaces and
+   type only; map markers, halos, category dots and LENS_BASEMAP_STYLES retain
+   their independent scientific/cartographic ownership. */
+:root[data-appearance="light"] header,
+:root[data-appearance="light"] .left,
+:root[data-appearance="light"] .panel{box-shadow:0 14px 38px rgba(25,42,60,.15)}
+:root[data-appearance="light"] .evidence-drawer{box-shadow:0 22px 60px rgba(25,42,60,.22)}
+:root[data-appearance="light"] .panel::-webkit-scrollbar-thumb{background:#a6b2bf}
+:root[data-appearance="light"] .skip-link:focus{background:#fff;color:#16222f}
+
+/* Establish a legible floor for legacy descendants that still carry a
+   consumer-specific Dark literal. More specific identity/status rules below
+   restore their documented distinctions. */
+:root[data-appearance="light"] .left *,
+:root[data-appearance="light"] .panel *,
+:root[data-appearance="light"] .evidence-drawer *{color:var(--muted)}
+:root[data-appearance="light"] :where(.brand-title,.left .layer-left,.left summary,.panel h1,.panel h2,.panel h3,.panel h4,.panel h5,.panel h6,.panel strong,.panel b,.panel dd,.panel button,.evidence-drawer h1,.evidence-drawer h2,.evidence-drawer h3,.evidence-drawer h4,.evidence-drawer h5,.evidence-drawer h6,.evidence-drawer strong,.evidence-drawer b,.evidence-drawer dd,.evidence-drawer button){color:var(--text)}
+:root[data-appearance="light"] :where(.poi-cluster,.poi-cluster *){color:#fff}
+:root[data-appearance="light"] .live{color:#17663f;border-color:#6da88b;background:#edf8f2}
+:root[data-appearance="light"] .live i{background:#17663f;box-shadow:none}
+:root[data-appearance="light"] .live.mixed{color:#6b450b;border-color:#b68a4c;background:#fff8ec}
+:root[data-appearance="light"] .live.mixed i{background:#8a5a12;box-shadow:none}
+
+:root[data-appearance="light"] .left :where(p,small,label),
+:root[data-appearance="light"] .panel :where(p,small,dt,label,th,td,summary),
+:root[data-appearance="light"] .evidence-drawer :where(p,small,dt,label,th,td,summary){color:var(--muted)}
+:root[data-appearance="light"] .panel :where(h1,h2,h3,h4,h5,h6,strong,b,dd),
+:root[data-appearance="light"] .evidence-drawer :where(h1,h2,h3,h4,h5,h6,strong,b,dd){color:var(--text)}
+:root[data-appearance="light"] :where(.section-head span,.section-head small,.area-context,.area-codes,.area-value-label,.area-period,.area-scope p,.area-vut-title,.area-vut-unit,.area-vut-secondary,.area-vut-state,.area-other,.area-other-lens,.area-source-details,.area-source-group-title,.planning-code-label,.planning-distinction,.planning-edition,.planning-outside,.planning-block-head,.planning-block-note,.planning-absent,.planning-phase-field,.planning-phase-note,.planning-attributes dt,.planning-scope-note,.planning-situacion,.planning-use-label,.planning-use-unit,.planning-citizen>p,.planning-ceiling,.planning-change-intro,.planning-change-scope,.planning-change-dates span,.planning-change-numeric-values small,.planning-change-values>span:first-child,.planning-change-values small,.planning-change-detail,.planning-change-caveat,.planning-change-provenance-edition,.drawer-change-edition>p,.planning-touched,.planning-touched-centre,.planning-membership-chip-name,.lic-block-head,.lic-window-field,.lic-family-head,.lic-family-name,.cmp-evidence,.compare-evidence,.halo-visibility-note,.destination-period-label,.destination-metric-head,.destination-metric-exact,.destination-metric-change,.destination-composition,.destination-state,.destination-ceiling,.domestic-origin-scope,.domestic-origin-universe,.domestic-origin-dynamics-relationship,.domestic-origin-dynamics-table-heading,.source,.mode-question,.scope-instance,.scope-rail-freshness,.metric .scope-glyph,.detail-disclosure>summary,.drawer-filter,.drawer-fields dt,.drawer-notes>h3,.k11-notice-message){color:var(--muted)}
+:root[data-appearance="light"] :where(.planning-denomination,.planning-code,.planning-phase-value,.planning-phase-mark,.planning-attributes dd,.planning-use-value,.planning-citizen>summary,.planning-change>summary,.planning-change-analyst>summary,.planning-change-dates strong,.planning-change-outcome h3,.planning-build-comparison h3,.planning-change-analyst h3,.planning-change-label,.planning-change-numeric-values,.planning-change-cell strong,.planning-change-provenance-edition strong,.planning-touched-code,.planning-membership-count,.lic-family-count,.cmp-value,.ss-reading-value,.ss-transition,.comparetable td:last-child,.destination-place,.destination-metric-value,.domestic-origins-head,.domestic-origin-dynamics-summary b,.domestic-origin-dynamics-transitions summary,.scope-rail-item,.evidence-link,.evidence-route,.drawer-record>h3,.drawer-source>h4,.drawer-fields dd,.drawer-ceiling,.drawer-ceiling b){color:var(--text)}
+
+:root[data-appearance="light"] :where(.area-figure,.area-vut,.area-source-details,.planning-block,.planning-citizen,.planning-change,.planning-change-outcome,.planning-change-numeric-row,.planning-membership,.planning-membership-chip,.lic-window,.lic-family,.metric,.card,.ss-item,.destination-metric,.domestic-origin-dynamics-summary>div,.domestic-origin-dynamics-transitions details,.detail-disclosure){background:var(--chrome-card-surface);border-color:var(--chrome-border)}
+:root[data-appearance="light"] :where(.rail-group>summary,.place-jump-chip,.scope-rail-item,.evidence-link,.evidence-route){background:#f2f5f8;border-color:var(--line2);color:var(--text)}
+:root[data-appearance="light"] .rail-group[open]>summary{background:#e8f1f8;border-color:#6791ad}
+:root[data-appearance="light"] .rail-group-badge{background:#eef2f6;border-color:#c4cdd6;color:#445468}
+:root[data-appearance="light"] :where(.stay-filter,.layer,.activity-divider,.context-divider,.research-divider,.administrative-divider,.planning-change-dates,.planning-build-comparison,.planning-change-cell,.planning-change-analyst,.domestic-origins,.domestic-origin-dynamics,.domestic-origin-table-wrap th,.domestic-origin-table-wrap td,.comparetable th,.comparetable td,.ss-guard,.cb-rel){border-color:var(--chrome-divider)}
+
+:root[data-appearance="light"] :where(select,input[type="date"],.hospitality-select-wrap,.ambito-select){background:#fff;color:#16222f;border-color:#9aa7b5}
+:root[data-appearance="light"] select option{background:#fff;color:#16222f}
+:root[data-appearance="light"] .switch span{background:#b7c1cc}
+:root[data-appearance="light"] .switch span:after{background:#fff;box-shadow:0 1px 3px rgba(22,34,47,.28)}
+:root[data-appearance="light"] .switch input:checked+span{background:#176589}
+:root[data-appearance="light"] .switch input:checked+span:after{background:#fff}
+:root[data-appearance="light"] .mode-btn[aria-pressed="true"],
+:root[data-appearance="light"] .reading-btn[aria-pressed="true"]{background:#123b5f;color:#fff;border-color:#123b5f;box-shadow:inset 0 -2px 0 #0098c0}
+:root[data-appearance="light"] .mode-btn[aria-pressed="true"] *,
+:root[data-appearance="light"] .reading-btn[aria-pressed="true"] *{color:#fff}
+:root[data-appearance="light"] :where(.drawer-close,.drawer-action,.k11-notice-dismiss){background:#123b5f;color:#fff;border-color:#123b5f}
+:root[data-appearance="light"] .evidence-drawer .drawer-close,
+:root[data-appearance="light"] .evidence-drawer .drawer-action,
+:root[data-appearance="light"] .k11-notice .k11-notice-dismiss{color:#fff}
+:root[data-appearance="light"] :where(.drawer-close,.drawer-action,.k11-notice-dismiss) *{color:#fff}
+:root[data-appearance="light"] .drawer-action:hover{background:#0d304e}
+:root[data-appearance="light"] .panel .abstain{color:#445468!important}
+:root[data-appearance="light"] .smallbtn{background:#fff;color:#16222f;border-color:#9aa7b5}
+:root[data-appearance="light"] .compare-scope-btn{background:#f2f5f8;color:#445468;border-color:#aab5c0}
+:root[data-appearance="light"] .compare-scope-btn[aria-pressed="true"]{background:#e5edf5;color:#123b5f;border-color:#123b5f}
+:root[data-appearance="light"] .ambito-refusal{background:#fff6ea;color:#5d431d;border-color:#c18b3f}
+:root[data-appearance="light"] .ss-button{background:#e7f1f8;color:#123b5f;border-color:#7ca5c0}
+:root[data-appearance="light"] .ss-button-quiet{background:#f2f4f7;color:#445468;border-color:#b4bec8}
+:root[data-appearance="light"] .cmp-metric-focus{text-decoration-color:#63788d}
+:root[data-appearance="light"] .cmp-metric-focus[aria-pressed="true"]{color:#123b5f;text-decoration-color:#075f9a}
+:root[data-appearance="light"] .halo-metric-row-focused th,
+:root[data-appearance="light"] .halo-metric-row-focused td{background:#ddecf6;color:#16222f!important}
+:root[data-appearance="light"] .panel[data-mode="PLACE"] .place-circle-summary{background:#eaf2f8;border-color:#6d94ad}
+:root[data-appearance="light"] .domestic-origin-table-wrap th{background:#eef2f6;color:#445468}
+:root[data-appearance="light"] .k11-notice{background:#fff;border-color:#b27b2d;box-shadow:0 8px 24px rgba(25,42,60,.18)}
+:root[data-appearance="light"] .k11-notice-title{color:#68430e}
+:root[data-appearance="light"] .source a,
+:root[data-appearance="light"] .k11-export-link{color:#075f9a}
+:root[data-appearance="light"] .admin-active-pane .planning-ambito-label,
+:root[data-appearance="light"] .planning-ambito-label{background:rgba(255,255,255,.94);color:#16222f}
 :root[data-appearance="light"] .badge.register,
 :root[data-appearance="light"] .badge.licence,
 :root[data-appearance="light"] .badge.planning-scope-badge,
@@ -1376,3 +1497,7 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 :root[data-appearance="light"] .ab-side.ac-a{color:var(--ta3-lens-a-text)}
 :root[data-appearance="light"] .ambito-id.ac-b .ambito-id-tag,
 :root[data-appearance="light"] .ab-side.ac-b{color:var(--ta3-lens-b-text)}
+:root[data-appearance="light"] :where(.cb-side-a .cb-lens,.area-other-lens-a){color:var(--ta3-lens-a-text)}
+:root[data-appearance="light"] :where(.cb-side-b .cb-lens,.area-other-lens-b,.area-label-b b){color:var(--ta3-lens-b-text)}
+:root[data-appearance="light"] .panel .cb-side-a .cb-lens{color:var(--ta3-lens-a-text)}
+:root[data-appearance="light"] .panel .cb-side-b .cb-lens{color:var(--ta3-lens-b-text)}

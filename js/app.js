@@ -5463,6 +5463,9 @@ radiusSlider.oninput = (e) => {
 if (P0A_ENABLED) radiusSlider.onchange = endPlanningMembershipInteraction;
 document.getElementById("basemapSelect").onchange = (e) => setBasemap(e.target.value);
 document.getElementById("boundarySelect").onchange = (e) => setBoundaryMode(e.target.value);
+// Appearance is presentation-only and intentionally has no path into basemap,
+// map camera, evidence state or URL restoration.
+window.MadridAppearance?.init();
 // ONE document language at a time (docs/INFORMATION_ARCHITECTURE_V2.md §Language):
 // this control sets the document language and every dictionary-backed surface
 // follows it — shell, Bridge/Insight/Sensitivity, hospitality and domestic origins.
