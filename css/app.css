@@ -101,6 +101,30 @@
   --chrome-focus-separation-color:#08101a;
   --chrome-focus-ring-subtle-color:rgba(87,184,255,.75);
   --chrome-focus-inline-indicator-color:rgba(160,180,205,.7);
+  /* T-a4 application-owned map chrome. Preserve shipped Dark base values
+     except the attribution-text and disabled-zoom state corrections. */
+  --map-fallback-surface:#09111c;
+  --map-attribution-surface:rgba(5,8,12,.75);
+  --map-attribution-text:#aab9ca;
+  --map-attribution-link:#b9c7d7;
+  --map-zoom-surface:#0b1521;
+  --map-zoom-text:#fff;
+  --map-zoom-edge:#25364a;
+  --map-zoom-hover-surface:#0b1521;
+  --map-zoom-disabled-text:#fff;
+  --map-zoom-disabled-opacity:.56;
+  --map-zoom-shadow:0 8px 24px rgba(0,0,0,.24);
+  --map-tooltip-surface:#09131f;
+  --map-tooltip-text:#fff;
+  --map-tooltip-edge:#31465d;
+  --map-tooltip-arrow:#31465d;
+  --map-tooltip-shadow:0 10px 28px rgba(0,0,0,.4);
+  --map-label-surface:rgba(9,18,30,.9);
+  --map-label-text:#e8f0fa;
+  --map-label-edge:rgba(178,203,228,.42);
+  --map-label-shadow:0 6px 18px rgba(0,0,0,.45);
+  --map-label-b-edge:rgba(67,215,255,.45);
+  --map-label-b-text:var(--ta3-lens-b-text);
   /* Reserved for future planning geometry. The neutral family is deliberately
      separate from Lens A/B and carries no order, progress or judgement. */
   --planning-neutral:#aeb8c4;
@@ -118,17 +142,19 @@
 html,body,#map{height:100%;margin:0}
 @supports (height:100dvh){html,body,#map{height:100dvh}}
 body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--chrome-page-background);color:var(--chrome-text-primary);overflow:hidden;overscroll-behavior:none}
-#map{position:absolute;inset:0;background:#09111c}
-.leaflet-container{font:inherit;background:#09111c}
-.leaflet-control-attribution{background:rgba(5,8,12,.75)!important;color:#8798ab!important}
-.leaflet-control-attribution a{color:#b9c7d7!important}
-.leaflet-control-zoom{margin:0!important;box-shadow:0 8px 24px rgba(0,0,0,.24)!important}
-.leaflet-control-zoom a{width:36px!important;height:36px!important;line-height:36px!important;background:#0b1521!important;color:#fff!important;border-color:#25364a!important}
+#map{position:absolute;inset:0;background:var(--map-fallback-surface)}
+.leaflet-container{font:inherit;background:var(--map-fallback-surface)}
+.leaflet-control-attribution{background:var(--map-attribution-surface)!important;color:var(--map-attribution-text)!important}
+.leaflet-control-attribution a{color:var(--map-attribution-link)!important;text-decoration:underline;text-underline-offset:2px}
+.leaflet-control-zoom{margin:0!important;box-shadow:var(--map-zoom-shadow)!important}
+.leaflet-control-zoom a{width:36px!important;height:36px!important;line-height:36px!important;background:var(--map-zoom-surface)!important;color:var(--map-zoom-text)!important;border-color:var(--map-zoom-edge)!important}
+.leaflet-control-zoom a:hover{background:var(--map-zoom-hover-surface)!important}
+.leaflet-control-zoom a.leaflet-disabled{color:var(--map-zoom-disabled-text)!important;opacity:var(--map-zoom-disabled-opacity);cursor:default}
 .leaflet-top.leaflet-left{top:calc(90px + var(--safe-top));left:calc(254px + var(--safe-left))}
 .leaflet-bottom.leaflet-right{right:auto;left:calc(254px + var(--safe-left));bottom:calc(18px + var(--safe-bottom))}
 .leaflet-control-attribution{max-width:min(46vw,520px);border-radius:7px;padding:2px 5px!important;line-height:1.25}
-.leaflet-tooltip{background:#09131f;border:1px solid #31465d;color:white;border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.4);font-size:var(--t-meta);padding:7px 9px}
-.leaflet-tooltip-top:before{border-top-color:#31465d}
+.leaflet-tooltip{background:var(--map-tooltip-surface);border:1px solid var(--map-tooltip-edge);color:var(--map-tooltip-text);border-radius:10px;box-shadow:var(--map-tooltip-shadow);font-size:var(--t-meta);padding:7px 9px}
+.leaflet-tooltip-top:before{border-top-color:var(--map-tooltip-arrow)}
 
 header{
   position:absolute;z-index:1100;left:calc(18px + var(--safe-left));right:calc(18px + var(--safe-right));top:calc(16px + var(--safe-top));height:60px;
@@ -818,10 +844,10 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 /* Administrative reference geometry: a quieter halo than the lens, so the
    containing barrio stays readable on imagery without competing with it. */
 .admin-active-pane{filter:drop-shadow(0 0 1.2px rgba(0,0,0,.7)) drop-shadow(0 0 1.8px rgba(255,255,255,.32))}
-.area-label{background:rgba(9,18,30,.9);border:1px solid rgba(178,203,228,.42);color:#e8f0fa;border-radius:999px;padding:var(--s-1) var(--s-2);font-size:var(--t-micro);font-weight:600;letter-spacing:-.005em;box-shadow:0 6px 18px rgba(0,0,0,.45);white-space:nowrap;backdrop-filter:blur(6px);max-width:210px;overflow:hidden;text-overflow:ellipsis}
+.area-label{background:var(--map-label-surface);border:1px solid var(--map-label-edge);color:var(--map-label-text);border-radius:999px;padding:var(--s-1) var(--s-2);font-size:var(--t-micro);font-weight:600;letter-spacing:-.005em;box-shadow:var(--map-label-shadow);white-space:nowrap;backdrop-filter:blur(6px);max-width:210px;overflow:hidden;text-overflow:ellipsis}
 .area-label b{margin-right:var(--s-2);font-size:var(--t-micro);font-weight:800;letter-spacing:.11em;opacity:.85}
-.area-label-b{border-color:rgba(67,215,255,.45)}
-.area-label-b b{color:var(--b)}
+.area-label-b{border-color:var(--map-label-b-edge)}
+.area-label-b b{color:var(--map-label-b-text)}
 .marker-center{width:18px;height:18px;border-radius:50%;border:2px solid currentColor;background:rgba(8,16,27,.75);box-shadow:0 0 0 5px color-mix(in srgb,currentColor 15%,transparent),0 3px 15px rgba(0,0,0,.5)}
 .marker-a{color:var(--ta3-map-center-a)}.marker-b{color:var(--ta3-map-center-b)}
 .poi-cluster-icon{background:transparent!important;border:0!important}
@@ -1287,6 +1313,28 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
    writes data-appearance; the later appearance gate owns activation and the
    rest of the Light surface system. */
 :root[data-appearance="light"]{
+  --map-fallback-surface:#f4f6f9;
+  --map-attribution-surface:rgba(255,255,255,.92);
+  --map-attribution-text:#445468;
+  --map-attribution-link:#0a63c7;
+  --map-zoom-surface:#fff;
+  --map-zoom-text:#16222f;
+  --map-zoom-edge:#74808e;
+  --map-zoom-hover-surface:#f2f4f7;
+  --map-zoom-disabled-text:#667586;
+  --map-zoom-disabled-opacity:1;
+  --map-zoom-shadow:0 8px 24px rgba(16,24,34,.18);
+  --map-tooltip-surface:rgba(255,255,255,.96);
+  --map-tooltip-text:#16222f;
+  --map-tooltip-edge:#74808e;
+  --map-tooltip-arrow:#74808e;
+  --map-tooltip-shadow:0 10px 28px rgba(16,24,34,.18);
+  --map-label-surface:rgba(255,255,255,.94);
+  --map-label-text:#16222f;
+  --map-label-edge:#74808e;
+  --map-label-shadow:0 6px 18px rgba(16,24,34,.16);
+  --map-label-b-edge:#00718f;
+  --map-label-b-text:#00718f;
   --ta3-badge-neutral-text:#16222f;
   --ta3-badge-neutral-background:#f2f4f7;
   --ta3-badge-neutral-border:#c7ced7;
