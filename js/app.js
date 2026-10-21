@@ -3380,6 +3380,37 @@ function planningExplorerEditions() {
   ]);
 }
 
+function renderPlanningExplorerEvidence(inspection) {
+  const phases = document.getElementById("planningExplorerPhases"), phaseRows = document.getElementById("planningExplorerPhaseRows"), stateAbsent = document.getElementById("planningExplorerStateAbsent"), build = document.getElementById("planningExplorerBuild"), buildRows = document.getElementById("planningExplorerBuildRows"), buildAbsent = document.getElementById("planningExplorerBuildAbsent");
+  if (!phases || !phaseRows || !stateAbsent || !build || !buildRows || !buildAbsent) return;
+  phaseRows.replaceChildren(); buildRows.replaceChildren(); phases.hidden = true; stateAbsent.hidden = true; build.hidden = true; buildAbsent.hidden = true;
+  const { AVAILABILITY, VALUE_STATE } = planningModel.module;
+  if (inspection.developmentState?.availability === AVAILABILITY.PUBLISHED) {
+    phases.hidden = false;
+    for (const phase of inspection.developmentState.phases) {
+      const item = document.createElement("li"), field = document.createElement("span"), value = document.createElement("span");
+      field.className = "planning-phase-field"; field.textContent = shellT(`planning.phase.${phase.key}`);
+      value.className = "planning-phase-value"; value.textContent = phase.state === VALUE_STATE.PUBLISHED ? phase.sourceValue : shellT("planning.notPublished");
+      if (phase.state === VALUE_STATE.PUBLISHED) value.dataset.verbatim = "";
+      item.append(field, value); phaseRows.append(item);
+    }
+  } else { stateAbsent.hidden = false; stateAbsent.textContent = `${shellT("planning.stateNotPublished")} ${shellT("planning.absenceNote")}`; }
+  if (inspection.availableBuildability?.availability === AVAILABILITY.PUBLISHED) {
+    build.hidden = false;
+    for (const row of inspection.availableBuildability.rows) {
+      const wrap = document.createElement("div"), list = document.createElement("ul"); wrap.className = "planning-build-row"; list.className = "planning-uses";
+      if (row.situacion) { const p = document.createElement("p"); p.className = "planning-situacion"; p.textContent = `${shellT("planning.situacionLabel")}: ${row.situacion}`; p.dataset.verbatim = ""; wrap.append(p); }
+      for (const useClass of row.useClasses) {
+        const item = document.createElement("li"), label = document.createElement("span"), value = document.createElement("span"); item.dataset.valueState = useClass.state;
+        label.className = "planning-use-label"; label.textContent = shellT(`planning.use.${useClass.key}`);
+        value.className = "planning-use-value"; value.textContent = useClass.state === VALUE_STATE.PUBLISHED ? `${planningFigure(useClass.value, 2)} ${useClass.unit}` : shellT("planning.notPublished");
+        item.append(label, value); list.append(item);
+      }
+      wrap.append(list); buildRows.append(wrap);
+    }
+  } else { buildAbsent.hidden = false; buildAbsent.textContent = `${shellT("planning.buildNotPublished")} ${shellT("planning.absenceNote")}`; }
+}
+
 function clearPlanningExplorer() {
   planningExplorer.query = "";
   planningExplorer.results = [];
@@ -3444,17 +3475,17 @@ function renderPlanningExplorer() {
     const replacement = [...results.querySelectorAll("button")].find((button) => button.dataset.code === focusedCode);
     if (replacement) replacement.focus({ preventScroll: true });
   }
-  const feature = planningExplorer.selectedCode && planningModel.index.featureFor(planningExplorer.selectedCode);
-  if (!feature) return;
-  const properties = feature.properties || {};
+  const inspection = planningExplorer.selectedCode && planningModel.explorerModule.planningInspection(planningModel.index, planningExplorer.selectedCode);
+  if (!inspection) return;
   card.hidden = false;
-  setText("planningExplorerCode", properties.ambito_code || planningExplorer.selectedCode);
-  setText("planningExplorerDenomination", properties.ambito_denomination || "");
+  setText("planningExplorerCode", inspection.code);
+  setText("planningExplorerDenomination", inspection.denomination || "");
   setText("planningExplorerScope", shellT("planning.explorer.scope"));
-  const editions = planningExplorerEditions();
+  const editions = inspection.editions.map(({ family, referenceDate }) => [family === "developmentState" ? "planning.explorer.developmentEdition" : "planning.explorer.buildabilityEdition", planningDate(referenceDate)]);
   setText("planningExplorerEdition", editions.length
     ? editions.map(([key, date]) => shellT(key).replace("{date}", date)).join(" · ")
     : shellT("planning.explorer.editionUnavailable"));
+  renderPlanningExplorerEvidence(inspection);
 }
 
 function renderPlanningExplorerPolygon() {
@@ -5564,6 +5595,7 @@ if (P0A_ENABLED && planningMembershipSeeAll) {
 const planningExplorerQuery = document.getElementById("planningExplorerQuery");
 const planningExplorerClose = document.getElementById("planningExplorerClose");
 const planningExplorerMap = document.getElementById("planningExplorerMap");
+const planningExplorerEvidenceToggle = document.getElementById("planningExplorerEvidenceToggle");
 if (planningExplorerQuery) {
   planningExplorerQuery.addEventListener("input", (event) => {
     planningExplorer.query = event.target.value;
@@ -5584,6 +5616,9 @@ document.getElementById("planningExplorerResults")?.addEventListener("keydown", 
 });
 if (planningExplorerClose) planningExplorerClose.addEventListener("click", clearPlanningExplorer);
 if (planningExplorerMap) planningExplorerMap.addEventListener("click", showPlanningExplorerOnMap);
+if (planningExplorerEvidenceToggle) planningExplorerEvidenceToggle.addEventListener("click", () => {
+  if (planningExplorer.selectedCode) openEvidenceDrawer({ opener: planningExplorerEvidenceToggle, scope: "PLANNING_AMBITO", ambitoCode: planningExplorer.selectedCode });
+});
 
 function renderRadiusLabels() {
   const text = formatLensRadius(radiusFor(active));
@@ -6141,6 +6176,7 @@ function renderDrawerBody() {
   filterLine.textContent = filter.scope
     ? `${shellT("drawer.filter.scope")}: ${shellT(`scope.${filter.scope}`)}`
     : shellT("drawer.filter.all");
+  if (filter.ambitoCode) filterLine.textContent += ` · ${shellT("planning.explorer.inspected")}: ${filter.ambitoCode}`;
   if (!shell.registry) {
     const note = document.createElement("p");
     note.textContent = shellT(shell.registryFailed ? "rail.unavailable" : "date.loading");
@@ -6265,9 +6301,9 @@ function renderDrawerBody() {
   }
 }
 
-function openEvidenceDrawer({ opener = document.activeElement, scope = null, prefix = null, focusSection = null } = {}) {
+function openEvidenceDrawer({ opener = document.activeElement, scope = null, prefix = null, focusSection = null, ambitoCode = null } = {}) {
   const dialog = document.getElementById("evidenceDrawer");
-  shell.drawerFilter = { scope, prefix };
+  shell.drawerFilter = { scope, prefix, ambitoCode };
   shell.drawerOpener = opener;
   // The opener is remembered by IDENTITY as well as by node. An artifact that
   // finishes loading while the drawer is open re-renders the rail and detaches

@@ -299,6 +299,14 @@
           <h3 id="planningExplorerDenomination" class="planning-explorer-denomination" data-verbatim></h3>
           <p id="planningExplorerScope" class="planning-explorer-scope"></p>
           <p id="planningExplorerEdition" class="planning-explorer-edition"></p>
+          <details id="planningExplorerEvidence" class="planning-explorer-evidence">
+            <summary data-i18n="planning.explorer.evidenceSummary">Published planning evidence</summary>
+            <section id="planningExplorerPhases" class="planning-explorer-section" hidden><h4 data-i18n="planning.phasesTitle">Four published development phases</h4><ul id="planningExplorerPhaseRows" class="planning-phases"></ul><p class="planning-block-note" data-i18n="planning.phasesNote">Four independent published fields. The publisher documents no order between them, so they do not form one overall stage and no progress, percentage, completion or timeline figure is derived.</p></section>
+            <p id="planningExplorerStateAbsent" class="planning-absent" hidden></p>
+            <section id="planningExplorerBuild" class="planning-explorer-section" hidden><h4 data-i18n="planning.buildTitle">Available buildability · edificabilidad disponible</h4><div id="planningExplorerBuildRows"></div><p class="planning-block-note" data-i18n="planning.buildNote">What the plan makes available, by use class. Not what remains to be physically built, and not an estimate of what will be built.</p></section>
+            <p id="planningExplorerBuildAbsent" class="planning-absent" hidden></p>
+          </details>
+          <button id="planningExplorerEvidenceToggle" type="button" class="planning-explorer-evidence-toggle" aria-haspopup="dialog" data-i18n="planning.explorer.evidenceToggle">Evidence &amp; limits</button>
           <button id="planningExplorerMap" type="button" class="planning-explorer-map" data-i18n="planning.explorer.showMap">Show on map</button>
         </article>
       </div>

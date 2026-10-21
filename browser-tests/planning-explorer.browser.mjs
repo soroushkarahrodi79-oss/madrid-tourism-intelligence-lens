@@ -47,8 +47,39 @@ test("explorer searches exact codes, rejects unknown codes, and highlights only 
   assert.equal(selected.selectedCode, "APR.02.09");
   assert.equal(selected.selectedLayer, true);
   assert.equal(selected.cameraMoves, 0);
+  const inspection = await page.evaluate(() => ({
+    code: document.querySelector("#planningExplorerCode").textContent,
+    phases: document.querySelectorAll("#planningExplorerPhaseRows li").length,
+    buildability: document.querySelectorAll("#planningExplorerBuildRows .planning-uses li").length,
+    inspectedState: document.querySelector("#planningExplorerStateAbsent").hidden,
+    inspectedBuild: document.querySelector("#planningExplorerBuildAbsent").hidden,
+  }));
+  assert.equal(inspection.code, "APR.02.09");
+  assert.equal(inspection.phases, 4);
+  assert.ok(inspection.buildability >= 4);
+  assert.equal(inspection.inspectedState, true);
+  assert.equal(inspection.inspectedBuild, true);
+  await page.locator("#planningExplorerEvidenceToggle").click();
+  assert.match(await page.locator("#evidenceDrawerFilter").textContent(), /Inspected official ámbito: APR\.02\.09/);
+  await page.locator("#evidenceDrawerClose").click();
   await query.fill("NOT.A.REAL.CODE");
   assert.match(await page.locator("#planningExplorerStatus").textContent(), /No official planning ámbito/i);
+});
+
+test("changing an inspected ámbito replaces fields without stale values", async (t) => {
+  const { page, context } = await pageFor(); t.after(() => context.close());
+  const select = async (code) => {
+    await page.locator("#planningExplorerQuery").fill(code);
+    await page.locator("#planningExplorerResults button").click();
+    return page.evaluate(() => ({ code: document.querySelector("#planningExplorerCode").textContent, phases: [...document.querySelectorAll("#planningExplorerPhaseRows li")].map((row) => row.textContent), build: document.querySelector("#planningExplorerBuildRows").textContent }));
+  };
+  const first = await select("APR.02.09");
+  const alternative = await page.evaluate(() => [...document.querySelectorAll("#planningExplorerResults button")].map((node) => node.dataset.code)[0]);
+  assert.equal(alternative, "APR.02.09");
+  const second = await select("APE.01.01");
+  assert.equal(second.code, "APE.01.01");
+  assert.notDeepEqual(second.phases, first.phases);
+  assert.notEqual(second.build, first.build);
 });
 
 test("only the explicit Show on map action changes camera; Lens and COMPARE stay untouched", async (t) => {
