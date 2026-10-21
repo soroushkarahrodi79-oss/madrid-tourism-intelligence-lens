@@ -278,7 +278,11 @@ test("P1 responsive shell keeps branding, map tools and provider credits distinc
     if (viewport.width <= 680) assert.ok(g.themeHeight >= 44 && g.languageHeight >= 44, `touch preferences at ${viewport.width}px: ${JSON.stringify(g)}`);
     assert.ok(g.themeWidth >= 70, "appearance remains a real visible select, not a hidden setting");
     assert.ok(/OpenStreetMap/i.test(g.credits), "required OSM attribution remains visible");
-    assert.ok(/CARTO/i.test(g.credits), "required cartographic provider attribution remains visible");
+    // CI has an empty CARTO key and legitimately falls back to OSM tiles;
+    // demand CARTO credit only if that provider is actually enabled.
+    if (await page.evaluate(() => Boolean(window.RUNTIME_CONFIG?.CARTO_BASEMAP_KEY))) {
+      assert.ok(/CARTO/i.test(g.credits), "CARTO credit remains when CARTO tiles are enabled");
+    }
     assert.ok(g.tools.left >= 0 && g.tools.right <= viewport.width + 1, "tools remain inside viewport");
   }
 });
