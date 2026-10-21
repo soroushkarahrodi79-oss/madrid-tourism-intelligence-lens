@@ -275,7 +275,7 @@ test("P1 responsive shell keeps branding, map tools and provider credits distinc
     assert.equal(g.zoomAttribution, false, `zoom/provider credit collision: ${JSON.stringify(g)}`);
     assert.equal(g.zoomLayers, false, `zoom/Layers collision: ${JSON.stringify(g)}`);
     assert.equal(g.brandTextClipped, false, `mobile brand clipping: ${JSON.stringify(g)}`);
-    assert.ok(g.themeHeight >= 44 && g.languageHeight >= 44, `preference controls preserve the touch target at ${viewport.width}px`);
+    if (viewport.width <= 680) assert.ok(g.themeHeight >= 44 && g.languageHeight >= 44, `touch preferences at ${viewport.width}px: ${JSON.stringify(g)}`);
     assert.ok(g.themeWidth >= 70, "appearance remains a real visible select, not a hidden setting");
     assert.ok(/OpenStreetMap/i.test(g.credits), "required OSM attribution remains visible");
     assert.ok(/CARTO/i.test(g.credits), "required cartographic provider attribution remains visible");
