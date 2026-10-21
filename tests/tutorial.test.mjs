@@ -29,7 +29,7 @@ test("tutorial is an optional guide, not an analytical-state driver", () => {
 
 test("guide styles are responsive, focused and forced-colours compatible", () => {
   assert.match(css, /\.tutorial-guide-bottom/);
-  assert.match(css, /\.tutorial-target/);
+  assert.match(css, /#tutorialHighlight/);
   assert.match(css, /@media\(forced-colors:active\)/);
   assert.match(css, /@media\(max-width:560px\)/);
 });

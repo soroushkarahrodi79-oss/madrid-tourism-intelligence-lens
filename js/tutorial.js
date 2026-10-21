@@ -37,7 +37,7 @@
     }
   };
   const TARGETS = ["#map", "#radiusSlider", null, "#modeCompareButton", "#modeCityButton", "[data-evidence-mode]"];
-  let state = { step: 0, active: false, opener: null, highlighted: null, sessionHandled: false };
+  let state = { step: 0, active: false, opener: null, highlight: null, sessionHandled: false };
 
   function language() { return document.getElementById("languageSelect")?.value === "es" ? "es" : "en"; }
   function t() { return COPY[language()]; }
@@ -46,9 +46,21 @@
   function isVisible(el) { if (!el) return false; const r = el.getBoundingClientRect(); const s = root.getComputedStyle(el); return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < root.innerHeight && r.right > 0 && r.left < root.innerWidth && s.visibility !== "hidden" && s.display !== "none"; }
   function targetFor(step) {
     if (step === 2) return document.documentElement.clientWidth <= 560 ? document.getElementById("mobileLayersButton") : document.getElementById("layerRail");
+    if (step === 1) return isVisible(document.getElementById("radiusSlider")) ? document.getElementById("radiusSlider") : document.getElementById("modePlaceButton");
+    if (step === 5) {
+      const mode = document.getElementById("analysisPanel")?.dataset.mode || "PLACE";
+      return document.querySelector(`[data-evidence-mode="${mode}"]`) || document.getElementById("scopeRailFreshness");
+    }
     return document.querySelector(TARGETS[step]);
   }
-  function removeHighlight() { if (state.highlighted) state.highlighted.classList.remove("tutorial-target"); state.highlighted = null; }
+  function removeHighlight() { state.highlight?.remove(); state.highlight = null; }
+  function showHighlight(target) {
+    if (!target || !isVisible(target)) return;
+    const r = target.getBoundingClientRect(); const ring = document.createElement("div");
+    ring.id = "tutorialHighlight"; ring.setAttribute("aria-hidden", "true");
+    ring.style.left = `${r.left}px`; ring.style.top = `${r.top}px`; ring.style.width = `${r.width}px`; ring.style.height = `${r.height}px`;
+    document.body.append(ring); state.highlight = ring;
+  }
   function positionGuide(el, target) {
     const phone = root.matchMedia("(max-width: 560px)").matches;
     el.classList.toggle("tutorial-guide-bottom", phone);
@@ -62,7 +74,7 @@
     el.style.left = `${left}px`; el.style.top = `${top}px`;
   }
   function destroySurface() { removeHighlight(); document.getElementById("tutorialInvite")?.remove(); document.getElementById("tutorialGuide")?.remove(); }
-  function restoreFocus() { const el = state.opener; state.opener = null; if (el && el.isConnected) el.focus({ preventScroll: true }); }
+  function restoreFocus() { const el = state.opener; state.opener = null; (el?.isConnected ? el : document.getElementById("tutorialHelpButton"))?.focus({ preventScroll: true }); }
   function finish(reason) {
     const complete = reason === "complete";
     if (complete) safeWrite(`${VERSION}:completed`);
@@ -77,13 +89,14 @@
   }
   function renderGuide() {
     destroySurface(); const c = t(); const done = state.step >= 6; const target = done ? null : targetFor(state.step); const unavailable = !done && !isVisible(target);
-    if (target && !unavailable) { target.classList.add("tutorial-target"); state.highlighted = target; }
+    if (target && !unavailable) showHighlight(target);
     const title = done ? c.doneTitle : c.steps[state.step][0]; const body = done ? c.doneBody : c.steps[state.step][1];
     const el = document.createElement("section"); el.id = "tutorialGuide"; el.className = "tutorial-guide"; el.setAttribute("role", "region"); el.setAttribute("aria-label", c.help); el.tabIndex = -1;
-    el.innerHTML = `<div class="tutorial-guide-top"><span class="tutorial-progress">${done ? "6 / 6" : c.progress.replace("{n}", state.step + 1)}</span><button type="button" class="tutorial-icon" data-tutorial-close aria-label="${c.close}">×</button></div><h2>${title}</h2><p>${body}</p>${unavailable ? `<p class="tutorial-fallback">${c.unavailable}</p>` : ""}<div class="tutorial-actions">${done ? `<button type="button" data-tutorial-finish>${c.doneStart}</button><button type="button" class="tutorial-quiet" data-tutorial-replay>${c.replay}</button>` : `<button type="button" class="tutorial-quiet" data-tutorial-back ${state.step === 0 ? "disabled" : ""}>${c.back}</button><button type="button" data-tutorial-next>${c.next}</button><button type="button" class="tutorial-link" data-tutorial-skip>${c.skip}</button>`}</div>`;
+    const reveal = !done && (state.step === 1 || state.step === 5) ? `<button type="button" class="tutorial-link" data-tutorial-reveal>${state.step === 1 ? (language() === "es" ? "Mostrar controles" : "Show controls") : (language() === "es" ? "Mostrar Evidencia y límites" : "Show Evidence & limits")}</button>` : "";
+    el.innerHTML = `<div class="tutorial-guide-top"><span class="tutorial-progress">${done ? "6 / 6" : c.progress.replace("{n}", state.step + 1)}</span><button type="button" class="tutorial-icon" data-tutorial-close aria-label="${c.close}">×</button></div><h2>${title}</h2><p>${body}</p>${unavailable ? `<p class="tutorial-fallback">${c.unavailable}</p>` : ""}<div class="tutorial-actions">${done ? `<button type="button" data-tutorial-finish>${c.doneStart}</button><button type="button" class="tutorial-quiet" data-tutorial-replay>${c.replay}</button>` : `<button type="button" class="tutorial-quiet" data-tutorial-back ${state.step === 0 ? "disabled" : ""}>${c.back}</button><button type="button" data-tutorial-next>${c.next}</button>${reveal}<button type="button" class="tutorial-link" data-tutorial-skip>${c.skip}</button>`}</div>`;
     document.body.append(el); positionGuide(el, target); el.querySelector("[data-tutorial-close]").onclick = () => finish("dismiss");
     if (done) { el.querySelector("[data-tutorial-finish]").onclick = () => finish("complete"); el.querySelector("[data-tutorial-replay]").onclick = () => { state.step = 0; renderGuide(); }; }
-    else { el.querySelector("[data-tutorial-back]").onclick = () => { state.step--; renderGuide(); }; el.querySelector("[data-tutorial-next]").onclick = () => { state.step++; renderGuide(); }; el.querySelector("[data-tutorial-skip]").onclick = () => finish("dismiss"); }
+    else { el.querySelector("[data-tutorial-back]").onclick = () => { state.step--; renderGuide(); }; el.querySelector("[data-tutorial-next]").onclick = () => { state.step++; renderGuide(); }; el.querySelector("[data-tutorial-skip]").onclick = () => finish("dismiss"); el.querySelector("[data-tutorial-reveal]")?.addEventListener("click", () => { const target = state.step === 1 ? document.getElementById("panelControls") : targetFor(5); target?.scrollIntoView({ block: "nearest", behavior: root.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); removeHighlight(); root.setTimeout(() => showHighlight(target), 250); }); }
     el.focus({ preventScroll: true });
   }
   function start(opener) { state.opener = opener || document.activeElement; state.step = 0; state.active = true; state.sessionHandled = true; renderGuide(); }
@@ -97,7 +110,9 @@
     // Existing deterministic map-regression harnesses are not first visitors;
     // suppress the invitation there without changing any real URL behaviour.
     const regressionHarness = /(?:\?|&)haloRegressionTest=1(?:&|$)/.test(root.location.search);
-    if (!stored && !shared && !regressionHarness && !state.sessionHandled) root.setTimeout(renderInvite, 700);
+    const ready = () => document.readyState === "complete" && Boolean(document.querySelector("#map .leaflet-pane")) && Boolean(document.getElementById("analysisPanel")?.dataset.mode);
+    const offerWhenReady = () => { if (state.active || state.sessionHandled) return; if (ready()) renderInvite(); else root.requestAnimationFrame(offerWhenReady); };
+    if (!stored && !shared && !regressionHarness && !state.sessionHandled) root.requestAnimationFrame(offerWhenReady);
   }
   const api = { STORAGE_KEY, COPY, safeRead, safeWrite, targetFor, init, start };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

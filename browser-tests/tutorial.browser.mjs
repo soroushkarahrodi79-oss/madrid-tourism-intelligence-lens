@@ -32,15 +32,16 @@ test("first visit invites once; skip, replay, six steps and Escape preserve live
   const page = await open(); t.after(() => close(page));
   await page.locator("#tutorialInvite").waitFor();
   await shot(page, "01-first-visit-desktop");
-  const before = await page.evaluate(() => ({ mode: document.querySelector("#analysisPanel").dataset.mode, radius: document.querySelector("#radiusSlider").value, base: document.querySelector("#basemapSelect").value, url: location.href }));
+  const before = await page.evaluate(() => { const map = document.querySelector("#map"), panel = document.querySelector("#analysisPanel"), r = map.getBoundingClientRect(); return { mode: panel.dataset.mode, radius: document.querySelector("#radiusSlider").value, base: document.querySelector("#basemapSelect").value, url: location.href, position: getComputedStyle(map).position, mapBox: [r.left, r.top, r.width, r.height], panelZ: getComputedStyle(panel).zIndex, markerPane: document.querySelector("#map .leaflet-marker-pane")?.style.transform, overlayPane: document.querySelector("#map .leaflet-overlay-pane")?.style.transform }; });
   await page.locator("[data-tutorial-start]").click();
+  assert.equal(await page.locator("#tutorialHighlight").count(), 1);
   await page.locator("[data-tutorial-next]").click(); await shot(page, "03-place-radius-desktop"); await page.locator("[data-tutorial-back]").click();
   for (let n = 1; n <= 6; n++) { await page.locator("#tutorialGuide").waitFor(); await page.locator("[data-tutorial-next]").click(); }
   assert.match(await page.locator("#tutorialGuide").textContent(), /ready to explore/i);
   await page.locator("[data-tutorial-finish]").click();
   assert.equal(await page.evaluate(() => localStorage.getItem("madrid-lens-tutorial-v1")), "1:completed");
   await page.locator("#tutorialHelpButton").click(); await page.keyboard.press("Escape");
-  const after = await page.evaluate(() => ({ mode: document.querySelector("#analysisPanel").dataset.mode, radius: document.querySelector("#radiusSlider").value, base: document.querySelector("#basemapSelect").value, url: location.href }));
+  const after = await page.evaluate(() => { const map = document.querySelector("#map"), panel = document.querySelector("#analysisPanel"), r = map.getBoundingClientRect(); return { mode: panel.dataset.mode, radius: document.querySelector("#radiusSlider").value, base: document.querySelector("#basemapSelect").value, url: location.href, position: getComputedStyle(map).position, mapBox: [r.left, r.top, r.width, r.height], panelZ: getComputedStyle(panel).zIndex, markerPane: document.querySelector("#map .leaflet-marker-pane")?.style.transform, overlayPane: document.querySelector("#map .leaflet-overlay-pane")?.style.transform }; });
   assert.deepEqual(after, before);
   assert.equal(await page.evaluate(() => localStorage.getItem("madrid-lens-tutorial-v1")), "1:completed");
   await page.locator("#tutorialHelpButton").click(); assert.match(await page.locator("#tutorialGuide").textContent(), /Understand the map/);
