@@ -24,6 +24,7 @@ const browser = await chromium.launch({ headless: true });
 
 async function openApp(width) {
   const context = await browser.newContext({ viewport: { width, height: width <= 560 ? 760 : 900 } });
+  await context.addInitScript(() => localStorage.setItem("madrid-lens-appearance", "dark"));
   const page = await context.newPage();
   page.setDefaultTimeout(6000);
   await page.route("**/*", (route) => {
@@ -63,8 +64,8 @@ test("T-a3 light identity roles render safely across languages, viewports and ba
   for (const width of [390, 768, 1440]) {
     const { page, context } = await openApp(width);
     try {
-      assert.equal(await page.locator("html").getAttribute("data-appearance"), null,
-        "normal production startup must not activate the prepared Light roles");
+      assert.equal(await page.locator("html").getAttribute("data-appearance"), "dark",
+        "manual Dark resolves synchronously at production startup");
       await page.locator('.mode-btn[data-mode="COMPARE"]').click();
       await page.waitForFunction(() => document.getElementById("analysisPanel").dataset.mode === "COMPARE");
 
@@ -131,7 +132,7 @@ test("T-a3 light identity roles render safely across languages, viewports and ba
         "rgb(189, 214, 239)", "rgb(255, 154, 187)", "rgb(194, 206, 219)",
         "rgb(255, 195, 109)", "rgb(159, 212, 194)", "rgb(174, 190, 208)", "rgb(212, 221, 231)",
       ]);
-      await page.evaluate(() => { document.documentElement.dataset.appearance = "light"; }); // test-only simulation
+      await page.locator("#appearanceSelect").selectOption("light");
 
       for (const language of ["en", "es"]) {
         await page.locator("#languageSelect").selectOption(language);

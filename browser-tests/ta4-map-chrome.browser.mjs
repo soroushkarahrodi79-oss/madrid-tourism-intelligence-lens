@@ -39,6 +39,7 @@ const composite = (front, back, alpha) => front.map((channel, i) => Math.round(c
 
 async function openApp(viewport) {
   const context = await browser.newContext({ viewport });
+  await context.addInitScript(() => localStorage.setItem("madrid-lens-appearance", "dark"));
   const page = await context.newPage();
   page.setDefaultTimeout(7000);
   page.route("**/*", (route) => {
@@ -88,9 +89,9 @@ test("T-a4 map chrome roles render across desktop/mobile, EN/ES and all three ba
   for (const appearance of ["dark", "light"]) {
     const { page, context } = await openApp({ width: 1440, height: 900 });
     try {
-      assert.equal(await page.locator("html").getAttribute("data-appearance"), null,
-        "production startup keeps prepared Light roles dormant");
-      if (appearance === "light") await page.evaluate(() => { document.documentElement.dataset.appearance = "light"; });
+      assert.equal(await page.locator("html").getAttribute("data-appearance"), "dark",
+        "manual Dark resolves synchronously at production startup");
+      if (appearance === "light") await page.locator("#appearanceSelect").selectOption("light");
       const sequence = [
         { basemap: "light", width: 1440, language: "en" },
         { basemap: "dark", width: 1440, language: "es" },

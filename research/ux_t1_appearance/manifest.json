@@ -1,0 +1,211 @@
+{
+  "schema": "ux-t1-appearance-visual-proof/1.1",
+  "capturedAt": "2026-10-21T07:28:00.140Z",
+  "browser": "Chromium 153.0.8010.12 via Playwright",
+  "source": "local implementation branch; verified deployed runtime artifacts proxied in memory; committed static evidence assets; live tiles (not version-pinned)",
+  "deployment": {
+    "mode": "verified-deployment",
+    "manifest": {
+      "commit": "c13f44db4bf5d19657b4c4326e9b9834a96822a6",
+      "workflowRun": "39472819748",
+      "generatedAt": "2026-10-20T18:14:17.700Z",
+      "buildState": "pass",
+      "validation": {
+        "error_count": 0,
+        "warning_count": 0,
+        "errors": [],
+        "warnings": []
+      },
+      "operationalRecords": 1470
+    },
+    "assets": [
+      {
+        "path": "/js/runtime-config.js",
+        "url": "https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens/js/runtime-config.js",
+        "bytes": 85,
+        "sha256": "202090142a495d44c037926a3ae8ab145a0a2590f4e05a43ebc2ce6569777c27"
+      },
+      {
+        "path": "/data/runtime_poi.json",
+        "url": "https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens/data/runtime_poi.json",
+        "bytes": 390017,
+        "sha256": "57d0b9b94ddcf220467472e9cab784764264c57fdf2ebc58674d061e432a7a14"
+      },
+      {
+        "path": "/data/deployment_manifest.json",
+        "url": "https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens/data/deployment_manifest.json",
+        "bytes": 46045,
+        "sha256": "78a3a5153b7266ed029439ac5ab613707584dd66d5e6d2a3bc2cca82a158deda"
+      },
+      {
+        "path": "/data/pedestrian_activity.json",
+        "url": "https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens/data/pedestrian_activity.json",
+        "bytes": 11368,
+        "sha256": "aca3613537c8c19dbe0680cd9aae41a5a2a3ec8e063ff375ee80ae9e80de0cf5"
+      }
+    ],
+    "limitation": null
+  },
+  "screenshots": [
+    {
+      "file": "screenshots/01-desktop-place-dark.png",
+      "sha256": "e65e160e0d1105d9574563f518171a4d8a0b473d86179eb6a213de14e1f29a3a",
+      "bytes": 1053145,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "dark",
+      "resolved": "dark",
+      "basemap": "light",
+      "language": "en",
+      "mode": "PLACE",
+      "dataMode": "verified-deployment",
+      "evidenceState": "1470 records · deployment snapshot (see layer panel)"
+    },
+    {
+      "file": "screenshots/02-desktop-place-light.png",
+      "sha256": "b116cecd9e532d89a9a541cc5652c5c39e0edcbf3d6828d256f94a5797902fd8",
+      "bytes": 1009344,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "light",
+      "resolved": "light",
+      "basemap": "light",
+      "language": "en",
+      "mode": "PLACE",
+      "dataMode": "verified-deployment",
+      "evidenceState": "1470 records · deployment snapshot (see layer panel)"
+    },
+    {
+      "file": "screenshots/03-desktop-compare-dark.png",
+      "sha256": "b06c68c4ee79f3a38d10abaf5e014b6a5ab90e6d4e1bfad6aa314b57aaae7e8d",
+      "bytes": 1041520,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "dark",
+      "resolved": "dark",
+      "basemap": "light",
+      "language": "en",
+      "mode": "COMPARE",
+      "dataMode": "verified-deployment",
+      "evidenceState": "1470 records · deployment snapshot (see layer panel)"
+    },
+    {
+      "file": "screenshots/04-desktop-compare-light.png",
+      "sha256": "0845dd2f54daa291d76176b332aa168ffd60e1cd926640f2a84a8013b22962e0",
+      "bytes": 1004186,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "light",
+      "resolved": "light",
+      "basemap": "light",
+      "language": "en",
+      "mode": "COMPARE",
+      "dataMode": "verified-deployment",
+      "evidenceState": "1470 records · deployment snapshot (see layer panel)"
+    },
+    {
+      "file": "screenshots/05-city-light-es.png",
+      "sha256": "bb3f642855c20bc66f16439f3c7aed7fcd83e316b38a5e3b5c829672889bc833",
+      "bytes": 1010353,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "light",
+      "resolved": "light",
+      "basemap": "light",
+      "language": "es",
+      "mode": "CITY",
+      "dataMode": "verified-deployment",
+      "evidenceState": "1470 registros · instantánea del despliegue (ver panel de capas)"
+    },
+    {
+      "file": "screenshots/06-evidence-drawer-light.png",
+      "sha256": "6dd00d5c14c7224a53df2106ee5a4e9a7c355ff91809a7901c9b9b76394f755f",
+      "bytes": 928340,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "light",
+      "resolved": "light",
+      "basemap": "light",
+      "language": "en",
+      "mode": "PLACE",
+      "dataMode": "verified-deployment",
+      "evidenceState": "1470 records · deployment snapshot (see layer panel)"
+    },
+    {
+      "file": "screenshots/07-mobile-light.png",
+      "sha256": "2e7578bfc6781471e16850956d8e77331bcddef1027ef8754f0df11b3fc806d3",
+      "bytes": 260126,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "preference": "light",
+      "resolved": "light",
+      "basemap": "light",
+      "language": "en",
+      "mode": "PLACE",
+      "dataMode": "verified-deployment",
+      "evidenceState": "1470 records · deployment snapshot (see layer panel)"
+    },
+    {
+      "file": "screenshots/08-light-ui-dark-basemap.png",
+      "sha256": "6f8743796ef0b0bfff16f2803cead97d2496dd78f062b6bc473194d86ccb1d87",
+      "bytes": 1123292,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "light",
+      "resolved": "light",
+      "basemap": "dark",
+      "language": "en",
+      "mode": "PLACE",
+      "dataMode": "verified-deployment",
+      "evidenceState": "1470 records · deployment snapshot (see layer panel)"
+    },
+    {
+      "file": "screenshots/09-dark-ui-light-basemap.png",
+      "sha256": "e65e160e0d1105d9574563f518171a4d8a0b473d86179eb6a213de14e1f29a3a",
+      "bytes": 1053145,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "dark",
+      "resolved": "dark",
+      "basemap": "light",
+      "language": "en",
+      "mode": "PLACE",
+      "dataMode": "verified-deployment",
+      "evidenceState": "1470 records · deployment snapshot (see layer panel)"
+    },
+    {
+      "file": "screenshots/10-system-after-os-dark.png",
+      "sha256": "4ab7cf20bc9a981daa3ee9c56db853f529141609d2006bd412528535322a8e77",
+      "bytes": 1053360,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "preference": "system",
+      "resolved": "dark",
+      "basemap": "light",
+      "language": "en",
+      "mode": "PLACE",
+      "dataMode": "verified-deployment",
+      "evidenceState": "1470 records · deployment snapshot (see layer panel)"
+    }
+  ]
+}
