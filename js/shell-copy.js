@@ -14,6 +14,7 @@
 const SHELL_DICTIONARIES = Object.freeze({
   en: Object.freeze({
     "mode.place": "Place", "mode.compare": "Compare", "mode.city": "City",
+    "appearance.label": "Appearance", "appearance.light": "Light", "appearance.dark": "Dark", "appearance.system": "System",
     "mode.q.place": "What does the evidence say about this place?",
     "mode.q.compare": "How do two Lens circles read against each other?",
     "mode.q.city": "What is the municipality-wide context?",
@@ -323,6 +324,7 @@ const SHELL_DICTIONARIES = Object.freeze({
   }),
   es: Object.freeze({
     "mode.place": "Lugar", "mode.compare": "Comparar", "mode.city": "Ciudad",
+    "appearance.label": "Apariencia", "appearance.light": "Claro", "appearance.dark": "Oscuro", "appearance.system": "Sistema",
     "mode.q.place": "¿Qué dice la evidencia sobre este lugar?",
     "mode.q.compare": "¿Cómo se leen dos círculos de Lente uno frente al otro?",
     "mode.q.city": "¿Cuál es el contexto de todo el municipio?",

@@ -865,10 +865,11 @@ test("licensed VUT introduces no choropleth or map layer", () => {
 test("no global time control is introduced: each source keeps its own state", () => {
   assert.doesNotMatch(html, /id="yearSelect"|id="periodSelect"|id="dateSelect"/);
   // The only time selector remains HATI's own model-time control. Non-temporal
-  // selectors for language and the separately governed hospitality metric are
-  // permitted.
+  // selectors for language, appearance and the separately governed hospitality
+  // metric are permitted.
   const selects = html.match(/<select id="(\w+)"/g) || [];
   assert.deepEqual(selects.sort(), [
+    '<select id="appearanceSelect"',
     '<select id="basemapSelect"',
     '<select id="boundarySelect"',
     '<select id="domesticOriginsMonth"',
