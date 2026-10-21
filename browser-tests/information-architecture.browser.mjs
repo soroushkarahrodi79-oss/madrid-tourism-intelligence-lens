@@ -113,6 +113,64 @@ test("IA 2 mode switching is keyboard-operable and announced", async (t) => {
   assert.equal(hiddenControls, 0, "no hidden control stays focusable");
 });
 
+test("P2 mode changes preserve an independent panel scroll position per mode", async (t) => {
+  const page = await newPage({ width: 1024, height: 768 });
+  t.after(() => closePage(page));
+  const switchWithoutAutomationScroll = async (name) => {
+    await page.evaluate((modeName) => document.querySelector(`.mode-btn[data-mode="${modeName}"]`).click(), name);
+    await page.waitForFunction((expected) => document.getElementById("analysisPanel").dataset.mode === expected, name);
+  };
+  await page.locator("#analysisPanel").evaluate((panel) => { panel.scrollTop = 520; });
+  const placeScroll = await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop);
+  assert.ok(placeScroll > 300);
+  await switchWithoutAutomationScroll("COMPARE");
+  assert.equal(await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop), 0);
+  await page.locator("#analysisPanel").evaluate((panel) => { panel.scrollTop = 360; });
+  const compareScroll = await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop);
+  assert.ok(compareScroll > 200);
+  await switchWithoutAutomationScroll("CITY");
+  assert.equal(await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop), 0);
+  await switchWithoutAutomationScroll("COMPARE");
+  assert.equal(await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop), compareScroll);
+  await switchWithoutAutomationScroll("PLACE");
+  assert.equal(await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop), placeScroll);
+});
+
+test("P2 Comparison Bridge exposes the four canonical metrics to touch and keyboard", async (t) => {
+  const page = await newPage({ width: 390, height: 844 }, { hasTouch: true, isMobile: true });
+  t.after(() => closePage(page));
+  await setMode(page, "COMPARE");
+  const picker = page.locator("#comparisonBridgePicker");
+  await picker.scrollIntoViewIfNeeded();
+  assert.deepEqual(await picker.locator("button").allTextContents(), ["Tourism", "Stays", "Mobility", "UTCI"]);
+  for (const button of await picker.locator("button").all()) {
+    const box = await button.boundingBox();
+    assert.ok(box && box.height >= 44, "each direct Bridge control meets the touch floor");
+  }
+  await picker.locator('[data-bridge-metric="tourism"]').click();
+  assert.equal(await picker.locator('[data-bridge-metric="tourism"]').getAttribute("aria-pressed"), "true");
+  assert.equal(await page.locator("#comparisonBridgeMetric").isVisible(), true);
+  assert.match(await page.locator("#comparisonBridge").innerText(), /Tourism POIs|Observed B−A/);
+  await page.locator("#languageSelect").selectOption("es");
+  await page.waitForFunction(() => document.documentElement.lang === "es");
+  assert.deepEqual(await picker.locator("button").allTextContents(), ["Turismo", "Estancias", "Movilidad", "UTCI"]);
+  assert.equal(await picker.getAttribute("aria-label"), "Métrica que comparar");
+});
+
+test("P2 desktop panel resize handle has a 44px target and retains keyboard resizing", async (t) => {
+  const page = await newPage({ width: 1366, height: 768 });
+  t.after(() => closePage(page));
+  const handle = page.locator("#panelResizeHandle");
+  const target = await handle.boundingBox();
+  assert.ok(target && target.width >= 44 && target.height >= 44);
+  const before = await page.locator("#analysisPanel").boundingBox();
+  await handle.focus();
+  await page.keyboard.press("ArrowLeft");
+  const after = await page.locator("#analysisPanel").boundingBox();
+  assert.ok(after.width > before.width, "ArrowLeft expands the right-anchored panel");
+  assert.ok(await page.evaluate(() => Boolean(localStorage.getItem("madrid-tourism-intelligence-lens:analysis-panel-size:v1"))));
+});
+
 test("IA 3 PLACE ↔ COMPARE ↔ CITY preserves Lens positions and radii and follows the existing Lens B semantics", async (t) => {
   const page = await newPage();
   t.after(() => closePage(page));

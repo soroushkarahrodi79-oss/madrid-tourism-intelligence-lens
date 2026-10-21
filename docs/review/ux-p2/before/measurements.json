@@ -1,0 +1,2320 @@
+[
+  {
+    "viewport": {
+      "name": "320x568",
+      "width": 320,
+      "height": 568,
+      "touch": true
+    },
+    "place": {
+      "document": {
+        "clientWidth": 320,
+        "scrollWidth": 320,
+        "clientHeight": 568,
+        "scrollHeight": 568
+      },
+      "rects": {
+        "header": {
+          "x": 10,
+          "y": 9,
+          "width": 300,
+          "height": 96,
+          "top": 9,
+          "right": 310,
+          "bottom": 105,
+          "left": 10
+        },
+        "map": {
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 568,
+          "top": 0,
+          "right": 320,
+          "bottom": 568,
+          "left": 0
+        },
+        "panel": {
+          "x": 10,
+          "y": 308.1,
+          "width": 300,
+          "height": 249.9,
+          "top": 308.1,
+          "right": 310,
+          "bottom": 558,
+          "left": 10
+        },
+        "rail": null,
+        "layersButton": {
+          "x": 10,
+          "y": 61,
+          "width": 44,
+          "height": 44,
+          "top": 61,
+          "right": 54,
+          "bottom": 105,
+          "left": 10
+        },
+        "zoom": {
+          "x": 218,
+          "y": 120,
+          "width": 92,
+          "height": 48.5,
+          "top": 120,
+          "right": 310,
+          "bottom": 168.5,
+          "left": 218
+        },
+        "attribution": {
+          "x": 106.4,
+          "y": 214,
+          "width": 203.6,
+          "height": 22.2,
+          "top": 214,
+          "right": 310,
+          "bottom": 236.2,
+          "left": 106.4
+        },
+        "modeNav": {
+          "x": 23,
+          "y": 383.1,
+          "width": 274,
+          "height": 54,
+          "top": 383.1,
+          "right": 297,
+          "bottom": 437.1,
+          "left": 23
+        },
+        "resizeHandle": null
+      },
+      "panel": {
+        "scrollHeight": 2474,
+        "clientHeight": 248
+      },
+      "visibleTargets": 33,
+      "targetsUnder44": [
+        {
+          "tag": "A",
+          "id": null,
+          "cls": null,
+          "text": "OpenStreetMap",
+          "width": 98,
+          "height": 19
+        }
+      ],
+      "language": "en",
+      "layersOpen": {
+        "expanded": "true",
+        "rail": {
+          "x": 10,
+          "y": 113,
+          "width": 240,
+          "height": 284,
+          "top": 113,
+          "right": 250,
+          "bottom": 397,
+          "left": 10
+        },
+        "groupCount": 6,
+        "toggleCount": 10
+      }
+    },
+    "compare": {
+      "bridge": {
+        "x": 27,
+        "y": 366.9,
+        "width": 266,
+        "height": 268.4,
+        "top": 366.9,
+        "right": 293,
+        "bottom": 635.3,
+        "left": 27
+      },
+      "panel": {
+        "x": 10,
+        "y": 308.1,
+        "width": 300,
+        "height": 249.9,
+        "top": 308.1,
+        "right": 310,
+        "bottom": 558,
+        "left": 10
+      },
+      "bridgeFullyVisible": false,
+      "bridgeText": "TOURISM POIS LOCKED LENS A 4 POIs r 900 m OBSERVED B−A -3 LENS B 1 POIs r 900 m Comparable · raw represented counts Tourism POIs (Locked). Lens A 4, POIs, r 900 m. Lens B 1, POIs, r 900 m. Observed B−A -3. Comparable · raw represented counts.",
+      "compareScrollTop": 403
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (File not found)",
+      "Clear-Site-Data header on 'https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11/resource/105ce5df-793f-4e0a-a88e-5d3b3f024a5d/download/bikestationbicimad_geojson.json': The request's credentials mode prohibits modifying cookies and other local data."
+    ]
+  },
+  {
+    "viewport": {
+      "name": "360x800",
+      "width": 360,
+      "height": 800,
+      "touch": true
+    },
+    "place": {
+      "document": {
+        "clientWidth": 360,
+        "scrollWidth": 360,
+        "clientHeight": 800,
+        "scrollHeight": 800
+      },
+      "rects": {
+        "header": {
+          "x": 10,
+          "y": 9,
+          "width": 340,
+          "height": 96,
+          "top": 9,
+          "right": 350,
+          "bottom": 105,
+          "left": 10
+        },
+        "map": {
+          "x": 0,
+          "y": 0,
+          "width": 360,
+          "height": 800,
+          "top": 0,
+          "right": 360,
+          "bottom": 800,
+          "left": 0
+        },
+        "panel": {
+          "x": 10,
+          "y": 454,
+          "width": 340,
+          "height": 336,
+          "top": 454,
+          "right": 350,
+          "bottom": 790,
+          "left": 10
+        },
+        "rail": null,
+        "layersButton": {
+          "x": 10,
+          "y": 61,
+          "width": 44,
+          "height": 44,
+          "top": 61,
+          "right": 54,
+          "bottom": 105,
+          "left": 10
+        },
+        "zoom": {
+          "x": 258,
+          "y": 120,
+          "width": 92,
+          "height": 48.5,
+          "top": 120,
+          "right": 350,
+          "bottom": 168.5,
+          "left": 258
+        },
+        "attribution": {
+          "x": 146.4,
+          "y": 214,
+          "width": 203.6,
+          "height": 22.2,
+          "top": 214,
+          "right": 350,
+          "bottom": 236.2,
+          "left": 146.4
+        },
+        "modeNav": {
+          "x": 23,
+          "y": 515,
+          "width": 314,
+          "height": 54,
+          "top": 515,
+          "right": 337,
+          "bottom": 569,
+          "left": 23
+        },
+        "resizeHandle": null
+      },
+      "panel": {
+        "scrollHeight": 2357,
+        "clientHeight": 334
+      },
+      "visibleTargets": 33,
+      "targetsUnder44": [
+        {
+          "tag": "A",
+          "id": null,
+          "cls": null,
+          "text": "OpenStreetMap",
+          "width": 98,
+          "height": 19
+        }
+      ],
+      "language": "en",
+      "layersOpen": {
+        "expanded": "true",
+        "rail": {
+          "x": 10,
+          "y": 113,
+          "width": 240,
+          "height": 302,
+          "top": 113,
+          "right": 250,
+          "bottom": 415,
+          "left": 10
+        },
+        "groupCount": 6,
+        "toggleCount": 10
+      }
+    },
+    "compare": {
+      "bridge": {
+        "x": 27,
+        "y": 555.8,
+        "width": 306,
+        "height": 268.4,
+        "top": 555.8,
+        "right": 333,
+        "bottom": 824.2,
+        "left": 27
+      },
+      "panel": {
+        "x": 10,
+        "y": 454,
+        "width": 340,
+        "height": 336,
+        "top": 454,
+        "right": 350,
+        "bottom": 790,
+        "left": 10
+      },
+      "bridgeFullyVisible": false,
+      "bridgeText": "TOURISM POIS LOCKED LENS A 4 POIs r 900 m OBSERVED B−A -3 LENS B 1 POIs r 900 m Comparable · raw represented counts Tourism POIs (Locked). Lens A 4, POIs, r 900 m. Lens B 1, POIs, r 900 m. Observed B−A -3. Comparable · raw represented counts.",
+      "compareScrollTop": 345
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (File not found)",
+      "Clear-Site-Data header on 'https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11/resource/105ce5df-793f-4e0a-a88e-5d3b3f024a5d/download/bikestationbicimad_geojson.json': The request's credentials mode prohibits modifying cookies and other local data."
+    ]
+  },
+  {
+    "viewport": {
+      "name": "390x844",
+      "width": 390,
+      "height": 844,
+      "touch": true
+    },
+    "place": {
+      "document": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 844
+      },
+      "rects": {
+        "header": {
+          "x": 10,
+          "y": 9,
+          "width": 370,
+          "height": 96,
+          "top": 9,
+          "right": 380,
+          "bottom": 105,
+          "left": 10
+        },
+        "map": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "height": 844,
+          "top": 0,
+          "right": 390,
+          "bottom": 844,
+          "left": 0
+        },
+        "panel": {
+          "x": 10,
+          "y": 479.5,
+          "width": 370,
+          "height": 354.5,
+          "top": 479.5,
+          "right": 380,
+          "bottom": 834,
+          "left": 10
+        },
+        "rail": null,
+        "layersButton": {
+          "x": 10,
+          "y": 61,
+          "width": 88,
+          "height": 44,
+          "top": 61,
+          "right": 98,
+          "bottom": 105,
+          "left": 10
+        },
+        "zoom": {
+          "x": 288,
+          "y": 120,
+          "width": 92,
+          "height": 48.5,
+          "top": 120,
+          "right": 380,
+          "bottom": 168.5,
+          "left": 288
+        },
+        "attribution": {
+          "x": 176.4,
+          "y": 214,
+          "width": 203.6,
+          "height": 22.2,
+          "top": 214,
+          "right": 380,
+          "bottom": 236.2,
+          "left": 176.4
+        },
+        "modeNav": {
+          "x": 23,
+          "y": 540.5,
+          "width": 344,
+          "height": 54,
+          "top": 540.5,
+          "right": 367,
+          "bottom": 594.5,
+          "left": 23
+        },
+        "resizeHandle": null
+      },
+      "panel": {
+        "scrollHeight": 2257,
+        "clientHeight": 352
+      },
+      "visibleTargets": 33,
+      "targetsUnder44": [
+        {
+          "tag": "A",
+          "id": null,
+          "cls": null,
+          "text": "OpenStreetMap",
+          "width": 98,
+          "height": 19
+        }
+      ],
+      "language": "en",
+      "layersOpen": {
+        "expanded": "true",
+        "rail": {
+          "x": 10,
+          "y": 113,
+          "width": 240,
+          "height": 302,
+          "top": 113,
+          "right": 250,
+          "bottom": 415,
+          "left": 10
+        },
+        "groupCount": 6,
+        "toggleCount": 10
+      }
+    },
+    "compare": {
+      "bridge": {
+        "x": 27,
+        "y": 652.3,
+        "width": 336,
+        "height": 145.2,
+        "top": 652.3,
+        "right": 363,
+        "bottom": 797.5,
+        "left": 27
+      },
+      "panel": {
+        "x": 10,
+        "y": 479.5,
+        "width": 370,
+        "height": 354.5,
+        "top": 479.5,
+        "right": 380,
+        "bottom": 834,
+        "left": 10
+      },
+      "bridgeFullyVisible": true,
+      "bridgeText": "TOURISM POIS LOCKED LENS A 4 POIs r 900 m OBSERVED B−A -3 LENS B 1 POIs r 900 m Comparable · raw represented counts Tourism POIs (Locked). Lens A 4, POIs, r 900 m. Lens B 1, POIs, r 900 m. Observed B−A -3. Comparable · raw represented counts.",
+      "compareScrollTop": 222,
+      "evidenceDialog": {
+        "open": true,
+        "rect": {
+          "x": 10,
+          "y": 141.9,
+          "width": 356,
+          "height": 692.1,
+          "top": 141.9,
+          "right": 366,
+          "bottom": 834,
+          "left": 10
+        },
+        "close": {
+          "x": 300.7,
+          "y": 154.9,
+          "width": 52.3,
+          "height": 44,
+          "top": 154.9,
+          "right": 353,
+          "bottom": 198.9,
+          "left": 300.7
+        }
+      }
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (File not found)",
+      "Clear-Site-Data header on 'https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11/resource/105ce5df-793f-4e0a-a88e-5d3b3f024a5d/download/bikestationbicimad_geojson.json': The request's credentials mode prohibits modifying cookies and other local data."
+    ]
+  },
+  {
+    "viewport": {
+      "name": "430x932",
+      "width": 430,
+      "height": 932,
+      "touch": true
+    },
+    "place": {
+      "document": {
+        "clientWidth": 430,
+        "scrollWidth": 430,
+        "clientHeight": 932,
+        "scrollHeight": 932
+      },
+      "rects": {
+        "header": {
+          "x": 10,
+          "y": 9,
+          "width": 410,
+          "height": 96,
+          "top": 9,
+          "right": 420,
+          "bottom": 105,
+          "left": 10
+        },
+        "map": {
+          "x": 0,
+          "y": 0,
+          "width": 430,
+          "height": 932,
+          "top": 0,
+          "right": 430,
+          "bottom": 932,
+          "left": 0
+        },
+        "panel": {
+          "x": 10,
+          "y": 530.6,
+          "width": 410,
+          "height": 391.4,
+          "top": 530.6,
+          "right": 420,
+          "bottom": 922,
+          "left": 10
+        },
+        "rail": null,
+        "layersButton": {
+          "x": 10,
+          "y": 61,
+          "width": 88,
+          "height": 44,
+          "top": 61,
+          "right": 98,
+          "bottom": 105,
+          "left": 10
+        },
+        "zoom": {
+          "x": 328,
+          "y": 120,
+          "width": 92,
+          "height": 48.5,
+          "top": 120,
+          "right": 420,
+          "bottom": 168.5,
+          "left": 328
+        },
+        "attribution": {
+          "x": 216.4,
+          "y": 214,
+          "width": 203.6,
+          "height": 22.2,
+          "top": 214,
+          "right": 420,
+          "bottom": 236.2,
+          "left": 216.4
+        },
+        "modeNav": {
+          "x": 23,
+          "y": 591.6,
+          "width": 384,
+          "height": 54,
+          "top": 591.6,
+          "right": 407,
+          "bottom": 645.6,
+          "left": 23
+        },
+        "resizeHandle": null
+      },
+      "panel": {
+        "scrollHeight": 2143,
+        "clientHeight": 389
+      },
+      "visibleTargets": 33,
+      "targetsUnder44": [
+        {
+          "tag": "A",
+          "id": null,
+          "cls": null,
+          "text": "OpenStreetMap",
+          "width": 98,
+          "height": 19
+        }
+      ],
+      "language": "en",
+      "layersOpen": {
+        "expanded": "true",
+        "rail": {
+          "x": 10,
+          "y": 113,
+          "width": 240,
+          "height": 302,
+          "top": 113,
+          "right": 250,
+          "bottom": 415,
+          "left": 10
+        },
+        "groupCount": 6,
+        "toggleCount": 10
+      }
+    },
+    "compare": {
+      "bridge": {
+        "x": 27,
+        "y": 721.3,
+        "width": 376,
+        "height": 145.2,
+        "top": 721.3,
+        "right": 403,
+        "bottom": 866.5,
+        "left": 27
+      },
+      "panel": {
+        "x": 10,
+        "y": 530.6,
+        "width": 410,
+        "height": 391.4,
+        "top": 530.6,
+        "right": 420,
+        "bottom": 922,
+        "left": 10
+      },
+      "bridgeFullyVisible": true,
+      "bridgeText": "TOURISM POIS LOCKED LENS A 4 POIs r 900 m OBSERVED B−A -3 LENS B 1 POIs r 900 m Comparable · raw represented counts Tourism POIs (Locked). Lens A 4, POIs, r 900 m. Lens B 1, POIs, r 900 m. Observed B−A -3. Comparable · raw represented counts.",
+      "compareScrollTop": 204
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (File not found)",
+      "Clear-Site-Data header on 'https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11/resource/105ce5df-793f-4e0a-a88e-5d3b3f024a5d/download/bikestationbicimad_geojson.json': The request's credentials mode prohibits modifying cookies and other local data."
+    ]
+  },
+  {
+    "viewport": {
+      "name": "768x1024",
+      "width": 768,
+      "height": 1024,
+      "touch": true
+    },
+    "place": {
+      "document": {
+        "clientWidth": 768,
+        "scrollWidth": 768,
+        "clientHeight": 1024,
+        "scrollHeight": 1024
+      },
+      "rects": {
+        "header": {
+          "x": 10,
+          "y": 9,
+          "width": 748,
+          "height": 54,
+          "top": 9,
+          "right": 758,
+          "bottom": 63,
+          "left": 10
+        },
+        "map": {
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 1024,
+          "top": 0,
+          "right": 768,
+          "bottom": 1024,
+          "left": 0
+        },
+        "panel": {
+          "x": 10,
+          "y": 583.9,
+          "width": 748,
+          "height": 430.1,
+          "top": 583.9,
+          "right": 758,
+          "bottom": 1014,
+          "left": 10
+        },
+        "rail": {
+          "x": 10,
+          "y": 73,
+          "width": 174,
+          "height": 321,
+          "top": 73,
+          "right": 184,
+          "bottom": 394,
+          "left": 10
+        },
+        "layersButton": null,
+        "zoom": {
+          "x": 666,
+          "y": 73,
+          "width": 92,
+          "height": 48.5,
+          "top": 73,
+          "right": 758,
+          "bottom": 121.5,
+          "left": 666
+        },
+        "attribution": {
+          "x": 554.4,
+          "y": 158,
+          "width": 203.6,
+          "height": 21.5,
+          "top": 158,
+          "right": 758,
+          "bottom": 179.5,
+          "left": 554.4
+        },
+        "modeNav": {
+          "x": 23,
+          "y": 644.9,
+          "width": 722,
+          "height": 54,
+          "top": 644.9,
+          "right": 745,
+          "bottom": 698.9,
+          "left": 23
+        },
+        "resizeHandle": null
+      },
+      "panel": {
+        "scrollHeight": 1816,
+        "clientHeight": 428
+      },
+      "visibleTargets": 52,
+      "targetsUnder44": [
+        {
+          "tag": "A",
+          "id": null,
+          "cls": null,
+          "text": "OpenStreetMap",
+          "width": 98,
+          "height": 19
+        }
+      ],
+      "language": "en"
+    },
+    "compare": {
+      "bridge": {
+        "x": 27,
+        "y": 867.3,
+        "width": 714,
+        "height": 145.2,
+        "top": 867.3,
+        "right": 741,
+        "bottom": 1012.5,
+        "left": 27
+      },
+      "panel": {
+        "x": 10,
+        "y": 583.9,
+        "width": 748,
+        "height": 430.1,
+        "top": 583.9,
+        "right": 758,
+        "bottom": 1014,
+        "left": 10
+      },
+      "bridgeFullyVisible": true,
+      "bridgeText": "TOURISM POIS LOCKED LENS A 4 POIs r 900 m OBSERVED B−A -3 LENS B 1 POIs r 900 m Comparable · raw represented counts Tourism POIs (Locked). Lens A 4, POIs, r 900 m. Lens B 1, POIs, r 900 m. Observed B−A -3. Comparable · raw represented counts.",
+      "compareScrollTop": 96
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (File not found)",
+      "Clear-Site-Data header on 'https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11/resource/105ce5df-793f-4e0a-a88e-5d3b3f024a5d/download/bikestationbicimad_geojson.json': The request's credentials mode prohibits modifying cookies and other local data."
+    ]
+  },
+  {
+    "viewport": {
+      "name": "1024x768",
+      "width": 1024,
+      "height": 768,
+      "touch": false
+    },
+    "place": {
+      "document": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024,
+        "clientHeight": 768,
+        "scrollHeight": 768
+      },
+      "rects": {
+        "header": {
+          "x": 18,
+          "y": 16,
+          "width": 988,
+          "height": 60,
+          "top": 16,
+          "right": 1006,
+          "bottom": 76,
+          "left": 18
+        },
+        "map": {
+          "x": 0,
+          "y": 0,
+          "width": 1024,
+          "height": 768,
+          "top": 0,
+          "right": 1024,
+          "bottom": 768,
+          "left": 0
+        },
+        "panel": {
+          "x": 586,
+          "y": 90,
+          "width": 420,
+          "height": 660,
+          "top": 90,
+          "right": 1006,
+          "bottom": 750,
+          "left": 586
+        },
+        "rail": {
+          "x": 18,
+          "y": 90,
+          "width": 200,
+          "height": 660,
+          "top": 90,
+          "right": 218,
+          "bottom": 750,
+          "left": 18
+        },
+        "layersButton": null,
+        "zoom": {
+          "x": 232,
+          "y": 90,
+          "width": 40,
+          "height": 76,
+          "top": 90,
+          "right": 272,
+          "bottom": 166,
+          "left": 232
+        },
+        "attribution": {
+          "x": 232,
+          "y": 728.5,
+          "width": 203.6,
+          "height": 21.5,
+          "top": 728.5,
+          "right": 435.6,
+          "bottom": 750,
+          "left": 232
+        },
+        "modeNav": {
+          "x": 603,
+          "y": 155,
+          "width": 386,
+          "height": 48,
+          "top": 155,
+          "right": 989,
+          "bottom": 203,
+          "left": 603
+        },
+        "resizeHandle": {
+          "x": 592,
+          "y": 722,
+          "width": 22,
+          "height": 22,
+          "top": 722,
+          "right": 614,
+          "bottom": 744,
+          "left": 592
+        }
+      },
+      "panel": {
+        "scrollHeight": 1726,
+        "clientHeight": 658
+      },
+      "visibleTargets": 50,
+      "targetsUnder44": [
+        {
+          "tag": "A",
+          "id": null,
+          "cls": "sr-only skip-link",
+          "text": "Skip to the analysis panel",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "A",
+          "id": null,
+          "cls": "sr-only skip-link",
+          "text": "Skip to the map layers",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "A",
+          "id": null,
+          "cls": "leaflet-control-zoom-in",
+          "text": "+",
+          "width": 36,
+          "height": 36
+        },
+        {
+          "tag": "A",
+          "id": null,
+          "cls": "leaflet-control-zoom-out",
+          "text": "−",
+          "width": 36,
+          "height": 36
+        },
+        {
+          "tag": "A",
+          "id": null,
+          "cls": null,
+          "text": "OpenStreetMap",
+          "width": 98,
+          "height": 19
+        },
+        {
+          "tag": "SELECT",
+          "id": "appearanceSelect",
+          "cls": null,
+          "text": "Light\n        Dark\n        System",
+          "width": 96,
+          "height": 34
+        },
+        {
+          "tag": "SELECT",
+          "id": "languageSelect",
+          "cls": null,
+          "text": "English\n      Español",
+          "width": 96,
+          "height": 34
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Map display2 settings",
+          "width": 174,
+          "height": 22
+        },
+        {
+          "tag": "SELECT",
+          "id": "basemapSelect",
+          "cls": null,
+          "text": "Light · CARTO Positron\n        Satellite + labels · Esri\n        Dark · CARTO Da",
+          "width": 174,
+          "height": 34
+        },
+        {
+          "tag": "SELECT",
+          "id": "boundarySelect",
+          "cls": null,
+          "text": "Off · active area only\n        All district outlines\n        All barrio outlines",
+          "width": 174,
+          "height": 34
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Operational layers5 of 5 on",
+          "width": 174,
+          "height": 22
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "SELECT",
+          "id": "stayKindFilter",
+          "cls": null,
+          "text": "All accommodation\n          Hotels · 0\n          Hostales · 0\n          Apartaho",
+          "width": 158,
+          "height": 34
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Administrative register0 of 1 on",
+          "width": 174,
+          "height": 30
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Observed activity0 of 1 on",
+          "width": 174,
+          "height": 22
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Context0 of 2 on",
+          "width": 174,
+          "height": 22
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "INPUT",
+          "id": "hospitalityToggle",
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Research evidence0 of 1 on",
+          "width": 174,
+          "height": 22
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "BUTTON",
+          "id": "hatiFrameButton",
+          "cls": "layer-action",
+          "text": "Show HATI pilot on the map",
+          "width": 174,
+          "height": 34
+        },
+        {
+          "tag": "BUTTON",
+          "id": "panelResizeHandle",
+          "cls": "panel-resize-handle",
+          "text": "",
+          "width": 22,
+          "height": 22
+        },
+        {
+          "tag": "BUTTON",
+          "id": "modePlaceButton",
+          "cls": "mode-btn",
+          "text": "◎Place",
+          "width": 122.7,
+          "height": 38
+        },
+        {
+          "tag": "BUTTON",
+          "id": "modeCompareButton",
+          "cls": "mode-btn",
+          "text": "⇄Compare",
+          "width": 122.7,
+          "height": 38
+        },
+        {
+          "tag": "BUTTON",
+          "id": "modeCityButton",
+          "cls": "mode-btn",
+          "text": "▦City",
+          "width": 122.7,
+          "height": 38
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "scope-rail-item",
+          "text": "⬡Official barrioLos Jerónimos",
+          "width": 216.6,
+          "height": 25
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "scope-rail-item",
+          "text": "◎Lens circleA · 900 m",
+          "width": 162.9,
+          "height": 25
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "scope-rail-item",
+          "text": "▣Planning ámbitoThe Lens circle touches no official planning ámbito.",
+          "width": 386,
+          "height": 40
+        },
+        {
+          "tag": "BUTTON",
+          "id": "scopeRailFreshness",
+          "cls": "scope-rail-freshness",
+          "text": "Reference · not published · State · Definitive / Not declared by publisher",
+          "width": 386,
+          "height": 22.8
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "evidence-link",
+          "text": "i",
+          "width": 22,
+          "height": 22
+        },
+        {
+          "tag": "BUTTON",
+          "id": "areaSourceToggle",
+          "cls": "area-source-toggle",
+          "text": "Source & interpretation",
+          "width": 113.8,
+          "height": 11
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "evidence-link",
+          "text": "i",
+          "width": 22,
+          "height": 22
+        },
+        {
+          "tag": "BUTTON",
+          "id": "planningExplorerClose",
+          "cls": "planning-explorer-close",
+          "text": "Clear",
+          "width": 42.7,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "id": "planningSourceToggle",
+          "cls": "planning-source-toggle",
+          "text": "Source & interpretation",
+          "width": 113.8,
+          "height": 11
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "evidence-link",
+          "text": "i",
+          "width": 22,
+          "height": 22
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Detail",
+          "width": 384,
+          "height": 34
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "evidence-route",
+          "text": "▸ Evidence & limits",
+          "width": 135.1,
+          "height": 35
+        },
+        {
+          "tag": "BUTTON",
+          "id": "lensAButton",
+          "cls": "lensbtn active a",
+          "text": "Lens A · active",
+          "width": 189,
+          "height": 29
+        },
+        {
+          "tag": "BUTTON",
+          "id": "lensBButton",
+          "cls": "lensbtn b",
+          "text": "+ Enable Lens B",
+          "width": 189,
+          "height": 29
+        },
+        {
+          "tag": "INPUT",
+          "id": "radiusSlider",
+          "cls": null,
+          "text": "",
+          "width": 360,
+          "height": 16
+        },
+        {
+          "tag": "SELECT",
+          "id": "timeSelect",
+          "cls": null,
+          "text": "HATI · 12:00\n        HATI · 15:00\n        HATI · 18:00",
+          "width": 176,
+          "height": 34
+        },
+        {
+          "tag": "BUTTON",
+          "id": "resetButton",
+          "cls": "smallbtn",
+          "text": "Reset active lens",
+          "width": 176,
+          "height": 34
+        }
+      ],
+      "language": "en"
+    },
+    "compare": {
+      "bridge": {
+        "x": 607,
+        "y": 444.1,
+        "width": 378,
+        "height": 145.2,
+        "top": 444.1,
+        "right": 985,
+        "bottom": 589.3,
+        "left": 607
+      },
+      "panel": {
+        "x": 586,
+        "y": 90,
+        "width": 420,
+        "height": 660,
+        "top": 90,
+        "right": 1006,
+        "bottom": 750,
+        "left": 586
+      },
+      "bridgeFullyVisible": true,
+      "bridgeText": "TOURISM POIS LOCKED LENS A 4 POIs r 900 m OBSERVED B−A -3 LENS B 1 POIs r 900 m Comparable · raw represented counts Tourism POIs (Locked). Lens A 4, POIs, r 900 m. Lens B 1, POIs, r 900 m. Observed B−A -3. Comparable · raw represented counts.",
+      "compareScrollTop": 0
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (File not found)",
+      "Clear-Site-Data header on 'https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11/resource/105ce5df-793f-4e0a-a88e-5d3b3f024a5d/download/bikestationbicimad_geojson.json': The request's credentials mode prohibits modifying cookies and other local data."
+    ]
+  },
+  {
+    "viewport": {
+      "name": "1366x768",
+      "width": 1366,
+      "height": 768,
+      "touch": false
+    },
+    "place": {
+      "document": {
+        "clientWidth": 1366,
+        "scrollWidth": 1366,
+        "clientHeight": 768,
+        "scrollHeight": 768
+      },
+      "rects": {
+        "header": {
+          "x": 18,
+          "y": 16,
+          "width": 1330,
+          "height": 60,
+          "top": 16,
+          "right": 1348,
+          "bottom": 76,
+          "left": 18
+        },
+        "map": {
+          "x": 0,
+          "y": 0,
+          "width": 1366,
+          "height": 768,
+          "top": 0,
+          "right": 1366,
+          "bottom": 768,
+          "left": 0
+        },
+        "panel": {
+          "x": 868,
+          "y": 90,
+          "width": 480,
+          "height": 660,
+          "top": 90,
+          "right": 1348,
+          "bottom": 750,
+          "left": 868
+        },
+        "rail": {
+          "x": 18,
+          "y": 90,
+          "width": 222,
+          "height": 660,
+          "top": 90,
+          "right": 240,
+          "bottom": 750,
+          "left": 18
+        },
+        "layersButton": null,
+        "zoom": {
+          "x": 254,
+          "y": 90,
+          "width": 40,
+          "height": 76,
+          "top": 90,
+          "right": 294,
+          "bottom": 166,
+          "left": 254
+        },
+        "attribution": {
+          "x": 254,
+          "y": 728.5,
+          "width": 203.6,
+          "height": 21.5,
+          "top": 728.5,
+          "right": 457.6,
+          "bottom": 750,
+          "left": 254
+        },
+        "modeNav": {
+          "x": 885,
+          "y": 155,
+          "width": 446,
+          "height": 48,
+          "top": 155,
+          "right": 1331,
+          "bottom": 203,
+          "left": 885
+        },
+        "resizeHandle": {
+          "x": 874,
+          "y": 722,
+          "width": 22,
+          "height": 22,
+          "top": 722,
+          "right": 896,
+          "bottom": 744,
+          "left": 874
+        }
+      },
+      "panel": {
+        "scrollHeight": 1657,
+        "clientHeight": 658
+      },
+      "visibleTargets": 50,
+      "targetsUnder44": [
+        {
+          "tag": "A",
+          "id": null,
+          "cls": "sr-only skip-link",
+          "text": "Skip to the analysis panel",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "A",
+          "id": null,
+          "cls": "sr-only skip-link",
+          "text": "Skip to the map layers",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "A",
+          "id": null,
+          "cls": "leaflet-control-zoom-in",
+          "text": "+",
+          "width": 36,
+          "height": 36
+        },
+        {
+          "tag": "A",
+          "id": null,
+          "cls": "leaflet-control-zoom-out",
+          "text": "−",
+          "width": 36,
+          "height": 36
+        },
+        {
+          "tag": "A",
+          "id": null,
+          "cls": null,
+          "text": "OpenStreetMap",
+          "width": 98,
+          "height": 19
+        },
+        {
+          "tag": "SELECT",
+          "id": "appearanceSelect",
+          "cls": null,
+          "text": "Light\n        Dark\n        System",
+          "width": 96,
+          "height": 34
+        },
+        {
+          "tag": "SELECT",
+          "id": "languageSelect",
+          "cls": null,
+          "text": "English\n      Español",
+          "width": 96,
+          "height": 34
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Map display2 settings",
+          "width": 196,
+          "height": 22
+        },
+        {
+          "tag": "SELECT",
+          "id": "basemapSelect",
+          "cls": null,
+          "text": "Light · CARTO Positron\n        Satellite + labels · Esri\n        Dark · CARTO Da",
+          "width": 196,
+          "height": 34
+        },
+        {
+          "tag": "SELECT",
+          "id": "boundarySelect",
+          "cls": null,
+          "text": "Off · active area only\n        All district outlines\n        All barrio outlines",
+          "width": 196,
+          "height": 34
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Operational layers5 of 5 on",
+          "width": 196,
+          "height": 22
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "SELECT",
+          "id": "stayKindFilter",
+          "cls": null,
+          "text": "All accommodation\n          Hotels · 0\n          Hostales · 0\n          Apartaho",
+          "width": 180,
+          "height": 34
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Administrative register0 of 1 on",
+          "width": 196,
+          "height": 30
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Observed activity0 of 1 on",
+          "width": 196,
+          "height": 22
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Context0 of 2 on",
+          "width": 196,
+          "height": 22
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "INPUT",
+          "id": "hospitalityToggle",
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Research evidence0 of 1 on",
+          "width": 196,
+          "height": 22
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "BUTTON",
+          "id": "hatiFrameButton",
+          "cls": "layer-action",
+          "text": "Show HATI pilot on the map",
+          "width": 196,
+          "height": 34
+        },
+        {
+          "tag": "BUTTON",
+          "id": "panelResizeHandle",
+          "cls": "panel-resize-handle",
+          "text": "",
+          "width": 22,
+          "height": 22
+        },
+        {
+          "tag": "BUTTON",
+          "id": "modePlaceButton",
+          "cls": "mode-btn",
+          "text": "◎Place",
+          "width": 142.7,
+          "height": 38
+        },
+        {
+          "tag": "BUTTON",
+          "id": "modeCompareButton",
+          "cls": "mode-btn",
+          "text": "⇄Compare",
+          "width": 142.7,
+          "height": 38
+        },
+        {
+          "tag": "BUTTON",
+          "id": "modeCityButton",
+          "cls": "mode-btn",
+          "text": "▦City",
+          "width": 142.7,
+          "height": 38
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "scope-rail-item",
+          "text": "⬡Official barrioLos Jerónimos",
+          "width": 216.6,
+          "height": 25
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "scope-rail-item",
+          "text": "◎Lens circleA · 900 m",
+          "width": 162.9,
+          "height": 25
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "scope-rail-item",
+          "text": "▣Planning ámbitoThe Lens circle touches no official planning ámbito.",
+          "width": 426.6,
+          "height": 25
+        },
+        {
+          "tag": "BUTTON",
+          "id": "scopeRailFreshness",
+          "cls": "scope-rail-freshness",
+          "text": "Reference · not published · State · Definitive / Not declared by publisher",
+          "width": 446,
+          "height": 22.8
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "evidence-link",
+          "text": "i",
+          "width": 22,
+          "height": 22
+        },
+        {
+          "tag": "BUTTON",
+          "id": "areaSourceToggle",
+          "cls": "area-source-toggle",
+          "text": "Source & interpretation",
+          "width": 113.8,
+          "height": 11
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "evidence-link",
+          "text": "i",
+          "width": 22,
+          "height": 22
+        },
+        {
+          "tag": "BUTTON",
+          "id": "planningExplorerClose",
+          "cls": "planning-explorer-close",
+          "text": "Clear",
+          "width": 42.7,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "id": "planningSourceToggle",
+          "cls": "planning-source-toggle",
+          "text": "Source & interpretation",
+          "width": 113.8,
+          "height": 11
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "evidence-link",
+          "text": "i",
+          "width": 22,
+          "height": 22
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Detail",
+          "width": 444,
+          "height": 34
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "evidence-route",
+          "text": "▸ Evidence & limits",
+          "width": 135.1,
+          "height": 35
+        },
+        {
+          "tag": "BUTTON",
+          "id": "lensAButton",
+          "cls": "lensbtn active a",
+          "text": "Lens A · active",
+          "width": 219,
+          "height": 29
+        },
+        {
+          "tag": "BUTTON",
+          "id": "lensBButton",
+          "cls": "lensbtn b",
+          "text": "+ Enable Lens B",
+          "width": 219,
+          "height": 29
+        },
+        {
+          "tag": "INPUT",
+          "id": "radiusSlider",
+          "cls": null,
+          "text": "",
+          "width": 420,
+          "height": 16
+        },
+        {
+          "tag": "SELECT",
+          "id": "timeSelect",
+          "cls": null,
+          "text": "HATI · 12:00\n        HATI · 15:00\n        HATI · 18:00",
+          "width": 206,
+          "height": 34
+        },
+        {
+          "tag": "BUTTON",
+          "id": "resetButton",
+          "cls": "smallbtn",
+          "text": "Reset active lens",
+          "width": 206,
+          "height": 34
+        }
+      ],
+      "language": "en"
+    },
+    "compare": {
+      "bridge": {
+        "x": 889,
+        "y": 444.1,
+        "width": 438,
+        "height": 145.2,
+        "top": 444.1,
+        "right": 1327,
+        "bottom": 589.3,
+        "left": 889
+      },
+      "panel": {
+        "x": 868,
+        "y": 90,
+        "width": 480,
+        "height": 660,
+        "top": 90,
+        "right": 1348,
+        "bottom": 750,
+        "left": 868
+      },
+      "bridgeFullyVisible": true,
+      "bridgeText": "TOURISM POIS LOCKED LENS A 4 POIs r 900 m OBSERVED B−A -3 LENS B 1 POIs r 900 m Comparable · raw represented counts Tourism POIs (Locked). Lens A 4, POIs, r 900 m. Lens B 1, POIs, r 900 m. Observed B−A -3. Comparable · raw represented counts.",
+      "compareScrollTop": 0
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (File not found)",
+      "Clear-Site-Data header on 'https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11/resource/105ce5df-793f-4e0a-a88e-5d3b3f024a5d/download/bikestationbicimad_geojson.json': The request's credentials mode prohibits modifying cookies and other local data."
+    ]
+  },
+  {
+    "viewport": {
+      "name": "1440x900",
+      "width": 1440,
+      "height": 900,
+      "touch": false
+    },
+    "place": {
+      "document": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 900
+      },
+      "rects": {
+        "header": {
+          "x": 18,
+          "y": 16,
+          "width": 1404,
+          "height": 60,
+          "top": 16,
+          "right": 1422,
+          "bottom": 76,
+          "left": 18
+        },
+        "map": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 900,
+          "top": 0,
+          "right": 1440,
+          "bottom": 900,
+          "left": 0
+        },
+        "panel": {
+          "x": 942,
+          "y": 90,
+          "width": 480,
+          "height": 720,
+          "top": 90,
+          "right": 1422,
+          "bottom": 810,
+          "left": 942
+        },
+        "rail": {
+          "x": 18,
+          "y": 90,
+          "width": 222,
+          "height": 792,
+          "top": 90,
+          "right": 240,
+          "bottom": 882,
+          "left": 18
+        },
+        "layersButton": null,
+        "zoom": {
+          "x": 254,
+          "y": 90,
+          "width": 40,
+          "height": 76,
+          "top": 90,
+          "right": 294,
+          "bottom": 166,
+          "left": 254
+        },
+        "attribution": {
+          "x": 254,
+          "y": 860.5,
+          "width": 203.6,
+          "height": 21.5,
+          "top": 860.5,
+          "right": 457.6,
+          "bottom": 882,
+          "left": 254
+        },
+        "modeNav": {
+          "x": 959,
+          "y": 155,
+          "width": 446,
+          "height": 48,
+          "top": 155,
+          "right": 1405,
+          "bottom": 203,
+          "left": 959
+        },
+        "resizeHandle": {
+          "x": 948,
+          "y": 782,
+          "width": 22,
+          "height": 22,
+          "top": 782,
+          "right": 970,
+          "bottom": 804,
+          "left": 948
+        }
+      },
+      "panel": {
+        "scrollHeight": 1657,
+        "clientHeight": 718
+      },
+      "visibleTargets": 50,
+      "targetsUnder44": [
+        {
+          "tag": "A",
+          "id": null,
+          "cls": "sr-only skip-link",
+          "text": "Skip to the analysis panel",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "A",
+          "id": null,
+          "cls": "sr-only skip-link",
+          "text": "Skip to the map layers",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "A",
+          "id": null,
+          "cls": "leaflet-control-zoom-in",
+          "text": "+",
+          "width": 36,
+          "height": 36
+        },
+        {
+          "tag": "A",
+          "id": null,
+          "cls": "leaflet-control-zoom-out",
+          "text": "−",
+          "width": 36,
+          "height": 36
+        },
+        {
+          "tag": "A",
+          "id": null,
+          "cls": null,
+          "text": "OpenStreetMap",
+          "width": 98,
+          "height": 19
+        },
+        {
+          "tag": "SELECT",
+          "id": "appearanceSelect",
+          "cls": null,
+          "text": "Light\n        Dark\n        System",
+          "width": 96,
+          "height": 34
+        },
+        {
+          "tag": "SELECT",
+          "id": "languageSelect",
+          "cls": null,
+          "text": "English\n      Español",
+          "width": 96,
+          "height": 34
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Map display2 settings",
+          "width": 196,
+          "height": 22
+        },
+        {
+          "tag": "SELECT",
+          "id": "basemapSelect",
+          "cls": null,
+          "text": "Light · CARTO Positron\n        Satellite + labels · Esri\n        Dark · CARTO Da",
+          "width": 196,
+          "height": 34
+        },
+        {
+          "tag": "SELECT",
+          "id": "boundarySelect",
+          "cls": null,
+          "text": "Off · active area only\n        All district outlines\n        All barrio outlines",
+          "width": 196,
+          "height": 34
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Operational layers5 of 5 on",
+          "width": 196,
+          "height": 22
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "SELECT",
+          "id": "stayKindFilter",
+          "cls": null,
+          "text": "All accommodation\n          Hotels · 0\n          Hostales · 0\n          Apartaho",
+          "width": 180,
+          "height": 34
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Administrative register0 of 1 on",
+          "width": 196,
+          "height": 30
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Observed activity0 of 1 on",
+          "width": 196,
+          "height": 22
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Context0 of 2 on",
+          "width": 196,
+          "height": 22
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "INPUT",
+          "id": "hospitalityToggle",
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Research evidence0 of 1 on",
+          "width": 196,
+          "height": 22
+        },
+        {
+          "tag": "INPUT",
+          "id": null,
+          "cls": null,
+          "text": "",
+          "width": 1,
+          "height": 1
+        },
+        {
+          "tag": "BUTTON",
+          "id": "hatiFrameButton",
+          "cls": "layer-action",
+          "text": "Show HATI pilot on the map",
+          "width": 196,
+          "height": 34
+        },
+        {
+          "tag": "BUTTON",
+          "id": "panelResizeHandle",
+          "cls": "panel-resize-handle",
+          "text": "",
+          "width": 22,
+          "height": 22
+        },
+        {
+          "tag": "BUTTON",
+          "id": "modePlaceButton",
+          "cls": "mode-btn",
+          "text": "◎Place",
+          "width": 142.7,
+          "height": 38
+        },
+        {
+          "tag": "BUTTON",
+          "id": "modeCompareButton",
+          "cls": "mode-btn",
+          "text": "⇄Compare",
+          "width": 142.7,
+          "height": 38
+        },
+        {
+          "tag": "BUTTON",
+          "id": "modeCityButton",
+          "cls": "mode-btn",
+          "text": "▦City",
+          "width": 142.7,
+          "height": 38
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "scope-rail-item",
+          "text": "⬡Official barrioLos Jerónimos",
+          "width": 216.6,
+          "height": 25
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "scope-rail-item",
+          "text": "◎Lens circleA · 900 m",
+          "width": 162.9,
+          "height": 25
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "scope-rail-item",
+          "text": "▣Planning ámbitoThe Lens circle touches no official planning ámbito.",
+          "width": 426.6,
+          "height": 25
+        },
+        {
+          "tag": "BUTTON",
+          "id": "scopeRailFreshness",
+          "cls": "scope-rail-freshness",
+          "text": "Reference · not published · State · Definitive / Not declared by publisher",
+          "width": 446,
+          "height": 22.8
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "evidence-link",
+          "text": "i",
+          "width": 22,
+          "height": 22
+        },
+        {
+          "tag": "BUTTON",
+          "id": "areaSourceToggle",
+          "cls": "area-source-toggle",
+          "text": "Source & interpretation",
+          "width": 113.8,
+          "height": 11
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "evidence-link",
+          "text": "i",
+          "width": 22,
+          "height": 22
+        },
+        {
+          "tag": "BUTTON",
+          "id": "planningExplorerClose",
+          "cls": "planning-explorer-close",
+          "text": "Clear",
+          "width": 42.7,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "id": "planningSourceToggle",
+          "cls": "planning-source-toggle",
+          "text": "Source & interpretation",
+          "width": 113.8,
+          "height": 11
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "evidence-link",
+          "text": "i",
+          "width": 22,
+          "height": 22
+        },
+        {
+          "tag": "SUMMARY",
+          "id": null,
+          "cls": null,
+          "text": "Detail",
+          "width": 444,
+          "height": 34
+        },
+        {
+          "tag": "BUTTON",
+          "id": null,
+          "cls": "evidence-route",
+          "text": "▸ Evidence & limits",
+          "width": 135.1,
+          "height": 35
+        },
+        {
+          "tag": "BUTTON",
+          "id": "lensAButton",
+          "cls": "lensbtn active a",
+          "text": "Lens A · active",
+          "width": 219,
+          "height": 29
+        },
+        {
+          "tag": "BUTTON",
+          "id": "lensBButton",
+          "cls": "lensbtn b",
+          "text": "+ Enable Lens B",
+          "width": 219,
+          "height": 29
+        },
+        {
+          "tag": "INPUT",
+          "id": "radiusSlider",
+          "cls": null,
+          "text": "",
+          "width": 420,
+          "height": 16
+        },
+        {
+          "tag": "SELECT",
+          "id": "timeSelect",
+          "cls": null,
+          "text": "HATI · 12:00\n        HATI · 15:00\n        HATI · 18:00",
+          "width": 206,
+          "height": 34
+        },
+        {
+          "tag": "BUTTON",
+          "id": "resetButton",
+          "cls": "smallbtn",
+          "text": "Reset active lens",
+          "width": 206,
+          "height": 34
+        }
+      ],
+      "language": "en"
+    },
+    "compare": {
+      "bridge": {
+        "x": 963,
+        "y": 444.1,
+        "width": 438,
+        "height": 145.2,
+        "top": 444.1,
+        "right": 1401,
+        "bottom": 589.3,
+        "left": 963
+      },
+      "panel": {
+        "x": 942,
+        "y": 90,
+        "width": 480,
+        "height": 720,
+        "top": 90,
+        "right": 1422,
+        "bottom": 810,
+        "left": 942
+      },
+      "bridgeFullyVisible": true,
+      "bridgeText": "TOURISM POIS LOCKED LENS A 4 POIs r 900 m OBSERVED B−A -3 LENS B 1 POIs r 900 m Comparable · raw represented counts Tourism POIs (Locked). Lens A 4, POIs, r 900 m. Lens B 1, POIs, r 900 m. Observed B−A -3. Comparable · raw represented counts.",
+      "compareScrollTop": 0
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (File not found)",
+      "Clear-Site-Data header on 'https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11/resource/105ce5df-793f-4e0a-a88e-5d3b3f024a5d/download/bikestationbicimad_geojson.json': The request's credentials mode prohibits modifying cookies and other local data."
+    ]
+  }
+]

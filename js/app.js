@@ -334,7 +334,17 @@ let active = "A";
 let bEnabled = false;
 // K4 shell state (modes, rail, drawer). Declared here, populated by the K4 block
 // below, so refresh() can call renderScopeRail() without a temporal-dead-zone hazard.
-const shell = { modes: null, i18n: null, registry: null, registryFailed: false, signature: "", reading: "citizen", drawerFilter: null, drawerOpener: null };
+const shell = {
+  modes: null,
+  i18n: null,
+  registry: null,
+  registryFailed: false,
+  signature: "",
+  reading: "citizen",
+  drawerFilter: null,
+  drawerOpener: null,
+  modeScrollPositions: { PLACE: 0, COMPARE: 0, CITY: 0 },
+};
 let lensBHasBeenInitialized = false;
 let timestep = "15:00";
 
@@ -517,6 +527,9 @@ function setHaloMetricFocus(metricId, sourceLens, selected = false) {
     const button = row.querySelector(".cmp-metric-focus");
     if (button) button.setAttribute("aria-pressed", selectedHaloMetric === row.dataset.haloMetric ? "true" : "false");
   });
+  document.querySelectorAll(".cb-picker-button[data-bridge-metric]").forEach((button) => {
+    button.setAttribute("aria-pressed", selectedHaloMetric === button.dataset.bridgeMetric ? "true" : "false");
+  });
   renderComparisonBridge();
   applyDecisionInsightFocus();
   applySpatialSensitivityFocus();
@@ -543,6 +556,9 @@ const BRIDGE_DICTIONARIES = Object.freeze({
     observedDelta: "Observed B−A", difference: "Difference",
     comparable: "Comparable", withheld: "Withheld", locked: "Locked",
     na: "N/A", off: "OFF",
+    pickerAria: "Metric to compare",
+    "picker.tourism": "Tourism", "picker.stays": "Stays",
+    "picker.mobility": "Mobility", "picker.utci": "UTCI",
     "metric.tourism": "Tourism POIs", "metric.stays": "Hotels & stays",
     "metric.mobility": "Mobility nodes", "metric.utci": "Mean UTCI",
     "unit.tourism": "POIs", "unit.stays": "stays", "unit.mobility": "nodes",
@@ -625,6 +641,9 @@ const BRIDGE_DICTIONARIES = Object.freeze({
     observedDelta: "B−A observado", difference: "Diferencia",
     comparable: "Comparable", withheld: "Retenido", locked: "Fijado",
     na: "N/D", off: "APAG.",
+    pickerAria: "Métrica que comparar",
+    "picker.tourism": "Turismo", "picker.stays": "Estancias",
+    "picker.mobility": "Movilidad", "picker.utci": "UTCI",
     "metric.tourism": "POI turísticos", "metric.stays": "Hoteles y alojamientos",
     "metric.mobility": "Nodos de movilidad", "metric.utci": "UTCI media",
     "unit.tourism": "POI", "unit.stays": "aloj.", "unit.mobility": "nodos",
@@ -739,6 +758,12 @@ function renderComparisonBridge() {
   const block = document.getElementById("comparisonBridgeMetric");
   const a11y = document.getElementById("comparisonBridgeA11y");
   const metricId = focusedHaloMetric;
+  const picker = document.getElementById("comparisonBridgePicker");
+  if (picker) picker.setAttribute("aria-label", bridgeT("pickerAria"));
+  document.querySelectorAll(".cb-picker-button[data-bridge-metric]").forEach((button) => {
+    button.textContent = bridgeT(`picker.${button.dataset.bridgeMetric}`);
+    button.setAttribute("aria-pressed", selectedHaloMetric === button.dataset.bridgeMetric ? "true" : "false");
+  });
   const state = metricId && lastBridgeStates ? lastBridgeStates[metricId] : null;
   const model = state && lastBridgeContext
     ? buildComparisonBridgeModel({ metricId, state, radiusMode: lastBridgeContext.radiusMode, radii: lastBridgeContext.radii })
@@ -799,6 +824,25 @@ function renderComparisonBridge() {
       + `${sideSentence(bridgeT("lensB"), model.b, model)}. `
       + `${rel.comparable ? bridgeT("observedDelta") : bridgeT("difference")} ${relValueText}. ${qualifierText}.`;
   }
+}
+
+// P2: the Bridge is now directly operable on touch and keyboard without asking
+// readers to discover a small halo mark or open the full comparison table first.
+// The controls only route into the existing focus/lock function; every value and
+// comparability decision still comes from the authoritative Bridge model.
+for (const button of document.querySelectorAll(".cb-picker-button[data-bridge-metric]")) {
+  const metricId = button.dataset.bridgeMetric;
+  button.addEventListener("mouseenter", () => setHaloMetricFocus(metricId, null));
+  button.addEventListener("mouseleave", () => setHaloMetricFocus(null, null));
+  button.addEventListener("focus", () => setHaloMetricFocus(metricId, null));
+  button.addEventListener("blur", () => setHaloMetricFocus(null, null));
+  button.addEventListener("click", () => setHaloMetricFocus(metricId, null, true));
+  button.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    selectedHaloMetric = null;
+    setHaloMetricFocus(null, null);
+  });
 }
 
 // --- Decision Insight ------------------------------------------------------
@@ -6030,8 +6074,11 @@ shell.modes = createModeController({
   },
 });
 shell.modes.subscribe((mode, plan) => {
+  const panel = document.getElementById("analysisPanel");
+  if (plan.changed) shell.modeScrollPositions[plan.from] = panel.scrollTop;
   renderModeUi();
   if (plan.changed) {
+    panel.scrollTop = shell.modeScrollPositions[mode] || 0;
     document.getElementById("modeAnnouncer").textContent =
       `${shellT("mode.announce")}: ${shellT(`mode.${mode.toLowerCase()}`)}. ${shellT(`mode.q.${mode.toLowerCase()}`)}`;
   }

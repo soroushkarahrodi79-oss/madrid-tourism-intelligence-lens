@@ -4,6 +4,7 @@ import test from "node:test";
 
 const app = fs.readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
 const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
+const css = fs.readFileSync(new URL("../css/app.css", import.meta.url), "utf8");
 
 test("analysis panel resize state is clamped and persisted", () => {
   assert.match(app, /function panelResizeLimits\(\)/);
@@ -23,6 +24,7 @@ test("panel resizing is keyboard-accessible and resettable", () => {
   assert.match(app, /event\.key === "ArrowDown"/);
   assert.match(app, /event\.key === "Home"/);
   assert.match(app, /panelResizeHandle\.addEventListener\("dblclick", resetPanelSize\)/);
+  assert.match(css, /\.panel-resize-handle\{[^}]*width:44px;height:44px/);
 });
 
 test("mobile viewport ignores stored desktop panel dimensions", () => {
