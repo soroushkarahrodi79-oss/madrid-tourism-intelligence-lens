@@ -601,6 +601,43 @@ test("PA 15 the Lens∩ámbito Detail list lists touched ámbitos and no quantit
   assert.match(note, /published quantities/i);
 });
 
+// ---------------------------------------- 7a. touched list visual/keyboard layout
+test("PA 15b Detail planning membership uses full width with bounded scrolling at desktop and mobile", async (t) => {
+  for (const viewport of [{ width: 1366, height: 900 }, { width: 390, height: 844 }]) {
+    await t.test(`${viewport.width}px`, async () => {
+      const page = await newPage(viewport);
+      try {
+        await at(page, INSIDE);
+        await page.evaluate(() => window.__HALO_REGRESSION__.openPlaceDetailForTest());
+        const layout = await page.locator("#planningTouchedCard").evaluate((card) => {
+          const grid = card.closest(".mix");
+          const list = document.getElementById("planningTouchedList");
+          const rect = card.getBoundingClientRect();
+          const container = grid.getBoundingClientRect();
+          const style = getComputedStyle(list);
+          return {
+            cardWidth: rect.width, parentWidth: container.width,
+            maxHeight: parseFloat(style.maxHeight), overflowY: style.overflowY,
+            tabindex: list.getAttribute("tabindex"),
+            labelledby: list.getAttribute("aria-labelledby"),
+            items: list.querySelectorAll(":scope > li").length,
+          };
+        });
+        assert.ok(layout.parentWidth > 0 && Math.abs(layout.cardWidth - layout.parentWidth) <= 3,
+          `full grid width at ${viewport.width}: ${JSON.stringify(layout)}`);
+        assert.equal(layout.overflowY, "auto", "long membership is scrollable rather than endlessly tall");
+        assert.ok(layout.maxHeight > 0 && layout.maxHeight <= (viewport.width < 851 ? 176 : 240) + 1,
+          `bounded height at ${viewport.width}: ${layout.maxHeight}`);
+        assert.equal(layout.tabindex, "0", "scrollable list is keyboard focusable");
+        assert.equal(layout.labelledby, "planningTouchedHeading", "localized title labels list");
+        assert.ok(layout.items >= 1, "membership remains present");
+      } finally {
+        await closePage(page);
+      }
+    });
+  }
+});
+
 // ---------------------------------------- 7b. promoted membership disclosure (P0-a)
 
 test("PA 21 (AC-P0-1/-5) the promoted membership block states containment and membership as different questions, with identity-only chips", async (t) => {

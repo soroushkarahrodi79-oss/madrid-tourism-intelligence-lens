@@ -495,6 +495,34 @@ header{
 .planning-touched-code{font-size:var(--t-meta);font-weight:700;letter-spacing:.04em;color:#e3ecf6;font-variant-numeric:tabular-nums}
 .planning-touched-centre{font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:#8ba0b7}
 
+/* Detail-only Lens ∩ ámbito list: span the two-column .mix layout instead of
+   leaving an empty right-hand column. Keep every code/name, but cap the long
+   list so its card never dominates PLACE (especially in the mobile bottom sheet). */
+#planningTouchedCard{grid-column:1/-1;min-width:0}
+#planningTouchedList{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));
+  align-content:start;
+  gap:var(--s-1) var(--s-2);
+  max-height:15rem;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+  padding-right:var(--s-1);
+}
+#planningTouchedList>li{
+  display:flex;align-items:baseline;flex-wrap:wrap;
+  gap:var(--s-1) var(--s-2);
+  min-width:0;padding:var(--s-1) var(--s-2);
+  border:1px solid var(--chrome-border);
+  border-radius:var(--r-small);
+  background:var(--chrome-card-surface);
+  overflow-wrap:anywhere;
+}
+#planningTouchedList>li>span:not(.planning-touched-code):not(.planning-touched-centre){min-width:0}
+#planningTouchedList:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
+
+
 /* MEMBERSHIP (P0-a, #95), promoted into the always-visible planning section.
    It sits visually SEPARATE from the containment answer above (its own ruled
    block in the reserved neutral family) because it answers a different question
@@ -983,6 +1011,9 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
    governs everything below: NO breakpoint may hide a source, a date, a unit, a
    scope label or an interpretation ceiling. Supporting figures and tables may
    collapse; they are never deleted. */
+/* The DETAIL list belongs to the two-track panel grid; keep mobile scrolling
+   compact without reassigning any text-size role in the pre-K4 breakpoint. */
+@media(max-width:850px){#planningTouchedList{max-height:11rem}}
 .header-tools{pointer-events:auto;margin-left:auto;display:flex;align-items:center;gap:var(--s-2)}
 .appearance-control{display:flex;align-items:center;gap:var(--s-2);color:var(--chrome-text-brand-subtle);font-size:var(--t-micro);font-weight:650;letter-spacing:.04em}
 .appearance-control>span{font-size:var(--t-micro)}
