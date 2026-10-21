@@ -6494,13 +6494,13 @@ function clampPanelSize(width, height) {
 
 function applyPanelSize(width, height, persist = false) {
   if (window.innerWidth <= 850) {
-    analysisPanel.style.removeProperty("width");
-    analysisPanel.style.removeProperty("height");
+    analysisPanel.style.removeProperty("--analysis-panel-width");
+    analysisPanel.style.removeProperty("--analysis-panel-height");
     return;
   }
   const next = clampPanelSize(width, height);
-  analysisPanel.style.width = `${Math.round(next.width)}px`;
-  analysisPanel.style.height = `${Math.round(next.height)}px`;
+  analysisPanel.style.setProperty("--analysis-panel-width", `${Math.round(next.width)}px`);
+  analysisPanel.style.setProperty("--analysis-panel-height", `${Math.round(next.height)}px`);
   if (persist) {
     try {
       localStorage.setItem(PANEL_SIZE_STORAGE_KEY, JSON.stringify(next));
@@ -6523,8 +6523,8 @@ function restorePanelSize() {
 }
 
 function resetPanelSize() {
-  analysisPanel.style.removeProperty("width");
-  analysisPanel.style.removeProperty("height");
+  analysisPanel.style.removeProperty("--analysis-panel-width");
+  analysisPanel.style.removeProperty("--analysis-panel-height");
   try {
     localStorage.removeItem(PANEL_SIZE_STORAGE_KEY);
   } catch (_) {
@@ -6588,8 +6588,8 @@ panelResizeHandle.addEventListener("keydown", (event) => {
 
 window.addEventListener("resize", () => {
   if (window.innerWidth <= 850) {
-    analysisPanel.style.removeProperty("width");
-    analysisPanel.style.removeProperty("height");
+    analysisPanel.style.removeProperty("--analysis-panel-width");
+    analysisPanel.style.removeProperty("--analysis-panel-height");
     return;
   }
   const rect = analysisPanel.getBoundingClientRect();

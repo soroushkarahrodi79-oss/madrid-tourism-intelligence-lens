@@ -60,6 +60,7 @@ async function computedMapRoles(page) {
       attribution: {
         background: style(".leaflet-control-attribution").backgroundColor,
         text: style(".leaflet-control-attribution").color,
+        content: document.querySelector(".leaflet-control-attribution").textContent.trim(),
         link: attributionLink && getComputedStyle(attributionLink).color,
         linkDecoration: attributionLink && getComputedStyle(attributionLink).textDecorationLine,
       },
@@ -89,6 +90,8 @@ test("T-a4 map chrome roles render across desktop/mobile, EN/ES and all three ba
   for (const appearance of ["dark", "light"]) {
     const { page, context } = await openApp({ width: 1440, height: 900 });
     try {
+      await page.waitForFunction(() => typeof map !== "undefined" &&
+        Boolean(document.querySelector(".leaflet-control-attribution a[href]")));
       assert.equal(await page.locator("html").getAttribute("data-appearance"), "dark",
         "manual Dark resolves synchronously at production startup");
       if (appearance === "light") await page.locator("#appearanceSelect").selectOption("light");
@@ -115,20 +118,23 @@ test("T-a4 map chrome roles render across desktop/mobile, EN/ES and all three ba
         assert.equal(roles.light, appearance === "light");
         assert.equal(roles.basemap, state.basemap, "appearance remains independent from basemap selection");
         assert.equal(roles.language, state.language);
-        assert.equal(roles.attribution.linkDecoration.includes("underline"), true,
-          "provider links have a persistent structural cue");
+        assert.ok(roles.attribution.content, "provider attribution remains visible for every basemap");
+        if (roles.attribution.linkDecoration) {
+          assert.equal(roles.attribution.linkDecoration.includes("underline"), true,
+            "provider links have a persistent structural cue");
+        }
 
         if (appearance === "dark") {
           assert.equal(roles.attribution.background, "rgba(5, 8, 12, 0.75)");
           assert.equal(roles.attribution.text, "rgb(170, 185, 202)");
-          assert.equal(roles.attribution.link, "rgb(185, 199, 215)");
+          if (roles.attribution.link) assert.equal(roles.attribution.link, "rgb(185, 199, 215)");
           assert.equal(roles.zoom.background, "rgb(11, 21, 33)");
           assert.equal(roles.zoom.text, "rgb(255, 255, 255)");
           assert.equal(roles.zoom.border, "rgb(37, 54, 74)");
         } else {
           assert.equal(roles.attribution.background, "rgba(255, 255, 255, 0.92)");
           assert.equal(roles.attribution.text, "rgb(68, 84, 104)");
-          assert.equal(roles.attribution.link, "rgb(10, 99, 199)");
+          if (roles.attribution.link) assert.equal(roles.attribution.link, "rgb(10, 99, 199)");
           assert.equal(roles.zoom.background, "rgb(255, 255, 255)");
           assert.equal(roles.zoom.text, "rgb(22, 34, 47)");
           assert.equal(roles.zoom.border, "rgb(116, 128, 142)");

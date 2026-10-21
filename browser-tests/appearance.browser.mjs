@@ -241,27 +241,13 @@ test("P1 responsive shell keeps branding, map tools and provider credits distinc
       return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height };
     };
     const overlaps = (a, b) => Boolean(a && b && a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1);
-    const brand = rect(".brand"), tools = rect(".header-tools");
+    const brand = rect(".brand"), tools = rect(".header-tools"), panel = rect("#analysisPanel");
     const layers = rect("#mobileLayersButton"), zoom = rect(".leaflet-control-zoom");
     const attribution = rect(".leaflet-control-attribution");
     return {
       overflow: document.documentElement.scrollWidth - window.innerWidth,
       viewportWidth: window.innerWidth,
-      rootClientWidth: document.documentElement.clientWidth,
-      rootScrollWidth: document.documentElement.scrollWidth,
-      bodyScrollWidth: document.body.scrollWidth,
-      layoutSources: [...document.querySelectorAll("body *")].filter(el => {
-        const style = getComputedStyle(el);
-        return style.position !== "absolute" && style.position !== "fixed" && style.display !== "none";
-      }).map(el => {
-        const r = el.getBoundingClientRect();
-        return { tag: el.tagName, id: el.id, className: typeof el.className === "string" ? el.className.slice(0,70) : "", right: Math.round(r.right), width: Math.round(r.width), scrollWidth: el.scrollWidth, overflowX: getComputedStyle(el).overflowX };
-      }).filter(x => x.right > window.innerWidth + 1 || x.scrollWidth > window.innerWidth + 1).sort((a,b) => b.right-a.right).slice(0,20),
-      overflowSources: [...document.querySelectorAll("body *")].map(el => {
-        const r = el.getBoundingClientRect();
-        return { tag: el.tagName, id: el.id, className: typeof el.className === "string" ? el.className.slice(0,90) : "", left: Math.round(r.left), right: Math.round(r.right), width: Math.round(r.width), scrollWidth: el.scrollWidth };
-      }).filter(x => x.right > window.innerWidth + 1 && x.width > 0).sort((a,b) => b.right-a.right).slice(0,12),
-      brand, tools, layers, zoom, attribution,
+      brand, tools, panel, layers, zoom, attribution,
       brandTools: overlaps(brand, tools),
       layersTools: getComputedStyle(document.querySelector("#mobileLayersButton")).display !== "none" && overlaps(layers, tools),
       zoomAttribution: overlaps(zoom, attribution),
@@ -285,6 +271,7 @@ test("P1 responsive shell keeps branding, map tools and provider credits distinc
     await page.setViewportSize(viewport);
     const g = await rectTest();
     assert.ok(g.overflow <= 1, `horizontal document overflow at ${viewport.width}x${viewport.height}: ${JSON.stringify(g)}`);
+    assert.ok(g.panel.left >= -1 && g.panel.right <= viewport.width + 1, `analysis panel remains within the viewport at ${viewport.width}x${viewport.height}: ${JSON.stringify(g.panel)}`);
     assert.equal(g.brandTools, false, `brand/tool collision: ${JSON.stringify(g)}`);
     assert.equal(g.layersTools, false, `Layers/preference collision: ${JSON.stringify(g)}`);
     assert.equal(g.zoomAttribution, false, `zoom/provider credit collision: ${JSON.stringify(g)}`);
