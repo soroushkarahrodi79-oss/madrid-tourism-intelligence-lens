@@ -33,7 +33,7 @@ test("mobile viewport ignores stored desktop panel dimensions", () => {
   assert.ok(applyBody, "applyPanelSize not found");
   assert.match(
     applyBody,
-    /if \(window\.innerWidth <= 850\) \{[\s\S]*?removeProperty\("width"\)[\s\S]*?removeProperty\("height"\)[\s\S]*?return;/
+    /if \(window\.innerWidth <= 850\) \{[\s\S]*?removeProperty\("--analysis-panel-width"\)[\s\S]*?removeProperty\("--analysis-panel-height"\)[\s\S]*?return;/
   );
 
   const restoreBody = app.match(/function restorePanelSize\(\) \{([\s\S]*?)^\}/m)?.[1];

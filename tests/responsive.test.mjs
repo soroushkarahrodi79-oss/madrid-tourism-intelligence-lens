@@ -54,8 +54,8 @@ test("responsive stylesheet is cache-busted in the page", () => {
 
 
 test("desktop analysis panel is substantially larger by default", () => {
-  assert.match(css, /width:min\(480px,calc\(100vw - 300px/);
-  assert.match(css, /height:min\(720px,calc\(100dvh - 108px/);
+  assert.match(css, /width:var\(--analysis-panel-width,min\(480px,calc\(100vw - 300px/);
+  assert.match(css, /height:var\(--analysis-panel-height,min\(720px,calc\(100dvh - 108px/);
   assert.match(css, /min-width:390px/);
   assert.match(css, /min-height:360px/);
 });

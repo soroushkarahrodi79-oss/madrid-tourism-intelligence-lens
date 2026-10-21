@@ -252,10 +252,10 @@ header{
 
 .panel{
   position:absolute;z-index:1050;right:calc(18px + var(--safe-right));top:calc(90px + var(--safe-top));
-  width:min(480px,calc(100vw - 300px - var(--safe-left) - var(--safe-right)));
+  width:var(--analysis-panel-width,min(480px,calc(100vw - 300px - var(--safe-left) - var(--safe-right))));
   min-width:390px;max-width:min(680px,calc(100vw - 276px - var(--safe-left) - var(--safe-right)));
-  height:min(720px,calc(100vh - 108px - var(--safe-top) - var(--safe-bottom)));
-  height:min(720px,calc(100dvh - 108px - var(--safe-top) - var(--safe-bottom)));
+  height:var(--analysis-panel-height,min(720px,calc(100vh - 108px - var(--safe-top) - var(--safe-bottom))));
+  height:var(--analysis-panel-height,min(720px,calc(100dvh - 108px - var(--safe-top) - var(--safe-bottom))));
   min-height:360px;max-height:calc(100vh - 108px - var(--safe-top) - var(--safe-bottom));max-height:calc(100dvh - 108px - var(--safe-top) - var(--safe-bottom));
   overflow:auto;overscroll-behavior:contain;padding:var(--s-4);border:1px solid var(--chrome-border);border-radius:var(--r-large);background:var(--chrome-panel-surface);
   backdrop-filter:blur(22px);box-shadow:0 18px 55px rgba(0,0,0,.38)
