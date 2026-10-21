@@ -3,7 +3,7 @@ import fs from "node:fs";
 import test from "node:test";
 
 import { createPlanningIndex } from "../js/planning-ambito.js";
-import { EXPLORER_RESULT_LIMIT, searchPlanningAmbitos } from "../js/planning-explorer.js";
+import { EXPLORER_RESULT_LIMIT, planningEvidenceEditions, searchPlanningAmbitos } from "../js/planning-explorer.js";
 
 const geometry = JSON.parse(fs.readFileSync(new URL("../data/planning/madrid_ambitos.geojson", import.meta.url), "utf8"));
 const state = JSON.parse(fs.readFileSync(new URL("../data/planning/madrid_ambito_state.json", import.meta.url), "utf8"));
@@ -31,4 +31,18 @@ test("explorer keeps empty, unavailable and unknown states distinct", () => {
   assert.equal(searchPlanningAmbitos(index, "").state, "empty");
   assert.equal(searchPlanningAmbitos(index, "NOT.A.REAL.CODE").state, "not_found");
   assert.equal(searchPlanningAmbitos(null, "APR.02.09").state, "unavailable");
+});
+
+test("explorer keeps development-state and buildability edition dates tied to their evidence families", () => {
+  const editions = planningEvidenceEditions({ editions: {
+    developmentState: { referenceDate: "2026-01-01" },
+    availableBuildability: { referenceDate: "2025-07-01" },
+  } });
+  assert.deepEqual(editions, [
+    { family: "developmentState", referenceDate: "2026-01-01" },
+    { family: "availableBuildability", referenceDate: "2025-07-01" },
+  ]);
+  assert.deepEqual(planningEvidenceEditions({ editions: { developmentState: { referenceDate: "2026-01-01" } } }), [
+    { family: "developmentState", referenceDate: "2026-01-01" },
+  ]);
 });

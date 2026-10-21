@@ -38,6 +38,19 @@ export function searchPlanningAmbitos(index, query, limit = EXPLORER_RESULT_LIMI
   return Object.freeze({ state: matches.length ? "results" : "not_found", query: raw, results: Object.freeze(matches) });
 }
 
+/**
+ * Keep evidence-family editions separate. They may happen to share a date in
+ * one release, but that does not make either date a claim about the other.
+ */
+export function planningEvidenceEditions(index) {
+  const editions = index?.editions;
+  if (!editions) return Object.freeze([]);
+  return Object.freeze([
+    ["developmentState", editions.developmentState?.referenceDate || null],
+    ["availableBuildability", editions.availableBuildability?.referenceDate || null],
+  ].filter(([, referenceDate]) => Boolean(referenceDate)).map(([family, referenceDate]) => Object.freeze({ family, referenceDate })));
+}
+
 function identity(entry) {
   return Object.freeze({ code: entry.code, denomination: entry.denomination || null });
 }

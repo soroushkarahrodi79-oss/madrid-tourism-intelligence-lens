@@ -18,8 +18,8 @@ await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const port = server.address().port;
 const browser = await chromium.launch({ headless: true });
 
-async function pageFor(viewport = { width: 1280, height: 900 }, unavailable = false) {
-  const context = await browser.newContext({ viewport });
+async function pageFor(viewport = { width: 1280, height: 900 }, unavailable = false, colorScheme = "light") {
+  const context = await browser.newContext({ viewport, colorScheme });
   const page = await context.newPage();
   page.setDefaultTimeout(15000);
   await page.route("**/*", (route) => {
@@ -78,8 +78,15 @@ test("keyboard, Spanish copy, mobile control size, reset and unavailable state a
   assert.equal(await page.evaluate(() => document.activeElement?.dataset.code), "APR.02.09");
   await page.keyboard.press("Enter");
   assert.equal((await snapshot(page)).selectedCode, "APR.02.09");
-  const mobile = await page.locator("#planningExplorerMap").evaluate((node) => ({ height: node.getBoundingClientRect().height, overflow: document.documentElement.scrollWidth > window.innerWidth }));
-  assert.ok(mobile.height >= 44);
+  const mobile = await page.evaluate(() => ({
+    map: document.querySelector("#planningExplorerMap").getBoundingClientRect().height,
+    close: document.querySelector("#planningExplorerClose").getBoundingClientRect().height,
+    query: document.querySelector("#planningExplorerQuery").getBoundingClientRect().height,
+    overflow: document.documentElement.scrollWidth > window.innerWidth,
+  }));
+  assert.ok(mobile.map >= 44);
+  assert.ok(mobile.close >= 44);
+  assert.ok(mobile.query >= 44);
   assert.equal(mobile.overflow, false);
   await page.locator("#languageSelect").selectOption("es");
   assert.equal(await page.locator("#planningExplorerMap").textContent(), "Ver en mapa");
@@ -88,4 +95,49 @@ test("keyboard, Spanish copy, mobile control size, reset and unavailable state a
   const absent = await pageFor({ width: 800, height: 700 }, true); t.after(() => absent.context.close());
   assert.equal((await snapshot(absent.page)).state, "unavailable");
   assert.match(await absent.page.locator("#planningExplorerStatus").textContent(), /unavailable/i);
+});
+
+test("native result buttons retain focus through Lens refresh and language change", async (t) => {
+  const { page, context } = await pageFor(); t.after(() => context.close());
+  const query = page.locator("#planningExplorerQuery");
+  await query.fill("APR.02.09");
+  await query.press("ArrowDown");
+  assert.equal(await page.evaluate(() => document.activeElement?.tagName), "BUTTON");
+  await page.evaluate(() => window.__HALO_REGRESSION__.moveLensToLatLng("A", 40.40255, -3.71371));
+  assert.equal(await page.evaluate(() => document.activeElement?.dataset.code), "APR.02.09");
+  await page.locator("#languageSelect").selectOption("es");
+  assert.equal(await page.evaluate(() => document.activeElement?.dataset.code), "APR.02.09");
+  const semantics = await page.locator("#planningExplorerResults").evaluate((node) => ({ role: node.getAttribute("role"), buttonRole: node.querySelector("button")?.getAttribute("role") }));
+  assert.equal(semantics.role, null);
+  assert.equal(semantics.buttonRole, null);
+  await page.keyboard.press("Enter");
+  assert.equal((await snapshot(page)).selectedCode, "APR.02.09");
+});
+
+test("explorer uses appearance tokens in Light, Dark and System without changing the map", async (t) => {
+  const { page, context } = await pageFor({ width: 1280, height: 900 }, false, "dark"); t.after(() => context.close());
+  await page.locator("#planningExplorerQuery").fill("APR.02.09");
+  await page.locator("#planningExplorerResults button").click();
+  const sample = async () => page.evaluate(() => {
+    const node = document.querySelector("#planningExplorer");
+    const map = window.__HALO_REGRESSION__.mapView();
+    return { appearance: document.documentElement.dataset.appearance, color: getComputedStyle(node).color, background: getComputedStyle(node).backgroundColor, map };
+  });
+  const lightBefore = await sample();
+  await page.locator("#appearanceSelect").selectOption("light");
+  const light = await sample();
+  await page.locator("#appearanceSelect").selectOption("dark");
+  const dark = await sample();
+  await page.locator("#appearanceSelect").selectOption("system");
+  const system = await sample();
+  assert.equal(light.appearance, "light");
+  assert.equal(dark.appearance, "dark");
+  assert.equal(system.appearance, "dark");
+  assert.notEqual(light.color, dark.color);
+  assert.notEqual(light.background, dark.background);
+  assert.deepEqual(light.map, lightBefore.map);
+  assert.deepEqual(dark.map, lightBefore.map);
+  assert.deepEqual(system.map, lightBefore.map);
+  await page.locator("#languageSelect").selectOption("es");
+  assert.match(await page.locator("#planningExplorerEdition").textContent(), /Edición del estado de desarrollo: 1 ene\. 2026.*Edición de edificabilidad disponible: 1 ene\. 2026/);
 });

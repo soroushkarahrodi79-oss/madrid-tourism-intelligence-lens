@@ -3373,9 +3373,11 @@ function planningObservedDifference(value) {
   return planningFigure(value, fractionDigits);
 }
 
-function planningExplorerEdition() {
-  const editions = planningModel.index && planningModel.index.editions;
-  return planningDate(editions?.developmentState?.referenceDate || editions?.availableBuildability?.referenceDate || null);
+function planningExplorerEditions() {
+  return planningModel.explorerModule.planningEvidenceEditions(planningModel.index).map(({ family, referenceDate }) => [
+    family === "developmentState" ? "planning.explorer.developmentEdition" : "planning.explorer.buildabilityEdition",
+    planningDate(referenceDate),
+  ]);
 }
 
 function clearPlanningExplorer() {
@@ -3403,6 +3405,12 @@ function renderPlanningExplorer() {
   const results = document.getElementById("planningExplorerResults");
   const card = document.getElementById("planningExplorerCard");
   if (!host || !input || !status || !results || !card) return;
+  // Refreshes happen after Lens movement and language changes. If a result was
+  // focused, restore that exact native button after its text is rebuilt; focus
+  // never falls back to the document merely because labels changed.
+  const focusedCode = document.activeElement?.matches?.("#planningExplorerResults button")
+    ? document.activeElement.dataset.code
+    : null;
   const ready = planningState === "ready" && planningModel.index && planningModel.explorerModule;
   host.dataset.state = ready ? "ready" : planningState;
   input.disabled = !ready;
@@ -3421,7 +3429,6 @@ function renderPlanningExplorer() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "planning-explorer-result";
-    button.setAttribute("role", "option");
     button.dataset.code = entry.code;
     button.setAttribute("aria-label", shellT("planning.explorer.result").replace("{code}", entry.code));
     const code = document.createElement("code");
@@ -3433,6 +3440,10 @@ function renderPlanningExplorer() {
     item.append(button);
     results.append(item);
   }
+  if (focusedCode) {
+    const replacement = [...results.querySelectorAll("button")].find((button) => button.dataset.code === focusedCode);
+    if (replacement) replacement.focus({ preventScroll: true });
+  }
   const feature = planningExplorer.selectedCode && planningModel.index.featureFor(planningExplorer.selectedCode);
   if (!feature) return;
   const properties = feature.properties || {};
@@ -3440,8 +3451,10 @@ function renderPlanningExplorer() {
   setText("planningExplorerCode", properties.ambito_code || planningExplorer.selectedCode);
   setText("planningExplorerDenomination", properties.ambito_denomination || "");
   setText("planningExplorerScope", shellT("planning.explorer.scope"));
-  const edition = planningExplorerEdition();
-  setText("planningExplorerEdition", edition ? shellT("planning.explorer.edition").replace("{date}", edition) : shellT("planning.explorer.editionUnavailable"));
+  const editions = planningExplorerEditions();
+  setText("planningExplorerEdition", editions.length
+    ? editions.map(([key, date]) => shellT(key).replace("{date}", date)).join(" · ")
+    : shellT("planning.explorer.editionUnavailable"));
 }
 
 function renderPlanningExplorerPolygon() {
