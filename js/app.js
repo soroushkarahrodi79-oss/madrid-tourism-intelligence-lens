@@ -3380,6 +3380,78 @@ function planningExplorerEditions() {
   ]);
 }
 
+function appendPlanningPhaseRow(list, phase) {
+  const { VALUE_STATE, PHASE_KIND, PHASE_VOCABULARY } = planningModel.module;
+  const item = document.createElement("li");
+  item.dataset.kind = phase.kind || "";
+  const field = document.createElement("span");
+  field.className = "planning-phase-field";
+  field.textContent = shellT(`planning.phase.${phase.key}`);
+  const value = document.createElement("span");
+  value.className = "planning-phase-value";
+  if (phase.kind === PHASE_KIND.UNRESOLVED_MEANING || phase.kind === PHASE_KIND.PLAN_ORIGIN_MARKER) {
+    const mark = document.createElement("span");
+    mark.className = "planning-phase-mark";
+    mark.setAttribute("aria-hidden", "true");
+    mark.textContent = phase.kind === PHASE_KIND.UNRESOLVED_MEANING ? "?" : "§";
+    const label = document.createElement("span");
+    label.className = "sr-only";
+    label.textContent = `${shellT(phase.kind === PHASE_KIND.UNRESOLVED_MEANING ? "planning.glyph.unresolved" : "planning.glyph.marker")}: `;
+    value.append(label, mark);
+  }
+  const verbatim = document.createElement("span");
+  verbatim.dataset.verbatim = "";
+  verbatim.textContent = phase.state === VALUE_STATE.PUBLISHED ? phase.sourceValue : "";
+  if (phase.state !== VALUE_STATE.PUBLISHED) {
+    verbatim.removeAttribute("data-verbatim");
+    verbatim.textContent = shellT("planning.notPublished");
+  }
+  value.append(verbatim);
+  item.append(field, value);
+  const notes = [];
+  if (phase.kind === PHASE_KIND.UNRESOLVED_MEANING) notes.push(shellT("planning.note.unresolved"));
+  if (phase.kind === PHASE_KIND.PLAN_ORIGIN_MARKER) notes.push(shellT("planning.note.marker"));
+  if (phase.vocabulary === PHASE_VOCABULARY.SOURCE_OBSERVED_NOT_DOCUMENTED) notes.push(shellT("planning.note.undocumented"));
+  if (notes.length) {
+    const note = document.createElement("p");
+    note.className = "planning-phase-note";
+    note.textContent = notes.join(" ");
+    item.append(note);
+  }
+  list.append(item);
+}
+
+function renderPlanningExplorerEvidence(inspection) {
+  const phases = document.getElementById("planningExplorerPhases"), phaseRows = document.getElementById("planningExplorerPhaseRows"), stateAbsent = document.getElementById("planningExplorerStateAbsent"), build = document.getElementById("planningExplorerBuild"), buildRows = document.getElementById("planningExplorerBuildRows"), buildAbsent = document.getElementById("planningExplorerBuildAbsent");
+  if (!phases || !phaseRows || !stateAbsent || !build || !buildRows || !buildAbsent) return;
+  phaseRows.replaceChildren(); buildRows.replaceChildren(); phases.hidden = true; stateAbsent.hidden = true; build.hidden = true; buildAbsent.hidden = true;
+  const { AVAILABILITY } = planningModel.module;
+  if (inspection.developmentState?.availability === AVAILABILITY.PUBLISHED) {
+    phases.hidden = false;
+    for (const phase of inspection.developmentState.phases) appendPlanningPhaseRow(phaseRows, phase);
+  } else { stateAbsent.hidden = false; stateAbsent.textContent = `${shellT("planning.stateNotPublished")} ${shellT("planning.absenceNote")}`; }
+  if (inspection.availableBuildability?.availability === AVAILABILITY.PUBLISHED) {
+    build.hidden = false;
+    if (inspection.availableBuildability.publication === planningModel.module.BUILDABILITY_PUBLICATION.MULTIPLE_PUBLISHED_ROWS_NOT_COMBINED) {
+      const note = document.createElement("p");
+      note.className = "planning-block-note";
+      note.textContent = shellT("planning.multipleRows");
+      buildRows.append(note);
+    }
+    for (const row of inspection.availableBuildability.rows) {
+      const wrap = document.createElement("div"), list = document.createElement("ul"); wrap.className = "planning-build-row"; list.className = "planning-uses";
+      if (row.situacion) { const p = document.createElement("p"); p.className = "planning-situacion"; p.textContent = `${shellT("planning.situacionLabel")}: ${row.situacion}`; p.dataset.verbatim = ""; wrap.append(p); }
+      for (const useClass of row.useClasses) {
+        const item = document.createElement("li"), label = document.createElement("span"), value = document.createElement("span"); item.dataset.valueState = useClass.state;
+        label.className = "planning-use-label"; label.textContent = shellT(`planning.use.${useClass.key}`);
+        value.className = "planning-use-value"; value.textContent = useClass.state === planningModel.module.VALUE_STATE.PUBLISHED ? `${planningFigure(useClass.value, 2)} ${useClass.unit}` : shellT("planning.notPublished");
+        item.append(label, value); list.append(item);
+      }
+      wrap.append(list); buildRows.append(wrap);
+    }
+  } else { buildAbsent.hidden = false; buildAbsent.textContent = `${shellT("planning.buildNotPublished")} ${shellT("planning.absenceNote")}`; }
+}
+
 function clearPlanningExplorer() {
   planningExplorer.query = "";
   planningExplorer.results = [];
@@ -3444,17 +3516,17 @@ function renderPlanningExplorer() {
     const replacement = [...results.querySelectorAll("button")].find((button) => button.dataset.code === focusedCode);
     if (replacement) replacement.focus({ preventScroll: true });
   }
-  const feature = planningExplorer.selectedCode && planningModel.index.featureFor(planningExplorer.selectedCode);
-  if (!feature) return;
-  const properties = feature.properties || {};
+  const inspection = planningExplorer.selectedCode && planningModel.explorerModule.planningInspection(planningModel.index, planningExplorer.selectedCode);
+  if (!inspection) return;
   card.hidden = false;
-  setText("planningExplorerCode", properties.ambito_code || planningExplorer.selectedCode);
-  setText("planningExplorerDenomination", properties.ambito_denomination || "");
+  setText("planningExplorerCode", inspection.code);
+  setText("planningExplorerDenomination", inspection.denomination || "");
   setText("planningExplorerScope", shellT("planning.explorer.scope"));
-  const editions = planningExplorerEditions();
+  const editions = inspection.editions.map(({ family, referenceDate }) => [family === "developmentState" ? "planning.explorer.developmentEdition" : "planning.explorer.buildabilityEdition", planningDate(referenceDate)]);
   setText("planningExplorerEdition", editions.length
     ? editions.map(([key, date]) => shellT(key).replace("{date}", date)).join(" · ")
     : shellT("planning.explorer.editionUnavailable"));
+  renderPlanningExplorerEvidence(inspection);
 }
 
 function renderPlanningExplorerPolygon() {
@@ -3554,7 +3626,7 @@ function renderPlanningContext() {
 
   const state = planningModel.index.developmentState(containing.ambitoCode);
   const buildability = planningModel.index.availableBuildability(containing.ambitoCode);
-  const { AVAILABILITY, VALUE_STATE, PHASE_KIND, PHASE_VOCABULARY } = planningModel.module;
+  const { AVAILABILITY, VALUE_STATE } = planningModel.module;
 
   // K11 (#73): capture the containing ámbito's planning figures for the PLACE
   // export by REUSING the authoritative comparison model on a single-ámbito
@@ -3581,54 +3653,7 @@ function renderPlanningContext() {
     phasesBlock.hidden = false;
     const list = document.getElementById("planningPhases");
     list.replaceChildren();
-    for (const phase of state.phases) {
-      const item = document.createElement("li");
-      item.dataset.kind = phase.kind || "";
-      const field = document.createElement("span");
-      field.className = "planning-phase-field";
-      field.textContent = shellT(`planning.phase.${phase.key}`);
-      const value = document.createElement("span");
-      value.className = "planning-phase-value";
-      // A structural mark, so the distinction never rests on colour alone. The
-      // glyph is decorative; the screen-reader text names what it marks.
-      if (phase.kind === PHASE_KIND.UNRESOLVED_MEANING || phase.kind === PHASE_KIND.PLAN_ORIGIN_MARKER) {
-        const mark = document.createElement("span");
-        mark.className = "planning-phase-mark";
-        mark.setAttribute("aria-hidden", "true");
-        mark.textContent = phase.kind === PHASE_KIND.UNRESOLVED_MEANING ? "?" : "§";
-        const label = document.createElement("span");
-        label.className = "sr-only";
-        label.textContent = `${shellT(
-          phase.kind === PHASE_KIND.UNRESOLVED_MEANING ? "planning.glyph.unresolved" : "planning.glyph.marker"
-        )}: `;
-        value.append(label, mark);
-      }
-      // The publisher's string, VERBATIM. data-verbatim keeps the language
-      // applier away from it: `No Necesita` stays `No Necesita`, and a PGOUM
-      // marker survives exactly as published.
-      const verbatim = document.createElement("span");
-      verbatim.dataset.verbatim = "";
-      verbatim.textContent = phase.state === VALUE_STATE.PUBLISHED ? phase.sourceValue : "";
-      if (phase.state !== VALUE_STATE.PUBLISHED) {
-        verbatim.removeAttribute("data-verbatim");
-        verbatim.textContent = shellT("planning.notPublished");
-      }
-      value.append(verbatim);
-      item.append(field, value);
-      const notes = [];
-      if (phase.kind === PHASE_KIND.UNRESOLVED_MEANING) notes.push(shellT("planning.note.unresolved"));
-      if (phase.kind === PHASE_KIND.PLAN_ORIGIN_MARKER) notes.push(shellT("planning.note.marker"));
-      if (phase.vocabulary === PHASE_VOCABULARY.SOURCE_OBSERVED_NOT_DOCUMENTED) {
-        notes.push(shellT("planning.note.undocumented"));
-      }
-      if (notes.length) {
-        const note = document.createElement("p");
-        note.className = "planning-phase-note";
-        note.textContent = notes.join(" ");
-        item.append(note);
-      }
-      list.append(item);
-    }
+    for (const phase of state.phases) appendPlanningPhaseRow(list, phase);
 
     // Characteristic use, published surface and the edition's district.
     attributes.replaceChildren();
@@ -5564,6 +5589,7 @@ if (P0A_ENABLED && planningMembershipSeeAll) {
 const planningExplorerQuery = document.getElementById("planningExplorerQuery");
 const planningExplorerClose = document.getElementById("planningExplorerClose");
 const planningExplorerMap = document.getElementById("planningExplorerMap");
+const planningExplorerEvidenceToggle = document.getElementById("planningExplorerEvidenceToggle");
 if (planningExplorerQuery) {
   planningExplorerQuery.addEventListener("input", (event) => {
     planningExplorer.query = event.target.value;
@@ -5584,6 +5610,9 @@ document.getElementById("planningExplorerResults")?.addEventListener("keydown", 
 });
 if (planningExplorerClose) planningExplorerClose.addEventListener("click", clearPlanningExplorer);
 if (planningExplorerMap) planningExplorerMap.addEventListener("click", showPlanningExplorerOnMap);
+if (planningExplorerEvidenceToggle) planningExplorerEvidenceToggle.addEventListener("click", () => {
+  if (planningExplorer.selectedCode) openEvidenceDrawer({ opener: planningExplorerEvidenceToggle, scope: "PLANNING_AMBITO", ambitoCode: planningExplorer.selectedCode });
+});
 
 function renderRadiusLabels() {
   const text = formatLensRadius(radiusFor(active));
@@ -6141,6 +6170,7 @@ function renderDrawerBody() {
   filterLine.textContent = filter.scope
     ? `${shellT("drawer.filter.scope")}: ${shellT(`scope.${filter.scope}`)}`
     : shellT("drawer.filter.all");
+  if (filter.ambitoCode) filterLine.textContent += ` · ${shellT("planning.explorer.datasetProvenance")} · ${shellT("planning.explorer.inspected")}: ${filter.ambitoCode}`;
   if (!shell.registry) {
     const note = document.createElement("p");
     note.textContent = shellT(shell.registryFailed ? "rail.unavailable" : "date.loading");
@@ -6265,9 +6295,9 @@ function renderDrawerBody() {
   }
 }
 
-function openEvidenceDrawer({ opener = document.activeElement, scope = null, prefix = null, focusSection = null } = {}) {
+function openEvidenceDrawer({ opener = document.activeElement, scope = null, prefix = null, focusSection = null, ambitoCode = null } = {}) {
   const dialog = document.getElementById("evidenceDrawer");
-  shell.drawerFilter = { scope, prefix };
+  shell.drawerFilter = { scope, prefix, ambitoCode };
   shell.drawerOpener = opener;
   // The opener is remembered by IDENTITY as well as by node. An artifact that
   // finishes loading while the drawer is open re-renders the rail and detaches

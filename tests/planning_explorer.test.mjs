@@ -3,7 +3,7 @@ import fs from "node:fs";
 import test from "node:test";
 
 import { createPlanningIndex } from "../js/planning-ambito.js";
-import { EXPLORER_RESULT_LIMIT, planningEvidenceEditions, searchPlanningAmbitos } from "../js/planning-explorer.js";
+import { EXPLORER_RESULT_LIMIT, planningEvidenceEditions, planningInspection, searchPlanningAmbitos } from "../js/planning-explorer.js";
 
 const geometry = JSON.parse(fs.readFileSync(new URL("../data/planning/madrid_ambitos.geojson", import.meta.url), "utf8"));
 const state = JSON.parse(fs.readFileSync(new URL("../data/planning/madrid_ambito_state.json", import.meta.url), "utf8"));
@@ -45,4 +45,21 @@ test("explorer keeps development-state and buildability edition dates tied to th
   assert.deepEqual(planningEvidenceEditions({ editions: { developmentState: { referenceDate: "2026-01-01" } } }), [
     { family: "developmentState", referenceDate: "2026-01-01" },
   ]);
+});
+
+test("selected inspection reads the selected official record, preserves independent fields and publication states", () => {
+  const selected = index.entries.find((entry) => index.developmentState(entry.code).availability === "PUBLISHED" && index.availableBuildability(entry.code).availability === "PUBLISHED");
+  const other = index.entries.find((entry) => entry.code !== selected.code);
+  const inspection = planningInspection(index, selected.code);
+  assert.equal(inspection.code, selected.code);
+  assert.notEqual(inspection.code, other.code);
+  assert.equal(inspection.developmentState.ambitoCode, selected.code);
+  assert.equal(inspection.availableBuildability.ambitoCode, selected.code);
+  assert.equal(inspection.developmentState.phases.length, 4);
+  assert.ok(inspection.developmentState.phases.every((phase) => !Object.hasOwn(phase, "order")));
+  for (const row of inspection.availableBuildability.rows) for (const cell of row.useClasses) {
+    assert.equal(cell.unit, "m² edificable");
+    if (cell.state !== "PUBLISHED") assert.equal(cell.value, null, "unpublished must not become zero");
+  }
+  assert.deepEqual(inspection.editions.map((edition) => edition.referenceDate), ["2026-01-01", "2026-01-01"]);
 });

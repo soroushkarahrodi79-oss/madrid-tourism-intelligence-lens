@@ -51,6 +51,22 @@ export function planningEvidenceEditions(index) {
   ].filter(([, referenceDate]) => Boolean(referenceDate)).map(([family, referenceDate]) => Object.freeze({ family, referenceDate })));
 }
 
+// Selected-result inspection is an adapter over the existing planning index.
+// It reads by the explicit exact official code, never by the Lens centre.
+export function planningInspection(index, code) {
+  if (!index || typeof index.featureFor !== "function" || !code) return null;
+  const feature = index.featureFor(code);
+  if (!feature) return null;
+  const properties = feature.properties || {};
+  return Object.freeze({
+    code,
+    denomination: properties.ambito_denomination || null,
+    developmentState: typeof index.developmentState === "function" ? index.developmentState(code) : null,
+    availableBuildability: typeof index.availableBuildability === "function" ? index.availableBuildability(code) : null,
+    editions: planningEvidenceEditions(index),
+  });
+}
+
 function identity(entry) {
   return Object.freeze({ code: entry.code, denomination: entry.denomination || null });
 }

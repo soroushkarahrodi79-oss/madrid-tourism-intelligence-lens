@@ -47,8 +47,66 @@ test("explorer searches exact codes, rejects unknown codes, and highlights only 
   assert.equal(selected.selectedCode, "APR.02.09");
   assert.equal(selected.selectedLayer, true);
   assert.equal(selected.cameraMoves, 0);
+  const inspection = await page.evaluate(() => ({
+    code: document.querySelector("#planningExplorerCode").textContent,
+    phases: document.querySelectorAll("#planningExplorerPhaseRows li").length,
+    buildability: document.querySelectorAll("#planningExplorerBuildRows .planning-uses li").length,
+    inspectedState: document.querySelector("#planningExplorerStateAbsent").hidden,
+    inspectedBuild: document.querySelector("#planningExplorerBuildAbsent").hidden,
+  }));
+  assert.equal(inspection.code, "APR.02.09");
+  assert.equal(inspection.phases, 4);
+  assert.ok(inspection.buildability >= 4);
+  assert.equal(inspection.inspectedState, true);
+  assert.equal(inspection.inspectedBuild, true);
+  await page.locator("#planningExplorerEvidenceToggle").click();
+  assert.match(await page.locator("#evidenceDrawerFilter").textContent(), /Dataset-level provenance.*Inspected official ámbito: APR\.02\.09/);
+  await page.locator("#evidenceDrawerClose").click();
   await query.fill("NOT.A.REAL.CODE");
   assert.match(await page.locator("#planningExplorerStatus").textContent(), /No official planning ámbito/i);
+});
+
+test("changing an inspected ámbito replaces fields without stale values", async (t) => {
+  const { page, context } = await pageFor(); t.after(() => context.close());
+  const select = async (code) => {
+    await page.locator("#planningExplorerQuery").fill(code);
+    await page.locator("#planningExplorerResults button").click();
+    return page.evaluate(() => ({ code: document.querySelector("#planningExplorerCode").textContent, phases: [...document.querySelectorAll("#planningExplorerPhaseRows li")].map((row) => row.textContent), build: document.querySelector("#planningExplorerBuildRows").textContent }));
+  };
+  const first = await select("APR.02.09");
+  const alternative = await page.evaluate(() => [...document.querySelectorAll("#planningExplorerResults button")].map((node) => node.dataset.code)[0]);
+  assert.equal(alternative, "APR.02.09");
+  const second = await select("APE.01.01");
+  assert.equal(second.code, "APE.01.01");
+  assert.notDeepEqual(second.phases, first.phases);
+  assert.notEqual(second.build, first.build);
+});
+
+test("selected inspector preserves canonical phase distinctions and separate published buildability rows", async (t) => {
+  const { page, context } = await pageFor(); t.after(() => context.close());
+  const select = async (code) => {
+    await page.locator("#planningExplorerQuery").fill(code);
+    await page.locator("#planningExplorerResults button").click();
+  };
+  await select("APR.02.09");
+  assert.equal(await page.locator("#planningExplorerPhaseRows .planning-phase-mark").first().textContent(), "?");
+  assert.match(await page.locator("#planningExplorerPhaseRows .sr-only").first().textContent(), /Unresolved meaning/);
+  assert.match(await page.locator("#planningExplorerPhaseRows .planning-phase-note").first().textContent(), /distinct state; its precise meaning is not defined/i);
+  assert.match(await page.locator("#planningExplorerPhaseRows").textContent(), /No Necesita/);
+
+  await select("APE.01.01");
+  assert.equal(await page.locator("#planningExplorerPhaseRows .planning-phase-mark").first().textContent(), "§");
+  assert.match(await page.locator("#planningExplorerPhaseRows .sr-only").first().textContent(), /Plan-of-origin marker/);
+  assert.match(await page.locator("#planningExplorerPhaseRows .planning-phase-note").first().textContent(), /not a development state/i);
+  assert.match(await page.locator("#planningExplorerPhaseRows").textContent(), /PGOUM-97/);
+
+  await select("AOE.00.11-RP");
+  assert.match(await page.locator("#planningExplorerPhaseRows .planning-phase-note").textContent(), /Observed in the published data; not listed/i);
+  assert.match(await page.locator("#planningExplorerPhaseRows").textContent(), /En Ejecución/);
+
+  await select("APR.21.02");
+  assert.match(await page.locator("#planningExplorerBuildRows .planning-block-note").textContent(), /more than one row.*never added together/i);
+  assert.ok(await page.locator("#planningExplorerBuildRows .planning-build-row").count() > 1);
 });
 
 test("only the explicit Show on map action changes camera; Lens and COMPARE stay untouched", async (t) => {
@@ -80,11 +138,15 @@ test("keyboard, Spanish copy, mobile control size, reset and unavailable state a
   assert.equal((await snapshot(page)).selectedCode, "APR.02.09");
   const mobile = await page.evaluate(() => ({
     map: document.querySelector("#planningExplorerMap").getBoundingClientRect().height,
+    evidence: document.querySelector("#planningExplorerEvidenceToggle").getBoundingClientRect().height,
+    summary: document.querySelector("#planningExplorerEvidence summary").getBoundingClientRect().height,
     close: document.querySelector("#planningExplorerClose").getBoundingClientRect().height,
     query: document.querySelector("#planningExplorerQuery").getBoundingClientRect().height,
     overflow: document.documentElement.scrollWidth > window.innerWidth,
   }));
   assert.ok(mobile.map >= 44);
+  assert.ok(mobile.evidence >= 44);
+  assert.ok(mobile.summary >= 44);
   assert.ok(mobile.close >= 44);
   assert.ok(mobile.query >= 44);
   assert.equal(mobile.overflow, false);
