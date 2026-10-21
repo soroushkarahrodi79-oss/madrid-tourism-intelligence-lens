@@ -246,6 +246,17 @@ test("P1 responsive shell keeps branding, map tools and provider credits distinc
     const attribution = rect(".leaflet-control-attribution");
     return {
       overflow: document.documentElement.scrollWidth - window.innerWidth,
+      viewportWidth: window.innerWidth,
+      rootClientWidth: document.documentElement.clientWidth,
+      rootScrollWidth: document.documentElement.scrollWidth,
+      bodyScrollWidth: document.body.scrollWidth,
+      layoutSources: [...document.querySelectorAll("body *")].filter(el => {
+        const style = getComputedStyle(el);
+        return style.position !== "absolute" && style.position !== "fixed" && style.display !== "none";
+      }).map(el => {
+        const r = el.getBoundingClientRect();
+        return { tag: el.tagName, id: el.id, className: typeof el.className === "string" ? el.className.slice(0,70) : "", right: Math.round(r.right), width: Math.round(r.width), scrollWidth: el.scrollWidth, overflowX: getComputedStyle(el).overflowX };
+      }).filter(x => x.right > window.innerWidth + 1 || x.scrollWidth > window.innerWidth + 1).sort((a,b) => b.right-a.right).slice(0,20),
       overflowSources: [...document.querySelectorAll("body *")].map(el => {
         const r = el.getBoundingClientRect();
         return { tag: el.tagName, id: el.id, className: typeof el.className === "string" ? el.className.slice(0,90) : "", left: Math.round(r.left), right: Math.round(r.right), width: Math.round(r.width), scrollWidth: el.scrollWidth };
