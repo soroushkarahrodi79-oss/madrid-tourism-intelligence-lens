@@ -58,6 +58,9 @@ try {
 }
 
 const map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([40.415, -3.692], 14);
+// Keep the legally required OSM/tile-provider credits visible; remove only
+// Leaflet’s optional promotional prefix so attribution fits narrow screens.
+map.attributionControl.setPrefix(false);
 
 // Administrative reference geometry sits UNDER the POI markers: it is context
 // for reading the map, never a data layer competing with the evidence on it.
