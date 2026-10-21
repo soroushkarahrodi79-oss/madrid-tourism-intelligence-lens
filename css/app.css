@@ -521,7 +521,6 @@ header{
 }
 #planningTouchedList>li>span:not(.planning-touched-code):not(.planning-touched-centre){min-width:0}
 #planningTouchedList:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
-@media(max-width:850px){#planningTouchedList{max-height:11rem}}
 
 
 /* MEMBERSHIP (P0-a, #95), promoted into the always-visible planning section.
@@ -1007,6 +1006,10 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 }
 
 /* ===== INFORMATION ARCHITECTURE V2 (K4, #66) ================================
+/* The DETAIL list belongs to the two-track panel grid; keep mobile scrolling
+   compact without reassigning any text-size role in the pre-K4 breakpoint. */
+@media(max-width:850px){#planningTouchedList{max-height:11rem}}
+
    Layout, drawer, rail, responsive visibility and touch behaviour only. K5's
    visual system below now supplies its shared tokens. The responsive rule that
    governs everything below: NO breakpoint may hide a source, a date, a unit, a
