@@ -80,6 +80,12 @@ map.getPane("planningPane").style.zIndex = "360";
 map.getPane("planningPane").style.pointerEvents = "none";
 const PLANNING_STROKE = "#aeb8c4"; // --planning-neutral
 
+// An explicitly selected explorer geometry is visually distinct from the
+// dashed containing ámbito and the Lens circle. Only one polygon is drawn.
+map.createPane("planningExplorerPane");
+map.getPane("planningExplorerPane").style.zIndex = "457";
+map.getPane("planningExplorerPane").style.pointerEvents = "none";
+
 // Granted urban licences (K9, #71) render on their own canvas pane, above the
 // administrative fill and below the active-area and Lens panes, so the licence
 // points stay visibly separate from the Lens A/B identities and the ámbito
@@ -1898,6 +1904,17 @@ if (haloRegressionRequested && haloRegressionLocal) {
         mapPane: planningLayer ? planningLayer.layer.options.pane : null,
       };
     },
+    planningExplorerSnapshot() {
+      const card = document.getElementById("planningExplorerCard");
+      return {
+        state: document.getElementById("planningExplorer")?.dataset.state || null,
+        selectedCode: planningExplorer.selectedCode,
+        selectedLayer: Boolean(planningExplorerLayer),
+        cameraMoves: planningExplorer.cameraMoves,
+        cardHidden: card?.hasAttribute("hidden") ?? true,
+        results: [...document.querySelectorAll("#planningExplorerResults button")].map((button) => button.dataset.code),
+      };
+    },
     openPlaceDetailForTest() {
       const detail = document.getElementById("placeDetail");
       if (detail) detail.open = true;
@@ -3237,12 +3254,15 @@ function disableBoundaryControl() {
 // It never computes a quantity, never combines a planning figure with a Lens or
 // barrio figure, and never asks the model for a share of an ámbito.
 
-const planningModel = { module: null, index: null, changeModule: null, changePair: null, changeComparison: null };
+const planningModel = { module: null, explorerModule: null, index: null, changeModule: null, changePair: null, changeComparison: null };
 let planningState = "loading";
 let planningHint = null;
 let lastPlanningRenderKey = null;
 let planningLayer = null;
 let planningRenderer = null;
+let planningExplorerRenderer = null;
+let planningExplorerLayer = null;
+const planningExplorer = { query: "", results: [], selectedCode: null, cameraMoves: 0 };
 // LENS_INTERSECT_AMBITO membership (UX-I1/P0-a, #95). Promoting the circle–ámbito
 // scan into the always-visible PLACE planning section means it would otherwise run
 // on every continuous `drag`/`oninput` event. Two guards keep that honest and cheap:
@@ -3268,6 +3288,12 @@ async function loadPlanningContext() {
     return;
   }
   planningModel.module = module;
+  try {
+    planningModel.explorerModule = await import(moduleUrl("planning-explorer.js"));
+  } catch (error) {
+    planningModel.explorerModule = null;
+    console.warn("planning-ámbito explorer unavailable", error);
+  }
   try {
     planningModel.changeModule = await import(moduleUrl("ambito-change.js"));
   } catch (error) {
@@ -3302,6 +3328,7 @@ async function loadPlanningContext() {
     }
   }
   renderPlanningContext();
+  renderPlanningExplorer();
   renderScopeRail();
   // A user may have opened the ámbito-comparison scope before the planning
   // artifacts finished loading; now that they are ready, populate and render.
@@ -3346,6 +3373,112 @@ function planningObservedDifference(value) {
   return planningFigure(value, fractionDigits);
 }
 
+function planningExplorerEditions() {
+  return planningModel.explorerModule.planningEvidenceEditions(planningModel.index).map(({ family, referenceDate }) => [
+    family === "developmentState" ? "planning.explorer.developmentEdition" : "planning.explorer.buildabilityEdition",
+    planningDate(referenceDate),
+  ]);
+}
+
+function clearPlanningExplorer() {
+  planningExplorer.query = "";
+  planningExplorer.results = [];
+  planningExplorer.selectedCode = null;
+  const query = document.getElementById("planningExplorerQuery");
+  if (query) query.value = "";
+  renderPlanningExplorerPolygon();
+  renderPlanningExplorer();
+}
+
+function selectPlanningExplorerAmbito(code) {
+  if (planningState !== "ready" || !planningModel.index || !planningModel.index.featureFor(code)) return false;
+  planningExplorer.selectedCode = code;
+  renderPlanningExplorerPolygon();
+  renderPlanningExplorer();
+  return true;
+}
+
+function renderPlanningExplorer() {
+  const host = document.getElementById("planningExplorer");
+  const input = document.getElementById("planningExplorerQuery");
+  const status = document.getElementById("planningExplorerStatus");
+  const results = document.getElementById("planningExplorerResults");
+  const card = document.getElementById("planningExplorerCard");
+  if (!host || !input || !status || !results || !card) return;
+  // Refreshes happen after Lens movement and language changes. If a result was
+  // focused, restore that exact native button after its text is rebuilt; focus
+  // never falls back to the document merely because labels changed.
+  const focusedCode = document.activeElement?.matches?.("#planningExplorerResults button")
+    ? document.activeElement.dataset.code
+    : null;
+  const ready = planningState === "ready" && planningModel.index && planningModel.explorerModule;
+  host.dataset.state = ready ? "ready" : planningState;
+  input.disabled = !ready;
+  results.replaceChildren();
+  card.hidden = true;
+  if (!ready) {
+    status.textContent = planningState === "loading" ? shellT("planning.explorer.loading") : shellT("planning.explorer.unavailable");
+    return;
+  }
+  const search = planningModel.explorerModule.searchPlanningAmbitos(planningModel.index, planningExplorer.query);
+  planningExplorer.results = search.results;
+  status.textContent = search.state === "empty" ? shellT("planning.explorer.empty")
+    : search.state === "not_found" ? shellT("planning.explorer.notFound") : "";
+  for (const entry of search.results) {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "planning-explorer-result";
+    button.dataset.code = entry.code;
+    button.setAttribute("aria-label", shellT("planning.explorer.result").replace("{code}", entry.code));
+    const code = document.createElement("code");
+    code.textContent = entry.code;
+    const denomination = document.createElement("span");
+    denomination.textContent = entry.denomination || entry.code;
+    button.append(code, denomination);
+    button.addEventListener("click", () => selectPlanningExplorerAmbito(entry.code));
+    item.append(button);
+    results.append(item);
+  }
+  if (focusedCode) {
+    const replacement = [...results.querySelectorAll("button")].find((button) => button.dataset.code === focusedCode);
+    if (replacement) replacement.focus({ preventScroll: true });
+  }
+  const feature = planningExplorer.selectedCode && planningModel.index.featureFor(planningExplorer.selectedCode);
+  if (!feature) return;
+  const properties = feature.properties || {};
+  card.hidden = false;
+  setText("planningExplorerCode", properties.ambito_code || planningExplorer.selectedCode);
+  setText("planningExplorerDenomination", properties.ambito_denomination || "");
+  setText("planningExplorerScope", shellT("planning.explorer.scope"));
+  const editions = planningExplorerEditions();
+  setText("planningExplorerEdition", editions.length
+    ? editions.map(([key, date]) => shellT(key).replace("{date}", date)).join(" · ")
+    : shellT("planning.explorer.editionUnavailable"));
+}
+
+function renderPlanningExplorerPolygon() {
+  if (planningExplorerLayer) {
+    map.removeLayer(planningExplorerLayer);
+    planningExplorerLayer = null;
+  }
+  if (!planningExplorer.selectedCode || !planningModel.index) return;
+  const feature = planningModel.index.featureFor(planningExplorer.selectedCode);
+  if (!feature) return;
+  if (!planningExplorerRenderer) planningExplorerRenderer = L.canvas({ pane: "planningExplorerPane", padding: 0.3 });
+  planningExplorerLayer = L.geoJSON(feature, {
+    pane: "planningExplorerPane", renderer: planningExplorerRenderer, interactive: false,
+    style: () => ({ color: PLANNING_STROKE, weight: 3, opacity: 1, fill: true, fillColor: PLANNING_STROKE, fillOpacity: 0.14 }),
+  }).addTo(map);
+}
+
+function showPlanningExplorerOnMap() {
+  if (!planningExplorerLayer) return false;
+  map.fitBounds(planningExplorerLayer.getBounds(), { padding: [32, 32], maxZoom: 15, animate: false });
+  planningExplorer.cameraMoves += 1;
+  return true;
+}
+
 function renderPlanningContext() {
   const section = document.getElementById("planningAmbito");
   if (!section) return;
@@ -3359,6 +3492,7 @@ function renderPlanningContext() {
   ].join("|");
 
   renderPlanningPolygon(containing);
+  renderPlanningExplorer();
   // Membership (LENS_INTERSECT_AMBITO) depends on the Lens position and radius,
   // not on which ámbito contains the centre, so both the promoted PLACE block
   // and the Detail full list are refreshed on every render — each guarded so the
@@ -5427,6 +5561,29 @@ if (P0A_ENABLED && planningMembershipSeeAll) {
     panel.scrollTo({ top: Math.max(0, top), behavior: reduce ? "auto" : "smooth" });
   });
 }
+const planningExplorerQuery = document.getElementById("planningExplorerQuery");
+const planningExplorerClose = document.getElementById("planningExplorerClose");
+const planningExplorerMap = document.getElementById("planningExplorerMap");
+if (planningExplorerQuery) {
+  planningExplorerQuery.addEventListener("input", (event) => {
+    planningExplorer.query = event.target.value;
+    renderPlanningExplorer();
+  });
+  planningExplorerQuery.addEventListener("keydown", (event) => {
+    const buttons = [...document.querySelectorAll("#planningExplorerResults button")];
+    if (event.key === "ArrowDown" && buttons.length) { event.preventDefault(); buttons[0].focus(); }
+    if (event.key === "Escape") { event.preventDefault(); clearPlanningExplorer(); planningExplorerQuery.focus(); }
+  });
+}
+document.getElementById("planningExplorerResults")?.addEventListener("keydown", (event) => {
+  const buttons = [...document.querySelectorAll("#planningExplorerResults button")];
+  const current = buttons.indexOf(document.activeElement);
+  if (event.key === "ArrowDown" && current >= 0 && buttons[current + 1]) { event.preventDefault(); buttons[current + 1].focus(); }
+  if (event.key === "ArrowUp") { event.preventDefault(); if (current > 0) buttons[current - 1].focus(); else planningExplorerQuery?.focus(); }
+  if (event.key === "Escape") { event.preventDefault(); clearPlanningExplorer(); planningExplorerQuery?.focus(); }
+});
+if (planningExplorerClose) planningExplorerClose.addEventListener("click", clearPlanningExplorer);
+if (planningExplorerMap) planningExplorerMap.addEventListener("click", showPlanningExplorerOnMap);
 
 function renderRadiusLabels() {
   const text = formatLensRadius(radiusFor(active));
@@ -5794,6 +5951,9 @@ function currentFlags() {
 function renderModeUi() {
   if (!shell.modes) return;
   const mode = shell.modes.currentMode();
+  // Explorer selection belongs only to PLACE. Clearing it on mode exit keeps a
+  // discovery highlight from becoming a third polygon in COMPARE.
+  if (mode !== "PLACE" && planningExplorer.selectedCode) clearPlanningExplorer();
   const panel = document.getElementById("analysisPanel");
   panel.dataset.mode = mode;
   for (const name of MODES) {

@@ -393,6 +393,28 @@ header{
 .planning-edition:empty{display:none}
 .planning-outside{margin:var(--s-2) 0 0;padding:var(--s-3);border:1px dashed var(--line2);border-radius:var(--r-small);font-size:var(--t-body);line-height:1.55;color:#a9bbcf}
 .planning-outside[hidden]{display:none}
+.planning-explorer{margin-top:var(--s-3);padding:var(--s-3);border:1px solid var(--chrome-border);border-left:3px solid var(--planning-neutral);border-radius:var(--r-small);background:var(--chrome-card-surface)}
+.planning-explorer-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2)}
+.planning-explorer-head>span{font-size:var(--t-label);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--chrome-text-primary)}
+.planning-explorer-close{min-height:44px;padding:var(--s-1) var(--s-2);border:1px solid var(--chrome-drawer-border);border-radius:var(--r-small);background:transparent;color:var(--chrome-text-control-caption);font:inherit;font-size:var(--t-meta);cursor:pointer}
+.planning-explorer-label{display:block;margin-top:var(--s-2);font-size:var(--t-micro);letter-spacing:.05em;color:var(--chrome-text-metadata)}
+.planning-explorer-query{box-sizing:border-box;width:100%;min-height:44px;margin-top:var(--s-1);padding:var(--s-2);border:1px solid var(--chrome-drawer-border);border-radius:var(--r-small);background:var(--chrome-form-surface);color:var(--chrome-text-control-value);font:inherit;font-size:var(--t-body)}
+.planning-explorer-query:focus-visible,.planning-explorer-close:focus-visible,.planning-explorer-result:focus-visible,.planning-explorer-map:focus-visible{outline:2px solid var(--planning-neutral);outline-offset:2px}
+.planning-explorer-query:disabled{opacity:.65;cursor:not-allowed}
+.planning-explorer-status{margin:var(--s-2) 0 0;font-size:var(--t-meta);line-height:1.45;color:var(--muted)}
+.planning-explorer-results{list-style:none;margin:var(--s-2) 0 0;padding:0;display:grid;gap:var(--s-1)}
+.planning-explorer-results:empty{display:none}
+.planning-explorer-result{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s-2);width:100%;min-height:38px;padding:var(--s-2);border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-control-group-surface);color:var(--chrome-text-primary);text-align:left;font:inherit;cursor:pointer}
+.planning-explorer-result:hover{border-color:var(--planning-neutral);background:var(--chrome-drawer-neutral-surface)}
+.planning-explorer-result code{flex:none;color:var(--chrome-text-primary);font:inherit;font-size:var(--t-meta);font-weight:700;letter-spacing:.04em}
+.planning-explorer-result span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:var(--t-meta)}
+.planning-explorer-card{margin-top:var(--s-2);padding:var(--s-2) var(--s-3);border:1px solid var(--chrome-drawer-border);border-radius:var(--r-small);background:var(--chrome-drawer-share-surface)}
+.planning-explorer-card[hidden]{display:none}
+.planning-explorer-card-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2)}
+.planning-explorer-denomination{margin:var(--s-2) 0 0;color:var(--chrome-text-primary);font-size:var(--t-label);line-height:1.3}
+.planning-explorer-scope,.planning-explorer-edition{margin:var(--s-1) 0 0;color:var(--muted);font-size:var(--t-meta);line-height:1.45}
+.planning-explorer-map{min-height:40px;margin-top:var(--s-2);padding:var(--s-2) var(--s-3);border:1px solid var(--planning-neutral);border-radius:var(--r-small);background:var(--chrome-drawer-neutral-surface);color:var(--chrome-text-primary);font:inherit;font-size:var(--t-meta);font-weight:700;cursor:pointer}
+.planning-explorer-map:hover{background:var(--chrome-drawer-control-surface)}
 .planning-block{margin-top:var(--s-3);padding:var(--s-3);border:1px solid var(--line);border-radius:var(--r-small);background:rgba(255,255,255,.022)}
 .planning-block[hidden]{display:none}
 .planning-block-head{font-size:var(--t-label);letter-spacing:.1em;text-transform:uppercase;color:#8ba0b7;font-weight:620}
@@ -1014,6 +1036,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 /* The DETAIL list belongs to the two-track panel grid; keep mobile scrolling
    compact without reassigning any text-size role in the pre-K4 breakpoint. */
 @media(max-width:850px){#planningTouchedList{max-height:11rem}}
+@media(max-width:850px){.planning-explorer{padding:var(--s-2)}.planning-explorer-query,.planning-explorer-map,.planning-explorer-close,.planning-explorer-result{min-height:44px}.planning-explorer-result{align-items:flex-start;flex-direction:column;justify-content:center}.planning-explorer-result span{max-width:100%}}
 .header-tools{pointer-events:auto;margin-left:auto;display:flex;align-items:center;gap:var(--s-2)}
 .appearance-control{display:flex;align-items:center;gap:var(--s-2);color:var(--chrome-text-brand-subtle);font-size:var(--t-micro);font-weight:650;letter-spacing:.04em}
 .appearance-control>span{font-size:var(--t-micro)}
