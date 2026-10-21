@@ -1587,3 +1587,56 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 :root[data-appearance="light"] :where(.cb-side-b .cb-lens,.area-other-lens-b,.area-label-b b){color:var(--ta3-lens-b-text)}
 :root[data-appearance="light"] .panel .cb-side-a .cb-lens{color:var(--ta3-lens-a-text)}
 :root[data-appearance="light"] .panel .cb-side-b .cb-lens{color:var(--ta3-lens-b-text)}
+/* UX map-shell P1: keep map-first controls spatially separate rather than
+   shrinking touch targets or hiding the two persisted user preferences.
+   Appearance/basemap are still independent; all map credits remain visible. */
+.brand-title{font-size:var(--responsive-brand-title-size,var(--t-figure))}
+@media(min-width:681px) and (max-width:1100px){
+  .brand{min-width:0;flex:0 1 auto}
+  .brand-sub{display:none}
+  .brand-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .header-tools{flex:0 0 auto}
+}
+@media(max-width:680px){
+  /* The full product name owns row one; layer and preference tools own row two.
+     The native selects remain keyboard/screen-reader reachable and 44px tall. */
+  header{--responsive-brand-title-size:clamp(13px,4vw,16px);display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:44px 44px;gap:6px;align-items:start;height:auto}
+  .brand{grid-row:1;min-height:44px;min-width:0;max-width:100%;padding:var(--s-2) var(--s-3)}
+  .brand-title{white-space:nowrap;overflow:visible;text-overflow:clip}
+  .brand-sub{display:none}
+  .header-tools{grid-row:2;justify-self:end;margin-left:0;gap:6px;max-width:100%}
+  .appearance-control{position:static;display:flex;align-items:center;gap:3px;min-width:0}
+  .appearance-control>span{display:none}
+  .appearance-control:before{content:"◐";color:var(--chrome-text-brand-subtle)}
+  .header-tools select{min-height:44px;padding:var(--s-2) var(--s-1)}
+  #appearanceSelect{width:78px;min-width:0;padding:var(--s-2) var(--s-1);line-height:normal}
+  #languageSelect{width:88px;min-width:0}
+  .tutorial-help{min-width:44px;width:44px;min-height:44px;justify-content:center;padding:var(--s-1)}
+  .tutorial-help-label{display:none}
+  .left{top:calc(114px + var(--safe-top))}
+  .leaflet-top.leaflet-left{top:calc(120px + var(--safe-top));left:auto;right:calc(10px + var(--safe-right))}
+  .leaflet-bottom.leaflet-right{top:calc(214px + var(--safe-top));bottom:auto;left:auto;right:calc(10px + var(--safe-right))}
+  .leaflet-control-attribution{max-width:min(220px,calc(100vw - 20px - var(--safe-left) - var(--safe-right)));line-height:1.3;text-align:right}
+}
+@media(max-width:560px){
+  /* One clear second row, with a separate Layers action at its left edge. */
+  .mobile-layers-button{top:calc(59px + var(--safe-top));min-width:88px;min-height:44px;gap:6px;padding:var(--s-2)}
+  .left{top:calc(113px + var(--safe-top))}
+}
+@media(max-width:360px){
+  /* In the narrowest phone only the Layers glyph is visible; its accessible
+     aria-label is still the localized full action name. */
+  .mobile-layers-button{width:44px;min-width:44px}
+  .mobile-layers-button>span:last-child{display:none}
+}
+@media(max-width:680px) and (max-height:480px){
+  /* Embedded/landscape browsers need a compact horizontal zoom rail and
+     independent legal credits, instead of stacking both above the panel. */
+  .leaflet-top.leaflet-left{top:calc(114px + var(--safe-top))}
+  .leaflet-control-zoom{display:flex}
+  .leaflet-control-zoom a{border-bottom:0!important}
+  .leaflet-control-zoom a+a{border-left:1px solid var(--map-zoom-edge)!important}
+  .leaflet-bottom.leaflet-right{top:calc(118px + var(--safe-top));left:calc(10px + var(--safe-left));right:auto}
+  .leaflet-control-attribution{max-width:calc(100vw - 126px - var(--safe-left) - var(--safe-right));text-align:left}
+  .panel{max-height:30vh;max-height:30dvh}
+}
