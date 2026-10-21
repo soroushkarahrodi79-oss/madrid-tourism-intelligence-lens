@@ -1599,8 +1599,8 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 @media(max-width:680px){
   /* The full product name owns row one; layer and preference tools own row two.
      The native selects remain keyboard/screen-reader reachable and 44px tall. */
-  header{--t-figure:clamp(13px,4vw,16px);display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:44px 44px;gap:var(--s-2);align-items:start;height:auto}
-  .brand{grid-row:1;min-height:44px;min-width:0;max-width:100%;padding:var(--s-2) var(--s-3)}
+  header{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:44px 44px;gap:var(--s-2);align-items:start;height:auto}
+  .brand{grid-row:1;min-height:44px;min-width:0;max-width:100%;gap:var(--s-1);padding:var(--s-2)}
   .brand-title{white-space:nowrap;overflow:visible;text-overflow:clip}
   .brand-sub{display:none}
   .header-tools{grid-row:2;justify-self:end;margin-left:0;gap:var(--s-2);max-width:100%}
