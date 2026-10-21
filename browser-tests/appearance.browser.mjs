@@ -103,11 +103,11 @@ test("Appearance copy localizes in EN and ES and stays keyboard reachable", asyn
   const visibleLabel = page.locator(".appearance-control > span");
   assert.equal(await select.getAttribute("aria-label"), "Appearance");
   assert.equal((await visibleLabel.textContent()).trim(), "Appearance");
-  assert.equal(await visibleLabel.isVisible(), true);
+  assert.equal(await visibleLabel.isVisible(), false, "phone selects retain an aria-label; the oversized visual label does not consume space");
   await page.locator("#languageSelect").selectOption("es");
   assert.equal(await select.getAttribute("aria-label"), "Apariencia");
   assert.equal((await visibleLabel.textContent()).trim(), "Apariencia");
-  assert.equal(await visibleLabel.isVisible(), true);
+  assert.equal(await visibleLabel.isVisible(), false, "phone selects retain an aria-label; the oversized visual label does not consume space");
   assert.deepEqual(await select.locator("option").allTextContents(), ["Claro", "Oscuro", "Sistema"]);
   await select.focus();
   const focus = await select.evaluate((node) => {
@@ -117,6 +117,8 @@ test("Appearance copy localizes in EN and ES and stays keyboard reachable", asyn
   assert.equal(focus.visible, true);
   assert.equal(focus.style, "solid");
   assert.ok(parseFloat(focus.width) >= 2);
+  await page.setViewportSize({ width: 1024, height: 768 });
+  assert.equal(await visibleLabel.isVisible(), true, "desktop keeps the full visible appearance label");
 });
 
 for (const viewport of [{ width: 360, height: 760 }, { width: 390, height: 844 }, { width: 420, height: 860 }, { width: 720, height: 450 }, { width: 834, height: 1112 }, { width: 1440, height: 900 }]) {
@@ -225,4 +227,62 @@ test("appearance changes stay inexpensive under 4x CPU throttling", async (t) =>
 test.after(async () => {
   await browser.close();
   await new Promise((resolve) => server.close(resolve));
+});
+
+
+test("P1 responsive shell keeps branding, map tools and provider credits distinct at phone, tablet and laptop sizes", async (t) => {
+  const page = await openApp({ width: 390, height: 844, preference: "light" });
+  t.after(() => closePage(page));
+  const rectTest = async () => page.evaluate(() => {
+    const rect = (s) => {
+      const el = document.querySelector(s);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height };
+    };
+    const overlaps = (a, b) => Boolean(a && b && a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1);
+    const brand = rect(".brand"), tools = rect(".header-tools");
+    const layers = rect("#mobileLayersButton"), zoom = rect(".leaflet-control-zoom");
+    const attribution = rect(".leaflet-control-attribution");
+    return {
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+      brand, tools, layers, zoom, attribution,
+      brandTools: overlaps(brand, tools),
+      layersTools: getComputedStyle(document.querySelector("#mobileLayersButton")).display !== "none" && overlaps(layers, tools),
+      zoomAttribution: overlaps(zoom, attribution),
+      zoomLayers: getComputedStyle(document.querySelector("#mobileLayersButton")).display !== "none" && overlaps(zoom, layers),
+      brandTextClipped: window.innerWidth <= 680 &&
+        document.querySelector(".brand-title").scrollWidth > document.querySelector(".brand-title").clientWidth + 1,
+      credits: document.querySelector(".leaflet-control-attribution").textContent,
+      themeWidth: rect("#appearanceSelect")?.width,
+      themeHeight: rect("#appearanceSelect")?.height,
+      languageHeight: rect("#languageSelect")?.height
+    };
+  });
+  for (const viewport of [
+    { width: 320, height: 700 }, { width: 360, height: 760 },
+    { width: 390, height: 844 }, { width: 420, height: 860 },
+    { width: 560, height: 760 }, { width: 600, height: 820 },
+    { width: 720, height: 450 }, { width: 900, height: 700 },
+    { width: 1024, height: 768 }, { width: 1440, height: 900 },
+    { width: 390, height: 320 }
+  ]) {
+    await page.setViewportSize(viewport);
+    const g = await rectTest();
+    assert.ok(g.overflow <= 1, `horizontal document overflow at ${viewport.width}x${viewport.height}: ${JSON.stringify(g)}`);
+    assert.equal(g.brandTools, false, `brand/tool collision: ${JSON.stringify(g)}`);
+    assert.equal(g.layersTools, false, `Layers/preference collision: ${JSON.stringify(g)}`);
+    assert.equal(g.zoomAttribution, false, `zoom/provider credit collision: ${JSON.stringify(g)}`);
+    assert.equal(g.zoomLayers, false, `zoom/Layers collision: ${JSON.stringify(g)}`);
+    assert.equal(g.brandTextClipped, false, `mobile brand clipping: ${JSON.stringify(g)}`);
+    if (viewport.width <= 680) assert.ok(g.themeHeight >= 44 && g.languageHeight >= 44, `touch preferences at ${viewport.width}px: ${JSON.stringify(g)}`);
+    assert.ok(g.themeWidth >= 70, "appearance remains a real visible select, not a hidden setting");
+    assert.ok(/OpenStreetMap/i.test(g.credits), "required OSM attribution remains visible");
+    // CI has an empty CARTO key and legitimately falls back to OSM tiles;
+    // demand CARTO credit only if that provider is actually enabled.
+    if (await page.evaluate(() => Boolean(window.RUNTIME_CONFIG?.CARTO_BASEMAP_KEY))) {
+      assert.ok(/CARTO/i.test(g.credits), "CARTO credit remains when CARTO tiles are enabled");
+    }
+    assert.ok(g.tools.left >= 0 && g.tools.right <= viewport.width + 1, "tools remain inside viewport");
+  }
 });
