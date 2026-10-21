@@ -246,6 +246,10 @@ test("P1 responsive shell keeps branding, map tools and provider credits distinc
     const attribution = rect(".leaflet-control-attribution");
     return {
       overflow: document.documentElement.scrollWidth - window.innerWidth,
+      overflowSources: [...document.querySelectorAll("body *")].map(el => {
+        const r = el.getBoundingClientRect();
+        return { tag: el.tagName, id: el.id, className: typeof el.className === "string" ? el.className.slice(0,90) : "", left: Math.round(r.left), right: Math.round(r.right), width: Math.round(r.width), scrollWidth: el.scrollWidth };
+      }).filter(x => x.right > window.innerWidth + 1 && x.width > 0).sort((a,b) => b.right-a.right).slice(0,12),
       brand, tools, layers, zoom, attribution,
       brandTools: overlaps(brand, tools),
       layersTools: getComputedStyle(document.querySelector("#mobileLayersButton")).display !== "none" && overlaps(layers, tools),
