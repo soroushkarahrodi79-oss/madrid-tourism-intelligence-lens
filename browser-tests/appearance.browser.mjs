@@ -100,9 +100,14 @@ test("Appearance copy localizes in EN and ES and stays keyboard reachable", asyn
   const page = await openApp({ width: 390, height: 844 });
   t.after(() => closePage(page));
   const select = page.locator("#appearanceSelect");
+  const visibleLabel = page.locator(".appearance-control > span");
   assert.equal(await select.getAttribute("aria-label"), "Appearance");
+  assert.equal((await visibleLabel.textContent()).trim(), "Appearance");
+  assert.equal(await visibleLabel.isVisible(), true);
   await page.locator("#languageSelect").selectOption("es");
   assert.equal(await select.getAttribute("aria-label"), "Apariencia");
+  assert.equal((await visibleLabel.textContent()).trim(), "Apariencia");
+  assert.equal(await visibleLabel.isVisible(), true);
   assert.deepEqual(await select.locator("option").allTextContents(), ["Claro", "Oscuro", "Sistema"]);
   await select.focus();
   const focus = await select.evaluate((node) => {
@@ -114,7 +119,7 @@ test("Appearance copy localizes in EN and ES and stays keyboard reachable", asyn
   assert.ok(parseFloat(focus.width) >= 2);
 });
 
-for (const viewport of [{ width: 360, height: 760 }, { width: 720, height: 450 }, { width: 834, height: 1112 }, { width: 1440, height: 900 }]) {
+for (const viewport of [{ width: 360, height: 760 }, { width: 390, height: 844 }, { width: 420, height: 860 }, { width: 720, height: 450 }, { width: 834, height: 1112 }, { width: 1440, height: 900 }]) {
   test(`Light reflows without page overflow or header collisions at ${viewport.width}px`, async (t) => {
     const page = await openApp({ ...viewport, preference: "light" });
     t.after(() => closePage(page));
@@ -134,6 +139,41 @@ for (const viewport of [{ width: 360, height: 760 }, { width: 720, height: 450 }
     assert.equal(result.appearanceVisible, true);
   });
 }
+
+test("Light keeps A/B identity and comparable, withheld and OFF readings visually distinct", async (t) => {
+  const page = await openApp({ preference: "light" });
+  t.after(() => closePage(page));
+  await page.locator("#modeCompareButton").click();
+  await page.evaluate(() => {
+    window.__HALO_REGRESSION__.setRadius("B", 1800);
+    window.__HALO_REGRESSION__.recompute();
+  });
+  await page.waitForFunction(() => {
+    const states = [...document.querySelectorAll("#decisionInsightItems .di-item")].map((node) => node.dataset.state);
+    return states.includes("comparable") && states.some((state) => state === "withheld" || state === "unavailable") && states.includes("off");
+  });
+  const result = await page.evaluate(() => {
+    const color = (selector) => getComputedStyle(document.querySelector(selector)).color;
+    const text = (selector) => document.querySelector(selector).textContent.trim();
+    const limited = document.querySelector('#decisionInsightItems .di-item[data-state="withheld"], #decisionInsightItems .di-item[data-state="unavailable"]');
+    return {
+      lensA: color(".cb-side-a .cb-lens"),
+      lensB: color(".cb-side-b .cb-lens"),
+      comparable: color('#decisionInsightItems .di-item[data-state="comparable"] .di-rel'),
+      limited: getComputedStyle(limited.querySelector(".di-rel")).color,
+      limitedText: limited.querySelector(".di-rel").textContent.trim(),
+      off: color('#decisionInsightItems .di-item[data-state="off"] .di-rel'),
+      offText: text('#decisionInsightItems .di-item[data-state="off"] .di-rel'),
+      selectedMode: color('#modeCompareButton[aria-pressed="true"]')
+    };
+  });
+  assert.notEqual(result.lensA, result.lensB, JSON.stringify(result));
+  assert.notEqual(result.comparable, result.limited, JSON.stringify(result));
+  assert.doesNotMatch(result.limitedText, /^0(?:\.0)?$/);
+  assert.match(result.offText, /off/i);
+  assert.doesNotMatch(result.offText, /^0(?:\.0)?$/);
+  assert.equal(result.selectedMode, "rgb(255, 255, 255)");
+});
 
 test("PLACE, COMPARE, CITY and the evidence drawer render in both appearances", async (t) => {
   const page = await openApp({ preference: "light" });

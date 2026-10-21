@@ -6,6 +6,7 @@ import { test } from "node:test";
 const require = createRequire(import.meta.url);
 const appearance = require("../js/appearance.js");
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+const css = readFileSync(new URL("../css/app.css", import.meta.url), "utf8");
 
 test("appearance preference accepts only light, dark and system", () => {
   assert.equal(appearance.normalizePreference("light"), "light");
@@ -43,4 +44,12 @@ test("appearance and basemap are separate controls", () => {
   assert.match(html, /id="appearanceSelect"/);
   assert.match(html, /id="basemapSelect"/);
   assert.match(html, /value="system"/);
+});
+
+test("Light appearance does not flatten panel, rail or drawer descendant colours", () => {
+  assert.doesNotMatch(css, /:root\[data-appearance="light"\]\s+\.left\s+\*/);
+  assert.doesNotMatch(css, /:root\[data-appearance="light"\]\s+\.panel\s+\*/);
+  assert.doesNotMatch(css, /:root\[data-appearance="light"\]\s+\.evidence-drawer\s+\*/);
+  assert.match(css, /\.di-item\[data-state="withheld"\]\s+\.di-rel/);
+  assert.match(css, /\.comparison-bridge\[data-relationship="withheld"\]\s+\.cb-rel-value/);
 });

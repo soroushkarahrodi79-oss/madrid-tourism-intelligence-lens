@@ -985,6 +985,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
    collapse; they are never deleted. */
 .header-tools{pointer-events:auto;margin-left:auto;display:flex;align-items:center;gap:var(--s-2)}
 .appearance-control{display:flex;align-items:center;gap:var(--s-2);color:var(--chrome-text-brand-subtle);font-size:var(--t-micro);font-weight:650;letter-spacing:.04em}
+.appearance-control>span{font-size:var(--t-micro)}
 .header-tools select{width:auto;min-width:96px;padding:var(--s-2) var(--s-3);font-size:var(--t-meta);border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-header-surface);color:var(--chrome-text-control-value)}
 .header-tools select:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
 
@@ -1094,8 +1095,9 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .header-tools select{min-width:88px;padding:var(--s-1) var(--s-2)}
 }
 @media(max-width:560px){
-  .appearance-control>span{position:absolute;width:1px;height:1px;padding:0;margin:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
-  #appearanceSelect{min-width:82px}
+  .appearance-control{position:relative;display:block;min-width:88px}
+  .appearance-control>span{position:absolute;z-index:1;left:9px;top:5px;max-width:58px;overflow:hidden;color:var(--chrome-text-brand-subtle);line-height:1;letter-spacing:.02em;white-space:nowrap;pointer-events:none}
+  #appearanceSelect{min-width:88px;padding:var(--s-4) calc(3 * var(--s-2)) var(--s-1) var(--s-2);line-height:1.1}
   /* Map-first on phones: an explicit 44px control replaces the always-open rail.
      The entire original six-group rail remains reachable when requested. */
   .mobile-layers-button{display:inline-flex}
@@ -1416,26 +1418,41 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 :root[data-appearance="light"] .panel::-webkit-scrollbar-thumb{background:#a6b2bf}
 :root[data-appearance="light"] .skip-link:focus{background:#fff;color:#16222f}
 
-/* Establish a legible floor for legacy descendants that still carry a
-   consumer-specific Dark literal. More specific identity/status rules below
-   restore their documented distinctions. */
-:root[data-appearance="light"] .left *,
-:root[data-appearance="light"] .panel *,
-:root[data-appearance="light"] .evidence-drawer *{color:var(--muted)}
-:root[data-appearance="light"] :where(.brand-title,.left .layer-left,.left summary,.panel h1,.panel h2,.panel h3,.panel h4,.panel h5,.panel h6,.panel strong,.panel b,.panel dd,.panel button,.evidence-drawer h1,.evidence-drawer h2,.evidence-drawer h3,.evidence-drawer h4,.evidence-drawer h5,.evidence-drawer h6,.evidence-drawer strong,.evidence-drawer b,.evidence-drawer dd,.evidence-drawer button){color:var(--text)}
+/* Light colours are assigned by semantic role. Avoid descendant-wide colour
+   floors: they erase consumer-owned A/B, availability and withholding states. */
 :root[data-appearance="light"] :where(.poi-cluster,.poi-cluster *){color:#fff}
 :root[data-appearance="light"] .live{color:#17663f;border-color:#6da88b;background:#edf8f2}
 :root[data-appearance="light"] .live i{background:#17663f;box-shadow:none}
 :root[data-appearance="light"] .live.mixed{color:#6b450b;border-color:#b68a4c;background:#fff8ec}
 :root[data-appearance="light"] .live.mixed i{background:#8a5a12;box-shadow:none}
 
-:root[data-appearance="light"] .left :where(p,small,label),
-:root[data-appearance="light"] .panel :where(p,small,dt,label,th,td,summary),
-:root[data-appearance="light"] .evidence-drawer :where(p,small,dt,label,th,td,summary){color:var(--muted)}
-:root[data-appearance="light"] .panel :where(h1,h2,h3,h4,h5,h6,strong,b,dd),
-:root[data-appearance="light"] .evidence-drawer :where(h1,h2,h3,h4,h5,h6,strong,b,dd){color:var(--text)}
-:root[data-appearance="light"] :where(.section-head span,.section-head small,.area-context,.area-codes,.area-value-label,.area-period,.area-scope p,.area-vut-title,.area-vut-unit,.area-vut-secondary,.area-vut-state,.area-other,.area-other-lens,.area-source-details,.area-source-group-title,.planning-code-label,.planning-distinction,.planning-edition,.planning-outside,.planning-block-head,.planning-block-note,.planning-absent,.planning-phase-field,.planning-phase-note,.planning-attributes dt,.planning-scope-note,.planning-situacion,.planning-use-label,.planning-use-unit,.planning-citizen>p,.planning-ceiling,.planning-change-intro,.planning-change-scope,.planning-change-dates span,.planning-change-numeric-values small,.planning-change-values>span:first-child,.planning-change-values small,.planning-change-detail,.planning-change-caveat,.planning-change-provenance-edition,.drawer-change-edition>p,.planning-touched,.planning-touched-centre,.planning-membership-chip-name,.lic-block-head,.lic-window-field,.lic-family-head,.lic-family-name,.cmp-evidence,.compare-evidence,.halo-visibility-note,.destination-period-label,.destination-metric-head,.destination-metric-exact,.destination-metric-change,.destination-composition,.destination-state,.destination-ceiling,.domestic-origin-scope,.domestic-origin-universe,.domestic-origin-dynamics-relationship,.domestic-origin-dynamics-table-heading,.source,.mode-question,.scope-instance,.scope-rail-freshness,.metric .scope-glyph,.detail-disclosure>summary,.drawer-filter,.drawer-fields dt,.drawer-notes>h3,.k11-notice-message){color:var(--muted)}
-:root[data-appearance="light"] :where(.planning-denomination,.planning-code,.planning-phase-value,.planning-phase-mark,.planning-attributes dd,.planning-use-value,.planning-citizen>summary,.planning-change>summary,.planning-change-analyst>summary,.planning-change-dates strong,.planning-change-outcome h3,.planning-build-comparison h3,.planning-change-analyst h3,.planning-change-label,.planning-change-numeric-values,.planning-change-cell strong,.planning-change-provenance-edition strong,.planning-touched-code,.planning-membership-count,.lic-family-count,.cmp-value,.ss-reading-value,.ss-transition,.comparetable td:last-child,.destination-place,.destination-metric-value,.domestic-origins-head,.domestic-origin-dynamics-summary b,.domestic-origin-dynamics-transitions summary,.scope-rail-item,.evidence-link,.evidence-route,.drawer-record>h3,.drawer-source>h4,.drawer-fields dd,.drawer-ceiling,.drawer-ceiling b){color:var(--text)}
+:root[data-appearance="light"] :where(.section-head span,.section-head small,.area-context,.area-codes,.area-value-label,.area-period,.area-scope p,.area-vut-title,.area-vut-unit,.area-vut-secondary,.area-vut-state,.area-other,.area-other-lens,.area-source-details,.area-source-group-title,.planning-code-label,.planning-distinction,.planning-edition,.planning-outside,.planning-block-head,.planning-block-note,.planning-absent,.planning-phase-field,.planning-phase-note,.planning-attributes dt,.planning-scope-note,.planning-situacion,.planning-use-label,.planning-use-unit,.planning-citizen>p,.planning-ceiling,.planning-change-intro,.planning-change-scope,.planning-change-dates span,.planning-change-numeric-values small,.planning-change-values>span:first-child,.planning-change-values small,.planning-change-detail,.planning-change-caveat,.planning-change-provenance-edition,.drawer-change-edition>p,.planning-touched,.planning-touched-centre,.planning-membership-chip-name,.lic-block-head,.lic-state,.lic-window-field,.lic-window-applied,.lic-window-clamped,.lic-family-head,.lic-family-name,.lic-family-unit,.lic-coverage-line,.lic-unmatched-line,.lic-residual,.lic-ceiling-line,.lic-citizen summary,.lic-citizen p,.lic-provenance summary,.lic-provenance p,.cmp-evidence,.compare-evidence,.halo-visibility-note,.destination-period-label,.destination-metric-head,.destination-metric-exact,.destination-metric-change,.destination-composition,.destination-state,.destination-ceiling,.domestic-origin-scope,.domestic-origin-universe,.domestic-origin-dynamics-relationship,.domestic-origin-dynamics-table-heading,.source,.mode-question,.scope-instance,.scope-rail-freshness,.metric .scope-glyph,.detail-disclosure>summary,.drawer-filter,.drawer-fields dt,.drawer-notes>h3,.k11-notice-message,.cb-sub,.cb-radius,.cb-rel-label,.cb-qualifier,.di-status,.di-metric,.di-guard,.ss-status,.ss-empty,.ss-notice,.ss-window-label,.ss-reading-label,.ss-transition-detail,.ss-guard){color:var(--muted)}
+:root[data-appearance="light"] :where(.planning-denomination,.planning-code,.planning-phase-value,.planning-phase-mark,.planning-attributes dd,.planning-use-value,.planning-citizen>summary,.planning-change>summary,.planning-change-analyst>summary,.planning-change-dates strong,.planning-change-outcome h3,.planning-build-comparison h3,.planning-change-analyst h3,.planning-change-label,.planning-change-numeric-values,.planning-change-cell strong,.planning-change-provenance-edition strong,.planning-touched-code,.planning-membership-count,.lic-family-count,.cmp-value,.cb-metric-name,.cb-value,.cb-rel-value,.di-rel,.ss-window-radii,.ss-reading-value,.ss-transition,.comparetable td:last-child,.destination-place,.destination-metric-value,.domestic-origins-head,.domestic-origin-dynamics-summary b,.domestic-origin-dynamics-transitions summary,.scope-rail-item,.evidence-link,.evidence-route,.drawer-record>h3,.drawer-source>h4,.drawer-fields dd,.drawer-ceiling,.drawer-ceiling b){color:var(--text)}
+:root[data-appearance="light"] .comparison-bridge[data-relationship="withheld"] .cb-rel-value,
+:root[data-appearance="light"] .di-item[data-state="withheld"] .di-rel,
+:root[data-appearance="light"] .di-item[data-state="unavailable"] .di-rel,
+:root[data-appearance="light"] .di-item[data-state="off"] .di-rel,
+:root[data-appearance="light"] .ss-reading[data-comparable="false"] .ss-reading-value{color:#526275}
+:root[data-appearance="light"] :where(.di-item[data-focused="true"],.ss-item[data-focused="true"]){background:#e8f1f8;border-left-color:#075f9a}
+:root[data-appearance="light"] :where(.di-item[data-focused="true"] .di-metric,.di-item[data-focused="true"] .di-rel,.ss-item[data-focused="true"] .ss-metric,.ss-item[data-focused="true"] .ss-transition){color:#123b5f}
+
+/* Legacy surface roles with Dark literals. Each selector names the consuming
+   component so status and identity descendants can continue to own colour. */
+:root[data-appearance="light"] :where(.layer-source-note,.rail-group-note,.status small,#placeCircleSummaryRadius,.place-circle-reading>span,.place-circle-reading>small,.area-source-toggle,.planning-source-toggle,.metric-head span,.metric-foot,.mixrow,.nearest li,.reading-btn,.comparison-radius-readout,.comparison-mode-cue,.comparison-bridge-empty,.halo-toggle span,.halo-toggle small,.halo-legend,.destination-provisional,.domestic-origin-controls label,.domestic-origin-dynamics-transitions div>span){color:var(--muted)}
+:root[data-appearance="light"] .place-circle-summary-head>#placeCircleSummaryRadius{color:var(--muted)}
+:root[data-appearance="light"] :where(.layer-source-note b,.place-circle-summary-head>span:first-child,.place-circle-reading>strong,.mixrow b,.drawer-change-provenance h5,.drawer-change-edition h6,.area-other-body b,.decision-insight .di-title,.spatial-sensitivity .ss-title){color:var(--text)}
+:root[data-appearance="light"] .comparetable th,
+:root[data-appearance="light"] .comparetable td{color:var(--muted)}
+:root[data-appearance="light"] .comparetable th .cmp-metric-focus,
+:root[data-appearance="light"] .comparetable td:last-child,
+:root[data-appearance="light"] .comparetable .panel-only-metric th{color:var(--text)}
+:root[data-appearance="light"] .domestic-origin-dynamics-transitions summary,
+:root[data-appearance="light"] .domestic-origin-dynamics-transitions summary *{color:var(--text)}
+:root[data-appearance="light"] .domestic-origin-dynamics-summary span{color:var(--muted)}
+:root[data-appearance="light"] .mix-label,
+:root[data-appearance="light"] .layer-action{color:#6b450b}
+:root[data-appearance="light"] .lensbtn.a{color:var(--ta3-lens-a-control-text);border-color:var(--ta3-lens-a-control-border)}
+:root[data-appearance="light"] .lensbtn.b{color:var(--ta3-lens-b-control-text);border-color:var(--ta3-lens-b-control-border)}
 
 :root[data-appearance="light"] :where(.area-figure,.area-vut,.area-source-details,.planning-block,.planning-citizen,.planning-change,.planning-change-outcome,.planning-change-numeric-row,.planning-membership,.planning-membership-chip,.lic-window,.lic-family,.metric,.card,.ss-item,.destination-metric,.domestic-origin-dynamics-summary>div,.domestic-origin-dynamics-transitions details,.detail-disclosure){background:var(--chrome-card-surface);border-color:var(--chrome-border)}
 :root[data-appearance="light"] :where(.rail-group>summary,.place-jump-chip,.scope-rail-item,.evidence-link,.evidence-route){background:#f2f5f8;border-color:var(--line2);color:var(--text)}
