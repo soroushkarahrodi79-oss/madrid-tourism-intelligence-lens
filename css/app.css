@@ -1590,7 +1590,6 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 /* UX map-shell P1: keep map-first controls spatially separate rather than
    shrinking touch targets or hiding the two persisted user preferences.
    Appearance/basemap are still independent; all map credits remain visible. */
-.brand-title{font-size:var(--responsive-brand-title-size,var(--t-figure))}
 @media(min-width:681px) and (max-width:1100px){
   .brand{min-width:0;flex:0 1 auto}
   .brand-sub{display:none}
@@ -1600,12 +1599,12 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 @media(max-width:680px){
   /* The full product name owns row one; layer and preference tools own row two.
      The native selects remain keyboard/screen-reader reachable and 44px tall. */
-  header{--responsive-brand-title-size:clamp(13px,4vw,16px);display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:44px 44px;gap:6px;align-items:start;height:auto}
+  header{--t-figure:clamp(13px,4vw,16px);display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:44px 44px;gap:var(--s-2);align-items:start;height:auto}
   .brand{grid-row:1;min-height:44px;min-width:0;max-width:100%;padding:var(--s-2) var(--s-3)}
   .brand-title{white-space:nowrap;overflow:visible;text-overflow:clip}
   .brand-sub{display:none}
-  .header-tools{grid-row:2;justify-self:end;margin-left:0;gap:6px;max-width:100%}
-  .appearance-control{position:static;display:flex;align-items:center;gap:3px;min-width:0}
+  .header-tools{grid-row:2;justify-self:end;margin-left:0;gap:var(--s-2);max-width:100%}
+  .appearance-control{position:static;display:flex;align-items:center;gap:var(--s-1);min-width:0}
   .appearance-control>span{display:none}
   .appearance-control:before{content:"◐";color:var(--chrome-text-brand-subtle)}
   .header-tools select{min-height:44px;padding:var(--s-2) var(--s-1)}
@@ -1620,7 +1619,7 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 }
 @media(max-width:560px){
   /* One clear second row, with a separate Layers action at its left edge. */
-  .mobile-layers-button{top:calc(59px + var(--safe-top));min-width:88px;min-height:44px;gap:6px;padding:var(--s-2)}
+  .mobile-layers-button{top:calc(61px + var(--safe-top));min-width:88px;min-height:44px;gap:var(--s-2);padding:var(--s-2)}
   .left{top:calc(113px + var(--safe-top))}
 }
 @media(max-width:360px){
