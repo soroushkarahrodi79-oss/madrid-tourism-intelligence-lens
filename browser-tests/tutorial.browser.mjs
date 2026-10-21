@@ -50,15 +50,20 @@ test("first visit invites once; skip, replay, six steps and Escape preserve live
 test("returning and deep-link readers are not interrupted; language and phone guide remain usable", async (t) => {
   const firstPhone = await open({ width: 390 }); t.after(() => close(firstPhone));
   await firstPhone.locator("#tutorialInvite").waitFor(); await shot(firstPhone, "02-first-visit-mobile");
+  await firstPhone.locator("#languageSelect").selectOption("es");
+  assert.equal(await firstPhone.locator("#tutorialInvite").count(), 1, "language translation preserves the invitation");
+  assert.match(await firstPhone.locator("#tutorialInvite").textContent(), /¿Primera vez en Lens\?|Empezar recorrido|Ahora no/);
+  assert.equal(await firstPhone.locator("#tutorialInvite").getAttribute("aria-label"), "¿Primera vez en Lens?");
   const returning = await open({ storage: "1:completed", width: 390 }); t.after(() => close(returning));
   await returning.waitForTimeout(850); assert.equal(await returning.locator("#tutorialInvite").count(), 0);
   await returning.locator("#tutorialHelpButton").click(); await returning.locator("#languageSelect").selectOption("es");
   await shot(returning, "08-spanish-mobile");
   assert.match(await returning.locator("#tutorialGuide").textContent(), /Entiende el mapa/);
   assert.equal(await returning.locator("#tutorialGuide").evaluate(el => el.classList.contains("tutorial-guide-bottom")), true);
-  await returning.locator("[data-tutorial-next]").click(); await returning.locator("[data-tutorial-next]").click(); await shot(returning, "04-layers-mobile");
+  await returning.locator("[data-tutorial-next]").click(); await returning.locator("[data-tutorial-reveal]").click();
+  await returning.locator("[data-tutorial-next]").click(); await shot(returning, "04-layers-mobile");
   await returning.locator("[data-tutorial-next]").click(); await shot(returning, "05-compare-mobile");
-  await returning.locator("[data-tutorial-next]").click(); await returning.locator("[data-tutorial-next]").click(); await shot(returning, "06-evidence-mobile");
+  await returning.locator("[data-tutorial-next]").click(); await returning.locator("[data-tutorial-next]").click(); await returning.locator("[data-tutorial-reveal]").click(); await shot(returning, "06-evidence-mobile");
   await returning.locator("#appearanceSelect").selectOption("dark"); await shot(returning, "07-dark-mobile");
   const deep = await open({ url: "?v=1" }); t.after(() => close(deep)); await deep.waitForTimeout(850); assert.equal(await deep.locator("#tutorialInvite").count(), 0);
 });

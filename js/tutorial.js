@@ -87,6 +87,14 @@
     el.innerHTML = `<div><strong>${c.inviteTitle}</strong><p>${c.inviteBody}</p></div><div class="tutorial-actions"><button type="button" data-tutorial-start>${c.start}</button><button type="button" class="tutorial-quiet" data-tutorial-later>${c.later}</button></div>`;
     document.body.append(el); el.querySelector("[data-tutorial-start]").onclick = () => start(el.querySelector("[data-tutorial-start]")); el.querySelector("[data-tutorial-later]").onclick = () => finish("dismiss");
   }
+  function translateInvite() {
+    const el = document.getElementById("tutorialInvite"); if (!el) return;
+    const c = t(); el.setAttribute("aria-label", c.inviteTitle);
+    el.querySelector("strong").textContent = c.inviteTitle;
+    el.querySelector("p").textContent = c.inviteBody;
+    el.querySelector("[data-tutorial-start]").textContent = c.start;
+    el.querySelector("[data-tutorial-later]").textContent = c.later;
+  }
   function renderGuide() {
     destroySurface(); const c = t(); const done = state.step >= 6; const target = done ? null : targetFor(state.step); const unavailable = !done && !isVisible(target);
     if (target && !unavailable) showHighlight(target);
@@ -103,7 +111,7 @@
   function init() {
     const help = document.getElementById("tutorialHelpButton"); if (!help) return;
     help.addEventListener("click", () => start(help));
-    document.getElementById("languageSelect")?.addEventListener("change", () => { if (state.active) renderGuide(); else { help.lastElementChild.textContent = t().help; help.setAttribute("aria-label", t().helpAria); } });
+    document.getElementById("languageSelect")?.addEventListener("change", () => { if (state.active) renderGuide(); else { translateInvite(); help.lastElementChild.textContent = t().help; help.setAttribute("aria-label", t().helpAria); } });
     document.addEventListener("keydown", (event) => { if (event.key === "Escape" && (state.active || document.getElementById("tutorialInvite"))) { event.preventDefault(); finish("dismiss"); } });
     root.addEventListener("resize", () => { const guide = document.getElementById("tutorialGuide"); if (guide && state.active) positionGuide(guide, targetFor(state.step)); });
     const stored = safeRead(); const shared = /(?:\?|&)v=/.test(root.location.search);
