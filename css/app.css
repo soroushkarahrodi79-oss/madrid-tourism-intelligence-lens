@@ -283,12 +283,12 @@ header{
 .panel-resize-handle{
   position:fixed;z-index:1052;left:-100px;top:-100px;visibility:hidden;
   display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;
-  border-radius:12px;background:transparent;cursor:nesw-resize;touch-action:none
+  border-radius:var(--r-large);background:transparent;cursor:nesw-resize;touch-action:none
 }
 .panel-resize-handle.is-positioned{visibility:visible}
 .panel-resize-handle::before{
   content:"";position:absolute;inset:8px;border:1px solid var(--chrome-border);
-  border-radius:9px;background:var(--chrome-form-surface);
+  border-radius:var(--r-small);background:var(--chrome-form-surface);
   box-shadow:0 3px 12px rgba(0,0,0,.18)
 }
 .panel-resize-handle svg{
