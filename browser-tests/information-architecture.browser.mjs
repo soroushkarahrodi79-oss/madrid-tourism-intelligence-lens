@@ -587,7 +587,10 @@ test("IA 20 ES: representative real surfaces in PLACE, COMPARE and CITY carry no
   assert.equal(await page.locator("#radiusControlLabel").textContent(), "Radio de la Lente A");
   assert.equal(await page.locator("#radiusSlider").getAttribute("aria-label"), "Radio de la Lente A");
   assert.equal(await page.locator("#timeSelect").getAttribute("aria-label"), "Hora del modelo HATI");
-  assert.match(await page.locator("#layerSourceNote").textContent(), /Museos:/);
+  const snapshotSources = await page.locator(
+    '#layerSourceNote .layer-source-group[data-status="snapshot"] .layer-source-names > li',
+  ).allTextContents();
+  assert.ok(snapshotSources.includes("Museos"), `Spanish museum source missing from snapshot group: ${snapshotSources.join(" | ")}`);
   assert.equal(await page.locator('.rail-group[data-rail-group="map"] .rail-group-copy').textContent(), "Visualización del mapa");
   assert.match(await page.locator("#stayKindFilter option").first().textContent(), /Todo el alojamiento/, "select option copy is localised");
   for (const selector of ["header", ".left", "#analysisPanel"]) assertNoEnglish(await productCopy(page, selector), `PLACE ${selector}`);
