@@ -6055,6 +6055,8 @@ const SHELL_BINDINGS = [
 ];
 function applyShellCopy() {
   for (const el of document.querySelectorAll("[data-i18n]")) el.textContent = shellT(el.dataset.i18n);
+  const grip = document.getElementById("panelResizeHandle");
+  if (grip) grip.title = shellT("a11y.resizePanelHint");
   // Trusted, static dictionary HTML only (never source data or user input).
   for (const el of document.querySelectorAll("[data-i18n-html]")) el.innerHTML = shellT(el.dataset.i18nHtml);
   for (const el of document.querySelectorAll("[data-i18n-attr]")) {
@@ -6610,6 +6612,19 @@ const PANEL_SIZE_STORAGE_KEY = "madrid-tourism-intelligence-lens:analysis-panel-
 const analysisPanel = document.querySelector(".panel");
 const panelResizeHandle = document.getElementById("panelResizeHandle");
 
+// The analysis panel remains the scroll container (including sticky headings and
+// per-mode scroll state). Position its separate grip at the *visible* corner.
+function positionPanelResizeHandle() {
+  if (window.innerWidth <= 850) {
+    panelResizeHandle.classList.remove("is-positioned");
+    return;
+  }
+  const rect = analysisPanel.getBoundingClientRect();
+  panelResizeHandle.style.left = `${Math.round(rect.left - 14)}px`;
+  panelResizeHandle.style.top = `${Math.round(rect.bottom - 36)}px`;
+  panelResizeHandle.classList.add("is-positioned");
+}
+
 function panelResizeLimits() {
   const compact = window.innerWidth <= 1100;
   const minWidth = compact ? 340 : 390;
@@ -6638,6 +6653,7 @@ function applyPanelSize(width, height, persist = false) {
   const next = clampPanelSize(width, height);
   analysisPanel.style.setProperty("--analysis-panel-width", `${Math.round(next.width)}px`);
   analysisPanel.style.setProperty("--analysis-panel-height", `${Math.round(next.height)}px`);
+  positionPanelResizeHandle();
   if (persist) {
     try {
       localStorage.setItem(PANEL_SIZE_STORAGE_KEY, JSON.stringify(next));
@@ -6662,6 +6678,7 @@ function restorePanelSize() {
 function resetPanelSize() {
   analysisPanel.style.removeProperty("--analysis-panel-width");
   analysisPanel.style.removeProperty("--analysis-panel-height");
+  positionPanelResizeHandle();
   try {
     localStorage.removeItem(PANEL_SIZE_STORAGE_KEY);
   } catch (_) {
@@ -6727,12 +6744,20 @@ window.addEventListener("resize", () => {
   if (window.innerWidth <= 850) {
     analysisPanel.style.removeProperty("--analysis-panel-width");
     analysisPanel.style.removeProperty("--analysis-panel-height");
+    positionPanelResizeHandle();
     return;
   }
   const rect = analysisPanel.getBoundingClientRect();
   applyPanelSize(rect.width, rect.height, false);
+  positionPanelResizeHandle();
 });
+// Also follow CSS/layout-driven panel size changes (e.g. viewport safe areas).
+if (typeof ResizeObserver !== "undefined") {
+  const panelResizeObserver = new ResizeObserver(positionPanelResizeHandle);
+  panelResizeObserver.observe(analysisPanel);
+}
 restorePanelSize();
+positionPanelResizeHandle();
 
 async function boot() {
   const [snapshotPOI, runtimePOI, hatiAssetsData, hatiProvenance, pedestrianData] = await Promise.all([
