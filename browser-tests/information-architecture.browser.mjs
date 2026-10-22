@@ -275,6 +275,57 @@ for (const width of WIDTHS) {
   });
 }
 
+// The real-world iPad landscape regression: wrapped provenance labels used to
+// be inside a sticky head and consume the entire usable evidence viewport.
+// The compact mode bar can stick; the full rail must scroll away with content.
+for (const width of [1024, 1366]) {
+  test(`IA iPad landscape ${width}px keeps the mode bar reachable without pinning the provenance rail`, async (t) => {
+    const page = await newPage({ width, height: 768 }, { hasTouch: true });
+    t.after(() => closePage(page));
+    await page.waitForFunction(() => document.querySelectorAll("#scopeRailList .scope-rail-item").length >= 3);
+    const before = await page.evaluate(() => {
+      const panel = document.getElementById("analysisPanel");
+      const head = document.getElementById("panelHead");
+      const rail = document.getElementById("scopeRail");
+      return {
+        panelHeight: panel.clientHeight,
+        headHeight: head.getBoundingClientRect().height,
+        headBottom: head.getBoundingClientRect().bottom,
+        railTop: rail.getBoundingClientRect().top,
+        headContainsRail: head.contains(rail),
+        headPosition: getComputedStyle(head).position,
+      };
+    });
+    assert.equal(before.headContainsRail, false, "scope and freshness are outside the sticky bar");
+    assert.equal(before.headPosition, "sticky", "the compact mode bar remains reachable");
+    assert.ok(before.railTop >= before.headBottom - 1, "the complete scope rail follows the mode bar");
+    assert.ok(before.headHeight < before.panelHeight * 0.3, "the fixed portion cannot consume most of the panel");
+
+    await page.locator("#analysisPanel").evaluate((panel) => { panel.scrollTop = 800; });
+    const after = await page.evaluate(() => {
+      const panel = document.getElementById("analysisPanel");
+      const head = document.getElementById("panelHead").getBoundingClientRect();
+      const rail = document.getElementById("scopeRail").getBoundingClientRect();
+      const panelRect = panel.getBoundingClientRect();
+      return {
+        scrollTop: panel.scrollTop,
+        headTop: head.top,
+        headBottom: head.bottom,
+        railBottom: rail.bottom,
+        panelTop: panelRect.top,
+        panelBottom: panelRect.bottom,
+      };
+    });
+    assert.ok(after.scrollTop > 400, `panel scroll remains usable: ${JSON.stringify(after)}`);
+    assert.ok(after.headTop < after.panelTop + 20 && after.headBottom < after.panelBottom,
+      `mode bar remains visible inside the panel: ${JSON.stringify(after)}`);
+    assert.ok(after.railBottom < after.headBottom + 12,
+      `the rail must scroll past the pinned mode bar: ${JSON.stringify(after)}`);
+    await page.locator("#modeCompareButton").click();
+    assert.equal(await mode(page), "COMPARE", "mode switching still works after scrolling");
+  });
+}
+
 test("IA 9 the rail reports the oldest contributing reference date, and 'not published' when a contributor has none", async (t) => {
   const page = await newPage();
   t.after(() => closePage(page));

@@ -128,8 +128,12 @@ No surface was removed. Surfaces moved.
 
 ## 4. The scope and freshness rail
 
-An always-visible strip in the sticky panel head (static, still unhidden, at
-≤ 850px). It states what the evidence **currently on screen** describes.
+An always-rendered strip immediately below the mode bar. It states what
+the evidence **currently on screen** describes. On wide screens, only the
+compact mode bar stays sticky: the full scope and freshness rail scrolls with
+the content, preventing wrapped scope labels from obscuring the reading area on
+iPad landscape and similarly constrained views. On narrow screens (≤ 850px),
+the mode bar is also static. No breakpoint hides the rail.
 
 - **Entries** are derived, not hand-listed: one per *distinct analytical scope*
   among the surfaces visible in the current mode (`railModel` over

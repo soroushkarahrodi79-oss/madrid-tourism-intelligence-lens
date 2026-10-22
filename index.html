@@ -162,11 +162,12 @@
   <button id="panelResizeHandle" class="panel-resize-handle" type="button" aria-label="Resize analysis panel" title="Drag to resize · double-click to reset"></button>
   <div class="status"><span id="liveBadge" class="live"><i></i><span>Loading spatial sources…</span></span><small>Central Madrid<br>v0.1</small></div>
 
-  <!-- READING ORDER (docs/INFORMATION_ARCHITECTURE_V2.md): the mode control and the
-       scope & freshness rail are ONE sticky head that no breakpoint may hide.
-       Below it exactly one mode section is shown: LEAD ANSWER, SUPPORTING
-       EVIDENCE (at most four figures), one Detail disclosure, one route into
-       Evidence & limits. Controls come LAST, never between results. -->
+  <!-- READING ORDER (docs/INFORMATION_ARCHITECTURE_V2.md): the compact mode
+       control is sticky on wide screens. Scope & freshness remain immediately
+       below it, but scroll with the evidence instead of obscuring the reading
+       area on touch devices. Exactly one mode section follows: LEAD ANSWER,
+       SUPPORTING EVIDENCE (at most four figures), one Detail disclosure,
+       one Evidence & limits route. Controls come LAST. -->
   <div class="panel-head" id="panelHead">
     <nav id="modeNav" class="mode-nav" aria-label="Mode">
       <button type="button" id="modePlaceButton" class="mode-btn" data-mode="PLACE" aria-pressed="true" aria-current="true"><span class="mode-glyph" aria-hidden="true">◎</span><span class="mode-name" data-i18n="mode.place">Place</span></button>
@@ -184,11 +185,13 @@
       <button type="button" class="place-jump-chip" data-jump="withinLens" data-i18n="place.circleSummary">In this Lens circle</button>
       <button type="button" class="place-jump-chip" data-jump="detail" data-i18n="sec.detail">Detail</button>
     </nav>
-    <section id="scopeRail" class="scope-rail" aria-label="Scope and freshness of the evidence on screen">
-      <ul id="scopeRailList" class="scope-rail-list"></ul>
-      <button type="button" id="scopeRailFreshness" class="scope-rail-freshness" aria-haspopup="dialog"></button>
-    </section>
   </div>
+  <!-- The full scope rail is always present but intentionally outside the
+       sticky mode bar: long labels must never consume the scroll viewport. -->
+  <section id="scopeRail" class="scope-rail" aria-label="Scope and freshness of the evidence on screen">
+    <ul id="scopeRailList" class="scope-rail-list"></ul>
+    <button type="button" id="scopeRailFreshness" class="scope-rail-freshness" aria-haspopup="dialog"></button>
+  </section>
   <p id="modeQuestion" class="mode-question" data-i18n="mode.q.place">What does the evidence say about this place?</p>
 
   <!-- ============================== PLACE ============================== -->
