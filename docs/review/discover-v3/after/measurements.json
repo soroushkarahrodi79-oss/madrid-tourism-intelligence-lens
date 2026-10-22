@@ -1,0 +1,77 @@
+{
+  "phase": "after",
+  "capturedAt": "2026-10-22T07:55:46.230Z",
+  "browser": "153.0.8010.12",
+  "viewports": [
+    {
+      "width": 320,
+      "documentWidth": 320,
+      "documentHeight": 7649,
+      "initialResourceCount": 1,
+      "initialEncodedBytes": 374896,
+      "productImageLoadedInitially": true,
+      "domContentLoadedMs": 27.599999994039536,
+      "loadMs": 30.599999994039536,
+      "fcpMs": 252,
+      "lcpMs": 252,
+      "cls": 0,
+      "externalScripts": []
+    },
+    {
+      "width": 390,
+      "documentWidth": 390,
+      "documentHeight": 7119,
+      "initialResourceCount": 1,
+      "initialEncodedBytes": 374896,
+      "productImageLoadedInitially": true,
+      "domContentLoadedMs": 17.200000002980232,
+      "loadMs": 19.700000002980232,
+      "fcpMs": 180,
+      "lcpMs": 180,
+      "cls": 0,
+      "externalScripts": []
+    },
+    {
+      "width": 768,
+      "documentWidth": 768,
+      "documentHeight": 6865,
+      "initialResourceCount": 1,
+      "initialEncodedBytes": 374896,
+      "productImageLoadedInitially": true,
+      "domContentLoadedMs": 16.700000002980232,
+      "loadMs": 18.899999991059303,
+      "fcpMs": 196,
+      "lcpMs": 196,
+      "cls": 0,
+      "externalScripts": []
+    },
+    {
+      "width": 1024,
+      "documentWidth": 1024,
+      "documentHeight": 6223,
+      "initialResourceCount": 1,
+      "initialEncodedBytes": 374896,
+      "productImageLoadedInitially": true,
+      "domContentLoadedMs": 16.700000002980232,
+      "loadMs": 18.899999991059303,
+      "fcpMs": 188,
+      "lcpMs": 188,
+      "cls": 0,
+      "externalScripts": []
+    },
+    {
+      "width": 1440,
+      "documentWidth": 1440,
+      "documentHeight": 6208,
+      "initialResourceCount": 1,
+      "initialEncodedBytes": 374896,
+      "productImageLoadedInitially": true,
+      "domContentLoadedMs": 17.69999998807907,
+      "loadMs": 20.299999997019768,
+      "fcpMs": 204,
+      "lcpMs": 204,
+      "cls": 0,
+      "externalScripts": []
+    }
+  ]
+}

@@ -34,8 +34,8 @@ test("GitHub Pages project-subpath serves Discover and preserves the application
   assert.ok(Number(await page.locator(".hero h1").evaluate(element => getComputedStyle(element).opacity)) > .9, "hero heading is readable after optional motion settles");
   assert.equal(await page.locator(".product-proof img").evaluate(image => image.complete && image.naturalWidth > 0), true, "real preview image loads");
   await maybeShot(page, "01-desktop-hero-1440.png");
-  assert.equal(await page.locator(".hero .action.primary").getAttribute("href"), "../");
-  await page.locator(".hero .action.primary").click(); await page.waitForURL(`${base}/`);
+  assert.equal(await page.locator(".hero .action.primary").getAttribute("href"), "../?lang=es");
+  await page.locator(".hero .action.primary").click(); await page.waitForURL(`${base}/?lang=es`);
   await page.waitForTimeout(800);
   const resources = await page.evaluate(() => performance.getEntriesByType("resource").map(entry => entry.name));
   assert.ok(resources.some(url => url.includes("/css/app.css")), "application CSS loaded");
@@ -55,7 +55,7 @@ test("Discover release evidence: modes, keyboard, mobile order and reduced motio
   await desktop.locator('[data-story="compare"]').scrollIntoViewIfNeeded(); await desktop.waitForTimeout(200); await maybeShot(desktop, "03-story-compare-1440.png");
   await desktop.locator('[data-story="city"]').scrollIntoViewIfNeeded(); await desktop.waitForTimeout(200); await maybeShot(desktop, "04-story-city-1440.png");
   await desktop.locator(".lens-a").focus(); const before = await desktop.locator(".lens-a").boundingBox(); await desktop.keyboard.press("ArrowRight"); assert.ok((await desktop.locator(".lens-a").boundingBox()).x > before.x, "keyboard moves Lens A"); await maybeShot(desktop, "05-keyboard-focus-1440.png");
-  const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } }); mobile.setDefaultTimeout(8000); await mobile.goto(`${base}/discover/`, { waitUntil: "domcontentloaded" }); await mobile.waitForTimeout(1200); assert.ok(Number(await mobile.locator(".hero h1").evaluate(element => getComputedStyle(element).opacity)) > .9, "mobile heading is readable"); await maybeShot(mobile, "06-mobile-hero-390.png");
+  const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } }); mobile.setDefaultTimeout(8000); await mobile.route("https://**/*", route => route.abort()); await mobile.goto(`${base}/discover/`, { waitUntil: "domcontentloaded" }); assert.ok(Number(await mobile.locator(".hero h1").evaluate(element => getComputedStyle(element).opacity)) > .9, "mobile heading is readable without the optional motion CDN"); await maybeShot(mobile, "06-mobile-hero-390.png");
   const order = await mobile.locator(".story-layout > *").evaluateAll(nodes => nodes.map(node => node.className)); assert.deepEqual(order, ["story-visual", "story-narrative"], "mobile reading order remains visual then narrative");
   const reduced = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" }); reduced.setDefaultTimeout(8000); await reduced.goto(`${base}/discover/`, { waitUntil: "domcontentloaded" }); assert.equal(await reduced.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches), true); await maybeShot(reduced, "07-reduced-motion-390.png");
   for (const page of [desktop, mobile, reduced]) { const overflow = await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1); assert.equal(overflow, true, "no horizontal clipping"); }
