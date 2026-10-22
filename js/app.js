@@ -41,6 +41,22 @@ const K11_SNAPSHOT_ID = AREA_ASSET_VERSION;
 // commit (and the boot loads after it) would erase the ámbito/baseline dimensions
 // before phase 2 reads them.
 const K11_ORIGINAL_SEARCH = (() => { try { return window.location.search; } catch (error) { return ""; } })();
+// Discover can hand a visitor to the workspace with a language-only URL.
+// This is NOT a versioned shared reading: do not try to restore evidence
+// dimensions, and never let a plain lang= parameter override K11's v= state.
+// Set both the document and its control before shell/i18n initialization so
+// the first rendered interface uses the intended language without a flash.
+if (!/[?&]v=/.test(K11_ORIGINAL_SEARCH)) {
+  try {
+    const entryLanguage = new URLSearchParams(K11_ORIGINAL_SEARCH).get("lang");
+    if (entryLanguage === "es" || entryLanguage === "en") {
+      document.documentElement.lang = entryLanguage;
+      document.getElementById("languageSelect").value = entryLanguage;
+    }
+  } catch (error) {
+    // Malformed language-only navigation keeps the default document language.
+  }
+}
 // K11 (#73) runtime state — declared HERE, before the map and the renderers, so
 // the per-surface export captures in those renderers can write to it during the
 // very first render without a temporal-dead-zone error. Its user functions live
