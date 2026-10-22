@@ -261,7 +261,6 @@ const LEGACY_COPY_ES = [
   ["{a} layers · some unavailable", "{a} capas · algunas no disponibles"],
   ["{a} layers · partial sample", "{a} capas · muestra parcial"],
   ["{a} layers · mixed status", "{a} capas · estados mixtos"],
-  ["Observed pedestrian activity", "Actividad peatonal observada"],
   ["Principal parks (context)", "Parques principales (contexto)"],
   ["Deployment snapshots are generated from the public sources during the latest site deploy.", "Las instantáneas del despliegue se generan a partir de las fuentes públicas durante el último despliegue del sitio."],
   ["Curated fallback counts are a partial sample, not a complete inventory.", "Los recuentos de la alternativa curada son una muestra parcial, no un inventario completo."],
