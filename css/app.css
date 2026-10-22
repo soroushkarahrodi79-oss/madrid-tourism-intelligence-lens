@@ -1083,8 +1083,9 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 
 .mode-section[hidden],[data-controls-for][hidden],[data-drawer-mode][hidden]{display:none!important}
 
-/* The head (mode control + scope/freshness rail) stays at the top of the panel's
-   own scroll, so the reader never loses which mode, scope and date they are in. */
+/* Only the compact mode bar stays sticky. The full scope/freshness rail sits
+   after it in normal scroll flow: on iPad landscape its wrapped labels must not
+   cover the evidence below. Scopes and provenance remain available above. */
 .panel-head{position:sticky;top:-15px;z-index:4;margin:0 calc(-1 * var(--s-4)) var(--s-1);padding:var(--s-1) var(--s-4) var(--s-2);background:var(--chrome-panel-surface);border-bottom:1px solid var(--chrome-border)}
 .mode-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-1);padding:var(--s-1);border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-control-group-surface)}
 .mode-btn{display:flex;align-items:center;justify-content:center;gap:var(--s-2);min-height:38px;padding:var(--s-2);border:1px solid transparent;border-radius:var(--r-small);background:transparent;color:var(--chrome-text-metadata);font:inherit;font-size:var(--t-meta);cursor:pointer}
@@ -1095,8 +1096,8 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .mode-btn[aria-pressed="true"] .mode-name:after{content:" ✓"}
 .mode-glyph{font-size:var(--t-label)}
 .mode-question{margin:var(--s-1) var(--s-1) var(--s-2);font-size:var(--t-micro);line-height:1.35;color:#9aaec4}
-/* Content scrolled into view (focus, scrollIntoView) must not land under the sticky head. */
-.panel{scroll-padding-top:8.5rem}
+/* Focus/scrollIntoView offsets cover the compact mode bar, not the rail. */
+.panel{scroll-padding-top:5rem}
 
 /* PLACE quick-jump chips. Hidden by default (desktop and non-PLACE modes); the
    ≤850px rule below reveals them in PLACE only. They scroll the panel to the
