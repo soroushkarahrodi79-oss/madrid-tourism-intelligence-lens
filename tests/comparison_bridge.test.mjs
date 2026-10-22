@@ -264,4 +264,9 @@ test("the app wires the Bridge from the authoritative states and a dictionary-ba
   assert.match(html, /id="comparisonBridge"/);
   assert.match(html, /id="comparisonBridgeMetric"/);
   assert.match(html, /class="cmp-metric-focus"/);
+  const pickerMetrics = [...html.matchAll(/class="cb-picker-button" data-bridge-metric="([^"]+)"/g)].map((match) => match[1]);
+  assert.deepEqual(pickerMetrics, ["tourism", "stays", "mobility", "utci"]);
+  assert.match(app, /button\.addEventListener\("click", \(\) => setHaloMetricFocus\(metricId, null, true\)\)/);
+  assert.match(app, /"picker\.tourism": "Tourism"/);
+  assert.match(app, /"picker\.tourism": "Turismo"/);
 });

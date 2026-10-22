@@ -23,7 +23,7 @@
 })();
 </script>
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261021-shell-p1">
+<link rel="stylesheet" href="css/app.css?v=20261021-ux-p2">
 </head>
 <body>
 <a class="sr-only skip-link" href="#analysisPanel" data-i18n="a11y.skipToPanel">Skip to the analysis panel</a>
@@ -555,6 +555,12 @@
     <div id="comparisonRadiusReadout" class="comparison-radius-readout" aria-label="Lens radii">Lens A · 900 m | Lens B · 900 m</div>
     <div id="comparisonModeCue" class="comparison-mode-cue" aria-live="polite">Equal windows · raw represented counts</div>
     <div id="comparisonBridge" class="comparison-bridge" role="group" aria-label="Focused metric comparison">
+      <div id="comparisonBridgePicker" class="cb-picker" role="group" aria-label="Metric to compare">
+        <button type="button" class="cb-picker-button" data-bridge-metric="tourism" aria-pressed="false">Tourism</button>
+        <button type="button" class="cb-picker-button" data-bridge-metric="stays" aria-pressed="false">Stays</button>
+        <button type="button" class="cb-picker-button" data-bridge-metric="mobility" aria-pressed="false">Mobility</button>
+        <button type="button" class="cb-picker-button" data-bridge-metric="utci" aria-pressed="false">UTCI</button>
+      </div>
       <p id="comparisonBridgeEmpty" class="comparison-bridge-empty">Focus a halo metric to compare Lens A and Lens B</p>
       <div id="comparisonBridgeMetric" class="comparison-bridge-metric" hidden>
         <div class="cb-head">
@@ -898,7 +904,7 @@
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20261020-appearance"></script>
+<script src="js/app.js?v=20261021-ux-p2"></script>
 <script src="js/tutorial.js?v=20261021-1"></script>
 </body>
 </html>

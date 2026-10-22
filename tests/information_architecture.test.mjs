@@ -57,6 +57,12 @@ test("A: the mode is application state, not a button class", () => {
   assert.match(app, /shell\.modes = createModeController\(/);
 });
 
+test("P2: panel scroll is stored independently for PLACE, COMPARE and CITY", () => {
+  assert.match(app, /modeScrollPositions: \{ PLACE: 0, COMPARE: 0, CITY: 0 \}/);
+  assert.match(app, /shell\.modeScrollPositions\[plan\.from\] = panel\.scrollTop/);
+  assert.match(app, /panel\.scrollTop = shell\.modeScrollPositions\[mode\] \|\| 0/);
+});
+
 test("A: a mode that fails to apply is never committed", () => {
   const controller = createModeController({
     lensBEnabled: () => false,

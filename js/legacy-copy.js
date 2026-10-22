@@ -277,6 +277,7 @@ const LEGACY_COPY_ES = [
   ["UTCI", "UTCI"],
   ["Lens A and Lens B circle measurements", "Mediciones de los círculos de la Lente A y la Lente B"],
   ["Focused metric comparison", "Comparación de la métrica enfocada"],
+  ["Metric to compare", "Métrica que comparar"],
   ["Lens radii", "Radios de las Lentes"],
   ["Lens A · {a} | Lens B · {b}", "Lente A · {a} | Lente B · {b}"],
   ["Lens A {a}; Lens B {b}.", "Lente A {a}; Lente B {b}."],
