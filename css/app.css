@@ -146,8 +146,10 @@ body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 .leaflet-container{font:inherit;background:var(--map-fallback-surface)}
 .leaflet-control-attribution{background:var(--map-attribution-surface)!important;color:var(--map-attribution-text)!important}
 .leaflet-control-attribution a{color:var(--map-attribution-link)!important;text-decoration:underline;text-underline-offset:2px}
-.leaflet-control-zoom{margin:0!important;box-shadow:var(--map-zoom-shadow)!important}
-.leaflet-control-zoom a{width:36px!important;height:36px!important;line-height:36px!important;background:var(--map-zoom-surface)!important;color:var(--map-zoom-text)!important;border-color:var(--map-zoom-edge)!important}
+/* Explicit flex geometry prevents the global touch-link rule from turning
+   Leaflet's vertical +/- stack into wide, uncentred inline links. */
+.leaflet-control-zoom{display:flex;flex-direction:column;overflow:hidden;margin:0!important;box-shadow:var(--map-zoom-shadow)!important;border-radius:var(--r-small)}
+.leaflet-control-zoom a{display:flex!important;align-items:center;justify-content:center;box-sizing:border-box;padding:0!important;text-indent:0!important;width:36px!important;height:36px!important;line-height:1!important;background:var(--map-zoom-surface)!important;color:var(--map-zoom-text)!important;border-color:var(--map-zoom-edge)!important}
 .leaflet-control-zoom a:hover{background:var(--map-zoom-hover-surface)!important}
 .leaflet-control-zoom a.leaflet-disabled{color:var(--map-zoom-disabled-text)!important;opacity:var(--map-zoom-disabled-opacity);cursor:default}
 .leaflet-top.leaflet-left{top:calc(90px + var(--safe-top));left:calc(254px + var(--safe-left))}
@@ -198,10 +200,15 @@ header{
 .map-control select:disabled{opacity:.55;cursor:not-allowed}
 .stay-filter{margin:0 0 var(--s-1);padding:var(--s-1) 0 var(--s-2) var(--s-4);border-bottom:1px solid rgba(255,255,255,.05)}
 .stay-filter label{display:block;margin-bottom:var(--s-1);font-size:var(--t-micro);letter-spacing:.07em;text-transform:uppercase;color:var(--chrome-text-control-label)}
-.stay-filter select{width:100%;padding:var(--s-2);font-size:var(--t-micro);background:var(--chrome-form-surface);color:var(--chrome-text-control-value);border:1px solid var(--chrome-border);border-radius:var(--r-small)}
+.stay-filter select{width:100%;min-width:0;padding:var(--s-2);font-size:var(--t-micro);background:var(--chrome-form-surface);color:var(--chrome-text-control-value);border:1px solid var(--chrome-border);border-radius:var(--r-small)}
 .stay-filter select:disabled{opacity:.55;cursor:not-allowed}
-.layer{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);padding:var(--s-2) 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:var(--t-micro)}
-.layer:last-of-type{border-bottom:0}.layer-left{display:flex;align-items:center;gap:var(--s-2)}.dot{width:8px;height:8px;border-radius:50%;box-shadow:0 0 10px currentColor}
+/* The label owns the flexible column; the toggle retains a separate fixed
+   tap target even when English/Spanish copy wraps or text is enlarged. */
+.layer{display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center;column-gap:var(--s-2);min-height:44px;padding:var(--s-1) 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:var(--t-label);line-height:1.35}
+.layer:last-of-type{border-bottom:0}
+.layer-left{display:flex;align-items:center;gap:var(--s-2);min-width:0;overflow-wrap:anywhere}
+.layer-left>span{min-width:0}
+.dot{width:8px;height:8px;flex:0 0 8px;border-radius:50%;box-shadow:0 0 10px currentColor}
 .dot-museum,.bar-museum{color:var(--museum);background:var(--museum)}
 .dot-stay,.bar-stay{color:var(--stay);background:var(--stay)}
 .dot-bike,.bar-bike{color:var(--bike);background:var(--bike)}
@@ -963,7 +970,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 @media(max-width:850px){
   header{left:calc(10px + var(--safe-left));right:calc(10px + var(--safe-right));top:calc(9px + var(--safe-top));height:54px}
   .brand{padding:var(--s-2) var(--s-3);max-width:100%;min-width:0}.brand>div:last-child{min-width:0}.brand-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.brand-sub{}
-  .left{left:calc(10px + var(--safe-left));top:calc(73px + var(--safe-top));width:174px;padding:var(--s-2);max-height:min(52vh,430px);max-height:min(52dvh,430px);overflow:auto}
+  .left{left:calc(10px + var(--safe-left));top:calc(73px + var(--safe-top));width:min(240px,calc(100vw - 72px - var(--safe-left) - var(--safe-right)));padding:var(--s-2);max-height:min(52vh,430px);max-height:min(52dvh,430px);overflow:auto}
   .rail-group+.rail-group{margin-top:var(--s-1)}
   .rail-group>summary{grid-template-columns:1fr;grid-template-rows:auto auto;gap:0;min-height:44px;margin:0;padding:var(--s-1) var(--s-2);border:1px solid rgba(255,255,255,.08);border-radius:var(--r-small);background:rgba(255,255,255,.025);cursor:pointer}
   .rail-group>summary:before{display:none}
@@ -1011,7 +1018,9 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .hospitality-value{}
   .hospitality-meta-grid{grid-template-columns:1fr 1fr}
   .leaflet-top.leaflet-left{top:calc(73px + var(--safe-top));left:auto;right:calc(10px + var(--safe-right))}
-  .leaflet-bottom.leaflet-right{top:calc(158px + var(--safe-top));bottom:auto;left:auto;right:calc(10px + var(--safe-right))}
+  /* Two 44px touch targets start at 73px; preserve a real 12px gap
+     before attribution instead of overlapping its legal source text. */
+  .leaflet-bottom.leaflet-right{top:calc(173px + var(--safe-top));bottom:auto;left:auto;right:calc(10px + var(--safe-right))}
   .leaflet-control-attribution{max-width:min(46vw,220px);text-align:right}
 }
 
@@ -1021,7 +1030,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .switch span{border-radius:14px}
   .switch span:after{width:20px;height:20px;left:2px;top:2px}
   .switch input:checked+span:after{left:20px}
-  .leaflet-control-zoom a{width:42px!important;height:42px!important;line-height:42px!important;!important}
+  .leaflet-control-zoom a{width:44px!important;height:44px!important}
   /* Baseline capture/reset are touch targets wherever the pointer is coarse —
      including an iPad in landscape, which is far too wide for the width-based
      typography query above. */
@@ -1650,7 +1659,7 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
   .tutorial-help-label{display:none}
   .left{top:calc(114px + var(--safe-top))}
   .leaflet-top.leaflet-left{top:calc(120px + var(--safe-top));left:auto;right:calc(10px + var(--safe-right))}
-  .leaflet-bottom.leaflet-right{top:calc(214px + var(--safe-top));bottom:auto;left:auto;right:calc(10px + var(--safe-right))}
+  .leaflet-bottom.leaflet-right{top:calc(222px + var(--safe-top));bottom:auto;left:auto;right:calc(10px + var(--safe-right))}
   .leaflet-control-attribution{max-width:min(220px,calc(100vw - 20px - var(--safe-left) - var(--safe-right)));line-height:1.3;text-align:right}
 }
 @media(max-width:560px){
@@ -1668,7 +1677,7 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
   /* Embedded/landscape browsers need a compact horizontal zoom rail and
      independent legal credits, instead of stacking both above the panel. */
   .leaflet-top.leaflet-left{top:calc(114px + var(--safe-top))}
-  .leaflet-control-zoom{display:flex}
+  .leaflet-control-zoom{display:flex;flex-direction:row}
   .leaflet-control-zoom a{border-bottom:0!important}
   .leaflet-control-zoom a+a{border-left:1px solid var(--map-zoom-edge)!important}
   .leaflet-bottom.leaflet-right{top:calc(118px + var(--safe-top));left:calc(10px + var(--safe-left));right:auto}
