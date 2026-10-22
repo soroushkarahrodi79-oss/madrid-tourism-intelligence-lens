@@ -2513,35 +2513,109 @@ function pedestrianStatsFor(which) {
 }
 
 const STATUS_LABEL = {
-  live: "live",
+  live: "LIVE",
   published: "DEPLOYMENT SNAPSHOT",
   snapshot: "SNAPSHOT SAMPLE",
   unavailable: "UNAVAILABLE",
 };
 
 function renderLayerSourceNote() {
-  const lines = Object.entries(layerStatus).map(([name, status]) => {
-    const label = {
-      museums: "Museums",
-      info: "Tourist info",
-      bikes: "BiciMAD",
-      rail: "Metro & Cercanías",
-      stays: "Hotels & stays",
-    }[name];
-    return `${label}: <b>${STATUS_LABEL[status]}</b>`;
-  });
-  if (Object.values(layerStatus).some((s) => s === "published")) {
-    lines.push("Deployment snapshots are generated from the public sources during the latest site deploy.");
+  // Source status is operational metadata, not one new warning per layer.
+  // Group equal states without erasing partial/unavailable distinctions; keep
+  // the three interpretation ceilings one explicit disclosure away.
+  const container = document.getElementById("layerSourceNote");
+  const wasOpen = container.querySelector(".layer-source-disclosure")?.open ?? false;
+  const labels = {
+    museums: "Museums",
+    info: "Tourist info",
+    bikes: "BiciMAD",
+    rail: "Metro & Cercanías",
+    stays: "Hotels & stays",
+  };
+  const entries = Object.entries(layerStatus).filter(([key]) => Object.hasOwn(labels, key));
+  const groups = new Map();
+  for (const [name, status] of entries) {
+    if (!groups.has(status)) groups.set(status, []);
+    groups.get(status).push(labels[name]);
   }
-  if (Object.values(layerStatus).some((s) => s === "snapshot")) {
-    lines.push("Curated fallback counts are a partial sample, not a complete inventory.");
+  const statuses = entries.map(([, status]) => status);
+  const all = (state) => statuses.length > 0 && statuses.every((status) => status === state);
+  const preview = all("published") ? `${entries.length} layers · deployment snapshot`
+    : all("live") ? `${entries.length} layers · live`
+    : statuses.includes("unavailable") ? `${entries.length} layers · some unavailable`
+    : statuses.includes("snapshot") ? `${entries.length} layers · partial sample`
+    : `${entries.length} layers · mixed status`;
+
+  const details = document.createElement("details");
+  details.className = "layer-source-disclosure";
+  details.open = wasOpen;
+  const summary = document.createElement("summary");
+  const heading = document.createElement("span");
+  heading.className = "layer-source-heading";
+  heading.textContent = "Sources & limits";
+  const previewText = document.createElement("small");
+  previewText.className = "layer-source-preview";
+  previewText.textContent = preview;
+  summary.append(heading, previewText);
+  details.append(summary);
+
+  const body = document.createElement("div");
+  body.className = "layer-source-body";
+  for (const status of ["published", "snapshot", "live", "unavailable"]) {
+    const names = groups.get(status);
+    if (!names?.length) continue;
+    const group = document.createElement("section");
+    group.className = "layer-source-group";
+    group.dataset.status = status;
+    const badge = document.createElement("strong");
+    badge.className = "layer-source-status";
+    badge.textContent = STATUS_LABEL[status];
+    const namesList = document.createElement("ul");
+    namesList.className = "layer-source-names";
+    for (const name of names) {
+      const item = document.createElement("li");
+      item.textContent = name;
+      namesList.append(item);
+    }
+    group.append(badge, namesList);
+    const note = status === "published"
+      ? "Deployment snapshots are generated from the public sources during the latest site deploy."
+      : status === "snapshot"
+        ? "Curated fallback counts are a partial sample, not a complete inventory."
+        : null;
+    if (note) {
+      const explanation = document.createElement("p");
+      explanation.textContent = note;
+      group.append(explanation);
+    }
+    body.append(group);
   }
-  lines.push(`Observed pedestrian activity: <b>${STATUS_LABEL[pedestrianStatus]}</b>`);
-  lines.push("Pedestrian counters are observed activity evidence, not tourist counts, and are excluded from POI/category-mix metrics.");
-  lines.push(`Principal parks (context): <b>${STATUS_LABEL[parkStatus]}</b>`);
-  lines.push("Park context is excluded from lens counts, category mix, nearest features and A/B comparisons.");
-  lines.push("Hotels & stays and BiciMAD are visually grouped below zoom 16; lens counts still use every record.");
-  document.getElementById("layerSourceNote").innerHTML = lines.join("<br>");
+
+  function addContextStatus(label, status, warning) {
+    const block = document.createElement("section");
+    block.className = "layer-source-context";
+    const title = document.createElement("span");
+    title.className = "layer-source-context-label";
+    title.textContent = label;
+    const badge = document.createElement("strong");
+    badge.className = "layer-source-status";
+    badge.dataset.status = status;
+    badge.textContent = STATUS_LABEL[status] ?? STATUS_LABEL.unavailable;
+    const description = document.createElement("p");
+    description.textContent = warning;
+    block.append(title, badge, description);
+    body.append(block);
+  }
+  addContextStatus("Observed pedestrian activity", pedestrianStatus,
+    "Pedestrian counters are observed activity evidence, not tourist counts, and are excluded from POI/category-mix metrics.");
+  addContextStatus("Principal parks (context)", parkStatus,
+    "Park context is excluded from lens counts, category mix, nearest features and A/B comparisons.");
+  const groupingNote = document.createElement("p");
+  groupingNote.className = "layer-source-render-note";
+  groupingNote.textContent = "Hotels & stays and BiciMAD are visually grouped below zoom 16; lens counts still use every record.";
+  body.append(groupingNote);
+  details.append(body);
+  container.replaceChildren(details);
 }
 
 function renderHeatMetric(h) {

@@ -48,6 +48,17 @@ test("Spanish rendering keeps every number, unit and symbol the English carried"
   assert.equal(localizeMonths("Retrieved 2026-09-29"), "Retrieved 2026-09-29", "ISO dates are untouched");
 });
 
+test("the compact operational provenance preserves status meaning across EN/ES", () => {
+  assert.equal(localizeCopyEs("Sources & limits"), "Fuentes y límites");
+  assert.equal(localizeCopyEs("5 layers · deployment snapshot"), "5 capas · instantánea del despliegue");
+  assert.equal(localizeCopyEs("5 layers · partial sample"), "5 capas · muestra parcial");
+  assert.equal(localizeCopyEs("5 layers · some unavailable"), "5 capas · algunas no disponibles");
+  assert.equal(localizeCopyEs("Observed pedestrian activity"), "Actividad peatonal observada");
+  assert.equal(localizeCopyEs("Principal parks (context)"), "Parques principales (contexto)");
+  assert.match(app, /className = "layer-source-disclosure"/);
+  assert.match(app, /container\.replaceChildren\(details\)/);
+});
+
 test("official and registry wording is verbatim: no registry ceiling or authority is ever rewritten", () => {
   for (const source of registry.sources) {
     for (const field of ["interpretation_ceiling", "authority", "source_period_semantics", "freshness_evidence"]) {
