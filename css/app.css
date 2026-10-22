@@ -1680,7 +1680,10 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
   .leaflet-control-zoom{display:flex;flex-direction:row}
   .leaflet-control-zoom a{border-bottom:0!important}
   .leaflet-control-zoom a+a{border-left:1px solid var(--map-zoom-edge)!important}
-  .leaflet-bottom.leaflet-right{top:calc(118px + var(--safe-top));left:calc(10px + var(--safe-left));right:auto}
-  .leaflet-control-attribution{max-width:calc(100vw - 126px - var(--safe-left) - var(--safe-right));text-align:left}
+  /* In short landscape viewports the left rail is still present above
+     560px: credits belong below the right-aligned horizontal zoom, not
+     over that rail. */
+  .leaflet-bottom.leaflet-right{top:calc(172px + var(--safe-top));left:auto;right:calc(10px + var(--safe-right))}
+  .leaflet-control-attribution{max-width:min(220px,calc(100vw - 112px - var(--safe-left) - var(--safe-right)));text-align:right}
   .panel{max-height:30vh;max-height:30dvh}
 }
