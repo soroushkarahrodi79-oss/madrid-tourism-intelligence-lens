@@ -708,6 +708,40 @@ test("IA 22 the mobile PLACE quick-jump reaches the Lens metrics, is localized, 
   assert.equal(await desktop.locator("#placeJump").evaluate((n) => getComputedStyle(n).display), "none", "the quick-jump is desktop-hidden");
 });
 
+test("source status is a compact accessible disclosure with grouped states and intact caveats in ES/EN", async (t) => {
+  const page = await newPage({ width: 390, height: 844 }, { hasTouch: true, isMobile: true });
+  t.after(() => closePage(page));
+  await page.waitForFunction(() => document.querySelectorAll("#layerSourceNote .layer-source-names li").length === 5);
+  const source = page.locator("#layerSourceNote");
+  const disclosure = source.locator(".layer-source-disclosure");
+  const summary = disclosure.locator("summary");
+  assert.equal(await disclosure.getAttribute("open"), null, "long caveats default closed");
+  assert.match(await summary.textContent(), /Sources & limits/);
+  assert.ok((await summary.boundingBox()).height >= 44, "touch-accessible native disclosure");
+  assert.equal(await source.locator(".layer-source-status").count() >= 3, true);
+  assert.equal(await source.locator(".layer-source-names li").count(), 5, "all five operational sources retained");
+  await page.locator("#mobileLayersButton").click();
+  await page.locator('.rail-group[data-rail-group="operational"] > summary').click();
+  await summary.focus();
+  await page.keyboard.press("Enter");
+  assert.equal(await disclosure.getAttribute("open"), "", "keyboard opens disclosure");
+  const details = await source.innerText();
+  assert.match(details, /Pedestrian counters are observed activity evidence, not tourist counts/);
+  assert.match(details, /Park context is excluded from lens counts/);
+  assert.match(details, /lens counts still use every record/);
+  assert.ok((details.match(/DEPLOYMENT SNAPSHOT/g) || []).length <= 3,
+    "operational layer statuses are grouped, not repeated for each source");
+  await page.locator("#languageSelect").selectOption("es");
+  await page.waitForFunction(() => document.querySelector("#layerSourceNote summary").textContent.includes("Fuentes y límites"));
+  assert.match(await summary.textContent(), /Fuentes y límites/);
+  assert.match(await source.innerText(), /Museos/);
+  assert.match(await source.innerText(), /no recuentos de turistas/);
+  await page.locator("#languageSelect").selectOption("en");
+  await page.waitForFunction(() => document.querySelector("#layerSourceNote summary").textContent.includes("Sources & limits"));
+  assert.match(await source.innerText(), /not tourist counts/);
+  assert.equal(await disclosure.getAttribute("open"), "", "locale switch does not dismiss source limits");
+});
+
 test("P1 AC1/2/6/8/10: six small-screen rail groups fit, report live state, preserve toggles, and leave desktop expanded", async (t) => {
   const page = await newPage({ width: 375, height: 812 }, { hasTouch: true });
   t.after(() => closePage(page));
