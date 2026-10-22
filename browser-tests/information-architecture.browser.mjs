@@ -717,11 +717,13 @@ test("source status is a compact accessible disclosure with grouped states and i
   const summary = disclosure.locator("summary");
   assert.equal(await disclosure.getAttribute("open"), null, "long caveats default closed");
   assert.match(await summary.textContent(), /Sources & limits/);
-  assert.ok((await summary.boundingBox()).height >= 44, "touch-accessible native disclosure");
   assert.equal(await source.locator(".layer-source-status").count() >= 3, true);
   assert.equal(await source.locator(".layer-source-names li").count(), 5, "all five operational sources retained");
+  // The phone rail and its accordion group start closed by design; geometry
+  // only becomes meaningful after both parent disclosures are visible.
   await page.locator("#mobileLayersButton").click();
   await page.locator('.rail-group[data-rail-group="operational"] > summary').click();
+  assert.ok((await summary.boundingBox()).height >= 44, "touch-accessible native disclosure");
   await summary.focus();
   await page.keyboard.press("Enter");
   assert.equal(await disclosure.getAttribute("open"), "", "keyboard opens disclosure");
