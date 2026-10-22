@@ -157,18 +157,59 @@ test("P2 Comparison Bridge exposes the four canonical metrics to touch and keybo
   assert.equal(await picker.getAttribute("aria-label"), "Métrica que comparar");
 });
 
-test("P2 desktop panel resize handle has a 44px target and retains keyboard resizing", async (t) => {
+test("P2 desktop panel resize grip stays at the visible lower-left corner across scrolling and keyboard resize", async (t) => {
   const page = await newPage({ width: 1366, height: 768 });
   t.after(() => closePage(page));
   const handle = page.locator("#panelResizeHandle");
-  const target = await handle.boundingBox();
-  assert.ok(target && target.width >= 44 && target.height >= 44);
-  const before = await page.locator("#analysisPanel").boundingBox();
+  const corner = async () => {
+    const [grip, panel] = await Promise.all([handle.boundingBox(), page.locator("#analysisPanel").boundingBox()]);
+    assert.ok(grip && panel && grip.width >= 44 && grip.height >= 44, "44px target is visible on wide screens");
+    assert.ok(Math.abs(grip.x + 14 - panel.x) <= 2, "grip follows the panel's left border");
+    assert.ok(Math.abs(grip.y + 36 - (panel.y + panel.height)) <= 2, "grip follows the panel's bottom border");
+    return { grip, panel };
+  };
+  const before = await corner();
+  await page.locator("#analysisPanel").evaluate((panel) => { panel.scrollTop = 520; });
+  assert.ok(await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop) > 200, "panel content scrolls");
+  const scrolled = await corner();
+  assert.ok(Math.abs(scrolled.grip.y - before.grip.y) <= 1, "scrolling the evidence never moves the grip");
   await handle.focus();
   await page.keyboard.press("ArrowLeft");
-  const after = await page.locator("#analysisPanel").boundingBox();
-  assert.ok(after.width > before.width, "ArrowLeft expands the right-anchored panel");
+  const after = await corner();
+  assert.ok(after.panel.width > before.panel.width, "ArrowLeft expands the right-anchored panel");
   assert.ok(await page.evaluate(() => Boolean(localStorage.getItem("madrid-tourism-intelligence-lens:analysis-panel-size:v1"))));
+});
+
+test("P2 tablet-sized desktop corner grip supports pointer resizing, reset, and localized copy", async (t) => {
+  const page = await newPage({ width: 1180, height: 820 }, { hasTouch: true });
+  t.after(() => closePage(page));
+  const handle = page.locator("#panelResizeHandle");
+  const before = await page.locator("#analysisPanel").boundingBox();
+  const grip = await handle.boundingBox();
+  assert.ok(grip && grip.width >= 44 && grip.height >= 44, "touch target remains at least 44px");
+  await page.mouse.move(grip.x + 22, grip.y + 22);
+  await page.mouse.down();
+  await page.mouse.move(grip.x - 26, grip.y - 18, { steps: 5 });
+  await page.mouse.up();
+  const resized = await page.locator("#analysisPanel").boundingBox();
+  assert.ok(resized.width > before.width + 30, "diagonal drag expands width");
+  assert.ok(resized.height < before.height - 25, "diagonal drag shrinks height");
+  const anchored = await handle.boundingBox();
+  assert.ok(Math.abs(anchored.x + 14 - resized.x) <= 2);
+  assert.ok(Math.abs(anchored.y + 36 - (resized.y + resized.height)) <= 2);
+  await handle.dblclick();
+  const reset = await page.locator("#analysisPanel").boundingBox();
+  assert.ok(Math.abs(reset.width - before.width) <= 2, "double click resets panel width");
+  assert.ok(Math.abs(reset.height - before.height) <= 2, "double click resets panel height");
+  await page.locator("#languageSelect").selectOption("es");
+  assert.equal(await handle.getAttribute("aria-label"), "Cambiar el tamaño del panel de análisis");
+  assert.match(await handle.getAttribute("title"), /Arrastrar en diagonal/);
+});
+
+test("P2 resize grip is absent on phone-sized bottom-sheet layout", async (t) => {
+  const page = await newPage({ width: 390, height: 844 }, { isMobile: true, hasTouch: true });
+  t.after(() => closePage(page));
+  assert.equal(await page.locator("#panelResizeHandle").isVisible(), false);
 });
 
 test("IA 3 PLACE ↔ COMPARE ↔ CITY preserves Lens positions and radii and follows the existing Lens B semantics", async (t) => {
