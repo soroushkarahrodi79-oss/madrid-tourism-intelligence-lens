@@ -2513,7 +2513,7 @@ function pedestrianStatsFor(which) {
 }
 
 const STATUS_LABEL = {
-  live: "live",
+  live: "LIVE",
   published: "DEPLOYMENT SNAPSHOT",
   snapshot: "SNAPSHOT SAMPLE",
   unavailable: "UNAVAILABLE",
