@@ -36,13 +36,35 @@ test("GitHub Pages project-subpath serves Discover and preserves the application
   await maybeShot(page, "01-desktop-hero-1440.png");
   assert.equal(await page.locator(".hero .action.primary").getAttribute("href"), "../?lang=es");
   await page.locator(".hero .action.primary").click(); await page.waitForURL(`${base}/?lang=es`);
-  await page.waitForTimeout(800);
+  // Check the REAL root app: changing a link href is not enough to localize it.
+  await page.waitForFunction(() =>
+    document.documentElement.lang === "es" &&
+    document.querySelector("#languageSelect")?.value === "es" &&
+    document.querySelector('[data-i18n="aside.layers"]')?.textContent === "Capas operativas",
+  );
+  assert.equal(await page.locator("#languageSelect").inputValue(), "es");
+  assert.equal(await page.locator('[data-i18n="aside.layers"]').textContent(), "Capas operativas");
   const resources = await page.evaluate(() => performance.getEntriesByType("resource").map(entry => entry.name));
   assert.ok(resources.some(url => url.includes("/css/app.css")), "application CSS loaded");
   assert.ok(resources.some(url => url.includes("/js/app.js")), "application JS loaded");
   assert.ok(resources.some(url => url.includes("/data/snapshot_poi.json") || url.includes("/data/runtime_poi.json")), "application data asset requested");
+  await page.goto(`${base}/discover/`, { waitUntil: "domcontentloaded" });
+  await page.locator('[data-lang="en"]').click();
+  assert.equal(await page.locator(".hero .action.primary").getAttribute("href"), "../?lang=en");
+  await page.locator(".hero .action.primary").click();
+  await page.waitForFunction(() =>
+    document.documentElement.lang === "en" &&
+    document.querySelector("#languageSelect")?.value === "en" &&
+    document.querySelector('[data-i18n="aside.layers"]')?.textContent === "Operational layers",
+  );
+  assert.equal(await page.locator("#languageSelect").inputValue(), "en");
+  assert.equal(await page.locator('[data-i18n="aside.layers"]').textContent(), "Operational layers");
   await page.goto(`${base}/?lang=en#analysisPanel`, { waitUntil: "domcontentloaded" });
   assert.equal(new URL(page.url()).hash, "#analysisPanel", "root deep-link hash is preserved");
+  await page.waitForFunction(() =>
+    document.documentElement.lang === "en" &&
+    document.querySelector("#languageSelect")?.value === "en",
+  );
   assert.ok(failures.every(url => !url.includes(`${base}/discover/`)), "Discover does not break its own project-subpath assets");
 });
 
