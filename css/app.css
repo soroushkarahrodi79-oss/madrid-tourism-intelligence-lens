@@ -220,7 +220,7 @@ header{
    not a long list of repeated deployment labels below the final layer. */
 .layer-source-note{margin-top:var(--s-2);padding-top:var(--s-2);border-top:1px solid var(--chrome-divider);font-size:var(--t-micro);line-height:1.45}
 .layer-source-disclosure{min-width:0;border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-form-surface)}
-.layer-source-disclosure>summary{position:relative;display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:0;min-height:44px;padding:var(--s-2) 28px var(--s-2) var(--s-2);cursor:pointer;list-style:none}
+.layer-source-disclosure>summary{position:relative;display:flex;flex-direction:column;justify-content:center;gap:var(--s-1);min-width:0;min-height:44px;padding:var(--s-2) var(--s-4) var(--s-2) var(--s-2);cursor:pointer;list-style:none}
 .layer-source-disclosure>summary::-webkit-details-marker{display:none}
 .layer-source-disclosure>summary:after{content:"▸";position:absolute;top:50%;right:var(--s-2);transform:translateY(-50%);color:var(--chrome-text-control-label)}
 .layer-source-disclosure[open]>summary:after{content:"▾"}
@@ -229,7 +229,7 @@ header{
 .layer-source-preview{color:var(--chrome-text-control-label);font-size:var(--t-micro);line-height:1.35;overflow-wrap:anywhere}
 .layer-source-body{display:grid;gap:var(--s-2);padding:var(--s-2);border-top:1px solid var(--chrome-divider);color:var(--chrome-text-control-value)}
 .layer-source-group,.layer-source-context{min-width:0;padding:0 0 var(--s-2);border-bottom:1px solid var(--chrome-divider)}
-.layer-source-status{display:inline-block;max-width:100%;padding:2px var(--s-1);border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-panel-surface);color:var(--chrome-text-control-value);font-size:var(--t-micro);font-weight:650;line-height:1.35;overflow-wrap:anywhere}
+.layer-source-status{display:inline-block;max-width:100%;padding:var(--s-1);border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-panel-surface);color:var(--chrome-text-control-value);font-size:var(--t-micro);font-weight:650;line-height:1.35;overflow-wrap:anywhere}
 .layer-source-names{display:flex;flex-wrap:wrap;gap:var(--s-1) var(--s-2);margin:var(--s-1) 0 0;padding:0;list-style:none}
 .layer-source-names li{min-width:0;overflow-wrap:anywhere}
 .layer-source-names li:not(:last-child):after{content:" ·";color:var(--chrome-text-control-label)}
