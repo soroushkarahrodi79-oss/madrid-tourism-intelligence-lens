@@ -520,6 +520,23 @@ test("structure: controls are never between results and the panel keeps one read
   assert.equal((html.match(/<div class="metric">/g) || []).length, 4);
 });
 
+test("deployment metadata is in Evidence & limits with an explicit map-wide record scope", () => {
+  assert.doesNotMatch(html, /id="liveBadge"|class="status"/, "the permanent deployment banner is removed");
+  assert.doesNotMatch(css, /\.status\s*\{|\.status small/, "banner layout styles are removed");
+  assert.match(html, /id="deploymentIdentity"[^>]*data-i18n="drawer\.deploymentIdentity"/);
+  assert.match(html, /id="deploymentPoiCount"[^>]*class="source"/);
+  assert.doesNotMatch(app, /getElementById\("liveBadge"\)/);
+  assert.match(app, /function renderDeploymentPoiCount\(\)[\s\S]*?poiPoints\.length/);
+  assert.match(app, /deploymentPoiRecordsReady = true/);
+  assert.match(SHELL_DICTIONARIES.en["drawer.deploymentIdentity"], /application version v0\.1/);
+  assert.match(SHELL_DICTIONARIES.en["drawer.deploymentIdentity"], /Geographic coverage: Central Madrid/);
+  assert.match(SHELL_DICTIONARIES.en["drawer.operationalPoiRecords"], /museum, tourist information, BiciMAD, Metro\/Cercanías and accommodation/);
+  assert.match(SHELL_DICTIONARIES.en["drawer.operationalPoiRecords"], /not a count inside the selected Lens circle/);
+  assert.match(SHELL_DICTIONARIES.es["drawer.operationalPoiRecords"], /no es un recuento dentro del círculo Lens seleccionado/);
+  assert.match(app.slice(app.indexOf("function renderLayerSourceNote()"), app.indexOf("function renderDeploymentPoiCount()")), /unavailable/);
+  assert.match(app, /Curated fallback counts are a partial sample, not a complete inventory/);
+});
+
 // ---------------------------------------------------------------- M. language
 
 test("M: ES and EN shell dictionaries have identical keys, and no value is empty", () => {

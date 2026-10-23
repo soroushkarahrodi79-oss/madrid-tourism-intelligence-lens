@@ -168,7 +168,6 @@
   </svg>
 </button>
 <section class="panel" id="analysisPanel" data-mode="PLACE" aria-label="Spatial analysis panel" tabindex="-1">
-  <div class="status"><span id="liveBadge" class="live"><i></i><span>Loading spatial sources…</span></span><small>Central Madrid<br>v0.1</small></div>
 
   <!-- READING ORDER (docs/INFORMATION_ARCHITECTURE_V2.md): the compact mode
        control is sticky on wide screens. Scope & freshness remain immediately
@@ -891,6 +890,8 @@
   </section>
   <section class="drawer-notes" id="drawerSources">
     <h3 data-i18n="drawer.sources">Sources</h3>
+    <p id="deploymentIdentity" class="source" data-i18n="drawer.deploymentIdentity">Lens application version v0.1 · Geographic coverage: Central Madrid</p>
+    <p id="deploymentPoiCount" class="source">Loading operational map records…</p>
   <div id="sourcesBody" class="source" data-i18n-html="sources.body">
     Sources: Ayuntamiento de Madrid — IDEAM (administrative geography: districts, barrios), Subdirección General de Estadística / Padrón Municipal (registered residents), and Censo de Locales (Hospitality &amp; Commercial Context, Sep 2026 fingerprinted snapshot); Madrid Open Data (museums, tourist information, principal parks, permanent pedestrian counters); EMT Madrid (BiciMAD); CRTM (Metro and Cercanías stations); and Madrid Destino / esmadrid.com (hotels and other accommodation). The accommodation catalogue remains separate from the administrative Division-55 premises class. GitHub Pages uses the latest deployment-time POI snapshot first so markers render immediately; a small curated repository sample is the final packaged fallback when a deployment source is unavailable. HATI-Madrid locked pilot evidence (21 Aug 2023; UTCI is model output, not field observation). Destination context: Instituto Nacional de Estadística — hotel occupancy survey and direct internal-tourism municipality workbook (Madrid municipality only; domestic origin crossings published only above 30 tourists) — see <a href="docs/DATA_PROVENANCE.md">data provenance</a> and <a href="docs/CLAIMS_AND_LIMITATIONS.md">claims &amp; limitations</a>. Base maps: OpenStreetMap/CARTO or Esri World Imagery, depending on selection.
   </div>

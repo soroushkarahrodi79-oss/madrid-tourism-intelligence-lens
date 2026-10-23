@@ -307,12 +307,12 @@ header{
 .panel-resize-handle:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:1px}
 .panel.panel-resizing{user-select:none}
 .panel::-webkit-scrollbar{width:6px}.panel::-webkit-scrollbar-thumb{background:#2c4055;border-radius:9px}
-.status{display:flex;justify-content:space-between;align-items:center;gap:var(--s-2);margin-bottom:var(--s-3)}
+/* Kept as the shared live-source pill style; the deployment totals no longer
+   render this status anywhere in the analysis panel. */
 .live{display:inline-flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);padding:var(--s-2);border:1px solid rgba(84,226,181,.16);background:rgba(84,226,181,.07);color:#71e9bf;border-radius:999px}
 .live i{width:6px;height:6px;border-radius:50%;background:#71e9bf;box-shadow:0 0 8px #71e9bf}
 .live.mixed{border-color:rgba(255,176,74,.22);background:rgba(255,176,74,.07);color:#ffc570}
 .live.mixed i{background:#ffc570;box-shadow:0 0 8px #ffc570}
-.status small{color:#71849b;font-size:var(--t-micro);text-align:right}
 .title{font-size:var(--t-display);letter-spacing:-.04em;font-weight:780;margin:0;line-height:1.04}
 
 /* Section rhythm. The panel answers three different questions about three
@@ -1238,7 +1238,7 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 .metric-value,.activity-card-value,.area-vut-value,.hospitality-value,.destination-metric-value,.cb-value{font-size:var(--t-figure)}
 .drawer-head h2,.destination-place,.hospitality-area-name{font-size:var(--t-title)}
 .left h3,.rail-group-copy,.panel h3,.section-head span,.area-value-label,.area-vut-title,.hospitality-field-label,.destination-metric-head,.comparetable thead th,.domestic-origin-table-wrap th,.drawer-fields dt,.drawer-ceiling b,.drawer-notes>h3{font-size:var(--t-label)}
-.brand-sub,.status small,.area-codes,.area-period,.area-vut-state,.metric-foot,.activity-card-foot,.comparison-mode-cue,.cb-sub,.cb-radius,.di-status,.di-guard,.ss-status,.ss-guard,.destination-period-label,.destination-provisional,.destination-metric-exact,.destination-metric-change,.destination-state,.scope-rail-freshness,.drawer-filter,.drawer-fields dd{font-size:var(--t-meta)}
+.brand-sub,.area-codes,.area-period,.area-vut-state,.metric-foot,.activity-card-foot,.comparison-mode-cue,.cb-sub,.cb-radius,.di-status,.di-guard,.ss-status,.ss-guard,.destination-period-label,.destination-provisional,.destination-metric-exact,.destination-metric-change,.destination-state,.scope-rail-freshness,.drawer-filter,.drawer-fields dd{font-size:var(--t-meta)}
 .area-scope p,.activity-card-note,.evidence-note,.destination-composition,.destination-ceiling,.domestic-origin-universe,.domestic-origin-dynamics-relationship,.comparetable,.domestic-origin-table-wrap table,.drawer-ceiling,.drawer-notes .halo-legend,.drawer-notes .source{font-size:var(--t-body)}
 .scope-rail-item,.mode-btn,.detail-disclosure>summary,.evidence-route,.layer-action,.reading-btn,.card-title,.metric-head,.controltop,.domestic-origin-controls{font-size:var(--t-label)}
 .source,.layer-source-note,.area-source-details,.compare-evidence,.halo-visibility-note{font-size:var(--t-meta)}
@@ -1550,7 +1550,7 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 
 /* Legacy surface roles with Dark literals. Each selector names the consuming
    component so status and identity descendants can continue to own colour. */
-:root[data-appearance="light"] :where(.layer-source-note,.rail-group-note,.status small,#placeCircleSummaryRadius,.place-circle-reading>span,.place-circle-reading>small,.area-source-toggle,.planning-source-toggle,.metric-head span,.metric-foot,.mixrow,.nearest li,.reading-btn,.comparison-radius-readout,.comparison-mode-cue,.comparison-bridge-empty,.halo-toggle span,.halo-toggle small,.halo-legend,.destination-provisional,.domestic-origin-controls label,.domestic-origin-dynamics-transitions div>span){color:var(--muted)}
+:root[data-appearance="light"] :where(.layer-source-note,.rail-group-note,#placeCircleSummaryRadius,.place-circle-reading>span,.place-circle-reading>small,.area-source-toggle,.planning-source-toggle,.metric-head span,.metric-foot,.mixrow,.nearest li,.reading-btn,.comparison-radius-readout,.comparison-mode-cue,.comparison-bridge-empty,.halo-toggle span,.halo-toggle small,.halo-legend,.destination-provisional,.domestic-origin-controls label,.domestic-origin-dynamics-transitions div>span){color:var(--muted)}
 :root[data-appearance="light"] .place-circle-summary-head>#placeCircleSummaryRadius{color:var(--muted)}
 :root[data-appearance="light"] :where(.layer-source-note b,.place-circle-summary-head>span:first-child,.place-circle-reading>strong,.mixrow b,.drawer-change-provenance h5,.drawer-change-edition h6,.area-other-body b,.decision-insight .di-title,.spatial-sensitivity .ss-title){color:var(--text)}
 :root[data-appearance="light"] .comparetable th,

@@ -342,6 +342,7 @@ if (k12PanOpts.has("thin")) {
 }
 
 let poiPoints = [];
+let deploymentPoiRecordsReady = false;
 let pedestrianStations = [];
 let pedestrianStatus = "unavailable";
 let pedestrianMeta = {};
@@ -2638,6 +2639,17 @@ function renderLayerSourceNote() {
   body.append(groupingNote);
   details.append(body);
   container.replaceChildren(details);
+}
+
+function renderDeploymentPoiCount() {
+  const note = document.getElementById("deploymentPoiCount");
+  if (!note) return;
+  if (!deploymentPoiRecordsReady) {
+    note.textContent = shellT("drawer.operationalPoiRecordsLoading");
+    return;
+  }
+  const count = poiPoints.length.toLocaleString(shellLanguage() === "es" ? "es-ES" : "en-GB");
+  note.textContent = shellT("drawer.operationalPoiRecords").replace("{count}", count);
 }
 
 function renderHeatMetric(h) {
@@ -6077,6 +6089,7 @@ function applyShellCopy() {
     button.setAttribute("aria-label", `${shellT("rail.open")} ${shellT(button.dataset.evidenceName)}`);
   }
   renderRailGroupBadges();
+  renderDeploymentPoiCount();
   setMobileRailOpen(!mobileRail.hidden);
   renderRadiusLabels();
   renderCircleSummary();
@@ -6785,6 +6798,8 @@ async function boot() {
   const { points, layerStatus: status } = await loadAllLayers(snapshotPOI, runtimePOI);
   poiPoints = points;
   layerStatus = status;
+  deploymentPoiRecordsReady = true;
+  renderDeploymentPoiCount();
 
   pedestrianMeta = pedestrianData || {};
   pedestrianStations = Array.isArray(pedestrianData?.stations)
@@ -6836,21 +6851,6 @@ async function boot() {
 
   renderPoiLayers();
 
-  const allLive = Object.values(status).every((s) => s === "live");
-  const anyUnavailable = Object.values(status).some((s) => s === "unavailable");
-  const anyPublished = Object.values(status).some((s) => s === "published");
-  const anySample = Object.values(status).some((s) => s === "snapshot");
-  const badge = document.getElementById("liveBadge");
-  badge.className = allLive ? "live" : "live mixed";
-  badge.querySelector("span").textContent = allLive
-    ? `${points.length} live records + HATI evidence`
-    : `${points.length} records · ${[
-        anyPublished ? "deployment snapshot" : "",
-        anySample ? "partial fallback" : "",
-        anyUnavailable ? "some unavailable" : "",
-      ]
-        .filter(Boolean)
-        .join(" · ")} (see layer panel)`;
   renderLayerSourceNote();
   refresh();
 
