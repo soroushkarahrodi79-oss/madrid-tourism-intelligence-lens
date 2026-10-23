@@ -31,7 +31,7 @@
     }),
   });
 
-  let state = { active: false, step: 0, licencesWasOn: false, opener: null };
+  let state = { active: false, step: 0, licencesAutoEnabled: false, licencesUserOverride: false, licenceMutation: false, opener: null };
   const byId = (id) => document.getElementById(id);
   // Shared-reading restore sets <html lang> before it restores the visible
   // select, so read the document language to avoid an English first frame.
@@ -54,16 +54,39 @@
     return host;
   }
 
+  // Only manage a layer that the journey itself enabled. A user's manual
+  // intervention transfers control to them, even if the initial state was OFF.
+  function setJourneyLicences(enabled) {
+    const toggle = document.querySelector('[data-layer="licences"]');
+    if (!toggle || state.licencesUserOverride) return;
+    if (enabled && !toggle.checked) {
+      state.licenceMutation = true;
+      try { toggle.click(); } finally { state.licenceMutation = false; }
+      state.licencesAutoEnabled = toggle.checked;
+    } else if (!enabled && state.licencesAutoEnabled) {
+      if (toggle.checked) {
+        state.licenceMutation = true;
+        try { toggle.click(); } finally { state.licenceMutation = false; }
+      }
+      state.licencesAutoEnabled = false;
+    }
+  }
+
   async function applyStep(step) {
     if (step <= 1) {
       click("modePlaceButton");
       if (step === 1) {
-        const toggle = document.querySelector('[data-layer="licences"]');
-        if (toggle && !toggle.checked) toggle.click();
+        setJourneyLicences(true);
         scrollTo("planningAmbito");
-      } else scrollTo("areaProfile");
+      } else {
+        setJourneyLicences(false);
+        scrollTo("areaProfile");
+      }
       return;
     }
+    // Remove only journey-owned point clutter; keep independently enabled
+    // administrative layers untouched, including when navigating Back.
+    setJourneyLicences(false);
     click("modeCompareButton");
     click("compareScopeAmbito");
     await waitFor(() => byId("ambitoCodeDatalist")?.children.length > 0);
@@ -93,14 +116,20 @@
   function closeDrawer() { const drawer = byId("evidenceDrawer"); if (drawer?.open) drawer.close(); }
   async function exit() {
     closeDrawer(); click("modePlaceButton"); click("compareScopeLens");
-    const toggle = document.querySelector('[data-layer="licences"]'); if (toggle && !state.licencesWasOn && toggle.checked) toggle.click();
+    setJourneyLicences(false);
     state.active = false; render(); state.opener?.focus?.({ preventScroll: true });
   }
   function openEvidence() { const route = document.querySelector('[data-evidence-mode="COMPARE"]'); route?.click(); }
-  function start(opener) { ensureUi(); state = { active: true, step: 0, licencesWasOn: Boolean(document.querySelector('[data-layer="licences"]')?.checked), opener: opener || document.activeElement }; render(); applyStep(0); }
+  function start(opener) { ensureUi(); state = { active: true, step: 0, licencesAutoEnabled: false, licencesUserOverride: false, licenceMutation: false, opener: opener || document.activeElement }; render(); applyStep(0); }
   function init() {
     const host = ensureUi(); if (!host) return;
     byId("languageSelect")?.addEventListener("change", render);
+    document.querySelector('[data-layer="licences"]')?.addEventListener("change", () => {
+      if (state.active && !state.licenceMutation) {
+        state.licencesUserOverride = true;
+        state.licencesAutoEnabled = false;
+      }
+    });
     document.addEventListener("keydown", (event) => { if (event.key === "Escape" && state.active && !byId("evidenceDrawer")?.open) { event.preventDefault(); exit(); } });
     if (new URLSearchParams(root.location.search).get("journey") === CASE_ID) { ensureUi(); start(host); }
   }
