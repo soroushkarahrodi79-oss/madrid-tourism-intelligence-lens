@@ -917,5 +917,14 @@
 <script src="js/runtime-config.js?v=20260928-3"></script>
 <script src="js/app.js?v=20261022-discover-lang"></script>
 <script src="js/tutorial.js?v=20261021-1"></script>
+<script>
+/* The case is opt-in. Keep its DOM, styles and controller off the ordinary app
+   path so existing scroll and appearance performance remain unchanged. */
+(function () {
+  if (new URLSearchParams(location.search).get("journey") !== "yeserias") return;
+  var style = document.createElement("link"); style.rel = "stylesheet"; style.href = "css/institutional-journey.css?v=20261023-1"; document.head.appendChild(style);
+  var script = document.createElement("script"); script.src = "js/institutional-journey.js?v=20261023-1"; document.body.appendChild(script);
+})();
+</script>
 </body>
 </html>
