@@ -130,10 +130,15 @@ test("P2 mode changes preserve an independent panel scroll position per mode", a
   assert.ok(compareScroll > 200);
   await switchWithoutAutomationScroll("CITY");
   assert.equal(await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop), 0);
+  await page.locator("#analysisPanel").evaluate((panel) => { panel.scrollTop = 260; });
+  const cityScroll = await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop);
+  assert.ok(cityScroll > 200);
   await switchWithoutAutomationScroll("COMPARE");
   assert.equal(await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop), compareScroll);
   await switchWithoutAutomationScroll("PLACE");
   assert.equal(await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop), placeScroll);
+  await switchWithoutAutomationScroll("CITY");
+  assert.equal(await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop), cityScroll);
 });
 
 test("P2 Comparison Bridge exposes the four canonical metrics to touch and keyboard", async (t) => {
@@ -837,6 +842,107 @@ test("source status is a compact accessible disclosure with grouped states and i
   await page.waitForFunction(() => document.querySelector("#layerSourceNote summary").textContent.includes("Sources & limits"));
   assert.match(await source.innerText(), /not tourist counts/);
   assert.equal(await disclosure.getAttribute("open"), "", "locale switch does not dismiss source limits");
+});
+
+test("deployment metadata is compact, scoped, accessible and responsive at the target viewports", async (t) => {
+  const snapshot = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "snapshot_poi.json"), "utf8"));
+  const expectedCount = ["museum", "info", "bike", "rail", "stay"]
+    .reduce((sum, type) => sum + (snapshot[type] || []).length, 0);
+
+  for (const [width, height, contextOptions] of [
+    [1440, 900, {}],
+    [1180, 820, { hasTouch: true }],
+    [390, 844, { isMobile: true, hasTouch: true }],
+  ]) {
+    const page = await newPage({ width, height }, contextOptions);
+    t.after(() => closePage(page));
+    await page.waitForFunction(() => /Operational map records currently loaded:/.test(document.getElementById("deploymentPoiCount").textContent));
+
+    const geometry = await page.evaluate(() => {
+      const panel = document.getElementById("analysisPanel");
+      const panelBox = panel.getBoundingClientRect();
+      const headBox = document.getElementById("panelHead").getBoundingClientRect();
+      const navBox = document.getElementById("modeNav").getBoundingClientRect();
+      const leftBox = document.getElementById("layerRail").getBoundingClientRect();
+      return {
+        firstChild: panel.firstElementChild.id,
+        panelTop: panelBox.top,
+        panelBottom: panelBox.bottom,
+        panelLeft: panelBox.left,
+        panelRight: panelBox.right,
+        panelScrollHeight: panel.scrollHeight,
+        panelClientHeight: panel.clientHeight,
+        headTop: headBox.top,
+        navLeft: navBox.left,
+        navRight: navBox.right,
+        navScrollWidth: document.getElementById("modeNav").scrollWidth,
+        navClientWidth: document.getElementById("modeNav").clientWidth,
+        leftVisible: getComputedStyle(document.getElementById("layerRail")).display !== "none"
+          && getComputedStyle(document.getElementById("layerRail")).visibility !== "hidden",
+        leftLeft: leftBox.left,
+        leftRight: leftBox.right,
+        leftTop: leftBox.top,
+        leftBottom: leftBox.bottom,
+      };
+    });
+    assert.equal(geometry.firstChild, "panelHead", `${width}×${height}: tabs follow directly after the resize control`);
+    assert.ok(geometry.headTop - geometry.panelTop < 48, `${width}×${height}: no banner-sized gap remains`);
+    assert.ok(geometry.navLeft >= geometry.panelLeft && geometry.navRight <= geometry.panelRight, `${width}×${height}: navigation stays inside the panel`);
+    assert.ok(geometry.navScrollWidth <= geometry.navClientWidth, `${width}×${height}: mode labels are not clipped`);
+    assert.ok(geometry.panelScrollHeight > geometry.panelClientHeight, `${width}×${height}: the right panel can scroll`);
+    if (width > 850) {
+      const separated = geometry.leftRight <= geometry.panelLeft || geometry.panelRight <= geometry.leftLeft
+        || geometry.leftBottom <= geometry.panelTop || geometry.panelBottom <= geometry.leftTop;
+      assert.ok(separated, `${width}×${height}: map-layer and analysis panels do not overlap`);
+    } else {
+      assert.equal(geometry.leftVisible, false, "the phone map-layer rail stays in its existing closed state");
+    }
+
+    for (const [modeId, modeName] of [["PLACE", "Place"], ["COMPARE", "Compare"], ["CITY", "City"]]) {
+      const button = page.locator(`.mode-btn[data-mode="${modeId}"]`);
+      assert.equal(await button.isVisible(), true, `${width}×${height}: ${modeName} remains available`);
+      await button.focus();
+      await page.keyboard.press("Enter");
+      assert.equal(await mode(page), modeId, `${width}×${height}: keyboard activates ${modeName}`);
+      assert.equal(await button.getAttribute("aria-pressed"), "true");
+      assert.equal(await page.locator(`[data-mode-section="${modeId}"]`).isVisible(), true, `${width}×${height}: ${modeName} analysis remains available`);
+      if (modeId === "PLACE") assert.equal(await page.locator("#areaProfile").isVisible(), true, `${width}×${height}: territorial context remains in Place`);
+    }
+
+    await page.locator("#analysisPanel").evaluate((panel) => { panel.scrollTop = panel.scrollHeight; });
+    assert.ok(await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop > 0), `${width}×${height}: analysis content scrolls`);
+    await setMode(page, "PLACE");
+    const opener = page.locator('.evidence-route[data-evidence-mode="PLACE"]');
+    await opener.focus();
+    await page.keyboard.press("Enter");
+    const drawer = page.locator("#evidenceDrawer");
+    assert.equal(await drawer.evaluate((node) => node.open), true, `${width}×${height}: keyboard opens Evidence & limits`);
+    assert.equal(await drawer.getAttribute("aria-labelledby"), "evidenceDrawerTitle");
+    assert.match(await page.locator("#deploymentIdentity").textContent(), /Lens application version v0\.1.*Geographic coverage: Central Madrid/);
+    const countNote = await page.locator("#deploymentPoiCount").innerText();
+    assert.ok(countNote.includes(expectedCount.toLocaleString("en-GB")), `map-wide loaded count matches the operational layer input: ${countNote}`);
+    assert.match(countNote, /not a count inside the selected Lens circle/);
+    const metadataGeometry = await page.locator("#deploymentPoiCount").evaluate((node) => ({
+      clientWidth: node.clientWidth,
+      scrollWidth: node.scrollWidth,
+      hidden: node.closest("[hidden]") !== null,
+    }));
+    assert.equal(metadataGeometry.hidden, false, "the count is exposed to assistive technology when the evidence drawer is open");
+    assert.ok(metadataGeometry.scrollWidth <= metadataGeometry.clientWidth, `${width}×${height}: evidence metadata wraps without clipping`);
+    await page.keyboard.press("Escape");
+    assert.equal(await drawer.evaluate((node) => node.open), false);
+    assert.equal(await opener.evaluate((node) => document.activeElement === node), true, "keyboard focus returns to the Evidence route");
+
+    await page.locator("#languageSelect").selectOption("es");
+    await page.waitForFunction(() => document.documentElement.lang === "es");
+    await opener.focus();
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => document.getElementById("deploymentPoiCount").textContent.includes("Registros operativos del mapa cargados actualmente"));
+    assert.match(await page.locator("#deploymentIdentity").textContent(), /Versión de la aplicación Lens v0\.1.*Cobertura geográfica: Madrid centro/);
+    const spanishCountNote = await page.locator("#deploymentPoiCount").innerText();
+    assert.ok(spanishCountNote.includes(expectedCount.toLocaleString("es-ES")), `Spanish count remains accurate: ${spanishCountNote}`);
+    assert.match(spanishCountNote, /no es un recuento dentro del círculo Lens seleccionado/);
+  }
 });
 
 test("P1 AC1/2/6/8/10: six small-screen rail groups fit, report live state, preserve toggles, and leave desktop expanded", async (t) => {
