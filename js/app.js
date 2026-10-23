@@ -6256,6 +6256,7 @@ function renderScopeRail() {
   shell.signature = signature;
 
   const list = document.getElementById("scopeRailList");
+  list.dataset.mode = mode;
   // Data arrives asynchronously and re-renders the rail; keep keyboard focus on the
   // same entry so a reader tabbing through the rail is never dropped onto <body>.
   const focused = document.activeElement && list.contains(document.activeElement)
@@ -6266,6 +6267,7 @@ function renderScopeRail() {
     const labels = entry.instances.length ? entry.instances : [null];
     for (const instance of labels) {
       const item = document.createElement("li");
+      item.dataset.scope = entry.scope;
       const button = document.createElement("button");
       button.type = "button";
       button.className = "scope-rail-item";

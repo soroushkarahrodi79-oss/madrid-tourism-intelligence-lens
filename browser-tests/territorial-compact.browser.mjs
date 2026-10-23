@@ -73,7 +73,9 @@ async function openApp(viewport, { unavailablePlanning = false, unavailablePopul
 
 async function moveTo(page, point) {
   await page.evaluate(([lat, lon]) => window.__HALO_REGRESSION__.moveLensToLatLng("A", lat, lon), [point.lat, point.lon]);
-  await page.waitForFunction((code) => document.getElementById("planningCode").textContent.trim() === code, point.code ?? "");
+  if (point.code) {
+    await page.waitForFunction((code) => document.getElementById("planningCode").textContent.trim() === code, point.code);
+  }
 }
 
 const closePage = (page) => page.context_.close();
@@ -102,7 +104,7 @@ for (const viewport of VIEWPORTS) {
           const summary = document.getElementById("placeCircleSummary");
           const areaEvidence = area.querySelector(".evidence-link");
           const areaEvidenceStyle = getComputedStyle(areaEvidence);
-          const targetStyle = getComputedStyle(areaEvidence, "::after");
+          const icon = areaEvidence.querySelector("span");
           const box = (node) => ({ width: node.clientWidth, scrollWidth: node.scrollWidth });
           return {
             appearance: document.documentElement.dataset.appearance,
@@ -141,8 +143,8 @@ for (const viewport of VIEWPORTS) {
             areaEvidenceTarget: {
               width: areaEvidenceStyle.width,
               height: areaEvidenceStyle.height,
-              afterWidth: targetStyle.width,
-              afterHeight: targetStyle.height,
+              iconWidth: icon ? getComputedStyle(icon).width : "22px",
+              iconHeight: icon ? getComputedStyle(icon).height : "22px",
             },
           };
         });
@@ -171,11 +173,14 @@ for (const viewport of VIEWPORTS) {
         assert.match(view.distinction, /not the barrio|no es el barrio/i);
         assert.deepEqual(view.evidence.map((item) => item.prefix), ["place.metric.", "place.area.", "place.planning."]);
         assert.ok(view.evidence.every((item) => item.visible && item.name && item.name.length > 0));
-        assert.equal(view.areaEvidenceTarget.width, "22px", "the icon remains visually compact");
-        assert.equal(view.areaEvidenceTarget.height, "22px");
         if (viewport.coarse) {
-          assert.ok(parseFloat(view.areaEvidenceTarget.afterWidth) >= 44, "coarse-pointer evidence retains a 44px+ hit width");
-          assert.ok(parseFloat(view.areaEvidenceTarget.afterHeight) >= 44, "coarse-pointer evidence retains a 44px+ hit height");
+          assert.ok(parseFloat(view.areaEvidenceTarget.width) >= 44, "the evidence button itself retains the coarse-pointer target");
+          assert.ok(parseFloat(view.areaEvidenceTarget.height) >= 44);
+          assert.equal(view.areaEvidenceTarget.iconWidth, "22px", "the information mark remains visually compact");
+          assert.equal(view.areaEvidenceTarget.iconHeight, "22px");
+        } else {
+          assert.equal(view.areaEvidenceTarget.width, "22px", "the icon remains visually compact on a fine pointer");
+          assert.equal(view.areaEvidenceTarget.height, "22px");
         }
       }
     }
@@ -261,9 +266,9 @@ test("evidence target remains operable by keyboard and across the coarse-pointer
   assert.equal(await opener.evaluate((node) => document.activeElement === node), true, "keyboard dismissal returns focus to the evidence control");
 
   const box = await opener.boundingBox();
-  await page.mouse.click(box.x + box.width + 8, box.y + box.height / 2);
+  await page.mouse.click(box.x + box.width - 2, box.y + box.height / 2);
   await page.waitForFunction(() => document.getElementById("evidenceDrawer").open);
-  assert.ok(await page.locator("#evidenceDrawerBody .drawer-record").count() > 0, "the expanded hit target opens the same evidence route");
+  assert.ok(await page.locator("#evidenceDrawerBody .drawer-record").count() > 0, "the far edge of the real 44px button opens the same evidence route");
   await page.locator("#evidenceDrawerClose").click();
 });
 

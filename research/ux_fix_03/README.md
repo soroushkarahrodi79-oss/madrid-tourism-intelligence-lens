@@ -1,36 +1,62 @@
-# Territorial information compactness review
+# UX Fix 03 — Territorial information compactness
 
-## Structure audit
+This PR contains two separately reviewed improvements. **A** was implemented in the first PR commit. **B** completes the original request by compacting the three scope indicators at the top of the analysis panel.
 
-These three elements answer different questions and remain separate in the DOM and in the visual hierarchy:
+## A. Lower territorial content compactness — already implemented
 
-- `#placeCircleSummary` presents four readings measured inside the adjustable Lens Circle A. It has its own radius and evidence route, appears only at the existing narrow-screen breakpoint, and does not contain barrio or planning quantities. Its two-column narrow layout reserved label height in every reading and used generous card padding.
-- `#areaProfile` identifies the official barrio polygon containing the Lens centre. Its residents and licensed-VUT figures each describe that whole barrio, with their own provenance and date semantics. The resident number used the display type token, the bordered figure used 12px padding, the identity row had 16px vertical margins, and the VUT context added another padded card. The district context was also truncated on one line.
-- `#planningAmbito` identifies a distinct official planning geography. The exact denomination, code, edition, scope distinction, evidence state, and evidence route remain in this section. Before the change, its identity stacked a 14px distinction paragraph between the kind/code and edition rows, with 8px gaps; its scope and absence explanations also used larger padding and body type.
-- `.section-head` is shared across the application. On coarse pointers, the global 44px minimum made the territorial evidence buttons 44px circles and forced taller heading rows. The territorial headings now keep a compact visible icon and the same 44px-or-larger touch target; other evidence controls are unaffected.
+These three elements answer different questions and remain separate in the DOM and visual hierarchy:
 
-## Visual changes
+- `#placeCircleSummary` presents four readings measured inside adjustable Lens Circle A. It has its own radius and evidence route, appears at the existing narrow-screen breakpoint, and does not contain barrio or planning quantities. Its narrow two-column readings had reserved label height and generous card padding.
+- `#areaProfile` identifies the official barrio polygon containing the Lens centre. Residents and licensed-VUT figures describe that whole barrio, with their own provenance and date semantics. The resident figure used the display token, the bordered figure had 12px padding, its identity row had 16px vertical margins, and the VUT context added another padded card. District context was truncated on one line.
+- `#planningAmbito` identifies a distinct official planning geography. Its exact denomination, code, edition, scope distinction, evidence state, and evidence route remain visible. Its identity previously stacked a distinction paragraph between kind/code and edition rows with larger gaps and padding.
+- `.section-head` is shared across the application. The first change kept territorial evidence icons visually quiet while retaining actual 44px coarse-pointer buttons; the 22px icon remains inside the button.
 
-- Brought the resident figure to the title token and tightened area identity, figure, and licensed-VUT spacing with the existing `--s-*` and `--t-*` tokens.
-- Let long barrio context and codes wrap instead of truncating them.
-- Kept all four Lens-circle states while reducing narrow summary card padding and heading gap.
-- Tightened the planning identity rhythm and supporting text size. Its official identity, distinction, edition, scope, evidence state, and source controls remain visible.
-- Kept the existing visual distinction between the blue Lens summary, unboxed administrative lead, and separated planning section.
+Changes use the existing `--s-*` and `--t-*` design tokens. They tighten the resident figure, area identity, VUT and planning identity rhythm, allow long barrio context and codes to wrap, and reduce padding in the narrow Lens summary. The blue Lens summary, unboxed administrative lead, and separated planning section retain their existing visual language.
 
-No geometry, data, spatial computation, evidence interpretation, or left-panel styles changed.
+The existing lower-content captures remain in [`screenshots/before`](screenshots/before) and [`screenshots/after`](screenshots/after) as `territorial-*` images.
 
-## Screenshots
+## B. Top scope-rail compactness — this correction
 
-Each pair uses an 1180×820 iPad-landscape viewport. The top captures show the territorial lead; the planning captures scroll the same panel to the official planning section. The unavailable case is Spanish/Light; the other two are English/Dark.
+### Structure and root cause
 
-| State | Before | After |
-| --- | --- | --- |
-| Available | [Top](screenshots/before/territorial-available-dark-en.png) · [Planning](screenshots/before/territorial-available-planning-dark-en.png) | [Top](screenshots/after/territorial-available-dark-en.png) · [Planning](screenshots/after/territorial-available-planning-dark-en.png) |
-| Unavailable | [Top](screenshots/before/territorial-unavailable-light-es.png) · [Planning](screenshots/before/territorial-unavailable-planning-light-es.png) | [Top](screenshots/after/territorial-unavailable-light-es.png) · [Planning](screenshots/after/territorial-unavailable-planning-light-es.png) |
-| No intersection | [Top](screenshots/before/territorial-no-intersection-dark-en.png) · [Planning](screenshots/before/territorial-no-intersection-planning-dark-en.png) | [Top](screenshots/after/territorial-no-intersection-dark-en.png) · [Planning](screenshots/after/territorial-no-intersection-planning-dark-en.png) |
+`#scopeRail` is a labeled section before the mode content. Its `#scopeRailList` is generated by `renderScopeRail()` in `js/app.js`; each entry is a button inside a list item, labeled with its distinct `data-scope`, localized scope name, and dynamic instance. The decorative glyph is `aria-hidden`; each scope button opens the existing evidence dialog and returns keyboard focus to its opener. `#scopeRailFreshness` is a separate evidence button that keeps the current reference date and publisher states visible.
 
-`capture.mjs` serves the real application and committed artifacts. `--baseline` serves only `origin/main`'s stylesheet for the before captures; the after captures serve the branch stylesheet. The unavailable scenario returns HTTP 503 for the planning geometry artifact. The no-intersection scenario moves the Lens to a real location outside the official planning-geometry universe.
+The three production indicators are separate values: the official barrio administrative polygon, the adjustable Lens Circle A measurement window, and the official Planning Ámbito. The renderer continues to show the exact planning code, an explicit no-intersection statement, or an explicit unavailable state. Scope labels do not combine measurements or infer shared coverage.
+
+The original CSS treated all items as content-sized inline chips in one wrapping flex row. It kept the label and identifier at the same inline rhythm, repeated chip padding and borders, and offered little control when long values wrapped. At phone widths this made each scope fall onto a separate row; at narrow translations and long identifiers, wrapping could extend the rail beyond the panel. The earlier before/after captures cropped only lower territorial cards, so the scope rail appeared unchanged there.
+
+### Visual and accessibility changes
+
+- The scope list now uses a two-column, minimum-width-safe grid. The Planning Ámbito entry spans both columns; the municipality entry does so in City mode. Other entries remain separate buttons and scopes.
+- Each button places its localized scope label above the exact dynamic identifier, with a smaller muted label and a clearer primary value. Long official names and codes wrap inside their own entry.
+- Spacing, type, borders, and radii use the existing `--s-*`, `--t-*`, and `--r-*` tokens. Freshness date and source states remain visible below the scopes; no important absence or limitation is collapsed.
+- The `#scopeRail` accessible name is localized in EN/ES. Existing evidence actions, focus-visible treatment, keyboard operation, and focus restoration remain in place.
+- Scope buttons and freshness retain real 44px coarse-pointer targets. Territorial lower-section evidence icons remain 22px visually while their buttons retain a real 44px hit box; the prior pseudo-element-only hit area did not satisfy bounding-box checks.
+
+### Scope-rail before/after captures
+
+Every image is a screenshot of `#scopeRail` itself. Each viewport includes all three distinct indicators and one state per row: the long official barrio name, the exact long planning code, no planning intersection, and unavailable planning evidence. Light/Dark and EN/ES are represented in every viewport set.
+
+| Viewport | Long barrio · Light / EN | Planning code · Dark / EN | No intersection · Dark / ES | Unavailable · Light / ES |
+| --- | --- | --- | --- | --- |
+| Desktop 1440×900 | [before](screenshots/before/scope-rail-long-barrio-desktop-1440x900-light-en.png) · [after](screenshots/after/scope-rail-long-barrio-desktop-1440x900-light-en.png) | [before](screenshots/before/scope-rail-long-planning-code-desktop-1440x900-dark-en.png) · [after](screenshots/after/scope-rail-long-planning-code-desktop-1440x900-dark-en.png) | [before](screenshots/before/scope-rail-no-intersection-desktop-1440x900-dark-es.png) · [after](screenshots/after/scope-rail-no-intersection-desktop-1440x900-dark-es.png) | [before](screenshots/before/scope-rail-unavailable-desktop-1440x900-light-es.png) · [after](screenshots/after/scope-rail-unavailable-desktop-1440x900-light-es.png) |
+| iPad landscape 1180×820 | [before](screenshots/before/scope-rail-long-barrio-ipad-landscape-1180x820-light-en.png) · [after](screenshots/after/scope-rail-long-barrio-ipad-landscape-1180x820-light-en.png) | [before](screenshots/before/scope-rail-long-planning-code-ipad-landscape-1180x820-dark-en.png) · [after](screenshots/after/scope-rail-long-planning-code-ipad-landscape-1180x820-dark-en.png) | [before](screenshots/before/scope-rail-no-intersection-ipad-landscape-1180x820-dark-es.png) · [after](screenshots/after/scope-rail-no-intersection-ipad-landscape-1180x820-dark-es.png) | [before](screenshots/before/scope-rail-unavailable-ipad-landscape-1180x820-light-es.png) · [after](screenshots/after/scope-rail-unavailable-ipad-landscape-1180x820-light-es.png) |
+| iPad portrait 820×1180 | [before](screenshots/before/scope-rail-long-barrio-ipad-portrait-820x1180-light-en.png) · [after](screenshots/after/scope-rail-long-barrio-ipad-portrait-820x1180-light-en.png) | [before](screenshots/before/scope-rail-long-planning-code-ipad-portrait-820x1180-dark-en.png) · [after](screenshots/after/scope-rail-long-planning-code-ipad-portrait-820x1180-dark-en.png) | [before](screenshots/before/scope-rail-no-intersection-ipad-portrait-820x1180-dark-es.png) · [after](screenshots/after/scope-rail-no-intersection-ipad-portrait-820x1180-dark-es.png) | [before](screenshots/before/scope-rail-unavailable-ipad-portrait-820x1180-light-es.png) · [after](screenshots/after/scope-rail-unavailable-ipad-portrait-820x1180-light-es.png) |
+| Mobile 390×844 | [before](screenshots/before/scope-rail-long-barrio-mobile-390x844-light-en.png) · [after](screenshots/after/scope-rail-long-barrio-mobile-390x844-light-en.png) | [before](screenshots/before/scope-rail-long-planning-code-mobile-390x844-dark-en.png) · [after](screenshots/after/scope-rail-long-planning-code-mobile-390x844-dark-en.png) | [before](screenshots/before/scope-rail-no-intersection-mobile-390x844-dark-es.png) · [after](screenshots/after/scope-rail-no-intersection-mobile-390x844-dark-es.png) | [before](screenshots/before/scope-rail-unavailable-mobile-390x844-light-es.png) · [after](screenshots/after/scope-rail-unavailable-mobile-390x844-light-es.png) |
+
+Reproduce the rail captures with:
+
+```powershell
+node research/ux_fix_03/capture_scope_rail.mjs research/ux_fix_03/screenshots/before --baseline
+node research/ux_fix_03/capture_scope_rail.mjs research/ux_fix_03/screenshots/after
+```
+
+`--baseline` serves only `origin/main`'s stylesheet; both runs serve the real application and committed artifacts. The unavailable state returns HTTP 503 for the official planning geometry artifact. The no-intersection state moves Circle A to a real location outside the official planning geometry.
 
 ## Regression coverage
 
-`browser-tests/territorial-compact.browser.mjs` covers desktop 1440×900, iPad landscape 1180×820, iPad portrait 820×1180, and mobile 390×844. Each viewport runs Light/Dark and EN/ES checks. It verifies containment, scope distinctions, preserved evidence routes, real missing and outside states, a long official planning name/code, coarse-pointer evidence activation and keyboard focus return, and independent mode scroll restoration.
+- `browser-tests/territorial-compact.browser.mjs` checks the already-implemented lower content at desktop, iPad landscape, iPad portrait, and mobile; Light/Dark; EN/ES; administrative and planning absence; evidence controls; and independent Place/Compare/City scroll restoration.
+- `browser-tests/scope-rail-compact.browser.mjs` checks rail containment and type hierarchy at all four viewport sizes in Light/Dark and EN/ES; exact long barrio and planning values; distinct no-intersection and unavailable states; 44px coarse-pointer targets; evidence access; keyboard focus return; and localized accessible naming.
+- Existing `information-architecture.browser.mjs`, `visual-language.browser.mjs`, `institutional-journey.browser.mjs`, Node, and Python checks remain part of the quality gate. No assertions were removed or relaxed.
+
+No map geometry, datasets, spatial computations, comparison algorithms, official evidence interpretation, or left-panel styles changed.

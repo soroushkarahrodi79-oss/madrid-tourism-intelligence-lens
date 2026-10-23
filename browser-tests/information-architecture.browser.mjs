@@ -780,7 +780,8 @@ test("IA 22 the mobile PLACE quick-jump reaches the Lens metrics, is localized, 
     const panel = document.getElementById("analysisPanel");
     return document.getElementById("placeCircleSummary").getBoundingClientRect().top - panel.getBoundingClientRect().top;
   });
-  assert.ok((await summaryTop()) > 250, "compact readings are initially below the panel fold");
+  const initialSummaryTop = await summaryTop();
+  assert.ok(initialSummaryTop < 250, `compact rail brings the canonical Lens readings closer to the panel top (actual top ${initialSummaryTop}px)`);
   await page.locator('#placeJump .place-jump-chip[data-jump="withinLens"]').click();
   await page.waitForFunction(() => {
     const panel = document.getElementById("analysisPanel");

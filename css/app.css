@@ -323,17 +323,20 @@ header{
 .section-head small{font-size:var(--t-micro);letter-spacing:.03em;color:#7a8ea5;white-space:nowrap}
 
 /* Keep these three territorial surfaces distinct while keeping their evidence
-   affordance visually quiet. Coarse pointers get the same 44px target through
-   a transparent pseudo-element, without forcing a 44px heading row. */
+   icon visually quiet. Coarse pointers retain a real 44px button target; only
+   the small information mark is drawn inside it. */
 .place-circle-summary-head>.evidence-link,
 .area .section-head>.evidence-link,
 .planning .section-head>.evidence-link{position:relative;flex:0 0 22px;width:22px;height:22px;min-width:22px;min-height:22px}
 .area .section-head,.planning .section-head{align-items:center}
 @media(pointer:coarse){
-  .place-circle-summary-head,.area .section-head,.planning .section-head{padding-right:calc(2 * var(--s-3))}
-  .place-circle-summary-head>.evidence-link::after,
-  .area .section-head>.evidence-link::after,
-  .planning .section-head>.evidence-link::after{content:"";position:absolute;top:50%;right:calc(-2 * var(--s-3));width:44px;height:44px;transform:translateY(-50%)}
+  .place-circle-summary-head,.area .section-head,.planning .section-head{min-height:44px}
+  .place-circle-summary-head>.evidence-link,
+  .area .section-head>.evidence-link,
+  .planning .section-head>.evidence-link{flex-basis:44px;width:44px;height:44px;min-width:44px;min-height:44px;border-color:transparent;background:transparent}
+  .place-circle-summary-head>.evidence-link>span,
+  .area .section-head>.evidence-link>span,
+  .planning .section-head>.evidence-link>span{display:inline-grid;width:22px;height:22px;place-items:center;border:1px solid var(--line2);border-radius:var(--r-large);background:var(--chrome-card-surface)}
 }
 
 /* Administrative area of the lens centre. A reference surface, deliberately
@@ -1141,15 +1144,16 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .place-jump-chip:before{content:"▾ "}
 .place-jump-chip:hover{color:#fff}
 
-.scope-rail{margin:0}
-.scope-rail-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s-1)}
-.scope-rail-list li{min-width:0}
-.scope-rail-item{display:inline-flex;align-items:baseline;gap:var(--s-1);max-width:100%;padding:var(--s-1) var(--s-2);border:1px solid var(--line2);border-radius:var(--r-small);background:rgba(255,255,255,.04);color:#d7e5f2;font:inherit;font-size:var(--t-micro);line-height:1.25;cursor:pointer;text-align:left}
-.scope-rail-item .scope-glyph{font-size:var(--t-meta)}
-.scope-rail-item .scope-name{font-weight:650;letter-spacing:.02em;text-transform:uppercase}
-.scope-rail-item .scope-instance{color:#a9bbcf;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.scope-rail-freshness{display:block;width:100%;margin:var(--s-1) 0 0;padding:var(--s-1);border:0;background:transparent;color:#a9bbcf;font:inherit;font-size:var(--t-micro);line-height:1.35;text-align:left;cursor:pointer;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.scope-rail-freshness:hover,.scope-rail-item:hover{color:#fff}
+.scope-rail{min-width:0;margin:0}
+.scope-rail-list{list-style:none;min-width:0;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-1)}
+.scope-rail-list li{min-width:0;max-width:100%}
+.scope-rail-list li[data-scope="PLANNING_AMBITO"],#scopeRailList[data-mode="CITY"]>li{grid-column:1/-1}
+.scope-rail-item{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"glyph name" "glyph instance";align-content:center;align-items:baseline;column-gap:var(--s-1);row-gap:0;width:100%;min-width:0;max-width:100%;padding:var(--s-1) var(--s-2);border:1px solid var(--line2);border-radius:var(--r-small);background:var(--chrome-card-surface);color:var(--text);font:inherit;font-size:var(--t-micro);line-height:1.2;cursor:pointer;text-align:left;overflow-wrap:anywhere}
+.scope-rail-item .scope-glyph{grid-area:glyph;align-self:center;margin:0;font-size:var(--t-meta);line-height:1}
+.scope-rail-item .scope-name{grid-area:name;min-width:0;color:var(--muted);font-size:var(--t-meta);font-weight:650;letter-spacing:.02em;text-transform:uppercase;line-height:1.15;overflow-wrap:anywhere}
+.scope-rail-item .scope-instance{grid-area:instance;min-width:0;color:var(--text);font-size:var(--t-label);font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2;overflow-wrap:anywhere}
+.scope-rail-freshness{display:block;width:100%;min-width:0;margin:var(--s-1) 0 0;padding:var(--s-1) var(--s-2) 0;border:0;border-top:1px solid var(--chrome-divider);background:transparent;color:var(--muted);font:inherit;font-size:var(--t-meta);line-height:1.35;text-align:left;cursor:pointer;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.scope-rail-freshness:hover,.scope-rail-item:hover{border-color:var(--chrome-border);background:var(--chrome-control-group-surface);color:var(--chrome-text-primary)}
 
 .scope-glyph{display:inline-block;margin-right:var(--s-1)}
 .metric .scope-glyph{color:#8ba0b7;font-size:var(--t-micro)}
@@ -1702,3 +1706,4 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
   .leaflet-control-attribution{max-width:min(220px,calc(100vw - 112px - var(--safe-left) - var(--safe-right)));text-align:right}
   .panel{max-height:30vh;max-height:30dvh}
 }
+:root[data-appearance="light"] .scope-rail-item .scope-instance{color:var(--text)}
