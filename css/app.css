@@ -1229,6 +1229,12 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .appearance-control{position:relative;display:block;min-width:88px}
   .appearance-control>span{position:absolute;z-index:1;left:9px;top:5px;max-width:58px;overflow:hidden;color:var(--chrome-text-brand-subtle);line-height:1;letter-spacing:.02em;white-space:nowrap;pointer-events:none}
   #appearanceSelect{min-width:88px;padding:var(--s-4) calc(3 * var(--s-2)) var(--s-1) var(--s-2);line-height:1.1}
+  /* Keep territorial scope hints readable beneath long translated headings
+     while the adjacent evidence control keeps its real 44px touch target. */
+  .area .section-head,.planning .section-head{display:grid;grid-template-columns:minmax(0,1fr) 44px;grid-template-areas:"title evidence" "scope evidence";align-items:center;justify-content:normal;gap:0 var(--s-2)}
+  .area .section-head>span,.planning .section-head>span{grid-area:title;min-width:0;overflow-wrap:anywhere}
+  .area .section-head>small,.planning .section-head>small{grid-area:scope;white-space:normal;line-height:1.2;overflow-wrap:anywhere}
+  .area .section-head>.evidence-link,.planning .section-head>.evidence-link{grid-area:evidence;justify-self:end;margin:0}
   /* Map-first on phones: an explicit 44px control replaces the always-open rail.
      The entire original six-group rail remains reachable when requested. */
   .mobile-layers-button{display:inline-flex}

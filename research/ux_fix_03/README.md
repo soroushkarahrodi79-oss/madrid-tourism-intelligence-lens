@@ -32,6 +32,7 @@ The original CSS treated all items as content-sized inline chips in one wrapping
 - Spacing, type, borders, and radii use the existing `--s-*`, `--t-*`, and `--r-*` tokens. Freshness date and source states remain visible below the scopes; no important absence or limitation is collapsed.
 - The `#scopeRail` accessible name is localized in EN/ES. Existing evidence actions, focus-visible treatment, keyboard operation, and focus restoration remain in place.
 - Scope buttons and freshness retain real 44px coarse-pointer targets. Territorial lower-section evidence icons remain 22px visually while their buttons retain a real 44px hit box; the prior pseudo-element-only hit area did not satisfy bounding-box checks.
+- At phone widths, the administrative and planning section headings place their localized scope hint beneath the heading beside the 44px evidence action. This prevents long Spanish hints from widening the analysis panel.
 
 ### Scope-rail before/after captures
 
