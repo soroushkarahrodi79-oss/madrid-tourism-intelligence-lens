@@ -322,18 +322,32 @@ header{
 .section-head span{font-size:var(--t-micro);letter-spacing:.14em;text-transform:uppercase;color:#8ba0b7;font-weight:620}
 .section-head small{font-size:var(--t-micro);letter-spacing:.03em;color:#7a8ea5;white-space:nowrap}
 
+/* Keep these three territorial surfaces distinct while keeping their evidence
+   affordance visually quiet. Coarse pointers get the same 44px target through
+   a transparent pseudo-element, without forcing a 44px heading row. */
+.place-circle-summary-head>.evidence-link,
+.area .section-head>.evidence-link,
+.planning .section-head>.evidence-link{position:relative;flex:0 0 22px;width:22px;height:22px;min-width:22px;min-height:22px}
+.area .section-head,.planning .section-head{align-items:center}
+@media(pointer:coarse){
+  .place-circle-summary-head,.area .section-head,.planning .section-head{padding-right:calc(2 * var(--s-3))}
+  .place-circle-summary-head>.evidence-link::after,
+  .area .section-head>.evidence-link::after,
+  .planning .section-head>.evidence-link::after{content:"";position:absolute;top:50%;right:calc(-2 * var(--s-3));width:44px;height:44px;transform:translateY(-50%)}
+}
+
 /* Administrative area of the lens centre. A reference surface, deliberately
    distinct from the measurement cards below it. */
 .area .section-head{margin-top:var(--s-1)}
-.area-identity{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s-2);margin:var(--s-2) 0 var(--s-2)}
-.area-context{font-size:var(--t-meta);color:#a9bbcf;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.area-codes{font-size:var(--t-micro);letter-spacing:.05em;color:#8195ab;font-variant-numeric:tabular-nums;white-space:nowrap}
-.area-figure{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:var(--s-3);align-items:center;padding:var(--s-3);border:1px solid var(--line);border-radius:var(--r-small);background:rgba(255,255,255,.028)}
+.area-identity{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s-2);margin:var(--s-1) 0}
+.area-context{font-size:var(--t-meta);color:#a9bbcf;min-width:0;overflow-wrap:anywhere}
+.area-codes{font-size:var(--t-micro);letter-spacing:.05em;color:#8195ab;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;text-align:right}
+.area-figure{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:var(--s-3);align-items:center;padding:var(--s-2);border:1px solid var(--line);border-radius:var(--r-small);background:rgba(255,255,255,.028)}
 .area-value{font-size:var(--t-display);font-weight:780;letter-spacing:-.045em;line-height:1;font-variant-numeric:tabular-nums}
-.area-value-label{font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:#8ba0b7;margin-top:var(--s-2)}
+.area-value-label{font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:#8ba0b7;margin-top:var(--s-1)}
 .area-period{font-size:var(--t-micro);color:#8195ab;margin-top:var(--s-1);font-variant-numeric:tabular-nums}
 .area-scope{border-left:1px solid var(--line);padding-left:var(--s-3);min-width:0}
-.area-scope p{margin:var(--s-2) 0 0;font-size:var(--t-micro);line-height:1.5;color:#95a9be}
+.area-scope p{margin:var(--s-1) 0 0;font-size:var(--t-micro);line-height:1.4;color:#95a9be}
 /* Where no residential figure can exist at all — outside Madrid, or with the
    geography unavailable — the figure slot is removed rather than filled with a
    meaningless dash beside a "registered residents" label. */
@@ -355,11 +369,11 @@ header{
    amber and no red, because a barrio with more licensed VUT units is not a
    worse barrio and this product does not imply that it is. Nothing here is
    conveyed by colour: every figure is named in text beside it. */
-.area-vut{margin-top:var(--s-2);padding:var(--s-2) var(--s-3);border:1px solid rgba(255,255,255,.075);border-radius:var(--r-small);background:rgba(255,255,255,.012)}
+.area-vut{margin-top:var(--s-1);padding:var(--s-1) var(--s-2);border:1px solid rgba(255,255,255,.075);border-radius:var(--r-small);background:rgba(255,255,255,.012)}
 .area-vut[hidden]{display:none}
 .area-vut-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2)}
 .area-vut-title{font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:#8ba0b7;font-weight:620}
-.area-vut-figure{display:flex;align-items:baseline;gap:var(--s-2);margin-top:var(--s-2);flex-wrap:wrap}
+.area-vut-figure{display:flex;align-items:baseline;gap:var(--s-2);margin-top:var(--s-1);flex-wrap:wrap}
 .area-vut-value{font-size:var(--t-title);font-weight:740;letter-spacing:-.035em;line-height:1.05;font-variant-numeric:tabular-nums}
 .area-vut-unit{font-size:var(--t-micro);color:#95a9be}
 .area-vut-secondary{margin-top:var(--s-1);font-size:var(--t-micro);line-height:1.5;color:#a4b7cb;font-variant-numeric:tabular-nums}
@@ -411,23 +425,23 @@ header{
    completion bar, and no single element summarises the four. The three
    reserved planning hues are paired with a distinct border STYLE and a text
    label, so colour alone never carries a distinction. */
-.planning{margin:var(--s-3) 0 0;padding-top:var(--s-2);border-top:1px solid var(--line)}
+.planning{margin:var(--s-2) 0 0;padding-top:var(--s-1);border-top:1px solid var(--line)}
 .planning[hidden]{display:none}
 .planning .section-head{margin-top:0}
 .planning-identity[hidden]{display:none}
-.planning-denomination{margin:0;font-size:var(--t-title);font-weight:760;letter-spacing:-.03em;line-height:1.18;color:#f3f7ff}
-.planning-identity-row{display:flex;align-items:baseline;gap:var(--s-2);flex-wrap:wrap;margin-top:var(--s-2)}
+.planning-denomination{margin:0;font-size:var(--t-title);font-weight:760;letter-spacing:-.03em;line-height:1.12;color:#f3f7ff;overflow-wrap:anywhere}
+.planning-identity-row{display:flex;align-items:baseline;gap:var(--s-2);flex-wrap:wrap;margin-top:var(--s-1)}
 /* The kind label is what stops a reader taking this for the barrio. */
 .planning-kind{flex:0 0 auto;padding:var(--s-1) var(--s-2);border:1px solid rgba(174,184,196,.3);border-radius:var(--r-small);background:rgba(174,184,196,.1);color:#d4dde7;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:650}
 .planning-code-wrap{min-width:0;display:flex;align-items:baseline;gap:var(--s-1);flex-wrap:wrap}
 .planning-code-label{font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:#8ba0b7}
 /* The EXACT official code, including any -RP suffix. Never abbreviated. */
 .planning-code{font-size:var(--t-meta);font-weight:700;letter-spacing:.05em;color:#e3ecf6;font-variant-numeric:tabular-nums;word-break:break-word}
-.planning-distinction{margin:var(--s-2) 0 0;font-size:var(--t-body);line-height:1.5;color:#9fb1c5}
+.planning-distinction{margin:var(--s-1) 0 0;font-size:var(--t-label);line-height:1.4;color:#9fb1c5}
 /* The edition reference date sits with the evidence, not only in the drawer. */
-.planning-edition{margin:var(--s-2) 0 0;padding-left:var(--s-2);border-left:2px solid var(--planning-neutral);font-size:var(--t-meta);line-height:1.5;color:#bccddf;font-variant-numeric:tabular-nums}
+.planning-edition{margin:var(--s-1) 0 0;padding-left:var(--s-2);border-left:2px solid var(--planning-neutral);font-size:var(--t-meta);line-height:1.4;color:#bccddf;font-variant-numeric:tabular-nums}
 .planning-edition:empty{display:none}
-.planning-outside{margin:var(--s-2) 0 0;padding:var(--s-3);border:1px dashed var(--line2);border-radius:var(--r-small);font-size:var(--t-body);line-height:1.55;color:#a9bbcf}
+.planning-outside{margin:var(--s-1) 0 0;padding:var(--s-2);border:1px dashed var(--line2);border-radius:var(--r-small);font-size:var(--t-label);line-height:1.45;color:#a9bbcf;overflow-wrap:anywhere}
 .planning-outside[hidden]{display:none}
 .planning-explorer{margin-top:var(--s-3);padding:var(--s-3);border:1px solid var(--chrome-border);border-left:3px solid var(--planning-neutral);border-radius:var(--r-small);background:var(--chrome-card-surface)}
 .planning-explorer-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2)}
@@ -683,10 +697,10 @@ header{
 .metric-value{font-size:var(--t-title);font-weight:780;letter-spacing:-.04em;margin-top:var(--s-2);line-height:1}
 .metric-foot{font-size:var(--t-micro);color:#74879c;margin-top:var(--s-1)}.metric-value small{font-size:var(--t-micro);color:#94a6ba;font-weight:550;letter-spacing:0}
 .place-circle-summary{display:none}
-.place-circle-summary-head{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:var(--s-2);margin-bottom:var(--s-2);color:#d9e8f5;font-size:var(--t-label);font-weight:700}
+.place-circle-summary-head{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1);color:#d9e8f5;font-size:var(--t-label);font-weight:700}
 .place-circle-summary-head>span:nth-child(2){color:#a9bbcf;font-size:var(--t-meta);font-weight:600;font-variant-numeric:tabular-nums}
 .place-circle-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-1)}
-.place-circle-reading{min-width:0;padding:var(--s-2);border:1px solid rgba(255,255,255,.08);border-radius:var(--r-small);background:rgba(255,255,255,.025)}
+.place-circle-reading{min-width:0;padding:var(--s-1) var(--s-2);border:1px solid rgba(255,255,255,.08);border-radius:var(--r-small);background:rgba(255,255,255,.025)}
 .place-circle-reading>span,.place-circle-reading>small{display:block;overflow-wrap:anywhere}
 .place-circle-reading>span{min-height:2.3em;color:#8fa5bb;font-size:var(--t-micro);line-height:1.15}
 .place-circle-reading>strong{display:block;margin-top:var(--s-1);color:#f0f7ff;font-size:var(--t-figure);line-height:1;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
@@ -1235,7 +1249,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 body{font-size:var(--t-body)}
 select,.hospitality-controls select,.header-tools select,.basemap-control select,.map-control select,.stay-filter select,.domestic-origin-controls select{font-size:var(--t-label)}
 .title{font-size:var(--t-title)}
-.area-value{font-size:var(--t-display)}
+.area-value{font-size:var(--t-title)}
 .metric-value,.activity-card-value,.area-vut-value,.hospitality-value,.destination-metric-value,.cb-value{font-size:var(--t-figure)}
 .drawer-head h2,.destination-place,.hospitality-area-name{font-size:var(--t-title)}
 .left h3,.rail-group-copy,.panel h3,.section-head span,.area-value-label,.area-vut-title,.hospitality-field-label,.destination-metric-head,.comparetable thead th,.domestic-origin-table-wrap th,.drawer-fields dt,.drawer-ceiling b,.drawer-notes>h3{font-size:var(--t-label)}

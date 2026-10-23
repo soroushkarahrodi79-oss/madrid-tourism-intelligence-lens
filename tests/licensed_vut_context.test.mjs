@@ -724,9 +724,9 @@ test("the licensed-VUT block lives inside the administrative area section", () =
 
 test("the place identity stays visually primary and the figure stays subordinate", () => {
   const tokenValues = Object.fromEntries([...css.matchAll(/--t-([a-z]+):([\d.]+)px/g)].map((match) => [match[1], Number(match[2])]));
-  assert.match(css, /\.area-value\{font-size:var\(--t-display\)\}/);
+  assert.match(css, /\.area-value\{font-size:var\(--t-title\)\}/);
   assert.match(css, /\.metric-value,[^}]*\.area-vut-value,[^}]*\{font-size:var\(--t-figure\)\}/);
-  const residents = tokenValues.display;
+  const residents = tokenValues.title;
   const licensed = tokenValues.figure;
   assert.ok(licensed < residents, `the licensed figure (${licensed}px) must be smaller than residents (${residents}px)`);
   assert.ok(licensed < tokenValues.title);
