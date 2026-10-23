@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import extraction from "../js/extraction-bounds.js";
 
 const SOURCES = {
   museums: "https://datos.madrid.es/dataset/201132-0-museos/resource/201132-2-museos-json/download/201132-2-museos-json.json",
@@ -9,7 +10,10 @@ const SOURCES = {
   parks: "https://datos.madrid.es/dataset/200761-0-parques-jardines/resource/200761-5-parques-jardines-json/download/200761-5-parques-jardines-json.json",
 };
 
-const CENTRAL_MADRID_ENVELOPE = "-3.745,40.385,-3.645,40.455";
+// The rail query rectangle is defined ONCE, in js/extraction-bounds.js, and shared
+// with the browser fallback in js/data.js and with the Lens eligibility test. It
+// is an extraction query boundary, not evidence of complete source coverage.
+const CENTRAL_MADRID_ENVELOPE = extraction.envelopeParam(extraction.RAIL_EXTRACTION_BOUNDS);
 
 function cleanText(v) {
   return String(v || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -157,6 +161,9 @@ const output = {
         ok: r.ok,
         count: r.points.length,
         error: r.error,
+        // The rectangle the rail query used, recorded so the browser can verify
+        // it interprets the same contract (and fail closed when it does not).
+        ...(r.name === "rail" ? { extraction: extraction.RAIL_EXTRACTION_RECORD } : {}),
       },
     ])
   ),

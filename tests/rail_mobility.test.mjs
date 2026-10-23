@@ -25,8 +25,12 @@ test("deployment snapshot uses official CRTM M4 and M5 station services", () => 
   assert.match(builder, /parseCrtmStations\(d, "cercanias"\)/);
 });
 
-test("rail snapshot is spatially bounded to central Madrid", () => {
-  assert.match(builder, /CENTRAL_MADRID_ENVELOPE = "-3\.745,40\.385,-3\.645,40\.455"/);
+test("rail snapshot is spatially bounded to central Madrid, by one shared extraction contract", () => {
+  // The rectangle is defined once (js/extraction-bounds.js); the builder derives its
+  // query parameter from it and holds no second literal that could drift.
+  assert.match(builder, /import extraction from "\.\.\/js\/extraction-bounds\.js"/);
+  assert.match(builder, /CENTRAL_MADRID_ENVELOPE = extraction\.envelopeParam\(extraction\.RAIL_EXTRACTION_BOUNDS\)/);
+  assert.doesNotMatch(builder, /-3\.745,40\.385,-3\.645,40\.455/);
 });
 
 test("rail tooltips preserve mode and line metadata", () => {

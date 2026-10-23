@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 
 import { validateDeployment, readArtifacts, canonicalJson } from "../scripts/validate_deployment.mjs";
 import { ANALYTICAL_SCOPES, UPDATE_FREQUENCIES, SOURCE_STATES, freshnessOf } from "../js/evidence-scope.js";
+import extractionBounds from "../js/extraction-bounds.js";
 
 const REAL_REGISTRY = JSON.parse(
   fs.readFileSync(new URL("../data/source_registry.json", import.meta.url), "utf8")
@@ -804,6 +805,8 @@ function healthyArtifacts() {
     status[id] = { ok: true, count: records.length, error: null };
   }
   status.stay.source = "Madrid Destino / esmadrid.com";
+  // The build records the rectangle the CRTM rail query used (F-01).
+  status.rail.extraction = extractionBounds.RAIL_EXTRACTION_RECORD;
 
   return {
     "runtime_poi.json": {
@@ -943,6 +946,46 @@ test("a missing critical layer fails the build", () => {
   const result = run(artifacts);
   assert.equal(result.ok, false);
   assert.match(errorText(result), /registry declares layer "stay" but the build did not emit it/);
+});
+
+test("F-01: a healthy build records the rail extraction rectangle and passes the contract gate", () => {
+  const result = run(healthyArtifacts());
+  assert.equal(result.ok, true, errorText(result));
+});
+
+test("F-01: a rail build that does not record its extraction rectangle fails the build", () => {
+  const artifacts = healthyArtifacts();
+  delete artifacts["runtime_poi.json"].status.rail.extraction;
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /status\.rail\.extraction is missing or is not the extraction contract/);
+});
+
+test("F-01: a rail build recorded with a different rectangle fails the build", () => {
+  const artifacts = healthyArtifacts();
+  artifacts["runtime_poi.json"].status.rail.extraction = {
+    ...extractionBounds.RAIL_EXTRACTION_RECORD,
+    bounds: { ...extractionBounds.RAIL_EXTRACTION_BOUNDS, east: -3.6 },
+  };
+
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /status\.rail\.extraction is missing or is not the extraction contract/);
+});
+
+test("F-01: the registry boundary must equal the shared extraction contract and never claim coverage", () => {
+  const drifted = structuredClone(testRegistry());
+  drifted.sources.find((source) => source.id === "rail").extraction_bounds.north = 40.5;
+  const driftedResult = run(healthyArtifacts(), drifted);
+  assert.equal(driftedResult.ok, false);
+  assert.match(driftedResult.errors.join("\n"), /extraction_bounds does not equal the extraction contract/);
+
+  const overclaimed = structuredClone(testRegistry());
+  overclaimed.sources.find((source) => source.id === "rail").extraction_bounds.is_coverage_evidence = true;
+  const overclaimedResult = run(healthyArtifacts(), overclaimed);
+  assert.equal(overclaimedResult.ok, false);
+  assert.match(overclaimedResult.errors.join("\n"), /never coverage evidence/);
 });
 
 test("a missing required top-level field fails the build", () => {

@@ -351,6 +351,10 @@ let parkStatus = "unavailable";
 let hatiAssets = [];
 let hatiStudyArea = null;
 let layerStatus = {};
+// The rectangle the loaded rail layer says it was extracted with (null when the
+// loaded layer states none). It is verified against the extraction contract in
+// js/extraction-bounds.js before any Lens circle is judged against it.
+let railExtractionRecord = null;
 let stayKindFilter = "all";
 const radii = createLensRadii();
 let active = "A";
@@ -590,6 +594,7 @@ const BRIDGE_DICTIONARIES = Object.freeze({
     "basis.density": "represented-record density",
     "basis.celsius": "model-derived Celsius",
     "reason.different-window-sizes": "different window sizes",
+    "reason.extraction-bounds": "Lens extends beyond the Metro/Cercanías extraction area",
     "reason.aoi-crosses": "circle crosses Madrid AOI",
     "reason.aoi-outside": "circle outside Madrid AOI",
     "reason.aoi-unavailable": "AOI unavailable",
@@ -675,6 +680,7 @@ const BRIDGE_DICTIONARIES = Object.freeze({
     "basis.density": "densidad de registros representados",
     "basis.celsius": "grados Celsius derivados del modelo",
     "reason.different-window-sizes": "tamaños de ventana distintos",
+    "reason.extraction-bounds": "la Lente excede el área de extracción de Metro/Cercanías",
     "reason.aoi-crosses": "el círculo cruza el AOI de Madrid",
     "reason.aoi-outside": "círculo fuera del AOI de Madrid",
     "reason.aoi-unavailable": "AOI no disponible",
@@ -756,6 +762,7 @@ function bridgeDeltaText(relationship) {
 function bridgeSideValueText(side) {
   if (side.evidence === "OFF") return bridgeT("off");
   if (side.evidence === "N_A") return bridgeT("na");
+  if (side.evidence === "WITHHELD_EXTRACTION") return bridgeT("withheld");
   return side.valueText;
 }
 // The single authoritative "Withheld · <reason>" text, from a withheldReasonCode.
@@ -1036,6 +1043,9 @@ function spatialEvidenceKey() {
     `tourismSource:${combinedStatus(layerStatus, ["museums", "info"])}`,
     `staySource:${combinedStatus(layerStatus, ["stays"])}`,
     `mobilitySource:${combinedStatus(layerStatus, ["bikes", "rail"])}`,
+    // The extraction contract the Mobility eligibility is judged against; the
+    // circle itself (centre/radius) is the scenario, never part of this key.
+    `mobilityExtraction:${LensExtractionBounds.CONTRACT_VERSION}:${LensExtractionBounds.recordMatchesContract(railExtractionRecord) ? "known" : "unknown"}`,
     // The gated regression seam substitutes the comparison evidence universe,
     // so switching it on or off is an evidence-configuration change too.
     `override:${comparisonEvidenceOverride ? "on" : "off"}`,
@@ -1353,7 +1363,8 @@ function updateHaloGlyph(marker, state, layout = "full") {
   cached.svg.classList.toggle("halo-metric-deemphasized", Boolean(focusedHaloMetric && focusedHaloMetric !== metric.id));
   cached.svg.setAttribute("data-visual-state", spec.visualState);
   cached.svg.setAttribute("data-saturated", spec.saturated ? "true" : "false");
-  cached.svg.setAttribute("aria-label", `Lens ${which}, ${metric.label}: ${spec.value || spec.visualState}. Radial bar length represents this metric against its own Madrid reference; compare this metric across lenses only.`);
+  const haloValueWords = spec.visualState === "withheld" ? "withheld, the Lens extends beyond the geographic extraction area" : (spec.value || spec.visualState);
+  cached.svg.setAttribute("aria-label", `Lens ${which}, ${metric.label}: ${haloValueWords}. Radial bar length represents this metric against its own Madrid reference; compare this metric across lenses only.`);
 
   // The raw value (or N/A / OFF) is the primary mark and is always printed, so
   // the map alone answers "how much"; it stays visible in compact layout too.
@@ -1388,7 +1399,7 @@ function updateHaloGlyph(marker, state, layout = "full") {
   if (isBar) setHaloLine(cached.fill, origin, [fillGeometry.endpoint.x, fillGeometry.endpoint.y]);
   else setHaloLine(cached.fill, origin, origin);
   if (isAbstain) {
-    cached.state.textContent = spec.visualState === "no-evidence" ? "○" : spec.visualState === "off" ? "·" : spec.visualState === "unavailable" ? "∕" : "×";
+    cached.state.textContent = spec.visualState === "no-evidence" ? "○" : spec.visualState === "off" ? "·" : spec.visualState === "unavailable" ? "∕" : spec.visualState === "withheld" ? "–" : "×";
     cached.state.setAttribute("x", String(midpoint[0])); cached.state.setAttribute("y", String(midpoint[1] + 4));
     cached.state.setAttribute("text-anchor", "middle");
     cached.abstain.setAttribute("class", `halo-abstain halo-state-${spec.visualState}`);
@@ -1523,7 +1534,7 @@ function updateHalo() {
     utciBand: getHaloUtciBand(),
     tourism: { a: { value: a.tourism, sourceState: combinedStatus(layerStatus, ["museums", "info"]) }, b: absentSide },
     stays: { a: { value: a.stay, sourceState: combinedStatus(layerStatus, ["stays"]) }, b: absentSide },
-    mobility: { a: { value: a.mobility, sourceState: combinedStatus(layerStatus, ["bikes", "rail"]) }, b: absentSide },
+    mobility: { a: mobilitySide(a, combinedStatus(layerStatus, ["bikes", "rail"])), b: absentSide },
     utci: { enabled: hatiOn, timestepA: timestep, timestepB: timestep, a: ha, b: null },
   });
   document.getElementById("comparisonHaloSummary").textContent = accessibleComparisonSummary(lastHaloComparison);
@@ -2544,8 +2555,30 @@ function windowRelationship() {
   return "";
 }
 
+// Geographic extraction eligibility of one Lens circle for the combined Mobility
+// metric: derived from the Lens centre, its radius and the versioned extraction
+// contract only, so it is deterministic and never needs to be persisted in a URL.
+function mobilityEligibilityFor(which) {
+  return LensExtractionBounds.railEligibility(centerOf(which), radiusFor(which), railExtractionRecord);
+}
+
+// The ONE place per-Lens statistics are produced. A circle that is not wholly
+// inside the rail extraction rectangle comes back WITHOUT a Mobility total (and
+// without the bike/rail components it is made of), so no renderer downstream can
+// display, compare, export or re-derive the truncated sum. Records and map
+// markers are untouched.
 function statsFor(which) {
-  return poiStatsInLens(visiblePoiPoints(), centerOf(which), radiusFor(which));
+  return LensExtractionBounds.applyMobilitySafety(
+    poiStatsInLens(visiblePoiPoints(), centerOf(which), radiusFor(which)),
+    mobilityEligibilityFor(which),
+  );
+}
+
+// One side of the Mobility count metric, as the halo/compare builders consume it.
+// `extraction` is the geographic evidence state; `sourceState` stays the layer's
+// availability/provenance state — the two are never merged.
+function mobilitySide(stats, sourceState) {
+  return { value: stats.mobility, sourceState, extraction: { state: stats.mobilityEvidence.extractionState } };
 }
 
 function heatStatsFor(which) {
@@ -2729,11 +2762,14 @@ function renderPedestrianMetric(p) {
 }
 
 function renderMix(s) {
+  const mobilityStatus = combinedStatus(layerStatus, ["bikes", "rail"]);
   const counts = { Museum: s.museum, Stay: s.stay, Bike: s.mobility, Info: s.info };
   const statuses = {
     Museum: layerStatus.museums,
     Stay: layerStatus.stays,
-    Bike: combinedStatus(layerStatus, ["bikes", "rail"]),
+    // "withheld" (geographic extraction) is not "unavailable" (source): the mix
+    // names it separately and leaves the category out of the denominator.
+    Bike: mobilityStatus !== "unavailable" && s.mobilityEvidence.withheld ? "withheld" : mobilityStatus,
     Info: layerStatus.info,
   };
   const mix = categoryMixState(counts, statuses);
@@ -2743,7 +2779,7 @@ function renderMix(s) {
     const pctEl = document.getElementById("pct" + k);
     if (row.na) {
       bar.style.width = "0%";
-      pctEl.textContent = "N/A";
+      pctEl.textContent = row.withheld ? "—" : "N/A";
     } else {
       bar.style.width = row.pct + "%";
       pctEl.textContent = row.pct + "%";
@@ -2828,7 +2864,7 @@ function renderCompare() {
   const liveMobilityStatus = combinedStatus(layerStatus, ["bikes", "rail"]);
   const tourismInput = ov?.tourism || { a: { value: a.tourism, sourceState: tourismStatus }, b: { value: b.tourism, sourceState: tourismStatus } };
   const stayInput = ov?.stays || { a: { value: a.stay, sourceState: stayStatus }, b: { value: b.stay, sourceState: stayStatus } };
-  const mobilityInput = ov?.mobility || { a: { value: a.mobility, sourceState: liveMobilityStatus }, b: { value: b.mobility, sourceState: liveMobilityStatus } };
+  const mobilityInput = ov?.mobility || { a: mobilitySide(a, liveMobilityStatus), b: mobilitySide(b, liveMobilityStatus) };
   const aoiState = ov?.aoiState ?? (radiusMode === "EQUAL_RADIUS" ? "not-required" : !aoiA || !aoiB || aoiA.state === "unavailable" || aoiB.state === "unavailable" ? "unavailable" : aoiA.eligible && aoiB.eligible ? "eligible" : aoiA.state === "outside" || aoiB.state === "outside" ? "outside" : "crosses");
   const comparison = buildHaloComparison({
     radiusMode, radii: { ...radii }, aoiState,
@@ -2869,7 +2905,8 @@ function renderCompare() {
   setComparisonRow("cmpMobility", mobilityState, "mobility");
   for (const side of ["A", "B"]) {
     const value = side === "A" ? mobilityState.aValue : mobilityState.bValue;
-    document.getElementById(`cmpMobility${side}`).textContent = value == null ? "Unavailable" : `${value} nodes\nr ${formatLensRadius(radiusFor(side))}`;
+    const withheld = side === "A" ? mobilityState.aWithheld : mobilityState.bWithheld;
+    document.getElementById(`cmpMobility${side}`).textContent = withheld ? `Withheld\nr ${formatLensRadius(radiusFor(side))}` : value == null ? "Unavailable" : `${value} nodes\nr ${formatLensRadius(radiusFor(side))}`;
   }
   // The Mobility relationship cell derives its withheld reason from the SAME
   // authoritative model the Comparison Bridge uses, so the two never disagree:
@@ -2878,7 +2915,7 @@ function renderCompare() {
   // mismatch, since no valid pair exists). Equal radii keep the existing numeric
   // / honest-unavailable cell.
   const mobilityView = buildComparisonBridgeModel({ metricId: "mobility", state: mobilityState, radiusMode, radii: { ...radii } });
-  document.getElementById("cmpMobility").textContent = radiusMode === "UNEQUAL_RADIUS"
+  document.getElementById("cmpMobility").textContent = radiusMode === "UNEQUAL_RADIUS" || mobilityState.id === "extraction-withheld"
     ? bridgeWithheldText(mobilityView.relationship.withheldReasonCode)
     : comparisonDeltaCell(mobilityState, "mobility");
   setComparisonRow("cmpPedestrian", pedestrianState, "pedestrian");
@@ -2888,6 +2925,12 @@ function renderCompare() {
   if (mobilityStatus !== "unavailable") {
     mobilityA.title = mobilityStatus === "snapshot" ? "Snapshot sample; not exhaustive" : mobilityStatus === "published" ? "Deployment snapshot" : "Live source";
     mobilityB.title = mobilityA.title;
+  }
+  // Geographic extraction disclosure: why a side is withheld, or what a shown
+  // value does and does not establish. Stays separate from the source title above.
+  for (const [side, cell, evidence] of [["A", mobilityA, a.mobilityEvidence], ["B", mobilityB, b.mobilityEvidence]]) {
+    if (ov?.mobility || mobilityStatus === "unavailable") continue;
+    cell.title = [cell.title, mobilityExtractionNote(evidence)].filter(Boolean).join(". ");
   }
   const pedestrianEvidence = pedestrianStatus === "unavailable"
     ? "Pedestrian source unavailable"
@@ -5570,19 +5613,42 @@ function shadeMarkersOutsideActiveLens() {
 // Renders one of the count metrics (tourism POIs, stays, mobility), honoring
 // the "unavailable" and "snapshot" states so a partial or missing layer is
 // never presented as if it were a complete, verified count.
-function renderCountMetric({ valueId, footId, value, status, liveFoot, publishedFoot, snapshotFoot, unavailableFoot }) {
+function renderCountMetric({ valueId, footId, value, status, liveFoot, publishedFoot, snapshotFoot, unavailableFoot, withheldFoot = null, note = "" }) {
   const v = document.getElementById(valueId);
   const f = document.getElementById(footId);
+  v.title = note;
+  f.title = note;
   if (status === "unavailable") {
     v.textContent = "No data";
     v.className = "metric-value abstain";
     f.textContent = unavailableFoot;
+  } else if (withheldFoot) {
+    // Geographically withheld: the source IS available, but this Lens extends
+    // beyond the area it was extracted for. Not "No data", and never a number.
+    v.textContent = "Withheld";
+    v.className = "metric-value abstain";
+    f.textContent = withheldFoot;
   } else {
     v.textContent = value;
     v.className = "metric-value";
     f.textContent =
       status === "snapshot" ? snapshotFoot : status === "published" ? publishedFoot : liveFoot;
   }
+}
+
+// Short, plain explanation shown on the Mobility card when the combined count is
+// withheld, and the disclosure for a count that is shown. ES strings live in
+// js/legacy-copy.js; the comparison panel and Bridge use the "reason" dictionaries.
+function mobilityWithheldFoot(extractionState) {
+  return extractionState === LensExtractionBounds.STATE.UNKNOWN
+    ? "Metro/Cercanías extraction area could not be verified"
+    : "Lens extends beyond the Metro/Cercanías extraction area";
+}
+function mobilityExtractionNote(evidence) {
+  if (!evidence) return "";
+  return evidence.withheld
+    ? "The combined Mobility count is withheld because Metro and Cercanías stations were queried only inside a central rectangle of Madrid and this Lens reaches outside it, so missing stations would read as zero."
+    : "Metro and Cercanías stations were queried only inside a central rectangle of Madrid. This Lens fits inside it, but completeness of the source within it is not verified.";
 }
 
 function refresh() {
@@ -5613,10 +5679,12 @@ function refresh() {
     footId: "mobilityFoot",
     value: s.mobility,
     status: combinedStatus(layerStatus, ["bikes", "rail"]),
-    liveFoot: "BiciMAD + rail stations in lens",
-    publishedFoot: "BiciMAD + CRTM deployment snapshot",
+    liveFoot: "BiciMAD + rail stations in lens · rail: queried central area",
+    publishedFoot: "BiciMAD + CRTM deployment snapshot · rail: queried central area",
     snapshotFoot: "partial mobility sample, not exhaustive",
     unavailableFoot: "some mobility sources unavailable",
+    withheldFoot: s.mobilityEvidence.withheld ? mobilityWithheldFoot(s.mobilityEvidence.extractionState) : null,
+    note: mobilityExtractionNote(s.mobilityEvidence),
   });
   // K11 (#73, no-recomputation invariant): heatStatsFor / pedestrianStatsFor /
   // categoryMixState are each evaluated ONCE here. The render functions return the
@@ -6833,9 +6901,10 @@ async function boot() {
   drawHatiStudyArea();
   hatiAssets.forEach((a) => addMarker(hatiPointFor(a, timestep)));
 
-  const { points, layerStatus: status } = await loadAllLayers(snapshotPOI, runtimePOI);
+  const { points, layerStatus: status, extraction } = await loadAllLayers(snapshotPOI, runtimePOI);
   poiPoints = points;
   layerStatus = status;
+  railExtractionRecord = extraction?.rail ?? null;
   deploymentPoiRecordsReady = true;
   renderDeploymentPoiCount();
 
@@ -8097,11 +8166,30 @@ function k11WithProvenance(value) {
   return { ...value, provenance: (value.source_ids || []).map(k11SourceProvenance) };
 }
 
+// The derived geographic-extraction eligibility that travels with every exported
+// combined Mobility reading, plus the exact boundary and its origin. It is a
+// disclosure of the query boundary, never a coverage claim: `completeness` stays
+// NOT_VERIFIED even for a circle inside the boundary.
+function k11MobilityExtractionBlock(states) {
+  const record = LensExtractionBounds.RAIL_EXTRACTION_RECORD;
+  return {
+    ...states,
+    contract_version: record.contract_version,
+    boundary_tolerance_m: LensExtractionBounds.BOUNDARY_TOLERANCE_M,
+    bounds: { ...record.bounds, crs: record.crs, kind: record.kind },
+    origin: record.origin,
+    is_coverage_evidence: false,
+    completeness: record.completeness,
+    limitation: "Metro and Cercanías stations were queried only inside this rectangle. A Lens circle not wholly inside it has its combined Mobility count withheld; inside it, completeness of the source is not verified.",
+  };
+}
+
 function k11LensValue(id, metric) {
   const meta = K11_LENS_METRIC_META[id] || { label: id, unit: null, sources: [] };
   const comparable = metric.comparable === true;
   const everythingNull = metric.aValue == null && metric.bValue == null && metric.aRawValue == null && metric.bRawValue == null;
-  const state = comparable ? "VALID" : everythingNull ? "UNAVAILABLE" : "WITHHELD";
+  const geoWithheld = Boolean(metric.aWithheld || metric.bWithheld);
+  const state = comparable ? "VALID" : geoWithheld ? "WITHHELD" : everythingNull ? "UNAVAILABLE" : "WITHHELD";
   return k11WithProvenance({
     id, label: meta.label, scope: "LENS_CIRCLE", unit: meta.unit, source_family: null,
     a_value: metric.aValue ?? null, b_value: metric.bValue ?? null, delta: metric.delta ?? null,
@@ -8110,6 +8198,9 @@ function k11LensValue(id, metric) {
     comparison_basis: comparable ? (metric.qualifier && /km²/.test(metric.qualifier) ? "REPRESENTED_DENSITY" : "RAW_COUNT") : null,
     withheld_reason: comparable ? undefined : metric.qualifier || null,
     source_ids: meta.sources,
+    ...(id === "mobility" && (metric.aExtraction !== undefined || metric.bExtraction !== undefined)
+      ? { extraction_eligibility: k11MobilityExtractionBlock({ a_state: metric.aExtraction ?? null, b_state: metric.bExtraction ?? null }) }
+      : {}),
   });
 }
 
@@ -8161,7 +8252,7 @@ function k11CapturePlaceReading(stats, frozen) {
     which: active,
     tourism: { value: stats.tourism, status: combinedStatus(layerStatus, ["museums", "info"]) },
     stay: { value: stats.stay, status: combinedStatus(layerStatus, ["stays"]) },
-    mobility: { value: stats.mobility, status: combinedStatus(layerStatus, ["bikes", "rail"]) },
+    mobility: { value: stats.mobility, status: combinedStatus(layerStatus, ["bikes", "rail"]), extraction: stats.mobilityEvidence },
     utci: { visible: isHatiVisible(), evidence: heat ? heat.evidence : "NONE", mean: heat && heat.evidence !== "NONE" ? heat.mean : null, count: heat ? heat.count : null, timestep },
     pedestrian: { visible: isPedestrianVisible(), status: pedestrianStatus, evidence: pedestrian ? pedestrian.evidence : "NONE", mean: pedestrian && pedestrian.evidence !== "NONE" ? pedestrian.meanObserved : null, stationCount: pedestrian ? pedestrian.stationCount : null },
   });
@@ -8185,12 +8276,19 @@ function k11PlaceValues(reading) {
   ];
   for (const descriptor of simple) {
     const { id, label, unit, cell, sources } = descriptor;
-    const state = countState(cell.status);
+    // A geographically withheld Mobility reading is WITHHELD (source available,
+    // Lens beyond the extraction area) — distinct from UNAVAILABLE and from a 0.
+    const geoWithheld = id === "mobility" && Boolean(cell.extraction && cell.extraction.withheld) && countState(cell.status) === "VALID";
+    const state = geoWithheld ? "WITHHELD" : countState(cell.status);
     values.push(k11WithProvenance({
       id, label, scope: "LENS_CIRCLE", unit, source_family: null,
       value: state === "VALID" ? cell.value ?? null : null,
       display: state === "VALID" ? k11Fmt(cell.value) : null,
       state, source_ids: sources,
+      ...(geoWithheld ? { withheld_reason: "geographic extraction bounds" } : {}),
+      ...(id === "mobility" && cell.extraction
+        ? { extraction_eligibility: k11MobilityExtractionBlock({ state: cell.extraction.extractionState, withheld: cell.extraction.withheld }) }
+        : {}),
     }));
   }
   if (reading.utci && reading.utci.visible) {
@@ -8558,6 +8656,11 @@ function k11SensitivityValues() {
       display: numeric ? spatialDeltaChangeText(item) : (item.transitionCode || null),
       state: numeric ? "VALID" : "INTERPRETIVE", comparison_basis: "WINDOW_SENSITIVITY",
       source_ids: metricSources[item.metricId] || [],
+      // A Mobility sensitivity reading depends on the Lens windows, so it states the
+      // extraction eligibility of the CURRENT (scenario) windows it was read from.
+      ...(item.metricId === "mobility" && typeof lastHaloComparison !== "undefined" && lastHaloComparison?.metrics?.mobility
+        ? { extraction_eligibility: k11MobilityExtractionBlock({ a_state: lastHaloComparison.metrics.mobility.aExtraction ?? null, b_state: lastHaloComparison.metrics.mobility.bExtraction ?? null, window: "CURRENT_SCENARIO" }) }
+        : {}),
     });
   });
 }

@@ -247,6 +247,9 @@ These are never conflated:
   represented records, not operating-stock density.
 - UTCI is a **bounded research pilot** (14 assets, one day); its bar and band are
   model-derived, not measured comfort, and carry the MODEL evidence marker.
+- A Lens circle not wholly inside the Metro/Cercanías extraction rectangle has no
+  Mobility value: its slot prints a dash ("withheld", not N/A, not zero) and no bar;
+  see `docs/DATA_PROVENANCE.md` § Rail extraction boundary.
 - Mobility counts BiciMAD docks + rail/metro stations (node presence), not trips
   or ridership. The halo mobility bar shows node **density**; this is a separate
   concept from the right-hand panel's analytical mobility B−A delta, which remains

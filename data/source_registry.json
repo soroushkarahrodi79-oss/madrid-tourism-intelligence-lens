@@ -203,6 +203,21 @@
       "expected_spatial_scope": "central_madrid_area",
       "source_period_exposed_by_source": false,
       "source_period_semantics": "Station layers as served by the CRTM feature services at the moment of retrieval.",
+      "extraction_bounds": {
+        "contract_version": "1.0.0",
+        "kind": "QUERY_ENVELOPE",
+        "crs": "EPSG:4326",
+        "west": -3.745,
+        "south": 40.385,
+        "east": -3.645,
+        "north": 40.455,
+        "boundary_tolerance_m": 100,
+        "origin": "CENTRAL_MADRID_ENVELOPE: the esriGeometryEnvelope parameter sent to the CRTM M4_Red and M5_Red feature services by scripts/build_runtime_poi.mjs and by the browser fallback in js/data.js. Defined once in js/extraction-bounds.js; status.rail.extraction in runtime_poi.json records the rectangle each build used.",
+        "is_coverage_evidence": false,
+        "completeness": "NOT_VERIFIED",
+        "use": "A Lens circle not wholly inside this rectangle has its combined Mobility count withheld, because stations outside it were never requested. A circle inside it establishes only that the query covered it, never that the source returned every station.",
+        "note": "An extraction query boundary. It is NOT the expected_spatial_scope integrity envelope (central_madrid_area), which only sanity-checks coordinates, and it is never evidence of complete source coverage."
+      },
       "unique_ids": true,
       "required_modes": {
         "field": "mode",
@@ -226,7 +241,7 @@
         "calibrated_on": "2026-09-29",
         "rationale": "~40% of the observed combined count, in addition to the per-mode floors above."
       },
-      "interpretation_ceiling": "Infrastructure presence. Not service frequency, capacity, step-free access or connectivity. Metro and Cercanias records at the same interchange are not deduplicated, and a station with several access points may appear more than once."
+      "interpretation_ceiling": "Infrastructure presence. Not service frequency, capacity, step-free access or connectivity. Metro and Cercanias records at the same interchange are not deduplicated, and a station with several access points may appear more than once. Stations were requested only inside the extraction rectangle recorded under extraction_bounds: a Lens circle that is not wholly inside it carries no combined Mobility count, and inside it completeness of the source is not verified."
     },
     {
       "id": "stay",

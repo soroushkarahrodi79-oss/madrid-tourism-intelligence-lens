@@ -268,7 +268,15 @@ Value states are first-class and never collapsed:
 - `VALID` with a numeric value — including a **published zero**, which is a real
   zero, not a missing value;
 - `WITHHELD` — a comparison the model declined, with `withheld_reason` (e.g.
-  different window sizes, cross-edition, multiple rows not combined);
+  different window sizes, cross-edition, multiple rows not combined) — or, for the
+  combined **Mobility** value, a count withheld because the Lens circle is not
+  wholly inside the Metro/Cercanías extraction rectangle (`geographic extraction
+  bounds`). That value carries `extraction_eligibility`: the derived state
+  (`WITHIN_`/`PARTIAL_`/`OUTSIDE_EXTRACTION_BOUNDS` or `EXTRACTION_BOUNDS_UNKNOWN`;
+  `a_state`/`b_state` in COMPARE), the exact rectangle with its origin and contract
+  version, `is_coverage_evidence: false` and `completeness: NOT_VERIFIED`, so even
+  a valid Mobility count states that completeness inside the rectangle is not
+  verified. `sources.json` and `README` carry the rail `extraction_bounds`;
 - `UNAVAILABLE` — a source that could not be read;
 - `INDETERMINATE` — a categorical pair where a side publishes no state.
 

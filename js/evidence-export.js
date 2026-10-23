@@ -88,6 +88,7 @@ const SOURCE_EXPORT_FIELDS = Object.freeze([
   "source_state",
   "source_period_semantics",
   "interpretation_ceiling",
+  "extraction_bounds",
   "license",
   "license_url",
   "attribution",
@@ -272,6 +273,12 @@ function buildReadmeText(projection, sourcesObject) {
     if (source.license) lines.push(`    licence: ${source.license}${source.license_url ? ` (${source.license_url})` : ""}`);
     if (source.attribution) lines.push(`    attribution: ${source.attribution}`);
     if (source.interpretation_ceiling) lines.push(`    interpretation ceiling: ${source.interpretation_ceiling}`);
+    // A query boundary, stated exactly as the registry records it. It is never a
+    // coverage claim: a reading inside it is not thereby complete.
+    if (source.extraction_bounds) {
+      const b = source.extraction_bounds;
+      lines.push(`    extraction boundary: W ${b.west}, S ${b.south}, E ${b.east}, N ${b.north} (${b.crs}) · ${b.kind} · contract ${b.contract_version} · completeness ${b.completeness}`);
+    }
     lines.push("");
   }
 

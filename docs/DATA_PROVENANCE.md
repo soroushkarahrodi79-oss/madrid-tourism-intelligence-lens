@@ -604,6 +604,35 @@ layers only inside the app's central-Madrid envelope
 the station mode and line metadata where provided. Metro and Cercanías must
 both load successfully for the combined rail layer to be marked available.
 
+#### Rail extraction boundary (F-01)
+
+That rectangle is an **extraction query boundary**: stations outside it were
+never requested. It is defined once, in `js/extraction-bounds.js`
+(`RAIL_EXTRACTION_BOUNDS`, contract `1.0.0`), and shared by
+`scripts/build_runtime_poi.mjs`, the browser fallback in `js/data.js`, the
+registry (`source_registry.json` → `rail.extraction_bounds`), the artefact
+(`runtime_poi.json` → `status.rail.extraction`, written by every build) and the
+Lens eligibility test. `scripts/validate_deployment.mjs` fails the build when the
+registry, the contract and the recorded rectangle disagree, or when the registry
+declares the boundary to be coverage evidence.
+
+It is **not** the `central_madrid_area` integrity envelope, which only
+sanity-checks coordinates, and it is **not** proof of complete source coverage. A
+Lens circle wholly inside it establishes only that the query covered the circle;
+completeness of the CRTM services inside it is not verified. Provenance of the
+rectangle: the `CENTRAL_MADRID_ENVELOPE` constant the app already used as its
+central-Madrid study window (40.385–40.455 N, −3.745…−3.645 E). It covers about
+11 % of the municipal area.
+
+The combined Mobility count (BiciMAD + rail) is therefore shown only for a Lens
+circle that fits inside the rectangle with a 100 m safety margin
+(`WITHIN_EXTRACTION_BOUNDS`); otherwise it is withheld
+(`PARTIAL_`/`OUTSIDE_EXTRACTION_BOUNDS`, or `EXTRACTION_BOUNDS_UNKNOWN` when the
+loaded artefact does not state the same rectangle). Withholding is a geographic
+state, distinct from source unavailability, the layer being OFF and an observed
+zero. BiciMAD, museums and tourist-information points are downloaded without a
+spatial filter and are unchanged.
+
 Every point returned to the UI carries an explicit provenance state. The
 left-hand layer panel distinguishes deployment snapshots, small curated
 fallback samples, live-only fallback results, and unavailable layers. The UI
