@@ -15,6 +15,13 @@ export const APPROVED_INDICATOR_IDS = Object.freeze([
   "core_hospitality_premises_per_1000_residents",
 ]);
 
+// Cartographic HOLD (docs/HOSPITALITY_CHOROPLETH_HOLD.md). The administrative
+// values, barrio selection and context card are unaffected; only the
+// value-driven polygon FILL and its min–max gradient legend are suspended, because
+// no indicator has passed the fill method gate (denominator/area bias, class
+// breaks, legend, misinterpretation review). Flip only after that review.
+export const VALUE_FILL_ENABLED = false;
+
 export const HOSPITALITY_DICTIONARIES = Object.freeze({
   es: Object.freeze({
     layerName: "Contexto de hostelería y actividad comercial",
@@ -38,6 +45,7 @@ export const HOSPITALITY_DICTIONARIES = Object.freeze({
     methodologyLink: "Metodología completa",
     selectorHint: "Polígonos oficiales de barrio · el clic mueve el Lens activo y fija el contexto del barrio",
     hoverHint: "Seleccione un barrio para fijar este contexto administrativo.",
+    fillHold: "Los barrios no se colorean por valor: el mapa coroplético está en suspenso hasta una revisión metodológica. Consulte el valor en el contexto administrativo.",
     municipalityHint: "Total del municipio; los registros sin barrio se conservan cuando corresponde.",
     countHint: "Recuento administrativo de locales documentados; no acredita funcionamiento actual.",
     sourceCountHint: "Locales documentados tras las exclusiones expresas de la fuente; no son negocios activos verificados.",
@@ -79,6 +87,7 @@ export const HOSPITALITY_DICTIONARIES = Object.freeze({
     methodologyLink: "Full methodology",
     selectorHint: "Official barrio polygons · click moves the active Lens and selects that barrio context",
     hoverHint: "Select a barrio to hold this administrative context.",
+    fillHold: "Barrios are not shaded by value: the choropleth is on hold pending a methodological review. Read the value in the administrative context.",
     municipalityHint: "Municipality total; records without a barrio remain included where applicable.",
     countHint: "Administrative count of documented premises; not evidence of current operation.",
     sourceCountHint: "Documented premises after the source's explicit exclusions; not verified active businesses.",
@@ -224,4 +233,12 @@ export function normalizedMetricValue(value, domain) {
   if (!Number.isFinite(value) || !domain) return null;
   if (domain.max === domain.min) return 0.5;
   return Math.max(0, Math.min(1, (value - domain.min) / (domain.max - domain.min)));
+}
+
+// Value-driven fill intensity in [0, 1], or null when the fill is suspended or
+// the value is unavailable. The ONLY path from an indicator value to a polygon
+// fill; callers must treat null as "no fill".
+export function fillIntensity(value, domain) {
+  if (!VALUE_FILL_ENABLED) return null;
+  return normalizedMetricValue(value, domain);
 }
