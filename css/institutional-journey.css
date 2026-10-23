@@ -1,0 +1,16 @@
+/* Institutional Decision Journey V1. Loaded only for ?journey=yeserias. This
+   is an inline reading aid inside the existing panel, never a map overlay. */
+.institutional-journey{margin:var(--s-2) 0 var(--s-3);padding:var(--s-3);border:1px solid var(--chrome-drawer-border);border-radius:var(--r-small);background:var(--chrome-drawer-share-surface);box-shadow:inset 3px 0 0 var(--chrome-focus-ring-color)}
+.institutional-journey-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-2)}
+.institutional-journey-eyebrow,.institutional-journey-progress{display:block;color:var(--chrome-text-brand-subtle);font-size:var(--t-micro);font-weight:750;letter-spacing:.08em;text-transform:uppercase}
+.institutional-journey-progress{margin-top:var(--s-1);color:var(--muted);letter-spacing:.04em}
+.institutional-journey h2{margin:var(--s-2) 0 var(--s-1);font-size:var(--t-figure);line-height:1.25;color:var(--text)}
+.institutional-journey>p{margin:0;color:var(--muted);font-size:var(--t-body);line-height:1.5}
+.institutional-journey .institutional-journey-scope{margin-top:var(--s-2);padding:var(--s-2);border-left:3px solid #c9a24a;background:var(--chrome-drawer-neutral-surface);color:var(--text);font-size:var(--t-meta)}
+.institutional-journey-close{width:44px;height:44px;flex:0 0 44px;border:1px solid var(--chrome-drawer-border);border-radius:var(--r-small);background:transparent;color:var(--text);font:inherit;font-size:var(--t-title);cursor:pointer}
+.institutional-journey-actions{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-2);margin-top:var(--s-3)}
+.institutional-journey-actions button{min-height:44px;padding:var(--s-2) var(--s-3);border:1px solid var(--chrome-drawer-border);border-radius:var(--r-small);font:inherit;font-size:var(--t-meta);font-weight:680;cursor:pointer}
+.institutional-journey-primary{margin-left:auto;background:#123b5f;color:#fff}
+.institutional-journey-secondary{background:transparent;color:var(--text)}
+.institutional-journey-actions button:focus-visible,.institutional-journey-close:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
+@media(max-width:560px){.institutional-journey{margin-top:var(--s-1);padding:var(--s-2)}.institutional-journey-actions{display:grid;grid-template-columns:1fr 1fr}.institutional-journey-actions button{width:100%;padding-inline:var(--s-2)}.institutional-journey-primary{margin-left:0}.institutional-journey-evidence:not([hidden]){grid-column:1/-1}}
