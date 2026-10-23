@@ -161,6 +161,64 @@ test("map +/- and attribution geometry stay legible across mobile, iPad and lapt
   }
 });
 
+test("left rail section headings keep 16px spacing across desktop, iPad and phone layouts", async (t) => {
+  const headerScenarios = [
+    { width: 1440, height: 900, touch: false, locale: "en" },
+    { width: 1180, height: 820, touch: true, locale: "es" },
+    { width: 390, height: 844, touch: true, locale: "en" },
+  ];
+  for (const s of headerScenarios) {
+    await t.test(s.width + "x" + s.height + " " + s.locale, async () => {
+      const { context, page } = await openApp(s);
+      try {
+        if (s.width <= 560) await page.locator("#mobileLayersButton").click();
+        const operational = page.locator('.rail-group[data-rail-group="operational"]');
+        if (!(await operational.evaluate((node) => node.open))) {
+          await operational.locator("summary").first().click();
+        }
+        const layout = await page.evaluate(() => {
+          const rail = document.querySelector("#layerRail");
+          const railBox = rail.getBoundingClientRect();
+          return [...document.querySelectorAll("#layerRail .rail-group > summary")].map((summary) => {
+            const style = getComputedStyle(summary);
+            const heading = summary.querySelector(".rail-group-copy");
+            const summaryBox = summary.getBoundingClientRect();
+            const headingBox = heading.getBoundingClientRect();
+            return {
+              group: summary.parentElement.dataset.railGroup,
+              text: heading.textContent.trim(),
+              paddingLeft: style.paddingLeft,
+              paddingRight: style.paddingRight,
+              background: style.backgroundColor,
+              summaryLeft: summaryBox.left,
+              summaryRight: summaryBox.right,
+              headingLeft: headingBox.left,
+              railLeft: railBox.left,
+              railRight: railBox.right,
+              headingOverflows: heading.scrollWidth > heading.clientWidth + 1 || heading.scrollHeight > heading.clientHeight + 1,
+              summaryOverflows: summary.scrollWidth > summary.clientWidth + 1 || summary.scrollHeight > summary.clientHeight + 1,
+            };
+          });
+        });
+        assert.equal(layout.length, 6, "all left rail section headers remain present");
+        for (const header of layout) {
+          assert.equal(header.paddingLeft, "16px", `${header.group} has 16px left padding`);
+          assert.equal(header.paddingRight, "16px", `${header.group} has 16px right padding`);
+          assert.ok(header.headingLeft - header.summaryLeft >= 15.5, `${header.group} text sits inside its background`);
+          assert.ok(header.summaryLeft >= header.railLeft && header.summaryRight <= header.railRight, `${header.group} background stays within the rail`);
+          assert.equal(header.headingOverflows, false, `${header.group} heading text does not overflow`);
+          assert.equal(header.summaryOverflows, false, `${header.group} header contents do not overflow`);
+        }
+        const operationalHeader = layout.find((header) => header.group === "operational");
+        assert.equal(operationalHeader.background, "rgb(232, 241, 248)", "the light blue open-group background remains in place");
+        assert.equal(await page.locator('[data-i18n="aside.layers"]').textContent(), s.locale === "es" ? "Capas operativas" : "Operational layers");
+        assert.equal(await page.locator('[data-i18n="aside.map"]').textContent(), s.locale === "es" ? "Visualización del mapa" : "Map display");
+      } finally {
+        await context.close();
+      }
+    });
+  }
+});
 test("real Leaflet zoom actions remain functional after centering fix", async () => {
   const { context, page } = await openApp({ width: 390, height: 844, touch: true, locale: "en" });
   try {

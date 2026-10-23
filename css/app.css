@@ -185,7 +185,7 @@ header{
 .left h3~h3{margin-top:var(--s-3)}
 .rail-group{margin:0;border:0}
 .rail-group+.rail-group{margin-top:var(--s-3)}
-.rail-group>summary{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--s-2);min-height:22px;margin:0 0 var(--s-2);color:var(--chrome-text-section);cursor:default;list-style:none}
+.rail-group>summary{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--s-2);min-height:22px;margin:0 0 var(--s-2);padding:0 var(--s-4);color:var(--chrome-text-section);cursor:default;list-style:none}
 .rail-group>summary::-webkit-details-marker{display:none}
 .rail-group>summary:before{display:none}
 .rail-group-copy{grid-column:1;grid-row:1;min-width:0;font-size:var(--t-micro);font-weight:650;letter-spacing:.12em;line-height:1.25;text-transform:uppercase}
@@ -972,7 +972,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .brand{padding:var(--s-2) var(--s-3);max-width:100%;min-width:0}.brand>div:last-child{min-width:0}.brand-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.brand-sub{}
   .left{left:calc(10px + var(--safe-left));top:calc(73px + var(--safe-top));width:min(240px,calc(100vw - 72px - var(--safe-left) - var(--safe-right)));padding:var(--s-2);max-height:min(52vh,430px);max-height:min(52dvh,430px);overflow:auto}
   .rail-group+.rail-group{margin-top:var(--s-1)}
-  .rail-group>summary{grid-template-columns:1fr;grid-template-rows:auto auto;gap:0;min-height:44px;margin:0;padding:var(--s-1) var(--s-2);border:1px solid rgba(255,255,255,.08);border-radius:var(--r-small);background:rgba(255,255,255,.025);cursor:pointer}
+  .rail-group>summary{grid-template-columns:1fr;grid-template-rows:auto auto;gap:0;min-height:44px;margin:0;padding:var(--s-1) var(--s-4);border:1px solid rgba(255,255,255,.08);border-radius:var(--r-small);background:rgba(255,255,255,.025);cursor:pointer}
   .rail-group>summary:before{display:none}
   .rail-group-copy{grid-column:1;grid-row:1;padding-left:0;letter-spacing:.08em}
   .rail-group-badge{display:inline-block;grid-column:1;grid-row:2;justify-self:start;max-width:none;padding:0 var(--s-1)}
