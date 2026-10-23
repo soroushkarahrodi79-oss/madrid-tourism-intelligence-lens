@@ -112,6 +112,17 @@ for (const viewport of VIEWPORTS) {
             viewportWidth: innerWidth,
             documentWidth: document.documentElement.scrollWidth,
             panel: box(panel),
+            panelOverflow: [...panel.querySelectorAll("*")]
+              .filter((node) => node.getClientRects().length && node.scrollWidth > node.clientWidth + 1)
+              .map((node) => ({
+                tag: node.tagName,
+                id: node.id,
+                className: typeof node.className === "string" ? node.className : "",
+                width: node.clientWidth,
+                scrollWidth: node.scrollWidth,
+                right: Math.round(node.getBoundingClientRect().right * 10) / 10,
+                text: (node.innerText || "").trim().slice(0, 100),
+              })),
             area: box(area),
             planning: box(planning),
             summary: { visible: getComputedStyle(summary).display !== "none", ...box(summary) },
@@ -153,7 +164,7 @@ for (const viewport of VIEWPORTS) {
         assert.equal(view.language, language);
         assert.ok(view.documentWidth <= view.viewportWidth + 1, `${viewport.name}/${appearance}/${language}: no page-level horizontal overflow`);
         for (const [name, bounds] of [["panel", view.panel], ["area", view.area], ["planning", view.planning]]) {
-          assert.ok(bounds.scrollWidth <= bounds.width + 1, `${viewport.name}/${appearance}/${language}: ${name} has no horizontal overflow (${JSON.stringify(bounds)})`);
+          assert.ok(bounds.scrollWidth <= bounds.width + 1, `${viewport.name}/${appearance}/${language}: ${name} has no horizontal overflow (${JSON.stringify(bounds)}; panel overflow nodes=${JSON.stringify(view.panelOverflow)})`);
         }
         assert.equal(view.summary.visible, viewport.width <= 850, "the existing responsive circle-summary visibility is unchanged");
         assert.match(view.circleRadius, /900 m (radius|de radio)/i);

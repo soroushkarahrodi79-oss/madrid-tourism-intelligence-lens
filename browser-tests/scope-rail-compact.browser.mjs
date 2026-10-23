@@ -87,6 +87,17 @@ async function railSnapshot(page) {
     return {
       document: { width: innerWidth, scrollWidth: document.documentElement.scrollWidth },
       panel: bounds(panel),
+      panelOverflow: [...panel.querySelectorAll("*")]
+        .filter((node) => node.getClientRects().length && node.scrollWidth > node.clientWidth + 1)
+        .map((node) => ({
+          tag: node.tagName,
+          id: node.id,
+          className: typeof node.className === "string" ? node.className : "",
+          width: node.clientWidth,
+          scrollWidth: node.scrollWidth,
+          right: Math.round(node.getBoundingClientRect().right * 10) / 10,
+          text: (node.innerText || "").trim().slice(0, 100),
+        })),
       rail: bounds(rail),
       list: bounds(list),
       aria: rail.getAttribute("aria-label"),
@@ -130,7 +141,7 @@ for (const viewport of VIEWPORTS) {
         assert.equal(await page.locator("#scopeRail").isVisible(), true);
         assert.ok(rail.document.scrollWidth <= rail.document.width + 1, `${appearance}/${language}: no document overflow`);
         for (const name of ["panel", "rail", "list"]) {
-          assert.ok(rail[name].scrollWidth <= rail[name].width + 1, `${appearance}/${language}: ${name} fits (${JSON.stringify(rail[name])})`);
+          assert.ok(rail[name].scrollWidth <= rail[name].width + 1, `${appearance}/${language}: ${name} fits (${JSON.stringify(rail[name])}; panel overflow nodes=${JSON.stringify(rail.panelOverflow)})`);
         }
         assert.equal(rail.aria, language === "es"
           ? "Alcance y fecha de referencia de la evidencia en pantalla"
