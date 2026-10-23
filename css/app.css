@@ -282,7 +282,8 @@ header{
   height:var(--analysis-panel-height,min(720px,calc(100vh - 108px - var(--safe-top) - var(--safe-bottom))));
   height:var(--analysis-panel-height,min(720px,calc(100dvh - 108px - var(--safe-top) - var(--safe-bottom))));
   min-height:360px;max-height:calc(100vh - 108px - var(--safe-top) - var(--safe-bottom));max-height:calc(100dvh - 108px - var(--safe-top) - var(--safe-bottom));
-  overflow:auto;overscroll-behavior:contain;padding:var(--s-4);border:1px solid var(--chrome-border);border-radius:var(--r-large);background:var(--chrome-panel-surface);
+  /* Mode switching moves the area section and restores an app-owned scrollTop. */
+  overflow:auto;overflow-anchor:none;overscroll-behavior:contain;padding:var(--s-4);border:1px solid var(--chrome-border);border-radius:var(--r-large);background:var(--chrome-panel-surface);
   backdrop-filter:blur(22px);box-shadow:0 18px 55px rgba(0,0,0,.38)
 }
 /* Fixed to the visible panel corner by JS. The 28px visual is quieter than
