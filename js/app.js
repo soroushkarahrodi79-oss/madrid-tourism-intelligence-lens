@@ -67,7 +67,13 @@ try {
   if (typeof parseEvidenceState === "function" && /[?&]v=/.test(K11_ORIGINAL_SEARCH)) {
     k11InitialRestore = parseEvidenceState(K11_ORIGINAL_SEARCH, { snapshotId: K11_SNAPSHOT_ID });
     const initialLanguage = k11InitialRestore && k11InitialRestore.state && k11InitialRestore.state.language;
-    if (initialLanguage) document.documentElement.setAttribute("lang", initialLanguage);
+    if (initialLanguage) {
+      document.documentElement.setAttribute("lang", initialLanguage);
+      // The document and native selector are both initialised before the first
+      // shell render; a versioned K11 link has precedence over plain lang=.
+      const select = document.getElementById("languageSelect");
+      if (select) select.value = initialLanguage;
+    }
   }
 } catch (error) {
   k11InitialRestore = null;
@@ -7699,9 +7705,14 @@ function k11ApplyRestorePhase1() {
   const s = result.state || {};
   k11.suppress = true;
   try {
-    if (s.language && s.language !== shellLanguage()) {
+    // Phase-0 may already set <html lang> while a native selector or shell
+    // remains stale. Check BOTH values before deciding whether to synchronize.
+    if (s.language) {
       const sel = document.getElementById("languageSelect");
-      if (sel) { sel.value = s.language; if (typeof sel.onchange === "function") sel.onchange({ target: sel }); }
+      if (sel && (sel.value !== s.language || shellLanguage() !== s.language)) {
+        sel.value = s.language;
+        if (typeof sel.onchange === "function") sel.onchange({ target: sel });
+      }
     }
     if (s.mode && shell.modes) shell.modes.setMode(s.mode);
     if (s.lensBEnabled === true && !bEnabled) enableLensB();
