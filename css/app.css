@@ -266,6 +266,7 @@ header{
 .hospitality-controls select option{background:#0c1826;color:#d9e4ef}
 .hospitality-controls select:focus-visible{outline:0}
 .language-control select:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
+.hospitality-scale[hidden]{display:none}
 .hospitality-scale{height:6px;margin-top:var(--s-2);border-radius:999px;background:linear-gradient(90deg,rgba(208,140,255,.12),#d08cff);position:relative}
 .hospitality-scale:before,.hospitality-scale:after{position:absolute;top:8px;font-size:var(--t-micro);color:#8296ac;font-variant-numeric:tabular-nums}
 .hospitality-scale:before{content:attr(data-min);left:0}.hospitality-scale:after{content:attr(data-max);right:0}
@@ -626,9 +627,10 @@ header{
    Lens hue, and never a hue that encodes a phase. */
 .admin-active-pane .planning-ambito-label,.planning-ambito-label{background:rgba(8,16,27,.9);border:1px solid var(--planning-neutral);color:#e6eef8;font-size:var(--t-micro);letter-spacing:.05em}
 
-/* Hospitality & Commercial is a selectable administrative choropleth. Its
-   card is text-complete without the fill, and its purple scale deliberately
-   avoids evaluative red/amber/green semantics. */
+/* Hospitality & Commercial is a selectable administrative barrio layer. Its
+   value-driven fill is suspended (the hospitality fill-hold doc); the
+   card is text-complete without it, and any future purple scale must keep
+   avoiding evaluative red/amber/green semantics. */
 /* Granted urban licences (K9, #71). Opt-in ADDRESS_POINT register rendered in a
    reserved administrative-neutral hue, visually distinct from the Lens A/B
    identities and from the planning-neutral ámbito. Three per-family figures are

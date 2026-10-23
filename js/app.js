@@ -1708,6 +1708,27 @@ if (haloRegressionRequested && haloRegressionLocal) {
         sampleBarrio,
       };
     },
+    // Cartographic-HOLD seam: the fill actually applied to every barrio polygon.
+    hospitalityFillSnapshot() {
+      const fills = [];
+      if (hospitalityLayer) {
+        hospitalityLayer.eachLayer((layer) => {
+          fills.push({
+            id: String(layer.feature?.properties?.official_id),
+            fillOpacity: layer.options.fillOpacity,
+            fillColor: layer.options.fillColor,
+          });
+        });
+      }
+      const scale = document.getElementById("hospitalityScale");
+      return {
+        fills,
+        scaleHidden: scale ? scale.hidden : null,
+        scaleMin: scale ? scale.dataset.min ?? null : null,
+        scaleMax: scale ? scale.dataset.max ?? null : null,
+        holdNoticeHidden: document.getElementById("hospitalityFillHold")?.hidden ?? null,
+      };
+    },
     setZoom(zoom) {
       map.setZoom(Number(zoom), { animate: false });
     },
@@ -4902,7 +4923,8 @@ async function loadAreaContext() {
 }
 
 // ------------------------------------------------ Hospitality & Commercial
-// One administrative choropleth, one selected metric and one compact context
+// One administrative barrio selector (value-driven fill suspended — see
+// the hospitality fill-hold doc), one selected metric and one compact context
 // card. This surface never receives a Lens coordinate or radius and never
 // participates in A/B calculations; only canonical official IDs reach it.
 const hospitalityModel = { module: null, i18n: null, index: null };
@@ -4946,15 +4968,18 @@ function hospitalityFeatureStyle(feature) {
   const row = hospitalityModel.index?.barrio.get(String(feature?.properties?.official_id));
   const value = row?.indicators?.[hospitalityMetric];
   const domain = hospitalityModel.index ? module.metricDomain(hospitalityModel.index, hospitalityMetric) : null;
-  const normalized = module?.normalizedMetricValue(value, domain);
+  // Cartographic HOLD: fillIntensity is null while the value fill is suspended,
+  // so no indicator value can reach a polygon fill.
+  const normalized = module?.fillIntensity(value, domain);
+  const filled = normalized != null;
   const palette = hospitalityPalette();
   const selected = String(feature?.properties?.official_id) === hospitalitySelectedBarrio;
   return {
     color: selected ? palette.selected : palette.stroke,
     weight: selected ? 2.6 : 0.8,
     opacity: selected ? 1 : 0.72,
-    fillColor: normalized == null ? "#8794a2" : `hsl(276 78% ${80 - normalized * 38}%)`,
-    fillOpacity: normalized == null ? 0.18 : palette.opacity,
+    fillColor: filled ? `hsl(276 78% ${80 - normalized * 38}%)` : "#8794a2",
+    fillOpacity: filled ? palette.opacity : 0,
     lineJoin: "round",
     className: selected ? "hospitality-barrio-selected" : "",
   };
@@ -5026,6 +5051,14 @@ hospitalityStyleController = applyHospitalityStyles;
 function renderHospitalityScale() {
   const scale = document.getElementById("hospitalityScale");
   if (!scale || !hospitalityModel.index || !hospitalityModel.module) return;
+  // Without a value-driven fill there is nothing for a min–max legend to explain.
+  scale.hidden = !hospitalityModel.module.VALUE_FILL_ENABLED;
+  if (scale.hidden) {
+    delete scale.dataset.min;
+    delete scale.dataset.max;
+    scale.removeAttribute("aria-label");
+    return;
+  }
   const domain = hospitalityModel.module.metricDomain(hospitalityModel.index, hospitalityMetric);
   const language = hospitalityModel.i18n.language;
   scale.dataset.min = hospitalityModel.module.formatMetricValue(hospitalityMetric, domain?.min, language) || "—";
@@ -5049,6 +5082,9 @@ function applyHospitalityCopy() {
   setText("hospitalitySourceLabel", hospitalityT("source"));
   setText("hospitalityPopulationLabel", hospitalityT("population"));
   setText("hospitalitySelectorHint", hospitalityT("selectorHint"));
+  setText("hospitalityFillHold", hospitalityT("fillHold"));
+  const fillHold = document.getElementById("hospitalityFillHold");
+  if (fillHold) fillHold.hidden = module.VALUE_FILL_ENABLED;
   setText("hospitalityMethodologyLink", hospitalityT("methodologyLink"));
   const toggle = document.getElementById("hospitalityToggle");
   toggle.setAttribute("aria-label", hospitalityT("layerToggle"));

@@ -13,6 +13,8 @@ import {
   metricDomain,
   normalizedMetricValue,
   validateHospitalityArtifact,
+  VALUE_FILL_ENABLED,
+  fillIntensity,
 } from "../js/hospitality-context.js";
 import { createI18n } from "../js/i18n.js";
 
@@ -163,4 +165,43 @@ test("existing accommodation catalogue remains a separate layer", () => {
   assert.match(html, /data-layer="hospitality"/);
   assert.notEqual(html.indexOf('data-layer="stay"'), html.indexOf('data-layer="hospitality"'));
   assert.doesNotMatch(appSource, /groups\.stay\s*=\s*.*hospitality|groups\.hospitality\s*=\s*groups\.stay/);
+});
+
+// Cartographic HOLD: unsupported choropleth fills must not silently return.
+test("choropleth fill is suspended and no indicator value can produce a fill", () => {
+  assert.equal(VALUE_FILL_ENABLED, false);
+  const index = createHospitalityIndex(artifact);
+  for (const id of APPROVED_INDICATOR_IDS) {
+    const domain = metricDomain(index, id);
+    for (const row of index.barrio.values()) {
+      assert.equal(fillIntensity(row.indicators[id], domain), null, id);
+    }
+  }
+});
+
+test("administrative data is preserved while the fill is on hold", () => {
+  const index = createHospitalityIndex(artifact);
+  assert.equal(index.barrio.size, 131);
+  for (const id of APPROVED_INDICATOR_IDS) {
+    assert.ok(Number.isFinite(metricDomain(index, id).max), id);
+  }
+});
+
+test("app routes every polygon fill through fillIntensity, never the raw normalizer", () => {
+  assert.doesNotMatch(appSource, /module\??\.normalizedMetricValue\(/);
+  assert.match(appSource, /module\?\.fillIntensity\(value, domain\)/);
+  assert.match(appSource, /fillOpacity: filled \? palette\.opacity : 0/);
+});
+
+test("hold notice exists in ES and EN and the HOLD doc states reactivation conditions", () => {
+  assert.match(HOSPITALITY_DICTIONARIES.es.fillHold, /suspenso/);
+  assert.match(HOSPITALITY_DICTIONARIES.en.fillHold, /on hold/);
+  assert.match(html, /id="hospitalityScale"[^>]*\shidden/);
+  const doc = fs.readFileSync(
+    fileURLToPath(new URL("../docs/HOSPITALITY_CHOROPLETH_HOLD.md", import.meta.url)),
+    "utf8"
+  );
+  for (const topic of ["denominator", "comparability", "Class breaks", "legend", "Misinterpretation", "Source limitations"]) {
+    assert.match(doc, new RegExp(topic, "i"), topic);
+  }
 });
