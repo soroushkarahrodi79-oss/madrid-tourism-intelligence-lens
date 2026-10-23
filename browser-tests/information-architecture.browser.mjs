@@ -130,10 +130,15 @@ test("P2 mode changes preserve an independent panel scroll position per mode", a
   assert.ok(compareScroll > 200);
   await switchWithoutAutomationScroll("CITY");
   assert.equal(await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop), 0);
+  await page.locator("#analysisPanel").evaluate((panel) => { panel.scrollTop = 260; });
+  const cityScroll = await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop);
+  assert.ok(cityScroll > 200);
   await switchWithoutAutomationScroll("COMPARE");
   assert.equal(await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop), compareScroll);
   await switchWithoutAutomationScroll("PLACE");
   assert.equal(await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop), placeScroll);
+  await switchWithoutAutomationScroll("CITY");
+  assert.equal(await page.locator("#analysisPanel").evaluate((panel) => panel.scrollTop), cityScroll);
 });
 
 test("P2 Comparison Bridge exposes the four canonical metrics to touch and keyboard", async (t) => {
