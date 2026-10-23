@@ -19,11 +19,11 @@ const port = server.address().port;
 const browser = await chromium.launch({ headless: true });
 const CASE_QUERY = "journey=yeserias&v=1&m=PLACE&a=40.395543,-3.691757,900&be=0&al=A&ly=museum.info.stay.bike.rail&sc=LENS&rd=citizen&lg=es&lang=es&haloRegressionTest=1";
 
-async function open(viewport, colorScheme = "light") {
+async function open(viewport, colorScheme = "light", query = CASE_QUERY) {
   const context = await browser.newContext({ viewport, colorScheme });
   const page = await context.newPage(); page.setDefaultTimeout(20000);
   await page.route("**/*", (route) => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
-  await page.goto(`http://127.0.0.1:${port}/?${CASE_QUERY}`, { waitUntil: "domcontentloaded" });
+  await page.goto(`http://127.0.0.1:${port}/?${query}`, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => window.__HALO_REGRESSION__?.planning()?.code === "APE.02.20");
   return { page, context };
 }
@@ -43,6 +43,7 @@ test("the complete institutional journey uses PLACE, official evidence, compatib
   assert.equal(await page.locator("#institutionalJourney").getAttribute("data-step"), "2");
 
   await page.locator("#institutionalJourneyNext").click();
+  assert.equal(await page.locator('[data-layer="licences"]').isChecked(), false, "journey-owned markers disappear during the ámbito comparison");
   await page.waitForFunction(() => window.__HALO_REGRESSION__.ambitoState().bodyHidden === false);
   const comparison = await page.evaluate(() => window.__HALO_REGRESSION__.ambitoState());
   assert.equal(comparison.scope, "AMBITO");
@@ -85,6 +86,77 @@ for (const fixture of [
   await page.locator("#institutionalJourneyNext").focus();
   await page.keyboard.press("Enter");
   assert.equal(await page.locator("#institutionalJourney").getAttribute("data-step"), "2");
+});
+
+
+// K11's versioned language has precedence even over a contradictory plain
+// lang= entry. The native selector, shell and journey must agree at first paint
+// and after the user changes language.
+for (const lang of ["es", "en"]) test(`versioned ${lang} case entry synchronizes document, selector and UI`, async (t) => {
+  const params = new URLSearchParams(CASE_QUERY);
+  params.set("lg", lang);
+  params.set("lang", lang === "es" ? "en" : "es");
+  const { page, context } = await open({ width: 1024, height: 768 }, "light", params.toString());
+  t.after(() => context.close());
+  await page.waitForFunction(() => window.__HALO_REGRESSION__?.k11Restored());
+  const initialShell = lang === "es" ? "Capas operativas" : "Operational layers";
+  const initialJourney = lang === "es" ? /registros oficiales/i : /official records/i;
+  assert.equal(await page.locator("html").getAttribute("lang"), lang);
+  assert.equal(await page.locator("#languageSelect").inputValue(), lang);
+  assert.equal(await page.locator('[data-i18n="aside.layers"]').textContent(), initialShell);
+  assert.match(await page.locator("#institutionalJourneyTitle").textContent(), initialJourney);
+
+  const switched = lang === "es" ? "en" : "es";
+  await page.selectOption("#languageSelect", switched);
+  assert.equal(await page.locator("html").getAttribute("lang"), switched);
+  assert.equal(await page.locator("#languageSelect").inputValue(), switched);
+  assert.equal(await page.locator('[data-i18n="aside.layers"]').textContent(), switched === "es" ? "Capas operativas" : "Operational layers");
+  assert.match(await page.locator("#institutionalJourneyTitle").textContent(), switched === "es" ? /registros oficiales/i : /official records/i);
+});
+
+// User-controlled switches are never reset just because the guided experience
+// reaches COMPARE or ends. Explicit user changes override journey automation.
+test("journey respects manual licence opt-in before the evidence step", async (t) => {
+  const { page, context } = await open({ width: 1280, height: 900 }); t.after(() => context.close());
+  await page.waitForFunction(() => window.__HALO_REGRESSION__?.k11Restored());
+  assert.equal(await page.locator('[data-layer="licences"]').isChecked(), false);
+  await page.locator('[data-layer="licences"]').evaluate((input) => input.click());
+  assert.equal(await page.locator('[data-layer="licences"]').isChecked(), true);
+  await page.locator("#institutionalJourneyNext").click();
+  await page.locator("#institutionalJourneyNext").click();
+  assert.equal(await page.locator('[data-layer="licences"]').isChecked(), true, "user-enabled overlay stays on in COMPARE");
+  await page.locator("#institutionalJourneyClose").click();
+  assert.equal(await page.locator('[data-layer="licences"]').isChecked(), true, "user-enabled overlay survives exit");
+});
+
+test("journey restores only its own licence layer on Back and leaves user re-enables alone", async (t) => {
+  const { page, context } = await open({ width: 1280, height: 900 }); t.after(() => context.close());
+  await page.waitForFunction(() => window.__HALO_REGRESSION__?.k11Restored());
+  await page.locator("#institutionalJourneyNext").click();
+  assert.equal(await page.locator('[data-layer="licences"]').isChecked(), true);
+  await page.locator("#institutionalJourneyNext").click();
+  assert.equal(await page.locator('[data-layer="licences"]').isChecked(), false);
+  await page.locator("#institutionalJourneyBack").click();
+  assert.equal(await page.locator('[data-layer="licences"]').isChecked(), true, "Back reopens the guide-managed layer");
+  await page.locator("#institutionalJourneyNext").click();
+  assert.equal(await page.locator('[data-layer="licences"]').isChecked(), false);
+  await page.locator('[data-layer="licences"]').evaluate((input) => input.click());
+  await page.locator("#institutionalJourneyClose").click();
+  assert.equal(await page.locator('[data-layer="licences"]').isChecked(), true, "manual re-enable must survive closing the guide");
+});
+
+test("journey leaves a licence layer enabled by the shared reading unchanged", async (t) => {
+  const params = new URLSearchParams(CASE_QUERY);
+  params.set("ly", "museum.info.stay.bike.rail.licences");
+  const { page, context } = await open({ width: 1280, height: 900 }, "light", params.toString());
+  t.after(() => context.close());
+  await page.waitForFunction(() => window.__HALO_REGRESSION__?.k11Restored());
+  assert.equal(await page.locator('[data-layer="licences"]').isChecked(), true);
+  await page.locator("#institutionalJourneyNext").click();
+  await page.locator("#institutionalJourneyNext").click();
+  assert.equal(await page.locator('[data-layer="licences"]').isChecked(), true, "preselected source is not journey-owned");
+  await page.locator("#institutionalJourneyClose").click();
+  assert.equal(await page.locator('[data-layer="licences"]').isChecked(), true);
 });
 
 test.after(async () => { await browser.close(); await new Promise((resolve) => server.close(resolve)); });
