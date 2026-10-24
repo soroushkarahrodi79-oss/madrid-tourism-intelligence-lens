@@ -984,6 +984,64 @@ test("F-01: a rail build whose recorded metadata contradicts the contract (CRS, 
   }
 });
 
+test("F-01: the rail extraction declaration is mandatory — a missing rail source or extraction_bounds fails the gate", () => {
+  const noBounds = structuredClone(testRegistry());
+  delete noBounds.sources.find((source) => source.id === "rail").extraction_bounds;
+  const noBoundsResult = run(healthyArtifacts(), noBounds);
+  assert.equal(noBoundsResult.ok, false);
+  assert.match(errorText(noBoundsResult), /does not declare extraction_bounds/);
+
+  for (const bad of [null, "QUERY_ENVELOPE", []]) {
+    const registry = structuredClone(testRegistry());
+    registry.sources.find((source) => source.id === "rail").extraction_bounds = bad;
+    const result = run(healthyArtifacts(), registry);
+    assert.equal(result.ok, false, JSON.stringify(bad));
+    assert.match(errorText(result), /does not declare extraction_bounds/);
+  }
+
+  // A registry with no rail source at all is refused, not skipped.
+  const noRail = structuredClone(testRegistry());
+  noRail.sources = noRail.sources.filter((source) => source.id !== "rail");
+  const noRailResult = run(healthyArtifacts(), noRail);
+  assert.equal(noRailResult.ok, false);
+  assert.match(errorText(noRailResult), /no rail source for runtime_poi\.json/);
+});
+
+test("F-01: every contract-defining registry field is validated against the shared contract", () => {
+  const fields = ["contract_version", "kind", "crs", "west", "south", "east", "north", "boundary_tolerance_m"];
+  for (const field of fields) {
+    const missing = structuredClone(testRegistry());
+    delete missing.sources.find((source) => source.id === "rail").extraction_bounds[field];
+    const missingResult = run(healthyArtifacts(), missing);
+    assert.equal(missingResult.ok, false, `missing ${field}`);
+    assert.match(errorText(missingResult), new RegExp(`missing or contradictory: ${field}\\b`));
+  }
+  const contradictions = {
+    contract_version: "1.0.1",
+    kind: "COVERAGE_POLYGON",
+    crs: "EPSG:25830",
+    west: -3.8,
+    south: 40.3,
+    east: -3.6,
+    north: 40.5,
+    boundary_tolerance_m: 0,
+  };
+  for (const [field, value] of Object.entries(contradictions)) {
+    const registry = structuredClone(testRegistry());
+    registry.sources.find((source) => source.id === "rail").extraction_bounds[field] = value;
+    const result = run(healthyArtifacts(), registry);
+    assert.equal(result.ok, false, `contradictory ${field}`);
+    assert.match(errorText(result), new RegExp(`missing or contradictory: ${field}\\b`));
+  }
+  for (const patch of [{ is_coverage_evidence: undefined }, { is_coverage_evidence: "false" }, { completeness: undefined }, { completeness: "VERIFIED" }]) {
+    const registry = structuredClone(testRegistry());
+    Object.assign(registry.sources.find((source) => source.id === "rail").extraction_bounds, patch);
+    const result = run(healthyArtifacts(), registry);
+    assert.equal(result.ok, false, JSON.stringify(patch));
+    assert.match(errorText(result), /never coverage evidence/);
+  }
+});
+
 test("F-01: the registry boundary must equal the shared extraction contract and never claim coverage", () => {
   const drifted = structuredClone(testRegistry());
   drifted.sources.find((source) => source.id === "rail").extraction_bounds.north = 40.5;

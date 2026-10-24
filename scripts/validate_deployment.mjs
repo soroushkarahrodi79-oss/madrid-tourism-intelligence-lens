@@ -2523,19 +2523,39 @@ function validateRuntimePoiStructure(runtimePoi, registry, errors) {
 }
 
 // The rail extraction rectangle is an extraction QUERY boundary (not coverage
-// evidence). When the registry declares it, three things must agree: the registry,
-// the shared contract the browser interprets, and the rectangle this build
-// recorded in status.rail.extraction. A disagreement would let the browser judge
-// Lens circles against a rectangle the data was not extracted with.
+// evidence). Its declaration is MANDATORY: a registry without the rail source, or
+// a rail source without extraction_bounds, fails the gate rather than skipping
+// the check. Every contract-defining field must agree between three places: the
+// registry, the shared contract the browser interprets (js/extraction-bounds.js),
+// and the rectangle this build recorded in status.rail.extraction. A disagreement
+// would let the browser judge Lens circles against a rectangle the data was not
+// extracted with.
 function validateRailExtractionContract(runtimePoi, registry, errors) {
   const rail = registry.sources.find((s) => s.id === "rail" && s.artifact === "runtime_poi.json");
-  if (!rail || !rail.extraction_bounds) return;
+  if (!rail) {
+    errors.push("rail: source_registry.json has no rail source for runtime_poi.json; the extraction contract cannot be validated and the deployment is refused");
+    return;
+  }
   const declared = rail.extraction_bounds;
+  if (!declared || typeof declared !== "object" || Array.isArray(declared)) {
+    errors.push("rail: source_registry.json rail source does not declare extraction_bounds; the extraction declaration is mandatory");
+    return;
+  }
   const contract = extractionBounds.RAIL_EXTRACTION_BOUNDS;
-  const registryAgrees = declared.contract_version === extractionBounds.CONTRACT_VERSION
-    && ["west", "south", "east", "north"].every((k) => declared[k] === contract[k]);
-  if (!registryAgrees) {
-    errors.push("rail: source_registry.json extraction_bounds does not equal the extraction contract in js/extraction-bounds.js");
+  const record = extractionBounds.RAIL_EXTRACTION_RECORD;
+  const expected = {
+    contract_version: extractionBounds.CONTRACT_VERSION,
+    kind: record.kind,
+    crs: record.crs,
+    west: contract.west,
+    south: contract.south,
+    east: contract.east,
+    north: contract.north,
+    boundary_tolerance_m: extractionBounds.BOUNDARY_TOLERANCE_M,
+  };
+  const contradicted = Object.keys(expected).filter((key) => declared[key] !== expected[key]);
+  if (contradicted.length) {
+    errors.push(`rail: source_registry.json extraction_bounds does not equal the extraction contract in js/extraction-bounds.js (missing or contradictory: ${contradicted.join(", ")})`);
   }
   if (declared.is_coverage_evidence !== false || declared.completeness !== "NOT_VERIFIED") {
     errors.push("rail: extraction_bounds must declare is_coverage_evidence=false and completeness=NOT_VERIFIED; a query boundary is never coverage evidence");
