@@ -5687,8 +5687,8 @@ function refresh() {
     footId: "mobilityFoot",
     value: s.mobility,
     status: combinedStatus(layerStatus, ["bikes", "rail"]),
-    liveFoot: "BiciMAD + rail stations in lens · rail: queried central area",
-    publishedFoot: "BiciMAD + CRTM deployment snapshot · rail: queried central area",
+    liveFoot: "BiciMAD + rail stations in lens · Metro/Cercanías: queried area",
+    publishedFoot: "BiciMAD + CRTM deployment snapshot · Metro/Cercanías: queried area",
     snapshotFoot: "partial mobility sample, not exhaustive",
     unavailableFoot: "some mobility sources unavailable",
     withheldFoot: s.mobilityEvidence.withheld ? mobilityWithheldFoot(s.mobilityEvidence.extractionState) : null,
@@ -8175,20 +8175,48 @@ function k11WithProvenance(value) {
 }
 
 // The derived geographic-extraction eligibility that travels with every exported
-// combined Mobility reading, plus the exact boundary and its origin. It is a
-// disclosure of the query boundary, never a coverage claim: `completeness` stays
-// NOT_VERIFIED even for a circle inside the boundary.
+// combined Mobility reading. Three things are kept apart and never merged:
+//   expected_contract   the rectangle the APPLICATION expects (its own contract);
+//   artifact_extraction what the LOADED artefact actually states about its
+//                       extraction (builder-declared, null when it states nothing),
+//                       with a status saying whether it matches, contradicts or
+//                       could not be verified;
+//   completeness        always NOT_VERIFIED: neither the contract nor a matching
+//                       record proves the source returned every station.
+// The expected rectangle is never presented as verified extraction evidence.
+function k11ArtifactExtractionNote(status) {
+  const S = LensExtractionBounds.ARTIFACT_EXTRACTION_STATUS;
+  if (status === S.RECORDED_MATCHES) return "Declared by the artefact builder and equal to the expected contract; not independently checked against the CRTM service.";
+  if (status === S.RECORDED_CONTRADICTS) return "The loaded artefact records an extraction boundary that contradicts the expected contract; no extraction evidence is claimed and Mobility is withheld.";
+  if (status === S.NOT_RECORDED) return "The loaded artefact does not record its extraction boundary; it is unverified, no extraction evidence is claimed and Mobility is withheld.";
+  if (status === S.LIVE_QUERY) return "Live fallback: the rectangle is the query this build itself sent; no artefact recorded it and it is not independently verified.";
+  return "No deployment artefact for the rail layer is loaded; the extraction boundary is unverified and Mobility is withheld.";
+}
+
 function k11MobilityExtractionBlock(states) {
-  const record = LensExtractionBounds.RAIL_EXTRACTION_RECORD;
+  const contract = LensExtractionBounds.RAIL_EXTRACTION_RECORD;
+  const artifact = LensExtractionBounds.describeArtifactExtraction(railExtractionRecord, layerStatus.rail);
   return {
     ...states,
-    contract_version: record.contract_version,
+    contract_version: contract.contract_version,
     boundary_tolerance_m: LensExtractionBounds.BOUNDARY_TOLERANCE_M,
-    bounds: { ...record.bounds, crs: record.crs, kind: record.kind },
-    origin: record.origin,
+    expected_contract: {
+      bounds: { ...contract.bounds },
+      crs: contract.crs,
+      kind: contract.kind,
+      origin: contract.origin,
+      is_coverage_evidence: false,
+      completeness: contract.completeness,
+    },
+    artifact_extraction: {
+      status: artifact.status,
+      recorded: artifact.recorded,
+      mismatched_fields: [...artifact.mismatchedFields],
+      note: k11ArtifactExtractionNote(artifact.status),
+    },
     is_coverage_evidence: false,
-    completeness: record.completeness,
-    limitation: "Metro and Cercanías stations were queried only inside this rectangle. A Lens circle not wholly inside it has its combined Mobility count withheld; inside it, completeness of the source is not verified.",
+    completeness: contract.completeness,
+    limitation: "Metro and Cercanías stations were queried only inside the expected rectangle. A Lens circle not wholly inside it has its combined Mobility count withheld; inside it, completeness of the source is not verified.",
   };
 }
 

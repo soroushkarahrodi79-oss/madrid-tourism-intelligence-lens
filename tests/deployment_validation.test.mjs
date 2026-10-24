@@ -974,6 +974,16 @@ test("F-01: a rail build recorded with a different rectangle fails the build", (
   assert.match(errorText(result), /status\.rail\.extraction is missing or is not the extraction contract/);
 });
 
+test("F-01: a rail build whose recorded metadata contradicts the contract (CRS, kind, coverage claim, completeness) fails the build", () => {
+  for (const patch of [{ crs: "EPSG:25830" }, { kind: "COVERAGE_POLYGON" }, { is_coverage_evidence: true }, { completeness: "VERIFIED" }]) {
+    const artifacts = healthyArtifacts();
+    artifacts["runtime_poi.json"].status.rail.extraction = { ...extractionBounds.RAIL_EXTRACTION_RECORD, ...patch };
+    const result = run(artifacts);
+    assert.equal(result.ok, false, JSON.stringify(patch));
+    assert.match(errorText(result), /status\.rail\.extraction is missing or is not the extraction contract/);
+  }
+});
+
 test("F-01: the registry boundary must equal the shared extraction contract and never claim coverage", () => {
   const drifted = structuredClone(testRegistry());
   drifted.sources.find((source) => source.id === "rail").extraction_bounds.north = 40.5;

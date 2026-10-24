@@ -273,10 +273,18 @@ Value states are first-class and never collapsed:
   wholly inside the Metro/Cercanías extraction rectangle (`geographic extraction
   bounds`). That value carries `extraction_eligibility`: the derived state
   (`WITHIN_`/`PARTIAL_`/`OUTSIDE_EXTRACTION_BOUNDS` or `EXTRACTION_BOUNDS_UNKNOWN`;
-  `a_state`/`b_state` in COMPARE), the exact rectangle with its origin and contract
-  version, `is_coverage_evidence: false` and `completeness: NOT_VERIFIED`, so even
-  a valid Mobility count states that completeness inside the rectangle is not
-  verified. `sources.json` and `README` carry the rail `extraction_bounds`;
+  `a_state`/`b_state` in COMPARE) and three separate statements that are never
+  merged: `expected_contract` (the rectangle, CRS, kind and origin the
+  **application** expects — never evidence), `artifact_extraction` (what the
+  **loaded artefact** actually records, or `null`; `status` is
+  `RECORDED_MATCHES_CONTRACT`, `RECORDED_CONTRADICTS_CONTRACT` with the artefact's
+  own numbers and the `mismatched_fields`, `UNVERIFIED_NOT_RECORDED`,
+  `UNVERIFIED_NO_DEPLOYMENT_ARTIFACT`, or `LIVE_QUERY_ISSUED_BY_THIS_BUILD`; even a
+  match is builder-declared, not checked against the CRTM service) and
+  `is_coverage_evidence: false` / `completeness: NOT_VERIFIED`, so even a valid
+  Mobility count states that completeness inside the rectangle is not verified.
+  `sources.json` and `README` carry the rail `extraction_bounds` as the *expected*
+  boundary;
 - `UNAVAILABLE` — a source that could not be read;
 - `INDETERMINATE` — a categorical pair where a side publishes no state.
 

@@ -72,6 +72,75 @@ test("a recorded rectangle is accepted only when it is exactly this contract", (
   assert.equal(extraction.recordMatchesContract({ ...extraction.RAIL_EXTRACTION_RECORD, bounds: { ...B, west: "x" } }), false);
 });
 
+test("a recorded artefact is rejected when ANY contract field is missing or contradicted", () => {
+  const R = extraction.RAIL_EXTRACTION_RECORD;
+  const without = (key) => { const copy = { ...R }; delete copy[key]; return copy; };
+  for (const key of ["contract_version", "kind", "crs", "bounds", "is_coverage_evidence", "completeness"]) {
+    assert.equal(extraction.recordMatchesContract(without(key)), false, `missing ${key}`);
+    assert.deepEqual(extraction.recordMismatches(without(key)), [key]);
+  }
+  const contradictions = [
+    ["kind", { kind: "COVERAGE_POLYGON" }],
+    ["crs", { crs: "EPSG:25830" }],
+    ["crs", { crs: null }],
+    ["is_coverage_evidence", { is_coverage_evidence: true }],
+    ["is_coverage_evidence", { is_coverage_evidence: "false" }],
+    ["completeness", { completeness: "VERIFIED" }],
+    ["completeness", { completeness: "COMPLETE" }],
+    ["contract_version", { contract_version: "1.0.1" }],
+    ["bounds", { bounds: { ...B, north: 40.5 } }],
+    ["bounds", { bounds: { west: B.east, east: B.west, south: B.south, north: B.north } }],
+  ];
+  for (const [field, patch] of contradictions) {
+    const record = { ...R, ...patch };
+    assert.equal(extraction.recordMatchesContract(record), false, JSON.stringify(patch));
+    assert.deepEqual(extraction.recordMismatches(record), [field]);
+  }
+  assert.equal(extraction.recordMatchesContract([]), false);
+  assert.equal(extraction.recordMatchesContract("QUERY_ENVELOPE"), false);
+  // A contradictory record fails the circle closed even for a circle deep inside.
+  const inside = { lat: 40.4168, lon: -3.7038 };
+  assert.equal(extraction.railEligibility(inside, 500, R).state, S.WITHIN);
+  assert.equal(extraction.railEligibility(inside, 500, { ...R, completeness: "VERIFIED" }).state, S.UNKNOWN);
+  assert.equal(extraction.railEligibility(inside, 500, { ...R, is_coverage_evidence: true }).state, S.UNKNOWN);
+  assert.equal(extraction.railEligibility(inside, 500, { ...R, crs: "EPSG:3857" }).state, S.UNKNOWN);
+  assert.equal(extraction.railEligibility(inside, 500, { ...R, kind: "OTHER" }).state, S.UNKNOWN);
+});
+
+test("describeArtifactExtraction separates actual artefact metadata from the expected contract", () => {
+  const R = extraction.RAIL_EXTRACTION_RECORD;
+  const T = extraction.ARTIFACT_EXTRACTION_STATUS;
+  const matches = extraction.describeArtifactExtraction({ ...R, bounds: { ...B } }, "published");
+  assert.equal(matches.status, T.RECORDED_MATCHES);
+  assert.deepEqual(matches.recorded.bounds, B);
+  assert.deepEqual(matches.mismatchedFields, []);
+
+  // Missing: nothing is invented from the contract.
+  for (const missing of [null, undefined, {}.x, "x", []]) {
+    const d = extraction.describeArtifactExtraction(missing, "published");
+    assert.equal(d.status, T.NOT_RECORDED);
+    assert.equal(d.recorded, null);
+  }
+
+  // Contradictory: the artefact's ACTUAL numbers are reported, not the contract's.
+  const other = { west: -3.8, south: 40.3, east: -3.6, north: 40.5 };
+  const contradicts = extraction.describeArtifactExtraction({ ...R, bounds: other, completeness: "VERIFIED" }, "published");
+  assert.equal(contradicts.status, T.RECORDED_CONTRADICTS);
+  assert.deepEqual(contradicts.recorded.bounds, other);
+  assert.equal(contradicts.recorded.completeness, "VERIFIED");
+  assert.deepEqual(contradicts.mismatchedFields.sort(), ["bounds", "completeness"]);
+
+  // Live fallback and no artefact never claim a recorded rectangle.
+  const live = extraction.describeArtifactExtraction(R, "live");
+  assert.equal(live.status, T.LIVE_QUERY);
+  assert.equal(live.recorded, null);
+  for (const state of ["snapshot", "unavailable", undefined]) {
+    const d = extraction.describeArtifactExtraction(R, state);
+    assert.equal(d.status, T.NO_ARTIFACT);
+    assert.equal(d.recorded, null);
+  }
+});
+
 // ------------------------------------------------------------------ geometry
 
 test("representative Lenses: Sol 900 m, Sol 5 km, Retiro 5 km, Barajas 500 m / 900 m / 2 km", () => {
@@ -460,7 +529,7 @@ test("index.html loads the extraction contract before every script that reads it
 test("the evidence export names the boundary and never calls it coverage", () => {
   const exp = read("../js/evidence-export.js");
   assert.match(exp, /"extraction_bounds"/);
-  assert.match(exp, /extraction boundary: W /);
+  assert.match(exp, /expected extraction boundary .*: W /);
   const registry = JSON.parse(read("../data/source_registry.json"));
   const rail = registry.sources.find((source) => source.id === "rail");
   assert.match(rail.interpretation_ceiling, /not verified/);
@@ -471,7 +540,7 @@ test("the evidence export names the boundary and never calls it coverage", () =>
 
 test("every new user-facing English phrase has a Spanish rendering", () => {
   const phrases = [
-    "rail: queried central area",
+    "Metro/Cercanías: queried area",
     "Lens extends beyond the Metro/Cercanías extraction area",
     "Metro/Cercanías extraction area could not be verified",
     "Withheld · Lens extends beyond the Metro/Cercanías extraction area",
@@ -479,7 +548,7 @@ test("every new user-facing English phrase has a Spanish rendering", () => {
     "withheld, the Lens extends beyond the geographic extraction area",
     "Lens A mobility withheld: the Lens extends beyond the geographic extraction area of Metro and Cercanías",
     "Lens B mobility withheld: the Lens extends beyond the geographic extraction area of Metro and Cercanías",
-    "a Metro and Cercanías value is limited to the queried central area and its completeness is not verified",
+    "a Metro and Cercanías value is limited to the queried area and its completeness is not verified",
     "The combined Mobility count is withheld because Metro and Cercanías stations were queried only inside a central rectangle of Madrid and this Lens reaches outside it, so missing stations would read as zero.",
     "Metro and Cercanías stations were queried only inside a central rectangle of Madrid. This Lens fits inside it, but completeness of the source within it is not verified.",
   ];
@@ -490,8 +559,8 @@ test("every new user-facing English phrase has a Spanish rendering", () => {
   }
   assert.equal(localizeCopyEs("Withheld\nr 900 m"), "Retenido\nr 900 m");
   assert.equal(
-    localizeCopyEs("BiciMAD + CRTM deployment snapshot · rail: queried central area"),
-    "BiciMAD + instantánea del despliegue de CRTM · tren: área central consultada",
+    localizeCopyEs("BiciMAD + CRTM deployment snapshot · Metro/Cercanías: queried area"),
+    "BiciMAD + instantánea del despliegue de CRTM · Metro/Cercanías: área consultada",
   );
   const app = read("../js/app.js");
   assert.match(app, /"reason\.extraction-bounds": "Lens extends beyond the Metro\/Cercanías extraction area"/);

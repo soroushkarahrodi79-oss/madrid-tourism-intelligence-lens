@@ -151,7 +151,7 @@ test("Sol at 900 m: the combined count is shown, with the completeness limitatio
     const c = await card(page);
     assert.equal(c.value, "5");
     assert.equal(c.abstain, false);
-    assert.match(c.foot, /rail: queried central area/);
+    assert.match(c.foot, /Metro\/Cercanías: queried area/);
     assert.match(c.title, /fits inside it, but completeness of the source within it is not verified/);
     assert.equal(c.summaryValue, "5");
   } finally { await close(page); }
@@ -327,7 +327,7 @@ test("both Lenses eligible: the ordinary comparison, with the limitation disclos
     assert.match(row.a, /^5 nodes/);
     assert.equal(row.bridge.relationship.comparable, true);
     assert.equal(typeof row.bridge.relationship.deltaValue, "number");
-    assert.match(row.summary, /limited to the queried central area and its completeness is not verified/);
+    assert.match(row.summary, /limited to the queried area and its completeness is not verified/);
     assert.match(await page.locator("#cmpMobilityA").getAttribute("title"), /completeness of the source within it is not verified/);
   } finally { await close(page); }
 });
@@ -356,7 +356,7 @@ test("ES: the withheld copy and the disclosure are Spanish, on the card and in t
     await place(page, "B", NORTH_EDGE, 900);
     await page.evaluate(() => window.__HALO_REGRESSION__.setActive("A"));
     const c = await card(page);
-    assert.match(c.foot, /tren: área central consultada/);
+    assert.match(c.foot, /Metro\/Cercanías: área consultada/);
     assert.match(c.title, /no se ha verificado la completitud/);
     const row = await compareRow(page);
     assert.match(row.b, /^Retenido/);
@@ -419,16 +419,58 @@ test("export, PLACE inside the area: a valid count that carries the boundary and
     assert.equal(value.extraction_eligibility.withheld, false);
     assert.equal(value.extraction_eligibility.is_coverage_evidence, false);
     assert.equal(value.extraction_eligibility.completeness, "NOT_VERIFIED");
-    assert.deepEqual(
-      { west: value.extraction_eligibility.bounds.west, south: value.extraction_eligibility.bounds.south, east: value.extraction_eligibility.bounds.east, north: value.extraction_eligibility.bounds.north },
-      RECORD.bounds,
-    );
-    assert.match(value.extraction_eligibility.origin, /CENTRAL_MADRID_ENVELOPE/);
+    assert.equal(value.extraction_eligibility.bounds, undefined, "no unqualified top-level bounds");
+    const expected = value.extraction_eligibility.expected_contract;
+    assert.deepEqual(expected.bounds, RECORD.bounds);
+    assert.equal(expected.is_coverage_evidence, false);
+    assert.match(expected.origin, /CENTRAL_MADRID_ENVELOPE/);
+    const actual = value.extraction_eligibility.artifact_extraction;
+    assert.equal(actual.status, "RECORDED_MATCHES_CONTRACT");
+    assert.deepEqual(actual.recorded.bounds, RECORD.bounds);
+    assert.deepEqual(actual.mismatched_fields, []);
+    assert.match(actual.note, /not independently checked/);
     assert.match(value.extraction_eligibility.limitation, /completeness of the source is not verified/);
     const rail = sources.sources.find((source) => source.id === "rail");
     assert.equal(rail.extraction_bounds.is_coverage_evidence, false);
     assert.match(rail.interpretation_ceiling, /extraction rectangle/);
-    assert.match(readme, /extraction boundary: W -3\.745, S 40\.385, E -3\.645, N 40\.455/);
+    assert.match(readme, /expected extraction boundary .*: W -3\.745, S 40\.385, E -3\.645, N 40\.455/);
+  } finally { await close(page); }
+});
+
+test("export: a contradictory artefact record is reported as its ACTUAL metadata, never as the expected contract", async () => {
+  const other = { west: -3.8, south: 40.3, east: -3.6, north: 40.5 };
+  const contradictory = { ...FIXTURE, status: { ...FIXTURE.status, rail: { ...FIXTURE.status.rail, extraction: { ...RECORD, bounds: other, completeness: "VERIFIED" } } } };
+  const page = await openPage({ fixture: contradictory });
+  try {
+    await place(page, "A", SOL, 900);
+    const { reading } = await bundleOf(page);
+    const value = mobilityValue(reading);
+    assert.equal(value.state, "WITHHELD");
+    assert.equal(value.value, null);
+    assert.equal(value.extraction_eligibility.state, "EXTRACTION_BOUNDS_UNKNOWN");
+    assert.deepEqual(value.extraction_eligibility.expected_contract.bounds, RECORD.bounds);
+    const actual = value.extraction_eligibility.artifact_extraction;
+    assert.equal(actual.status, "RECORDED_CONTRADICTS_CONTRACT");
+    assert.deepEqual(actual.recorded.bounds, other);
+    assert.equal(actual.recorded.completeness, "VERIFIED");
+    assert.deepEqual(actual.mismatched_fields.sort(), ["bounds", "completeness"]);
+  } finally { await close(page); }
+});
+
+test("export: an artefact that records no extraction metadata is UNVERIFIED and shows no recorded bounds", async () => {
+  const missing = { ...FIXTURE, status: { ...FIXTURE.status, rail: { ok: true, count: 3, error: null } } };
+  const page = await openPage({ fixture: missing });
+  try {
+    await place(page, "A", SOL, 900);
+    const { reading } = await bundleOf(page);
+    const value = mobilityValue(reading);
+    assert.equal(value.state, "WITHHELD");
+    assert.equal(value.extraction_eligibility.state, "EXTRACTION_BOUNDS_UNKNOWN");
+    const actual = value.extraction_eligibility.artifact_extraction;
+    assert.equal(actual.status, "UNVERIFIED_NOT_RECORDED");
+    assert.equal(actual.recorded, null);
+    assert.match(actual.note, /does not record its extraction boundary/);
+    assert.equal(value.extraction_eligibility.completeness, "NOT_VERIFIED");
   } finally { await close(page); }
 });
 

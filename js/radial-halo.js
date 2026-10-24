@@ -1169,7 +1169,7 @@ function extractionNote(metric, state) {
   const parts = [];
   if (state.aWithheld) parts.push("Lens A mobility withheld: the Lens extends beyond the geographic extraction area of Metro and Cercanías");
   if (state.bWithheld) parts.push("Lens B mobility withheld: the Lens extends beyond the geographic extraction area of Metro and Cercanías");
-  if (!state.aWithheld || !state.bWithheld) parts.push("a Metro and Cercanías value is limited to the queried central area and its completeness is not verified");
+  if (!state.aWithheld || !state.bWithheld) parts.push("a Metro and Cercanías value is limited to the queried area and its completeness is not verified");
   return ` ${parts.join("; ")}.`;
 }
 

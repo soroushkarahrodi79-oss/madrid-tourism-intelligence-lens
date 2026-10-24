@@ -277,7 +277,7 @@ function buildReadmeText(projection, sourcesObject) {
     // coverage claim: a reading inside it is not thereby complete.
     if (source.extraction_bounds) {
       const b = source.extraction_bounds;
-      lines.push(`    extraction boundary: W ${b.west}, S ${b.south}, E ${b.east}, N ${b.north} (${b.crs}) · ${b.kind} · contract ${b.contract_version} · completeness ${b.completeness}`);
+      lines.push(`    expected extraction boundary (application contract; the artefact's own record is reported per value): W ${b.west}, S ${b.south}, E ${b.east}, N ${b.north} (${b.crs}) · ${b.kind} · contract ${b.contract_version} · completeness ${b.completeness}`);
     }
     lines.push("");
   }

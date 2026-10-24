@@ -160,7 +160,7 @@ const LEGACY_COPY_ES = [
   ["some mobility sources unavailable", "algunas fuentes de movilidad no disponibles"],
   // Combined Mobility — geographic extraction boundary of Metro/Cercanías. A
   // withheld count is a GEOGRAPHIC state, distinct from "No data" (source).
-  ["rail: queried central area", "tren: área central consultada"],
+  ["Metro/Cercanías: queried area", "Metro/Cercanías: área consultada"],
   ["Lens extends beyond the Metro/Cercanías extraction area", "La Lente excede el área de extracción de Metro/Cercanías"],
   ["Metro/Cercanías extraction area could not be verified", "No se pudo verificar el área de extracción de Metro/Cercanías"],
   ["Withheld · Lens extends beyond the Metro/Cercanías extraction area", "Retenido · la Lente excede el área de extracción de Metro/Cercanías"],
@@ -171,7 +171,7 @@ const LEGACY_COPY_ES = [
   ["Metro and Cercanías stations were queried only inside a central rectangle of Madrid. This Lens fits inside it, but completeness of the source within it is not verified.", "Las estaciones de Metro y Cercanías se consultaron solo dentro de un rectángulo central de Madrid. Esta Lente cabe en él, pero no se ha verificado la completitud de la fuente dentro de él."],
   ["Lens A mobility withheld: the Lens extends beyond the geographic extraction area of Metro and Cercanías", "Movilidad de la Lente A retenida: la Lente excede el área de extracción geográfica de Metro y Cercanías"],
   ["Lens B mobility withheld: the Lens extends beyond the geographic extraction area of Metro and Cercanías", "Movilidad de la Lente B retenida: la Lente excede el área de extracción geográfica de Metro y Cercanías"],
-  ["a Metro and Cercanías value is limited to the queried central area and its completeness is not verified", "un valor de Metro y Cercanías se limita al área central consultada y su completitud no está verificada"],
+  ["a Metro and Cercanías value is limited to the queried area and its completeness is not verified", "un valor de Metro y Cercanías se limita al área consultada y su completitud no está verificada"],
   ["HATI outdoor samples", "muestras exteriores de HATI"],
   ["enable HATI research evidence", "active la evidencia de investigación HATI"],
   ["no HATI samples in lens", "sin muestras HATI en la Lente"],

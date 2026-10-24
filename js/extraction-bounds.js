@@ -82,16 +82,70 @@
     return `${b.west},${b.south},${b.east},${b.north}`;
   }
 
-  // Does an artefact's recorded rectangle equal the contract this build of the
-  // application interprets? Anything else (missing, malformed, different version
-  // or different numbers) is "not the same contract" and must fail closed.
-  function recordMatchesContract(record) {
-    if (!record || typeof record !== "object") return false;
-    if (record.contract_version !== CONTRACT_VERSION) return false;
+  // The fields of an artefact's recorded extraction metadata that contradict (or
+  // fail to state) the contract this build interprets. Every field the contract
+  // fixes is checked, not only the rectangle: a record that states the right
+  // numbers but claims coverage evidence, a verified completeness, another CRS or
+  // another kind of boundary is NOT the contract and must fail closed. An empty
+  // list is the only "matches".
+  function recordMismatches(record) {
+    if (!record || typeof record !== "object" || Array.isArray(record)) return ["record"];
+    const out = [];
+    if (record.contract_version !== CONTRACT_VERSION) out.push("contract_version");
+    if (record.kind !== RAIL_EXTRACTION_RECORD.kind) out.push("kind");
+    if (record.crs !== RAIL_EXTRACTION_RECORD.crs) out.push("crs");
     const b = normalizeBounds(record.bounds);
-    return Boolean(b)
-      && b.west === RAIL_EXTRACTION_BOUNDS.west && b.south === RAIL_EXTRACTION_BOUNDS.south
-      && b.east === RAIL_EXTRACTION_BOUNDS.east && b.north === RAIL_EXTRACTION_BOUNDS.north;
+    if (!b || b.west !== RAIL_EXTRACTION_BOUNDS.west || b.south !== RAIL_EXTRACTION_BOUNDS.south
+      || b.east !== RAIL_EXTRACTION_BOUNDS.east || b.north !== RAIL_EXTRACTION_BOUNDS.north) out.push("bounds");
+    if (record.is_coverage_evidence !== false) out.push("is_coverage_evidence");
+    if (record.completeness !== RAIL_EXTRACTION_RECORD.completeness) out.push("completeness");
+    return out;
+  }
+
+  // Does an artefact's recorded extraction metadata equal the contract this build
+  // of the application interprets? Anything else (missing, malformed, different
+  // version, rectangle, CRS, kind, coverage claim or completeness) is "not the
+  // same contract" and must fail closed.
+  function recordMatchesContract(record) {
+    return recordMismatches(record).length === 0;
+  }
+
+  const ARTIFACT_EXTRACTION_STATUS = Object.freeze({
+    RECORDED_MATCHES: "RECORDED_MATCHES_CONTRACT",
+    RECORDED_CONTRADICTS: "RECORDED_CONTRADICTS_CONTRACT",
+    NOT_RECORDED: "UNVERIFIED_NOT_RECORDED",
+    NO_ARTIFACT: "UNVERIFIED_NO_DEPLOYMENT_ARTIFACT",
+    LIVE_QUERY: "LIVE_QUERY_ISSUED_BY_THIS_BUILD",
+  });
+
+  // What the LOADED rail layer actually states about its own extraction, kept
+  // apart from the contract the application expects. `recorded` is only ever the
+  // metadata found in the artefact (never the expected contract copied in); it is
+  // builder-declared, so even a match is not an independent check against the
+  // service and says nothing about completeness. `layerState` is the layer's
+  // provenance ("published" | "live" | anything else).
+  function describeArtifactExtraction(record, layerState) {
+    const S = ARTIFACT_EXTRACTION_STATUS;
+    const base = { recorded: null, mismatchedFields: [] };
+    if (layerState === "live") return Object.freeze({ ...base, status: S.LIVE_QUERY });
+    if (layerState !== "published") return Object.freeze({ ...base, status: S.NO_ARTIFACT });
+    if (!record || typeof record !== "object" || Array.isArray(record)) return Object.freeze({ ...base, status: S.NOT_RECORDED });
+    const mismatchedFields = recordMismatches(record);
+    const recorded = Object.freeze({
+      contract_version: record.contract_version ?? null,
+      kind: record.kind ?? null,
+      crs: record.crs ?? null,
+      bounds: record.bounds && typeof record.bounds === "object"
+        ? { west: record.bounds.west ?? null, south: record.bounds.south ?? null, east: record.bounds.east ?? null, north: record.bounds.north ?? null }
+        : null,
+      is_coverage_evidence: record.is_coverage_evidence ?? null,
+      completeness: record.completeness ?? null,
+    });
+    return Object.freeze({
+      status: mismatchedFields.length ? S.RECORDED_CONTRADICTS : S.RECORDED_MATCHES,
+      recorded,
+      mismatchedFields,
+    });
   }
 
   function haversine(lat1, lon1, lat2, lon2) {
@@ -217,7 +271,10 @@
     MOBILITY_WITHHELD_REASON,
     normalizeBounds,
     envelopeParam,
+    recordMismatches,
     recordMatchesContract,
+    ARTIFACT_EXTRACTION_STATUS,
+    describeArtifactExtraction,
     eligibility,
     railEligibility,
     applyMobilitySafety,
