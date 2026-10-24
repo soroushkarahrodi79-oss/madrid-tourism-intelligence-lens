@@ -2215,6 +2215,14 @@ if (haloRegressionRequested && haloRegressionLocal) {
       const center = map.getCenter();
       return { lat: center.lat, lng: center.lng };
     },
+    // IA 22 (#66) readiness seam: renderScopeRail() branches on exactly
+    // `Boolean(shell.registry)` — null until data/source_registry.json resolves,
+    // after which it renders the real freshness/entries model instead of the
+    // interim "loading" placeholder. This mirrors that condition directly, so a
+    // geometry assertion can wait for the rail's terminal render without parsing
+    // rendered text (which cannot tell the loading placeholder apart from a
+    // legitimate "not published" value sharing the same "Reference · " prefix).
+    registryReady() { return Boolean(shell.registry); },
     // K11 (#73) seam: read the live reading as the URL contract sees it, build the
     // canonical share URL, invoke the real copy path, and read the restore notice.
     k11State() { return k11CurrentState(); },
