@@ -22,6 +22,11 @@ import process from "node:process";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 
+// The CRTM rail extraction rectangle is defined once; the gate below verifies that
+// the registry's declared boundary and the boundary each build recorded are that
+// same contract, so build-time extraction and browser interpretation cannot drift.
+import extractionBounds from "../js/extraction-bounds.js";
+
 // The analytical-scope and freshness vocabulary is defined once, in the pure
 // model, so the deployment gate and the renderer (K4) can never drift apart.
 import {
@@ -2513,6 +2518,51 @@ function validateRuntimePoiStructure(runtimePoi, registry, errors) {
   const present = Object.keys(runtimePoi.layers ?? {});
   for (const id of expected) {
     if (!present.includes(id)) errors.push(`runtime_poi.json: registry declares layer "${id}" but the build did not emit it`);
+  }
+  validateRailExtractionContract(runtimePoi, registry, errors);
+}
+
+// The rail extraction rectangle is an extraction QUERY boundary (not coverage
+// evidence). Its declaration is MANDATORY: a registry without the rail source, or
+// a rail source without extraction_bounds, fails the gate rather than skipping
+// the check. Every contract-defining field must agree between three places: the
+// registry, the shared contract the browser interprets (js/extraction-bounds.js),
+// and the rectangle this build recorded in status.rail.extraction. A disagreement
+// would let the browser judge Lens circles against a rectangle the data was not
+// extracted with.
+function validateRailExtractionContract(runtimePoi, registry, errors) {
+  const rail = registry.sources.find((s) => s.id === "rail" && s.artifact === "runtime_poi.json");
+  if (!rail) {
+    errors.push("rail: source_registry.json has no rail source for runtime_poi.json; the extraction contract cannot be validated and the deployment is refused");
+    return;
+  }
+  const declared = rail.extraction_bounds;
+  if (!declared || typeof declared !== "object" || Array.isArray(declared)) {
+    errors.push("rail: source_registry.json rail source does not declare extraction_bounds; the extraction declaration is mandatory");
+    return;
+  }
+  const contract = extractionBounds.RAIL_EXTRACTION_BOUNDS;
+  const record = extractionBounds.RAIL_EXTRACTION_RECORD;
+  const expected = {
+    contract_version: extractionBounds.CONTRACT_VERSION,
+    kind: record.kind,
+    crs: record.crs,
+    west: contract.west,
+    south: contract.south,
+    east: contract.east,
+    north: contract.north,
+    boundary_tolerance_m: extractionBounds.BOUNDARY_TOLERANCE_M,
+  };
+  const contradicted = Object.keys(expected).filter((key) => declared[key] !== expected[key]);
+  if (contradicted.length) {
+    errors.push(`rail: source_registry.json extraction_bounds does not equal the extraction contract in js/extraction-bounds.js (missing or contradictory: ${contradicted.join(", ")})`);
+  }
+  if (declared.is_coverage_evidence !== false || declared.completeness !== "NOT_VERIFIED") {
+    errors.push("rail: extraction_bounds must declare is_coverage_evidence=false and completeness=NOT_VERIFIED; a query boundary is never coverage evidence");
+  }
+  const recorded = runtimePoi?.status?.rail?.extraction;
+  if (!extractionBounds.recordMatchesContract(recorded)) {
+    errors.push("rail: runtime_poi.json status.rail.extraction is missing or is not the extraction contract this application interprets; Lens circles could not be judged against the rectangle the data was built with");
   }
 }
 

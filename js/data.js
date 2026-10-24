@@ -12,7 +12,12 @@ const LIVE_SOURCES = {
   overpass: "https://overpass.kumi.systems/api/interpreter",
 };
 
-const CENTRAL_MADRID_ENVELOPE = "-3.745,40.385,-3.645,40.455";
+// The rail query rectangle is defined once in js/extraction-bounds.js (shared with
+// scripts/build_runtime_poi.mjs). It is an extraction query boundary, not proof of
+// complete source coverage.
+function extractionApi() {
+  return typeof module !== "undefined" && module.exports ? require("./extraction-bounds.js") : globalThis.LensExtractionBounds;
+}
 
 function cleanText(v) {
   return String(v || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -89,7 +94,7 @@ function crtmStationQuery(url) {
     where: "1=1",
     outFields: "IDESTACION,CODIGOESTACION,DENOMINACION,DENOMINACIONABREVIADA,LINEAS",
     returnGeometry: "true",
-    geometry: CENTRAL_MADRID_ENVELOPE,
+    geometry: extractionApi().envelopeParam(),
     geometryType: "esriGeometryEnvelope",
     inSR: "4326",
     spatialRel: "esriSpatialRelIntersects",
@@ -196,7 +201,20 @@ async function loadAllLayers(snapshotPOI, runtimePOI = {}) {
     }),
   ]);
 
-  return { points, layerStatus };
+  // The rectangle the rail layer was extracted with, as far as the loaded layer
+  // can state it. Published artefact: what its builder recorded (null when it
+  // recorded nothing — an older artefact). Live fallback: this build's own query.
+  // Snapshot/unavailable: nothing. The caller verifies it against the contract.
+  const api = extractionApi();
+  const extraction = {
+    rail: layerStatus.rail === "published"
+      ? runtimePOI?.status?.rail?.extraction ?? null
+      : layerStatus.rail === "live"
+        ? api.RAIL_EXTRACTION_RECORD
+        : null,
+  };
+
+  return { points, layerStatus, extraction };
 }
 
 if (typeof module !== "undefined" && module.exports) {

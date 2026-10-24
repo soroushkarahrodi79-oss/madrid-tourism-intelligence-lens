@@ -154,6 +154,14 @@ frequency, capacity, accessibility, travel time, or connectivity quality.
 Metro and Cercanías station records may represent different modes at the same
 interchange and are not deduplicated into a single multimodal hub.
 
+Metro and Cercanías stations were requested only inside a central rectangle of
+Madrid (40.385–40.455 N, −3.745…−3.645 E, about 11 % of the municipality). A Lens
+circle that is not wholly inside that rectangle therefore has its combined
+Mobility count **withheld** — shown as "Withheld", never as a number or a zero —
+because missing stations would otherwise read as absence. Inside the rectangle the
+count is shown, but the completeness of the source within it is **not verified**:
+the rectangle is an extraction boundary, not evidence of complete coverage.
+
 Accommodation type filters are descriptive source classifications. They do
 not imply quality, price, legal status, availability, occupancy, or suitability.
 Records without source type metadata remain unclassified rather than being

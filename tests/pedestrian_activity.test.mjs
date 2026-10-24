@@ -16,7 +16,7 @@ test("observed pedestrian activity is opt-in and separate from operational POIs"
   // Separate state arrays are the contract; their adjacency in the file is not.
   assert.match(app, /let poiPoints = \[\];/);
   assert.match(app, /let pedestrianStations = \[\];/);
-  assert.match(app, /return poiStatsInLens\(visiblePoiPoints\(\), centerOf\(which\), radiusFor\(which\)\)/);
+  assert.match(app, /poiStatsInLens\(visiblePoiPoints\(\), centerOf\(which\), radiusFor\(which\)\)/);
   assert.match(app, /return pedestrianStatsInLens\(pedestrianStations, centerOf\(which\), radiusFor\(which\)\)/);
 });
 

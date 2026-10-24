@@ -35,7 +35,18 @@ const DISPLAY_STATE = Object.freeze({
   UNAVAILABLE: "unavailable",
   NO_EVIDENCE: "no evidence",
   INCOMPATIBLE: "comparison withheld · incompatible evidence",
+  WITHHELD_EXTRACTION: "withheld · beyond the geographic extraction area",
 });
+// A side whose Lens circle is not wholly inside the geographic extraction area of
+// its source carries `extraction: { state }` (js/extraction-bounds.js). Only the
+// WITHIN state keeps a count; every other state — including UNKNOWN, which fails
+// closed — withholds it. This is a GEOGRAPHIC evidence state: it is distinct from
+// source availability (the layer could not be read), from the layer being OFF,
+// from administrative scope (AOI) and from an observed zero.
+const EXTRACTION_WITHIN_STATE = "WITHIN_EXTRACTION_BOUNDS";
+function extractionWithheld(side) {
+  return Boolean(side && side.extraction && side.extraction.state !== EXTRACTION_WITHIN_STATE);
+}
 const UTCI_PX_PER_C = 2;
 const COMPARISON_RADIUS_MODE = Object.freeze({ EQUAL: "EQUAL_RADIUS", UNEQUAL: "UNEQUAL_RADIUS" });
 
@@ -319,6 +330,28 @@ function countState(a, b, window = {}) {
   const radiusMode = window.radiusMode || COMPARISON_RADIUS_MODE.EQUAL;
   const radiusA = window.radii?.A;
   const radiusB = window.radii?.B;
+  // Geographic extraction safety comes BEFORE the availability and value checks: a withheld side
+  // has no value by construction, and that absence must never be read as an
+  // incompatible source or as a zero. A side that IS eligible keeps its own
+  // observation; the pair is simply not comparable.
+  const withheldA = SOURCE_STATES.has(stateA) && extractionWithheld(a);
+  const withheldB = SOURCE_STATES.has(stateB) && extractionWithheld(b);
+  if (withheldA || withheldB) {
+    const rawA = withheldA ? null : valueA;
+    const rawB = withheldB ? null : valueB;
+    return {
+      id: "extraction-withheld",
+      stateA: withheldA ? "WITHHELD_EXTRACTION" : rawA == null ? "UNAVAILABLE" : "VALID",
+      stateB: withheldB ? "WITHHELD_EXTRACTION" : rawB == null ? "UNAVAILABLE" : "VALID",
+      aValue: radiusMode === COMPARISON_RADIUS_MODE.EQUAL ? rawA : null,
+      bValue: radiusMode === COMPARISON_RADIUS_MODE.EQUAL ? rawB : null,
+      aRawValue: rawA, bRawValue: rawB, aMagnitude: null, bMagnitude: null, delta: null,
+      aWithheld: withheldA, bWithheld: withheldB,
+      aExtraction: a?.extraction?.state ?? null, bExtraction: b?.extraction?.state ?? null,
+      aSourceState: stateA, bSourceState: stateB,
+      qualifier: "geographic extraction bounds", comparable: false,
+    };
+  }
   if (!SOURCE_STATES.has(stateA) || !SOURCE_STATES.has(stateB)) {
     return {
       id: "unavailable", stateA: valueA == null ? "UNAVAILABLE" : "VALID", stateB: valueB == null ? "UNAVAILABLE" : "VALID",
@@ -344,7 +377,7 @@ function countState(a, b, window = {}) {
     const rateA = haloRepresentedRate(a.value, radiusA); const rateB = haloRepresentedRate(b.value, radiusB);
     if (rateA == null || rateB == null) return { id: "incompatible", stateA: "INCOMPATIBLE", stateB: "INCOMPATIBLE", aValue: null, bValue: null, aRawValue: a.value, bRawValue: b.value, aMagnitude: null, bMagnitude: null, delta: null, qualifier: "invalid circle area", comparable: false };
     const scale = positivePair(rateA, rateB);
-    return { id: stateA === "snapshot" ? "valid-partial" : stateA === "published" ? "valid-deployment" : "valid", stateA: "VALID", stateB: "VALID", aValue: rateA, bValue: rateB, aRawValue: a.value, bRawValue: b.value, aMagnitude: scale.a, bMagnitude: scale.b, delta: rateB - rateA, qualifier: `${qualifier}; represented ${window.metricName === "stays" ? "catalogue records" : "records"}/km²`, comparable: true, aoiEligible: true };
+    return { id: stateA === "snapshot" ? "valid-partial" : stateA === "published" ? "valid-deployment" : "valid", stateA: "VALID", stateB: "VALID", aValue: rateA, bValue: rateB, aRawValue: a.value, bRawValue: b.value, aMagnitude: scale.a, bMagnitude: scale.b, delta: rateB - rateA, qualifier: `${qualifier}; represented ${window.metricName === "stays" ? "catalogue records" : "records"}/km²`, comparable: true, aoiEligible: true, ...(a?.extraction || b?.extraction ? { aExtraction: a?.extraction?.state ?? null, bExtraction: b?.extraction?.state ?? null } : {}) };
   }
   const scale = positivePair(a.value, b.value);
   return {
@@ -353,6 +386,7 @@ function countState(a, b, window = {}) {
     stateB: stateA === "snapshot" ? "VALID_PARTIAL" : stateA === "published" ? "VALID_DEPLOYMENT" : "VALID",
     aValue: a.value, bValue: b.value, aRawValue: a.value, bRawValue: b.value, aMagnitude: scale.a, bMagnitude: scale.b,
     delta: b.value - a.value, qualifier, comparable: true,
+    ...(a?.extraction || b?.extraction ? { aExtraction: a?.extraction?.state ?? null, bExtraction: b?.extraction?.state ?? null } : {}),
   };
 }
 
@@ -450,8 +484,10 @@ function attachCountBars(state, metricId, references, radii) {
   const referenceDensity = references?.[metricId];
   const radiusA = radii?.A;
   const radiusB = radii?.B;
-  state.aSideState = validNumber(state.aRawValue) ? "VALID" : "UNAVAILABLE";
-  state.bSideState = validNumber(state.bRawValue) ? "VALID" : "UNAVAILABLE";
+  // WITHHELD_EXTRACTION is its own side state: a Lens circle that extends beyond
+  // the source's geographic extraction area is neither unavailable nor zero.
+  state.aSideState = state.aWithheld ? "WITHHELD_EXTRACTION" : validNumber(state.aRawValue) ? "VALID" : "UNAVAILABLE";
+  state.bSideState = state.bWithheld ? "WITHHELD_EXTRACTION" : validNumber(state.bRawValue) ? "VALID" : "UNAVAILABLE";
   // Bar = represented density relative to the shared metric reference density.
   state.aDensity = haloDensity(state.aRawValue, radiusA);
   state.bDensity = haloDensity(state.bRawValue, radiusB);
@@ -463,8 +499,9 @@ function attachCountBars(state, metricId, references, radii) {
   // Printed number is always the RAW COUNT.
   state.aValueText = formatHaloValue(metricId, state.aRawValue);
   state.bValueText = formatHaloValue(metricId, state.bRawValue);
-  state.aQualified = state.id === "valid-partial" || state.id === "valid-deployment";
-  state.bQualified = state.aQualified;
+  const sourceQualified = (source) => source === "snapshot" || source === "published";
+  state.aQualified = state.id === "extraction-withheld" ? sourceQualified(state.aSourceState) && !state.aWithheld : state.id === "valid-partial" || state.id === "valid-deployment";
+  state.bQualified = state.id === "extraction-withheld" ? sourceQualified(state.bSourceState) && !state.bWithheld : state.aQualified;
   state.referenceDensity = validNumber(referenceDensity) ? referenceDensity : null;
   return state;
 }
@@ -506,6 +543,9 @@ function buildHaloComparison(input) {
 function buildCountPairState(a, b, radiusMode = COMPARISON_RADIUS_MODE.EQUAL) {
   const state = countState(a, b);
   if (radiusMode !== COMPARISON_RADIUS_MODE.UNEQUAL) return state;
+  // The geographic-extraction reason outranks the window-size reason: no valid
+  // pair exists, so the window mismatch is not what withholds the comparison.
+  if (state.id === "extraction-withheld") return state;
   return { ...state, id: state.comparable ? "mobility-withheld" : state.id, delta: null, comparable: false, qualifier: "Withheld · different window sizes" };
 }
 
@@ -537,6 +577,7 @@ function bridgeSideEvidence(metricId, state, which) {
     if (sideState === "OFF") return "OFF";
     return "N_A";
   }
+  if (state[which === "A" ? "aWithheld" : "bWithheld"]) return "WITHHELD_EXTRACTION";
   const raw = state[which === "A" ? "aRawValue" : "bRawValue"];
   if (!validNumber(raw) || raw < 0) return "N_A";
   return raw === 0 ? "ZERO" : "VALID";
@@ -549,6 +590,7 @@ function bridgeWithheldReason(metricId, state) {
     if (state.id === "incompatible") return "timesteps-differ";
     return "no-evidence";
   }
+  if (state.id === "extraction-withheld") return "extraction-bounds";
   if (state.id === "mobility-withheld") return "different-window-sizes";
   if (state.id === "aoi-withheld") {
     if (state.qualifier === "circle crosses Madrid AOI") return "aoi-crosses";
@@ -655,6 +697,8 @@ const DECISION_INSIGHT_GUARD_CODE = "descriptive-only";
 function decisionInsightItemState(model) {
   if (model.relationship.comparable) return "comparable";
   if (model.a.evidence === "OFF" || model.b.evidence === "OFF") return "off";
+  // Geographically withheld is a withheld comparison, not an unavailable source.
+  if (model.a.evidence === "WITHHELD_EXTRACTION" || model.b.evidence === "WITHHELD_EXTRACTION") return "withheld";
   if (model.a.evidence === "N_A" || model.b.evidence === "N_A") return "unavailable";
   return "withheld";
 }
@@ -1039,6 +1083,7 @@ function haloVisualState(metric, state, which) {
   }
   if (sideState === "OFF") return "off";
   if (sideState === "NO_EVIDENCE") return "no-evidence";
+  if (sideState === "WITHHELD_EXTRACTION") return "withheld";
   return "unavailable";
 }
 
@@ -1049,7 +1094,9 @@ function buildHaloGlyphSpec(metric, state, which, layout = "full") {
   const qualified = Boolean(state[which === "A" ? "aQualified" : "bQualified"]);
   const saturated = Boolean(state[which === "A" ? "aSaturated" : "bSaturated"]);
   const type = visualState === "numeric" ? "bar" : visualState === "zero" ? "zero" : "abstain";
-  const statusText = visualState === "off" ? "OFF" : visualState === "numeric" || visualState === "zero" ? valueText : "N/A";
+  // A geographically withheld value prints a dash: it is not N/A (the source is
+  // available), not OFF and never a zero.
+  const statusText = visualState === "off" ? "OFF" : visualState === "numeric" || visualState === "zero" ? valueText : visualState === "withheld" ? "—" : "N/A";
   const spec = {
     metric: metric.id,
     slot: metric.slot,
@@ -1106,11 +1153,24 @@ function formatEvidenceState(state) {
     OFF: "off",
     UNAVAILABLE: "unavailable",
     NO_EVIDENCE: "no evidence",
+    WITHHELD_EXTRACTION: "withheld, beyond the geographic extraction area",
     INCOMPATIBLE: "comparison withheld",
     VALID: "valid value",
     VALID_PARTIAL: "valid snapshot sample",
     VALID_DEPLOYMENT: "valid deployment snapshot",
   })[state] || "evidence state unknown";
+}
+
+// Mobility-only disclosure: why a side is withheld, and what a value inside the
+// extraction area does and does not establish. Empty for every other metric and
+// for callers that supply no extraction evidence.
+function extractionNote(metric, state) {
+  if (metric.id !== "mobility" || (state.aExtraction === undefined && state.bExtraction === undefined)) return "";
+  const parts = [];
+  if (state.aWithheld) parts.push("Lens A mobility withheld: the Lens extends beyond the geographic extraction area of Metro and Cercanías");
+  if (state.bWithheld) parts.push("Lens B mobility withheld: the Lens extends beyond the geographic extraction area of Metro and Cercanías");
+  if (!state.aWithheld || !state.bWithheld) parts.push("a Metro and Cercanías value is limited to the queried area and its completeness is not verified");
+  return ` ${parts.join("; ")}.`;
 }
 
 // Screen-reader equivalent of the four perimeter bars. Describes each lens's
@@ -1131,9 +1191,9 @@ function accessibleComparisonSummary(comparison) {
       const differenceText = comparison.radiusMode === COMPARISON_RADIUS_MODE.UNEQUAL && ["tourism", "stays", "mobility"].includes(metric.id)
         ? `${state.delta > 0 ? "+" : ""}${state.delta.toFixed(1)} represented ${metric.id === "stays" ? "catalogue records" : "records"}/km²`
         : formatDifference(state.delta, metric.id);
-      lines.push(`${metric.label}: Lens A ${a}, Lens B ${b}, difference ${differenceText}; ${barNote}. ${coverage ? `${coverage}. ` : ""}${state.qualifier}.`);
+      lines.push(`${metric.label}: Lens A ${a}, Lens B ${b}, difference ${differenceText}; ${barNote}. ${coverage ? `${coverage}. ` : ""}${state.qualifier}.${extractionNote(metric, state)}`);
     } else {
-      lines.push(`${metric.label}: Lens A ${a}, Lens B ${b}; direct comparison withheld; ${barNote}. ${coverage ? `${coverage}. ` : ""}${state.qualifier}.`);
+      lines.push(`${metric.label}: Lens A ${a}, Lens B ${b}; direct comparison withheld; ${barNote}. ${coverage ? `${coverage}. ` : ""}${state.qualifier}.${extractionNote(metric, state)}`);
     }
   }
   lines.push(`Reference density is the Madrid ${comparison.references ? `p${Math.round((comparison.references.quantile ?? 0.95) * 100)} local density in a ${comparison.references.radiusM ?? 900} metre window` : "p95 local density"} per count metric, shared by Lens A and Lens B, and a model-derived Celsius band for UTCI. Values above the reference density saturate the bar while the raw value keeps the real magnitude. Unavailable data reads N/A, never zero; a genuine zero stays a distinct zero state. No bar is a score or recommendation.`);
@@ -1156,7 +1216,7 @@ if (typeof module !== "undefined" && module.exports) {
     buildSpatialSensitivityModel, captureSpatialSensitivityBaseline,
     spatialBaselineCenterChanged, spatialBasisCompatible, spatialSensitivityStatus,
     computeHaloReferenceScales, deriveHaloUtciBand, haloDensity, haloDensityMagnitude, haloUtciMagnitude, formatHaloValue, haloQuantile, haloHaversineMeters,
-    activityState, utciState, countState,
+    activityState, utciState, countState, extractionWithheld,
     haloLayoutForRadius, haloLabelAnchorForSlot, haloValueAnchorForSlot, haloSlotFootprint, haloFootprintsOverlap, buildHaloGlyphSpec, resolveHaloSlotVisibility,
   };
 }

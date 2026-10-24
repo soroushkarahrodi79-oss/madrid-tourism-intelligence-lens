@@ -176,23 +176,32 @@ function comparisonDelta(status, a, b, suffix = "") {
 // label flags when the mix is a partial sample and/or missing a category.
 function categoryMixState(counts, statuses) {
   const keys = Object.keys(counts);
-  const knownKeys = keys.filter((k) => statuses[k] !== "unavailable");
+  // "withheld" is a GEOGRAPHIC state (the Lens extends beyond the source's
+  // extraction area): like "unavailable" it contributes no share and no
+  // denominator, but it is reported separately and never as a 0%.
+  const knownKeys = keys.filter((k) => statuses[k] !== "unavailable" && statuses[k] !== "withheld");
   const total = knownKeys.reduce((sum, k) => sum + counts[k], 0);
 
   const rows = {};
   for (const k of keys) {
-    rows[k] = statuses[k] === "unavailable" ? { na: true } : { pct: total ? Math.round((counts[k] / total) * 100) : 0 };
+    rows[k] = statuses[k] === "unavailable"
+      ? { na: true }
+      : statuses[k] === "withheld"
+        ? { na: true, withheld: true }
+        : { pct: total ? Math.round((counts[k] / total) * 100) : 0 };
   }
 
   const anySnapshot = knownKeys.some((k) => statuses[k] === "snapshot");
   const anyPublished = knownKeys.some((k) => statuses[k] === "published");
   const anyUnavailable = keys.some((k) => statuses[k] === "unavailable");
+  const anyWithheld = keys.some((k) => statuses[k] === "withheld");
   let label = "";
   if (anySnapshot && anyUnavailable) label = "Sample mix · not exhaustive · some categories unavailable";
   else if (anySnapshot) label = "Sample mix · not exhaustive";
   else if (anyPublished && anyUnavailable) label = "Deployment snapshot · some categories unavailable";
   else if (anyPublished) label = "Deployment snapshot · not real-time";
   else if (anyUnavailable) label = "Some categories unavailable";
+  if (anyWithheld) label = label ? `${label} · Mobility withheld (beyond extraction area)` : "Mobility withheld (beyond extraction area)";
 
   return { rows, label };
 }

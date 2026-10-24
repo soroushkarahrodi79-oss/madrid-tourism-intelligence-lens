@@ -901,7 +901,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 /* The raw value — the primary readable mark. */
 .halo-value{fill:var(--halo-color);font-size:var(--t-label);font-weight:820;letter-spacing:.01em;paint-order:stroke;stroke:#050c15;stroke-width:3px;stroke-linejoin:round;dominant-baseline:middle}
 .halo-value.halo-value-zero{fill:var(--halo-color);opacity:.9}
-.halo-value.halo-value-unavailable,.halo-value.halo-value-no-evidence,.halo-value.halo-value-off{fill:#b9c7d6;font-size:var(--t-micro);font-weight:720;opacity:.92}
+.halo-value.halo-value-unavailable,.halo-value.halo-value-no-evidence,.halo-value.halo-value-off,.halo-value.halo-value-withheld{fill:#b9c7d6;font-size:var(--t-micro);font-weight:720;opacity:.92}
 .halo-label{fill:#cdddee;font-size:var(--t-micro);font-weight:720;letter-spacing:.06em;paint-order:stroke;stroke:#050c15;stroke-width:2.1px;stroke-linejoin:round;dominant-baseline:middle;opacity:.9}
 .halo-metric-row-focused th,.halo-metric-row-focused td{background:rgba(89,170,225,.14);color:#fff!important}
 .halo-state-track{stroke:var(--halo-color);stroke-width:6;stroke-linecap:round;fill:none;opacity:.7}
@@ -909,6 +909,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .halo-state-off .halo-state-track{stroke-dasharray:4 5;opacity:.45}.halo-state-off .halo-state-mark{font-size:var(--t-label);opacity:.7}
 .halo-state-unavailable .halo-state-track{stroke-width:5;stroke-dasharray:2 3;fill:none;opacity:.6}.halo-state-unavailable .halo-state-mark{font-size:var(--t-figure)}
 .halo-state-no-evidence .halo-state-track{stroke-width:3;stroke-dasharray:none;opacity:.7}.halo-state-no-evidence .halo-state-mark{font-size:var(--t-body)}
+.halo-state-withheld .halo-state-track{stroke-width:4;stroke-dasharray:7 4;opacity:.5}.halo-state-withheld .halo-state-mark{font-size:var(--t-figure)}
 .halo-qualified-mark{fill:#08101a;stroke:var(--halo-color);stroke-width:1.4}
 /* DESTINATION CONTEXT: the citywide surface.
    Given its own quiet card so it reads as a different KIND of thing from the

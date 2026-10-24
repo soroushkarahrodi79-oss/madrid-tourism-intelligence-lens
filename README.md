@@ -419,6 +419,7 @@ js/geography.js         pure administrative containment / point-in-polygon (test
 js/area-profile.js      pure Area Profile model: place, residents, licensed VUT, states (tested)
 js/destination-context.js  pure citywide hotel-demand model: period, YoY, trend, states (tested)
 js/domestic-origin-context.js pure municipality-level domestic-origin model (tested)
+js/extraction-bounds.js  CRTM rail extraction rectangle (single definition) + pure whole-circle Lens eligibility for the combined Mobility count (tested)
 js/data.js              deployment-snapshot-first + bounded live fallback loading
 js/app.js               Leaflet map + UI wiring
 data/                   HATI evidence extract + POI snapshot + provenance
