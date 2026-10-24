@@ -633,6 +633,35 @@ state, distinct from source unavailability, the layer being OFF and an observed
 zero. BiciMAD, museums and tourist-information points are downloaded without a
 spatial filter and are unchanged.
 
+#### Rail retrieval reconciliation (F-02)
+
+A **second, separate claim** from the extraction boundary above. Before the
+builder publishes a CRTM response, `scripts/crtm_reconciliation.mjs` proves, per
+service (M4 Metro, M5 Cercanías), that the response to *that exact query* was
+complete and stable when retrieved: the official `returnCountOnly` equals the
+`returnIdsOnly` list, the GeoJSON feature count and an independently enumerated
+OBJECTID set (compared as sets, not only as counts); OBJECTIDs are unique; every
+feature has a valid Point geometry; no `exceededTransferLimit` is reported; and
+the layer's `editingInfo.dataLastEditDate` and the count are unchanged between the
+first and the last request. The spatial predicate is read back from the URL the
+builder itself issues, so it cannot drift from the feature query.
+
+Any API error, timeout, malformed body, mismatch, missing edit timestamp or
+mid-retrieval edit fails the rail layer, which the deployment-integrity gate
+refuses to publish. The per-service evidence (source, timestamps, query boundary,
+contract version, queried / returned / unique-ID counts, status, source edit
+timestamp) is written to `runtime_poi.json` → `status.rail.retrieval`, is
+re-validated by `scripts/validate_deployment.mjs`, and is summarised in the
+manifest.
+
+It does **not** widen or reinterpret the rectangle, does not change what Mobility
+means, and establishes **neither municipal coverage nor that the CRTM dataset is
+complete**: `is_coverage_evidence` stays `false` and `source_completeness` stays
+`NOT_VERIFIED`. A passing reconciliation is a statement about one query at one
+moment, using the service's own count, IDs and edit timestamp as the reference;
+an error shared by all of those (a service that consistently under-reports
+itself) is outside what it can detect.
+
 Every point returned to the UI carries an explicit provenance state. The
 left-hand layer panel distinguishes deployment snapshots, small curated
 fallback samples, live-only fallback results, and unavailable layers. The UI

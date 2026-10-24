@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import extraction from "../js/extraction-bounds.js";
+import { reconcileCrtmService, buildRetrievalRecord } from "./crtm_reconciliation.mjs";
 
 const SOURCES = {
   museums: "https://datos.madrid.es/dataset/201132-0-museos/resource/201132-2-museos-json/download/201132-2-museos-json.json",
@@ -132,16 +133,36 @@ async function tryLayer(name, loader) {
   }
 }
 
+// F-02: every CRTM response is published only after it has been reconciled with an
+// independent count, OBJECTID list and OBJECTID enumeration for the SAME query (the
+// URL built by crtmStationQuery above is the single source of the predicate). A
+// failure rejects the rail layer, which the deployment-integrity gate refuses to
+// publish. The per-service evidence is kept for status.rail.retrieval.
+const railRetrievalEvidence = {};
+async function reconciledCrtmResponse(url, mode) {
+  try {
+    const { geojson, evidence } = await reconcileCrtmService({ mode, queryUrl: crtmStationQuery(url), fetchJson });
+    railRetrievalEvidence[mode] = evidence;
+    return geojson;
+  } catch (error) {
+    if (error.evidence) railRetrievalEvidence[mode] = error.evidence;
+    throw error;
+  }
+}
+
 const results = await Promise.all([
   tryLayer("museum", () => fetchJson(SOURCES.museums).then((d) => parseMadridOpenData(d, "museum"))),
   tryLayer("info", () => fetchJson(SOURCES.info).then((d) => parseMadridOpenData(d, "info"))),
   tryLayer("bike", () => fetchJson(SOURCES.bikes).then(parseBiciMad)),
   tryLayer("rail", async () => {
-    const [metro, cercanias] = await Promise.all([
-      fetchJson(crtmStationQuery(SOURCES.metroStations)).then((d) => parseCrtmStations(d, "metro")),
-      fetchJson(crtmStationQuery(SOURCES.cercaniasStations)).then((d) => parseCrtmStations(d, "cercanias")),
+    // allSettled so the evidence of BOTH services is recorded even when one fails.
+    const settled = await Promise.allSettled([
+      reconciledCrtmResponse(SOURCES.metroStations, "metro").then((d) => parseCrtmStations(d, "metro")),
+      reconciledCrtmResponse(SOURCES.cercaniasStations, "cercanias").then((d) => parseCrtmStations(d, "cercanias")),
     ]);
-    return [...metro, ...cercanias];
+    const rejected = settled.find((r) => r.status === "rejected");
+    if (rejected) throw rejected.reason;
+    return settled.flatMap((r) => r.value);
   }),
   tryLayer("park", () =>
     fetchJson(SOURCES.parks)
@@ -163,7 +184,7 @@ const output = {
         error: r.error,
         // The rectangle the rail query used, recorded so the browser can verify
         // it interprets the same contract (and fail closed when it does not).
-        ...(r.name === "rail" ? { extraction: extraction.RAIL_EXTRACTION_RECORD } : {}),
+        ...(r.name === "rail" ? { extraction: extraction.RAIL_EXTRACTION_RECORD, retrieval: buildRetrievalRecord(railRetrievalEvidence) } : {}),
       },
     ])
   ),
