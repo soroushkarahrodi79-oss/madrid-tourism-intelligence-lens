@@ -26,6 +26,12 @@ import { createHash } from "node:crypto";
 // the registry's declared boundary and the boundary each build recorded are that
 // same contract, so build-time extraction and browser interpretation cannot drift.
 import extractionBounds from "../js/extraction-bounds.js";
+// F-02: the rail retrieval-reconciliation record the build must carry.
+import {
+  RECONCILIATION_CONTRACT_VERSION,
+  RECONCILIATION_SCOPE,
+  RECONCILIATION_STATUS,
+} from "./crtm_reconciliation.mjs";
 
 // The analytical-scope and freshness vocabulary is defined once, in the pure
 // model, so the deployment gate and the renderer (K4) can never drift apart.
@@ -325,6 +331,10 @@ function validatePoiLayer(source, runtimePoi, scopes, errors, warnings) {
       }
     }
     layerWarnings.push(`mode split: ${Object.entries(counts).map(([m, n]) => `${m}=${n}`).join(", ")}`);
+    const retrieval = layerStatus.retrieval?.services;
+    if (retrieval) {
+      layerWarnings.push(`retrieval reconciliation (query boundary only, not source completeness): ${Object.entries(retrieval).map(([m, s]) => `${m}=${s.status} ${s.returned_count}/${s.queried_count}`).join(", ")}`);
+    }
   }
 
   // Accommodation: the artifact must come from the authoritative builder.
@@ -2520,6 +2530,7 @@ function validateRuntimePoiStructure(runtimePoi, registry, errors) {
     if (!present.includes(id)) errors.push(`runtime_poi.json: registry declares layer "${id}" but the build did not emit it`);
   }
   validateRailExtractionContract(runtimePoi, registry, errors);
+  validateRailRetrievalReconciliation(runtimePoi, registry, errors);
 }
 
 // The rail extraction rectangle is an extraction QUERY boundary (not coverage
@@ -2563,6 +2574,71 @@ function validateRailExtractionContract(runtimePoi, registry, errors) {
   const recorded = runtimePoi?.status?.rail?.extraction;
   if (!extractionBounds.recordMatchesContract(recorded)) {
     errors.push("rail: runtime_poi.json status.rail.extraction is missing or is not the extraction contract this application interprets; Lens circles could not be judged against the rectangle the data was built with");
+  }
+}
+
+// F-02 — retrieval reconciliation of the CRTM rail query. This is a SECOND, separate
+// claim from the extraction contract above: that the response to the extraction
+// query was complete and internally consistent when retrieved. It is never
+// coverage evidence and never changes `completeness`. A build whose rail layer
+// failed is already refused by the generic availability check, so this only adds
+// requirements to a rail layer that claims to be ok; it relaxes nothing.
+function validateRailRetrievalReconciliation(runtimePoi, registry, errors) {
+  const rail = registry.sources.find((s) => s.id === "rail" && s.artifact === "runtime_poi.json");
+  if (!rail) return; // already reported by validateRailExtractionContract
+  const declared = rail.retrieval_reconciliation;
+  if (!declared || typeof declared !== "object" || Array.isArray(declared)
+    || declared.contract_version !== RECONCILIATION_CONTRACT_VERSION
+    || declared.scope !== RECONCILIATION_SCOPE
+    || declared.source_completeness !== "NOT_VERIFIED"
+    || declared.is_coverage_evidence !== false) {
+    errors.push("rail: source_registry.json must declare retrieval_reconciliation with the current contract_version, scope RETRIEVAL_WITHIN_QUERY_BOUNDARY, source_completeness NOT_VERIFIED and is_coverage_evidence=false");
+  }
+
+  const railStatus = runtimePoi?.status?.rail;
+  if (!railStatus || railStatus.ok !== true) return; // an unavailable rail layer already blocks deployment
+  const fail = (message) => errors.push(`rail: retrieval reconciliation ${message}`);
+  const record = railStatus.retrieval;
+  if (!record || typeof record !== "object" || Array.isArray(record)) {
+    fail("record (status.rail.retrieval) is missing; the CRTM response was not reconciled with an independent count and OBJECTID list, so the deployment is refused");
+    return;
+  }
+  if (record.contract_version !== RECONCILIATION_CONTRACT_VERSION) fail(`contract_version is ${JSON.stringify(record.contract_version)}, expected ${RECONCILIATION_CONTRACT_VERSION}`);
+  if (record.scope !== RECONCILIATION_SCOPE) fail(`scope is ${JSON.stringify(record.scope)}, expected ${RECONCILIATION_SCOPE}`);
+  if (record.status !== RECONCILIATION_STATUS.RECONCILED) fail(`status is ${JSON.stringify(record.status)}, expected RECONCILED`);
+  if (record.extraction_contract_version !== extractionBounds.CONTRACT_VERSION) fail("was run against a different extraction contract version than this build interprets");
+  if (record.is_coverage_evidence !== false || record.source_completeness !== "NOT_VERIFIED") {
+    fail("must state is_coverage_evidence=false and source_completeness=NOT_VERIFIED; a reconciled query is never evidence of source completeness");
+  }
+
+  const bounds = extractionBounds.RAIL_EXTRACTION_BOUNDS;
+  const published = {};
+  for (const r of runtimePoi?.layers?.rail ?? []) published[r.mode] = (published[r.mode] ?? 0) + 1;
+  const modes = Object.keys(rail.required_modes?.modes ?? {});
+  if (modes.length === 0) fail("cannot determine which modes to reconcile (registry required_modes is missing)");
+  const isInt = (v) => Number.isInteger(v) && v >= 0;
+  for (const mode of modes) {
+    const s = record.services?.[mode];
+    if (!s || typeof s !== "object") { fail(`has no record for mode "${mode}"`); continue; }
+    const at = `mode "${mode}"`;
+    if (s.status !== RECONCILIATION_STATUS.RECONCILED) fail(`${at} status is ${JSON.stringify(s.status)}`);
+    const counts = [s.queried_count, s.queried_count_recheck, s.id_count, s.unique_id_count, s.returned_count, s.enumerated_count];
+    if (!counts.every(isInt) || new Set(counts).size !== 1) fail(`${at} counts do not all agree (queried ${s.queried_count}, recheck ${s.queried_count_recheck}, ids ${s.id_count}, unique ids ${s.unique_id_count}, returned ${s.returned_count}, enumerated ${s.enumerated_count})`);
+    if (published[mode] !== s.returned_count) fail(`${at} reconciled ${s.returned_count} feature(s) but ${published[mode] ?? 0} record(s) were published`);
+    const q = s.query ?? {};
+    if (q.extraction_contract_version !== extractionBounds.CONTRACT_VERSION || q.crs !== "EPSG:4326"
+      || q.geometry !== extractionBounds.envelopeParam(bounds)
+      || ["west", "south", "east", "north"].some((k) => q.bounds?.[k] !== bounds[k])) {
+      fail(`${at} was reconciled against a query boundary other than the extraction contract`);
+    }
+    if (s.object_id_reconciliation?.ids_vs_enumeration !== "RECONCILED" || !["RECONCILED", "NOT_EXPOSED"].includes(s.object_id_reconciliation?.ids_vs_geojson)) {
+      fail(`${at} OBJECTID sets were not reconciled against an independent enumeration`);
+    }
+    if (Object.values(s.exceeded_transfer_limit ?? {}).some((flag) => flag === true) || !s.exceeded_transfer_limit) fail(`${at} reports a transfer limit or does not record it`);
+    if (s.source_edit?.stable_during_retrieval !== true || Number.isNaN(Date.parse(s.source_edit?.data_last_edit_date))) {
+      fail(`${at} has no stable source edit timestamp`);
+    }
+    if (Number.isNaN(Date.parse(s.retrieved_at))) fail(`${at} has no retrieval timestamp`);
   }
 }
 

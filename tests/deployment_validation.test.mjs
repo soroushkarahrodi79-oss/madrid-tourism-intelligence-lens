@@ -787,6 +787,53 @@ function planningStateMeta(artifact = planningStateArtifact()) {
   };
 }
 
+// F-02: the per-service retrieval-reconciliation record a healthy rail build carries.
+function reconciledService(mode, n, patch = {}) {
+  return {
+    mode,
+    status: "RECONCILED",
+    failure_code: null,
+    retrieved_at: "2026-09-29T08:59:00.000Z",
+    completed_at: "2026-09-29T08:59:02.000Z",
+    service_url: `https://example.test/${mode}/FeatureServer/0`,
+    query: {
+      extraction_contract_version: extractionBounds.CONTRACT_VERSION,
+      crs: "EPSG:4326",
+      bounds: { ...extractionBounds.RAIL_EXTRACTION_BOUNDS },
+      where: "1=1",
+      geometry: extractionBounds.envelopeParam(),
+      geometry_type: "esriGeometryEnvelope",
+      in_sr: "4326",
+      spatial_rel: "esriSpatialRelIntersects",
+    },
+    queried_count: n,
+    queried_count_recheck: n,
+    id_count: n,
+    unique_id_count: n,
+    returned_count: n,
+    enumerated_count: n,
+    exceeded_transfer_limit: { ids: "NOT_REPORTED", features: false, enumeration: "NOT_REPORTED" },
+    object_id_reconciliation: { ids_vs_enumeration: "RECONCILED", ids_vs_geojson: "RECONCILED" },
+    source_edit: { data_last_edit_date: "2026-09-01T00:00:00.000Z", stable_during_retrieval: true },
+    ...patch,
+  };
+}
+
+function healthyRailRetrieval(rail, patch = {}) {
+  const count = (mode) => rail.filter((r) => r.mode === mode).length;
+  return {
+    contract_version: "1.0.0",
+    scope: "RETRIEVAL_WITHIN_QUERY_BOUNDARY",
+    status: "RECONCILED",
+    recorded_at: "2026-09-29T08:59:03.000Z",
+    extraction_contract_version: extractionBounds.CONTRACT_VERSION,
+    is_coverage_evidence: false,
+    source_completeness: "NOT_VERIFIED",
+    services: { metro: reconciledService("metro", count("metro")), cercanias: reconciledService("cercanias", count("cercanias")) },
+    ...patch,
+  };
+}
+
 function healthyArtifacts() {
   const layers = {
     museum: poiRecords("museum", 3),
@@ -807,6 +854,8 @@ function healthyArtifacts() {
   status.stay.source = "Madrid Destino / esmadrid.com";
   // The build records the rectangle the CRTM rail query used (F-01).
   status.rail.extraction = extractionBounds.RAIL_EXTRACTION_RECORD;
+  // F-02: and the reconciliation of what each CRTM service answered to that query.
+  status.rail.retrieval = healthyRailRetrieval(layers.rail);
 
   return {
     "runtime_poi.json": {
@@ -3266,4 +3315,134 @@ test("K2 regression: a catalogue update date never becomes reference_date or pub
   assert.notEqual(fresh.reference_date, plano.catalogue_updated_at);
   assert.notEqual(fresh.published_at, plano.catalogue_updated_at);
   assert.ok(!("catalogue_updated_at" in fresh), "the catalogue date is not one of the five freshness fields");
+});
+
+// ------------------------------------------------------- F-02 rail reconciliation
+//
+// The build must carry, per CRTM service, proof that the answer to the extraction
+// query was complete and stable when retrieved. It is a SECOND claim, separate
+// from the extraction contract, and it never reads as coverage or completeness.
+
+const F02 = /rail: retrieval reconciliation/;
+
+function withRetrieval(mutate) {
+  const artifacts = healthyArtifacts();
+  mutate(artifacts["runtime_poi.json"].status.rail.retrieval, artifacts["runtime_poi.json"]);
+  return run(artifacts);
+}
+
+test("F-02: a healthy build passes and the manifest records the reconciliation for audit", () => {
+  const result = run(healthyArtifacts());
+  assert.equal(result.ok, true);
+  assert.equal(errorText(result), "");
+  const rail = result.manifest.layers.find((l) => l.source_id === "rail");
+  assert.match(rail.warnings.join(" "), /retrieval reconciliation \(query boundary only, not source completeness\): metro=RECONCILED 3\/3, cercanias=RECONCILED 1\/1/);
+});
+
+test("F-02: a rail layer without a retrieval record is refused", () => {
+  const artifacts = healthyArtifacts();
+  delete artifacts["runtime_poi.json"].status.rail.retrieval;
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /retrieval reconciliation record \(status\.rail\.retrieval\) is missing/);
+  for (const bad of [null, "RECONCILED", [], 3]) {
+    const a = healthyArtifacts();
+    a["runtime_poi.json"].status.rail.retrieval = bad;
+    assert.equal(run(a).ok, false, JSON.stringify(bad));
+  }
+});
+
+test("F-02: a FAILED, or differently versioned or scoped, record is refused", () => {
+  assert.match(errorText(withRetrieval((r) => { r.status = "FAILED"; })), /status is "FAILED"/);
+  assert.match(errorText(withRetrieval((r) => { r.services.metro.status = "FAILED"; })), /mode "metro" status is "FAILED"/);
+  assert.match(errorText(withRetrieval((r) => { r.contract_version = "0.9.0"; })), /contract_version/);
+  assert.match(errorText(withRetrieval((r) => { r.scope = "MUNICIPAL_COVERAGE"; })), /scope is/);
+  assert.match(errorText(withRetrieval((r) => { r.extraction_contract_version = "0.1.0"; })), /different extraction contract version/);
+});
+
+test("F-02: every disagreement among queried, rechecked, ID, unique, returned and enumerated counts is refused", () => {
+  for (const field of ["queried_count", "queried_count_recheck", "id_count", "unique_id_count", "returned_count", "enumerated_count"]) {
+    const result = withRetrieval((r) => { r.services.metro[field] += 1; });
+    assert.equal(result.ok, false, field);
+    assert.match(errorText(result), /counts do not all agree/, field);
+  }
+  assert.match(errorText(withRetrieval((r) => { r.services.metro.queried_count = "3"; })), /counts do not all agree/);
+});
+
+test("F-02: the reconciled count must equal the number of records actually published for that mode", () => {
+  const artifacts = healthyArtifacts();
+  const poi = artifacts["runtime_poi.json"];
+  poi.layers.rail = poi.layers.rail.concat(poiRecords("rail-extra", 1, () => ({ mode: "metro" })));
+  poi.status.rail.count = poi.layers.rail.length;
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /reconciled 3 feature\(s\) but 4 record\(s\) were published/);
+});
+
+test("F-02: a record reconciled against another boundary, or without a stable source, is refused", () => {
+  assert.match(errorText(withRetrieval((r) => { r.services.metro.query.bounds.east = -3.6; })), /query boundary other than the extraction contract/);
+  assert.match(errorText(withRetrieval((r) => { r.services.metro.query.geometry = "-3.8,40.3,-3.6,40.5"; })), /query boundary other than the extraction contract/);
+  assert.match(errorText(withRetrieval((r) => { r.services.cercanias.query.crs = "EPSG:3857"; })), /query boundary other than the extraction contract/);
+  assert.match(errorText(withRetrieval((r) => { r.services.metro.source_edit.stable_during_retrieval = false; })), /no stable source edit timestamp/);
+  assert.match(errorText(withRetrieval((r) => { r.services.metro.source_edit.data_last_edit_date = null; })), /no stable source edit timestamp/);
+  assert.match(errorText(withRetrieval((r) => { r.services.metro.retrieved_at = "yesterday"; })), /no retrieval timestamp/);
+});
+
+test("F-02: OBJECTID sets must be reconciled against an independent enumeration, and no transfer limit may be reported", () => {
+  assert.match(errorText(withRetrieval((r) => { r.services.metro.object_id_reconciliation.ids_vs_enumeration = "NOT_EXPOSED"; })), /not reconciled against an independent enumeration/);
+  assert.match(errorText(withRetrieval((r) => { r.services.metro.object_id_reconciliation.ids_vs_geojson = "MISMATCH"; })), /not reconciled against an independent enumeration/);
+  assert.match(errorText(withRetrieval((r) => { r.services.metro.exceeded_transfer_limit.features = true; })), /reports a transfer limit or does not record it/);
+  assert.match(errorText(withRetrieval((r) => { delete r.services.metro.exceeded_transfer_limit; })), /reports a transfer limit or does not record it/);
+  const exposed = withRetrieval((r) => { r.services.metro.object_id_reconciliation.ids_vs_geojson = "NOT_EXPOSED"; });
+  assert.equal(exposed.ok, true, "GeoJSON ids not being exposed is allowed when the independent enumeration reconciles");
+});
+
+test("F-02: a record for every required mode is demanded", () => {
+  assert.match(errorText(withRetrieval((r) => { delete r.services.cercanias; })), /has no record for mode "cercanias"/);
+  assert.match(errorText(withRetrieval((r) => { r.services = {}; })), /has no record for mode "metro"/);
+});
+
+test("F-02: reconciliation can never be read as coverage or completeness evidence", () => {
+  assert.match(errorText(withRetrieval((r) => { r.is_coverage_evidence = true; })), /is_coverage_evidence=false and source_completeness=NOT_VERIFIED/);
+  assert.match(errorText(withRetrieval((r) => { r.source_completeness = "VERIFIED"; })), /source_completeness=NOT_VERIFIED/);
+  // The extraction contract's own claims are still enforced exactly as before.
+  const artifacts = healthyArtifacts();
+  artifacts["runtime_poi.json"].status.rail.extraction = { ...extractionBounds.RAIL_EXTRACTION_RECORD, completeness: "VERIFIED" };
+  assert.equal(run(artifacts).ok, false);
+});
+
+test("F-02: the registry must declare the reconciliation as retrieval-only, never coverage", () => {
+  const rail = (reg) => reg.sources.find((s) => s.id === "rail");
+  const without = testRegistry();
+  delete rail(without).retrieval_reconciliation;
+  assert.match(errorText(run(healthyArtifacts(), without)), /must declare retrieval_reconciliation/);
+  for (const patch of [{ is_coverage_evidence: true }, { source_completeness: "VERIFIED" }, { scope: "MUNICIPAL_COVERAGE" }, { contract_version: "2.0.0" }]) {
+    const reg = testRegistry();
+    Object.assign(rail(reg).retrieval_reconciliation, patch);
+    assert.match(errorText(run(healthyArtifacts(), reg)), /must declare retrieval_reconciliation/, JSON.stringify(patch));
+  }
+});
+
+test("F-02: a failed rail build still blocks deployment through the existing availability gate", () => {
+  const artifacts = healthyArtifacts();
+  const poi = artifacts["runtime_poi.json"];
+  poi.layers.rail = [];
+  poi.status.rail = { ...poi.status.rail, ok: false, count: 0, error: "CRTM_RECONCILIATION_FAILED[COUNT_DOES_NOT_EQUAL_ID_COUNT]: metro: count 139 but 138 IDs" };
+  poi.status.rail.retrieval = { ...poi.status.rail.retrieval, status: "FAILED" };
+  const result = run(artifacts);
+  assert.equal(result.ok, false);
+  assert.match(errorText(result), /build reported the layer as unavailable \(builder reported: CRTM_RECONCILIATION_FAILED\[COUNT_DOES_NOT_EQUAL_ID_COUNT\]/);
+  assert.match(errorText(result), /this layer blocks deployment/);
+});
+
+test("F-02: the committed registry declares reconciliation as retrieval-only", () => {
+  const rail = REAL_REGISTRY.sources.find((s) => s.id === "rail");
+  assert.equal(rail.retrieval_reconciliation.scope, "RETRIEVAL_WITHIN_QUERY_BOUNDARY");
+  assert.equal(rail.retrieval_reconciliation.is_coverage_evidence, false);
+  assert.equal(rail.retrieval_reconciliation.source_completeness, "NOT_VERIFIED");
+  assert.equal(rail.extraction_bounds.completeness, "NOT_VERIFIED");
+  assert.equal(rail.extraction_bounds.is_coverage_evidence, false);
+  assert.equal(rail.integrity_guardrail.min_count, 60, "the existing collapse guardrails are untouched");
+  assert.equal(rail.required_modes.modes.metro.min_count, 50);
+  assert.equal(rail.required_modes.modes.cercanias.min_count, 3);
 });

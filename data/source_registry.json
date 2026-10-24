@@ -218,6 +218,21 @@
         "use": "A Lens circle not wholly inside this rectangle has its combined Mobility count withheld, because stations outside it were never requested. A circle inside it establishes only that the query covered it, never that the source returned every station.",
         "note": "An extraction query boundary. It is NOT the expected_spatial_scope integrity envelope (central_madrid_area), which only sanity-checks coordinates, and it is never evidence of complete source coverage."
       },
+      "retrieval_reconciliation": {
+        "contract_version": "1.0.0",
+        "scope": "RETRIEVAL_WITHIN_QUERY_BOUNDARY",
+        "builder": "scripts/crtm_reconciliation.mjs",
+        "checks": [
+          "returnCountOnly == returnIdsOnly == GeoJSON features == independently enumerated OBJECTIDs",
+          "unique OBJECTIDs",
+          "valid Point geometry for every feature",
+          "no exceededTransferLimit reported",
+          "dataLastEditDate and count unchanged between the first and last request"
+        ],
+        "is_coverage_evidence": false,
+        "source_completeness": "NOT_VERIFIED",
+        "note": "A SECOND claim, separate from extraction_bounds: the response to the extraction query was complete and consistent when retrieved, for each service. It does not widen the rectangle, does not establish municipal coverage and does not establish that the CRTM dataset is complete. status.rail.retrieval in runtime_poi.json records the per-service evidence of each build; any mismatch, API error, timeout or mid-retrieval edit fails the rail layer and therefore the deployment."
+      },
       "unique_ids": true,
       "required_modes": {
         "field": "mode",
