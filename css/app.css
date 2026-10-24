@@ -1240,6 +1240,19 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   /* Map-first on phones: an explicit 44px control replaces the always-open rail.
      The entire original six-group rail remains reachable when requested. */
   .mobile-layers-button{display:inline-flex}
+  /* The planning-ámbito row is full width and its instance is a sentence (the
+     explicit absence, "The Lens circle touches no official planning ámbito."), far
+     longer than the other instances. The app ships no webfont, so on systems
+     without Inter the fallback face is wider and the sentence wraps; stacked under
+     its own label that costs a whole extra row. Run the label in with the text so
+     the line box is shared and the wrapped sentence uses the full row width. All
+     text stays; only the stacking changes. */
+  .scope-rail-list li[data-scope="PLANNING_AMBITO"] .scope-rail-item{display:block}
+  .scope-rail-list li[data-scope="PLANNING_AMBITO"] .scope-glyph,
+  .scope-rail-list li[data-scope="PLANNING_AMBITO"] .scope-name,
+  .scope-rail-list li[data-scope="PLANNING_AMBITO"] .scope-instance{display:inline}
+  .scope-rail-list li[data-scope="PLANNING_AMBITO"] .scope-glyph,
+  .scope-rail-list li[data-scope="PLANNING_AMBITO"] .scope-name{margin-right:var(--s-1)}
   .left{top:calc(125px + var(--safe-top));width:min(240px,calc(100vw - 72px - var(--safe-left) - var(--safe-right)));max-height:min(50vh,400px);max-height:min(50dvh,400px)}
 }
 @media(max-width:420px){
