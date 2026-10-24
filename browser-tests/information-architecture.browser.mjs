@@ -780,6 +780,18 @@ test("IA 22 the mobile PLACE quick-jump reaches the Lens metrics, is localized, 
     const panel = document.getElementById("analysisPanel");
     return document.getElementById("placeCircleSummary").getBoundingClientRect().top - panel.getBoundingClientRect().top;
   });
+  // newPage()'s own readiness wait (above) accepts the rail's interim "— "
+  // placeholder as well as its terminal render, both matching "Reference · ".
+  // That is enough for tests that do not measure geometry, but a position
+  // assertion must wait past the rail's actual terminal state: once
+  // data/source_registry.json resolves, renderScopeRail() replaces the
+  // one-line placeholder with the real (longer, often two-line) freshness
+  // line, moving everything below it — including #placeCircleSummary — down
+  // by double digits of pixels (verified by injecting a delay on that fetch:
+  // ~226px pre-registry vs ~241px post-registry at this viewport on this
+  // checkout). Measuring before that settles is a race, not this surface's
+  // true layout.
+  await page.waitForFunction(() => window.__HALO_REGRESSION__.registryReady());
   const initialSummaryTop = await summaryTop();
   assert.ok(initialSummaryTop < 250, `compact rail brings the canonical Lens readings closer to the panel top (actual top ${initialSummaryTop}px)`);
   await page.locator('#placeJump .place-jump-chip[data-jump="withinLens"]').click();
