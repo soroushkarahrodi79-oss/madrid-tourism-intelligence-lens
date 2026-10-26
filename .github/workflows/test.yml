@@ -40,3 +40,18 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+      - name: Capture UX-H1 before and after screenshots
+        if: ${{ success() }}
+        env:
+          UX_H1_CAPTURE_DIR: ${{ github.workspace }}/test-results/ux-h1-map-header/after
+        run: |
+          node browser-tests/header-ux-h1.browser.mjs
+          git worktree add --detach ../ux-h1-main origin/main
+          UX_H1_ROOT=../ux-h1-main UX_H1_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-h1-map-header/before node browser-tests/header-ux-h1.browser.mjs
+      - name: Upload UX-H1 screenshots
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ux-h1-map-header-screenshots
+          path: test-results/ux-h1-map-header
+          if-no-files-found: warn
