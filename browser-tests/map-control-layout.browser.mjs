@@ -101,6 +101,7 @@ test("map +/- and attribution geometry stay legible across mobile, iPad and lapt
         }
         assert.ok(!intersects(layout.zoom, layout.attribution), "zoom must not cover map source credits");
         assert.ok(!intersects(layout.zoom, layout.header), "zoom must not cover the header");
+        assert.ok(!intersects(layout.rail, layout.header), "layer access must not cover the header");
         assert.ok(!intersects(layout.zoom, layout.rail), "zoom must stay outside the layer rail");
         assert.ok(layout.attribution.left >= -1 && layout.attribution.right <= s.width + 1, "attribution remains in viewport");
 

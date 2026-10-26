@@ -122,6 +122,7 @@ test("journey respects manual licence opt-in before the evidence step", async (t
   assert.equal(await page.locator('[data-layer="licences"]').isChecked(), false);
   await page.locator('[data-layer="licences"]').evaluate((input) => input.click());
   assert.equal(await page.locator('[data-layer="licences"]').isChecked(), true);
+  await page.locator("#institutionalJourneyNext").waitFor({ state: "visible" });
   await page.locator("#institutionalJourneyNext").click();
   await page.locator("#institutionalJourneyNext").click();
   assert.equal(await page.locator('[data-layer="licences"]').isChecked(), true, "user-enabled overlay stays on in COMPARE");

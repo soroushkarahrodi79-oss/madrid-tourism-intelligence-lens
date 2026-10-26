@@ -23,19 +23,19 @@
 })();
 </script>
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261024-rail-ambito-runin">
+<link rel="stylesheet" href="css/app.css?v=20261026-institutional-header">
 </head>
 <body>
 <a class="sr-only skip-link" href="#analysisPanel" data-i18n="a11y.skipToPanel">Skip to the analysis panel</a>
 <a class="sr-only skip-link" href="#layerRail" data-i18n="a11y.skipToLayers">Skip to the map layers</a>
 <div id="map"></div>
 
-<header>
+<header class="map-header">
   <div class="brand">
     <div class="logo"></div>
-    <div><div class="brand-title">Madrid Urban Evidence Lens</div><div class="brand-sub">Madrid · Urban development · Official evidence</div></div>
+    <div class="brand-copy"><div class="brand-title">Madrid Urban Evidence Lens</div><div class="brand-sub">Madrid · Urban development · Official evidence</div></div>
   </div>
-  <div class="header-tools">
+  <div class="header-tools" role="group" aria-label="Workspace preferences and help" data-i18n-attr="aria-label:header.preferencesAria">
     <label class="appearance-control" for="appearanceSelect">
       <span data-i18n="appearance.label">Appearance</span>
       <select id="appearanceSelect" aria-label="Appearance" data-i18n-attr="aria-label:appearance.label">
