@@ -6066,6 +6066,17 @@ function renderRailGroupBadges() {
   }
 }
 
+// Map controls hang from the institutional header's real bottom edge, which
+// changes with wrapping, font metrics, safe-area insets and orientation.
+const headerEl = document.querySelector("header");
+function syncHeaderBottom() {
+  document.documentElement.style.setProperty("--header-bottom", `${Math.ceil(headerEl.getBoundingClientRect().bottom)}px`);
+}
+syncHeaderBottom();
+if (typeof ResizeObserver === "function") new ResizeObserver(syncHeaderBottom).observe(headerEl);
+window.addEventListener("resize", syncHeaderBottom);
+window.addEventListener("orientationchange", syncHeaderBottom);
+
 // The whole layer rail is opt-in on phones, without hiding its ten toggles or
 // changing their values. Tablets keep P1's six-group visible accordion.
 const mobileRailMedia = window.matchMedia("(max-width: 560px)");

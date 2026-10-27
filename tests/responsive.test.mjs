@@ -13,7 +13,7 @@ test("responsive layout uses safe-area insets for notched/tablet devices", () =>
 });
 
 test("Leaflet zoom controls move away from the layer panel on tablet/mobile", () => {
-  assert.match(css, /\.leaflet-top\.leaflet-left\{top:calc\(73px \+ var\(--safe-top\)\);left:auto;right:calc\(10px \+ var\(--safe-right\)\)\}/);
+  assert.match(css, /\.leaflet-top\.leaflet-left\{top:calc\(var\(--header-bottom\) \+ 10px\);left:auto;right:calc\(10px \+ var\(--safe-right\)\)\}/);
 });
 
 test("coarse-pointer controls share the universal 44px floor", () => {

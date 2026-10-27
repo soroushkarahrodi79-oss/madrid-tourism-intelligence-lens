@@ -926,7 +926,7 @@
 (function () {
   if (new URLSearchParams(location.search).get("journey") !== "yeserias") return;
   var style = document.createElement("link"); style.rel = "stylesheet"; style.href = "css/institutional-journey.css?v=20261023-1"; document.head.appendChild(style);
-  var script = document.createElement("script"); script.src = "js/institutional-journey.js?v=20261023-1"; document.body.appendChild(script);
+  var script = document.createElement("script"); script.dataset.autostart = "1"; script.src = "js/institutional-journey.js?v=20261023-1"; document.body.appendChild(script);
 })();
 </script>
 </body>
