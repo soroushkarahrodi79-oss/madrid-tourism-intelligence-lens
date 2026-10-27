@@ -6,6 +6,10 @@
   "use strict";
 
   const CASE_ID = "yeserias";
+  // The app canonicalises the address bar (replaceState) and drops ?journey= at an
+  // unpredictable moment, so the request is taken from the loader's flag, not from
+  // the live URL which this script may only see after that rewrite.
+  const AUTOSTART = typeof document !== "undefined" && document.currentScript?.dataset.autostart === "1";
   const CASE = Object.freeze({
     primary: Object.freeze({ code: "APE.02.20", name: "CÁRCEL DE YESERÍAS", lat: 40.395543, lon: -3.691757, radiusM: 900 }),
     comparator: Object.freeze({ code: "APE.02.12", name: "C/ BOLÍVAR Y C/ COBRE" }),
@@ -131,7 +135,7 @@
       }
     });
     document.addEventListener("keydown", (event) => { if (event.key === "Escape" && state.active && !byId("evidenceDrawer")?.open) { event.preventDefault(); exit(); } });
-    if (new URLSearchParams(root.location.search).get("journey") === CASE_ID) { ensureUi(); start(host); }
+    if (AUTOSTART || new URLSearchParams(root.location.search).get("journey") === CASE_ID) { ensureUi(); start(host); }
   }
 
   const api = { CASE_ID, CASE, COPY, init, start };
