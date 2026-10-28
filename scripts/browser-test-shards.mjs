@@ -6,8 +6,10 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 // File-level timings come from the successful origin/main run 40759479604.
-// Longest-processing-time bin packing keeps the three shards within 3 seconds
-// of one another without introducing concurrency inside any test file.
+// The initial longest-processing-time grouping was calibrated once on isolated
+// GitHub runners (run 40780085653); two standalone files moved to shard 1 to
+// correct runner-realized loads of 178.5s / 247.0s / 246.4s. No concurrency is
+// introduced inside any test file.
 const SHARDS = Object.freeze({
   "1": [
     "browser-tests/light-contrast-ux-c1.browser.mjs",
@@ -18,11 +20,12 @@ const SHARDS = Object.freeze({
     "browser-tests/planning-explorer.browser.mjs",
     "browser-tests/ta4-map-chrome.browser.mjs",
     "browser-tests/tutorial.browser.mjs",
+    "browser-tests/mobile-layers-ux-h1-2.browser.mjs",
+    "browser-tests/appearance.browser.mjs",
   ],
   "2": [
     "browser-tests/visual-language.browser.mjs",
     "browser-tests/information-architecture.browser.mjs",
-    "browser-tests/mobile-layers-ux-h1-2.browser.mjs",
     "browser-tests/ambito-comparison.browser.mjs",
     "browser-tests/map-control-layout.browser.mjs",
     "browser-tests/scope-rail-compact.browser.mjs",
@@ -33,7 +36,6 @@ const SHARDS = Object.freeze({
   "3": [
     "browser-tests/planning-ambito.browser.mjs",
     "browser-tests/radial-halo.browser.mjs",
-    "browser-tests/appearance.browser.mjs",
     "browser-tests/k12-r1-thin.browser.mjs",
     "browser-tests/territorial-compact.browser.mjs",
     "browser-tests/p0a-staging-gate.browser.mjs",
