@@ -927,7 +927,8 @@ test("the sensitivity stylesheet encodes no judgment colour and no direction col
   }
   // Focused emphasis must never hide the other items.
   assert.ok(!/\.ss-item\[data-focused="false"\][^{]*\{[^}]*display:\s*none/.test(css));
-  assert.match(css, /\.ss-items\[data-has-focus="true"\] \.ss-item\[data-focused="false"\]\{opacity:\.78\}/);
+  // UX-C1: unfocused rows are NOT dimmed with opacity (WCAG AA effective contrast).
+  assert.ok(!/\.ss-item\[data-focused="false"\][^{]*\{[^}]*opacity/.test(css), "unfocused sensitivity rows are not dimmed through opacity");
   // Narrow layouts STACK baseline → scenario → transition rather than squeezing
   // three columns; the item is a column flex at every width.
   assert.match(ssCss, /\.ss-item\{display:flex;flex-direction:column/);
