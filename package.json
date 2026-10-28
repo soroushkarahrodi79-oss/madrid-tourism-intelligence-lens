@@ -4,7 +4,8 @@
   "scripts": {
     "test:browser": "node scripts/browser-test-shards.mjs run all",
     "test:browser:inventory": "node scripts/browser-test-shards.mjs verify",
-    "test:browser:shard": "node scripts/browser-test-shards.mjs run"
+    "test:browser:shard": "node scripts/browser-test-shards.mjs run",
+    "test:browser:ux-c2-shard": "node scripts/browser-test-shards.mjs run-ux-c2"
   },
   "devDependencies": {
     "playwright": "^1.63.0"

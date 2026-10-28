@@ -2,16 +2,22 @@
 
 ## Scope and decision rule
 
-This audit covers the `Test` workflow at `origin/main` commit
-`94d361253aed37c7159bc15573e8a32900fa4f42`. The comparable baseline is the
-successful push run [40759479604](https://github.com/soroushkarahrodi79-oss/madrid-tourism-intelligence-lens/actions/runs/40759479604).
-The older PR run 40711106144 was also checked and showed the same Chromium
-bottleneck. No application, CSS, geography, dataset, analytical, assertion, or
-acceptance-threshold change is part of this optimization.
+This audit began at `origin/main` commit
+`94d361253aed37c7159bc15573e8a32900fa4f42`, using successful push run
+[40759479604](https://github.com/soroushkarahrodi79-oss/madrid-tourism-intelligence-lens/actions/runs/40759479604).
+PR #139 merged during validation, so the branch was integrated with current
+`origin/main` commit `2ba11e1e90a66a36f72c0c9179572f90433bb43c` and the audit was
+re-run against its additional Chromium and WebKit coverage. Successful PR run
+[40779172501](https://github.com/soroushkarahrodi79-oss/madrid-tourism-intelligence-lens/actions/runs/40779172501)
+has the same tree and supplies the post-merge test timings. No application, CSS,
+geography, dataset, analytical, assertion, or acceptance-threshold change is
+part of this optimization.
 
 The optimization rule is: partition complete test files across isolated GitHub
-jobs, but retain `--test-concurrency=1` inside every file-level process. This
-keeps each suite's existing browser/server lifetime and ordering intact.
+jobs and split the new 10-28 minute UX-C2 entrypoint only at anchored top-level
+test-name boundaries. `--test-concurrency=1` remains in every process. Exact TAP
+totals make every UX-C2 partition fail closed on missing, renamed, duplicated,
+or newly unassigned tests.
 
 ## Measured baseline
 
@@ -19,27 +25,27 @@ keeps each suite's existing browser/server lifetime and ordering intact.
 
 | Job / step | Wall time |
 | --- | ---: |
-| Full workflow critical path | 13m 29s |
-| `radial-halo-browser` job | 13m 25s |
-| Chromium browser test step | 12m 28s |
+| Full workflow critical path (current main) | 30m 29s |
+| `radial-halo-browser` job | 24m 11s |
+| Chromium browser test step | 22m 42s |
 | Chromium install | 19s |
-| UX-H1 before/after capture | 20s |
-| UX-H1 artifact upload | 2s |
-| `ux-c1-webkit` job | 7m 52s |
-| WebKit install | 2m 17s |
-| WebKit contrast suite | 4m 52s |
-| WebKit before/after capture | 27s |
-| `test (ubuntu-latest)` job | 1m 38s |
-| Ubuntu Node tests | 1m 20s |
-| Ubuntu Python tests | 1s |
-| `test (windows-latest)` job | 1m 24s |
-| Windows Node tests | 55s |
-| Windows Python tests | 3s |
+| UX-H1 before/after capture | 19s |
+| UX-C2 Chromium capture | 32s |
+| `ux-c2-webkit` job | 30m 29s |
+| UX-C2 WebKit suite | 28m 25s |
+| UX-C2 WebKit capture | 1m 18s |
+| `ux-c1-webkit` job | 6m 00s |
+| `test (ubuntu-latest)` job | 1m 33s |
+| `test (windows-latest)` job | 1m 58s |
 
-Browser installation is variable: Chromium took 19–26 seconds in the two
-examined runs, while WebKit took 31 seconds in run 40711106144 and 2m 17s in the
-current-main run. Chromium installation is not material beside its 12m 28s
-suite. Caching the Playwright browser directory was not adopted because it does
+Before PR #139, the full workflow was 13m 29s, the Chromium job was 13m 25s,
+and its suite was 12m 28s. The newly merged UX-C2 coverage raised current main
+to 30m 29s, with a 22m 42s Chromium suite and a 28m 25s WebKit suite.
+
+Browser installation is variable: Chromium took 19–26 seconds in examined
+runs, while WebKit ranged from 31 seconds to 2m 17s. Installation is not
+material beside the browser suites. Caching the Playwright browser directory
+was not adopted because it does
 not remove OS-package installation, is sensitive to Playwright/runner image
 identity, and adds cache correctness risk. The existing npm cache is retained.
 
@@ -107,13 +113,36 @@ grouping remains the fastest measured architecture. A blind filename/test-count
 split would be badly skewed because one 106-test contrast file and a few
 single-test files contain most of the runtime.
 
+PR #139 then added `panel-containment-ux-c2.browser.mjs`: 128 registered
+Chromium tests (127 asserted plus one capture-only test) taking 629.6 seconds,
+and 125 registered WebKit tests (124 asserted plus one capture-only test) taking
+1,702.2 seconds. Measured group totals are:
+
+| UX-C2 group | Chromium | WebKit |
+| --- | ---: | ---: |
+| Appearance/language | 114.3s | 324.6s |
+| Baseline real-data viewports | 71.3s | 198.0s |
+| Panel min/max width | 37.0s | 112.4s |
+| Classic scrollbars (Chromium only) | 14.2s | — |
+| Long-content fixtures | 63.0s | 167.3s |
+| Licence/hospitality layers | 52.4s | 133.4s |
+| Coarse-pointer touch | 115.3s | 321.9s |
+| Fallback fonts | 143.4s | 385.7s |
+| Evidence drawer | 14.2s | 45.4s |
+| Three specific regressions | 4.5s | 13.5s |
+
+Anchored group partitions add approximately 200-215 seconds of UX-C2 work to
+each existing Chromium shard. The WebKit partitions are independently packed
+to approximately 565-570 seconds each. This is measured partitioning, not a
+filename or test-count split.
+
 ## Inventory and assurance baseline
 
-The current-main Chromium command reports 448 tests: 447 pass, zero fail, one
-intentionally skipped capture case. It has 430 top-level tests plus nested
-subtests across 26 entrypoint files. The WebKit contrast run reports 106 tests:
-105 pass and the same capture-only case skipped. Static source inventory finds
-2,259 `node:assert` call sites in the 26 browser entrypoints; loops exercise many
+The current-main Chromium command reports 576 tests: 574 pass, zero fail, two
+intentionally skipped capture cases, across 27 entrypoint files. The UX-C1
+WebKit contrast run reports 106 tests (105 pass, one capture-only skip), and the
+UX-C2 WebKit run reports 125 tests (124 pass, one capture-only skip). Static
+source inventory finds 2,285 `assert.` references in browser entrypoints; loops exercise many
 of those sites more than once.
 
 The unchanged non-browser baseline in this worktree is:
@@ -128,18 +157,21 @@ state, timeout, and threshold is byte-identical to `origin/main`.
 The shard manifest adds a fail-closed reconciliation check. It discovers every
 top-level `browser-tests/*.browser.mjs` and `discover/*.browser.mjs` file and
 fails on an unassigned file, a duplicate assignment, or an assignment that no
-longer exists. On this base it proves 26 discovered files = 26 assignments with
-zero duplicates.
+longer exists. On this base it proves 27 discovered files = 27 assignments with
+zero duplicates. UX-C2 additionally validates exact engine-specific TAP totals:
+128 Chromium / 125 WebKit registered tests and 127 / 124 asserted tests across
+the respective partition unions.
 
 ## Root cause and isolation audit
 
-Measured root cause: the 12m 28s Chromium step serializes approximately 12m 29s
-of test-case duration under `--test-concurrency=1`. Install, checkout, npm, and
-artifact overhead are small by comparison.
+Measured root cause before PR #139: the 12m 28s Chromium step serialized the
+whole browser inventory under `--test-concurrency=1`. Current main adds one file
+that contributes 10m 30s in Chromium and 28m 22s in WebKit. Install, checkout,
+npm, and artifact overhead remain small by comparison.
 
 Lifecycle findings:
 
-- The 26 entrypoints contain 28 explicit browser-launch call sites. Most files
+- The 27 entrypoints contain 30 explicit browser-launch call sites. Most files
   launch once and reuse that browser only inside the file; the two Discover
   files launch once per top-level test.
 - Every local HTTP server binds `127.0.0.1` on port `0`, so the OS assigns an
@@ -166,40 +198,42 @@ failure was retried or hidden.
 
 `chromium-browser-shard` is a three-entry matrix. Each job checks out a clean
 workspace, restores the npm cache, installs Chromium, verifies the full manifest,
-then runs its assigned files serially with the original Node test runner.
-Matrix `fail-fast` is disabled so every shard reports its result.
+then runs its assigned whole files and one measured UX-C2 name partition
+serially with the original Node test runner. Matrix `fail-fast` is disabled so
+every shard reports its result.
 
 The existing `radial-halo-browser` required-check name is retained as a small
 aggregate job. It runs with `always()` and succeeds only when the matrix result
 is `success`. This avoids silently changing an existing required-check identity;
 the three named shard checks remain visible for diagnosis.
 
-UX-H1 before/after screenshots still run exactly once and are still uploaded
-under `ux-h1-map-header-screenshots`. They run on one matrix entry after its
-tests. The independent WebKit job, assertions, screenshot capture, and artifact
-name remain unchanged.
+UX-H1 and UX-C2 Chromium before/after screenshots still run exactly once and
+retain their artifact names. UX-C1 WebKit remains a separate unchanged job.
+The new 28-minute UX-C2 WebKit suite uses a second three-entry matrix with exact
+TAP reconciliation; its original `ux-c2-webkit` check name is retained as a
+fail-closed aggregate. Before/after capture still runs once. The original
+`ux-c2-webkit-evidence` artifact remains, while two additional per-shard matrix
+artifacts preserve the evidence produced outside the capture shard.
 
 Workflow triggers are already non-duplicative for branch work: pull requests
 run once, while `push` is restricted to `main`. The post-merge `main` run is an
 intentional release-candidate verification, so event triggers were not changed
 and no aggressive cancellation was added.
 
-## Pending-task integration note
+## Concurrent-task integration record
 
-Draft PR #139 is based on the same main commit and changes `package.json`,
-`.github/workflows/test.yml`, and browser coverage. It adds
-`panel-containment-ux-c2.browser.mjs`, Chromium evidence capture, and an
-independent UX-C2 WebKit job. If #139 lands first, this branch must be rebased;
-the new browser entrypoint must be measured and assigned to one shard, its
-capture must remain once-per-workflow, and its WebKit job must remain intact.
-Until that assignment is made, the manifest will deliberately fail instead of
-silently omitting the new tests.
+PR #139 merged while this PR's first three green repetitions were running. The
+branch was merged with the new `origin/main` rather than reporting those stale
+runs as final. The added entrypoint was measured from its successful run,
+partitioned explicitly, and its Chromium/WebKit captures and evidence artifacts
+were retained. The fail-closed manifest would have rejected the new file until
+this reconciliation was complete.
 
 ## Validation record
 
-Local validation completed before opening the PR:
+Local validation after integrating current main:
 
-- shard inventory: 26 files, 26 assignments, zero duplicates;
+- shard inventory: 27 files, 27 assignments, zero duplicates;
 - workflow YAML parse: pass;
 - `node --check scripts/browser-test-shards.mjs`: pass;
 - `git diff --check`: pass;

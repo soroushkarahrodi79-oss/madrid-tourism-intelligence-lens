@@ -1,0 +1,111 @@
+[
+ {
+  "kind": "asymmetry",
+  "el": "ul#planningTouchedList > li",
+  "detail": "left inset 0.00 vs right inset 4.00 in div#planningTouchedCard",
+  "count": 10,
+  "contexts": [
+   "1180x820/en/PLACE/hidden",
+   "1180x820/es/PLACE/hidden",
+   "1194x834/en/PLACE/hidden",
+   "1194x834/es/PLACE/hidden",
+   "1024x768/en/PLACE/hidden",
+   "1024x768/es/PLACE/hidden",
+   "1080x810/en/PLACE/hidden",
+   "1080x810/es/PLACE/hidden",
+   "1366x1024/en/PLACE/hidden",
+   "1366x1024/es/PLACE/hidden"
+  ]
+ },
+ {
+  "kind": "escape",
+  "el": "input#radiusSlider",
+  "detail": "left 2.00 right 2.00 vs parent content box (div#lensControls > div.controlbox)",
+  "count": 28,
+  "contexts": [
+   "1180x820/en/PLACE/hidden",
+   "1180x820/en/COMPARE/hidden",
+   "1180x820/es/PLACE/hidden",
+   "1180x820/es/COMPARE/hidden",
+   "1194x834/en/PLACE/hidden",
+   "1194x834/en/COMPARE/hidden",
+   "1194x834/es/PLACE/hidden",
+   "1194x834/es/COMPARE/hidden",
+   "1024x768/en/PLACE/hidden",
+   "1024x768/en/COMPARE/hidden",
+   "1024x768/es/PLACE/hidden",
+   "1024x768/es/COMPARE/hidden",
+   "1080x810/en/PLACE/hidden",
+   "1080x810/en/COMPARE/hidden",
+   "1080x810/es/PLACE/hidden",
+   "1080x810/es/COMPARE/hidden",
+   "820x1180/en/PLACE/hidden",
+   "820x1180/en/COMPARE/hidden",
+   "820x1180/es/PLACE/hidden",
+   "820x1180/es/COMPARE/hidden",
+   "768x1024/en/PLACE/hidden",
+   "768x1024/en/COMPARE/hidden",
+   "768x1024/es/PLACE/hidden",
+   "768x1024/es/COMPARE/hidden",
+   "1366x1024/en/PLACE/hidden",
+   "1366x1024/en/COMPARE/hidden",
+   "1366x1024/es/PLACE/hidden",
+   "1366x1024/es/COMPARE/hidden"
+  ]
+ },
+ {
+  "kind": "spill",
+  "el": "div.mix > div.card > div.mixrow > span",
+  "detail": "scrollWidth 61 > clientWidth 55",
+  "count": 7,
+  "contexts": [
+   "1180x820/es/PLACE/hidden",
+   "1194x834/es/PLACE/hidden",
+   "1024x768/es/PLACE/hidden",
+   "1080x810/es/PLACE/hidden",
+   "820x1180/es/PLACE/hidden",
+   "768x1024/es/PLACE/hidden",
+   "1366x1024/es/PLACE/hidden"
+  ]
+ },
+ {
+  "kind": "hscroll",
+  "el": "section#analysisPanel",
+  "detail": "scrollWidth 439 > clientWidth 418",
+  "count": 2,
+  "contexts": [
+   "1024x768/es/PLACE/hidden",
+   "1080x810/es/PLACE/hidden"
+  ]
+ },
+ {
+  "kind": "escape",
+  "el": "section#urbanLicences > div.section-head > button.evidence-link",
+  "detail": "left 379.00 right 37.00 vs parent content box (section#urbanLicences > div.section-head)",
+  "count": 2,
+  "contexts": [
+   "1024x768/es/PLACE/hidden",
+   "1080x810/es/PLACE/hidden"
+  ]
+ },
+ {
+  "kind": "focus-clip",
+  "el": "section#urbanLicences > div.section-head > button.evidence-link",
+  "detail": "outline 0px exceeds section#analysisPanel padding box by L -395.00 R 21.00",
+  "count": 2,
+  "contexts": [
+   "1024x768/es/PLACE/hidden",
+   "1080x810/es/PLACE/hidden"
+  ]
+ },
+ {
+  "kind": "escape",
+  "el": "div#domesticOriginDynamicsTransitions > details",
+  "detail": "left 0.00 right 12.08 vs parent content box (div#domesticOriginDynamicsTransitions)",
+  "count": 2,
+  "contexts": [
+   "1024x768/es/CITY/hidden",
+   "1080x810/es/CITY/hidden"
+  ]
+ }
+]
