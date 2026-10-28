@@ -54,9 +54,9 @@ const MATRIX = [];
 // enabled so COMPARE renders its real bridge, insight and tables.
 const LENS = "a=40.4141,-3.6912,900&b=40.4224,-3.7037,900&al=A";
 
-async function openApp({ width, height, preference = "light", colorScheme = "light", lang = "en", panelSize = null, scrollbars = "hidden" }) {
+async function openApp({ width, height, preference = "light", colorScheme = "light", lang = "en", panelSize = null, scrollbars = "hidden", touch = false }) {
   const browser = scrollbars === "classic" ? classic : hidden;
-  const context = await browser.newContext({ viewport: { width, height }, colorScheme, locale: lang === "es" ? "es-ES" : "en-US", deviceScaleFactor: 2 });
+  const context = await browser.newContext({ viewport: { width, height }, colorScheme, locale: lang === "es" ? "es-ES" : "en-US", deviceScaleFactor: 2, ...(touch ? { hasTouch: true, isMobile: true } : {}) });
   await context.addInitScript(([pref, size]) => {
     localStorage.setItem("madrid-lens-appearance", pref);
     if (size) localStorage.setItem("madrid-tourism-intelligence-lens:analysis-panel-size:v1", JSON.stringify(size));
@@ -71,6 +71,7 @@ async function openApp({ width, height, preference = "light", colorScheme = "lig
   await page.goto(`http://127.0.0.1:${port}/?haloRegressionTest=1&v=1&m=PLACE&${LENS}&be=1&lg=${lang}`, { waitUntil: "load" });
   await page.waitForFunction(() => window.__HALO_REGRESSION__?.k11Restored?.() === true, null, { timeout: 30000 });
   await page.waitForFunction(() => Boolean(window.MadridAppearance), null, { timeout: 30000 });
+  if (touch) assert.equal(await page.evaluate(() => matchMedia("(pointer: coarse)").matches), true, "coarse pointer is emulated");
   page.context_ = context;
   return page;
 }
@@ -242,6 +243,22 @@ for (const [width, height] of [[1440, 900], [1180, 820], [1024, 768], [390, 844]
           hosp: Boolean(document.querySelector("#modePlace .hospitality-meta-grid")?.getClientRects().length),
         }));
         await runModes(page, { width, height, lang, layers: `licences+hospitality (rendered: ${JSON.stringify(visible)})` }, { details: [true], scrolled: [false, true] });
+      } finally { await page.context_.close(); }
+    });
+  }
+}
+
+// iPad-class touch devices. `@media(pointer:coarse)` swaps in 44px targets and
+// inline-flex links that never apply on a mouse-driven desktop run, so the
+// reported iPad symptom can only be judged with a coarse pointer emulated.
+for (const [width, height] of [[1194, 834], [1180, 820], [1080, 810], [1024, 768], [820, 1180], [768, 1024], [1366, 1024]]) {
+  for (const lang of ["en", "es"]) {
+    test(`touch (pointer:coarse) iPad class (${lang}): contained at ${width}x${height}`, async () => {
+      const page = await openApp({ width, height, lang, touch: true, preference: "system", colorScheme: "light" });
+      try {
+        await page.evaluate(async () => { await window.__HALO_REGRESSION__.enableLicences(); await window.__HALO_REGRESSION__.enableHospitality(); });
+        await page.waitForTimeout(400);
+        await runModes(page, { width, height, lang, touch: true }, { details: [true, false], scrolled: [false, true] });
       } finally { await page.context_.close(); }
     });
   }

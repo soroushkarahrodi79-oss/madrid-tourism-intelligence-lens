@@ -42,6 +42,27 @@ reporting what I measured, not the original screenshot's exact pixels: if the ow
 cards too close to the edge at landscape width, that is **not** explained by anything measurable here and
 needs the physical device / the WebKit CI artifacts to confirm.
 
+## 1b. iPad-only? — pointer:coarse emulation (added after the owner's hint)
+
+The owner suspected the defect might only appear on the iPad. That is a sound hypothesis and it holds up
+partly: `css/app.css` has `@media(pointer:coarse)` rules (44 px minimum width/height on every button, select,
+summary, link and range input; `a[href]{display:inline-flex}`; 44 px evidence buttons) that **a mouse-driven
+desktop run never applies**, and iPadOS also has overlay scrollbars. My first reproduction ran without a coarse
+pointer, so I re-ran the audit with `hasTouch` + `isMobile` (asserting `matchMedia('(pointer: coarse)')`) at
+1194×834, 1180×820, 1080×810, 1024×768, 820×1180, 768×1024 and 1366×1024, EN and ES, licences + hospitality on:
+
+* `origin/main`: **7 distinct findings, and every one of the 14 touch tests fails**, including English at 1180×820.
+  The finding that appears at *every* iPad size is the ámbitos list asymmetry — **0 px left / 4 px right**, i.e. exactly
+  the overlay-scrollbar value I had predicted (on a touch device the stable gutter is 0, only the one-sided padding remains).
+  At 1024/1080 px in Spanish the panel also scrolls horizontally (439 > 418) because the licences section header's
+  `nowrap` hint pushes the 44 px evidence button out of the panel.
+* This branch: **0 findings, 14/14 touch tests pass.**
+
+So on a physical iPad the visible symptom is most plausibly the 4 px one-sided inset of the ámbitos list (and, in
+Spanish at 1024–1080 px, the licences header); the Category mix / Nearest cards are still fine at iPad widths. I still
+have no WebKit/iPadOS measurement; this is Chromium with coarse-pointer emulation, which reproduces the CSS branch
+iPadOS takes but not WebKit's own layout engine. The `ux-c2-webkit` CI job is the check for that.
+
 ## 2. Confirmed defects and root causes
 
 | # | Defect | Where / when | Root cause (measured) | Fix |
@@ -94,7 +115,7 @@ Vertical scrolling is never a finding; horizontal scrollers are listed in `DESIG
 (comparison tables, ámbito quantity table, domestic-origin tables, analyst data block) and are
 reported separately, not dropped.
 
-`browser-tests/panel-containment-ux-c2.browser.mjs` (86 tests):
+`browser-tests/panel-containment-ux-c2.browser.mjs` (100 tests):
 
 * real data, Light/EN, all 10 required viewports × Place/Compare/City × Detail open/closed × scrolled/unscrolled;
 * Light/Dark/System-light × EN/ES on 1440×900, 1180×820, 1024×768, 820×1180, 390×844;
@@ -106,6 +127,7 @@ reported separately, not dropped.
   and are never applied in the real-data tests**;
 * Evidence & limits drawer at 5 viewports × EN/ES;
 * licences + hospitality layers switched on through the production paths, 5 viewports × EN/ES;
+* **touch (`pointer:coarse`) iPad class**, 7 viewports × EN/ES, layers on, Detail open/closed, scrolled/unscrolled;
 * the reported iPad scenario asserted on its own, the ámbitos list still scrolling vertically (and never
   horizontally), and Detail not moving the controls above it.
 
@@ -117,7 +139,7 @@ The shell-level assertion also requires `|minInsetLeft − minInsetRight| ≤ 1.
 |---|---|---|
 | Suite result (Chromium) | 8 pass / **67 fail** / 1 skipped (76 tests; run before the layers-on tests existed) | **85 pass / 0 fail** / 1 skipped (86) |
 | Distinct findings, real data + licence/hospitality layers on, 10 viewports × EN/ES × 3 modes × scrollbars | **14** (`matrix/defect-inventory-before.json`) | **0** (`matrix/defect-inventory-after.json`) |
-| Audited states recorded | 78 (tests stop at the first finding) | 464 (`matrix/containment-matrix-after-chromium.json`) |
+| Audited states recorded | 78 (tests stop at the first finding) | 632 (`matrix/containment-matrix-after-chromium.json`) |
 
 The skipped test is the screenshot capture (requires `UXC2_CAPTURE_DIR`).
 
@@ -142,7 +164,7 @@ Containment matrix summary (after; every audited state has `clientWidth = scroll
 | 390×844 | 42 | 370 | yes | 0.0 / 0.0 | en, es | dark, light, system-light |
 | 360×800 | 12 | 340 | yes | 0.0 / 0.0 | en | light |
 
-Additional audited states: 48 long-content fixture, 20 drawer, 18 classic-scrollbar, 60 layers-on. Total 464; findings: 0. The 390/680 px panel widths on the 1440×900 and 1366×768 rows are the minimum/maximum resize runs.
+Additional audited states: 48 long-content fixture, 20 drawer, 18 classic-scrollbar, 60 layers-on. Total 632; findings: 0 (of which 168 touch). The 390/680 px panel widths on the 1440×900 and 1366×768 rows are the minimum/maximum resize runs.
 
 `min inset 0.0 / 0.0` means the outermost painted boxes sit exactly on the panel's padded content edge on both
 sides: left and right are equal, nothing crosses the edge.
@@ -151,11 +173,11 @@ sides: left and right are equal, nothing crosses the edge.
 
 | Check | Result |
 |---|---|
-| UX-C2 suite, Chromium (local) | 85 pass / 0 fail / 1 skipped (86) |
+| UX-C2 suite, Chromium (local) | 99 pass / 0 fail / 1 skipped (100) |
 | UX-C2 suite on `origin/main` | 67 fail (expected: the suite detects the defects) |
 | `node --test` | 1123 / 1123 pass |
 | `python -m unittest discover -s tests -p "test_*.py"` | 501 tests OK (8 skipped) |
-| `npm run test:browser` (all existing browser suites + UX-C2, Chromium) | **532 pass / 0 fail / 2 skipped (534)**, 25.3 min |
+| `npm run test:browser` (all existing browser suites + the 86-test UX-C2 file, Chromium, run before the 14 touch tests were added) | **532 pass / 0 fail / 2 skipped (534)**, 25.3 min |
 | UX-C1 Light/Dark contrast suite | included in `npm run test:browser` (colour rules untouched; only layout declarations changed) |
 | **WebKit** (`ux-c2-webkit` CI job) | **pending CI — not run locally** |
 
