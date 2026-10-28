@@ -164,7 +164,7 @@ Containment matrix summary (after; every audited state has `clientWidth = scroll
 | 390×844 | 42 | 370 | yes | 0.0 / 0.0 | en, es | dark, light, system-light |
 | 360×800 | 12 | 340 | yes | 0.0 / 0.0 | en | light |
 
-Additional audited states: 48 long-content fixture, 20 drawer, 18 classic-scrollbar, 60 layers-on. Total 632; findings: 0 (of which 168 touch). The 390/680 px panel widths on the 1440×900 and 1366×768 rows are the minimum/maximum resize runs.
+Additional audited states: 48 long-content fixture, 20 drawer, 18 classic-scrollbar, 60 layers-on, 168 touch (iPad class). Total 632; findings: 0 (of which 168 touch). The 390/680 px panel widths on the 1440×900 and 1366×768 rows are the minimum/maximum resize runs.
 
 `min inset 0.0 / 0.0` means the outermost painted boxes sit exactly on the panel's padded content edge on both
 sides: left and right are equal, nothing crosses the edge.
