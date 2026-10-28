@@ -4,7 +4,7 @@ import http from "node:http";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+import * as playwright from "playwright";
 
 // UX-C1 — Light contrast & analytical readability.
 //
@@ -13,7 +13,12 @@ import { chromium } from "playwright";
 // and Spatial Window Sensitivity, per appearance, language, focus state and
 // viewport. Selector existence and CSS strings are deliberately not asserted.
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+// UXC1_BROWSER selects the engine: "chromium" (default) or "webkit". The same
+// assertions run on both; nothing is relaxed per engine.
+const ENGINE = process.env.UXC1_BROWSER || "chromium";
+assert.ok(["chromium", "webkit"].includes(ENGINE), `UXC1_BROWSER must be chromium or webkit, got ${ENGINE}`);
+// UXC1_ROOT serves another checkout (e.g. the base branch) for before/after capture.
+const ROOT = path.resolve(process.env.UXC1_ROOT || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 const MIME = { ".css": "text/css", ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".svg": "image/svg+xml" };
 const server = http.createServer((request, response) => {
   const pathname = decodeURIComponent(new URL(request.url, "http://127.0.0.1").pathname);
@@ -27,7 +32,7 @@ const server = http.createServer((request, response) => {
 });
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const { port } = server.address();
-const browser = await chromium.launch({ headless: true });
+const browser = await playwright[ENGINE].launch({ headless: true });
 test.after(async () => { await browser.close(); server.close(); });
 
 const EVIDENCE = (overrides = {}) => ({
@@ -306,4 +311,27 @@ test("switching appearance and metric keeps scroll position, focused row stays r
   }
   await page.reload({ waitUntil: "domcontentloaded" });
   assert.equal(await page.locator("html").getAttribute("data-appearance"), "light");
+});
+
+// Evidence capture (opt-in, no assertions about pixels): the 1024×768 iPad
+// landscape case, System Light, Mobility focused. Run with UXC1_CAPTURE_DIR set
+// and --test-name-pattern="capture"; UXC1_ROOT points at the checkout to render.
+test("capture iPad landscape System-light Mobility screenshot", { skip: !process.env.UXC1_CAPTURE_DIR }, async (t) => {
+  const dir = process.env.UXC1_CAPTURE_DIR;
+  fs.mkdirSync(dir, { recursive: true });
+  const context = await browser.newContext({ viewport: { width: 1024, height: 768 }, colorScheme: "light", deviceScaleFactor: 2 });
+  await context.addInitScript(() => localStorage.setItem("madrid-lens-appearance", "system"));
+  const page = await context.newPage();
+  t.after(() => context.close());
+  await page.route("**/*", (route) => {
+    const host = new URL(route.request().url()).hostname;
+    return host === "127.0.0.1" || host === "localhost" ? route.continue() : route.abort();
+  });
+  await page.goto(`http://127.0.0.1:${port}/?haloRegressionTest=1`, { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => Boolean(window.__HALO_REGRESSION__) && Boolean(window.MadridAppearance));
+  assert.equal(await page.locator("html").getAttribute("data-appearance"), "light");
+  await compareState(page);
+  await page.locator("#decisionInsight").screenshot({ path: path.join(dir, `${ENGINE}-ipad-landscape-system-light-decision-insight.png`) });
+  await page.locator("#spatialSensitivity").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(dir, `${ENGINE}-ipad-landscape-system-light-full.png`) });
 });
