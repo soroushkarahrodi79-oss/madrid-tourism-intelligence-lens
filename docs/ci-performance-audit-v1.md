@@ -78,9 +78,9 @@ current-main run. Small boundary/setup differences explain rounding.
 | `radial-halo.browser.mjs` | 81.4 | 3 |
 | `information-architecture.browser.mjs` | 65.1 | 2 |
 | `evidence-url.browser.mjs` | 47.3 | 1 |
-| `mobile-layers-ux-h1-2.browser.mjs` | 30.5 | 1 |
+| `mobile-layers-ux-h1-2.browser.mjs` | 30.5 | 2 |
 | `urban-licences.browser.mjs` | 22.0 | 1 |
-| `appearance.browser.mjs` | 20.6 | 1 |
+| `appearance.browser.mjs` | 20.6 | 3 |
 | `mobility-extraction.browser.mjs` | 20.0 | 1 |
 | `ambito-comparison.browser.mjs` | 18.6 | 2 |
 | `k12-r1-thin.browser.mjs` | 17.1 | 3 |
@@ -99,11 +99,11 @@ current-main run. Small boundary/setup differences explain rounding.
 | `hospitality-fill-hold.browser.mjs` | 4.0 | 3 |
 | `discover/interaction.browser.mjs` | 3.3 | 2 |
 
-The initial longest-processing-time grouping produced historical estimates of
-247.3, 250.3, and 249.3 seconds. The first isolated optimized run supplied a
-better runner calibration: 178.5, 247.0, and 246.4 seconds. Moving the measured
-UX-H1.2 (30.5s) and Appearance (20.6s) files to shard 1 gives expected final
-loads of approximately 229, 217, and 226 seconds. A blind filename/test-count
+Longest-processing-time bin packing produces historical loads of 247.3, 250.3,
+and 249.3 seconds. A one-run recalibration that moved UX-H1.2 and Appearance to
+shard 1 was rejected after three repetitions: it added about 110 seconds to the
+critical shard rather than the historical 51-second estimate. The original LPT
+grouping remains the fastest measured architecture. A blind filename/test-count
 split would be badly skewed because one 106-test contrast file and a few
 single-test files contain most of the runtime.
 
