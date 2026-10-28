@@ -567,7 +567,9 @@ test("the Insight stylesheet encodes no judgment colour and no direction colour"
   }
   // Focused emphasis must never hide the other items.
   assert.ok(!/\.di-item\[data-focused="false"\][^{]*\{[^}]*display:\s*none/.test(css));
-  assert.match(css, /\.di-items\[data-has-focus="true"\] \.di-item\[data-focused="false"\]\{opacity:\.78\}/);
+  // UX-C1: unfocused rows are NOT dimmed with opacity (it composited muted text
+  // below WCAG AA). The browser contract asserts the effective contrast.
+  assert.ok(!/\.di-item\[data-focused="false"\][^{]*\{[^}]*opacity/.test(css), "unfocused Insight rows are not dimmed through opacity");
   // Narrow viewports stack the item instead of shrinking or clipping it.
   assert.match(css, /\.di-item\{grid-template-columns:1fr/);
   // The heading beats the generic `.panel h3` rule on specificity.

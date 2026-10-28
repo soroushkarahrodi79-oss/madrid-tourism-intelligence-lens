@@ -802,7 +802,9 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 /* Focused metric: SUBTLE emphasis only. No item is ever hidden and the others
    keep readable contrast, so the Insight never becomes a second metric
    selector — the halo and table controls stay authoritative for focus. */
-.di-items[data-has-focus="true"] .di-item[data-focused="false"]{opacity:.78}
+/* UX-C1: no opacity on informational rows. Dimming composited every muted label
+   below 4.5:1; de-emphasis is carried by explicit colours, the focused row
+   by its surface and edge (see the appearance blocks). */
 .di-item[data-focused="true"]{border-left-color:rgba(120,190,255,.55);background:rgba(120,190,255,.07)}
 .di-item[data-focused="true"] .di-metric{color:#dfecf8}
 .di-item[data-focused="true"] .di-rel{color:#f2f8ff}
@@ -852,7 +854,6 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 /* Focused metric: SUBTLE emphasis only, reusing the existing halo/table focus
    state. Nothing is hidden and the others stay fully readable — Spatial
    Sensitivity is informational and never becomes another metric selector. */
-.ss-items[data-has-focus="true"] .ss-item[data-focused="false"]{opacity:.78}
 .ss-item[data-focused="true"]{border-left-color:rgba(120,190,255,.55);background:rgba(120,190,255,.07)}
 .ss-item[data-focused="true"] .ss-metric{color:#dfecf8}
 .ss-item[data-focused="true"] .ss-transition{color:#f2f8ff}
@@ -1287,6 +1288,18 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 .area-scope p,.activity-card-note,.evidence-note,.destination-composition,.destination-ceiling,.domestic-origin-universe,.domestic-origin-dynamics-relationship,.comparetable,.domestic-origin-table-wrap table,.drawer-ceiling,.drawer-notes .halo-legend,.drawer-notes .source{font-size:var(--t-body)}
 .scope-rail-item,.mode-btn,.detail-disclosure>summary,.evidence-route,.layer-action,.reading-btn,.card-title,.metric-head,.controltop,.domestic-origin-controls{font-size:var(--t-label)}
 .source,.layer-source-note,.area-source-details,.compare-evidence,.halo-visibility-note{font-size:var(--t-meta)}
+/* UX-C1 analytical reading sizes. Sentences, figures and captions in the three
+   comparison surfaces read at 12px (--t-label); tracked uppercase labels, which
+   are wider per glyph, at 11px (--t-meta). Scoped by class to these surfaces so
+   cartographic and unrelated typography is unchanged. Placed after the earlier
+   10/11px declarations (equal or lower specificity) so it owns the cascade. */
+.comparison-bridge-empty,.cb-sub,.cb-radius,.cb-qualifier,.cb-picker-button,
+.di-status,.di-guard,.di-metric,.di-rel,
+.di-item[data-state="withheld"] .di-rel,.di-item[data-state="unavailable"] .di-rel,.di-item[data-state="off"] .di-rel,
+.comparison-bridge[data-relationship="withheld"] .cb-rel-value,
+.ss-status,.ss-guard,.ss-empty,.ss-notice,.ss-metric,.ss-window-radii,.ss-reading-value,.ss-transition,.ss-transition-detail,.ss-button,
+.ss-reading[data-comparable="false"] .ss-reading-value{font-size:var(--t-label)}
+.cb-metric-name,.cb-lock,.cb-lens,.cb-rel-label,.decision-insight .di-title,.spatial-sensitivity .ss-title,.ss-window-label,.ss-reading-label{font-size:var(--t-meta)}
 
 /* Four spacing steps describe layout rhythm; geometry-specific measurements
    (map positions, tracks and icon dimensions) intentionally remain explicit. */
@@ -1584,14 +1597,30 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 :root[data-appearance="light"] .live.mixed i{background:#8a5a12;box-shadow:none}
 
 :root[data-appearance="light"] :where(.section-head span,.section-head small,.area-context,.area-codes,.area-value-label,.area-period,.area-scope p,.area-vut-title,.area-vut-unit,.area-vut-secondary,.area-vut-state,.area-other,.area-other-lens,.area-source-details,.area-source-group-title,.planning-code-label,.planning-distinction,.planning-edition,.planning-outside,.planning-block-head,.planning-block-note,.planning-absent,.planning-phase-field,.planning-phase-note,.planning-attributes dt,.planning-scope-note,.planning-situacion,.planning-use-label,.planning-use-unit,.planning-citizen>p,.planning-ceiling,.planning-change-intro,.planning-change-scope,.planning-change-dates span,.planning-change-numeric-values small,.planning-change-values>span:first-child,.planning-change-values small,.planning-change-detail,.planning-change-caveat,.planning-change-provenance-edition,.drawer-change-edition>p,.planning-touched,.planning-touched-centre,.planning-membership-chip-name,.lic-block-head,.lic-state,.lic-window-field,.lic-window-applied,.lic-window-clamped,.lic-family-head,.lic-family-name,.lic-family-unit,.lic-coverage-line,.lic-unmatched-line,.lic-residual,.lic-ceiling-line,.lic-citizen summary,.lic-citizen p,.lic-provenance summary,.lic-provenance p,.cmp-evidence,.compare-evidence,.halo-visibility-note,.destination-period-label,.destination-metric-head,.destination-metric-exact,.destination-metric-change,.destination-composition,.destination-state,.destination-ceiling,.domestic-origin-scope,.domestic-origin-universe,.domestic-origin-dynamics-relationship,.domestic-origin-dynamics-table-heading,.source,.mode-question,.scope-instance,.scope-rail-freshness,.metric .scope-glyph,.detail-disclosure>summary,.drawer-filter,.drawer-fields dt,.drawer-notes>h3,.k11-notice-message,.cb-sub,.cb-radius,.cb-rel-label,.cb-qualifier,.di-status,.di-metric,.di-guard,.ss-status,.ss-empty,.ss-notice,.ss-window-label,.ss-reading-label,.ss-transition-detail,.ss-guard){color:var(--muted)}
-:root[data-appearance="light"] :where(.planning-denomination,.planning-code,.planning-phase-value,.planning-phase-mark,.planning-attributes dd,.planning-use-value,.planning-citizen>summary,.planning-change>summary,.planning-change-analyst>summary,.planning-change-dates strong,.planning-change-outcome h3,.planning-build-comparison h3,.planning-change-analyst h3,.planning-change-label,.planning-change-numeric-values,.planning-change-cell strong,.planning-change-provenance-edition strong,.planning-touched-code,.planning-membership-count,.lic-family-count,.cmp-value,.cb-metric-name,.cb-value,.cb-rel-value,.di-rel,.ss-window-radii,.ss-reading-value,.ss-transition,.comparetable td:last-child,.destination-place,.destination-metric-value,.domestic-origins-head,.domestic-origin-dynamics-summary b,.domestic-origin-dynamics-transitions summary,.scope-rail-item,.evidence-link,.evidence-route,.drawer-record>h3,.drawer-source>h4,.drawer-fields dd,.drawer-ceiling,.drawer-ceiling b){color:var(--text)}
+:root[data-appearance="light"] :where(.planning-denomination,.planning-code,.planning-phase-value,.planning-phase-mark,.planning-attributes dd,.planning-use-value,.planning-citizen>summary,.planning-change>summary,.planning-change-analyst>summary,.planning-change-dates strong,.planning-change-outcome h3,.planning-build-comparison h3,.planning-change-analyst h3,.planning-change-label,.planning-change-numeric-values,.planning-change-cell strong,.planning-change-provenance-edition strong,.planning-touched-code,.planning-membership-count,.lic-family-count,.cmp-value,.cb-metric-name,.cb-value,.cb-rel-value,.di-rel,.ss-window-radii,.ss-metric,.ss-reading-value,.ss-transition,.comparetable td:last-child,.destination-place,.destination-metric-value,.domestic-origins-head,.domestic-origin-dynamics-summary b,.domestic-origin-dynamics-transitions summary,.scope-rail-item,.evidence-link,.evidence-route,.drawer-record>h3,.drawer-source>h4,.drawer-fields dd,.drawer-ceiling,.drawer-ceiling b){color:var(--text)}
+/* UX-C1 focused analytical rows. These are deliberately NOT inside :where():
+   :where() contributes zero specificity, so the Dark focused rules
+   (.di-item[data-focused="true"] .di-metric = 0,3,0) outranked the Light
+   override (:root[...] :where(...) = 0,2,0) and left near-white Dark
+   foregrounds on this pale Light surface. Each selector below is 0,5,0, and the
+   focused rules sit BEFORE the withheld/unavailable/OFF rules (also 0,5,0) so a
+   non-comparable focused row keeps its quieter evidence-strength colour.
+   Focus is carried by the surface and a 3px edge as well as by colour. */
+:root[data-appearance="light"] .di-item,
+:root[data-appearance="light"] .ss-item{border-left-width:3px}
+:root[data-appearance="light"] .di-item[data-focused="true"],
+:root[data-appearance="light"] .ss-item[data-focused="true"]{background:#e8f1f8;border-left-color:#075f9a}
+:root[data-appearance="light"] .di-item[data-focused="true"] .di-metric,
+:root[data-appearance="light"] .di-item[data-focused="true"] .di-rel,
+:root[data-appearance="light"] .ss-item[data-focused="true"] .ss-metric,
+:root[data-appearance="light"] .ss-item[data-focused="true"] .ss-transition{color:#123b5f}
 :root[data-appearance="light"] .comparison-bridge[data-relationship="withheld"] .cb-rel-value,
 :root[data-appearance="light"] .di-item[data-state="withheld"] .di-rel,
 :root[data-appearance="light"] .di-item[data-state="unavailable"] .di-rel,
 :root[data-appearance="light"] .di-item[data-state="off"] .di-rel,
 :root[data-appearance="light"] .ss-reading[data-comparable="false"] .ss-reading-value{color:#526275}
-:root[data-appearance="light"] :where(.di-item[data-focused="true"],.ss-item[data-focused="true"]){background:#e8f1f8;border-left-color:#075f9a}
-:root[data-appearance="light"] :where(.di-item[data-focused="true"] .di-metric,.di-item[data-focused="true"] .di-rel,.ss-item[data-focused="true"] .ss-metric,.ss-item[data-focused="true"] .ss-transition){color:#123b5f}
+/* "Locked" is a bordered state pill; Dark's pale blue has no Light override. */
+:root[data-appearance="light"] .cb-lock{color:#0b4f80;border-color:#5f8fb3}
 
 /* Legacy surface roles with Dark literals. Each selector names the consuming
    component so status and identity descendants can continue to own colour. */
