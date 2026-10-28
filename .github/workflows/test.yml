@@ -56,6 +56,22 @@ jobs:
           path: test-results/ux-h1-map-header
           if-no-files-found: warn
 
+      - name: Capture UX-C2 before and after screenshots (Chromium)
+        if: ${{ always() }}
+        run: |
+          BASE_REF="${GITHUB_BASE_REF:-main}"
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          git worktree add --detach ../ux-c2-main-chromium FETCH_HEAD
+          UXC2_ROOT=../ux-c2-main-chromium UXC2_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-c2-chromium/before node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
+          UXC2_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-c2-chromium/after node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
+      - name: Upload UX-C2 Chromium evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ux-c2-chromium-evidence
+          path: test-results/ux-c2-chromium
+          if-no-files-found: warn
+
   # UX-C1: the Light-contrast regression on real WebKit (Safari engine). Same
   # assertions as Chromium; the engine is selected by UXC1_BROWSER only.
   ux-c1-webkit:
@@ -86,4 +102,37 @@ jobs:
         with:
           name: ux-c1-webkit-screenshots
           path: test-results/ux-c1-webkit
+          if-no-files-found: warn
+
+  # UX-C2: right-panel card containment on real WebKit (Safari engine). Same
+  # assertions as Chromium; the engine is selected by UXC2_BROWSER only.
+  ux-c2-webkit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps webkit
+      - name: UX-C2 panel containment suite (WebKit)
+        run: node --test --test-concurrency=1 browser-tests/panel-containment-ux-c2.browser.mjs
+        env:
+          UXC2_BROWSER: webkit
+          UXC2_MATRIX_DIR: ${{ github.workspace }}/test-results/ux-c2-webkit
+      - name: Capture iPad-landscape System-light before and after (WebKit)
+        if: ${{ always() }}
+        run: |
+          BASE_REF="${GITHUB_BASE_REF:-main}"
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          git worktree add --detach ../ux-c2-base FETCH_HEAD
+          UXC2_BROWSER=webkit UXC2_ROOT=../ux-c2-base UXC2_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-c2-webkit/before node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
+          UXC2_BROWSER=webkit UXC2_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-c2-webkit/after node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
+      - name: Upload UX-C2 WebKit evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ux-c2-webkit-evidence
+          path: test-results/ux-c2-webkit
           if-no-files-found: warn
