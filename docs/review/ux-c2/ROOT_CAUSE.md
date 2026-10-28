@@ -94,7 +94,7 @@ Vertical scrolling is never a finding; horizontal scrollers are listed in `DESIG
 (comparison tables, ámbito quantity table, domestic-origin tables, analyst data block) and are
 reported separately, not dropped.
 
-`browser-tests/panel-containment-ux-c2.browser.mjs` ({{NTESTS}} tests):
+`browser-tests/panel-containment-ux-c2.browser.mjs` (86 tests):
 
 * real data, Light/EN, all 10 required viewports × Place/Compare/City × Detail open/closed × scrolled/unscrolled;
 * Light/Dark/System-light × EN/ES on 1440×900, 1180×820, 1024×768, 820×1180, 390×844;
@@ -115,9 +115,9 @@ The shell-level assertion also requires `|minInsetLeft − minInsetRight| ≤ 1.
 
 | | `origin/main` | this branch |
 |---|---|---|
-| Suite result (Chromium) | 8 pass / **67 fail** / 1 skipped (76) | **75 pass / 0 fail** / 1 skipped (76) |
-| Distinct findings, real data, 10 viewports × EN/ES × 3 modes × scrollbars | **11** (`matrix/defect-inventory-before.json`) | **0** (`matrix/defect-inventory-after.json`) |
-| Audited states recorded | 78 (tests stop at the first finding) | 404 (`matrix/containment-matrix-after-chromium.json`) |
+| Suite result (Chromium) | 8 pass / **67 fail** / 1 skipped (76 tests; run before the layers-on tests existed) | **85 pass / 0 fail** / 1 skipped (86) |
+| Distinct findings, real data + licence/hospitality layers on, 10 viewports × EN/ES × 3 modes × scrollbars | **14** (`matrix/defect-inventory-before.json`) | **0** (`matrix/defect-inventory-after.json`) |
+| Audited states recorded | 78 (tests stop at the first finding) | 464 (`matrix/containment-matrix-after-chromium.json`) |
 
 The skipped test is the screenshot capture (requires `UXC2_CAPTURE_DIR`).
 
@@ -129,7 +129,20 @@ bars are 0 px wide; after, both cards stack, are fully inside the panel and the 
 
 Containment matrix summary (after; every audited state has `clientWidth = scrollWidth` and zero findings):
 
-{{MATRIX}}
+| Viewport | States audited | Panel width(s) px | clientWidth = scrollWidth | min inset L / R px | Languages | Appearances |
+|---|---|---|---|---|---|---|
+| 1440×900 | 54 | 390, 480, 680 | yes | 0.0 / 0.0 | en, es | dark, light, system-light |
+| 1366×768 | 24 | 390, 480, 680 | yes | 0.0 / 0.0 | en | light |
+| 1180×820 | 54 | 390, 480, 680 | yes | 0.0 / 0.0 | en, es | dark, light, system-light |
+| 1024×768 | 54 | 420 | yes | 0.0 / 0.0 | en, es | dark, light, system-light |
+| 844×390 | 12 | 824 | yes | 0.0 / 0.0 | en | light |
+| 820×1180 | 42 | 800 | yes | 0.0 / 0.0 | en, es | dark, light, system-light |
+| 768×1024 | 12 | 748 | yes | 0.0 / 0.0 | en | light |
+| 560×800 | 12 | 540 | yes | 0.0 / 0.0 | en | light |
+| 390×844 | 42 | 370 | yes | 0.0 / 0.0 | en, es | dark, light, system-light |
+| 360×800 | 12 | 340 | yes | 0.0 / 0.0 | en | light |
+
+Additional audited states: 48 long-content fixture, 20 drawer, 18 classic-scrollbar, 60 layers-on. Total 464; findings: 0. The 390/680 px panel widths on the 1440×900 and 1366×768 rows are the minimum/maximum resize runs.
 
 `min inset 0.0 / 0.0` means the outermost painted boxes sit exactly on the panel's padded content edge on both
 sides: left and right are equal, nothing crosses the edge.
@@ -138,11 +151,11 @@ sides: left and right are equal, nothing crosses the edge.
 
 | Check | Result |
 |---|---|
-| UX-C2 suite, Chromium (local) | 75 pass / 0 fail / 1 skipped |
+| UX-C2 suite, Chromium (local) | 85 pass / 0 fail / 1 skipped (86) |
 | UX-C2 suite on `origin/main` | 67 fail (expected: the suite detects the defects) |
 | `node --test` | 1123 / 1123 pass |
 | `python -m unittest discover -s tests -p "test_*.py"` | 501 tests OK (8 skipped) |
-| `npm run test:browser` (all existing browser suites + UX-C2, Chromium) | {{BROWSER_ALL}} |
+| `npm run test:browser` (all existing browser suites + UX-C2, Chromium) | **532 pass / 0 fail / 2 skipped (534)**, 25.3 min |
 | UX-C1 Light/Dark contrast suite | included in `npm run test:browser` (colour rules untouched; only layout declarations changed) |
 | **WebKit** (`ux-c2-webkit` CI job) | **pending CI — not run locally** |
 

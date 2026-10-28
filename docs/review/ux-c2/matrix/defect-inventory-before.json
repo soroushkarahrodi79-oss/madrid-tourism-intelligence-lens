@@ -115,6 +115,18 @@
  },
  {
   "kind": "escape",
+  "el": "section#urbanLicences > div.section-head > button.evidence-link",
+  "detail": "left 379.00 right 1.36 vs parent content box (section#urbanLicences > div.section-head)",
+  "count": 4,
+  "contexts": [
+   "1024x768/es/PLACE/hidden",
+   "1024x768/es/PLACE/classic",
+   "390x844/es/PLACE/hidden",
+   "360x800/es/PLACE/hidden"
+  ]
+ },
+ {
+  "kind": "escape",
   "el": "div#domesticOriginDynamicsTransitions > details",
   "detail": "left 0.00 right 12.08 vs parent content box (div#domesticOriginDynamicsTransitions)",
   "count": 6,
@@ -131,10 +143,11 @@
   "kind": "hscroll",
   "el": "section#analysisPanel",
   "detail": "scrollWidth 414 > clientWidth 412",
-  "count": 7,
+  "count": 8,
   "contexts": [
    "1024x768/es/CITY/classic",
    "390x844/en/CITY/hidden",
+   "390x844/es/PLACE/hidden",
    "390x844/es/CITY/hidden",
    "360x800/en/PLACE/hidden",
    "360x800/en/CITY/hidden",
@@ -200,6 +213,26 @@
   "contexts": [
    "390x844/en/PLACE/hidden",
    "390x844/es/PLACE/hidden"
+  ]
+ },
+ {
+  "kind": "escape",
+  "el": "section#urbanLicences > div.section-head > small",
+  "detail": "left 117.89 right 27.00 vs parent content box (section#urbanLicences > div.section-head)",
+  "count": 2,
+  "contexts": [
+   "390x844/es/PLACE/hidden",
+   "360x800/es/PLACE/hidden"
+  ]
+ },
+ {
+  "kind": "focus-clip",
+  "el": "section#urbanLicences > div.section-head > button.evidence-link",
+  "detail": "outline 0px exceeds section#analysisPanel padding box by L -391.00 R 31.36",
+  "count": 2,
+  "contexts": [
+   "390x844/es/PLACE/hidden",
+   "360x800/es/PLACE/hidden"
   ]
  },
  {
