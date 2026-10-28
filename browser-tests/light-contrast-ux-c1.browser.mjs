@@ -60,13 +60,17 @@ async function openApp({ width = 1440, height = 900, colorScheme = "light", pref
   const context = await browser.newContext({ viewport: { width, height }, colorScheme, locale });
   if (preference) await context.addInitScript((value) => localStorage.setItem("madrid-lens-appearance", value), preference);
   const page = await context.newPage();
-  page.setDefaultTimeout(8000);
+  // Cold-start budget only: the first WebKit page load on a fresh CI runner took
+  // ~13s (observed), which starved the first action's actionability wait. This
+  // is harness readiness; no assertion is relaxed.
+  page.setDefaultTimeout(ENGINE === "webkit" ? 30000 : 8000);
   await page.route("**/*", (route) => {
     const host = new URL(route.request().url()).hostname;
     return host === "127.0.0.1" || host === "localhost" ? route.continue() : route.abort();
   });
   await page.goto(`http://127.0.0.1:${port}/?haloRegressionTest=1${lang ? `&lang=${lang}` : ""}`, { waitUntil: "domcontentloaded" });
-  await page.waitForFunction(() => Boolean(window.__HALO_REGRESSION__) && Boolean(window.MadridAppearance));
+  await page.waitForFunction(() => Boolean(window.__HALO_REGRESSION__) && Boolean(window.MadridAppearance), null, { timeout: 30000 });
+  await page.waitForLoadState("load");
   page.context_ = context;
   return page;
 }
