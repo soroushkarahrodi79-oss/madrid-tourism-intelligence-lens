@@ -1,0 +1,215 @@
+[
+ {
+  "kind": "asymmetry",
+  "el": "ul#planningTouchedList > li",
+  "detail": "left inset 0.00 vs right inset 4.00 in div#planningTouchedCard",
+  "count": 20,
+  "contexts": [
+   "1440x900/en/PLACE/hidden",
+   "1440x900/en/PLACE/classic",
+   "1440x900/es/PLACE/hidden",
+   "1440x900/es/PLACE/classic",
+   "1366x768/en/PLACE/hidden",
+   "1366x768/en/PLACE/classic",
+   "1366x768/es/PLACE/hidden",
+   "1366x768/es/PLACE/classic",
+   "1180x820/en/PLACE/hidden",
+   "1180x820/en/PLACE/classic",
+   "1180x820/es/PLACE/hidden",
+   "1180x820/es/PLACE/classic",
+   "1024x768/en/PLACE/hidden",
+   "1024x768/en/PLACE/classic",
+   "1024x768/es/PLACE/hidden",
+   "1024x768/es/PLACE/classic",
+   "390x844/en/PLACE/hidden",
+   "390x844/es/PLACE/hidden",
+   "360x800/en/PLACE/hidden",
+   "360x800/es/PLACE/hidden"
+  ]
+ },
+ {
+  "kind": "escape",
+  "el": "input#radiusSlider",
+  "detail": "left 2.00 right 2.00 vs parent content box (div#lensControls > div.controlbox)",
+  "count": 56,
+  "contexts": [
+   "1440x900/en/PLACE/hidden",
+   "1440x900/en/COMPARE/hidden",
+   "1440x900/en/PLACE/classic",
+   "1440x900/en/COMPARE/classic",
+   "1440x900/es/PLACE/hidden",
+   "1440x900/es/COMPARE/hidden",
+   "1440x900/es/PLACE/classic",
+   "1440x900/es/COMPARE/classic",
+   "1366x768/en/PLACE/hidden",
+   "1366x768/en/COMPARE/hidden",
+   "1366x768/en/PLACE/classic",
+   "1366x768/en/COMPARE/classic",
+   "1366x768/es/PLACE/hidden",
+   "1366x768/es/COMPARE/hidden",
+   "1366x768/es/PLACE/classic",
+   "1366x768/es/COMPARE/classic",
+   "1180x820/en/PLACE/hidden",
+   "1180x820/en/COMPARE/hidden",
+   "1180x820/en/PLACE/classic",
+   "1180x820/en/COMPARE/classic",
+   "1180x820/es/PLACE/hidden",
+   "1180x820/es/COMPARE/hidden",
+   "1180x820/es/PLACE/classic",
+   "1180x820/es/COMPARE/classic",
+   "1024x768/en/PLACE/hidden",
+   "1024x768/en/COMPARE/hidden",
+   "1024x768/en/PLACE/classic",
+   "1024x768/en/COMPARE/classic",
+   "1024x768/es/PLACE/hidden",
+   "1024x768/es/COMPARE/hidden",
+   "1024x768/es/PLACE/classic",
+   "1024x768/es/COMPARE/classic",
+   "820x1180/en/PLACE/hidden",
+   "820x1180/en/COMPARE/hidden",
+   "820x1180/es/PLACE/hidden",
+   "820x1180/es/COMPARE/hidden",
+   "768x1024/en/PLACE/hidden",
+   "768x1024/en/COMPARE/hidden",
+   "768x1024/es/PLACE/hidden",
+   "768x1024/es/COMPARE/hidden",
+   "560x800/en/PLACE/hidden",
+   "560x800/en/COMPARE/hidden",
+   "560x800/es/PLACE/hidden",
+   "560x800/es/COMPARE/hidden",
+   "390x844/en/PLACE/hidden",
+   "390x844/en/COMPARE/hidden",
+   "390x844/es/PLACE/hidden",
+   "390x844/es/COMPARE/hidden",
+   "360x800/en/PLACE/hidden",
+   "360x800/en/COMPARE/hidden",
+   "360x800/es/PLACE/hidden",
+   "360x800/es/COMPARE/hidden",
+   "844x390/en/PLACE/hidden",
+   "844x390/en/COMPARE/hidden",
+   "844x390/es/PLACE/hidden",
+   "844x390/es/COMPARE/hidden"
+  ]
+ },
+ {
+  "kind": "spill",
+  "el": "div.mix > div.card > div.mixrow > span",
+  "detail": "scrollWidth 61 > clientWidth 55",
+  "count": 14,
+  "contexts": [
+   "1440x900/es/PLACE/hidden",
+   "1440x900/es/PLACE/classic",
+   "1366x768/es/PLACE/hidden",
+   "1366x768/es/PLACE/classic",
+   "1180x820/es/PLACE/hidden",
+   "1180x820/es/PLACE/classic",
+   "1024x768/es/PLACE/hidden",
+   "1024x768/es/PLACE/classic",
+   "820x1180/es/PLACE/hidden",
+   "768x1024/es/PLACE/hidden",
+   "560x800/es/PLACE/hidden",
+   "390x844/es/PLACE/hidden",
+   "360x800/es/PLACE/hidden",
+   "844x390/es/PLACE/hidden"
+  ]
+ },
+ {
+  "kind": "escape",
+  "el": "div#domesticOriginDynamicsTransitions > details",
+  "detail": "left 0.00 right 12.08 vs parent content box (div#domesticOriginDynamicsTransitions)",
+  "count": 6,
+  "contexts": [
+   "1024x768/es/CITY/hidden",
+   "1024x768/es/CITY/classic",
+   "390x844/en/CITY/hidden",
+   "390x844/es/CITY/hidden",
+   "360x800/en/CITY/hidden",
+   "360x800/es/CITY/hidden"
+  ]
+ },
+ {
+  "kind": "hscroll",
+  "el": "section#analysisPanel",
+  "detail": "scrollWidth 414 > clientWidth 412",
+  "count": 7,
+  "contexts": [
+   "1024x768/es/CITY/classic",
+   "390x844/en/CITY/hidden",
+   "390x844/es/CITY/hidden",
+   "360x800/en/PLACE/hidden",
+   "360x800/en/CITY/hidden",
+   "360x800/es/PLACE/hidden",
+   "360x800/es/CITY/hidden"
+  ]
+ },
+ {
+  "kind": "focus-clip",
+  "el": "summary#domesticOriginDynamicsNewlyPresent",
+  "detail": "outline 0px exceeds section#analysisPanel padding box by L -17.00 R 1.08",
+  "count": 5,
+  "contexts": [
+   "1024x768/es/CITY/classic",
+   "390x844/en/CITY/hidden",
+   "390x844/es/CITY/hidden",
+   "360x800/en/CITY/hidden",
+   "360x800/es/CITY/hidden"
+  ]
+ },
+ {
+  "kind": "focus-clip",
+  "el": "summary#domesticOriginDynamicsNoLongerPresent",
+  "detail": "outline 0px exceeds section#analysisPanel padding box by L -17.00 R 1.08",
+  "count": 5,
+  "contexts": [
+   "1024x768/es/CITY/classic",
+   "390x844/en/CITY/hidden",
+   "390x844/es/CITY/hidden",
+   "360x800/en/CITY/hidden",
+   "360x800/es/CITY/hidden"
+  ]
+ },
+ {
+  "kind": "escape",
+  "el": "details#placeDetail > div.mix > div.card",
+  "detail": "left 133.00 right 14.95 vs parent content box (details#placeDetail > div.mix)",
+  "count": 4,
+  "contexts": [
+   "390x844/en/PLACE/hidden",
+   "390x844/es/PLACE/hidden",
+   "360x800/en/PLACE/hidden",
+   "360x800/es/PLACE/hidden"
+  ]
+ },
+ {
+  "kind": "escape",
+  "el": "div#planningTouchedCard",
+  "detail": "left 0.00 right 14.95 vs parent content box (details#placeDetail > div.mix)",
+  "count": 4,
+  "contexts": [
+   "390x844/en/PLACE/hidden",
+   "390x844/es/PLACE/hidden",
+   "360x800/en/PLACE/hidden",
+   "360x800/es/PLACE/hidden"
+  ]
+ },
+ {
+  "kind": "asymmetry",
+  "el": "div#planningTouchedCard",
+  "detail": "left inset 8.00 vs right inset -6.95 in details#placeDetail",
+  "count": 2,
+  "contexts": [
+   "390x844/en/PLACE/hidden",
+   "390x844/es/PLACE/hidden"
+  ]
+ },
+ {
+  "kind": "focus-clip",
+  "el": "ul#planningTouchedList",
+  "detail": "outline 0px exceeds section#analysisPanel padding box by L -34.00 R 10.95",
+  "count": 2,
+  "contexts": [
+   "360x800/en/PLACE/hidden",
+   "360x800/es/PLACE/hidden"
+  ]
+ }
+]
