@@ -54,7 +54,7 @@ const MATRIX = [];
 // enabled so COMPARE renders its real bridge, insight and tables.
 const LENS = "a=40.4141,-3.6912,900&b=40.4224,-3.7037,900&al=A";
 
-async function openApp({ width, height, preference = "light", colorScheme = "light", lang = "en", panelSize = null, scrollbars = "hidden", touch = false }) {
+async function openApp({ width, height, preference = "light", colorScheme = "light", lang = "en", panelSize = null, scrollbars = "hidden", touch = false, font = null }) {
   const browser = scrollbars === "classic" ? classic : hidden;
   const context = await browser.newContext({ viewport: { width, height }, colorScheme, locale: lang === "es" ? "es-ES" : "en-US", deviceScaleFactor: 2, ...(touch ? { hasTouch: true, isMobile: true } : {}) });
   await context.addInitScript(([pref, size]) => {
@@ -71,6 +71,11 @@ async function openApp({ width, height, preference = "light", colorScheme = "lig
   await page.goto(`http://127.0.0.1:${port}/?haloRegressionTest=1&v=1&m=PLACE&${LENS}&be=1&lg=${lang}`, { waitUntil: "load" });
   await page.waitForFunction(() => window.__HALO_REGRESSION__?.k11Restored?.() === true, null, { timeout: 30000 });
   await page.waitForFunction(() => Boolean(window.MadridAppearance), null, { timeout: 30000 });
+  // Platform font differences moved text widths by a few pixels between a
+  // developer machine (Inter installed) and CI (Inter absent), and between
+  // engines. `font` forces a wider, universally available fallback so the
+  // suite does not depend on which machine runs it.
+  if (font) await page.addStyleTag({ content: `html *{font-family:"${font}",sans-serif !important}` });
   if (touch) assert.equal(await page.evaluate(() => matchMedia("(pointer: coarse)").matches), true, "coarse pointer is emulated");
   page.context_ = context;
   return page;
@@ -261,6 +266,23 @@ for (const [width, height] of [[1194, 834], [1180, 820], [1080, 810], [1024, 768
         await runModes(page, { width, height, lang, touch: true }, { details: [true, false], scrolled: [false, true] });
       } finally { await page.context_.close(); }
     });
+  }
+}
+
+// Wide fallback fonts (DejaVu Sans is the widest common one; Liberation Sans is
+// the metric-compatible Arial). Real data, EN/ES, mouse and touch.
+for (const font of ["DejaVu Sans", "Liberation Sans"]) {
+  for (const [width, height] of [[1440, 900], [1180, 820], [1024, 768], [820, 1180], [560, 800], [390, 844], [360, 800]]) {
+    for (const lang of ["en", "es"]) {
+      test(`fallback font ${font} (${lang}): contained at ${width}x${height}`, async () => {
+        const page = await openApp({ width, height, lang, font, touch: width >= 768 });
+        try {
+          await page.evaluate(async () => { await window.__HALO_REGRESSION__.enableLicences(); await window.__HALO_REGRESSION__.enableHospitality(); });
+          await page.waitForTimeout(300);
+          await runModes(page, { width, height, lang, font }, { details: [true], scrolled: [false, true] });
+        } finally { await page.context_.close(); }
+      });
+    }
   }
 }
 

@@ -76,8 +76,10 @@ iPadOS takes but not WebKit's own layout engine. The `ux-c2-webkit` CI job is th
 | D7 | Evidence & limits drawer scrolls horizontally by ~16 px | drawer, ≤ ~400 px | registry “interpretation ceiling” text carries `docs/ACCOMMODATION_NUMERATOR_AUDIT.md` (37 unbreakable chars) | `.drawer-ceiling{overflow-wrap:anywhere}` |
 | D8 | Membership chip name ellipsized with no title (official ámbito denomination concealed) | PLACE membership block (P0-a, staging flag) when the denomination is long | `.planning-membership-chip-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}` | wraps (`overflow-wrap:anywhere`); only reachable with the long-content fixture on real data (no real denomination was clipped) |
 | D9 | Urban-licences section header overflows: scope hint and evidence button pushed out of the panel (panel `scrollWidth` 399 > 368) | PLACE with the licences layer on, **Spanish**, ≤ 1024 px | `.section-head small{white-space:nowrap}` in a non-wrapping flex row | wrapping allowed (`overflow-wrap:anywhere;min-width:0;text-align:right`); the scope hint stays fully readable (it is a scope label) |
+| D10 | Area-scope "Official register" badge 2–8 px past its column and `#areaScopeNote` text spilling (66 px column) | PLACE/COMPARE, Spanish, 390 px; **found by CI** (Chromium on Linux without Inter: 2.23 px; WebKit: 8.23 px + note spill) | the right-hand `.area-figure` column is only ~66 px at phone width; badge and note could not wrap | `.badge.register{max-width:100%;overflow-wrap:anywhere}`, `.area-scope p{overflow-wrap:anywhere}` |
+| D11 | Mean-UTCI "model" badge leaves its metric tile by 2 px (starts 65 px into a ~70 px head) | PLACE, Spanish, 360 px; **found by CI in WebKit** | `.metric-head` flex row without wrapping, and `.metrics` tracks `repeat(4,1fr)` / `1fr 1fr` (min-content sized) | `.metric-head{flex-wrap:wrap}`, badge `margin-left:0;max-width:100%;overflow-wrap:anywhere`, tracks `minmax(0,1fr)`, `.metric{min-width:0}` |
 
-D5, D8 and D9 were found with Spanish text, the long-content fixtures and the layer-on tests respectively (see §4).
+D5, D8 and D9 were found with Spanish text, the long-content fixtures and the layer-on tests respectively; **D10 and D11 were found only by CI** (§4a). See §4.
 Default grids that still use bare `1fr` elsewhere (`.metrics`, `.row-controls`, `.mode-nav`, `.ambito-identities`,
 `.hospitality-meta-grid`, `.cb-grid`) were measured at every viewport in both languages and with the
 long-content fixture and **did not exhibit a defect**, so they were deliberately left unchanged.
@@ -115,7 +117,7 @@ Vertical scrolling is never a finding; horizontal scrollers are listed in `DESIG
 (comparison tables, ámbito quantity table, domestic-origin tables, analyst data block) and are
 reported separately, not dropped.
 
-`browser-tests/panel-containment-ux-c2.browser.mjs` (100 tests):
+`browser-tests/panel-containment-ux-c2.browser.mjs` (128 tests):
 
 * real data, Light/EN, all 10 required viewports × Place/Compare/City × Detail open/closed × scrolled/unscrolled;
 * Light/Dark/System-light × EN/ES on 1440×900, 1180×820, 1024×768, 820×1180, 390×844;
@@ -127,11 +129,26 @@ reported separately, not dropped.
   and are never applied in the real-data tests**;
 * Evidence & limits drawer at 5 viewports × EN/ES;
 * licences + hospitality layers switched on through the production paths, 5 viewports × EN/ES;
+* **forced wide fallback fonts** (DejaVu Sans, Liberation Sans), 7 viewports × EN/ES, touch on ≥ 768 px;
 * **touch (`pointer:coarse`) iPad class**, 7 viewports × EN/ES, layers on, Detail open/closed, scrolled/unscrolled;
 * the reported iPad scenario asserted on its own, the ámbitos list still scrolling vertically (and never
   horizontally), and Detail not moving the controls above it.
 
 The shell-level assertion also requires `|minInsetLeft − minInsetRight| ≤ 1.5 px` for every painted box.
+
+### 4a. What CI found that the local run did not
+
+The first CI run (head `169aa06`, then `636e7e6`, `cdde500`, `bce3917`) went red while every local run was green:
+* **Chromium on the Linux runner**: 5 of 534 browser tests failed — all UX-C2 tests, all the same D10 finding.
+* **WebKit**: 7 of 83 failed — D10 (8.23 px) plus the note spill, and D11 at 360 px.
+
+Cause of the divergence: this machine has **Inter** installed (the app's first-choice font), the CI runners do not, and
+WebKit lays out the fallback differently, so text a few pixels wider tips narrow columns over their edge. Lesson recorded:
+a "0 findings" result on one machine's fonts is not evidence for another's. The suite now includes **28 tests that force
+the wide fallback fonts DejaVu Sans and Liberation Sans** (mouse and touch, EN/ES, 7 viewports, layers on), so the check no
+longer depends on which fonts the machine has; with those fonts the branch measures **0 findings** after D10/D11, and the
+pre-fix tree measured 1 (3.34 px) with a forced fallback. WebKit itself remains unverified until its CI job is green on the
+fix commit.
 
 ### Before / after
 
@@ -139,7 +156,7 @@ The shell-level assertion also requires `|minInsetLeft − minInsetRight| ≤ 1.
 |---|---|---|
 | Suite result (Chromium) | 8 pass / **67 fail** / 1 skipped (76 tests; run before the layers-on tests existed) | **85 pass / 0 fail** / 1 skipped (86) |
 | Distinct findings, real data + licence/hospitality layers on, 10 viewports × EN/ES × 3 modes × scrollbars | **14** (`matrix/defect-inventory-before.json`) | **0** (`matrix/defect-inventory-after.json`) |
-| Audited states recorded | 78 (tests stop at the first finding) | 632 (`matrix/containment-matrix-after-chromium.json`) |
+| Audited states recorded | 78 (tests stop at the first finding) | 800 (`matrix/containment-matrix-after-chromium.json`) |
 
 The skipped test is the screenshot capture (requires `UXC2_CAPTURE_DIR`).
 
@@ -164,7 +181,7 @@ Containment matrix summary (after; every audited state has `clientWidth = scroll
 | 390×844 | 42 | 370 | yes | 0.0 / 0.0 | en, es | dark, light, system-light |
 | 360×800 | 12 | 340 | yes | 0.0 / 0.0 | en | light |
 
-Additional audited states: 48 long-content fixture, 20 drawer, 18 classic-scrollbar, 60 layers-on, 168 touch (iPad class). Total 632; findings: 0 (of which 168 touch). The 390/680 px panel widths on the 1440×900 and 1366×768 rows are the minimum/maximum resize runs.
+Additional audited states: 48 long-content fixture, 20 drawer, 18 classic-scrollbar, 60 layers-on, 168 touch (iPad class), 168 forced-fallback-font. Total 800; findings: 0. The 390/680 px panel widths on the 1440×900 and 1366×768 rows are the minimum/maximum resize runs.
 
 `min inset 0.0 / 0.0` means the outermost painted boxes sit exactly on the panel's padded content edge on both
 sides: left and right are equal, nothing crosses the edge.
@@ -173,7 +190,7 @@ sides: left and right are equal, nothing crosses the edge.
 
 | Check | Result |
 |---|---|
-| UX-C2 suite, Chromium (local) | 99 pass / 0 fail / 1 skipped (100) |
+| UX-C2 suite, Chromium (local) | 127 pass / 0 fail / 1 skipped (128) |
 | UX-C2 suite on `origin/main` | 67 fail (expected: the suite detects the defects) |
 | `node --test` | 1123 / 1123 pass |
 | `python -m unittest discover -s tests -p "test_*.py"` | 501 tests OK (8 skipped) |

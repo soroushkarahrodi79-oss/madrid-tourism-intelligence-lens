@@ -354,7 +354,7 @@ header{
 .area-value-label{font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:#8ba0b7;margin-top:var(--s-1)}
 .area-period{font-size:var(--t-micro);color:#8195ab;margin-top:var(--s-1);font-variant-numeric:tabular-nums}
 .area-scope{border-left:1px solid var(--line);padding-left:var(--s-3);min-width:0}
-.area-scope p{margin:var(--s-1) 0 0;font-size:var(--t-micro);line-height:1.4;color:#95a9be}
+.area-scope p{margin:var(--s-1) 0 0;font-size:var(--t-micro);line-height:1.4;color:#95a9be;overflow-wrap:anywhere}
 /* Where no residential figure can exist at all — outside Madrid, or with the
    geography unavailable — the figure slot is removed rather than filled with a
    meaningless dash beside a "registered residents" label. */
@@ -364,7 +364,7 @@ header{
 .area:not([data-residents="available"]):not([data-residents="unavailable"]) .area-scope p{margin:0}
 .area-identity[hidden]{display:none}
 .area-identity[hidden]+.area-figure{margin-top:var(--s-2)}
-.badge.register{background:var(--ta3-badge-register-background);color:var(--ta3-badge-register-text);border:1px solid var(--ta3-badge-register-border);margin-left:0}
+.badge.register{background:var(--ta3-badge-register-background);color:var(--ta3-badge-register-text);border:1px solid var(--ta3-badge-register-border);margin-left:0;max-width:100%;overflow-wrap:anywhere}
 .area:not([data-residents="available"]) .badge.register{display:none}
 /* Licensed VUT context: the second administrative figure for the same whole
    barrio. Deliberately quieter than the resident figure above it - a lighter
@@ -698,8 +698,8 @@ header{
 .lensbtn.active.b{color:var(--ta3-lens-b-control-text);border-color:var(--ta3-lens-b-control-border);background:var(--ta3-lens-b-control-background)}
 
 .metrics{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-2)}
-.metric{padding:var(--s-3);border:1px solid var(--line);background:rgba(255,255,255,.025);border-radius:var(--r-small);min-height:73px}
-.metric-head{display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);color:#9eb0c4}.metric-head .dot{width:6px;height:6px}
+.metric{min-width:0;padding:var(--s-3);border:1px solid var(--line);background:rgba(255,255,255,.025);border-radius:var(--r-small);min-height:73px}
+.metric-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-1) var(--s-2);font-size:var(--t-micro);color:#9eb0c4}.metric-head .dot{width:6px;height:6px}.metric-head .badge{margin-left:0;max-width:100%;overflow-wrap:anywhere}
 .metric-value{font-size:var(--t-title);font-weight:780;letter-spacing:-.04em;margin-top:var(--s-2);line-height:1}
 .metric-foot{font-size:var(--t-micro);color:#74879c;margin-top:var(--s-1)}.metric-value small{font-size:var(--t-micro);color:#94a6ba;font-weight:550;letter-spacing:0}
 .place-circle-summary{display:none}
@@ -1005,7 +1005,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .rail-group-content{padding:var(--s-2) var(--s-1) var(--s-1)}
   .panel{left:calc(10px + var(--safe-left));right:calc(10px + var(--safe-right));top:auto;bottom:calc(10px + var(--safe-bottom));width:auto;min-width:0;max-width:none;height:auto;min-height:0;max-height:42vh;max-height:42dvh;padding:var(--s-3)}
   .panel-resize-handle{display:none}
-  .title{}.metrics{grid-template-columns:repeat(4,1fr)}.metric{min-height:61px;padding:var(--s-2)}.metric-value{}.metric-head{}.metric-foot{}
+  .title{}.metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.metric{min-height:61px;padding:var(--s-2)}.metric-value{}.metric-head{}.metric-foot{}
   .section-head{margin:var(--s-2) 0 var(--s-1)}.section-head span{}.section-head small{}
   .area .section-head{margin-top:0}
   .area-identity{margin:var(--s-1) 0 var(--s-2)}.area-context{}.area-codes{}
@@ -1065,7 +1065,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 @media(max-width:560px){
   .left{width:150px;max-height:min(49vh,360px);max-height:min(49dvh,360px)}
   .layer{}
-  .metrics{grid-template-columns:1fr 1fr}.metric{min-height:58px}
+  .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{min-height:58px}
   .hospitality-meta-grid{grid-template-columns:1fr}
   .leaflet-bottom.leaflet-right{top:calc(var(--header-bottom) + 110px)}
 }
