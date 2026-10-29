@@ -29,8 +29,22 @@ jobs:
       # puts on PATH on both runners; "python3" does not exist on Windows.
       - run: python -m unittest discover -s tests -p "test_*.py"
 
-  radial-halo-browser:
+  chromium-browser-shard:
+    name: chromium-browser-shard (${{ matrix.shard }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: "1"
+            capture_ux_h1: true
+            capture_ux_c2: true
+          - shard: "2"
+            capture_ux_h1: false
+            capture_ux_c2: false
+          - shard: "3"
+            capture_ux_h1: false
+            capture_ux_c2: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,17 +53,20 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:browser
+      - name: Verify complete browser-test assignment
+        run: npm run test:browser:inventory
+      - name: Run Chromium browser shard ${{ matrix.shard }}
+        run: npm run test:browser:shard -- ${{ matrix.shard }}
       - name: Capture UX-H1 before and after screenshots
-        if: ${{ always() }}
+        if: ${{ always() && matrix.capture_ux_h1 }}
         run: |
           BASE_REF="${GITHUB_BASE_REF:-main}"
           git fetch --no-tags --depth=1 origin "$BASE_REF"
-          git worktree add --detach ../ux-h1-main FETCH_HEAD
-          UX_H1_ROOT=../ux-h1-main UX_H1_CAPTURE_ONLY=1 UX_H1_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-h1-map-header/before node browser-tests/header-ux-h1.browser.mjs
+          git worktree add --detach ../ux-h1-main-${{ matrix.shard }} FETCH_HEAD
+          UX_H1_ROOT=../ux-h1-main-${{ matrix.shard }} UX_H1_CAPTURE_ONLY=1 UX_H1_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-h1-map-header/before node browser-tests/header-ux-h1.browser.mjs
           UX_H1_CAPTURE_ONLY=1 UX_H1_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-h1-map-header/after node browser-tests/header-ux-h1.browser.mjs
       - name: Upload UX-H1 screenshots
-        if: ${{ always() }}
+        if: ${{ always() && matrix.capture_ux_h1 }}
         uses: actions/upload-artifact@v4
         with:
           name: ux-h1-map-header-screenshots
@@ -57,20 +74,32 @@ jobs:
           if-no-files-found: warn
 
       - name: Capture UX-C2 before and after screenshots (Chromium)
-        if: ${{ always() }}
+        if: ${{ always() && matrix.capture_ux_c2 }}
         run: |
           BASE_REF="${GITHUB_BASE_REF:-main}"
           git fetch --no-tags --depth=1 origin "$BASE_REF"
-          git worktree add --detach ../ux-c2-main-chromium FETCH_HEAD
-          UXC2_ROOT=../ux-c2-main-chromium UXC2_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-c2-chromium/before node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
+          git worktree add --detach ../ux-c2-main-chromium-${{ matrix.shard }} FETCH_HEAD
+          UXC2_ROOT=../ux-c2-main-chromium-${{ matrix.shard }} UXC2_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-c2-chromium/before node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
           UXC2_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-c2-chromium/after node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
       - name: Upload UX-C2 Chromium evidence
-        if: ${{ always() }}
+        if: ${{ always() && matrix.capture_ux_c2 }}
         uses: actions/upload-artifact@v4
         with:
           name: ux-c2-chromium-evidence
           path: test-results/ux-c2-chromium
           if-no-files-found: warn
+
+  # Keep the existing required-check identity stable while the measured suite
+  # runs as three independent jobs. This job fails unless every shard passed.
+  radial-halo-browser:
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs: chromium-browser-shard
+    steps:
+      - name: Require all Chromium browser shards
+        env:
+          SHARD_RESULT: ${{ needs.chromium-browser-shard.result }}
+        run: test "$SHARD_RESULT" = "success"
 
   # UX-C1: the Light-contrast regression on real WebKit (Safari engine). Same
   # assertions as Chromium; the engine is selected by UXC1_BROWSER only.
@@ -104,10 +133,25 @@ jobs:
           path: test-results/ux-c1-webkit
           if-no-files-found: warn
 
-  # UX-C2: right-panel card containment on real WebKit (Safari engine). Same
-  # assertions as Chromium; the engine is selected by UXC2_BROWSER only.
-  ux-c2-webkit:
+  # UX-C2: right-panel card containment on real WebKit (Safari engine). The
+  # measured 28-minute suite is split by anchored test groups across isolated
+  # runners; each partition validates its exact TAP inventory.
+  ux-c2-webkit-shard:
+    name: ux-c2-webkit-shard (${{ matrix.shard }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: "1"
+            capture: true
+            artifact_name: ux-c2-webkit-evidence
+          - shard: "2"
+            capture: false
+            artifact_name: ux-c2-webkit-evidence-2
+          - shard: "3"
+            capture: false
+            artifact_name: ux-c2-webkit-evidence-3
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -116,23 +160,37 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps webkit
-      - name: UX-C2 panel containment suite (WebKit)
-        run: node --test --test-concurrency=1 browser-tests/panel-containment-ux-c2.browser.mjs
+      - name: Verify complete browser-test assignment
+        run: npm run test:browser:inventory
+      - name: UX-C2 panel containment shard ${{ matrix.shard }} (WebKit)
+        run: npm run test:browser:ux-c2-shard -- ${{ matrix.shard }}
         env:
           UXC2_BROWSER: webkit
-          UXC2_MATRIX_DIR: ${{ github.workspace }}/test-results/ux-c2-webkit
+          UXC2_MATRIX_DIR: ${{ github.workspace }}/test-results/ux-c2-webkit/shard-${{ matrix.shard }}
       - name: Capture iPad-landscape System-light before and after (WebKit)
-        if: ${{ always() }}
+        if: ${{ always() && matrix.capture }}
         run: |
           BASE_REF="${GITHUB_BASE_REF:-main}"
           git fetch --no-tags --depth=1 origin "$BASE_REF"
-          git worktree add --detach ../ux-c2-base FETCH_HEAD
-          UXC2_BROWSER=webkit UXC2_ROOT=../ux-c2-base UXC2_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-c2-webkit/before node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
+          git worktree add --detach ../ux-c2-base-${{ matrix.shard }} FETCH_HEAD
+          UXC2_BROWSER=webkit UXC2_ROOT=../ux-c2-base-${{ matrix.shard }} UXC2_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-c2-webkit/before node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
           UXC2_BROWSER=webkit UXC2_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-c2-webkit/after node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
       - name: Upload UX-C2 WebKit evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: ux-c2-webkit-evidence
+          name: ${{ matrix.artifact_name }}
           path: test-results/ux-c2-webkit
           if-no-files-found: warn
+
+  # Preserve the independent required-check identity while the WebKit suite is
+  # executed by three isolated workers.
+  ux-c2-webkit:
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs: ux-c2-webkit-shard
+    steps:
+      - name: Require all UX-C2 WebKit shards
+        env:
+          SHARD_RESULT: ${{ needs.ux-c2-webkit-shard.result }}
+        run: test "$SHARD_RESULT" = "success"
