@@ -185,6 +185,31 @@ test("find a place, ask a question, read a source-backed answer, verify it in Ev
   assert.deepEqual(errors, []);
 });
 
+test("sharing and export are not implied to carry the question: the card says so, and the link holds no question", async (t) => {
+  const { page, context } = await pageFor();
+  t.after(() => context.close());
+  await openExplorer(page);
+  await selectAndAnalyze(page, "APR.02.09");
+  await askQuestion(page, "AMBITO_PHASES");
+  await settled(page);
+  const note = await page.locator("#qxAnswer .qx-share-note").textContent();
+  assert.match(note, /do not include this question or its answer/);
+  assert.equal(await page.locator("#qxAnswer .qx-action-drawer").getAttribute("aria-describedby"), "qxShareNote");
+  assert.doesNotMatch(await page.evaluate(() => location.href), /AMBITO_PHASES|qx|question/i, "the canonical link carries no question");
+});
+
+test("the licence answer explains how to change its dates, and asking does not enable the layer", async (t) => {
+  const { page, context } = await pageFor();
+  t.after(() => context.close());
+  await openExplorer(page);
+  await selectAndAnalyze(page, "APR.02.09");
+  const layer = () => page.locator('[data-layer="licences"]').isChecked();
+  assert.equal(await layer(), false);
+  await askQuestion(page, "LICENCES_IN_LENS");
+  assert.match(await page.locator("#qxAnswer .qx-hint").textContent(), /switch on Granted urban licences in the layers panel and edit From and To/);
+  assert.equal(await layer(), false, "asking leaves the layer off");
+});
+
 test("asking for the source reads the registry's provenance for the latest answer, with all five freshness fields", async (t) => {
   const { page, context } = await pageFor();
   t.after(() => context.close());

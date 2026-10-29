@@ -474,6 +474,12 @@ export function mountQuestionExplorer({ host, model, bridge }) {
       row.append(source);
     }
     wrapper.append(row);
+    // Sharing and exporting reproduce the Lens, radius, dates and reading; the
+    // question and its answer are not part of either, and the card says so.
+    const note = text("p", "qx-share-note", c.verify.shareNote);
+    note.id = "qxShareNote";
+    drawer.setAttribute("aria-describedby", "qxShareNote");
+    wrapper.append(note);
     return wrapper;
   }
 

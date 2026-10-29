@@ -633,3 +633,21 @@ test("the registered shape set and abstention vocabulary are unchanged by M2", (
   assert.equal(R.ABSTENTION_REASONS.length, 8);
   assert.equal(R.PROHIBITIONS.length, 8);
 });
+
+// ====================================== sharing and licence-window explanations
+
+test("every answer states that a shared link or export does not carry the question or its answer", () => {
+  for (const language of ["en", "es"]) {
+    const note = Q.copyFor(language).verify.shareNote;
+    assert.match(note, language === "en" ? /do not include this question or its answer/ : /No incluyen esta pregunta ni su respuesta/);
+  }
+});
+
+test("the licence answer says where its dates come from, how to change them, and that asking enables nothing", () => {
+  const en = present(ask("LICENCES_IN_LENS"));
+  assert.match(en.hint, /To change them, switch on Granted urban licences .* edit From and To/);
+  assert.match(en.hint, /does not switch that layer on/);
+  const es = present(ask("LICENCES_IN_LENS"), { language: "es" });
+  assert.match(es.hint, /Para cambiarlas, active Licencias urbanísticas otorgadas .* Desde y Hasta/);
+  assert.match(es.hint, /no activa esa capa/);
+});

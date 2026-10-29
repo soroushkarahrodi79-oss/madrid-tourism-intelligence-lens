@@ -133,6 +133,25 @@ jobs:
           path: test-results/ux-c1-webkit
           if-no-files-found: warn
 
+  # M2: a targeted smoke of the urban evidence question explorer on real WebKit
+  # (Safari engine). It reuses the existing M2 browser tests through the QX_BROWSER
+  # engine selector; the full suite stays in the Chromium shards. Emulated viewports
+  # here are not physical-device validation.
+  qx-webkit-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps webkit
+      - name: M2 explorer smoke (WebKit)
+        run: node --test --test-concurrency=1 --test-name-pattern="find a place, ask a question|keyboard alone operates the explorer|unsupported ask is refused|failed licence artifact|switching language mid-answer|Spanish copy covers|layout 390x844|layout 768x1024|reloading a shared link|sharing and export" browser-tests/question-explorer.browser.mjs
+        env:
+          QX_BROWSER: webkit
+
   # UX-C2: right-panel card containment on real WebKit (Safari engine). The
   # measured 28-minute suite is split by anchored test groups across isolated
   # runners; each partition validates its exact TAP inventory.

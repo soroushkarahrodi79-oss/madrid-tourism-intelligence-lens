@@ -346,7 +346,7 @@ check, so the Lens-drag and radius paths gain no measurable work.
 
 ## 14. Verification record
 
-* `node --test`: **1,190 / 1,190** (1,152 base + 38 new), 0 failed, 0 skipped.
+* `node --test`: **1,190 / 1,190** (1,152 base + 40 new), 0 failed, 0 skipped.
 * Chromium, 33 browser tests in `question-explorer.browser.mjs` (1 capture test
   skipped without an output directory); all three Chromium shards, both WebKit
   UX-C1 / UX-C2 jobs and Node on Linux and Windows are green in CI on the head
@@ -358,6 +358,24 @@ check, so the Lens-drag and radius paths gain no measurable work.
   Not validated: a screen reader, a physical device.
 * Screenshots: `docs/review/m2-question-explorer/` (before = M1 finder at base;
   after = explorer at desktop, dark, tablet, phone, 320 px).
+
+### 14.1 Release-readiness additions
+
+* **Sharing semantics.** The drawer's *Share & export* text says it "reproduces this
+  exact reading". After an M2 answer that could be read as including the question.
+  Every answer card now says that *Copy shareable link* and *Export evidence*
+  reproduce the Lens, radius, dates and reading and **not** the question or its
+  answer. The K11 URL schema and the export model are unchanged; carrying the
+  question is recorded for M3.
+* **Licence dates.** The answer already stated the applied window; it now also says
+  where it comes from and how to change it (switch on *Granted urban licences*, edit
+  *From*/*To*) and that asking does not switch the layer on. A test asserts the
+  layer stays off.
+* **WebKit.** A `qx-webkit-smoke` CI job runs ten of the existing M2 browser tests
+  (journey, sharing note, language, refusal, failed source, shared-link reload,
+  keyboard, 390×844 and 768×1024, Spanish coverage) with `QX_BROWSER=webkit`. The
+  authoring environment cannot download WebKit (network allowlist), so its result
+  comes from CI only. Emulated viewports are not physical-device validation.
 
 ## 15. Known limitations
 
