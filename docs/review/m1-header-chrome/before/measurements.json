@@ -1,0 +1,664 @@
+{
+  "390x844": {
+    "immediate": {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "measuredHeaderBottom": "78px",
+      "computedChromeTop": "(not defined)",
+      "header": {
+        "left": 10,
+        "right": 380,
+        "top": 9,
+        "bottom": 123,
+        "width": 370,
+        "height": 114
+      },
+      "tools": {
+        "left": 80.03,
+        "right": 371,
+        "top": 70,
+        "bottom": 114,
+        "width": 290.97,
+        "height": 44
+      },
+      "layers": {
+        "left": 10,
+        "right": 93.48,
+        "top": 88,
+        "bottom": 132,
+        "width": 83.48,
+        "height": 44
+      },
+      "zoom": {
+        "left": 340,
+        "right": 380,
+        "top": 88,
+        "bottom": 164,
+        "width": 40,
+        "height": 76
+      },
+      "attribution": {
+        "left": 176.41,
+        "right": 380,
+        "top": 192,
+        "bottom": 214.19,
+        "width": 203.59,
+        "height": 22.19
+      },
+      "search": null,
+      "layersTools": true,
+      "layersOverHeader": true,
+      "zoomOverHeader": true,
+      "overflow": 0
+    },
+    "settled": {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "measuredHeaderBottom": "123px",
+      "computedChromeTop": "(not defined)",
+      "header": {
+        "left": 10,
+        "right": 380,
+        "top": 9,
+        "bottom": 123,
+        "width": 370,
+        "height": 114
+      },
+      "tools": {
+        "left": 80.03,
+        "right": 371,
+        "top": 70,
+        "bottom": 114,
+        "width": 290.97,
+        "height": 44
+      },
+      "layers": {
+        "left": 10,
+        "right": 93.48,
+        "top": 133,
+        "bottom": 177,
+        "width": 83.48,
+        "height": 44
+      },
+      "zoom": {
+        "left": 340,
+        "right": 380,
+        "top": 133,
+        "bottom": 209,
+        "width": 40,
+        "height": 76
+      },
+      "attribution": {
+        "left": 176.41,
+        "right": 380,
+        "top": 237,
+        "bottom": 259.19,
+        "width": 203.59,
+        "height": 22.19
+      },
+      "search": null,
+      "layersTools": false,
+      "layersOverHeader": false,
+      "zoomOverHeader": false,
+      "overflow": 0
+    }
+  },
+  "390x320": {
+    "immediate": {
+      "viewport": {
+        "width": 390,
+        "height": 320
+      },
+      "measuredHeaderBottom": "123px",
+      "computedChromeTop": "(not defined)",
+      "header": {
+        "left": 10,
+        "right": 380,
+        "top": 9,
+        "bottom": 123,
+        "width": 370,
+        "height": 114
+      },
+      "tools": {
+        "left": 80.03,
+        "right": 371,
+        "top": 70,
+        "bottom": 114,
+        "width": 290.97,
+        "height": 44
+      },
+      "layers": {
+        "left": 10,
+        "right": 93.48,
+        "top": 133,
+        "bottom": 177,
+        "width": 83.48,
+        "height": 44
+      },
+      "zoom": {
+        "left": 304,
+        "right": 380,
+        "top": 133,
+        "bottom": 173,
+        "width": 76,
+        "height": 40
+      },
+      "attribution": {
+        "left": 176.41,
+        "right": 380,
+        "top": 192,
+        "bottom": 214.19,
+        "width": 203.59,
+        "height": 22.19
+      },
+      "search": null,
+      "layersTools": false,
+      "layersOverHeader": false,
+      "zoomOverHeader": false,
+      "overflow": 0
+    },
+    "settled": {
+      "viewport": {
+        "width": 390,
+        "height": 320
+      },
+      "measuredHeaderBottom": "123px",
+      "computedChromeTop": "(not defined)",
+      "header": {
+        "left": 10,
+        "right": 380,
+        "top": 9,
+        "bottom": 123,
+        "width": 370,
+        "height": 114
+      },
+      "tools": {
+        "left": 80.03,
+        "right": 371,
+        "top": 70,
+        "bottom": 114,
+        "width": 290.97,
+        "height": 44
+      },
+      "layers": {
+        "left": 10,
+        "right": 93.48,
+        "top": 133,
+        "bottom": 177,
+        "width": 83.48,
+        "height": 44
+      },
+      "zoom": {
+        "left": 304,
+        "right": 380,
+        "top": 133,
+        "bottom": 173,
+        "width": 76,
+        "height": 40
+      },
+      "attribution": {
+        "left": 176.41,
+        "right": 380,
+        "top": 192,
+        "bottom": 214.19,
+        "width": 203.59,
+        "height": 22.19
+      },
+      "search": null,
+      "layersTools": false,
+      "layersOverHeader": false,
+      "zoomOverHeader": false,
+      "overflow": 0
+    }
+  },
+  "360x760": {
+    "immediate": {
+      "viewport": {
+        "width": 360,
+        "height": 760
+      },
+      "measuredHeaderBottom": "123px",
+      "computedChromeTop": "(not defined)",
+      "header": {
+        "left": 10,
+        "right": 350,
+        "top": 9,
+        "bottom": 123,
+        "width": 340,
+        "height": 114
+      },
+      "tools": {
+        "left": 50.03,
+        "right": 341,
+        "top": 70,
+        "bottom": 114,
+        "width": 290.97,
+        "height": 44
+      },
+      "layers": {
+        "left": 10,
+        "right": 54,
+        "top": 133,
+        "bottom": 177,
+        "width": 44,
+        "height": 44
+      },
+      "zoom": {
+        "left": 310,
+        "right": 350,
+        "top": 133,
+        "bottom": 209,
+        "width": 40,
+        "height": 76
+      },
+      "attribution": {
+        "left": 146.41,
+        "right": 350,
+        "top": 237,
+        "bottom": 259.19,
+        "width": 203.59,
+        "height": 22.19
+      },
+      "search": null,
+      "layersTools": false,
+      "layersOverHeader": false,
+      "zoomOverHeader": false,
+      "overflow": 0
+    },
+    "settled": {
+      "viewport": {
+        "width": 360,
+        "height": 760
+      },
+      "measuredHeaderBottom": "123px",
+      "computedChromeTop": "(not defined)",
+      "header": {
+        "left": 10,
+        "right": 350,
+        "top": 9,
+        "bottom": 123,
+        "width": 340,
+        "height": 114
+      },
+      "tools": {
+        "left": 50.03,
+        "right": 341,
+        "top": 70,
+        "bottom": 114,
+        "width": 290.97,
+        "height": 44
+      },
+      "layers": {
+        "left": 10,
+        "right": 54,
+        "top": 133,
+        "bottom": 177,
+        "width": 44,
+        "height": 44
+      },
+      "zoom": {
+        "left": 310,
+        "right": 350,
+        "top": 133,
+        "bottom": 209,
+        "width": 40,
+        "height": 76
+      },
+      "attribution": {
+        "left": 146.41,
+        "right": 350,
+        "top": 237,
+        "bottom": 259.19,
+        "width": 203.59,
+        "height": 22.19
+      },
+      "search": null,
+      "layersTools": false,
+      "layersOverHeader": false,
+      "zoomOverHeader": false,
+      "overflow": 0
+    }
+  },
+  "320x700": {
+    "immediate": {
+      "viewport": {
+        "width": 320,
+        "height": 700
+      },
+      "measuredHeaderBottom": "78px",
+      "computedChromeTop": "(not defined)",
+      "header": {
+        "left": 10,
+        "right": 310,
+        "top": 9,
+        "bottom": 123,
+        "width": 300,
+        "height": 114
+      },
+      "tools": {
+        "left": 19,
+        "right": 301,
+        "top": 70,
+        "bottom": 114,
+        "width": 282,
+        "height": 44
+      },
+      "layers": {
+        "left": 10,
+        "right": 54,
+        "top": 88,
+        "bottom": 132,
+        "width": 44,
+        "height": 44
+      },
+      "zoom": {
+        "left": 270,
+        "right": 310,
+        "top": 88,
+        "bottom": 164,
+        "width": 40,
+        "height": 76
+      },
+      "attribution": {
+        "left": 106.41,
+        "right": 310,
+        "top": 192,
+        "bottom": 214.19,
+        "width": 203.59,
+        "height": 22.19
+      },
+      "search": null,
+      "layersTools": true,
+      "layersOverHeader": true,
+      "zoomOverHeader": true,
+      "overflow": 0
+    },
+    "settled": {
+      "viewport": {
+        "width": 320,
+        "height": 700
+      },
+      "measuredHeaderBottom": "123px",
+      "computedChromeTop": "(not defined)",
+      "header": {
+        "left": 10,
+        "right": 310,
+        "top": 9,
+        "bottom": 123,
+        "width": 300,
+        "height": 114
+      },
+      "tools": {
+        "left": 19,
+        "right": 301,
+        "top": 70,
+        "bottom": 114,
+        "width": 282,
+        "height": 44
+      },
+      "layers": {
+        "left": 10,
+        "right": 54,
+        "top": 133,
+        "bottom": 177,
+        "width": 44,
+        "height": 44
+      },
+      "zoom": {
+        "left": 270,
+        "right": 310,
+        "top": 133,
+        "bottom": 209,
+        "width": 40,
+        "height": 76
+      },
+      "attribution": {
+        "left": 106.41,
+        "right": 310,
+        "top": 237,
+        "bottom": 259.19,
+        "width": 203.59,
+        "height": 22.19
+      },
+      "search": null,
+      "layersTools": false,
+      "layersOverHeader": false,
+      "zoomOverHeader": false,
+      "overflow": 0
+    }
+  },
+  "420x860": {
+    "immediate": {
+      "viewport": {
+        "width": 420,
+        "height": 860
+      },
+      "measuredHeaderBottom": "78px",
+      "computedChromeTop": "(not defined)",
+      "header": {
+        "left": 10,
+        "right": 410,
+        "top": 9,
+        "bottom": 123,
+        "width": 400,
+        "height": 114
+      },
+      "tools": {
+        "left": 110.03,
+        "right": 401,
+        "top": 70,
+        "bottom": 114,
+        "width": 290.97,
+        "height": 44
+      },
+      "layers": {
+        "left": 10,
+        "right": 93.48,
+        "top": 88,
+        "bottom": 132,
+        "width": 83.48,
+        "height": 44
+      },
+      "zoom": {
+        "left": 370,
+        "right": 410,
+        "top": 88,
+        "bottom": 164,
+        "width": 40,
+        "height": 76
+      },
+      "attribution": {
+        "left": 206.41,
+        "right": 410,
+        "top": 192,
+        "bottom": 214.19,
+        "width": 203.59,
+        "height": 22.19
+      },
+      "search": null,
+      "layersTools": false,
+      "layersOverHeader": true,
+      "zoomOverHeader": true,
+      "overflow": 0
+    },
+    "settled": {
+      "viewport": {
+        "width": 420,
+        "height": 860
+      },
+      "measuredHeaderBottom": "123px",
+      "computedChromeTop": "(not defined)",
+      "header": {
+        "left": 10,
+        "right": 410,
+        "top": 9,
+        "bottom": 123,
+        "width": 400,
+        "height": 114
+      },
+      "tools": {
+        "left": 110.03,
+        "right": 401,
+        "top": 70,
+        "bottom": 114,
+        "width": 290.97,
+        "height": 44
+      },
+      "layers": {
+        "left": 10,
+        "right": 93.48,
+        "top": 133,
+        "bottom": 177,
+        "width": 83.48,
+        "height": 44
+      },
+      "zoom": {
+        "left": 370,
+        "right": 410,
+        "top": 133,
+        "bottom": 209,
+        "width": 40,
+        "height": 76
+      },
+      "attribution": {
+        "left": 206.41,
+        "right": 410,
+        "top": 237,
+        "bottom": 259.19,
+        "width": 203.59,
+        "height": 22.19
+      },
+      "search": null,
+      "layersTools": false,
+      "layersOverHeader": false,
+      "zoomOverHeader": false,
+      "overflow": 0
+    }
+  },
+  "320x700-finder-open": {
+    "immediate": {
+      "viewport": {
+        "width": 320,
+        "height": 700
+      },
+      "measuredHeaderBottom": "123px",
+      "computedChromeTop": "(not defined)",
+      "header": {
+        "left": 10,
+        "right": 310,
+        "top": 9,
+        "bottom": 123,
+        "width": 300,
+        "height": 114
+      },
+      "tools": {
+        "left": 19,
+        "right": 301,
+        "top": 70,
+        "bottom": 114,
+        "width": 282,
+        "height": 44
+      },
+      "layers": {
+        "left": 10,
+        "right": 54,
+        "top": 133,
+        "bottom": 177,
+        "width": 44,
+        "height": 44
+      },
+      "zoom": {
+        "left": 270,
+        "right": 310,
+        "top": 133,
+        "bottom": 209,
+        "width": 40,
+        "height": 76
+      },
+      "attribution": {
+        "left": 106.41,
+        "right": 310,
+        "top": 237,
+        "bottom": 259.19,
+        "width": 203.59,
+        "height": 22.19
+      },
+      "search": {
+        "left": 10,
+        "right": 310,
+        "top": 133,
+        "bottom": 358.78,
+        "width": 300,
+        "height": 225.78
+      },
+      "layersTools": false,
+      "layersOverHeader": false,
+      "zoomOverHeader": false,
+      "overflow": 0
+    },
+    "settled": {
+      "viewport": {
+        "width": 320,
+        "height": 700
+      },
+      "measuredHeaderBottom": "123px",
+      "computedChromeTop": "(not defined)",
+      "header": {
+        "left": 10,
+        "right": 310,
+        "top": 9,
+        "bottom": 123,
+        "width": 300,
+        "height": 114
+      },
+      "tools": {
+        "left": 19,
+        "right": 301,
+        "top": 70,
+        "bottom": 114,
+        "width": 282,
+        "height": 44
+      },
+      "layers": {
+        "left": 10,
+        "right": 54,
+        "top": 133,
+        "bottom": 177,
+        "width": 44,
+        "height": 44
+      },
+      "zoom": {
+        "left": 270,
+        "right": 310,
+        "top": 133,
+        "bottom": 209,
+        "width": 40,
+        "height": 76
+      },
+      "attribution": {
+        "left": 106.41,
+        "right": 310,
+        "top": 237,
+        "bottom": 259.19,
+        "width": 203.59,
+        "height": 22.19
+      },
+      "search": {
+        "left": 10,
+        "right": 310,
+        "top": 133,
+        "bottom": 358.78,
+        "width": 300,
+        "height": 225.78
+      },
+      "layersTools": false,
+      "layersOverHeader": false,
+      "zoomOverHeader": false,
+      "overflow": 0
+    }
+  }
+}

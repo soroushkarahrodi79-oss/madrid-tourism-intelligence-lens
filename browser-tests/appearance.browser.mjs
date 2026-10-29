@@ -288,3 +288,196 @@ test("P1 responsive shell keeps branding, map tools and provider credits distinc
     assert.ok(g.tools.left >= 0 && g.tools.right <= viewport.width + 1, "tools remain inside viewport");
   }
 });
+
+// --------------------------------------------------------------------------
+// Header chrome must never be drawn over the header, including in the frame
+// immediately after a viewport change.
+//
+// syncHeaderBottom() writes --header-bottom inline on :root, which overrides
+// every media-query value. After a viewport change that value still describes
+// the PREVIOUS viewport until the ResizeObserver callback is delivered, which
+// is at least one frame later. Map chrome positioned from the measurement alone
+// is therefore drawn over the header for that frame — a real, user-visible
+// overlap, not a test artefact. Each breakpoint also declares the header height
+// it guarantees, and chrome uses max(measurement, floor).
+//
+// Every assertion below measures IMMEDIATELY after the viewport change, with no
+// settling wait, because that transient frame is exactly what has to be safe.
+// --------------------------------------------------------------------------
+const CHROME_VIEWPORTS = [
+  { width: 320, height: 700 }, { width: 360, height: 760 },
+  { width: 390, height: 844 }, { width: 420, height: 860 },
+  { width: 560, height: 760 }, { width: 600, height: 820 },
+  { width: 720, height: 450 }, { width: 900, height: 700 },
+  { width: 1024, height: 768 }, { width: 1440, height: 900 },
+  { width: 390, height: 320 },
+];
+
+async function chromeGeometry(page) {
+  return page.evaluate(() => {
+    const rect = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      const box = element.getBoundingClientRect();
+      if (!box.width && !box.height) return null;
+      const style = getComputedStyle(element);
+      if (style.display === "none" || style.visibility === "hidden") return null;
+      return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height };
+    };
+    const overlaps = (a, b) => Boolean(a && b && a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1);
+    const header = rect("header");
+    const parts = {
+      layers: rect("#mobileLayersButton"),
+      zoom: rect(".leaflet-control-zoom"),
+      attribution: rect(".leaflet-control-attribution"),
+      rail: rect("#layerRail"),
+      search: rect("#geoSearchPanel"),
+      searchToggle: rect("#geoSearchToggle"),
+      tools: rect(".header-tools"),
+      brand: rect(".brand"),
+    };
+    const overHeader = Object.entries(parts)
+      .filter(([name]) => !["tools", "brand", "searchToggle"].includes(name))
+      .filter(([, box]) => overlaps(box, header))
+      .map(([name]) => name);
+    return {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+      headerBottom: header ? header.bottom : null,
+      measured: document.documentElement.style.getPropertyValue("--header-bottom").trim() || null,
+      parts,
+      overHeader,
+      layersTools: overlaps(parts.layers, parts.tools),
+      zoomLayers: overlaps(parts.zoom, parts.layers),
+      zoomAttribution: overlaps(parts.zoom, parts.attribution),
+      railTools: overlaps(parts.rail, parts.tools),
+      searchTools: overlaps(parts.search, parts.tools),
+      searchLayers: overlaps(parts.search, parts.layers),
+    };
+  });
+}
+
+function assertNoCollision(geometry, label) {
+  assert.deepEqual(geometry.overHeader, [], `${label}: map chrome drawn over the header — ${JSON.stringify(geometry)}`);
+  assert.equal(geometry.layersTools, false, `${label}: Layers/preferences collision — ${JSON.stringify(geometry)}`);
+  assert.equal(geometry.zoomLayers, false, `${label}: zoom/Layers collision — ${JSON.stringify(geometry)}`);
+  assert.equal(geometry.zoomAttribution, false, `${label}: zoom/attribution collision — ${JSON.stringify(geometry)}`);
+  assert.equal(geometry.railTools, false, `${label}: Layers rail over the header tools — ${JSON.stringify(geometry)}`);
+  assert.equal(geometry.searchTools, false, `${label}: place finder over the header tools — ${JSON.stringify(geometry)}`);
+  assert.ok(geometry.overflow <= 1, `${label}: horizontal document overflow ${geometry.overflow}`);
+}
+
+test("map chrome clears the header in the frame right after every viewport change", async (t) => {
+  const page = await openApp({ width: 1440, height: 900, preference: "light" });
+  t.after(() => closePage(page));
+  // Every viewport is entered from the WIDEST one, so the inline measurement is
+  // always stale by a full breakpoint when the geometry is read. That is the
+  // transition the post-merge failure came from.
+  for (const viewport of CHROME_VIEWPORTS) {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(120);
+    await page.setViewportSize(viewport);
+    assertNoCollision(await chromeGeometry(page), `1440x900 -> ${viewport.width}x${viewport.height} (immediate)`);
+    await page.waitForTimeout(150);
+    assertNoCollision(await chromeGeometry(page), `1440x900 -> ${viewport.width}x${viewport.height} (settled)`);
+  }
+});
+
+test("map chrome clears the header through rapid transitions and orientation changes", async (t) => {
+  const page = await openApp({ width: 390, height: 844, preference: "light" });
+  t.after(() => closePage(page));
+
+  // Rapid consecutive changes with no settling between them.
+  for (let round = 0; round < 3; round += 1) {
+    for (const viewport of CHROME_VIEWPORTS) {
+      await page.setViewportSize(viewport);
+      assertNoCollision(await chromeGeometry(page), `rapid round ${round} at ${viewport.width}x${viewport.height}`);
+    }
+  }
+
+  // Orientation changes, both directions, measured immediately.
+  for (const [portrait, landscape] of [[{ width: 390, height: 844 }, { width: 844, height: 390 }], [{ width: 360, height: 760 }, { width: 760, height: 360 }], [{ width: 320, height: 700 }, { width: 700, height: 320 }]]) {
+    await page.setViewportSize(portrait);
+    await page.waitForTimeout(120);
+    await page.setViewportSize(landscape);
+    assertNoCollision(await chromeGeometry(page), `rotate to landscape ${landscape.width}x${landscape.height}`);
+    await page.setViewportSize(portrait);
+    assertNoCollision(await chromeGeometry(page), `rotate to portrait ${portrait.width}x${portrait.height}`);
+  }
+});
+
+test("map chrome clears the header with the place finder open, in both languages and all appearances", async (t) => {
+  for (const language of ["en", "es"]) {
+    for (const appearance of ["light", "dark", "system"]) {
+      const page = await openApp({ width: 1440, height: 900, preference: "light", colorScheme: appearance === "dark" ? "dark" : "light" });
+      try {
+        await page.locator("#languageSelect").selectOption(language);
+        await page.locator("#appearanceSelect").selectOption(appearance);
+        await page.locator("#geoSearchToggle").click();
+        await page.waitForFunction(() => !document.querySelector("#geoSearchPanel").hasAttribute("hidden"));
+        for (const viewport of CHROME_VIEWPORTS) {
+          await page.setViewportSize({ width: 1440, height: 900 });
+          await page.waitForTimeout(80);
+          await page.setViewportSize(viewport);
+          const label = `${language}/${appearance} finder open at ${viewport.width}x${viewport.height}`;
+          const immediate = await chromeGeometry(page);
+          assertNoCollision(immediate, `${label} (immediate)`);
+          assert.ok(immediate.parts.search, `${label}: the finder must stay rendered`);
+          await page.waitForTimeout(120);
+          assertNoCollision(await chromeGeometry(page), `${label} (settled)`);
+        }
+        // Closed again, the same sweep must hold.
+        await page.locator("#geoSearchClose").click();
+        for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 700 }, { width: 390, height: 320 }]) {
+          await page.setViewportSize({ width: 1440, height: 900 });
+          await page.waitForTimeout(80);
+          await page.setViewportSize(viewport);
+          assertNoCollision(await chromeGeometry(page), `${language}/${appearance} finder closed at ${viewport.width}x${viewport.height}`);
+        }
+      } finally {
+        await closePage(page);
+      }
+    }
+  }
+});
+
+test("every interactive map control stays operable and 44px after a breakpoint change", async (t) => {
+  const page = await openApp({ width: 1440, height: 900, preference: "light" });
+  t.after(() => closePage(page));
+  for (const viewport of [{ width: 320, height: 700 }, { width: 360, height: 760 }, { width: 390, height: 844 }, { width: 390, height: 320 }]) {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(100);
+    await page.setViewportSize(viewport);
+    const targets = await page.evaluate(() => {
+      const measure = (selector) => {
+        const element = document.querySelector(selector);
+        if (!element) return null;
+        const style = getComputedStyle(element);
+        if (style.display === "none") return null;
+        const box = element.getBoundingClientRect();
+        // Is the control's own centre the topmost element there?
+        const hit = document.elementFromPoint(Math.round(box.left + box.width / 2), Math.round(box.top + box.height / 2));
+        return { width: box.width, height: box.height, reachable: Boolean(hit && (element === hit || element.contains(hit) || hit.contains(element))) };
+      };
+      return {
+        layers: measure("#mobileLayersButton"),
+        searchToggle: measure("#geoSearchToggle"),
+        appearance: measure("#appearanceSelect"),
+        language: measure("#languageSelect"),
+      };
+    });
+    for (const [name, target] of Object.entries(targets)) {
+      if (!target) continue;
+      assert.ok(target.height >= 44, `${name} at ${viewport.width}x${viewport.height} is ${target.height}px tall`);
+      assert.equal(target.reachable, true, `${name} at ${viewport.width}x${viewport.height} is covered by another control`);
+    }
+    // The Layers button must actually open the rail after the breakpoint change.
+    if (targets.layers) {
+      await page.locator("#mobileLayersButton").click();
+      await page.waitForFunction(() => !document.querySelector("#layerRail").hasAttribute("hidden"));
+      assertNoCollision(await chromeGeometry(page), `rail open at ${viewport.width}x${viewport.height}`);
+      await page.locator("#mobileLayersButton").click();
+    }
+  }
+});
