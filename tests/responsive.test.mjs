@@ -13,7 +13,27 @@ test("responsive layout uses safe-area insets for notched/tablet devices", () =>
 });
 
 test("Leaflet zoom controls move away from the layer panel on tablet/mobile", () => {
-  assert.match(css, /\.leaflet-top\.leaflet-left\{top:calc\(var\(--header-bottom\) \+ 10px\);left:auto;right:calc\(10px \+ var\(--safe-right\)\)\}/);
+  assert.match(css, /\.leaflet-top\.leaflet-left\{top:calc\(var\(--header-chrome-top\) \+ 10px\);left:auto;right:calc\(10px \+ var\(--safe-right\)\)\}/);
+});
+
+test("map chrome is positioned from a floored header height, never from the measurement alone", () => {
+  // syncHeaderBottom() writes --header-bottom INLINE on :root, which overrides
+  // every media-query value. After a viewport change it still holds the previous
+  // viewport's height until the ResizeObserver callback is delivered, at least a
+  // frame later, so chrome positioned from it alone is drawn over the header for
+  // that frame. Each breakpoint therefore also declares the height it GUARANTEES,
+  // and chrome uses the larger of the two.
+  assert.match(css, /--header-bottom-floor:calc\(16px \+ 60px \+ var\(--safe-top\)\)/);
+  assert.match(css, /--header-chrome-top:max\(var\(--header-bottom\), var\(--header-bottom-floor\)\)/);
+  // Every breakpoint that narrows the header declares both, with the same value.
+  assert.match(css, /:root\{--header-bottom:calc\(9px \+ 54px \+ var\(--safe-top\)\);--header-bottom-floor:calc\(9px \+ 54px \+ var\(--safe-top\)\)\}/);
+  assert.match(css, /:root\{--header-bottom:calc\(9px \+ 114px \+ var\(--safe-top\)\);--header-bottom-floor:calc\(9px \+ 114px \+ var\(--safe-top\)\)\}/);
+  // The ONLY place the raw measurement may be read is inside that max(); any
+  // other positional use reintroduces the one-frame overlap.
+  const rawUses = css.match(/var\(--header-bottom\)/g) || [];
+  assert.equal(rawUses.length, 1, "var(--header-bottom) may appear only inside --header-chrome-top");
+  assert.doesNotMatch(css, /top:calc\(var\(--header-bottom\)/);
+  assert.doesNotMatch(css, /100dvh - var\(--header-bottom\)/);
 });
 
 test("coarse-pointer controls share the universal 44px floor", () => {
