@@ -1761,3 +1761,128 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
   .panel{max-height:30vh;max-height:30dvh}
 }
 :root[data-appearance="light"] .scope-rail-item .scope-instance{color:var(--text)}
+
+/* ------------------------------------------------- M1 unified place finder
+   A compact institutional control in the header plus an OVERLAY anchored under
+   it. The overlay is absolutely positioned and is NOT a child of the header's
+   flex/grid flow, so opening it can never widen the header or reflow the
+   appearance, language and help controls. Every colour is an existing chrome
+   token, so Light, Dark and System are inherited rather than re-specified. */
+.geo-search-toggle{
+  display:flex;align-items:center;justify-content:center;gap:var(--s-2);
+  min-height:44px;min-width:44px;box-sizing:border-box;padding:var(--s-2) var(--s-3);
+  border:1px solid var(--chrome-border);border-radius:var(--r-small);
+  background:var(--chrome-control-group-surface);color:var(--chrome-text-control-value);
+  font-size:var(--t-meta);font-weight:650;line-height:1;cursor:pointer
+}
+.geo-search-toggle:hover{border-color:var(--chrome-mobile-control-open-border)}
+.geo-search-toggle:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
+.geo-search-toggle[aria-expanded="true"]{border-color:var(--chrome-mobile-control-open-border);background:var(--chrome-mobile-control-open-surface)}
+.geo-search-toggle-glyph{font-size:var(--t-figure);line-height:1}
+.geo-search-toggle-label{white-space:nowrap}
+
+.geo-search{
+  position:absolute;z-index:1102;
+  top:calc(var(--header-bottom) + 10px);
+  right:calc(18px + var(--safe-right));
+  width:min(420px,calc(100vw - 36px - var(--safe-left) - var(--safe-right)));
+  /* Placement is decided by measurement in js/app.js, not by a breakpoint:
+     --geo-search-left / --geo-search-width are set only when the live corridor
+     between the Layers rail and the (resizable) analysis panel is wide enough
+     to hold the finder without covering either of them. */
+  box-sizing:border-box;padding:var(--s-3);
+  max-height:calc(100vh - var(--header-bottom) - 28px - var(--safe-bottom));
+  max-height:calc(100dvh - var(--header-bottom) - 28px - var(--safe-bottom));
+  overflow:auto;overscroll-behavior:contain;
+  border:1px solid var(--chrome-border);border-radius:var(--r-large);
+  background:var(--chrome-panel-surface);backdrop-filter:blur(18px);
+  box-shadow:0 14px 40px rgba(0,0,0,.28);color:var(--chrome-text-primary)
+}
+.geo-search[hidden]{display:none!important}
+.geo-search[data-placement="corridor"]{left:var(--geo-search-left);right:auto;width:var(--geo-search-width)}
+.geo-search-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-2);min-width:0}
+.geo-search-label{min-width:0;font-size:var(--t-micro);font-weight:650;letter-spacing:.1em;text-transform:uppercase;color:var(--chrome-text-section);line-height:1.3}
+.geo-search-close{
+  flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  min-width:44px;min-height:44px;margin:calc(var(--s-2) * -1) calc(var(--s-2) * -1) 0 0;
+  border:0;border-radius:var(--r-small);background:transparent;
+  color:var(--chrome-text-control-caption);font-size:var(--t-body);cursor:pointer
+}
+.geo-search-close:hover{color:var(--chrome-text-control-strong)}
+.geo-search-close:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
+.geo-search-query{
+  width:100%;box-sizing:border-box;min-height:44px;margin-top:var(--s-2);padding:var(--s-2) var(--s-3);
+  border:1px solid var(--chrome-border);border-radius:var(--r-small);
+  background:var(--chrome-form-surface);color:var(--chrome-text-control-value);
+  font-size:var(--t-label);font-family:inherit
+}
+.geo-search-query:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
+.geo-search-query:disabled{opacity:.55;cursor:not-allowed}
+.geo-search-status{margin:var(--s-2) 0 0;color:var(--chrome-text-control-caption);font-size:var(--t-meta);line-height:1.4}
+.geo-search-status:empty{display:none}
+
+.geo-search-results{list-style:none;margin:var(--s-2) 0 0;padding:0;display:grid;gap:var(--s-1)}
+.geo-search-results:empty{display:none}
+.geo-search-result{
+  display:grid;gap:var(--s-1);width:100%;box-sizing:border-box;min-height:44px;
+  padding:var(--s-2) var(--s-3);text-align:left;
+  border:1px solid var(--chrome-border);border-radius:var(--r-small);
+  background:var(--chrome-card-surface);color:var(--chrome-text-primary);
+  font-family:inherit;cursor:pointer
+}
+.geo-search-result:hover{border-color:var(--chrome-mobile-control-open-border)}
+.geo-search-result:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
+.geo-search-result[aria-current="true"]{border-color:var(--chrome-mobile-control-open-border);background:var(--chrome-mobile-control-open-surface)}
+.geo-search-result-head{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-2);min-width:0}
+.geo-search-result-type{font-size:var(--t-micro);font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--chrome-text-section)}
+.geo-search-result-code{font-size:var(--t-meta);font-variant-numeric:tabular-nums;color:var(--chrome-text-control-caption);overflow-wrap:anywhere}
+.geo-search-result-badge{
+  padding:var(--s-1);border:1px solid var(--chrome-border);border-radius:var(--r-small);
+  background:var(--chrome-control-group-surface);color:var(--chrome-text-control-caption);
+  font-size:var(--t-micro);font-weight:650;letter-spacing:0;text-transform:none
+}
+.geo-search-result-name{font-size:var(--t-label);font-weight:650;line-height:1.3;overflow-wrap:anywhere}
+.geo-search-result-parent{font-size:var(--t-meta);color:var(--chrome-text-control-caption);line-height:1.3;overflow-wrap:anywhere}
+
+.geo-search-card{
+  margin-top:var(--s-3);padding:var(--s-3);
+  border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-card-surface)
+}
+.geo-search-card[hidden]{display:none!important}
+.geo-search-card-head{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-2);min-width:0}
+.geo-search-type{font-size:var(--t-micro);font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--chrome-text-section)}
+.geo-search-code{font-size:var(--t-meta);font-variant-numeric:tabular-nums;color:var(--chrome-text-control-caption);overflow-wrap:anywhere}
+.geo-search-card-name{margin:var(--s-1) 0 0;font-size:var(--t-figure);font-weight:700;line-height:1.2;overflow-wrap:anywhere}
+.geo-search-card-parent{margin:var(--s-1) 0 0;font-size:var(--t-meta);color:var(--chrome-text-control-caption);line-height:1.4}
+.geo-search-card-scope{margin:var(--s-2) 0 0;font-size:var(--t-meta);color:var(--chrome-text-metadata);line-height:1.45}
+.geo-search-actions{display:flex;flex-wrap:wrap;gap:var(--s-2);margin-top:var(--s-3)}
+.geo-search-action{
+  flex:1 1 auto;min-height:44px;box-sizing:border-box;padding:var(--s-2) var(--s-3);
+  border:1px solid var(--chrome-border);border-radius:var(--r-small);
+  background:var(--chrome-control-group-surface);color:var(--chrome-text-control-value);
+  font-size:var(--t-label);font-weight:650;font-family:inherit;cursor:pointer
+}
+.geo-search-action:hover{border-color:var(--chrome-mobile-control-open-border)}
+.geo-search-action:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
+.geo-search-action[hidden]{display:none!important}
+.geo-search-action-primary{border-color:var(--chrome-mobile-control-open-border);background:var(--chrome-mobile-control-open-surface);color:var(--chrome-text-control-strong)}
+.geo-search-note{margin:var(--s-2) 0 0;font-size:var(--t-meta);color:var(--chrome-text-metadata);line-height:1.45}
+.geo-search-note[hidden]{display:none!important}
+.geo-search-coverage{margin:var(--s-3) 0 0;padding-top:var(--s-2);border-top:1px solid var(--chrome-divider);font-size:var(--t-micro);color:var(--chrome-text-control-label);line-height:1.5}
+.geo-search-coverage:empty{display:none}
+
+/* Tablet and phone: the finder spans the available width below the header so no
+   result is clipped and no code wraps mid-identifier. */
+@media(max-width:850px){
+  .geo-search{top:calc(var(--header-bottom) + 10px);left:calc(10px + var(--safe-left));right:calc(10px + var(--safe-right));width:auto;padding:var(--s-2);max-height:calc(100dvh - var(--header-bottom) - 20px - var(--safe-bottom))}
+}
+/* The narrow header already stacks brand and tools on two 44px rows. The finder
+   keeps its 44px target there but drops its text label, exactly as the guided
+   tour control does, so row two cannot overflow at 320px. */
+@media(max-width:680px){
+  .geo-search-toggle{min-width:44px;width:44px;padding:var(--s-1)}
+  .geo-search-toggle-label{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .geo-search,.geo-search-result,.geo-search-action{transition:none!important}
+}

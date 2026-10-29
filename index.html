@@ -23,7 +23,7 @@
 })();
 </script>
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261026-institutional-header">
+<link rel="stylesheet" href="css/app.css?v=20261029-geo-search-v1">
 </head>
 <body>
 <a class="sr-only skip-link" href="#analysisPanel" data-i18n="a11y.skipToPanel">Skip to the analysis panel</a>
@@ -36,6 +36,7 @@
     <div class="brand-copy"><div class="brand-title">Madrid Urban Evidence Lens</div><div class="brand-sub">Madrid · Urban development · Official evidence</div></div>
   </div>
   <div class="header-tools" role="group" aria-label="Workspace preferences and help" data-i18n-attr="aria-label:header.preferencesAria">
+    <button type="button" id="geoSearchToggle" class="geo-search-toggle" aria-expanded="false" aria-controls="geoSearchPanel" aria-label="Find a place" data-i18n-attr="aria-label:search.openAria"><span class="geo-search-toggle-glyph" aria-hidden="true">⌕</span><span class="geo-search-toggle-label" data-i18n="search.open">Find a place</span></button>
     <label class="appearance-control" for="appearanceSelect">
       <span data-i18n="appearance.label">Appearance</span>
       <select id="appearanceSelect" aria-label="Appearance" data-i18n-attr="aria-label:appearance.label">
@@ -52,6 +53,35 @@
     <button type="button" id="tutorialHelpButton" class="tutorial-help" aria-label="Open guided tour" data-i18n-attr="aria-label:tutorial.helpAria"><span aria-hidden="true">?</span><span class="tutorial-help-label" data-i18n="tutorial.help">Guided tour</span></button>
   </div>
 </header>
+
+<!-- Unified geographic search (M1). An OVERLAY anchored under the institutional
+     header, deliberately outside the header's own flex/grid flow so it can never
+     widen the header or displace the appearance, language and help controls at
+     any viewport. Discovery only: typing moves nothing. Selecting a result draws
+     an official outline and moves no camera and no Lens. The two explicit
+     actions below the result are the ONLY paths to a camera move or a Lens move,
+     and each states the geographic boundary it does and does not represent. -->
+<section id="geoSearchPanel" class="geo-search" data-state="loading" hidden aria-label="Find an official Madrid place" data-i18n-attr="aria-label:search.panelAria">
+  <div class="geo-search-head">
+    <label for="geoSearchQuery" class="geo-search-label" data-i18n="search.label">Official code, barrio, district or planning ámbito</label>
+    <button type="button" id="geoSearchClose" class="geo-search-close" aria-label="Close the place finder" data-i18n-attr="aria-label:search.closeAria"><span aria-hidden="true">✕</span></button>
+  </div>
+  <input id="geoSearchQuery" class="geo-search-query" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-controls="geoSearchResults" aria-describedby="geoSearchStatus" placeholder="Palacio, Centro, APR.02.09" data-i18n-attr="placeholder:search.placeholder">
+  <p id="geoSearchStatus" class="geo-search-status" aria-live="polite"></p>
+  <ul id="geoSearchResults" class="geo-search-results" aria-label="Official place search results" data-i18n-attr="aria-label:search.resultsAria"></ul>
+  <article id="geoSearchCard" class="geo-search-card" hidden>
+    <div class="geo-search-card-head"><span id="geoSearchCardType" class="geo-search-type"></span><code id="geoSearchCardCode" class="geo-search-code" data-verbatim></code></div>
+    <h3 id="geoSearchCardName" class="geo-search-card-name" data-verbatim></h3>
+    <p id="geoSearchCardParent" class="geo-search-card-parent"></p>
+    <p id="geoSearchCardScope" class="geo-search-card-scope"></p>
+    <div class="geo-search-actions">
+      <button type="button" id="geoSearchViewMap" class="geo-search-action" data-i18n="search.viewMap">View on map</button>
+      <button type="button" id="geoSearchAnalyze" class="geo-search-action geo-search-action-primary" data-i18n="search.analyze">Analyze with Lens</button>
+    </div>
+    <p id="geoSearchAnalyzeNote" class="geo-search-note"></p>
+  </article>
+  <p id="geoSearchCoverage" class="geo-search-coverage"></p>
+</section>
 
 <!-- Phone map-first entry; the complete rail is unchanged and shown on request. -->
 <button type="button" id="mobileLayersButton" class="mobile-layers-button" aria-expanded="false" aria-controls="layerRail" data-i18n-attr="aria-label:aside.openLayers"><span aria-hidden="true">☷</span><span data-i18n="aside.mobileLayers">Layers</span></button>
@@ -911,14 +941,14 @@
 <script src="js/evidence-url.js?v=20261015-1"></script>
 <script src="js/evidence-export.js?v=20261017-1"></script>
 <script src="js/scope-rail.js?v=20261017-1"></script>
-<script src="js/shell-copy.js?v=20261015-1"></script>
+<script src="js/shell-copy.js?v=20261029-geo-search-v1"></script>
 <script src="js/appearance.js?v=20261020-1"></script>
 <script src="js/legacy-copy.js?v=20261006-2"></script>
 <script src="js/data.js?v=20261023-1"></script>
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20261023-1"></script>
+<script src="js/app.js?v=20261029-geo-search-v1"></script>
 <script src="js/tutorial.js?v=20261021-1"></script>
 <script>
 /* The case is opt-in. Keep its DOM, styles and controller off the ordinary app

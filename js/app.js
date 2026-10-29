@@ -3557,6 +3557,9 @@ async function loadPlanningContext() {
   renderPlanningContext();
   renderPlanningExplorer();
   renderScopeRail();
+  // The unified search universe gained (or definitively lost) the planning
+  // ámbitos; rebuild the index and restate the coverage.
+  renderGeoSearch();
   // A user may have opened the ámbito-comparison scope before the planning
   // artifacts finished loading; now that they are ready, populate and render.
   if (typeof refreshAmbitoCompareData === "function") refreshAmbitoCompareData();
@@ -4971,6 +4974,8 @@ async function loadAreaContext() {
   lastAreaRenderKey = null;
   updateAreaContext();
   renderCompare(); // AOI readiness changes only the unequal-radius normalization state.
+  // Same for the official administrative universe.
+  renderGeoSearch();
 }
 
 // ------------------------------------------------ Hospitality & Commercial
@@ -5949,6 +5954,9 @@ document.getElementById("languageSelect").onchange = (event) => {
   restoreCopy();
   applyShellCopy();
   renderModeUi();
+  // The search surface builds its product-authored copy at render time; the
+  // official codes and denominations inside it are never translated.
+  renderGeoSearch();
   if (document.getElementById("evidenceDrawer").open) renderDrawerBody();
   applyCopyLanguage();
   k11ApplyCopy();
@@ -8879,3 +8887,567 @@ function k11ExportEvidence() {
     if (typeof k11ExportEvidence === "function") k11ExportEvidence();
   });
 })();
+
+// ===================================================================== M1
+// Unified geographic search — the application adapter.
+//
+// The search MODEL lives in js/geo-search.js and is pure. This block is the only
+// place that may touch Leaflet, the Lens or the camera, and it does so ONLY from
+// an explicit user action on one of the two buttons below the selected result.
+//
+// Invariants this adapter upholds, each covered by a test:
+//   * typing never moves a Lens, never moves the camera, never changes a radius,
+//     never changes the mode and never toggles a layer;
+//   * selecting a result draws an official outline and does nothing else;
+//   * "View on map" frames the official geometry and moves no Lens;
+//   * "Analyze with Lens" moves the ACTIVE Lens to a VERIFIED interior point of
+//     the official geometry and takes the identical code path a map click takes
+//     (marker.setLatLng + refresh), so radii stay independent, the active Lens
+//     identity is respected and no evidence is recomputed by a different rule;
+//   * no whole-area figure is ever attributed to the Lens circle: the surface
+//     states the distinction in words every time the action is used.
+//
+// The index is built over indices the application already holds. No artifact is
+// fetched for search and no geometry is parsed a second time.
+
+map.createPane("geoSearchPane");
+map.getPane("geoSearchPane").style.zIndex = "458";
+map.getPane("geoSearchPane").style.pointerEvents = "none";
+
+const geoSearch = {
+  module: null,
+  index: null,
+  signature: null,
+  indexBuildMs: null,
+  query: "",
+  results: [],
+  selectedId: null,
+  open: false,
+  cameraMoves: 0,
+  lensMoves: 0,
+  lastAction: null,
+};
+let geoSearchRenderer = null;
+let geoSearchLayer = null;
+
+// The finder starts CLOSED, so its resolver is not needed to render the page.
+// The module is therefore kept OFF the critical path: it is fetched when the
+// browser goes idle, or immediately on the first open if the reader gets there
+// first, whichever happens sooner. The promise is memoised, so the two paths can
+// race without ever issuing a second request.
+//
+// This is a loading decision only. Nothing about what search does, what it
+// claims, or which universes it covers depends on when the module arrives: until
+// it is here the surface reports its honest "loading" state, exactly as it does
+// while the official artifacts are still in flight.
+let geoSearchModuleRequest = null;
+
+function loadGeoSearchModule() {
+  if (geoSearchModuleRequest) return geoSearchModuleRequest;
+  geoSearchModuleRequest = import(moduleUrl("geo-search.js"))
+    .then((module) => {
+      geoSearch.module = module;
+      renderGeoSearch();
+      return module;
+    })
+    .catch((error) => {
+      geoSearch.module = null;
+      console.warn("unified geographic search unavailable", error);
+      renderGeoSearch();
+      return null;
+    });
+  return geoSearchModuleRequest;
+}
+
+// Prefetch, so the common case is an already-loaded resolver by the time anyone
+// reaches for it — but strictly AFTER the page has finished loading.
+//
+// Idle alone is not enough: the main thread can report idle while the official
+// geography and planning artifacts are still in flight, and a measurement showed
+// the fetch starting 10 ms BEFORE the load event ended. Waiting for `load` and
+// only then asking for idle makes "not on the initial critical path" a property
+// of the code rather than a hope about scheduler timing. The timeout bounds a
+// browser that never reports idle; the setTimeout fallback covers engines
+// without requestIdleCallback (Safari before 16.4).
+function prefetchGeoSearchModule() {
+  if (typeof requestIdleCallback === "function") requestIdleCallback(() => loadGeoSearchModule(), { timeout: 5000 });
+  else setTimeout(loadGeoSearchModule, 1500);
+}
+if (document.readyState === "complete") prefetchGeoSearchModule();
+else window.addEventListener("load", prefetchGeoSearchModule, { once: true });
+
+// Rebuild only when the set of AVAILABLE universes actually changes, so a render
+// triggered by a Lens move or a language switch never re-walks the entity lists.
+function ensureGeoSearchIndex() {
+  if (!geoSearch.module) return null;
+  const administrative = geographyState === "ready" && Boolean(geographyIndex);
+  const ambito = planningState === "ready" && Boolean(planningModel.index);
+  const signature = administrative + "|" + ambito;
+  if (signature === geoSearch.signature) return geoSearch.index;
+  geoSearch.signature = signature;
+  if (!administrative && !ambito) {
+    geoSearch.index = null;
+    geoSearch.indexBuildMs = null;
+    return null;
+  }
+  const started = performance.now();
+  geoSearch.index = geoSearch.module.createGeoSearchIndex({
+    geography: administrative ? geographyIndex : null,
+    planning: ambito ? planningModel.index : null,
+  });
+  geoSearch.indexBuildMs = performance.now() - started;
+  return geoSearch.index;
+}
+
+// The official GeoJSON feature behind an entry, taken from the SAME index the
+// analytical surfaces read. Returns null when the universe that owns the entity
+// is not loaded, so a stale selection can never resolve to the wrong geometry.
+function geoSearchFeatureFor(entryId) {
+  if (!entryId) return null;
+  const separator = entryId.indexOf(":");
+  if (separator < 0) return null;
+  const type = entryId.slice(0, separator);
+  const code = entryId.slice(separator + 1);
+  if (type === "AMBITO") {
+    return planningState === "ready" && planningModel.index ? planningModel.index.featureFor(code) : null;
+  }
+  const level = type === "MUNICIPALITY" ? "municipality" : type === "DISTRICT" ? "district" : type === "BARRIO" ? "barrio" : null;
+  if (!level) return null;
+  return geographyState === "ready" && geographyIndex ? geographyIndex.featureById(level, code) : null;
+}
+
+function geoSearchSelectedEntry() {
+  if (!geoSearch.selectedId || !geoSearch.index) return null;
+  return geoSearch.index.byId(geoSearch.selectedId);
+}
+
+// The ámbito's district, where — and only where — the development-state edition
+// publishes one. It is the EDITION'S attribution, not a geometric containment,
+// and is labelled as such. An ámbito with no published attribution says so.
+function geoSearchAmbitoDistrict(code) {
+  if (planningState !== "ready" || !planningModel.index) return null;
+  const state = planningModel.index.developmentState(code);
+  return state && state.district && state.district.name ? state.district : null;
+}
+
+const GEO_SEARCH_STYLE = Object.freeze({
+  MUNICIPALITY: { color: "#8ea4bb", weight: 2, fillOpacity: 0.04 },
+  DISTRICT: { color: "#5bb8d6", weight: 3, fillOpacity: 0.08 },
+  BARRIO: { color: "#51e0b5", weight: 3, fillOpacity: 0.1 },
+  AMBITO: { color: PLANNING_STROKE, weight: 3, fillOpacity: 0.14 },
+});
+
+// A selection highlight ONLY. It is drawn in its own pane below the Lens pane, is
+// non-interactive, and replaces no administrative or planning layer: the boundary
+// layers keep their own identity, styling and click behaviour untouched.
+function renderGeoSearchHighlight() {
+  if (geoSearchLayer) {
+    map.removeLayer(geoSearchLayer);
+    geoSearchLayer = null;
+  }
+  const entry = geoSearchSelectedEntry();
+  if (!entry) return;
+  const feature = geoSearchFeatureFor(entry.id);
+  if (!feature) return;
+  if (!geoSearchRenderer) geoSearchRenderer = L.canvas({ pane: "geoSearchPane", padding: 0.3 });
+  const style = GEO_SEARCH_STYLE[entry.type] || GEO_SEARCH_STYLE.BARRIO;
+  geoSearchLayer = L.geoJSON(feature, {
+    pane: "geoSearchPane",
+    renderer: geoSearchRenderer,
+    interactive: false,
+    style: () => ({ color: style.color, weight: style.weight, opacity: 1, fill: true, fillColor: style.color, fillOpacity: style.fillOpacity }),
+  }).addTo(map);
+}
+
+// Placement is MEASURED, never assumed. The finder must not cover the analysis
+// panel's mode navigation, and the panel is resizable by the reader, so a static
+// breakpoint cannot decide this. When the live map corridor between the Layers
+// rail and the analysis panel is wide enough, the finder sits IN that corridor
+// and both the rail and the panel stay fully operable. When it is not — a phone,
+// a tablet where the panel spans the width, or a desktop panel the reader has
+// widened — the finder is an explicit transient overlay, dismissed with Escape or
+// the close control.
+const GEO_SEARCH_MIN_CORRIDOR_PX = 300;
+
+function applyGeoSearchPlacement() {
+  const panel = document.getElementById("geoSearchPanel");
+  if (!panel || panel.hidden) return;
+  const analysis = document.getElementById("analysisPanel");
+  const rail = document.getElementById("layerRail");
+  const root = document.documentElement;
+  const analysisRect = analysis && analysis.offsetWidth ? analysis.getBoundingClientRect() : null;
+  const railRect = rail && !rail.hidden && rail.offsetWidth ? rail.getBoundingClientRect() : null;
+  const left = railRect ? Math.round(railRect.right + 12) : 18;
+  const available = analysisRect ? Math.round(analysisRect.left - left - 12) : 0;
+  if (railRect && analysisRect && available >= GEO_SEARCH_MIN_CORRIDOR_PX) {
+    root.style.setProperty("--geo-search-left", left + "px");
+    root.style.setProperty("--geo-search-width", Math.min(420, available) + "px");
+    panel.dataset.placement = "corridor";
+    return;
+  }
+  root.style.removeProperty("--geo-search-left");
+  root.style.removeProperty("--geo-search-width");
+  panel.dataset.placement = "overlay";
+}
+
+function setGeoSearchOpen(open) {
+  const panel = document.getElementById("geoSearchPanel");
+  const toggle = document.getElementById("geoSearchToggle");
+  if (!panel || !toggle) return;
+  geoSearch.open = Boolean(open);
+  panel.hidden = !geoSearch.open;
+  toggle.setAttribute("aria-expanded", geoSearch.open ? "true" : "false");
+  if (geoSearch.open) {
+    // Opening is the deadline for the resolver. If the idle prefetch has not run
+    // yet this issues the request now and the surface shows its loading state
+    // until it resolves; if it has, this is a no-op on the memoised promise.
+    loadGeoSearchModule();
+    renderGeoSearch();
+    applyGeoSearchPlacement();
+    const input = document.getElementById("geoSearchQuery");
+    if (input) input.focus();
+  }
+}
+
+// Closing clears the QUERY and the SELECTION, including the map highlight, so a
+// dismissed search leaves no outline on the map that nothing on screen explains.
+function clearGeoSearch() {
+  geoSearch.query = "";
+  geoSearch.results = [];
+  geoSearch.selectedId = null;
+  geoSearch.lastAction = null;
+  const input = document.getElementById("geoSearchQuery");
+  if (input) input.value = "";
+  renderGeoSearchHighlight();
+  renderGeoSearch();
+}
+
+function selectGeoSearchResult(entryId) {
+  if (!geoSearch.index || !geoSearch.index.byId(entryId)) return false;
+  if (!geoSearchFeatureFor(entryId)) return false;
+  geoSearch.selectedId = entryId;
+  geoSearch.lastAction = null;
+  renderGeoSearchHighlight();
+  renderGeoSearch();
+  return true;
+}
+
+function geoSearchInteriorPoint(entry) {
+  if (!entry || !geoSearch.module) return null;
+  const feature = geoSearchFeatureFor(entry.id);
+  if (!feature || !feature.geometry) return null;
+  return geoSearch.module.interiorPointOf(feature.geometry);
+}
+
+// An explicit camera action, and nothing else: no Lens, no radius, no layer, no
+// mode. fitBounds matches the existing explorer's camera semantics exactly.
+function showGeoSearchOnMap() {
+  if (!geoSearchLayer) return false;
+  map.fitBounds(geoSearchLayer.getBounds(), { padding: [32, 32], maxZoom: 15, animate: false });
+  geoSearch.cameraMoves += 1;
+  geoSearch.lastAction = "VIEW_MAP";
+  renderGeoSearch();
+  return true;
+}
+
+// An explicit Lens action. It moves the ACTIVE Lens only, to a point containment
+// has CONFIRMED lies inside the official geometry, and leaves radius A, radius B,
+// the active-Lens identity, the mode and every layer exactly as they were.
+function analyzeGeoSearchWithLens() {
+  const entry = geoSearchSelectedEntry();
+  if (!entry || entry.type === "MUNICIPALITY") return false;
+  const point = geoSearchInteriorPoint(entry);
+  if (!point) return false;
+  const latlng = L.latLng(point.lat, point.lon);
+  lenses[active].marker.setLatLng(latlng);
+  lenses[active].circle.setLatLng(latlng);
+  refresh();
+  geoSearch.lensMoves += 1;
+  geoSearch.lastAction = "ANALYZE";
+  renderGeoSearch();
+  return true;
+}
+
+function geoSearchResultRow(result) {
+  const item = document.createElement("li");
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "geo-search-result";
+  button.dataset.id = result.id;
+  button.dataset.type = result.type;
+  button.dataset.match = result.match;
+  if (result.ambiguous) button.dataset.ambiguous = "true";
+  button.setAttribute("aria-label", shellTemplate("search.resultAria", { name: result.name || result.code }));
+  if (geoSearch.selectedId === result.id) button.setAttribute("aria-current", "true");
+
+  const head = document.createElement("span");
+  head.className = "geo-search-result-head";
+  const type = document.createElement("span");
+  type.className = "geo-search-result-type";
+  type.textContent = shellT("search.type." + result.type);
+  const code = document.createElement("code");
+  code.className = "geo-search-result-code";
+  // Official identifier, verbatim, as TEXT. The query is never interpolated into
+  // markup anywhere in this block, so no input can reach an HTML sink.
+  code.textContent = result.code;
+  head.append(type, code);
+  if (result.ambiguous) {
+    const badge = document.createElement("span");
+    badge.className = "geo-search-result-badge";
+    badge.textContent = shellT("search.ambiguousBadge");
+    head.append(badge);
+  }
+
+  const name = document.createElement("span");
+  name.className = "geo-search-result-name";
+  name.textContent = result.name || result.code;
+
+  button.append(head, name);
+  if (result.parentName) {
+    const parent = document.createElement("span");
+    parent.className = "geo-search-result-parent";
+    parent.textContent = result.type === "DISTRICT"
+      ? shellTemplate("search.parentMunicipality", { name: result.parentName })
+      : shellTemplate("search.parentDistrict", { name: result.parentName });
+    button.append(parent);
+  }
+  button.addEventListener("click", () => selectGeoSearchResult(result.id));
+  item.append(button);
+  return item;
+}
+
+function renderGeoSearchCard() {
+  const card = document.getElementById("geoSearchCard");
+  if (!card) return;
+  const entry = geoSearchSelectedEntry();
+  const feature = entry ? geoSearchFeatureFor(entry.id) : null;
+  if (!entry || !feature) {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+  setText("geoSearchCardType", shellT("search.type." + entry.type));
+  setText("geoSearchCardCode", entry.code);
+  setText("geoSearchCardName", entry.name || entry.code);
+
+  // Parent area, ONLY where the authoritative source states one. An ámbito's
+  // district comes from the development-state edition and is labelled as that
+  // edition's attribution; it is never inferred from geometry here.
+  let parentLine = shellT("search.parentNone");
+  if (entry.type === "AMBITO") {
+    const district = geoSearchAmbitoDistrict(entry.code);
+    parentLine = district ? shellTemplate("search.parentEdition", { name: district.name }) : shellT("search.parentEditionAbsent");
+  } else if (entry.type === "BARRIO" && entry.parentName) {
+    parentLine = shellTemplate("search.parentDistrict", { name: entry.parentName });
+  } else if (entry.type === "DISTRICT" && entry.parentName) {
+    parentLine = shellTemplate("search.parentMunicipality", { name: entry.parentName });
+  }
+  setText("geoSearchCardParent", parentLine);
+  setText("geoSearchCardScope", shellT("search.scope." + entry.type));
+
+  const ambiguousNote = Boolean(entry.name) && geoSearch.index.ambiguousName(geoSearch.module.foldText(entry.name));
+  const analyze = document.getElementById("geoSearchAnalyze");
+  const note = document.getElementById("geoSearchAnalyzeNote");
+  if (!analyze || !note) return;
+
+  // The action is OFFERED only when it can be performed honestly. Both refusals
+  // are explained in place, so a withheld capability reads as a stated limit
+  // rather than as a broken button.
+  let withheld = null;
+  if (entry.type === "MUNICIPALITY") withheld = shellT("search.analyzeWithheldMunicipality");
+  else if (!geoSearchInteriorPoint(entry)) withheld = shellT("search.analyzeWithheldInterior");
+  analyze.disabled = Boolean(withheld);
+  analyze.hidden = Boolean(withheld);
+
+  const lines = [];
+  if (withheld) lines.push(withheld);
+  if (geoSearch.lastAction === "ANALYZE") lines.push(shellTemplate("search.analyzeNote", { which: active }));
+  if (geoSearch.lastAction === "VIEW_MAP") lines.push(shellT("search.viewMapNote"));
+  if (ambiguousNote) lines.push(shellT("search.ambiguousNote"));
+  note.textContent = lines.join(" ");
+  note.hidden = lines.length === 0;
+}
+
+function renderGeoSearch() {
+  const host = document.getElementById("geoSearchPanel");
+  const input = document.getElementById("geoSearchQuery");
+  const status = document.getElementById("geoSearchStatus");
+  const results = document.getElementById("geoSearchResults");
+  const coverage = document.getElementById("geoSearchCoverage");
+  if (!host || !input || !status || !results || !coverage) return;
+
+  // A result button that currently holds focus must keep it across a re-render
+  // caused by a Lens move or a language change.
+  const active_result = document.activeElement;
+  const focusedId = active_result && active_result.matches && active_result.matches("#geoSearchResults button")
+    ? active_result.dataset.id
+    : null;
+
+  const index = ensureGeoSearchIndex();
+  const loading = !geoSearch.module || geographyState === "loading" || planningState === "loading";
+  const state = index ? "ready" : loading ? "loading" : "unavailable";
+  host.dataset.state = state;
+  input.disabled = state !== "ready";
+  results.replaceChildren();
+
+  if (state !== "ready") {
+    status.textContent = state === "loading" ? shellT("search.loading") : shellT("search.unavailable");
+    coverage.textContent = "";
+    document.getElementById("geoSearchCard").hidden = true;
+    return;
+  }
+
+  const reading = geoSearch.module.searchGeoEntities(index, geoSearch.query);
+  geoSearch.results = reading.results;
+  status.textContent =
+    reading.state === "empty" ? shellT("search.empty")
+      : reading.state === "not_found" ? shellT("search.notFound")
+        : reading.total === 1 ? shellT("search.foundOne")
+          : shellTemplate("search.found", { total: reading.total });
+  for (const result of reading.results) results.append(geoSearchResultRow(result));
+
+  // Coverage is stated on every render, so a "no match" is always readable
+  // together with WHICH universes the answer was computed over. An absent
+  // universe is named as absent and never silently narrows the claim.
+  const lines = [];
+  if (reading.truncated) lines.push(shellTemplate("search.truncated", { shown: reading.results.length, total: reading.total }));
+  lines.push(shellTemplate("search.coverageUniverse", {
+    districts: index.counts.DISTRICT,
+    barrios: index.counts.BARRIO,
+    ambitos: index.counts.AMBITO,
+  }));
+  // A universe that has not ARRIVED YET is reported as still loading, never as
+  // an absent source: "we have not looked yet" and "the source failed" are
+  // different statements and a reader must be able to tell them apart before
+  // concluding anything from a query that found nothing.
+  if (!reading.coverage.ambito) {
+    lines.push(shellT(planningState === "loading" ? "search.coverageAmbitoLoading" : "search.coverageAmbitoAbsent"));
+  }
+  if (!reading.coverage.administrative) {
+    lines.push(shellT(geographyState === "loading" ? "search.coverageAdminLoading" : "search.coverageAdminAbsent"));
+  }
+  lines.push(shellT("search.addressDeferred"));
+  coverage.textContent = lines.join(" ");
+
+  // A selection whose universe disappeared is dropped rather than left pointing
+  // at geometry that is no longer loaded.
+  if (geoSearch.selectedId && !geoSearchFeatureFor(geoSearch.selectedId)) {
+    geoSearch.selectedId = null;
+    renderGeoSearchHighlight();
+  }
+  renderGeoSearchCard();
+  applyGeoSearchPlacement();
+
+  if (focusedId) {
+    const replacement = [...results.querySelectorAll("button")].find((button) => button.dataset.id === focusedId);
+    if (replacement) replacement.focus({ preventScroll: true });
+  }
+}
+
+const geoSearchToggle = document.getElementById("geoSearchToggle");
+const geoSearchQuery = document.getElementById("geoSearchQuery");
+const geoSearchClose = document.getElementById("geoSearchClose");
+const geoSearchViewMap = document.getElementById("geoSearchViewMap");
+const geoSearchAnalyze = document.getElementById("geoSearchAnalyze");
+
+function dismissGeoSearch() {
+  clearGeoSearch();
+  setGeoSearchOpen(false);
+  if (geoSearchToggle) geoSearchToggle.focus();
+}
+
+if (geoSearchToggle) {
+  geoSearchToggle.addEventListener("click", () => {
+    if (geoSearch.open) {
+      setGeoSearchOpen(false);
+      geoSearchToggle.focus();
+    } else {
+      setGeoSearchOpen(true);
+    }
+  });
+}
+if (geoSearchQuery) {
+  geoSearchQuery.addEventListener("input", (event) => {
+    geoSearch.query = event.target.value;
+    // Typing changes the RESULT LIST only. The selection, the highlight, the
+    // Lenses, the camera, the radii, the mode and the layers are untouched.
+    renderGeoSearch();
+  });
+  geoSearchQuery.addEventListener("keydown", (event) => {
+    const buttons = [...document.querySelectorAll("#geoSearchResults button")];
+    if (event.key === "ArrowDown" && buttons.length) { event.preventDefault(); buttons[0].focus(); }
+    if (event.key === "Escape") { event.preventDefault(); dismissGeoSearch(); }
+  });
+}
+const geoSearchResultsList = document.getElementById("geoSearchResults");
+if (geoSearchResultsList) {
+  geoSearchResultsList.addEventListener("keydown", (event) => {
+    const buttons = [...document.querySelectorAll("#geoSearchResults button")];
+    const current = buttons.indexOf(document.activeElement);
+    if (event.key === "ArrowDown" && current >= 0 && buttons[current + 1]) { event.preventDefault(); buttons[current + 1].focus(); }
+    if (event.key === "ArrowUp") { event.preventDefault(); if (current > 0) buttons[current - 1].focus(); else if (geoSearchQuery) geoSearchQuery.focus(); }
+    if (event.key === "Escape") { event.preventDefault(); dismissGeoSearch(); }
+  });
+}
+if (geoSearchClose) geoSearchClose.addEventListener("click", dismissGeoSearch);
+window.addEventListener("resize", applyGeoSearchPlacement);
+if (typeof ResizeObserver === "function") {
+  const analysisPanelNode = document.getElementById("analysisPanel");
+  if (analysisPanelNode) new ResizeObserver(applyGeoSearchPlacement).observe(analysisPanelNode);
+}
+if (geoSearchViewMap) geoSearchViewMap.addEventListener("click", showGeoSearchOnMap);
+if (geoSearchAnalyze) geoSearchAnalyze.addEventListener("click", analyzeGeoSearchWithLens);
+
+// "/" opens the finder, the convention for a search field on a reading surface.
+// It is ignored whenever the reader is typing into any field or editing content,
+// so it can never swallow a character, and it adds no modifier combination that
+// a browser or the existing application already owns.
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey) return;
+  const node = event.target;
+  if (node instanceof HTMLElement && (node.isContentEditable || node.closest("input,textarea,select,[contenteditable]"))) return;
+  event.preventDefault();
+  setGeoSearchOpen(true);
+});
+
+if (haloRegressionRequested && haloRegressionLocal) {
+  window.__GEO_SEARCH_TEST__ = Object.freeze({
+    indexBuildMs: () => geoSearch.indexBuildMs,
+    moduleRequested: () => geoSearchModuleRequest !== null,
+    whenModuleReady: () => loadGeoSearchModule(),
+    // Read-only. The two independent Lens radii, so a regression can prove the
+    // explicit Analyze action left both of them exactly as the reader set them.
+    radii: () => ({ ...radii }),
+    entryCount: () => (geoSearch.index ? geoSearch.index.counts.total : 0),
+    query: (text) => {
+      const index = ensureGeoSearchIndex();
+      return index ? geoSearch.module.searchGeoEntities(index, text) : null;
+    },
+    snapshot: () => ({
+      state: document.getElementById("geoSearchPanel").dataset.state || null,
+      placement: document.getElementById("geoSearchPanel").dataset.placement || null,
+      open: geoSearch.open,
+      query: geoSearch.query,
+      selectedId: geoSearch.selectedId,
+      selectedLayer: Boolean(geoSearchLayer),
+      cameraMoves: geoSearch.cameraMoves,
+      lensMoves: geoSearch.lensMoves,
+      lastAction: geoSearch.lastAction,
+      counts: geoSearch.index ? { ...geoSearch.index.counts } : null,
+      coverage: geoSearch.index ? { ...geoSearch.index.coverage } : null,
+      universeStatus: { administrative: geographyState, ambito: planningState },
+      results: [...document.querySelectorAll("#geoSearchResults button")].map((button) => ({
+        id: button.dataset.id,
+        type: button.dataset.type,
+        match: button.dataset.match,
+        ambiguous: button.dataset.ambiguous === "true",
+      })),
+      cardHidden: document.getElementById("geoSearchCard").hasAttribute("hidden"),
+      analyzeHidden: document.getElementById("geoSearchAnalyze").hasAttribute("hidden"),
+    }),
+    interiorPointFor: (entryId) => {
+      const entry = geoSearch.index ? geoSearch.index.byId(entryId) : null;
+      return entry ? geoSearchInteriorPoint(entry) : null;
+    },
+  });
+}
