@@ -9612,7 +9612,7 @@ async function createQuestionDossier({ outcome, statusNode, button }) {
 }
 
 function deliverQuestionDossier(files, statusNode, copy) {
-  for (const item of questionExplorer.dossierUrls) URL.revokeObjectURL(item.url);
+  revokeQuestionDossierUrls();
   const created = files.map((file) => ({
     name: file.name,
     url: URL.createObjectURL(new Blob([file.text], { type: file.mime })),
@@ -9639,11 +9639,16 @@ function deliverQuestionDossier(files, statusNode, copy) {
       statusNode.append(link, document.createTextNode(" "));
     }
   }
-  setTimeout(() => {
-    for (const file of created) URL.revokeObjectURL(file.url);
-    questionExplorer.dossierUrls = questionExplorer.dossierUrls.filter((item) => !created.includes(item));
-  }, 120000);
 }
+
+function revokeQuestionDossierUrls() {
+  for (const item of questionExplorer.dossierUrls) URL.revokeObjectURL(item.url);
+  questionExplorer.dossierUrls = [];
+}
+
+window.addEventListener("pagehide", (event) => {
+  if (!event.persisted) revokeQuestionDossierUrls();
+});
 
 // Prefetched like the finder's resolver: after `load`, on idle, never on the
 // critical path. Opening the finder first requests it immediately.

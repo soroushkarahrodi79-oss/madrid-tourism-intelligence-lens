@@ -855,6 +855,65 @@ test("dossier export preserves one frozen answer in matching offline HTML and JS
   assert.deepEqual(errors, []);
 });
 
+test("dossier export preserves usable fallback links until replacement or page close", async (t) => {
+  const { page, context, errors } = await pageFor();
+  t.after(() => context.close());
+  await openExplorer(page);
+  await selectAndAnalyze(page, "APE.02.20");
+  await askQuestion(page, "AMBITO_EDITION_DIFF");
+  await settled(page);
+  await page.evaluate(() => {
+    const lifecycle = { revoked: [], scheduledExpiry: 0 };
+    const nativeSetTimeout = window.setTimeout.bind(window);
+    const nativeRevokeObjectURL = URL.revokeObjectURL.bind(URL);
+    window.__DOSSIER_URL_LIFECYCLE__ = lifecycle;
+    window.setTimeout = (callback, delay, ...args) => {
+      if (delay === 120000) {
+        lifecycle.scheduledExpiry += 1;
+        callback(...args);
+        return 0;
+      }
+      return nativeSetTimeout(callback, delay, ...args);
+    };
+    URL.revokeObjectURL = (url) => {
+      lifecycle.revoked.push(url);
+      nativeRevokeObjectURL(url);
+    };
+  });
+
+  await createDossier(page);
+  const firstUrls = await page.locator("#qxDossierStatus a").evaluateAll((links) => links.map((link) => link.href));
+  const initial = await page.evaluate(() => ({ ...window.__DOSSIER_URL_LIFECYCLE__ }));
+  assert.equal(initial.scheduledExpiry, 0, "no fixed expiry is scheduled while fallback links remain visible");
+  assert.deepEqual(initial.revoked, []);
+  const downloaded = [];
+  for (const link of await page.locator("#qxDossierStatus a").all()) {
+    const [download] = await Promise.all([page.waitForEvent("download"), link.click()]);
+    downloaded.push({ name: download.suggestedFilename(), failure: await download.failure() });
+  }
+  assert.deepEqual(downloaded.map(({ name }) => path.extname(name)), [".html", ".json"]);
+  assert.ok(downloaded.every(({ failure }) => failure === null), "both visible Blob links remain downloadable");
+
+  await page.locator("#qxAnswer .qx-action-dossier").click();
+  await page.waitForFunction((previous) => {
+    const current = [...document.querySelectorAll("#qxDossierStatus a")].map((link) => link.href);
+    return current.length === 2 && current.every((url) => !previous.includes(url));
+  }, firstUrls);
+  const replacement = await page.evaluate(() => ({
+    current: [...document.querySelectorAll("#qxDossierStatus a")].map((link) => link.href),
+    revoked: [...window.__DOSSIER_URL_LIFECYCLE__.revoked],
+  }));
+  assert.deepEqual(replacement.revoked, firstUrls, "replacing the links revokes the previous pair");
+  assert.ok(replacement.current.every((url) => !replacement.revoked.includes(url)), "the replacement pair remains usable");
+
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: true })));
+  assert.deepEqual(await page.evaluate(() => [...window.__DOSSIER_URL_LIFECYCLE__.revoked]), firstUrls, "a bfcache page keeps its visible pair usable");
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: false })));
+  const finalRevoked = await page.evaluate(() => [...window.__DOSSIER_URL_LIFECYCLE__.revoked]);
+  assert.deepEqual(finalRevoked, [...firstUrls, ...replacement.current], "closing the page revokes the visible pair");
+  assert.deepEqual(errors, []);
+});
+
 test("dossier export records an abstention without inventing a value", async (t) => {
   const { page, context, errors } = await pageFor();
   t.after(() => context.close());
