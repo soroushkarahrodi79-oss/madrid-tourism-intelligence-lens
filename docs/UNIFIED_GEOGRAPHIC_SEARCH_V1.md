@@ -347,3 +347,40 @@ in the exception proposal on the pull request, with its measured benefit and its
 cost, for the owner to decide. It is not applied here, because it is a
 structural refactor of a 9,000-line file to satisfy a figure in a unit that no
 reader transfers, with no measurable gain for them.
+
+### 11.1 Approved exception — M1 only, no precedent
+
+The budget above was **missed in the unit it was written in**, and the miss was
+put to the owner rather than resolved by restating the threshold.
+
+**The original threshold stands unchanged and is not superseded:**
+
+> Initial payload growth ≤ 25 KB (no new data file; code only) — measured in
+> uncompressed source bytes.
+
+**Owner decision, recorded:** the measured exception is **approved for M1**.
+
+| | |
+|---|---|
+| Accepted critical-path increase | **+46,551 raw bytes / +11,730 gzip bytes** |
+| Deferred resolver | **retained** — `js/geo-search.js` stays off the initial critical path |
+| Adapter extraction from `js/app.js` | **not authorized** for this purpose |
+| Further payload refactoring for M1 | **not authorized** |
+| Scope | **M1 only, one time** |
+
+This exception covers the payload figure and nothing else. No test, evidence
+semantic, accessibility affordance or performance safeguard was weakened to
+obtain it, and none may be weakened under it.
+
+**It sets no precedent.** A later increment that exceeds the same threshold
+needs its own measurement and its own owner decision; this entry may not be
+cited as authority for one, and the threshold a future increment is held to
+remains the 25 KB raw figure quoted above.
+
+The evidence behind the decision is §11: the raw, gzip and Brotli deltas with
+the critical-path/deferred split, the five-run Fast 3G comparison (+177 ms
+DOMContentLoaded, +180 ms First Contentful Paint), the confirmation that GitHub
+Pages serves gzip, and the timing showing the finder's readiness is gated by
+`madrid_admin.geojson` at 58,037 ms rather than by its resolver at 8,816 ms. The
+full proposal, including the extraction option that was declined, is on the pull
+request.
