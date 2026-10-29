@@ -334,6 +334,21 @@ test("abstention reason: OUTSIDE_TEMPORAL_COVERAGE — not a nearest match", () 
   assert.equal(hotel.reason, "OUTSIDE_TEMPORAL_COVERAGE");
 });
 
+// M2 finding F1: a PRESENT but malformed grant-date window used to reach the model,
+// which read it as "no bound" and silently widened it to the whole register.
+test("LICENCES_IN_LENS refuses a present-but-malformed window instead of widening it to the whole register", () => {
+  const base = { lon: SOL.lon, lat: SOL.lat, radiusM: 1000 };
+  for (const window of [{ from: 20250101, to: 20251231 }, { from: "2025-01-01" }, { to: "2025-12-31" }, { from: "garbage", to: "2025-12-31" },
+    { from: "2025-02-30", to: "2025-03-01" }, {}, "2025", 7, [], { from: null, to: null }]) {
+    const out = reg.query("LICENCES_IN_LENS", { ...base, window });
+    assert.ok(R.isAbstention(out), `window ${JSON.stringify(window)} must abstain`);
+    assert.equal(out.reason, "AMBIGUOUS_SCOPE");
+  }
+  // An ABSENT window keeps its documented default; a valid window is unaffected.
+  assert.ok(R.isEvidence(reg.query("LICENCES_IN_LENS", base)));
+  assert.ok(R.isEvidence(reg.query("LICENCES_IN_LENS", { ...base, window: { from: "2025-10-01", to: "2026-09-30" } })));
+});
+
 test("abstention reason: WITHHELD_BY_PUBLISHER — a withheld value is refused, the provenance is not", () => {
   const withheldRegistry = JSON.parse(JSON.stringify(REGISTRY));
   withheldRegistry.sources.find((s) => s.id === "hotel_demand").source_state = "WITHHELD_BY_PUBLISHER";

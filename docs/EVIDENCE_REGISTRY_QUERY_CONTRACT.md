@@ -201,6 +201,14 @@ The layer is exercised by shipping surfaces, not left on paper:
   `sources.json` still emits the documented export fields verbatim, so the bundle is
   unchanged.
 
+- **The question explorer** (`js/question-explorer.js`, M2 —
+  [`URBAN_EVIDENCE_QUESTIONS_V1.md`](URBAN_EVIDENCE_QUESTIONS_V1.md)) is the first
+  consumer of `query(shape, params)` itself. Six of the ten shapes are reachable
+  from a closed question menu, each through an explicitly stated analytical
+  context; the registry's result is carried to the screen untouched, and a test
+  compares every outcome with a direct registry call. It adds no shape, no
+  abstention reason and no prohibition.
+
 `sourceProvenance` may substitute a reference date only for the registered K7
 oldest-contributing-edition disclosure. A merely well-formed ISO date is not
 enough: it must equal the `planning_ambito_state.change_detection` date committed
@@ -219,7 +227,7 @@ These run as integration tests against the committed artifacts.
 | "What is being developed near Valdecarros?" | `AMBITOS_IN_LENS` | Resolve to `LENS_INTERSECT_AMBITO`; list the ámbitos touched (membership only); **no apportioned quantity** (`quantitiesProvided: false`). Read each ámbito's phases at ámbito scope via `AMBITO_PHASES`. |
 | "What planning stage is this area in?" | `AMBITO_PHASES` | Return the four published states verbatim (`No Necesita` preserved); provenance carries the edition and `source_state`. A known code with no published state abstains `NO_EVIDENCE_FOR_SCOPE` — never a zero. |
 | "What changed here since the previous official snapshot?" | `AMBITO_EDITION_DIFF` | Classify the two-edition difference; **never** call it progress. The code must exist in the union of the two committed edition universes; this preserves real appearances/disappearances and rejects unknown codes. If that universe is unavailable, abstain. |
-| "Show urban licences granted within 500 m during the last year." | `LICENCES_IN_LENS` | In-circle filter by family and grant-date window; per-family counts only, never one collapsed total; a window outside the register abstains `OUTSIDE_TEMPORAL_COVERAGE`, never a nearest match. |
+| "Show urban licences granted within 500 m during the last year." | `LICENCES_IN_LENS` | In-circle filter by family and grant-date window; per-family counts only, never one collapsed total; a window outside the register abstains `OUTSIDE_TEMPORAL_COVERAGE`, never a nearest match; a window that is **present but not two real ISO calendar dates** abstains `AMBIGUOUS_SCOPE` (M2 finding F1: it used to be widened silently to the whole register). An **absent** window keeps the model's documented default (the twelve months ending at the register's latest grant date), disclosed on the result's `window`; a window that only partly overlaps the register is clamped by the model and flagged `window.clamped`. |
 | "Compare these two development areas." | `AMBITO_COMPARE` | Same-scope selectors only. Each side supplies an exact official code and optional registered S1/S2 snapshot identities; the adapter resolves the values from committed evidence. Caller-supplied values and stale identities are refused. Cross-edition withholding remains the #72 model's rule. |
 | "How many homes will be built at Valdecarros?" | any ámbito shape with `wantsDwellingCount` | **Abstain** `CEILING_PROHIBITS` (`prohibition = DWELLING_COUNT`). No audited machine-readable official source publishes dwelling counts; remaining buildability is in m² only. |
 

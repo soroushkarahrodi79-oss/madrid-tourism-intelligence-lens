@@ -1801,8 +1801,10 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
      between the Layers rail and the (resizable) analysis panel is wide enough
      to hold the finder without covering either of them. */
   box-sizing:border-box;padding:var(--s-3);
-  max-height:calc(100vh - var(--header-chrome-top) - 28px - var(--safe-bottom));
-  max-height:calc(100dvh - var(--header-chrome-top) - 28px - var(--safe-bottom));
+  /* 48px of bottom clearance keeps a tall panel (finder + answered question) above
+     the map attribution, which a full-height panel would otherwise cover. */
+  max-height:calc(100vh - var(--header-chrome-top) - 76px - var(--safe-bottom));
+  max-height:calc(100dvh - var(--header-chrome-top) - 76px - var(--safe-bottom));
   overflow:auto;overscroll-behavior:contain;
   border:1px solid var(--chrome-border);border-radius:var(--r-large);
   background:var(--chrome-panel-surface);backdrop-filter:blur(18px);
@@ -1903,6 +1905,75 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
   .geo-search-toggle{min-width:44px;width:44px;padding:var(--s-1)}
   .geo-search-toggle-label{display:none}
 }
+/* ----------------------------------------- M2 urban evidence questions
+   Lives INSIDE the finder overlay, so it adds no control to the header, no panel
+   to the map and no height to the analysis panel. Chrome tokens only; every state
+   is carried by text and border style as well as tone, so it survives Light, Dark
+   and forced-colours alike. */
+.qx{margin-top:var(--s-3);padding-top:var(--s-2);border-top:1px solid var(--chrome-divider)}
+.qx[hidden]{display:none!important}
+.qx-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2)}
+.qx-title{margin:0;font-size:var(--t-micro);font-weight:650;letter-spacing:.1em;text-transform:uppercase;color:var(--chrome-text-section);line-height:1.3}
+.qx-collapse,.qx-action,.qx-reading-btn{
+  min-height:44px;box-sizing:border-box;padding:var(--s-1) var(--s-3);
+  border:1px solid var(--chrome-border);border-radius:var(--r-small);
+  background:var(--chrome-control-group-surface);color:var(--chrome-text-control-value);
+  font:inherit;font-size:var(--t-meta);font-weight:650;cursor:pointer
+}
+.qx-collapse:hover,.qx-action:hover,.qx-reading-btn:hover,.qx-q:hover{border-color:var(--chrome-mobile-control-open-border)}
+.qx-collapse:focus-visible,.qx-action:focus-visible,.qx-reading-btn:focus-visible,.qx-q:focus-visible,.qx-refused-summary:focus-visible,.qx-answer:focus-visible,.qx summary:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
+.qx-body[hidden]{display:none!important}
+.qx-intro,.qx-context-line,.qx-refused-intro,.qx-hint,.qx-subject-note,.qx-reference,.qx-derivation{margin:var(--s-1) 0 0;font-size:var(--t-meta);line-height:1.45;color:var(--chrome-text-metadata)}
+.qx-context{margin-top:var(--s-2);padding:var(--s-2);border:1px solid var(--chrome-divider);border-radius:var(--r-small)}
+.qx-context-line{margin:0;color:var(--chrome-text-control-caption)}
+.qx-context-line+.qx-context-line{margin-top:var(--s-1)}
+.qx-list{list-style:none;margin:var(--s-2) 0 0;padding:0;display:grid;gap:var(--s-1)}
+.qx-q{
+  display:grid;gap:2px;width:100%;min-height:44px;box-sizing:border-box;text-align:left;
+  padding:var(--s-2) var(--s-3);border:1px solid var(--chrome-border);border-radius:var(--r-small);
+  background:var(--chrome-control-group-surface);color:var(--chrome-text-control-value);font:inherit;cursor:pointer
+}
+.qx-q[aria-pressed="true"]{border-color:var(--chrome-mobile-control-open-border);background:var(--chrome-mobile-control-open-surface);box-shadow:inset 3px 0 0 var(--chrome-mobile-control-open-border)}
+.qx-q-subject{font-size:var(--t-micro);font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--chrome-text-section)}
+.qx-q-text{font-size:var(--t-label);font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.qx-refused{margin-top:var(--s-2)}
+.qx-refused-summary,.qx summary{cursor:pointer;min-height:44px;box-sizing:border-box;padding:var(--s-2) 0;font-size:var(--t-meta);font-weight:650;color:var(--chrome-text-control-caption)}
+.qx-q-refused{border-style:dashed}
+.qx-answer{margin-top:var(--s-3);padding:var(--s-3);border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-panel-surface)}
+.qx-answer[hidden]{display:none!important}
+.qx-answer[data-kind="abstention"]{border-style:dashed}
+.qx-answer[data-stale="true"]{border-style:dotted;border-width:2px}
+.qx-answer[data-stale="true"] .qx-section,.qx-answer[data-stale="true"] .qx-reading{opacity:.6}
+.qx-answer-head{display:grid;gap:var(--s-1)}
+.qx-answer-title{margin:0;font-size:var(--t-label);font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+.qx-badge{justify-self:start;padding:2px var(--s-2);border:1px solid var(--chrome-border);border-radius:var(--r-small);font-size:var(--t-micro);font-weight:650;letter-spacing:.04em;line-height:1.4}
+.qx-badge[data-kind="abstention"]{border-style:dashed}
+.qx-stale{margin:var(--s-2) 0 0;padding:var(--s-2);border:1px dotted var(--chrome-border);border-radius:var(--r-small);font-size:var(--t-meta);font-weight:650;line-height:1.4}
+.qx-reading{display:flex;gap:var(--s-1);margin-top:var(--s-2)}
+.qx-reading-btn[aria-pressed="true"]{border-color:var(--chrome-mobile-control-open-border);background:var(--chrome-mobile-control-open-surface);color:var(--chrome-text-control-strong)}
+.qx-section{margin-top:var(--s-3)}
+.qx-section-title{margin:0 0 var(--s-1);font-size:var(--t-micro);font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--chrome-text-section)}
+.qx-headline{margin:0;font-size:var(--t-label);font-weight:650;line-height:1.4;overflow-wrap:anywhere}
+.qx-facts{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;margin:var(--s-2) 0 0}
+.qx-facts dt{margin-top:var(--s-2);font-size:var(--t-micro);font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--chrome-text-control-caption)}
+.qx-facts dd{margin:0;font-size:var(--t-meta);line-height:1.45;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.qx-fact-note,.qx-fact-detail,.qx-change-label{color:var(--chrome-text-metadata)}
+.qx-changes,.qx-item-list,.qx-limits{margin:var(--s-1) 0 0;padding-left:var(--s-4);font-size:var(--t-meta);line-height:1.45}
+.qx-code,.qx-item-code{font-size:var(--t-meta);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.qx-abstention-name{margin:0;font-size:var(--t-label);font-weight:700;line-height:1.35}
+.qx-abstention-text,.qx-abstention-clause,.qx-abstention-guidance,.qx-abstention-codes{margin:var(--s-1) 0 0;font-size:var(--t-meta);line-height:1.45}
+.qx-abstention-guidance{font-weight:650}
+.qx-source-name,.qx-scope-label{margin:0;font-size:var(--t-meta);font-weight:650;line-height:1.4;overflow-wrap:anywhere}
+.qx-scope-instance{margin:var(--s-1) 0 0;font-size:var(--t-meta);color:var(--chrome-text-control-caption);overflow-wrap:anywhere}
+.qx-reference[data-declared="false"]{font-weight:650}
+.qx-actions{display:flex;flex-wrap:wrap;gap:var(--s-2)}
+.qx-loading{margin:var(--s-2) 0 0;font-size:var(--t-meta);line-height:1.45}
+@media(max-width:850px){
+  .qx-reading-btn,.qx-action{flex:1 1 auto}
+}
+@media(forced-colors:active){
+  .qx-q[aria-pressed="true"]{outline:2px solid Highlight}
+}
 @media(prefers-reduced-motion:reduce){
-  .geo-search,.geo-search-result,.geo-search-action{transition:none!important}
+  .geo-search,.geo-search-result,.geo-search-action,.qx-q,.qx-action{transition:none!important}
 }
