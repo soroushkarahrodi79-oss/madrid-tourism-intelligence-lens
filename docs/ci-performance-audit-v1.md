@@ -7,9 +7,10 @@ This audit began at `origin/main` commit
 [40759479604](https://github.com/soroushkarahrodi79-oss/madrid-tourism-intelligence-lens/actions/runs/40759479604).
 PR #139 merged during validation, so the branch was integrated with current
 `origin/main` commit `2ba11e1e90a66a36f72c0c9179572f90433bb43c` and the audit was
-re-run against its additional Chromium and WebKit coverage. Successful PR run
-[40779172501](https://github.com/soroushkarahrodi79-oss/madrid-tourism-intelligence-lens/actions/runs/40779172501)
-has the same tree and supplies the post-merge test timings. No application, CSS,
+re-run against its additional Chromium and WebKit coverage. Successful main
+push run [40784111613](https://github.com/soroushkarahrodi79-oss/madrid-tourism-intelligence-lens/actions/runs/40784111613)
+is the final current-main baseline; successful PR run 40779172501 supplies the
+per-test UX-C2 timing detail. No application, CSS,
 geography, dataset, analytical, assertion, or acceptance-threshold change is
 part of this optimization.
 
@@ -25,22 +26,23 @@ or newly unassigned tests.
 
 | Job / step | Wall time |
 | --- | ---: |
-| Full workflow critical path (current main) | 30m 29s |
-| `radial-halo-browser` job | 24m 11s |
-| Chromium browser test step | 22m 42s |
-| Chromium install | 19s |
+| Full workflow critical path (current main) | 24m 22s |
+| `radial-halo-browser` job | 24m 02s |
+| Chromium browser test step | 22m 36s |
+| Chromium install | 17s |
 | UX-H1 before/after capture | 19s |
 | UX-C2 Chromium capture | 32s |
-| `ux-c2-webkit` job | 30m 29s |
-| UX-C2 WebKit suite | 28m 25s |
-| UX-C2 WebKit capture | 1m 18s |
-| `ux-c1-webkit` job | 6m 00s |
-| `test (ubuntu-latest)` job | 1m 33s |
-| `test (windows-latest)` job | 1m 58s |
+| `ux-c2-webkit` job | 24m 22s |
+| UX-C2 WebKit suite | 22m 27s |
+| UX-C2 WebKit capture | about 1m |
+| `ux-c1-webkit` job | 7m 22s |
+| `test (ubuntu-latest)` job | 1m 17s |
+| `test (windows-latest)` job | 1m 16s |
 
 Before PR #139, the full workflow was 13m 29s, the Chromium job was 13m 25s,
 and its suite was 12m 28s. The newly merged UX-C2 coverage raised current main
-to 30m 29s, with a 22m 42s Chromium suite and a 28m 25s WebKit suite.
+to 24m 22s, with a 22m 36s Chromium suite and a 22m 27s WebKit suite. A prior
+same-tree PR run reached 30m 29s, demonstrating substantial runner variance.
 
 Browser installation is variable: Chromium took 19–26 seconds in examined
 runs, while WebKit ranged from 31 seconds to 2m 17s. Installation is not
@@ -131,10 +133,11 @@ and 125 registered WebKit tests (124 asserted plus one capture-only test) taking
 | Evidence drawer | 14.2s | 45.4s |
 | Three specific regressions | 4.5s | 13.5s |
 
-Anchored group partitions add approximately 200-215 seconds of UX-C2 work to
-each existing Chromium shard. The WebKit partitions are independently packed
-to approximately 565-570 seconds each. This is measured partitioning, not a
-filename or test-count split.
+The initial anchored partitions were checked on integrated run 40786552702,
+then rebalanced once using its observed whole-shard and group timings. The final
+Chromium allocation accounts for the unequal pre-existing shard loads. The
+final WebKit allocation also accounts for the one-time capture cost. This is
+measured partitioning, not a filename or test-count split.
 
 ## Inventory and assurance baseline
 

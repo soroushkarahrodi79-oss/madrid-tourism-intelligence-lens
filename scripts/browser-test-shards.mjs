@@ -55,16 +55,16 @@ const UX_C2_PARTITIONS = Object.freeze({
     registeredTests: 128,
     shards: Object.freeze({
       "1": Object.freeze({
-        pattern: "^(?:real data, (?:light/ES|dark/(?:EN|ES)|system-light/(?:EN|ES))|panel at its|long-content stress fixture)",
-        expectedPass: 49,
+        pattern: "^(?:real data, (?:light/ES|dark/(?:EN|ES)|system-light/(?:EN|ES))|touch \\(pointer:coarse\\)|reported iPad-landscape|the Planning ámbitos list|opening Detail)",
+        expectedPass: 42,
       }),
       "2": Object.freeze({
-        pattern: "^(?:classic scrollbars|licence and hospitality layers on|touch \\(pointer:coarse\\)|evidence drawer|reported iPad-landscape|the Planning ámbitos list|opening Detail)",
-        expectedPass: 40,
+        pattern: "^(?:fallback font|classic scrollbars|evidence drawer)",
+        expectedPass: 41,
       }),
       "3": Object.freeze({
-        pattern: "^(?:real data, Light/EN|fallback font)",
-        expectedPass: 38,
+        pattern: "^(?:real data, Light/EN|licence and hospitality layers on|long-content stress fixture|panel at its)",
+        expectedPass: 44,
       }),
     }),
   }),
@@ -72,16 +72,16 @@ const UX_C2_PARTITIONS = Object.freeze({
     registeredTests: 125,
     shards: Object.freeze({
       "1": Object.freeze({
-        pattern: "^(?:fallback font|long-content stress fixture|reported iPad-landscape|the Planning ámbitos list|opening Detail)",
-        expectedPass: 47,
+        pattern: "^(?:fallback font|long-content stress fixture \\(en\\)|reported iPad-landscape|the Planning ámbitos list|opening Detail)",
+        expectedPass: 39,
       }),
       "2": Object.freeze({
-        pattern: "^(?:real data, (?:light/ES|dark/(?:EN|ES)|system-light/(?:EN|ES))|licence and hospitality layers on|panel at its)",
+        pattern: "^(?:real data, (?:light/ES|dark/(?:EN|ES)|system-light/(?:EN|ES))|licence and hospitality layers on|long-content stress fixture \\(es\\))",
         expectedPass: 43,
       }),
       "3": Object.freeze({
-        pattern: "^(?:touch \\(pointer:coarse\\)|real data, Light/EN|evidence drawer)",
-        expectedPass: 34,
+        pattern: "^(?:touch \\(pointer:coarse\\)|real data, Light/EN|evidence drawer|panel at its)",
+        expectedPass: 42,
       }),
     }),
   }),
