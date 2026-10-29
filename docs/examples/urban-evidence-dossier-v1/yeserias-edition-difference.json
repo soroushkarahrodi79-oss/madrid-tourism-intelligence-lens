@@ -1,0 +1,609 @@
+{
+  "dossier_schema_version": 1,
+  "generated_at": "2026-10-29T18:44:50.499Z",
+  "identification": {
+    "product": "Madrid Urban Evidence Lens",
+    "document_type": "Urban Evidence Dossier",
+    "document_characterization": "Automatically assembled evidence record; not an official certificate or independently peer-reviewed research.",
+    "reading_language": "en",
+    "reading_preference": "analyst",
+    "question_explorer_model_version": "m2-question-explorer-1",
+    "registry_contract_version": "1.1.0",
+    "deployment_build": {
+      "id": "20261029-m3-dossier-v1",
+      "characterization": "Deployment build identity used for cache-busting; not a cryptographic data fingerprint and not proof of byte-identical evidence."
+    }
+  },
+  "question": {
+    "id": "AMBITO_EDITION_DIFF",
+    "wording": "What changed between the two available official editions?",
+    "registered_shape": "AMBITO_EDITION_DIFF",
+    "parameters": {
+      "code": "APE.02.20"
+    },
+    "subject": {
+      "origin": "SELECTION",
+      "code": "APE.02.20",
+      "ignoredSelection": null
+    },
+    "context_key": "[\"A\",-3.691757,40.395543,900,[\"AMBITO\",\"APE.02.20\"],[\"2025-10-01\",\"2026-09-30\"],\"ready\",\"ready\",\"ready\"]"
+  },
+  "context": {
+    "lens": {
+      "id": "A",
+      "centre": {
+        "longitude": -3.691757,
+        "latitude": 40.395543
+      },
+      "radius_m": 900,
+      "kind": "GENERATED_ANALYTICAL_WINDOW"
+    },
+    "selected_entity": {
+      "type": "AMBITO",
+      "code": "APE.02.20",
+      "name": "CÁRCEL DE YESERÍAS"
+    },
+    "planning_ambito": {
+      "code": "APE.02.20",
+      "subject_origin": "SELECTION"
+    },
+    "licence_date_window": null,
+    "scope_distinction": "A Lens circle, official barrio, district, planning ámbito, municipality and located administrative record are distinct analytical objects and are not interchangeable."
+  },
+  "outcome": {
+    "status": "ANSWERED",
+    "evidence": {
+      "value": {
+        "exactCode": "APE.02.20",
+        "comparisonBasis": "Source-stated reference date and full SHA-256 fingerprint within one schema era; entity identity is scoped to each edition.",
+        "comparabilityVerdict": "COMPARABLE_WITHIN_SCHEMA_ERA",
+        "reason": null,
+        "dates": {
+          "previous": "2025-07-01",
+          "current": "2026-01-01"
+        },
+        "pairIdentity": {
+          "S1": {
+            "previous": "S1:2025-07:e1ff3e0e0f63",
+            "current": "S1:2026-01:585db074c122"
+          },
+          "S2": {
+            "previous": "S2:2025-07:09f6859a2541",
+            "current": "S2:2026-01:326edf48d221"
+          }
+        },
+        "editions": {
+          "previous": {
+            "S1": {
+              "family": "S1",
+              "package": "203200-0-desarrollo-ambitos",
+              "dataset_url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos",
+              "title": "PGOUM 97. Estado de desarrollo de los ámbitos",
+              "snapshot_identity": "S1:2025-07:e1ff3e0e0f63",
+              "snapshot_identity_form": "family : reference_date : sha256[:12]",
+              "resource_id": "203200-2-desarrollo-ambitos-xls",
+              "resource_description": "PGOUM 97. Estado de desarrollo de los ámbitos. Julio 2025.",
+              "resource_url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos/resource/203200-2-desarrollo-ambitos-xls/download/203200-2-desarrollo-ambitos-xls.xls",
+              "schema_era": "S1_FOUR_PHASE_FLAT",
+              "schema_fingerprint": "1206336af6b4176d",
+              "reference_date": "2025-07-01",
+              "reference_date_month": "2025-07",
+              "reference_date_method": "IN_FILE_EXCEL_SERIAL",
+              "reference_date_source_column": "Estado del desarrollo a fecha",
+              "published_at": null,
+              "published_at_timestamp": null,
+              "published_at_method": "OLE2 compound-document root-entry creation FILETIME",
+              "ole2_modified": null,
+              "retrieved_at": "2026-10-06T08:30:07Z",
+              "http_last_modified": "Sun, 15 Feb 2026 22:24:42 GMT",
+              "bytes": 175104,
+              "sha256": "e1ff3e0e0f63fe59dbe64d10b319026917c34d9086f395e9787b6fe3661cf49d",
+              "license": "CC BY 4.0",
+              "update_frequency": "SEMESTRAL",
+              "update_frequency_declared_as": "the catalogue's machine-readable ANNUAL_2 (twice a year)",
+              "observed_cadence": "SEMESTRAL",
+              "observed_cadence_evidence": "Annual (12-month) gaps from 2013 to 2024, then semestral (6-month) gaps from 2025. The catalogue's declared ANNUAL_2 (twice a year) is therefore correct for the recent period only. Both are recorded and neither is corrected.",
+              "source_state": "DEFINITIVE",
+              "edition_count_in_catalogue": 15,
+              "published_row_count": 665,
+              "identity_scope": "{edition}:{exact_code}"
+            },
+            "S2": {
+              "family": "S2",
+              "package": "203182-0-ambitos-remanente",
+              "dataset_url": "https://datos.madrid.es/dataset/203182-0-ambitos-remanente",
+              "title": "PGOUM 97. Edificabilidad remanente en ámbitos",
+              "snapshot_identity": "S2:2025-07:09f6859a2541",
+              "snapshot_identity_form": "family : reference_date : sha256[:12]",
+              "resource_id": "203182-10-ambitos-remanente-xls",
+              "resource_description": "PGOUM 97. Edificabilidad remanente en ámbitos.  Julio 2025",
+              "resource_url": "https://datos.madrid.es/dataset/203182-0-ambitos-remanente/resource/203182-10-ambitos-remanente-xls/download/203182-10-ambitos-remanente-xls.xls",
+              "schema_era": "S2_SPLIT_RESIDENTIAL_FLAT",
+              "schema_fingerprint": "475e4c2bf290ca1e",
+              "reference_date": "2025-07-01",
+              "reference_date_month": "2025-07",
+              "reference_date_method": "IN_FILE_EXCEL_SERIAL",
+              "reference_date_source_column": "ESTADO DEL DESARROLLO A FECHA",
+              "published_at": null,
+              "published_at_timestamp": null,
+              "published_at_method": "OLE2 compound-document root-entry creation FILETIME",
+              "ole2_modified": null,
+              "retrieved_at": "2026-10-06T08:30:45Z",
+              "http_last_modified": "Sun, 15 Feb 2026 22:24:32 GMT",
+              "bytes": 83456,
+              "sha256": "09f6859a2541ea8c31eb3ce47464ca5fbec64d38f57a7b3b435bb65e4a5cb286",
+              "license": "CC BY 4.0",
+              "update_frequency": "SEMESTRAL",
+              "update_frequency_declared_as": "the catalogue's machine-readable ANNUAL_2 (twice a year)",
+              "observed_cadence": "SEMESTRAL",
+              "observed_cadence_evidence": "Annual (12-month) gaps from 2013 to 2024, then semestral (6-month) gaps from 2025. The catalogue's declared ANNUAL_2 (twice a year) is therefore correct for the recent period only. Both are recorded and neither is corrected.",
+              "source_state": "DEFINITIVE",
+              "edition_count_in_catalogue": 15,
+              "published_row_count": 239,
+              "distinct_code_count": 239,
+              "identity_scope": "{edition}:{exact_code}; row identity subordinate to exact code"
+            }
+          },
+          "current": {
+            "S1": {
+              "family": "S1",
+              "package": "203200-0-desarrollo-ambitos",
+              "dataset_url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos",
+              "title": "PGOUM 97. Estado de desarrollo de los ámbitos",
+              "snapshot_identity": "S1:2026-01:585db074c122",
+              "snapshot_identity_form": "family : reference_date : sha256[:12]",
+              "resource_id": "203200-15-desarrollo-ambitos",
+              "resource_description": "PGOUM 97. Estado de desarrollo de los ámbitos. Enero 2026.",
+              "resource_url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos/resource/203200-15-desarrollo-ambitos/download/situacionambitos_01_01_2026distritos.xls",
+              "schema_era": "S1_FOUR_PHASE_FLAT",
+              "schema_fingerprint": "1206336af6b4176d",
+              "reference_date": "2026-01-01",
+              "reference_date_month": "2026-01",
+              "reference_date_method": "IN_FILE_EXCEL_SERIAL",
+              "reference_date_source_column": "Estado del desarrollo a fecha",
+              "published_at": "2026-03-24",
+              "published_at_timestamp": "2026-03-24T07:44:00Z",
+              "published_at_method": "OLE2 compound-document root-entry creation FILETIME",
+              "ole2_modified": "2026-04-09T11:09:07Z",
+              "retrieved_at": "2026-10-06T08:30:32Z",
+              "http_last_modified": "Thu, 09 Apr 2026 11:14:47 GMT",
+              "bytes": 171520,
+              "sha256": "585db074c122caec3293137e56742b5c9d77189205050aab328520a2dd1ec677",
+              "license": "CC BY 4.0",
+              "update_frequency": "SEMESTRAL",
+              "update_frequency_declared_as": "the catalogue's machine-readable ANNUAL_2 (twice a year)",
+              "observed_cadence": "SEMESTRAL",
+              "observed_cadence_evidence": "Annual (12-month) gaps from 2013 to 2024, then semestral (6-month) gaps from 2025. The catalogue's declared ANNUAL_2 (twice a year) is therefore correct for the recent period only. Both are recorded and neither is corrected.",
+              "source_state": "DEFINITIVE",
+              "edition_count_in_catalogue": 15,
+              "published_row_count": 667,
+              "identity_scope": "{edition}:{exact_code}"
+            },
+            "S2": {
+              "family": "S2",
+              "package": "203182-0-ambitos-remanente",
+              "dataset_url": "https://datos.madrid.es/dataset/203182-0-ambitos-remanente",
+              "title": "PGOUM 97. Edificabilidad remanente en ámbitos",
+              "snapshot_identity": "S2:2026-01:326edf48d221",
+              "snapshot_identity_form": "family : reference_date : sha256[:12]",
+              "resource_id": "203182-14-ambitos-remanente",
+              "resource_description": "PGOUM 97. Edificabilidad remanente en ámbitos. Enero 2026.",
+              "resource_url": "https://datos.madrid.es/dataset/203182-0-ambitos-remanente/resource/203182-14-ambitos-remanente/download/edificabilidad-remanente-01_01_2026_datos-abiertos.xls",
+              "schema_era": "S2_SPLIT_RESIDENTIAL_FLAT",
+              "schema_fingerprint": "475e4c2bf290ca1e",
+              "reference_date": "2026-01-01",
+              "reference_date_month": "2026-01",
+              "reference_date_method": "IN_FILE_EXCEL_SERIAL",
+              "reference_date_source_column": "ESTADO DEL DESARROLLO A FECHA",
+              "published_at": "2026-03-24",
+              "published_at_timestamp": "2026-03-24T07:44:00Z",
+              "published_at_method": "OLE2 compound-document root-entry creation FILETIME",
+              "ole2_modified": "2026-04-09T10:27:07Z",
+              "retrieved_at": "2026-10-06T08:30:50Z",
+              "http_last_modified": "Thu, 09 Apr 2026 10:28:30 GMT",
+              "bytes": 91136,
+              "sha256": "326edf48d2214e73175256777fd5083a3f656a05d0bcf0bec36b63ac6cc899e8",
+              "license": "CC BY 4.0",
+              "update_frequency": "SEMESTRAL",
+              "update_frequency_declared_as": "the catalogue's machine-readable ANNUAL_2 (twice a year)",
+              "observed_cadence": "SEMESTRAL",
+              "observed_cadence_evidence": "Annual (12-month) gaps from 2013 to 2024, then semestral (6-month) gaps from 2025. The catalogue's declared ANNUAL_2 (twice a year) is therefore correct for the recent period only. Both are recorded and neither is corrected.",
+              "source_state": "DEFINITIVE",
+              "edition_count_in_catalogue": 15,
+              "published_row_count": 239,
+              "distinct_code_count": 230,
+              "identity_scope": "{edition}:{exact_code}; row identity subordinate to exact code"
+            }
+          }
+        },
+        "state": {
+          "S1": {
+            "outcome": "NO_CHANGE",
+            "family": "S1",
+            "exactCode": "APE.02.20",
+            "entityIdentity": {
+              "previous": "S1:2025-07:e1ff3e0e0f63:APE.02.20",
+              "current": "S1:2026-01:585db074c122:APE.02.20"
+            },
+            "pairIdentity": {
+              "previous": "S1:2025-07:e1ff3e0e0f63",
+              "current": "S1:2026-01:585db074c122"
+            },
+            "dates": {
+              "previous": "2025-07-01",
+              "current": "2026-01-01"
+            },
+            "schemaEra": {
+              "previous": "S1_FOUR_PHASE_FLAT",
+              "current": "S1_FOUR_PHASE_FLAT"
+            },
+            "comparisonBasis": "Source-stated reference date and full SHA-256 fingerprint within one schema era; entity identity is scoped to each edition.",
+            "comparabilityVerdict": "COMPARABLE_WITHIN_SCHEMA_ERA",
+            "reason": "No substantive difference was detected in the fields with a defensible comparison.",
+            "evidence": {
+              "phaseDifferences": [],
+              "verbatimPhaseValues": {
+                "previous": [
+                  {
+                    "key": "planeamiento",
+                    "value": "PGOUM-97"
+                  },
+                  {
+                    "key": "gestion",
+                    "value": "Sin Iniciar"
+                  },
+                  {
+                    "key": "urbanizacion_proyecto",
+                    "value": "Sin Iniciar"
+                  },
+                  {
+                    "key": "urbanizacion_obras",
+                    "value": "Sin Iniciar"
+                  }
+                ],
+                "current": [
+                  {
+                    "key": "planeamiento",
+                    "value": "PGOUM-97"
+                  },
+                  {
+                    "key": "gestion",
+                    "value": "Sin Iniciar"
+                  },
+                  {
+                    "key": "urbanizacion_proyecto",
+                    "value": "Sin Iniciar"
+                  },
+                  {
+                    "key": "urbanizacion_obras",
+                    "value": "Sin Iniciar"
+                  }
+                ]
+              },
+              "cosmeticTextDifferences": []
+            },
+            "cosmeticOnly": false,
+            "instrument": null,
+            "modificationCaveat": null
+          },
+          "S2": {
+            "outcome": "NO_CHANGE",
+            "family": "S2",
+            "exactCode": "APE.02.20",
+            "entityIdentity": {
+              "previous": "S2:2025-07:09f6859a2541:APE.02.20",
+              "current": "S2:2026-01:326edf48d221:APE.02.20"
+            },
+            "pairIdentity": {
+              "previous": "S2:2025-07:09f6859a2541",
+              "current": "S2:2026-01:326edf48d221"
+            },
+            "dates": {
+              "previous": "2025-07-01",
+              "current": "2026-01-01"
+            },
+            "schemaEra": {
+              "previous": "S2_SPLIT_RESIDENTIAL_FLAT",
+              "current": "S2_SPLIT_RESIDENTIAL_FLAT"
+            },
+            "comparisonBasis": "Source-stated reference date and full SHA-256 fingerprint within one schema era; entity identity is scoped to each edition.",
+            "comparabilityVerdict": "COMPARABLE_WITHIN_SCHEMA_ERA",
+            "reason": "No substantive difference was detected in the fields with a defensible comparison.",
+            "evidence": {
+              "previousRowCount": 1,
+              "currentRowCount": 1,
+              "situationDifferences": [],
+              "situations": {
+                "previousVerbatim": [
+                  "FASE GESTION Y/O URBANIZACION"
+                ],
+                "currentVerbatim": [
+                  "FASE GESTION Y/O URBANIZACION"
+                ],
+                "matched": [
+                  {
+                    "basis": "SINGLE_ROW_PER_EDITION",
+                    "previous": "FASE GESTION Y/O URBANIZACION",
+                    "current": "FASE GESTION Y/O URBANIZACION",
+                    "previousSourceRow": 6,
+                    "currentSourceRow": 5
+                  }
+                ],
+                "unmatchedPrevious": [],
+                "unmatchedCurrent": []
+              },
+              "observations": {
+                "previousVerbatim": [
+                  ""
+                ],
+                "currentVerbatim": [
+                  ""
+                ],
+                "substantiveDifferences": []
+              },
+              "rowCorrespondence": {
+                "outcome": "ROW_MATCHED",
+                "reason": null,
+                "matchingBasis": "Exact ámbito code plus unique, stable SITUACION DEL ÁMBITO value within each edition."
+              },
+              "cosmeticTextDifferences": []
+            },
+            "cosmeticOnly": false,
+            "instrument": null,
+            "modificationCaveat": null
+          }
+        },
+        "buildability": {
+          "state": "NO_CHANGE",
+          "exactCode": "APE.02.20",
+          "dates": {
+            "previous": "2025-07-01",
+            "current": "2026-01-01"
+          },
+          "pairIdentity": {
+            "previous": "S2:2025-07:09f6859a2541",
+            "current": "S2:2026-01:326edf48d221"
+          },
+          "comparabilityVerdict": "COMPARABLE_WITHIN_SCHEMA_ERA",
+          "rowMatching": {
+            "basis": "Exact code plus a unique, stable SITUACION DEL ÁMBITO value within each edition.",
+            "previousRowCount": 1,
+            "currentRowCount": 1,
+            "matchedRowCount": 1,
+            "unmatchedPrevious": [],
+            "unmatchedCurrent": [],
+            "reasons": []
+          },
+          "reason": null,
+          "observedDifferenceCount": 0,
+          "withheldCellCount": 0,
+          "differences": [
+            {
+              "rowMatching": "UNIQUE_SITUACION_KEY",
+              "situationKey": "FASE GESTION Y/O URBANIZACION",
+              "situationVerbatim": {
+                "previous": "FASE GESTION Y/O URBANIZACION",
+                "current": "FASE GESTION Y/O URBANIZACION"
+              },
+              "previousSourceRow": 6,
+              "currentSourceRow": 5,
+              "useClasses": [
+                {
+                  "useClass": "colectiva_residencial",
+                  "state": "NO_CHANGE",
+                  "previous": {
+                    "value": 8775,
+                    "unit": "m² edificable",
+                    "sourceColumn": "Colectiva. Edif. Residencial"
+                  },
+                  "current": {
+                    "value": 8775,
+                    "unit": "m² edificable",
+                    "sourceColumn": "Colectiva. Edif. Residencial"
+                  },
+                  "observedDifference": 0
+                },
+                {
+                  "useClass": "unifamiliar_residencial",
+                  "state": "NO_CHANGE",
+                  "previous": {
+                    "value": 0,
+                    "unit": "m² edificable",
+                    "sourceColumn": "Unifamiliar. Edif. Residencial"
+                  },
+                  "current": {
+                    "value": 0,
+                    "unit": "m² edificable",
+                    "sourceColumn": "Unifamiliar. Edif. Residencial"
+                  },
+                  "observedDifference": 0
+                },
+                {
+                  "useClass": "industrial",
+                  "state": "NO_CHANGE",
+                  "previous": {
+                    "value": 0,
+                    "unit": "m² edificable",
+                    "sourceColumn": "Edif. Industrial"
+                  },
+                  "current": {
+                    "value": 0,
+                    "unit": "m² edificable",
+                    "sourceColumn": "Edif. Industrial"
+                  },
+                  "observedDifference": 0
+                },
+                {
+                  "useClass": "terciario",
+                  "state": "NO_CHANGE",
+                  "previous": {
+                    "value": 0,
+                    "unit": "m² edificable",
+                    "sourceColumn": "Edif. Terciario"
+                  },
+                  "current": {
+                    "value": 0,
+                    "unit": "m² edificable",
+                    "sourceColumn": "Edif. Terciario"
+                  },
+                  "observedDifference": 0
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "scope": "PLANNING_AMBITO",
+      "unit": "unit.ambitoChange",
+      "sourceId": "planning_ambito_state",
+      "freshness": {
+        "reference_date": "2026-01-01",
+        "published_at": "2026-03-24",
+        "retrieved_at": "2026-10-06T08:30:32Z",
+        "update_frequency": "SEMESTRAL",
+        "source_state": "DEFINITIVE",
+        "observed_cadence": "SEMESTRAL"
+      },
+      "ceiling": "Four INDEPENDENT published administrative development-phase values per planning ámbito, and available planning buildability (edificabilidad disponible) by use class in m² edificable, as published in ONE dated edition of each official family. The four phase fields do NOT form one overall completion stage: they are multi-dimensional, the publisher documents no ordering, and no stage, stage number, progression, percentage, completion, advancement, delay or timeline is derivable from them. A published phase state is an ADMINISTRATIVE state, never proof of physical construction progress (PLANNING_STATE_TRANSITION != PHYSICAL_URBAN_CHANGE). 'No Necesita' is a distinct published value whose precise meaning the audited documentation does not define; it does not mean not applicable, skipped, complete, zero or unavailable. 'PGOUM-85' and 'PGOUM-97' are plan-of-origin markers occupying phase cells, not progress states. Available buildability is what the plan makes available, NOT what remains to be physically built and NOT an estimate of what will be built. NO dwelling count is published or derivable: the source's Nº Viviendas columns are residential buildability ÷ 100 with fractional values and are excluded. Every figure describes the WHOLE ámbito and is never apportioned into a Lens circle, a barrio or any sub-area, and never combined with a value of another analytical scope. K6 shows one current edition per family. K7 separately compares the pinned 2025-07-01 and 2026-01-01 tabular editions within the matching current schema eras; the comparison does not cover geometry. Geometry and identifiers come through a separate official route; every quantity and state here comes from the dated CC BY 4.0 editions.",
+      "derivation": "EDITION_DIFF"
+    },
+    "abstention": null
+  },
+  "sources": [
+    {
+      "id": "planning_ambito_state",
+      "display_name": "Published ambito development state and available buildability (PGOUM 97)",
+      "authority": "Ayuntamiento de Madrid. Área de Gobierno de Urbanismo, Medio Ambiente y Movilidad. Dirección General de Planificación Estratégica",
+      "scope": "PLANNING_AMBITO",
+      "dataset_url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos",
+      "secondary_dataset_url": "https://datos.madrid.es/dataset/203182-0-ambitos-remanente",
+      "retrieval_route": "datos.madrid.es CKAN package_show for 203200-0-desarrollo-ambitos and 203182-0-ambitos-remanente, resolving every XLS resource, then reading each edition's own stated reference date from inside the file and selecting the newest one WITHIN the current schema era (S1_FOUR_PHASE_FLAT / S2_SPLIT_RESIDENTIAL_FLAT). Legacy BIFF8 .xls OLE2 compound documents, read with xlrd 2.0.2 pinned in scripts/requirements-build.txt. Build time only: the browser reads the committed artifact and never requests datos.madrid.es.",
+      "artifact": "planning/madrid_ambito_state.json",
+      "builder": "scripts/build_ambito_development_state.py",
+      "reference_date": "2026-01-01",
+      "published_at": "2026-03-24",
+      "retrieved_at": "2026-10-06T08:30:32Z",
+      "update_frequency": "SEMESTRAL",
+      "source_state": "DEFINITIVE",
+      "source_period_semantics": "K6 current evidence has the source-stated reference date 2026-01-01. K7 compares exactly two source-stated tabular editions, 2025-07-01 and 2026-01-01, within the current S1_FOUR_PHASE_FLAT and S2_SPLIT_RESIDENTIAL_FLAT schema eras. The K7 surface shows both dates. Where the K2 rail requires one date, it applies the existing oldest-contributor rule and uses 2025-07-01. Each edition separately records its source URL, resource identity, full fingerprint, schema era and retrieval provenance. Geometry is a separate source with no declared date.",
+      "interpretation_ceiling": "Four INDEPENDENT published administrative development-phase values per planning ámbito, and available planning buildability (edificabilidad disponible) by use class in m² edificable, as published in ONE dated edition of each official family. The four phase fields do NOT form one overall completion stage: they are multi-dimensional, the publisher documents no ordering, and no stage, stage number, progression, percentage, completion, advancement, delay or timeline is derivable from them. A published phase state is an ADMINISTRATIVE state, never proof of physical construction progress (PLANNING_STATE_TRANSITION != PHYSICAL_URBAN_CHANGE). 'No Necesita' is a distinct published value whose precise meaning the audited documentation does not define; it does not mean not applicable, skipped, complete, zero or unavailable. 'PGOUM-85' and 'PGOUM-97' are plan-of-origin markers occupying phase cells, not progress states. Available buildability is what the plan makes available, NOT what remains to be physically built and NOT an estimate of what will be built. NO dwelling count is published or derivable: the source's Nº Viviendas columns are residential buildability ÷ 100 with fractional values and are excluded. Every figure describes the WHOLE ámbito and is never apportioned into a Lens circle, a barrio or any sub-area, and never combined with a value of another analytical scope. K6 shows one current edition per family. K7 separately compares the pinned 2025-07-01 and 2026-01-01 tabular editions within the matching current schema eras; the comparison does not cover geometry. Geometry and identifiers come through a separate official route; every quantity and state here comes from the dated CC BY 4.0 editions.",
+      "license": "CC BY 4.0",
+      "editions": {
+        "development_state": {
+          "snapshot_identity": "S1:2026-01:585db074c122",
+          "resource_id": "203200-15-desarrollo-ambitos",
+          "schema_era": "S1_FOUR_PHASE_FLAT",
+          "sha256": "585db074c122caec3293137e56742b5c9d77189205050aab328520a2dd1ec677"
+        },
+        "available_buildability": {
+          "snapshot_identity": "S2:2026-01:326edf48d221",
+          "resource_id": "203182-14-ambitos-remanente",
+          "schema_era": "S2_SPLIT_RESIDENTIAL_FLAT",
+          "sha256": "326edf48d2214e73175256777fd5083a3f656a05d0bcf0bec36b63ac6cc899e8"
+        },
+        "selection_rule": "The newest STATED REFERENCE DATE within the current schema era. Never by resource id, resource name, filename or catalogue position: the id order is not chronological (203200-15 is Enero 2026 while 203200-16 is Enero 2025), so selecting by id returns the wrong edition.",
+        "snapshot_identity_form": "family : reference_date : sha256[:12]",
+        "note": "K6 keeps one current edition per family as its primary evidence. K7 stores a separate, fixed comparison pair: the source-stated 2025-07-01 and 2026-01-01 editions. The pair is selected by reference date plus full SHA-256, and does not mutate the K6 current-edition object. A later edition requires an independent comparability gate before any pair change."
+      },
+      "change_detection": {
+        "pair_id": "2025-07__2026-01",
+        "comparison_basis": "Two explicitly named editions selected by source-stated reference date plus full SHA-256; comparison is within one schema era. Entity identity is {edition}:{exact_code}.",
+        "comparability_verdict": "COMPARABLE_WITHIN_SCHEMA_ERA",
+        "oldest_contributor_reference_date": "2025-07-01",
+        "editions": {
+          "previous": {
+            "S1": {
+              "reference_date": "2025-07-01",
+              "resource_id": "203200-2-desarrollo-ambitos-xls",
+              "sha256": "e1ff3e0e0f63fe59dbe64d10b319026917c34d9086f395e9787b6fe3661cf49d",
+              "schema_era": "S1_FOUR_PHASE_FLAT",
+              "schema_fingerprint": "1206336af6b4176d",
+              "resource_url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos/resource/203200-2-desarrollo-ambitos-xls/download/203200-2-desarrollo-ambitos-xls.xls",
+              "retrieved_at": "2026-10-06T08:30:07Z",
+              "published_at": null
+            },
+            "S2": {
+              "reference_date": "2025-07-01",
+              "resource_id": "203182-10-ambitos-remanente-xls",
+              "sha256": "09f6859a2541ea8c31eb3ce47464ca5fbec64d38f57a7b3b435bb65e4a5cb286",
+              "schema_era": "S2_SPLIT_RESIDENTIAL_FLAT",
+              "schema_fingerprint": "475e4c2bf290ca1e",
+              "resource_url": "https://datos.madrid.es/dataset/203182-0-ambitos-remanente/resource/203182-10-ambitos-remanente-xls/download/203182-10-ambitos-remanente-xls.xls",
+              "retrieved_at": "2026-10-06T08:30:45Z",
+              "published_at": null
+            }
+          },
+          "current": {
+            "S1": {
+              "reference_date": "2026-01-01",
+              "resource_id": "203200-15-desarrollo-ambitos",
+              "sha256": "585db074c122caec3293137e56742b5c9d77189205050aab328520a2dd1ec677",
+              "schema_era": "S1_FOUR_PHASE_FLAT",
+              "schema_fingerprint": "1206336af6b4176d",
+              "resource_url": "https://datos.madrid.es/dataset/203200-0-desarrollo-ambitos/resource/203200-15-desarrollo-ambitos/download/situacionambitos_01_01_2026distritos.xls",
+              "retrieved_at": "2026-10-06T08:30:32Z",
+              "published_at": "2026-03-24"
+            },
+            "S2": {
+              "reference_date": "2026-01-01",
+              "resource_id": "203182-14-ambitos-remanente",
+              "sha256": "326edf48d2214e73175256777fd5083a3f656a05d0bcf0bec36b63ac6cc899e8",
+              "schema_era": "S2_SPLIT_RESIDENTIAL_FLAT",
+              "schema_fingerprint": "475e4c2bf290ca1e",
+              "resource_url": "https://datos.madrid.es/dataset/203182-0-ambitos-remanente/resource/203182-14-ambitos-remanente/download/edificabilidad-remanente-01_01_2026_datos-abiertos.xls",
+              "retrieved_at": "2026-10-06T08:30:50Z",
+              "published_at": "2026-03-24"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "method": {
+    "classification": "NAMED_DETERMINISTIC_TRANSFORMATION",
+    "derivation": "EDITION_DIFF",
+    "description": "Computed: comparison of the values published in two official editions.",
+    "performed_at_export": false
+  },
+  "limitations": [
+    {
+      "kind": "SOURCE_CEILING",
+      "text": "Four INDEPENDENT published administrative development-phase values per planning ámbito, and available planning buildability (edificabilidad disponible) by use class in m² edificable, as published in ONE dated edition of each official family. The four phase fields do NOT form one overall completion stage: they are multi-dimensional, the publisher documents no ordering, and no stage, stage number, progression, percentage, completion, advancement, delay or timeline is derivable from them. A published phase state is an ADMINISTRATIVE state, never proof of physical construction progress (PLANNING_STATE_TRANSITION != PHYSICAL_URBAN_CHANGE). 'No Necesita' is a distinct published value whose precise meaning the audited documentation does not define; it does not mean not applicable, skipped, complete, zero or unavailable. 'PGOUM-85' and 'PGOUM-97' are plan-of-origin markers occupying phase cells, not progress states. Available buildability is what the plan makes available, NOT what remains to be physically built and NOT an estimate of what will be built. NO dwelling count is published or derivable: the source's Nº Viviendas columns are residential buildability ÷ 100 with fractional values and are excluded. Every figure describes the WHOLE ámbito and is never apportioned into a Lens circle, a barrio or any sub-area, and never combined with a value of another analytical scope. K6 shows one current edition per family. K7 separately compares the pinned 2025-07-01 and 2026-01-01 tabular editions within the matching current schema eras; the comparison does not cover geometry. Geometry and identifiers come through a separate official route; every quantity and state here comes from the dated CC BY 4.0 editions.",
+      "verbatim": true,
+      "language": "en"
+    },
+    {
+      "kind": "METHODOLOGICAL_LIMIT",
+      "text": "Compares the published values of two dated official editions, nothing between or after them.",
+      "verbatim": false,
+      "language": "en"
+    },
+    {
+      "kind": "METHODOLOGICAL_LIMIT",
+      "text": "A difference is not necessarily progress, and the editions do not by themselves say why it occurred.",
+      "verbatim": false,
+      "language": "en"
+    },
+    {
+      "kind": "METHODOLOGICAL_LIMIT",
+      "text": "Describes published planning evidence, not physical change on the ground.",
+      "verbatim": false,
+      "language": "en"
+    }
+  ],
+  "reproducibility": {
+    "canonical_k11_state_url": "https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens/?v=1&s=20261029-m3-dossier-v1&m=PLACE&a=40.39554%2C-3.69176%2C900&be=0&al=A&ly=&sc=LENS&rd=analyst&lg=en",
+    "registered_question_shape": "AMBITO_EDITION_DIFF",
+    "question_parameters": {
+      "code": "APE.02.20"
+    },
+    "source_ids": [
+      "planning_ambito_state"
+    ],
+    "dossier_schema_version": 1,
+    "restores": "The K11 URL restores validated workspace state carried by URL schema v1.",
+    "does_not_restore": "The K11 URL does not restore the selected M2 question or this saved answer. The dossier preserves that exported record.",
+    "future_evidence_warning": "Reopening Lens later may produce different evidence if published artifacts change. A matching deployment build id alone does not prove byte-identical evidence.",
+    "geometry_guidance": "Use the separate K11 five-file evidence export when complete workspace geometry or cross-mode evidence is required."
+  }
+}

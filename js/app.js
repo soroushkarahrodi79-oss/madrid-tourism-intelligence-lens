@@ -26,7 +26,7 @@ const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 // modules load identically however the page is served. They are ES modules
 // (shared with `node --test`), while the rest of the app is classic scripts.
 const MODULE_BASE = (document.currentScript && document.currentScript.src) || window.location.href;
-const AREA_ASSET_VERSION = "20261015-1";
+const AREA_ASSET_VERSION = "20261029-m3-dossier-v1";
 const moduleUrl = (name) => new URL(`${name}?v=${AREA_ASSET_VERSION}`, MODULE_BASE).href;
 
 // K11 (#73): the evidence-snapshot identity carried in a shared link, so a reader
@@ -374,7 +374,7 @@ const shell = {
 };
 // M2 question explorer state (see the M2 block near the end of this file). Declared
 // here because refresh() can reach questionExplorerNotify() before that block runs.
-const questionExplorer = { module: null, view: null, request: null, registry: null, parts: null };
+const questionExplorer = { module: null, view: null, request: null, registry: null, parts: null, dossierRequest: null, dossierUrls: [], lastDossier: null };
 let lensBHasBeenInitialized = false;
 let timestep = "15:00";
 
@@ -9464,6 +9464,7 @@ function loadQuestionExplorer() {
           reading: () => shell.reading,
           setReading: setShellReading,
           openDrawer: ({ opener, scope, ambitoCode }) => openEvidenceDrawer({ opener, scope, ambitoCode }),
+          createDossier: createQuestionDossier,
         },
       });
       document.getElementById("questionExplorer").hidden = false;
@@ -9532,6 +9533,118 @@ function questionEnsure(questionId) {
   }
 }
 
+// M3: prepare the two-file dossier only from a completed frozen M2 outcome.
+// The pure assembler is fetched on the explicit action, so ordinary map and
+// question interactions pay no dossier-generation cost. Context is checked
+// before and after the asynchronous module load; an old answer can never be
+// labelled as describing the current Lens, radius, selection or date window.
+async function createQuestionDossier({ outcome, statusNode, button }) {
+  const copy = questionExplorer.module.copyFor(shellLanguage()).verify;
+  const fail = () => {
+    if (statusNode && statusNode.isConnected) {
+      statusNode.dataset.tone = "error";
+      statusNode.textContent = copy.dossierFailed;
+    }
+  };
+  if (!outcome || questionExplorer.module.contextKey(questionContext()) !== outcome.contextKey || questionExplorer.view.snapshot().stale) {
+    fail();
+    return;
+  }
+  if (questionExplorer.dossierRequest) return questionExplorer.dossierRequest;
+  if (statusNode) {
+    statusNode.dataset.tone = "pending";
+    statusNode.textContent = copy.dossierPreparing;
+  }
+  questionExplorer.dossierRequest = import(moduleUrl("evidence-dossier.js"))
+    .then((dossierModule) => {
+      const context = questionContext();
+      const currentKey = questionExplorer.module.contextKey(context);
+      if (currentKey !== outcome.contextKey || questionExplorer.view.snapshot().stale) throw new Error("DOSSIER_CONTEXT_STALE");
+      const registry = questionRegistry();
+      if (!registry || !shell.registry) throw new Error("DOSSIER_REGISTRY_UNAVAILABLE");
+      const presentation = questionExplorer.module.presentOutcome(outcome, {
+        language: shellLanguage(), reading: shell.reading, context, registry,
+      });
+      const sourceIds = [];
+      const addSource = (result) => {
+        if (result && result.kind === "EVIDENCE" && result.sourceId && !sourceIds.includes(result.sourceId)) sourceIds.push(result.sourceId);
+      };
+      addSource(outcome.result);
+      for (const trace of outcome.trace || []) addSource(trace.result);
+      const sourceRecords = sourceIds.map((id) => {
+        // K13 is the identity gatekeeper. The raw record is copied only after
+        // SOURCE_PROVENANCE authenticates the id against this committed registry.
+        if (!registry.sourceProvenance(id)) return null;
+        return shell.registry.sources.find((source) => source.id === id) || null;
+      }).filter(Boolean);
+      const generatedAt = new Date().toISOString();
+      const dossier = dossierModule.buildEvidenceDossier({
+        outcome,
+        presentation,
+        context,
+        currentContextKey: currentKey,
+        sourceRecords,
+        generatedAt,
+        stateUrl: buildShareUrl(window.location.href, k11CurrentState()),
+        identification: {
+          language: shellLanguage(),
+          reading: shell.reading,
+          questionExplorerModelVersion: questionExplorer.module.MODEL_VERSION,
+          registryContractVersion: shell.registry.contract_version || null,
+          deploymentBuildId: K11_SNAPSHOT_ID,
+        },
+      });
+      const files = dossierModule.buildDossierFiles(dossier);
+      questionExplorer.lastDossier = { dossier, files };
+      deliverQuestionDossier(files, statusNode, copy);
+      return { dossier, files };
+    })
+    .catch((error) => {
+      console.warn("Evidence dossier unavailable", error);
+      fail();
+      return null;
+    })
+    .finally(() => {
+      questionExplorer.dossierRequest = null;
+      if (button && button.isConnected) button.disabled = false;
+    });
+  return questionExplorer.dossierRequest;
+}
+
+function deliverQuestionDossier(files, statusNode, copy) {
+  for (const item of questionExplorer.dossierUrls) URL.revokeObjectURL(item.url);
+  const created = files.map((file) => ({
+    name: file.name,
+    url: URL.createObjectURL(new Blob([file.text], { type: file.mime })),
+  }));
+  questionExplorer.dossierUrls = created;
+  for (const file of created) {
+    const anchor = document.createElement("a");
+    anchor.href = file.url;
+    anchor.download = file.name;
+    anchor.rel = "noopener";
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+  }
+  if (statusNode && statusNode.isConnected) {
+    statusNode.dataset.tone = "ok";
+    statusNode.textContent = `${copy.dossierReady} `;
+    for (const file of created) {
+      const link = document.createElement("a");
+      link.href = file.url;
+      link.download = file.name;
+      link.rel = "noopener";
+      link.textContent = file.name.endsWith(".html") ? "HTML" : "JSON";
+      statusNode.append(link, document.createTextNode(" "));
+    }
+  }
+  setTimeout(() => {
+    for (const file of created) URL.revokeObjectURL(file.url);
+    questionExplorer.dossierUrls = questionExplorer.dossierUrls.filter((item) => !created.includes(item));
+  }, 120000);
+}
+
 // Prefetched like the finder's resolver: after `load`, on idle, never on the
 // critical path. Opening the finder first requests it immediately.
 function prefetchQuestionExplorer() {
@@ -9550,6 +9663,7 @@ if (haloRegressionRequested && haloRegressionLocal) {
     model: () => questionExplorer.module,
     view: () => questionExplorer.view,
     snapshot: () => (questionExplorer.view ? questionExplorer.view.snapshot() : null),
+    dossier: () => questionExplorer.lastDossier,
   });
   window.__GEO_SEARCH_TEST__ = Object.freeze({
     indexBuildMs: () => geoSearch.indexBuildMs,

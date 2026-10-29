@@ -1967,6 +1967,10 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 .qx-scope-instance{margin:var(--s-1) 0 0;font-size:var(--t-meta);color:var(--chrome-text-control-caption);overflow-wrap:anywhere}
 .qx-reference[data-declared="false"]{font-weight:650}
 .qx-actions{display:flex;flex-wrap:wrap;gap:var(--s-2)}
+.qx-action:disabled{cursor:not-allowed;opacity:.58}
+.qx-dossier-status{margin:var(--s-2) 0 0;font-size:var(--t-meta);line-height:1.45;color:var(--chrome-text-metadata);overflow-wrap:anywhere}
+.qx-dossier-status[data-tone="error"]{color:var(--chrome-text-control-strong);font-weight:650}
+.qx-dossier-status a{display:inline-block;margin-inline-end:var(--s-1);color:var(--chrome-text-control-strong);font-weight:650;text-decoration:underline}
 .qx-share-note{margin:var(--s-2) 0 0;font-size:var(--t-meta);line-height:1.45;color:var(--chrome-text-metadata)}
 .qx-loading{margin:var(--s-2) 0 0;font-size:var(--t-meta);line-height:1.45}
 @media(max-width:850px){
