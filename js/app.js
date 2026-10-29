@@ -8930,16 +8930,51 @@ const geoSearch = {
 let geoSearchRenderer = null;
 let geoSearchLayer = null;
 
-import(moduleUrl("geo-search.js"))
-  .then((module) => {
-    geoSearch.module = module;
-    renderGeoSearch();
-  })
-  .catch((error) => {
-    geoSearch.module = null;
-    console.warn("unified geographic search unavailable", error);
-    renderGeoSearch();
-  });
+// The finder starts CLOSED, so its resolver is not needed to render the page.
+// The module is therefore kept OFF the critical path: it is fetched when the
+// browser goes idle, or immediately on the first open if the reader gets there
+// first, whichever happens sooner. The promise is memoised, so the two paths can
+// race without ever issuing a second request.
+//
+// This is a loading decision only. Nothing about what search does, what it
+// claims, or which universes it covers depends on when the module arrives: until
+// it is here the surface reports its honest "loading" state, exactly as it does
+// while the official artifacts are still in flight.
+let geoSearchModuleRequest = null;
+
+function loadGeoSearchModule() {
+  if (geoSearchModuleRequest) return geoSearchModuleRequest;
+  geoSearchModuleRequest = import(moduleUrl("geo-search.js"))
+    .then((module) => {
+      geoSearch.module = module;
+      renderGeoSearch();
+      return module;
+    })
+    .catch((error) => {
+      geoSearch.module = null;
+      console.warn("unified geographic search unavailable", error);
+      renderGeoSearch();
+      return null;
+    });
+  return geoSearchModuleRequest;
+}
+
+// Prefetch, so the common case is an already-loaded resolver by the time anyone
+// reaches for it — but strictly AFTER the page has finished loading.
+//
+// Idle alone is not enough: the main thread can report idle while the official
+// geography and planning artifacts are still in flight, and a measurement showed
+// the fetch starting 10 ms BEFORE the load event ended. Waiting for `load` and
+// only then asking for idle makes "not on the initial critical path" a property
+// of the code rather than a hope about scheduler timing. The timeout bounds a
+// browser that never reports idle; the setTimeout fallback covers engines
+// without requestIdleCallback (Safari before 16.4).
+function prefetchGeoSearchModule() {
+  if (typeof requestIdleCallback === "function") requestIdleCallback(() => loadGeoSearchModule(), { timeout: 5000 });
+  else setTimeout(loadGeoSearchModule, 1500);
+}
+if (document.readyState === "complete") prefetchGeoSearchModule();
+else window.addEventListener("load", prefetchGeoSearchModule, { once: true });
 
 // Rebuild only when the set of AVAILABLE universes actually changes, so a render
 // triggered by a Lens move or a language switch never re-walks the entity lists.
@@ -9063,6 +9098,10 @@ function setGeoSearchOpen(open) {
   panel.hidden = !geoSearch.open;
   toggle.setAttribute("aria-expanded", geoSearch.open ? "true" : "false");
   if (geoSearch.open) {
+    // Opening is the deadline for the resolver. If the idle prefetch has not run
+    // yet this issues the request now and the surface shows its loading state
+    // until it resolves; if it has, this is a no-op on the memoised promise.
+    loadGeoSearchModule();
     renderGeoSearch();
     applyGeoSearchPlacement();
     const input = document.getElementById("geoSearchQuery");
@@ -9374,6 +9413,8 @@ document.addEventListener("keydown", (event) => {
 if (haloRegressionRequested && haloRegressionLocal) {
   window.__GEO_SEARCH_TEST__ = Object.freeze({
     indexBuildMs: () => geoSearch.indexBuildMs,
+    moduleRequested: () => geoSearchModuleRequest !== null,
+    whenModuleReady: () => loadGeoSearchModule(),
     // Read-only. The two independent Lens radii, so a regression can prove the
     // explicit Analyze action left both of them exactly as the reader set them.
     radii: () => ({ ...radii }),

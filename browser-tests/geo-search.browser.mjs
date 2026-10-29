@@ -80,6 +80,13 @@ const world = (page) => page.evaluate(() => ({
 async function openSearch(page) {
   await page.locator("#geoSearchToggle").click();
   await page.waitForFunction(() => !document.querySelector("#geoSearchPanel").hasAttribute("hidden"));
+  // The resolver is deliberately off the critical path, so opening may precede
+  // its arrival. A test asserting on results waits for the surface to say ready;
+  // the honest loading state in between is covered by its own test.
+  await page.waitForFunction(() => {
+    const state = document.querySelector("#geoSearchPanel").dataset.state;
+    return state === "ready" || state === "unavailable";
+  });
 }
 async function selectFirst(page, text) {
   await page.locator("#geoSearchQuery").fill(text);
@@ -109,6 +116,38 @@ test("the finder is closed by default, opens from the header and indexes the com
   assert.match(await page.locator("#geoSearchCoverage").textContent(), /21 official districts, 131 official barrios and 724 planning ámbitos/);
   assert.match(await page.locator("#geoSearchCoverage").textContent(), /Street addresses are not searchable/);
   assert.deepEqual(errors, []);
+});
+
+test("the search resolver is kept off the initial critical path", async (t) => {
+  // The finder starts closed, so its resolver must not compete with the page's
+  // own first render. This asserts the LOADING property directly from the
+  // browser's resource timing, not from a code reading.
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  t.after(() => context.close());
+  const page = await context.newPage();
+  page.setDefaultTimeout(30000);
+  await page.route("**/*", (route) => (new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort()));
+  await page.goto(`http://127.0.0.1:${port}/?haloRegressionTest=1`, { waitUntil: "load" });
+
+  // It still arrives on its own, with nobody opening the finder: the idle
+  // prefetch is a deferral, not a removal.
+  await page.waitForFunction(() => performance.getEntriesByType("resource").some((entry) => entry.name.includes("geo-search.js")));
+  const timing = await page.evaluate(() => {
+    const navigation = performance.getEntriesByType("navigation")[0];
+    const resource = performance.getEntriesByType("resource").find((entry) => entry.name.includes("geo-search.js"));
+    return { loadEventEnd: navigation.loadEventEnd, started: resource.startTime };
+  });
+  assert.ok(
+    timing.started > timing.loadEventEnd,
+    `the resolver started at ${timing.started.toFixed(0)}ms but the load event ended at ${timing.loadEventEnd.toFixed(0)}ms, so it is on the critical path`,
+  );
+
+  // And the deferral never costs the reader anything: opening still reaches a
+  // ready surface, with the real universes indexed.
+  await page.locator("#geoSearchToggle").click();
+  await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.state === "ready");
+  const counts = await page.evaluate(() => window.__GEO_SEARCH_TEST__.snapshot().counts);
+  assert.deepEqual(counts, { total: 877, MUNICIPALITY: 1, DISTRICT: 21, BARRIO: 131, AMBITO: 724 });
 });
 
 test("typing moves no Lens, no camera, no radius, no mode and no layer", async (t) => {

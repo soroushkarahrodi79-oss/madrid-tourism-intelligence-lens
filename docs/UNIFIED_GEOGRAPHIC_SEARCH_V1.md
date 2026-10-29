@@ -270,3 +270,80 @@ data as zero, or suppress a source limitation.
    was kept for consistency rather than diverging from it.
 4. **Physical-device validation was not performed.** All responsive evidence
    comes from browser emulation at the ten specified viewports.
+
+## 11. Initial-payload budget
+
+The threshold set before implementation was **initial payload growth ≤ 25 KB,
+code only, no new data file**. It was stated and measured in **uncompressed
+source bytes**. That unit is kept here; it is not restated after the fact.
+
+### What was measured
+
+GitHub Pages was checked directly rather than assumed: it answers
+`Content-Encoding: gzip` for `js/app.js` and `css/app.css` (it did not offer
+Brotli for those requests), so **gzip is the production transfer**. Brotli is
+reported below for information only.
+
+`js/geo-search.js` is now fetched **after the `load` event**: the finder starts
+closed, so its resolver is not needed to render the page. It is requested on
+idle once loading has finished, or immediately on first open, whichever comes
+first, through one memoised promise. A regression asserts the property from the
+browser's own resource timing, not from reading the code.
+
+| | raw | gzip -9 | Brotli q11 |
+|---|---|---|---|
+| **Critical path** (document, CSS, classic scripts) | **+46,551 B** | **+11,730 B** | +8,790 B |
+| Deferred (`js/geo-search.js`, after `load`) | +15,852 B | +6,081 B | +5,013 B |
+| Total | +62,403 B | +17,811 B | +13,803 B |
+
+Against the budget's own unit the critical path is **+46,551 B, which is 1.86×
+the 25 KB allowed**. In production transfer terms it is +11,730 B, within it.
+Both are reported; neither replaces the other.
+
+### Effect on loading
+
+Fast 3G (1.6 Mbit/s, 562.5 ms RTT), gzip served, external hosts blocked, five
+runs per side, medians:
+
+| | base | after | Δ |
+|---|---|---|---|
+| DOMContentLoaded | 7,398 ms | 7,575 ms | +177 ms (+2.4 %) |
+| load event | 7,398 ms | 7,575 ms | +177 ms (+2.4 %) |
+| First Contentful Paint | 3,660 ms | 3,840 ms | +180 ms (+4.9 %) |
+
+Run-to-run spread was ≈110 ms on each side, so the delta is signal, not noise.
+
+What gates the finder on that link is **not** its resolver:
+
+| milestone | ms |
+|---|---|
+| load event | 7,589 |
+| `geo-search.js` fetched | 8,816 |
+| `madrid_admin.geojson` fetched | 58,037 |
+| **finder reports ready** | **58,037** |
+| `madrid_ambitos.geojson` fetched | 74,199 |
+| existing planning explorer ready | 74,231 |
+
+The resolver arrives 49 seconds before it matters. Readiness is set by the
+official artifacts the rest of the application already waits for — and the
+finder is usable 16 seconds *earlier* than the existing explorer, because it can
+answer over the administrative universe while planning is still arriving.
+
+### Why the remaining 46,551 B were not cut further
+
+The critical-path remainder is `js/app.js` +25,968 B, `js/shell-copy.js`
++8,996 B, `css/app.css` +8,643 B and `index.html` +2,944 B. None of it can be
+removed without weakening something the work is required to protect:
+
+* the ES/EN copy is the interpretation-ceiling wording — the whole-versus-part
+  caveat, the withheld-capability reasons, the absent/loading distinction. It is
+  a scientific safeguard, not decoration;
+* the CSS is design-token styling with no literals left to reclaim;
+* the adapter is the code that wires the surface and must run to do so.
+
+One option *would* meet the budget: extracting the ~500-line adapter from
+`js/app.js` into a second deferred module. It is written up as the alternative
+in the exception proposal on the pull request, with its measured benefit and its
+cost, for the owner to decide. It is not applied here, because it is a
+structural refactor of a 9,000-line file to satisfy a figure in a unit that no
+reader transfers, with no measurable gain for them.
