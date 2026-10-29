@@ -214,4 +214,3 @@ if (command === "verify") {
 } else {
   throw new Error(`Unknown command "${command}"; expected verify, run, or run-ux-c2.`);
 }
-

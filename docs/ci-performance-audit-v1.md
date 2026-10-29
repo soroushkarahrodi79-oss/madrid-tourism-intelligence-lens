@@ -243,7 +243,34 @@ Local validation after integrating current main:
 - Node suite: 1,123/1,123 pass;
 - Python suite: 501 run, 8 skipped, zero fail.
 
-GitHub optimized-run measurements and the three-run stability assessment are
-recorded in the PR after the workflow completes. Until those comparable runs
-are green, the release decision is **HOLD**.
+Final functional head `b2117302a666f3dd0396b84c98ba4a23909b953e` was run three
+times through workflow
+[40839499954](https://github.com/soroushkarahrodi79-oss/madrid-tourism-intelligence-lens/actions/runs/40839499954):
 
+| Attempt | Full elapsed | Chromium 1 / 2 / 3 | UX-C2 WebKit 1 / 2 / 3 |
+| --- | ---: | ---: | ---: |
+| 1 | 10m 16s | 9m18 / 6m32 / 8m31 | 10m09 / 8m40 / 8m15 |
+| 2 | 10m 03s | 8m57 / 7m29 / 8m25 | 8m24 / 9m56 / 8m34 |
+| 3 | 11m 58s | 9m55 / 7m31 / 8m26 | 10m23 / 8m27 / 11m52 |
+
+All three attempts passed Linux, Windows, Chromium, UX-C1 WebKit, every UX-C2
+WebKit partition, all evidence uploads, and both aggregate checks. Median full
+elapsed is 10m 16s versus 24m 22s on comparable current main: a 57.9% reduction.
+The Chromium critical path fell from 24m 02s to a median 9m 18s (61.3%).
+
+Final reconciliation is 448 pre-existing Chromium tests plus 127 asserted
+UX-C2 tests and one UX-C2 capture-only test: 576 logical tests, 574 pass, zero
+fail, and two capture-only skips. UX-C2 partition totals are 42 + 41 + 44 = 127
+for Chromium and 39 + 43 + 42 = 124 for WebKit; each engine retains its one
+capture-only test. UX-C1 WebKit remains 106 tests (105 pass, one capture-only
+skip). Comparative captures run and upload separately, once per engine.
+
+The 5-7 minute aspiration was not reached. The remaining limit is the
+approximately 26 minutes of UX-C2 WebKit assertion work divided across three
+fresh runners, plus capture and runner variance; attempt 3's third WebKit shard
+reached 11m 52s. Further splitting could reduce elapsed time but would add more
+runners and orchestration complexity, so it is intentionally left for a later,
+separately measured change.
+
+Release decision: **HOLD** at the requested Draft PR review gate. Verification
+is green, but this PR must not be merged or deployed without human review.
