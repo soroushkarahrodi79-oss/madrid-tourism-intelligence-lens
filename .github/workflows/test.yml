@@ -148,7 +148,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps webkit
       - name: M2 explorer smoke (WebKit)
-        run: node --test --test-concurrency=1 --test-name-pattern="find a place, ask a question|keyboard alone operates the explorer|unsupported ask is refused|failed licence artifact|switching language mid-answer|Spanish copy covers|layout 390x844|layout 768x1024|reloading a shared link|sharing and export" browser-tests/question-explorer.browser.mjs
+        run: node --test --test-concurrency=1 --test-name-pattern="find a place, ask a question|keyboard alone operates the explorer|unsupported ask is refused|failed licence artifact|switching language mid-answer|Spanish copy covers|layout 390x844|layout 768x1024|reloading a shared link|sharing and export|dossier export preserves" browser-tests/question-explorer.browser.mjs
         env:
           QX_BROWSER: webkit
 

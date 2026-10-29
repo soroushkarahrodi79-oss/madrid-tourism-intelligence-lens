@@ -20,6 +20,7 @@ const ROOT = process.env.QX_ROOT
   ? path.resolve(process.env.QX_ROOT)
   : path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ENGINE = process.env.QX_BROWSER === "webkit" ? webkit : chromium;
+const ENGINE_NAME = process.env.QX_BROWSER === "webkit" ? "webkit" : "chromium";
 const CAPTURE_DIR = process.env.QX_CAPTURE_DIR || null;
 const MIME = { ".css": "text/css", ".geojson": "application/geo+json", ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 
@@ -111,6 +112,26 @@ async function setRadius(page, value) {
     slider.dispatchEvent(new Event("input", { bubbles: true }));
     slider.dispatchEvent(new Event("change", { bubbles: true }));
   }, value);
+}
+
+async function createDossier(page, { keyboard = false } = {}) {
+  const action = page.locator("#qxAnswer .qx-action-dossier");
+  if (keyboard) {
+    await action.focus();
+    await page.keyboard.press("Enter");
+  } else {
+    await action.click();
+  }
+  await page.waitForFunction(() => document.querySelector("#qxDossierStatus")?.dataset.tone === "ok");
+  return page.evaluate(() => {
+    const links = [...document.querySelectorAll("#qxDossierStatus a")];
+    const generated = window.__QUESTION_EXPLORER_TEST__.dossier();
+    return generated.files.map((file, index) => ({
+      label: links[index]?.textContent || null,
+      name: links[index]?.download || file.name,
+      text: file.text,
+    }));
+  });
 }
 
 // ============================================================ structure and wiring
@@ -782,6 +803,183 @@ test("Spanish copy covers the whole surface", async (t) => {
   for (const spanish of ["Explorar preguntas", "Lo que no permite concluir", "Verificación", "Ciudadana", "Analista"]) assert.ok(text.includes(spanish), spanish);
 });
 
+// ================================================================ dossier V1
+
+test("dossier export preserves one frozen answer in matching offline HTML and JSON without changing K11", async (t) => {
+  const { page, context, errors } = await pageFor();
+  t.after(() => context.close());
+  await openExplorer(page);
+  await selectAndAnalyze(page, "APE.02.20");
+  await askQuestion(page, "AMBITO_EDITION_DIFF");
+  await settled(page);
+  assert.equal(await page.locator("#qxAnswer .qx-action-dossier").count(), 1);
+  assert.equal(await page.evaluate(() => performance.getEntriesByType("resource").filter((entry) => entry.name.includes("evidence-dossier.js")).length), 0, "dossier code is absent before the action");
+  const dossierStarted = Date.now();
+  const files = await createDossier(page, { keyboard: true });
+  t.diagnostic(`dossier action (deferred module + HTML/JSON + Blob links): ${Date.now() - dossierStarted} ms`);
+  assert.equal(await page.evaluate(() => performance.getEntriesByType("resource").filter((entry) => entry.name.includes("evidence-dossier.js")).length), 1, "one deferred dossier module request");
+  assert.deepEqual(files.map((file) => file.label), ["HTML", "JSON"]);
+  const html = files.find((file) => file.label === "HTML").text;
+  const machine = JSON.parse(files.find((file) => file.label === "JSON").text);
+  assert.equal(machine.dossier_schema_version, 1);
+  assert.equal(machine.question.id, "AMBITO_EDITION_DIFF");
+  assert.equal(machine.question.registered_shape, "AMBITO_EDITION_DIFF");
+  assert.equal(machine.question.parameters.code, "APE.02.20");
+  assert.equal(machine.outcome.status, "ANSWERED");
+  assert.equal(machine.outcome.evidence.derivation, "EDITION_DIFF");
+  assert.equal(machine.context.planning_ambito.code, "APE.02.20");
+  assert.match(machine.reproducibility.does_not_restore, /does not restore the selected M2 question/);
+  assert.match(machine.identification.deployment_build.characterization, /not a cryptographic data fingerprint/);
+  assert.match(html, /APE\.02\.20/);
+  assert.match(html, /EDITION_DIFF/);
+  assert.match(html, /@page\{size:A4/);
+  assert.doesNotMatch(html, /<script|<link|src=/i);
+  assert.equal((html.match(/2026-01-01/g) || []).length > 0, true);
+
+  const k11 = await page.evaluate(() => window.__HALO_REGRESSION__.k11Bundle().files.map((file) => file.name.replace(/-\d{8}-\d{4}/, "")));
+  assert.deepEqual(k11, ["reading.json", "sources.json", "geometry.geojson", "README.txt", "state.url"]);
+
+  const offline = await context.newPage();
+  const requests = [];
+  offline.on("request", (request) => requests.push(request.url()));
+  await offline.setContent(html, { waitUntil: "load" });
+  await offline.emulateMedia({ media: "print" });
+  assert.equal(await offline.locator("h1").textContent(), "Urban Evidence Dossier");
+  assert.equal(requests.length, 0, "opening the generated document makes no runtime request");
+  if (ENGINE_NAME === "chromium") {
+    const pdf = await offline.pdf({ format: "A4", printBackground: true });
+    assert.equal(pdf.subarray(0, 4).toString(), "%PDF");
+    assert.ok(pdf.length > 20_000, "print output contains the evidence brief");
+  }
+  await offline.close();
+  assert.deepEqual(errors, []);
+});
+
+test("dossier export preserves usable fallback links until replacement or page close", async (t) => {
+  const { page, context, errors } = await pageFor();
+  t.after(() => context.close());
+  await openExplorer(page);
+  await selectAndAnalyze(page, "APE.02.20");
+  await askQuestion(page, "AMBITO_EDITION_DIFF");
+  await settled(page);
+  await page.evaluate(() => {
+    const lifecycle = { revoked: [], scheduledExpiry: 0 };
+    const nativeSetTimeout = window.setTimeout.bind(window);
+    const nativeRevokeObjectURL = URL.revokeObjectURL.bind(URL);
+    window.__DOSSIER_URL_LIFECYCLE__ = lifecycle;
+    window.setTimeout = (callback, delay, ...args) => {
+      if (delay === 120000) {
+        lifecycle.scheduledExpiry += 1;
+        callback(...args);
+        return 0;
+      }
+      return nativeSetTimeout(callback, delay, ...args);
+    };
+    URL.revokeObjectURL = (url) => {
+      lifecycle.revoked.push(url);
+      nativeRevokeObjectURL(url);
+    };
+  });
+
+  await createDossier(page);
+  const firstUrls = await page.locator("#qxDossierStatus a").evaluateAll((links) => links.map((link) => link.href));
+  const initial = await page.evaluate(() => ({ ...window.__DOSSIER_URL_LIFECYCLE__ }));
+  assert.equal(initial.scheduledExpiry, 0, "no fixed expiry is scheduled while fallback links remain visible");
+  assert.deepEqual(initial.revoked, []);
+  const downloaded = [];
+  for (const link of await page.locator("#qxDossierStatus a").all()) {
+    const [download] = await Promise.all([page.waitForEvent("download"), link.click()]);
+    downloaded.push({ name: download.suggestedFilename(), failure: await download.failure() });
+  }
+  assert.deepEqual(downloaded.map(({ name }) => path.extname(name)), [".html", ".json"]);
+  assert.ok(downloaded.every(({ failure }) => failure === null), "both visible Blob links remain downloadable");
+
+  await page.locator("#qxAnswer .qx-action-dossier").click();
+  await page.waitForFunction((previous) => {
+    const current = [...document.querySelectorAll("#qxDossierStatus a")].map((link) => link.href);
+    return current.length === 2 && current.every((url) => !previous.includes(url));
+  }, firstUrls);
+  const replacement = await page.evaluate(() => ({
+    current: [...document.querySelectorAll("#qxDossierStatus a")].map((link) => link.href),
+    revoked: [...window.__DOSSIER_URL_LIFECYCLE__.revoked],
+  }));
+  assert.deepEqual(replacement.revoked, firstUrls, "replacing the links revokes the previous pair");
+  assert.ok(replacement.current.every((url) => !replacement.revoked.includes(url)), "the replacement pair remains usable");
+
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: true })));
+  assert.deepEqual(await page.evaluate(() => [...window.__DOSSIER_URL_LIFECYCLE__.revoked]), firstUrls, "a bfcache page keeps its visible pair usable");
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: false })));
+  const finalRevoked = await page.evaluate(() => [...window.__DOSSIER_URL_LIFECYCLE__.revoked]);
+  assert.deepEqual(finalRevoked, [...firstUrls, ...replacement.current], "closing the page revokes the visible pair");
+  assert.deepEqual(errors, []);
+});
+
+test("dossier export records an abstention without inventing a value", async (t) => {
+  const { page, context, errors } = await pageFor();
+  t.after(() => context.close());
+  await openExplorer(page);
+  await askQuestion(page, "SOURCE_PROVENANCE");
+  const state = await answerState(page);
+  assert.equal(state.kind, "abstention");
+  const files = await createDossier(page);
+  const machine = JSON.parse(files.find((file) => file.label === "JSON").text);
+  assert.equal(machine.outcome.status, "ABSTAINED");
+  assert.equal(machine.outcome.evidence, null);
+  assert.equal(machine.outcome.abstention.reason, "AMBIGUOUS_SCOPE");
+  assert.equal(machine.sources.length, 0);
+  assert.match(files.find((file) => file.label === "HTML").text, /No factual value is asserted/);
+  assert.deepEqual(errors, []);
+});
+
+test("dossier action disables on stale context, re-enables after recompute, and coalesces rapid activation", async (t) => {
+  const { page, context, errors } = await pageFor();
+  t.after(() => context.close());
+  await openExplorer(page);
+  await selectAndAnalyze(page, "APE.02.20");
+  await askQuestion(page, "AMBITO_AT_POINT");
+  await page.evaluate(() => {
+    const slider = document.querySelector("#radiusSlider");
+    slider.value = String(Number(slider.value) + 50);
+    slider.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.waitForFunction(() => document.querySelector("#qxAnswer")?.dataset.stale === "true");
+  assert.equal(await page.locator("#qxAnswer .qx-action-dossier").isDisabled(), true);
+  await settled(page);
+  assert.equal(await page.locator("#qxAnswer .qx-action-dossier").isEnabled(), true);
+  await page.locator("#qxAnswer .qx-action-dossier").dblclick({ delay: 5 });
+  await page.waitForFunction(() => document.querySelector("#qxDossierStatus")?.dataset.tone === "ok");
+  assert.equal(await page.locator("#qxDossierStatus a").count(), 2, "rapid activation still yields one HTML/JSON pair");
+  assert.deepEqual(errors, []);
+});
+
+test("dossier action remains contained at all required viewports in Light/Dark and ES/EN", async (t) => {
+  const { page, context, errors } = await pageFor({ viewport: { width: 1440, height: 900 } });
+  t.after(() => context.close());
+  await openExplorer(page);
+  await selectAndAnalyze(page, "APE.02.20");
+  await askQuestion(page, "AMBITO_AT_POINT");
+  const viewports = [[320,568],[390,844],[430,932],[768,1024],[834,1112],[1024,768],[1366,768],[1440,900]];
+  for (let index = 0; index < viewports.length; index += 1) {
+    const [width, height] = viewports[index];
+    await page.setViewportSize({ width, height });
+    await page.selectOption("#appearanceSelect", index % 2 ? "dark" : "light");
+    await page.selectOption("#languageSelect", index % 2 ? "es" : "en");
+    const button = page.locator("#qxAnswer .qx-action-dossier");
+    await button.scrollIntoViewIfNeeded();
+    const geometry = await button.evaluate((node) => {
+      const b = node.getBoundingClientRect();
+      const answer = node.closest("#qxAnswer").getBoundingClientRect();
+      const panel = node.closest("#geoSearchPanel").getBoundingClientRect();
+      return { b: { left:b.left,right:b.right,top:b.top,bottom:b.bottom,width:b.width,height:b.height }, answer: { left:answer.left,right:answer.right }, panel: { left:panel.left,right:panel.right } };
+    });
+    assert.ok(geometry.b.height >= 44, `${width}×${height}: touch target`);
+    assert.ok(geometry.b.left >= geometry.answer.left && geometry.b.right <= geometry.answer.right + 1, `${width}×${height}: action inside answer`);
+    assert.ok(geometry.b.left >= geometry.panel.left && geometry.b.right <= geometry.panel.right + 1, `${width}×${height}: action inside finder`);
+    assert.ok(geometry.b.left >= 0 && geometry.b.right <= width + 1, `${width}×${height}: no viewport clipping`);
+  }
+  assert.deepEqual(errors, []);
+});
+
 // ===================================================================== capture
 
 test("capture the explorer's real states for the visual audit", async (t) => {
@@ -797,6 +995,14 @@ test("capture the explorer's real states for the visual audit", async (t) => {
       await settled(page);
       await page.locator("#qxAnswer").scrollIntoViewIfNeeded();
       await page.screenshot({ path: path.join(CAPTURE_DIR, `${name}-2-${id}.png`) });
+      if (name === "desktop-light" && id === "AMBITO_EDITION_DIFF" && await page.locator("#qxAnswer .qx-action-dossier").count()) {
+        const files = await createDossier(page);
+        await page.screenshot({ path: path.join(CAPTURE_DIR, `${name}-4-dossier-ready.png`) });
+        const documentPage = await context.newPage();
+        await documentPage.setContent(files.find((file) => file.label === "HTML").text, { waitUntil: "load" });
+        await documentPage.screenshot({ path: path.join(CAPTURE_DIR, `${name}-5-dossier-document.png`), fullPage: true });
+        await documentPage.close();
+      }
     }
     await page.locator("#qxRefused summary").click();
     await page.locator('.qx-q[data-refused="dwellings"]').click();

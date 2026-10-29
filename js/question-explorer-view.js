@@ -229,6 +229,7 @@ export function mountQuestionExplorer({ host, model, bridge }) {
       if (focused.dataset.reading) focus = { selector: `.qx-reading-btn[data-reading="${focused.dataset.reading}"]` };
       else if (focused.classList.contains("qx-action-drawer")) focus = { selector: ".qx-action-drawer" };
       else if (focused.classList.contains("qx-action-source")) focus = { selector: ".qx-action-source" };
+      else if (focused.classList.contains("qx-action-dossier")) focus = { selector: ".qx-action-dossier" };
       else if (focused.tagName === "SUMMARY") focus = { summary: [...answer.querySelectorAll("summary")].indexOf(focused) };
     }
     return { opened, focus };
@@ -473,7 +474,25 @@ export function mountQuestionExplorer({ host, model, bridge }) {
       source.type = "button";
       row.append(source);
     }
+    // A dossier is a frozen record of one completed, registered M2 outcome.
+    // Loading/unavailable states and the deliberately refused catalogue are not
+    // research events supported by Dossier V1. Stale outcomes stay visible but
+    // cannot be exported until the existing recompute settles.
+    const supported = model.QUESTIONS.some((question) => question.id === state.outcome.questionId);
+    let dossierStatus = null;
+    if (supported && (p.kind === "answer" || p.kind === "abstention")) {
+      const dossier = text("button", "qx-action qx-action-dossier", c.verify.dossier);
+      dossier.type = "button";
+      dossier.disabled = state.stale;
+      dossier.setAttribute("aria-describedby", "qxDossierStatus");
+      row.append(dossier);
+      dossierStatus = text("p", "qx-dossier-status", "");
+      dossierStatus.id = "qxDossierStatus";
+      dossierStatus.setAttribute("role", "status");
+      dossierStatus.setAttribute("aria-live", "polite");
+    }
     wrapper.append(row);
+    if (dossierStatus) wrapper.append(dossierStatus);
     // Sharing and exporting reproduce the Lens, radius, dates and reading; the
     // question and its answer are not part of either, and the card says so.
     const note = text("p", "qx-share-note", c.verify.shareNote);
@@ -555,6 +574,17 @@ export function mountQuestionExplorer({ host, model, bridge }) {
       ask("SOURCE_PROVENANCE");
       const next = host.querySelector('.qx-q[data-question="SOURCE_PROVENANCE"]');
       if (next) next.focus();
+      return;
+    }
+    if (target.closest(".qx-action-dossier")) {
+      const button = target.closest(".qx-action-dossier");
+      const status = answer.querySelector(".qx-dossier-status");
+      if (!state.stale && state.outcome && typeof bridge.createDossier === "function") {
+        button.disabled = true;
+        bridge.createDossier({ outcome: state.outcome, statusNode: status, button }).finally(() => {
+          if (button.isConnected) button.disabled = state.stale;
+        });
+      }
       return;
     }
     if (target.closest(".qx-collapse")) {
