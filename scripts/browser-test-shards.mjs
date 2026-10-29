@@ -16,6 +16,7 @@ const SHARDS = Object.freeze({
     "browser-tests/mobility-extraction.browser.mjs",
     "browser-tests/institutional-journey.browser.mjs",
     "browser-tests/planning-explorer.browser.mjs",
+    "browser-tests/question-explorer.browser.mjs",
     "browser-tests/ta4-map-chrome.browser.mjs",
     "browser-tests/tutorial.browser.mjs",
   ],

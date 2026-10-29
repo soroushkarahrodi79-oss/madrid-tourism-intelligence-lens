@@ -686,6 +686,17 @@ function resolveLicencesInLens(params, deps, ctx) {
       shape: SHAPE.LICENCES_IN_LENS, message: "a Lens centre (lon/lat) and a positive radius are required",
     });
   }
+  // A window that is present but is not a pair of real ISO calendar dates is not a
+  // scope this shape can resolve. Left to the model it would be read as "no
+  // bound" and silently widened to the whole register (M2 finding F1), so it is
+  // refused here instead. An ABSENT window is unchanged: the model's documented
+  // default is applied and disclosed on the result's `window`.
+  if (params.window != null && !isIsoWindow(params.window)) {
+    return abstain(ABSTENTION_REASON.AMBIGUOUS_SCOPE, {
+      shape: SHAPE.LICENCES_IN_LENS, scope: "ADDRESS_POINT",
+      message: "the grant-date window must carry `from` and `to` as ISO calendar dates (YYYY-MM-DD)",
+    });
+  }
   // A requested grant-date window entirely outside the register's extent is OUTSIDE
   // temporal coverage — refused, not clamped to a nearest match.
   if (params.window && index.dateExtent) {
@@ -938,6 +949,20 @@ function pointOf(params) {
 function scopeOfInput(input) {
   if (isObject(input) && REGISTRY_SCOPE_API.isAnalyticalScope(input.scope)) return input.scope;
   return null;
+}
+
+function isCalendarDate(value) {
+  const match = typeof value === "string" ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(value) : null;
+  if (!match) return false;
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  if (month < 1 || month > 12 || day < 1) return false;
+  const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+  return day <= days;
+}
+
+function isIsoWindow(window) {
+  return isObject(window) && isCalendarDate(window.from) && isCalendarDate(window.to);
 }
 
 function windowCoverage(window, extent) {

@@ -372,6 +372,9 @@ const shell = {
   drawerOpener: null,
   modeScrollPositions: { PLACE: 0, COMPARE: 0, CITY: 0 },
 };
+// M2 question explorer state (see the M2 block near the end of this file). Declared
+// here because refresh() can reach questionExplorerNotify() before that block runs.
+const questionExplorer = { module: null, view: null, request: null, registry: null, parts: null };
 let lensBHasBeenInitialized = false;
 let timestep = "15:00";
 
@@ -4713,6 +4716,9 @@ function renderLicenceResidual(residualTaxonomy) {
 }
 
 function renderUrbanLicences() {
+  // Every change to the applied grant-date window ends here (an input edit, a
+  // shared-link restore), so a question answered for the old window learns of it.
+  questionExplorerNotify();
   const section = document.getElementById("urbanLicences");
   if (!section) return;
   // K11 (#73, no-recomputation invariant): the in-lens per-family licence view is
@@ -6371,6 +6377,7 @@ function freshnessLine(model) {
 }
 
 function renderScopeRail() {
+  questionExplorerNotify();
   if (!shell.modes) return;
   const mode = shell.modes.currentMode();
   const flags = currentFlags();
@@ -6658,14 +6665,20 @@ evidenceDrawer.addEventListener("close", () => {
     if (document.contains(target)) target.focus();
   });
 });
+// The ONE reading preference (citizen | analyst), shared by the evidence drawer
+// and the question answer card.
+function setShellReading(reading) {
+  shell.reading = reading;
+  for (const other of evidenceDrawer.querySelectorAll(".reading-btn")) {
+    other.setAttribute("aria-pressed", String(other.dataset.reading === reading));
+  }
+  renderDrawerBody();
+  k11ScheduleUrlCommit();
+}
 for (const button of evidenceDrawer.querySelectorAll(".reading-btn")) {
   button.onclick = () => {
-    shell.reading = button.dataset.reading;
-    for (const other of evidenceDrawer.querySelectorAll(".reading-btn")) {
-      other.setAttribute("aria-pressed", String(other === button));
-    }
-    renderDrawerBody();
-    k11ScheduleUrlCommit();
+    setShellReading(button.dataset.reading);
+    questionExplorerNotify();
   };
 }
 for (const button of document.querySelectorAll(".evidence-route")) {
@@ -9077,7 +9090,12 @@ function applyGeoSearchPlacement() {
   const root = document.documentElement;
   const analysisRect = analysis && analysis.offsetWidth ? analysis.getBoundingClientRect() : null;
   const railRect = rail && !rail.hidden && rail.offsetWidth ? rail.getBoundingClientRect() : null;
-  const left = railRect ? Math.round(railRect.right + 12) : 18;
+  // The zoom control sits at the corridor's left edge; the finder starts to its
+  // right so that opening it never covers a map control.
+  const zoom = document.querySelector(".leaflet-control-zoom");
+  const zoomRect = zoom && zoom.offsetWidth ? zoom.getBoundingClientRect() : null;
+  const clearOfRail = railRect ? Math.round(railRect.right + 12) : 18;
+  const left = zoomRect && zoomRect.right + 12 > clearOfRail && zoomRect.left < clearOfRail + 60 ? Math.round(zoomRect.right + 12) : clearOfRail;
   const available = analysisRect ? Math.round(analysisRect.left - left - 12) : 0;
   if (railRect && analysisRect && available >= GEO_SEARCH_MIN_CORRIDOR_PX) {
     root.style.setProperty("--geo-search-left", left + "px");
@@ -9102,6 +9120,7 @@ function setGeoSearchOpen(open) {
     // yet this issues the request now and the surface shows its loading state
     // until it resolves; if it has, this is a no-op on the memoised promise.
     loadGeoSearchModule();
+    loadQuestionExplorer();
     renderGeoSearch();
     applyGeoSearchPlacement();
     const input = document.getElementById("geoSearchQuery");
@@ -9269,6 +9288,7 @@ function renderGeoSearchCard() {
 }
 
 function renderGeoSearch() {
+  questionExplorerNotify();
   const host = document.getElementById("geoSearchPanel");
   const input = document.getElementById("geoSearchQuery");
   const status = document.getElementById("geoSearchStatus");
@@ -9390,6 +9410,14 @@ if (geoSearchResultsList) {
   });
 }
 if (geoSearchClose) geoSearchClose.addEventListener("click", dismissGeoSearch);
+// Escape dismisses the finder from the question explorer too, exactly as it does
+// from the field and the result list, so no control inside the panel is a trap.
+const questionExplorerNode = document.getElementById("questionExplorer");
+if (questionExplorerNode) {
+  questionExplorerNode.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") { event.preventDefault(); dismissGeoSearch(); }
+  });
+}
 window.addEventListener("resize", applyGeoSearchPlacement);
 if (typeof ResizeObserver === "function") {
   const analysisPanelNode = document.getElementById("analysisPanel");
@@ -9410,7 +9438,119 @@ document.addEventListener("keydown", (event) => {
   setGeoSearchOpen(true);
 });
 
+// ===================================================================== M2
+// Urban evidence questions — the application adapter.
+//
+// The question model (js/question-explorer.js), its view
+// (js/question-explorer-view.js) and every word they author are deferred modules,
+// fetched after `load` or on the first open of the finder. This block only (a)
+// builds an Evidence Registry from the models the application ALREADY holds, (b)
+// states the live analytical context, and (c) tells the view when that context
+// may have changed. It computes nothing and renders nothing.
+function loadQuestionExplorer() {
+  if (questionExplorer.request) return questionExplorer.request;
+  questionExplorer.request = Promise.all([import(moduleUrl("question-explorer.js")), import(moduleUrl("question-explorer-view.js"))])
+    .then(([model, viewModule]) => {
+      questionExplorer.module = model;
+      questionExplorer.view = viewModule.mountQuestionExplorer({
+        host: document.getElementById("questionExplorer"),
+        model,
+        bridge: {
+          getContext: questionContext,
+          getRegistry: questionRegistry,
+          registryFailed: () => shell.registryFailed,
+          ensure: questionEnsure,
+          language: shellLanguage,
+          reading: () => shell.reading,
+          setReading: setShellReading,
+          openDrawer: ({ opener, scope, ambitoCode }) => openEvidenceDrawer({ opener, scope, ambitoCode }),
+        },
+      });
+      document.getElementById("questionExplorer").hidden = false;
+      return questionExplorer.view;
+    })
+    .catch((error) => {
+      console.warn("question explorer unavailable", error);
+      return null;
+    });
+  return questionExplorer.request;
+}
+
+function questionExplorerNotify() {
+  if (questionExplorer.view) questionExplorer.view.notify();
+}
+
+// The analytical context, stated explicitly and read only from validated state:
+// the ACTIVE Lens, the finder selection and the licence window the application
+// has already clamped. No phrase such as "recently" is ever turned into a window.
+function questionContext() {
+  const centre = centerOf(active);
+  const entry = geoSearchSelectedEntry();
+  const editions = planningState === "loading" ? "loading"
+    : planningState !== "ready" || !planningModel.changeModule || !planningModel.changePair ? "unavailable"
+      : ambitoCompare.adapter ? "ready" : "idle";
+  return {
+    lens: { which: active, lon: centre.lon, lat: centre.lat, radiusM: radiusFor(active) },
+    selection: entry ? { type: entry.type, code: entry.code, name: entry.name, typeLabel: shellT("search.type." + entry.type) } : null,
+    licenceWindow: licenceWindow ? { from: licenceWindow.from, to: licenceWindow.to } : null,
+    readiness: { planning: planningState, licences: licenceState, editions },
+  };
+}
+
+// The registry is built from the models already loaded, and rebuilt only when one
+// of them is replaced. A model that is not loaded is passed as absent, so its
+// shape abstains by itself rather than being special-cased here.
+function questionRegistry() {
+  if (!shell.registry || typeof createEvidenceRegistry !== "function") return null;
+  const pair = planningModel.changePair;
+  const parts = [shell.registry, planningModel.index, planningModel.module, licenceModel.index, planningModel.changeModule, pair, ambitoCompare.adapter];
+  if (questionExplorer.parts && parts.every((part, i) => part === questionExplorer.parts[i])) return questionExplorer.registry;
+  const changeModule = planningModel.changeModule;
+  const adapter = ambitoCompare.adapter;
+  const edition = (side) => ({ reference_date: side.reference_date, families: side.families });
+  questionExplorer.registry = createEvidenceRegistry({
+    registry: shell.registry,
+    planningIndex: planningModel.index || null,
+    planningModule: planningModel.module ? { AMBITO_STATE: planningModel.module.AMBITO_STATE, AVAILABILITY: planningModel.module.AVAILABILITY } : null,
+    licenceIndex: licenceModel.index || null,
+    ambitoEditionDiff: changeModule && pair && pair.previous && pair.current
+      ? (code) => changeModule.buildAmbitoComparison({ previous: edition(pair.previous), current: edition(pair.current), exactCode: code })
+      : null,
+    ambitoEditionCodeKnown: adapter && pair ? (code) => adapter.ambitoEditionContainsCode(code, { change_detection: pair }) : null,
+  });
+  questionExplorer.parts = parts;
+  return questionExplorer.registry;
+}
+
+// Asking may need an artifact the page has not fetched yet (the licence register
+// is loaded lazily, the edition adapter on first use). The load is only STARTED
+// here; its completion re-enters through renderScopeRail, which notifies the view.
+function questionEnsure(questionId) {
+  if (questionId === "LICENCES_IN_LENS" && licenceState === "idle") loadLicenceContext();
+  if (questionId === "AMBITO_EDITION_DIFF" && !ambitoCompare.adapter && planningModel.changePair) {
+    ensureAmbitoAdapter().then(questionExplorerNotify);
+  }
+}
+
+// Prefetched like the finder's resolver: after `load`, on idle, never on the
+// critical path. Opening the finder first requests it immediately.
+function prefetchQuestionExplorer() {
+  if (typeof requestIdleCallback === "function") requestIdleCallback(() => loadQuestionExplorer(), { timeout: 6000 });
+  else setTimeout(loadQuestionExplorer, 2000);
+}
+if (document.readyState === "complete") prefetchQuestionExplorer();
+else window.addEventListener("load", prefetchQuestionExplorer, { once: true });
+
 if (haloRegressionRequested && haloRegressionLocal) {
+  window.__QUESTION_EXPLORER_TEST__ = Object.freeze({
+    whenReady: () => loadQuestionExplorer(),
+    requested: () => questionExplorer.request !== null,
+    context: () => questionContext(),
+    registry: () => questionRegistry(),
+    model: () => questionExplorer.module,
+    view: () => questionExplorer.view,
+    snapshot: () => (questionExplorer.view ? questionExplorer.view.snapshot() : null),
+  });
   window.__GEO_SEARCH_TEST__ = Object.freeze({
     indexBuildMs: () => geoSearch.indexBuildMs,
     moduleRequested: () => geoSearchModuleRequest !== null,
