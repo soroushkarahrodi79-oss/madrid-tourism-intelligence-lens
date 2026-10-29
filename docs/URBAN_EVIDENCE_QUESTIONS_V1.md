@@ -310,7 +310,56 @@ Dark contrast, Spanish coverage.
 | F5 | rebuilding the card on a language/reading/recompute change would drop open disclosures and keyboard focus | both are captured and restored |
 | F6 | a “loading” card that later received its data would flash as out of date | a loading outcome is recomputed directly, never staled |
 
-## 13. Known limitations
+## 13. Measured cost
+
+**Initial payload** (threshold carried over from M1: ≤ 25 KB raw critical path, code
+only; the M1 exception is not reused). Measured against `origin/main` @ `1c685bd`:
+
+| | raw | gzip -9 |
+|---|---|---|
+| `index.html` | +88 B | +30 B |
+| `css/app.css` | +6,335 B | +944 B |
+| `js/app.js` | +7,489 B | +2,039 B |
+| `js/evidence-registry.js` (window guard) | +1,281 B | +474 B |
+| `js/shell-copy.js` | 0 | 0 |
+| **Critical path** | **+15,193 B** | **+3,487 B** |
+| Deferred, fetched after `load` (`question-explorer.js` + `-view.js`) | +78,176 B | +21,577 B |
+
+The critical path is within the 25 KB threshold, so no exception is requested. The
+deferral is asserted from resource timing by a browser test.
+
+**Runtime** (headless Chromium, software rendering, medians of 7 loads, base vs this
+branch, three alternating rounds; spread between rounds is as large as any
+difference and the sign flips between rounds, so no regression is claimed or
+excluded beyond that):
+
+| | base | M2 |
+|---|---|---|
+| DOMContentLoaded (ms) | 217 / 361 / 353 / 272 | 289 / 396 / 252 |
+| data ready (ms) | 774 / 1180 / 1294 / 918 | 1141 / 1324 / 909 |
+| p95 frame during a 60-step Lens drag (ms) | 167 / 200 / 200 / 183 | 183 / 200 / 200 |
+| 21 radius inputs (ms) | 47 / 70 / 81 / 71 | 87 / 90 / 64 |
+| geographic search, 6 keystrokes (ms) | 12.6 / 15.8 | 16.9 |
+
+With the finder closed and no question asked, `notify()` returns after one boolean
+check, so the Lens-drag and radius paths gain no measurable work.
+
+## 14. Verification record
+
+* `node --test`: **1,190 / 1,190** (1,152 base + 38 new), 0 failed, 0 skipped.
+* Chromium, 33 browser tests in `question-explorer.browser.mjs` (1 capture test
+  skipped without an output directory); all three Chromium shards, both WebKit
+  UX-C1 / UX-C2 jobs and Node on Linux and Windows are green in CI on the head
+  commit. The new browser file runs on Chromium only; WebKit coverage of the
+  explorer is **not** claimed.
+* Accessibility evidence: keyboard-only operation, `role="status"` announcement,
+  44 px targets at five viewports from 320 px, 4.5:1 contrast on question, answer
+  and abstention text in Light and Dark, forced-colours rule, Escape contract.
+  Not validated: a screen reader, a physical device.
+* Screenshots: `docs/review/m2-question-explorer/` (before = M1 finder at base;
+  after = explorer at desktop, dark, tablet, phone, 320 px).
+
+## 15. Known limitations
 
 1. The question is not in the shared URL (§8). The Lens, radii, mode and reading are
    restored; the answer is not.
@@ -324,11 +373,12 @@ Dark contrast, Spanish coverage.
 5. Edition comparison reasons from the K7 model are English model text; they are
    shown with `lang="en"` and flagged, not translated.
 6. The question card is not part of the evidence export in V1.
-7. WebKit could not be installed in the authoring environment; see the pull request
-   for the CI result.
+7. The explorer's own browser tests run on Chromium only (WebKit could not be
+   installed in the authoring environment, and the CI job for WebKit covers other
+   suites).
 8. No physical-device validation; all responsive evidence is browser emulation.
 
-## 14. Deferred
+## 16. Deferred
 
 Natural-language question routing (§9); exposing `AMBITO_COMPARE`,
 `AREA_PROFILE_AT_POINT`, `CITY_HOTEL_DEMAND` or `AMBITO_BUILDABILITY` only if a live
