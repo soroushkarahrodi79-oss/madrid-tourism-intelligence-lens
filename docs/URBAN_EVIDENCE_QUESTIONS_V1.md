@@ -394,7 +394,10 @@ check, so the Lens-drag and radius paths gain no measurable work.
 7. The explorer's own browser tests run on Chromium only (WebKit could not be
    installed in the authoring environment, and the CI job for WebKit covers other
    suites).
-8. No physical-device validation; all responsive evidence is browser emulation.
+8. Pre-existing M1 behaviour, not changed here: the finder's field is disabled until
+   its universes have loaded, so a keyboard user who opens the finder before that
+   point does not get focus in the field. M2 inherits it.
+9. No physical-device validation; all responsive evidence is browser emulation.
 
 ## 16. Deferred
 

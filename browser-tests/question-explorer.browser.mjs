@@ -637,6 +637,11 @@ test("reloading a shared link restores the Lens and starts with NO answer, never
 test("keyboard alone operates the explorer; focus stays on the control and the result is announced", async (t) => {
   const { page, context } = await pageFor();
   t.after(() => context.close());
+  // The M1 finder keeps its field disabled (so it cannot take focus) until its
+  // universes have loaded; on a slower engine a key press can precede that. This
+  // test is about the explorer, so it opens the finder once it is ready, exactly as
+  // the M1 suite's own openSearch does.
+  await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.state === "ready");
   await page.locator("#geoSearchToggle").focus();
   await page.keyboard.press("Enter");
   await page.waitForFunction(() => document.activeElement.id === "geoSearchQuery");
