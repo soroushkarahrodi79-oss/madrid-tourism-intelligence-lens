@@ -1811,6 +1811,20 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
   box-shadow:0 14px 40px rgba(0,0,0,.28);color:var(--chrome-text-primary)
 }
 .geo-search[hidden]{display:none!important}
+.geo-search-surface{min-width:0}
+.geo-search[data-presentation="inline"]{
+  position:relative;z-index:1102;top:auto;right:auto;left:auto;width:auto;flex:1 1 260px;min-width:260px;
+  max-width:480px;max-height:none;padding:0;border:0;border-radius:0;background:transparent;backdrop-filter:none;box-shadow:none
+}
+.geo-search[data-presentation="inline"] .geo-search-head{display:none}
+.geo-search[data-presentation="inline"] .geo-search-query{margin-top:0}
+.geo-search[data-presentation="inline"] .geo-search-surface{
+  position:absolute;z-index:1;top:calc(100% + var(--s-2));left:0;width:100%;max-height:min(620px,calc(100dvh - var(--header-chrome-top) - 28px - var(--safe-bottom)));
+  padding:var(--s-3);overflow:auto;overscroll-behavior:contain;border:1px solid var(--chrome-border);border-radius:var(--r-large);
+  background:var(--chrome-panel-surface);backdrop-filter:blur(18px);box-shadow:0 14px 40px rgba(0,0,0,.28);display:none
+}
+.geo-search[data-presentation="inline"][data-has-query="true"] .geo-search-surface{display:block}
+.geo-search[data-presentation="inline"]~.header-tools .geo-search-toggle{display:none}
 /* Corridor placement is driven by --geo-search-left / --geo-search-width,
    which js/app.js measures. Like --header-bottom, those inline values still
    describe the PREVIOUS viewport in the frame right after a change, so the

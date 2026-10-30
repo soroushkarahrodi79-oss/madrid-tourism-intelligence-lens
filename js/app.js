@@ -9081,6 +9081,36 @@ function renderGeoSearchHighlight() {
 // widened — the finder is an explicit transient overlay, dismissed with Escape or
 // the close control.
 const GEO_SEARCH_MIN_CORRIDOR_PX = 300;
+const GEO_SEARCH_MIN_HEADER_INPUT_PX = 260;
+
+function geoSearchCanInline() {
+  const header = document.querySelector("header");
+  const brand = header && header.querySelector(".brand");
+  const tools = header && header.querySelector(".header-tools");
+  if (!header || !brand || !tools || window.matchMedia("(max-width:680px)").matches) return false;
+  const available = header.clientWidth - brand.getBoundingClientRect().width - tools.getBoundingClientRect().width - 3 * 12;
+  return available >= GEO_SEARCH_MIN_HEADER_INPUT_PX;
+}
+
+function syncGeoSearchPresentation({ focus = false } = {}) {
+  const panel = document.getElementById("geoSearchPanel");
+  const toggle = document.getElementById("geoSearchToggle");
+  if (!panel || !toggle) return;
+  const inline = geoSearchCanInline();
+  panel.dataset.presentation = inline ? "inline" : "overlay";
+  if (inline) {
+    geoSearch.open = true;
+    panel.hidden = false;
+    toggle.setAttribute("aria-expanded", "true");
+    loadGeoSearchModule();
+    renderGeoSearch();
+    if (focus) document.getElementById("geoSearchQuery")?.focus();
+    return;
+  }
+  panel.hidden = !geoSearch.open;
+  toggle.setAttribute("aria-expanded", geoSearch.open ? "true" : "false");
+  if (!panel.hidden) applyGeoSearchPlacement();
+}
 
 function applyGeoSearchPlacement() {
   const panel = document.getElementById("geoSearchPanel");
@@ -9112,6 +9142,16 @@ function setGeoSearchOpen(open) {
   const panel = document.getElementById("geoSearchPanel");
   const toggle = document.getElementById("geoSearchToggle");
   if (!panel || !toggle) return;
+  if (geoSearchCanInline()) {
+    geoSearch.open = true;
+    panel.hidden = false;
+    panel.dataset.presentation = "inline";
+    toggle.setAttribute("aria-expanded", "true");
+    loadGeoSearchModule();
+    renderGeoSearch();
+    if (open) document.getElementById("geoSearchQuery")?.focus();
+    return;
+  }
   geoSearch.open = Boolean(open);
   panel.hidden = !geoSearch.open;
   toggle.setAttribute("aria-expanded", geoSearch.open ? "true" : "false");
@@ -9307,6 +9347,7 @@ function renderGeoSearch() {
   const loading = !geoSearch.module || geographyState === "loading" || planningState === "loading";
   const state = index ? "ready" : loading ? "loading" : "unavailable";
   host.dataset.state = state;
+  host.dataset.hasQuery = geoSearch.query.trim() ? "true" : "false";
   input.disabled = state !== "ready";
   results.replaceChildren();
 
@@ -9372,8 +9413,11 @@ const geoSearchAnalyze = document.getElementById("geoSearchAnalyze");
 
 function dismissGeoSearch() {
   clearGeoSearch();
-  setGeoSearchOpen(false);
-  if (geoSearchToggle) geoSearchToggle.focus();
+  if (geoSearchCanInline()) geoSearchQuery?.focus();
+  else {
+    setGeoSearchOpen(false);
+    if (geoSearchToggle) geoSearchToggle.focus();
+  }
 }
 
 if (geoSearchToggle) {
@@ -9418,7 +9462,7 @@ if (questionExplorerNode) {
     if (event.key === "Escape") { event.preventDefault(); dismissGeoSearch(); }
   });
 }
-window.addEventListener("resize", applyGeoSearchPlacement);
+window.addEventListener("resize", () => syncGeoSearchPresentation());
 if (typeof ResizeObserver === "function") {
   const analysisPanelNode = document.getElementById("analysisPanel");
   if (analysisPanelNode) new ResizeObserver(applyGeoSearchPlacement).observe(analysisPanelNode);
@@ -9437,6 +9481,8 @@ document.addEventListener("keydown", (event) => {
   event.preventDefault();
   setGeoSearchOpen(true);
 });
+
+syncGeoSearchPresentation();
 
 // ===================================================================== M2
 // Urban evidence questions — the application adapter.

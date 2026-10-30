@@ -35,6 +35,30 @@
     <div class="logo"></div>
     <div class="brand-copy"><div class="brand-title">Madrid Urban Evidence Lens</div><div class="brand-sub">Madrid · Urban development · Official evidence</div></div>
   </div>
+  <!-- One search field serves every layout. Wide headers expose it here; the
+       result surface remains anchored below it. Constrained headers use the
+       existing activator and full-width surface without cloning query state. -->
+  <section id="geoSearchPanel" class="geo-search" data-state="loading" data-presentation="overlay" hidden aria-label="Find an official Madrid place" data-i18n-attr="aria-label:search.panelAria">
+    <div class="geo-search-head">
+      <label for="geoSearchQuery" class="geo-search-label" data-i18n="search.label">Official code, barrio, district or planning ámbito</label>
+      <button type="button" id="geoSearchClose" class="geo-search-close" aria-label="Close the place finder" data-i18n-attr="aria-label:search.closeAria"><span aria-hidden="true">✕</span></button>
+    </div>
+    <input id="geoSearchQuery" class="geo-search-query" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-controls="geoSearchResults" aria-describedby="geoSearchStatus" placeholder="Palacio, Centro, APR.02.09" data-i18n-attr="placeholder:search.placeholder">
+    <div class="geo-search-surface">
+      <p id="geoSearchStatus" class="geo-search-status" aria-live="polite"></p>
+      <ul id="geoSearchResults" class="geo-search-results" aria-label="Official place search results" data-i18n-attr="aria-label:search.resultsAria"></ul>
+      <article id="geoSearchCard" class="geo-search-card" hidden>
+        <div class="geo-search-card-head"><span id="geoSearchCardType" class="geo-search-type"></span><code id="geoSearchCardCode" class="geo-search-code" data-verbatim></code></div>
+        <h3 id="geoSearchCardName" class="geo-search-card-name" data-verbatim></h3>
+        <p id="geoSearchCardParent" class="geo-search-card-parent"></p>
+        <p id="geoSearchCardScope" class="geo-search-card-scope"></p>
+        <div class="geo-search-actions"><button type="button" id="geoSearchViewMap" class="geo-search-action" data-i18n="search.viewMap">View on map</button><button type="button" id="geoSearchAnalyze" class="geo-search-action geo-search-action-primary" data-i18n="search.analyze">Analyze with Lens</button></div>
+        <p id="geoSearchAnalyzeNote" class="geo-search-note"></p>
+      </article>
+      <p id="geoSearchCoverage" class="geo-search-coverage"></p>
+      <section id="questionExplorer" class="qx" aria-labelledby="qxTitle" hidden></section>
+    </div>
+  </section>
   <div class="header-tools" role="group" aria-label="Workspace preferences and help" data-i18n-attr="aria-label:header.preferencesAria">
     <button type="button" id="geoSearchToggle" class="geo-search-toggle" aria-expanded="false" aria-controls="geoSearchPanel" aria-label="Find a place" data-i18n-attr="aria-label:search.openAria"><span class="geo-search-toggle-glyph" aria-hidden="true">⌕</span><span class="geo-search-toggle-label" data-i18n="search.open">Find a place</span></button>
     <label class="appearance-control" for="appearanceSelect">
@@ -61,29 +85,6 @@
      an official outline and moves no camera and no Lens. The two explicit
      actions below the result are the ONLY paths to a camera move or a Lens move,
      and each states the geographic boundary it does and does not represent. -->
-<section id="geoSearchPanel" class="geo-search" data-state="loading" hidden aria-label="Find an official Madrid place" data-i18n-attr="aria-label:search.panelAria">
-  <div class="geo-search-head">
-    <label for="geoSearchQuery" class="geo-search-label" data-i18n="search.label">Official code, barrio, district or planning ámbito</label>
-    <button type="button" id="geoSearchClose" class="geo-search-close" aria-label="Close the place finder" data-i18n-attr="aria-label:search.closeAria"><span aria-hidden="true">✕</span></button>
-  </div>
-  <input id="geoSearchQuery" class="geo-search-query" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-controls="geoSearchResults" aria-describedby="geoSearchStatus" placeholder="Palacio, Centro, APR.02.09" data-i18n-attr="placeholder:search.placeholder">
-  <p id="geoSearchStatus" class="geo-search-status" aria-live="polite"></p>
-  <ul id="geoSearchResults" class="geo-search-results" aria-label="Official place search results" data-i18n-attr="aria-label:search.resultsAria"></ul>
-  <article id="geoSearchCard" class="geo-search-card" hidden>
-    <div class="geo-search-card-head"><span id="geoSearchCardType" class="geo-search-type"></span><code id="geoSearchCardCode" class="geo-search-code" data-verbatim></code></div>
-    <h3 id="geoSearchCardName" class="geo-search-card-name" data-verbatim></h3>
-    <p id="geoSearchCardParent" class="geo-search-card-parent"></p>
-    <p id="geoSearchCardScope" class="geo-search-card-scope"></p>
-    <div class="geo-search-actions">
-      <button type="button" id="geoSearchViewMap" class="geo-search-action" data-i18n="search.viewMap">View on map</button>
-      <button type="button" id="geoSearchAnalyze" class="geo-search-action geo-search-action-primary" data-i18n="search.analyze">Analyze with Lens</button>
-    </div>
-    <p id="geoSearchAnalyzeNote" class="geo-search-note"></p>
-  </article>
-  <p id="geoSearchCoverage" class="geo-search-coverage"></p>
-  <section id="questionExplorer" class="qx" aria-labelledby="qxTitle" hidden></section>
-</section>
-
 <!-- Phone map-first entry; the complete rail is unchanged and shown on request. -->
 <button type="button" id="mobileLayersButton" class="mobile-layers-button" aria-expanded="false" aria-controls="layerRail" data-i18n-attr="aria-label:aside.openLayers"><span aria-hidden="true">☷</span><span data-i18n="aside.mobileLayers">Layers</span></button>
 <aside class="left" id="layerRail" tabindex="-1" aria-label="Map layers" data-i18n-attr="aria-label:a11y.layersLandmark">

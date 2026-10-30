@@ -78,7 +78,7 @@ const world = (page) => page.evaluate(() => ({
 }));
 
 async function openSearch(page) {
-  await page.locator("#geoSearchToggle").click();
+  if (await page.locator("#geoSearchPanel").isHidden()) await page.locator("#geoSearchToggle").click();
   await page.waitForFunction(() => !document.querySelector("#geoSearchPanel").hasAttribute("hidden"));
   // The resolver is deliberately off the critical path, so opening may precede
   // its arrival. A test asserting on results waits for the surface to say ready;
@@ -100,19 +100,19 @@ test.after(async () => {
   await new Promise((resolve) => server.close(resolve));
 });
 
-test("the finder is closed by default, opens from the header and indexes the committed universes", async (t) => {
+test("the finder exposes its single query field inline when the measured header has room", async (t) => {
   const { page, context, errors } = await pageFor();
   t.after(() => context.close());
-  assert.equal(await page.locator("#geoSearchPanel").isHidden(), true);
-  assert.equal(await page.locator("#geoSearchToggle").getAttribute("aria-expanded"), "false");
-  await openSearch(page);
+  assert.equal(await page.locator("#geoSearchPanel").isHidden(), false);
+  assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-presentation"), "inline");
+  assert.equal(await page.locator("#geoSearchToggle").isVisible(), false);
   const open = await snapshot(page);
   assert.equal(open.state, "ready");
   assert.equal(await page.locator("#geoSearchToggle").getAttribute("aria-expanded"), "true");
   assert.deepEqual(open.counts, { total: 877, MUNICIPALITY: 1, DISTRICT: 21, BARRIO: 131, AMBITO: 724 });
   assert.deepEqual(open.coverage, { administrative: true, ambito: true });
-  // Opening focuses the field, so a keyboard user can type immediately.
-  assert.equal(await page.evaluate(() => document.activeElement.id), "geoSearchQuery");
+  await page.locator("#geoSearchQuery").fill("Palacio");
+  assert.equal(await page.locator(".geo-search-surface").isVisible(), true, "typing exposes results directly below the inline field");
   assert.match(await page.locator("#geoSearchCoverage").textContent(), /21 official districts, 131 official barrios and 724 planning ámbitos/);
   assert.match(await page.locator("#geoSearchCoverage").textContent(), /Street addresses are not searchable/);
   assert.deepEqual(errors, []);
@@ -144,7 +144,7 @@ test("the search resolver is kept off the initial critical path", async (t) => {
 
   // And the deferral never costs the reader anything: opening still reaches a
   // ready surface, with the real universes indexed.
-  await page.locator("#geoSearchToggle").click();
+  if (await page.locator("#geoSearchPanel").isHidden()) await page.locator("#geoSearchToggle").click();
   await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.state === "ready");
   const counts = await page.evaluate(() => window.__GEO_SEARCH_TEST__.snapshot().counts);
   assert.deepEqual(counts, { total: 877, MUNICIPALITY: 1, DISTRICT: 21, BARRIO: 131, AMBITO: 724 });
@@ -400,7 +400,9 @@ test("restoring a shared link, then searching, leaves the restored reading intac
 });
 
 test("keyboard alone operates the whole finder, and focus never falls to the document", async (t) => {
-  const { page, context } = await pageFor();
+  // The compact presentation retains the activator so its Escape/focus-return
+  // contract is exercised where that control is actually available.
+  const { page, context } = await pageFor({ viewport: { width: 390, height: 844 } });
   t.after(() => context.close());
   await page.locator("#geoSearchToggle").focus();
   await page.keyboard.press("Enter");
@@ -583,11 +585,9 @@ test("rapid typing, rapid selection and mode changes during search leave no brok
   assert.equal(rapid.lensMoves, 0);
   assert.equal(rapid.cameraMoves, 0);
 
-  // With the finder OPEN on a desktop viewport it must sit in the measured map
-  // corridor, so the mode navigation stays directly clickable: a reader can
-  // change mode mid-search without dismissing anything. A mode change must then
-  // leave no stale selection claiming to be a COMPARE choice.
-  assert.equal((await snapshot(page)).placement, "corridor");
+  // On a wide header the real field is inline and its results are anchored to
+  // that field. The mode navigation remains directly clickable mid-search.
+  assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-presentation"), "inline");
   await page.locator("#modeCompareButton").click();
   await page.waitForFunction(() => document.querySelector("#analysisPanel").dataset.mode === "COMPARE");
   assert.equal((await snapshot(page)).open, true, "the finder survives a mode change");
