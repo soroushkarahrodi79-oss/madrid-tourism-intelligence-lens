@@ -9113,7 +9113,6 @@ function syncGeoSearchPresentation({ focus = false } = {}) {
   if (inline) {
     panel.hidden = false;
     toggle.setAttribute("aria-expanded", "false");
-    loadGeoSearchModule();
     renderGeoSearch();
     if (questions) questions.open = false;
     if (focus) focusGeoSearchQuery();
@@ -9126,7 +9125,13 @@ function syncGeoSearchPresentation({ focus = false } = {}) {
 }
 
 function focusGeoSearchQuery() {
-  const focus = () => document.getElementById("geoSearchQuery")?.focus();
+  const focus = () => {
+    const input = document.getElementById("geoSearchQuery");
+    if (!input) return;
+    // WebKit needs layout for a just-unhidden overlay before it accepts focus.
+    void input.offsetHeight;
+    input.focus();
+  };
   focus();
   // Safari/WebKit can ignore focus while the just-unhidden overlay has not
   // completed layout.  Retrying in the next frame preserves keyboard opening.
@@ -9457,6 +9462,7 @@ if (geoSearchQuery) {
     geoSearch.query = event.target.value;
     // Typing changes the RESULT LIST only. The selection, the highlight, the
     // Lenses, the camera, the radii, the mode and the layers are untouched.
+    loadGeoSearchModule();
     renderGeoSearch();
   });
   geoSearchQuery.addEventListener("keydown", (event) => {

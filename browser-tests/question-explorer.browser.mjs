@@ -82,7 +82,7 @@ async function openExplorer(page) {
   await page.waitForFunction(() => !document.querySelector("#geoSearchPanel").hasAttribute("hidden"));
   await page.waitForFunction(() => !document.querySelector("#questionExplorer").hasAttribute("hidden"));
   const questions = page.locator("#geoSearchQuestions");
-  if (!await questions.evaluate((node) => node.open)) await questions.locator("summary").click();
+  if (!await questions.evaluate((node) => node.open)) await questions.loc(":scope > summary").click();
   await page.waitForFunction(() => document.querySelector("#geoSearchQuestions").open);
 }
 async function selectAndAnalyze(page, text) {
