@@ -28,8 +28,8 @@ test("Guided Tour V2 keeps the V1 preference and provides eight complete bilingu
 test("copy teaches the real M1 to M3 and K11/K13 contracts without stronger claims", () => {
   const en = tutorial.COPY.en.steps.map(([, body]) => body).join(" ");
   const es = tutorial.COPY.es.steps.map(([, body]) => body).join(" ");
-  for (const term of ["barrios", "districts", "planning ámbitos", "municipality", "View on map", "Analyze with Lens", "K13", "abstention", "HTML", "JSON", "K11", "five workspace files", "future deployments"]) assert.ok(en.includes(term), term);
-  for (const term of ["barrios", "distritos", "ámbitos de planeamiento", "municipio", "Ver en el mapa", "Analizar con Lens", "K13", "abstención", "HTML", "JSON", "K11", "cinco archivos", "despliegue futuro"]) assert.ok(es.includes(term), term);
+  for (const term of ["barrios", "districts", "planning ámbitos", "municipality", "View on map", "Analyze with Lens", "K13", "abstention", "HTML", "JSON", "K11", "exactly five workspace files", "including state.url", "future deployments"]) assert.ok(en.includes(term), term);
+  for (const term of ["barrios", "distritos", "ámbitos de planeamiento", "municipio", "Ver en el mapa", "Analizar con Lens", "K13", "abstención", "HTML", "JSON", "K11", "exactamente cinco archivos", "incluido state.url", "despliegue futuro"]) assert.ok(es.includes(term), term);
   assert.match(en, /not completed construction/);
   assert.match(en, /do not prove physical construction progress/);
   assert.match(en, /Missing, unavailable, withheld, OFF and a published zero are different/);
@@ -54,6 +54,10 @@ test("targets and navigation are contextual, visible and limited to safe disclos
   assert.match(source, /scrollIntoView\(\{ block: "nearest", behavior: "auto" \}\)/);
   assert.match(source, /clippedRect/);
   assert.match(source, /This control is not visible/);
+  assert.match(source, /function cancelNavigation\(\)/);
+  assert.match(source, /state\.active && state\.step === step && state\.navigationToken === token/);
+  assert.match(source, /cancelAnimationFrame\(state\.navigationFrame\)/);
+  assert.match(source, /clearTimeout\(state\.navigationTimeout\)/);
 });
 
 test("guide styles constrain short screens, expose focus and cover accessibility media", () => {

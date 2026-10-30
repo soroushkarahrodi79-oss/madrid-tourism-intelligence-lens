@@ -22,7 +22,7 @@
         ["Keep Place, Compare and City distinct", "PLACE keeps Lens and official-area evidence separately scoped. COMPARE is valid only for compatible scopes and metrics. CITY is municipality-wide context, not a Lens reading. Planning states do not prove physical construction progress."],
         ["Ask registered evidence questions", "M2 sits inside Find a place, not in a global panel. Its six-question menu resolves through K13 and may return a justified abstention. There is no chatbot, unrestricted question box or AI-generated answer."],
         ["Create one evidence dossier", "After a supported M2 question completes, a contextual action can export that frozen answer. The standalone HTML is readable offline and printable; JSON preserves the machine-readable record. The tour never runs a question or creates a dossier."],
-        ["Verify and reproduce", "Evidence & limits shows provenance, scope, dates and ceilings. K11 separately exports five workspace files plus a versioned state URL; M3 exports two files for one frozen question. The K11 URL restores neither that question nor its answer, and future deployments may publish different evidence."]
+        ["Verify and reproduce", "Evidence & limits shows provenance, scope, dates and ceilings. K11 separately exports exactly five workspace files, including state.url; M3 exports two files for one frozen question. The K11 URL restores neither that question nor its answer, and future deployments may publish different evidence."]
       ],
       doneTitle: "You’re ready to explore Madrid with Lens!", doneBody: "Your current workspace reading has not been changed.", doneStart: "Start exploring", replay: "Replay tutorial"
     },
@@ -40,7 +40,7 @@
         ["Distingue Lugar, Comparar y Ciudad", "LUGAR mantiene separados los alcances de la Lente y del área oficial. COMPARAR sólo es válido con alcances y métricas compatibles. CIUDAD es contexto municipal, no una lectura de la Lente. Los estados de planeamiento no prueban avance físico de obra."],
         ["Formula preguntas de evidencia registradas", "M2 está dentro de Buscar un lugar, no en un panel global. Su menú de seis preguntas resuelve mediante K13 y puede devolver una abstención justificada. No hay chatbot, pregunta libre ni respuesta generada por IA."],
         ["Crea un dosier de evidencia", "Tras completar una pregunta M2 compatible, una acción contextual puede exportar esa respuesta congelada. El HTML independiente se lee sin conexión y se imprime; el JSON conserva el registro legible por máquina. El recorrido no ejecuta preguntas ni crea dosieres."],
-        ["Verifica y reproduce", "Evidencia y límites muestra procedencia, alcance, fechas y límites. K11 exporta por separado cinco archivos del espacio de trabajo y una URL de estado versionada; M3 exporta dos archivos de una pregunta congelada. La URL K11 no restaura esa pregunta ni su respuesta y un despliegue futuro puede publicar evidencia distinta."]
+        ["Verifica y reproduce", "Evidencia y límites muestra procedencia, alcance, fechas y límites. K11 exporta por separado exactamente cinco archivos del espacio de trabajo, incluido state.url; M3 exporta dos archivos de una pregunta congelada. La URL K11 no restaura esa pregunta ni su respuesta y un despliegue futuro puede publicar evidencia distinta."]
       ],
       doneTitle: "¡Ya puedes explorar Madrid con Lens!", doneBody: "Tu lectura actual del espacio de trabajo no ha cambiado.", doneStart: "Empezar a explorar", replay: "Repetir recorrido"
     }
@@ -85,7 +85,7 @@
     Object.freeze({ id: "verify", target: evidenceTarget }),
   ]);
 
-  let state = { step: 0, active: false, opener: null, highlight: null, sessionHandled: false, placementFrame: null };
+  let state = { step: 0, active: false, opener: null, highlight: null, sessionHandled: false, placementFrame: null, navigationFrame: null, navigationTimeout: null, navigationToken: 0 };
 
   function language() { return byId("languageSelect")?.value === "es" ? "es" : "en"; }
   function t() { return COPY[language()]; }
@@ -126,7 +126,13 @@
     if (!state.active || state.placementFrame) return;
     state.placementFrame = root.requestAnimationFrame(() => { state.placementFrame = null; refreshPlacement(); });
   }
+  function cancelNavigation() {
+    if (state.navigationFrame !== null) root.cancelAnimationFrame(state.navigationFrame);
+    if (state.navigationTimeout !== null) root.clearTimeout(state.navigationTimeout);
+    state.navigationFrame = null; state.navigationTimeout = null; state.navigationToken += 1;
+  }
   function destroySurface() {
+    cancelNavigation();
     if (state.placementFrame) root.cancelAnimationFrame(state.placementFrame);
     state.placementFrame = null; removeHighlight(); byId("tutorialInvite")?.remove(); byId("tutorialGuide")?.remove();
   }
@@ -155,21 +161,27 @@
     return { key, label: t().navigation[key] };
   }
   function navigate(step) {
+    cancelNavigation();
+    const token = state.navigationToken;
+    const current = () => state.active && state.step === step && state.navigationToken === token;
     const key = STEPS[step]?.navigate;
     if (key === "controls") {
       const controls = byId("panelControls") || byId("radiusSlider"); controls?.scrollIntoView({ block: "nearest", behavior: "auto" });
-      root.setTimeout(() => renderGuide(), 0); return;
+      state.navigationTimeout = root.setTimeout(() => {
+        state.navigationTimeout = null; if (current()) renderGuide();
+      }, 0); return;
     }
     if (key === "questions") {
       const panel = byId("geoSearchPanel"); const toggle = byId("geoSearchToggle");
       if (panel?.hidden && toggle) toggle.click();
       let attempts = 0;
       const reveal = () => {
+        state.navigationFrame = null; if (!current()) return;
         const questions = byId("questionExplorer");
         if (questions && !questions.hidden) { questions.scrollIntoView({ block: "nearest", behavior: "auto" }); renderGuide(); return; }
-        if (++attempts < 120) root.requestAnimationFrame(reveal); else renderGuide();
+        if (++attempts < 120) state.navigationFrame = root.requestAnimationFrame(reveal); else renderGuide();
       };
-      root.requestAnimationFrame(reveal);
+      state.navigationFrame = root.requestAnimationFrame(reveal);
     }
   }
   function renderGuide() {

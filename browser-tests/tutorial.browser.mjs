@@ -238,6 +238,52 @@ test("finder loading uses the real M1 fallback without hiding tutorial controls"
   assert.deepEqual(page.errors_, []);
 });
 
+test("closing or skipping while M2 loads cancels the pending question reveal", async () => {
+  for (const exit of ["close", "skip"]) {
+    const page = await open({
+      storage: "1:completed", width: 390, height: 844,
+      delay: { names: ["madrid_admin.geojson", "madrid_ambitos.geojson"], ms: 1500 },
+    });
+    try {
+      await page.evaluate(() => {
+        window.__tutorialScrollTargets = [];
+        const nativeScrollIntoView = Element.prototype.scrollIntoView;
+        Element.prototype.scrollIntoView = function (...args) {
+          window.__tutorialScrollTargets.push(this.id || this.className || this.tagName);
+          return nativeScrollIntoView.apply(this, args);
+        };
+      });
+      await startManual(page); await goToStep(page, 5);
+      await page.evaluate((action) => {
+        document.querySelector("[data-tutorial-navigate]").click();
+        document.querySelector(action === "close" ? "[data-tutorial-close]" : "[data-tutorial-skip]").click();
+      }, exit);
+      await page.waitForTimeout(2200);
+      assert.equal(await page.locator("#tutorialGuide").count(), 0, `${exit}: dismissed guide stays closed`);
+      const scrolls = await page.evaluate(() => window.__tutorialScrollTargets);
+      assert.equal(scrolls.includes("questionExplorer"), false, `${exit}: stale reveal does not scroll M2`);
+      assert.deepEqual(page.errors_, []);
+    } finally {
+      await close(page);
+    }
+  }
+});
+
+test("exiting immediately after Show Lens controls cancels its deferred render", async (t) => {
+  const page = await open({ storage: "1:completed", width: 390, height: 568 }); t.after(() => close(page));
+  await page.evaluate(() => { document.getElementById("radiusSlider").style.display = "none"; });
+  await startManual(page); await goToStep(page, 2);
+  assert.match(await page.locator("[data-tutorial-navigate]").textContent(), /Show Lens controls/);
+  await page.evaluate(() => {
+    document.querySelector("[data-tutorial-navigate]").click();
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+  });
+  await page.waitForTimeout(100);
+  assert.equal(await page.locator("#tutorialGuide").count(), 0, "deferred render cannot resurrect the guide");
+  assert.equal(await page.evaluate(() => document.activeElement?.id), "tutorialHelpButton");
+  assert.deepEqual(page.errors_, []);
+});
+
 test("capture Guided Tour review states", async (t) => {
   const output = process.env.TUTORIAL_CAPTURE_DIR;
   if (!output) return t.skip("TUTORIAL_CAPTURE_DIR not set");

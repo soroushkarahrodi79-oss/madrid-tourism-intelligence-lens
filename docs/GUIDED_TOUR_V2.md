@@ -59,7 +59,7 @@ The previous guide predated the current workflow:
    used honestly; no fake control or answer is created.
 8. **Verify and reproduce — K11/K13.** The visible mode's Evidence & limits route
    is preferred, with the existing freshness entry as fallback. The copy states
-   that K11 exports five workspace files and a versioned state URL, while M3
+   that K11 exports exactly five workspace files, including `state.url`, while M3
    exports HTML and JSON for one frozen question. A K11 URL restores neither the
    question nor its saved answer and is not a guarantee against future evidence
    changes.
@@ -84,6 +84,8 @@ invitation without suppressing manual replay.
   scrolling/overflow ancestors.
 - Placement and highlight update after resize or scroll without scrolling a
   target automatically.
+- Deferred Lens-control and question-reveal navigation is cancelled when the
+  session or expected step changes, so a dismissed guide cannot reappear.
 - Buttons retain 44 px minimum targets and explicit focus-visible styling.
 - Progress is a polite, atomic status and reports the real eight-step count.
 - Escape, Skip, Close and completion return focus to the opener.
@@ -140,8 +142,8 @@ Final local verification on the feature worktree:
 
 - Node test suite: 1,203 passed, 0 failed;
 - Python test suite: 501 passed, 8 expected skips, 0 failed;
-- Guided Tour Chromium: 5 passed, 1 capture-only skip, 0 failed;
-- Guided Tour WebKit: 5 passed, 1 capture-only skip, 0 failed;
+- Guided Tour Chromium: 7 passed, 1 capture-only skip, 0 failed;
+- Guided Tour WebKit: 7 passed, 1 capture-only skip, 0 failed;
 - browser-shard inventory: 29 files assigned exactly once, 0 duplicates;
 - `git diff --check`: clean.
 
