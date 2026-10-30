@@ -8989,8 +8989,12 @@ function prefetchGeoSearchModule() {
   if (typeof requestIdleCallback === "function") requestIdleCallback(() => loadGeoSearchModule(), { timeout: 5000 });
   else setTimeout(loadGeoSearchModule, 1500);
 }
-if (document.readyState === "complete") prefetchGeoSearchModule();
-else window.addEventListener("load", prefetchGeoSearchModule, { once: true });
+// A task boundary is intentional.  `load` listeners run before the navigation
+// timing entry records loadEventEnd, and WebKit can otherwise begin the import
+// while that event is still being completed.
+function scheduleGeoSearchPrefetch() { setTimeout(prefetchGeoSearchModule, 0); }
+if (document.readyState === "complete") scheduleGeoSearchPrefetch();
+else window.addEventListener("load", scheduleGeoSearchPrefetch, { once: true });
 
 // Rebuild only when the set of AVAILABLE universes actually changes, so a render
 // triggered by a Lens move or a language switch never re-walks the entity lists.
@@ -9102,6 +9106,7 @@ function geoSearchCanInline() {
 function syncGeoSearchPresentation({ focus = false } = {}) {
   const panel = document.getElementById("geoSearchPanel");
   const toggle = document.getElementById("geoSearchToggle");
+  const questions = document.getElementById("geoSearchQuestions");
   if (!panel || !toggle) return;
   const inline = geoSearchCanInline();
   panel.dataset.presentation = inline ? "inline" : "overlay";
@@ -9110,12 +9115,22 @@ function syncGeoSearchPresentation({ focus = false } = {}) {
     toggle.setAttribute("aria-expanded", "false");
     loadGeoSearchModule();
     renderGeoSearch();
-    if (focus) document.getElementById("geoSearchQuery")?.focus();
+    if (questions) questions.open = false;
+    if (focus) focusGeoSearchQuery();
     return;
   }
   panel.hidden = !geoSearch.compactOpen;
   toggle.setAttribute("aria-expanded", geoSearch.compactOpen ? "true" : "false");
+  if (questions) questions.open = geoSearch.compactOpen;
   if (!panel.hidden) applyGeoSearchPlacement();
+}
+
+function focusGeoSearchQuery() {
+  const focus = () => document.getElementById("geoSearchQuery")?.focus();
+  focus();
+  // Safari/WebKit can ignore focus while the just-unhidden overlay has not
+  // completed layout.  Retrying in the next frame preserves keyboard opening.
+  requestAnimationFrame(focus);
 }
 
 function applyGeoSearchPlacement() {
@@ -9154,7 +9169,8 @@ function setGeoSearchOpen(open) {
     toggle.setAttribute("aria-expanded", "false");
     loadGeoSearchModule();
     renderGeoSearch();
-    if (open) document.getElementById("geoSearchQuery")?.focus();
+    document.getElementById("geoSearchQuestions").open = false;
+    if (open) focusGeoSearchQuery();
     return;
   }
   geoSearch.compactOpen = Boolean(open);
@@ -9168,8 +9184,8 @@ function setGeoSearchOpen(open) {
     loadQuestionExplorer();
     renderGeoSearch();
     applyGeoSearchPlacement();
-    const input = document.getElementById("geoSearchQuery");
-    if (input) input.focus();
+    document.getElementById("geoSearchQuestions").open = true;
+    focusGeoSearchQuery();
   }
 }
 
@@ -9520,8 +9536,10 @@ function loadQuestionExplorer() {
         },
       });
       document.getElementById("questionExplorer").hidden = false;
+      document.getElementById("geoSearchQuestions").hidden = false;
       const panel = document.getElementById("geoSearchPanel");
       if (panel) panel.dataset.questionExplorer = "ready";
+      syncGeoSearchPresentation();
       renderGeoSearch();
       return questionExplorer.view;
     })
@@ -9711,8 +9729,9 @@ function prefetchQuestionExplorer() {
   if (typeof requestIdleCallback === "function") requestIdleCallback(() => loadQuestionExplorer(), { timeout: 6000 });
   else setTimeout(loadQuestionExplorer, 2000);
 }
-if (document.readyState === "complete") prefetchQuestionExplorer();
-else window.addEventListener("load", prefetchQuestionExplorer, { once: true });
+function scheduleQuestionExplorerPrefetch() { setTimeout(prefetchQuestionExplorer, 0); }
+if (document.readyState === "complete") scheduleQuestionExplorerPrefetch();
+else window.addEventListener("load", scheduleQuestionExplorerPrefetch, { once: true });
 
 if (haloRegressionRequested && haloRegressionLocal) {
   window.__QUESTION_EXPLORER_TEST__ = Object.freeze({

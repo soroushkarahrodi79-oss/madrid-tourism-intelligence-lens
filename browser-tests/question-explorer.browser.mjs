@@ -81,6 +81,9 @@ async function openExplorer(page) {
   if (await page.locator("#geoSearchPanel").isHidden()) await page.locator("#geoSearchToggle").click();
   await page.waitForFunction(() => !document.querySelector("#geoSearchPanel").hasAttribute("hidden"));
   await page.waitForFunction(() => !document.querySelector("#questionExplorer").hasAttribute("hidden"));
+  const questions = page.locator("#geoSearchQuestions");
+  if (!await questions.evaluate((node) => node.open)) await questions.locator("summary").click();
+  await page.waitForFunction(() => document.querySelector("#geoSearchQuestions").open);
 }
 async function selectAndAnalyze(page, text) {
   await page.locator("#geoSearchQuery").fill(text);
@@ -144,6 +147,10 @@ test("the explorer stays discoverable in the inline finder before a query, adds 
   assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-presentation"), "inline");
   await page.waitForFunction(() => !document.querySelector("#questionExplorer").hasAttribute("hidden"));
   assert.equal(await page.locator("#geoSearchQuery").inputValue(), "", "questions do not require a place query");
+  assert.equal(await page.locator("#geoSearchQuestions").isVisible(), true, "the question disclosure is discoverable before a query");
+  assert.equal(await page.locator("#geoSearchQuestions").evaluate((node) => node.open), false, "the inline question list does not permanently cover the map");
+  assert.match(await page.locator("#geoSearchQuestions summary").innerText(), /Explore evidence questions/);
+  await openExplorer(page);
   assert.equal(await page.locator(".qx-q[data-question]").count(), 6);
   assert.equal(await page.locator(".qx-q[aria-pressed='true']").count(), 0);
   assert.equal(await page.locator("#qxAnswer").isHidden(), true, "no answer exists before a question is asked");
@@ -349,7 +356,7 @@ test("an answer is marked out of date in the same task as a radius change, then 
 });
 
 test("moving the Lens by a real drag never leaves a figure that looks current for another position", async (t) => {
-  const { page, context } = await pageFor();
+  const { page, context } = await pageFor({ viewport: { width: 768, height: 900 } });
   t.after(() => context.close());
   await openExplorer(page);
   await selectAndAnalyze(page, "APR.02.09");
@@ -395,7 +402,7 @@ test("moving the Lens by a real drag never leaves a figure that looks current fo
 });
 
 test("Lens A and Lens B keep their own radii, and the answer follows the ACTIVE Lens", async (t) => {
-  const { page, context } = await pageFor();
+  const { page, context } = await pageFor({ viewport: { width: 768, height: 900 } });
   t.after(() => context.close());
   await openExplorer(page);
   await selectAndAnalyze(page, "APR.02.09");
@@ -467,7 +474,7 @@ test("repeating one question builds one answer and one registry", async (t) => {
 });
 
 test("changing the analytical mode, or opening and closing the finder, does not stale or lose an answer that is still current", async (t) => {
-  const { page, context } = await pageFor();
+  const { page, context } = await pageFor({ viewport: { width: 768, height: 900 } });
   t.after(() => context.close());
   await openExplorer(page);
   await selectAndAnalyze(page, "APR.02.09");
@@ -484,7 +491,7 @@ test("changing the analytical mode, or opening and closing the finder, does not 
 });
 
 test("a change made while the finder is closed is noticed on reopening, and the answer is never shown as current", async (t) => {
-  const { page, context } = await pageFor();
+  const { page, context } = await pageFor({ viewport: { width: 768, height: 900 } });
   t.after(() => context.close());
   await openExplorer(page);
   await selectAndAnalyze(page, "APR.02.09");
@@ -657,7 +664,7 @@ test("reloading a shared link restores the Lens and starts with NO answer, never
 // ============================================================ accessibility and layout
 
 test("keyboard alone operates the explorer; focus stays on the control and the result is announced", async (t) => {
-  const { page, context } = await pageFor();
+  const { page, context } = await pageFor({ viewport: { width: 390, height: 844 } });
   t.after(() => context.close());
   // The M1 finder keeps its field disabled (so it cannot take focus) until its
   // universes have loaded; on a slower engine a key press can precede that. This
@@ -965,6 +972,7 @@ test("dossier action remains contained at all required viewports in Light/Dark a
     await page.setViewportSize({ width, height });
     await page.selectOption("#appearanceSelect", index % 2 ? "dark" : "light");
     await page.selectOption("#languageSelect", index % 2 ? "es" : "en");
+    await openExplorer(page);
     const button = page.locator("#qxAnswer .qx-action-dossier");
     await button.scrollIntoViewIfNeeded();
     const geometry = await button.evaluate((node) => {

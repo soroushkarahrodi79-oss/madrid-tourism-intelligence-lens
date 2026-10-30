@@ -549,12 +549,12 @@ test("Light, Dark and System all render the finder from appearance tokens", asyn
   await openSearch(page);
   await selectFirst(page, "Palacio");
   const sample = () => page.evaluate(() => {
-    const panel = document.querySelector("#geoSearchPanel");
+    const surface = document.querySelector(".geo-search-surface");
     const result = document.querySelector("#geoSearchResults button");
     return {
       appearance: document.documentElement.dataset.appearance,
-      panelColor: getComputedStyle(panel).color,
-      panelBackground: getComputedStyle(panel).backgroundColor,
+      panelColor: getComputedStyle(surface).color,
+      panelBackground: getComputedStyle(surface).backgroundColor,
       resultBackground: getComputedStyle(result).backgroundColor,
       view: window.__HALO_REGRESSION__.mapView(),
     };
@@ -570,7 +570,7 @@ test("Light, Dark and System all render the finder from appearance tokens", asyn
   assert.equal(dark.appearance, "dark");
   assert.equal(system.appearance, "dark", "System follows the emulated dark preference");
   assert.notEqual(light.panelColor, dark.panelColor);
-  assert.notEqual(light.panelBackground, dark.panelBackground);
+  assert.notEqual(light.panelBackground, dark.panelBackground, "the visible finder surface inherits appearance tokens");
   for (const state of [light, dark, system]) assert.deepEqual(state.view, initial.view, "appearance never moves the map");
 });
 

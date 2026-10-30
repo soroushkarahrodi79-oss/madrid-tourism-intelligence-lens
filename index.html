@@ -56,7 +56,12 @@
         <p id="geoSearchAnalyzeNote" class="geo-search-note"></p>
       </article>
       <p id="geoSearchCoverage" class="geo-search-coverage"></p>
-      <section id="questionExplorer" class="qx" aria-labelledby="qxTitle" hidden></section>
+      <!-- The explorer has one home.  Inline mode keeps this compact disclosure
+           visible before a query; compact mode opens the same disclosure. -->
+      <details id="geoSearchQuestions" class="geo-search-questions" hidden>
+        <summary data-i18n="search.questions">Explore evidence questions</summary>
+        <section id="questionExplorer" class="qx" aria-labelledby="qxTitle" hidden></section>
+      </details>
     </div>
   </section>
   <div class="header-tools" role="group" aria-label="Workspace preferences and help" data-i18n-attr="aria-label:header.preferencesAria">
