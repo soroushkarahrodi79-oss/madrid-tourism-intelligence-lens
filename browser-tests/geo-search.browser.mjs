@@ -108,7 +108,7 @@ test("the finder exposes its single query field inline when the measured header 
   assert.equal(await page.locator("#geoSearchToggle").isVisible(), false);
   const open = await snapshot(page);
   assert.equal(open.state, "ready");
-  assert.equal(await page.locator("#geoSearchToggle").getAttribute("aria-expanded"), "true");
+  assert.equal(await page.locator("#geoSearchToggle").getAttribute("aria-expanded"), "false", "automatic inline visibility is not an explicit compact open state");
   assert.deepEqual(open.counts, { total: 877, MUNICIPALITY: 1, DISTRICT: 21, BARRIO: 131, AMBITO: 724 });
   assert.deepEqual(open.coverage, { administrative: true, ambito: true });
   await page.locator("#geoSearchQuery").fill("Palacio");
@@ -116,6 +116,49 @@ test("the finder exposes its single query field inline when the measured header 
   assert.match(await page.locator("#geoSearchCoverage").textContent(), /21 official districts, 131 official barrios and 724 planning ámbitos/);
   assert.match(await page.locator("#geoSearchCoverage").textContent(), /Street addresses are not searchable/);
   assert.deepEqual(errors, []);
+});
+
+test("header presentation uses intrinsic control widths and never carries automatic visibility into compact layouts", async (t) => {
+  const widths = [1440, 1024, 768, 390, 1440];
+  const { page, context } = await pageFor({ viewport: { width: widths[0], height: 844 } });
+  t.after(() => context.close());
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.waitForTimeout(80);
+    const state = await page.evaluate(() => {
+      const panel = document.querySelector("#geoSearchPanel");
+      const header = document.querySelector("header");
+      const brand = document.querySelector(".brand").getBoundingClientRect();
+      const tools = document.querySelector(".header-tools").getBoundingClientRect();
+      return {
+        presentation: panel.dataset.presentation,
+        hidden: panel.hidden,
+        compactOpen: window.__GEO_SEARCH_TEST__.snapshot().compactOpen,
+        headerOverflow: header.scrollWidth - header.clientWidth,
+        pageOverflow: document.documentElement.scrollWidth - innerWidth,
+        brandRight: brand.right, brandBottom: brand.bottom, toolsLeft: tools.left, toolsTop: tools.top,
+      };
+    });
+    assert.ok(state.headerOverflow <= 0, `${width}px header overflow ${state.headerOverflow}`);
+    assert.ok(state.pageOverflow <= 0, `${width}px page overflow ${state.pageOverflow}`);
+    if (state.brandBottom > state.toolsTop) assert.ok(state.brandRight <= state.toolsLeft + .5, `${width}px brand overlaps preferences`);
+    if (state.presentation === "inline") assert.equal(state.hidden, false, `${width}px inline field is available`);
+    else {
+      assert.equal(state.hidden, true, `${width}px compact overlay stays closed after resize`);
+      assert.equal(state.compactOpen, false, `${width}px has no implicit compact-open state`);
+    }
+  }
+  // Fresh pages make the same promise; no hidden desktop state leaks into a
+  // direct tablet or phone load.
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    const fresh = await pageFor({ viewport: { width, height: 844 } });
+    const state = await fresh.page.evaluate(() => ({ presentation: document.querySelector("#geoSearchPanel").dataset.presentation, hidden: document.querySelector("#geoSearchPanel").hidden, compactOpen: window.__GEO_SEARCH_TEST__.snapshot().compactOpen }));
+    if (state.presentation === "overlay") {
+      assert.equal(state.hidden, true, `${width}px direct compact load is closed`);
+      assert.equal(state.compactOpen, false, `${width}px direct compact load is not open`);
+    }
+    await fresh.context.close();
+  }
 });
 
 test("the search resolver is kept off the initial critical path", async (t) => {
@@ -740,5 +783,16 @@ test("capture the finder's real states for the visual audit", async (t) => {
     await selectFirst(page, "AOE.00.02-RP");
     await page.locator("#geoSearchViewMap").click();
   });
-  assert.ok(fs.readdirSync(CAPTURE_DIR).length >= 10);
+  // Reviewer matrix: each required viewport in both appearances with a real
+  // result selection. This intentionally uses the production selection and map
+  // controls rather than a synthetic fixture, so collisions are visible.
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    for (const colorScheme of ["light", "dark"]) {
+      await shot(`header-${width}-${colorScheme}`, { viewport: { width, height: width < 600 ? 568 : 844 }, colorScheme }, async (page) => {
+        await openSearch(page);
+        await selectFirst(page, "Palacio");
+      });
+    }
+  }
+  assert.ok(fs.readdirSync(CAPTURE_DIR).length >= 20);
 });

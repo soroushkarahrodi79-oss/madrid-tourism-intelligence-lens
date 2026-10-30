@@ -8939,6 +8939,9 @@ const geoSearch = {
   cameraMoves: 0,
   lensMoves: 0,
   lastAction: null,
+  // This belongs only to the compact activator. Inline visibility is a layout
+  // decision, never evidence that a reader opened the compact overlay.
+  compactOpen: false,
 };
 let geoSearchRenderer = null;
 let geoSearchLayer = null;
@@ -9088,7 +9091,11 @@ function geoSearchCanInline() {
   const brand = header && header.querySelector(".brand");
   const tools = header && header.querySelector(".header-tools");
   if (!header || !brand || !tools || window.matchMedia("(max-width:680px)").matches) return false;
-  const available = header.clientWidth - brand.getBoundingClientRect().width - tools.getBoundingClientRect().width - 3 * 12;
+  // `scrollWidth` is the intrinsic content width even after flexbox has shrunk a
+  // child. Deliberately do not read the search panel: its own inline width must
+  // not participate in the decision that decides whether it is inline.
+  const gap = Number.parseFloat(getComputedStyle(header).columnGap) || 12;
+  const available = header.clientWidth - brand.scrollWidth - tools.scrollWidth - 2 * gap;
   return available >= GEO_SEARCH_MIN_HEADER_INPUT_PX;
 }
 
@@ -9099,16 +9106,15 @@ function syncGeoSearchPresentation({ focus = false } = {}) {
   const inline = geoSearchCanInline();
   panel.dataset.presentation = inline ? "inline" : "overlay";
   if (inline) {
-    geoSearch.open = true;
     panel.hidden = false;
-    toggle.setAttribute("aria-expanded", "true");
+    toggle.setAttribute("aria-expanded", "false");
     loadGeoSearchModule();
     renderGeoSearch();
     if (focus) document.getElementById("geoSearchQuery")?.focus();
     return;
   }
-  panel.hidden = !geoSearch.open;
-  toggle.setAttribute("aria-expanded", geoSearch.open ? "true" : "false");
+  panel.hidden = !geoSearch.compactOpen;
+  toggle.setAttribute("aria-expanded", geoSearch.compactOpen ? "true" : "false");
   if (!panel.hidden) applyGeoSearchPlacement();
 }
 
@@ -9143,19 +9149,18 @@ function setGeoSearchOpen(open) {
   const toggle = document.getElementById("geoSearchToggle");
   if (!panel || !toggle) return;
   if (geoSearchCanInline()) {
-    geoSearch.open = true;
     panel.hidden = false;
     panel.dataset.presentation = "inline";
-    toggle.setAttribute("aria-expanded", "true");
+    toggle.setAttribute("aria-expanded", "false");
     loadGeoSearchModule();
     renderGeoSearch();
     if (open) document.getElementById("geoSearchQuery")?.focus();
     return;
   }
-  geoSearch.open = Boolean(open);
-  panel.hidden = !geoSearch.open;
-  toggle.setAttribute("aria-expanded", geoSearch.open ? "true" : "false");
-  if (geoSearch.open) {
+  geoSearch.compactOpen = Boolean(open);
+  panel.hidden = !geoSearch.compactOpen;
+  toggle.setAttribute("aria-expanded", geoSearch.compactOpen ? "true" : "false");
+  if (geoSearch.compactOpen) {
     // Opening is the deadline for the resolver. If the idle prefetch has not run
     // yet this issues the request now and the surface shows its loading state
     // until it resolves; if it has, this is a no-op on the memoised promise.
@@ -9415,6 +9420,7 @@ function dismissGeoSearch() {
   clearGeoSearch();
   if (geoSearchCanInline()) geoSearchQuery?.focus();
   else {
+    geoSearch.compactOpen = false;
     setGeoSearchOpen(false);
     if (geoSearchToggle) geoSearchToggle.focus();
   }
@@ -9422,7 +9428,7 @@ function dismissGeoSearch() {
 
 if (geoSearchToggle) {
   geoSearchToggle.addEventListener("click", () => {
-    if (geoSearch.open) {
+    if (geoSearch.compactOpen) {
       setGeoSearchOpen(false);
       geoSearchToggle.focus();
     } else {
@@ -9514,6 +9520,9 @@ function loadQuestionExplorer() {
         },
       });
       document.getElementById("questionExplorer").hidden = false;
+      const panel = document.getElementById("geoSearchPanel");
+      if (panel) panel.dataset.questionExplorer = "ready";
+      renderGeoSearch();
       return questionExplorer.view;
     })
     .catch((error) => {
@@ -9731,7 +9740,8 @@ if (haloRegressionRequested && haloRegressionLocal) {
     snapshot: () => ({
       state: document.getElementById("geoSearchPanel").dataset.state || null,
       placement: document.getElementById("geoSearchPanel").dataset.placement || null,
-      open: geoSearch.open,
+      open: geoSearchCanInline() || geoSearch.compactOpen,
+      compactOpen: geoSearch.compactOpen,
       query: geoSearch.query,
       selectedId: geoSearch.selectedId,
       selectedLayer: Boolean(geoSearchLayer),

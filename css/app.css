@@ -1824,6 +1824,7 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
   background:var(--chrome-panel-surface);backdrop-filter:blur(18px);box-shadow:0 14px 40px rgba(0,0,0,.28);display:none
 }
 .geo-search[data-presentation="inline"][data-has-query="true"] .geo-search-surface{display:block}
+.geo-search[data-presentation="inline"][data-question-explorer="ready"] .geo-search-surface{display:block}
 .geo-search[data-presentation="inline"]~.header-tools .geo-search-toggle{display:none}
 /* Corridor placement is driven by --geo-search-left / --geo-search-width,
    which js/app.js measures. Like --header-bottom, those inline values still

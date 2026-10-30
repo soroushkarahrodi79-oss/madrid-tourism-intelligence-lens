@@ -78,7 +78,7 @@ const answerState = (page) => page.evaluate(() => {
 });
 
 async function openExplorer(page) {
-  await page.locator("#geoSearchToggle").click();
+  if (await page.locator("#geoSearchPanel").isHidden()) await page.locator("#geoSearchToggle").click();
   await page.waitForFunction(() => !document.querySelector("#geoSearchPanel").hasAttribute("hidden"));
   await page.waitForFunction(() => !document.querySelector("#questionExplorer").hasAttribute("hidden"));
 }
@@ -136,13 +136,14 @@ async function createDossier(page, { keyboard = false } = {}) {
 
 // ============================================================ structure and wiring
 
-test("the explorer lives in the finder, adds nothing to the header and is wired to the real registry", async (t) => {
+test("the explorer stays discoverable in the inline finder before a query, adds nothing to the header and is wired to the real registry", async (t) => {
   const { page, context, errors } = await pageFor();
   t.after(() => context.close());
   const headerBefore = await page.evaluate(() => [...document.querySelectorAll(".header-tools > *")].map((n) => n.id || n.className));
   assert.equal(headerBefore.length, 5, "the header gains no control");
-  assert.equal(await page.locator("#questionExplorer").isHidden(), true, "closed with the finder");
-  await openExplorer(page);
+  assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-presentation"), "inline");
+  await page.waitForFunction(() => !document.querySelector("#questionExplorer").hasAttribute("hidden"));
+  assert.equal(await page.locator("#geoSearchQuery").inputValue(), "", "questions do not require a place query");
   assert.equal(await page.locator(".qx-q[data-question]").count(), 6);
   assert.equal(await page.locator(".qx-q[aria-pressed='true']").count(), 0);
   assert.equal(await page.locator("#qxAnswer").isHidden(), true, "no answer exists before a question is asked");
