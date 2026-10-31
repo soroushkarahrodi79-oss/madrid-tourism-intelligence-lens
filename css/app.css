@@ -1831,8 +1831,10 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
   padding:var(--s-3);overflow:auto;overscroll-behavior:contain;border:1px solid var(--chrome-border);border-radius:var(--r-large);
   background:var(--chrome-panel-surface);backdrop-filter:blur(18px);box-shadow:0 14px 40px rgba(0,0,0,.28);display:none
 }
-.geo-search[data-presentation="inline"][data-has-query="true"] .geo-search-surface{display:block}
-.geo-search[data-presentation="inline"][data-question-explorer="ready"] .geo-search-surface{display:block}
+/* The surface is an interaction state. It is shown only while the reader has
+   opened it (data-open), never because a query exists or because the Question
+   Explorer finished loading in the background. */
+.geo-search[data-presentation="inline"][data-open="true"] .geo-search-surface{display:block}
 .geo-search[data-presentation="inline"]~.header-tools .geo-search-toggle{display:none}
 /* Corridor placement is driven by --geo-search-left / --geo-search-width,
    which js/app.js measures. Like --header-bottom, those inline values still
@@ -1843,7 +1845,7 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
    viewport even above it. The measurement refines the placement; it can no
    longer place the panel outside the page. */
 @media(min-width:1024px){
-  .geo-search[data-placement="corridor"]{left:var(--geo-search-left);right:auto;width:min(var(--geo-search-width),calc(100vw - var(--geo-search-left) - 18px - var(--safe-right)))}
+  .geo-search[data-presentation="overlay"][data-placement="corridor"]{left:var(--geo-search-left);right:auto;width:min(var(--geo-search-width),calc(100vw - var(--geo-search-left) - 18px - var(--safe-right)))}
 }
 .geo-search-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-2);min-width:0}
 .geo-search-label{min-width:0;font-size:var(--t-micro);font-weight:650;letter-spacing:.1em;text-transform:uppercase;color:var(--chrome-text-section);line-height:1.3}

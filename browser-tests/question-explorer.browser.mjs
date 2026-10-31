@@ -78,7 +78,12 @@ const answerState = (page) => page.evaluate(() => {
 });
 
 async function openExplorer(page) {
-  if (await page.locator("#geoSearchPanel").isHidden()) await page.locator("#geoSearchToggle").click();
+  // The inline surface is closed until the reader activates the field; the
+  // compact overlay is closed until its activator is used. Both are the explicit
+  // interaction that reveals the explorer.
+  if (await page.locator("#geoSearchPanel").getAttribute("data-presentation") === "inline") {
+    if (await page.locator("#geoSearchPanel").getAttribute("data-open") !== "true") await page.locator("#geoSearchQuery").click();
+  } else if (await page.locator("#geoSearchPanel").isHidden()) await page.locator("#geoSearchToggle").click();
   await page.waitForFunction(() => !document.querySelector("#geoSearchPanel").hasAttribute("hidden"));
   await page.waitForFunction(() => !document.querySelector("#questionExplorer").hasAttribute("hidden"));
   const questions = page.locator("#geoSearchQuestions");
@@ -149,8 +154,10 @@ test("the explorer stays discoverable in the inline finder before a query, adds 
   assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-presentation"), "inline");
   await page.waitForFunction(() => !document.querySelector("#questionExplorer").hasAttribute("hidden"));
   assert.equal(await page.locator("#geoSearchQuery").inputValue(), "", "questions do not require a place query");
-  assert.equal(await page.locator("#geoSearchQuestions").isVisible(), true, "the question disclosure is discoverable before a query");
-  assert.equal(await page.locator("#geoSearchQuestions").evaluate((node) => node.open), false, "the inline question list does not permanently cover the map");
+  assert.equal(await page.locator("#geoSearchQuestions").isVisible(), false, "nothing covers the map merely because the explorer loaded");
+  await page.locator("#geoSearchQuery").click();
+  assert.equal(await page.locator("#geoSearchQuestions").isVisible(), true, "the question disclosure is discoverable as soon as the reader activates the finder, before any query");
+  assert.equal(await page.locator("#geoSearchQuestions").evaluate((node) => node.open), false, "the inline question list stays collapsed until it is expanded");
   assert.match(await page.locator("#geoSearchQuestions > summary").innerText(), /Explore evidence questions/);
   await openExplorer(page);
   assert.equal(await page.locator(".qx-q[data-question]").count(), 6);
@@ -748,12 +755,15 @@ test("on a wide screen the finder stays in the map corridor and covers neither t
   await selectAndAnalyze(page, "APR.02.09");
   await askQuestion(page, "LICENCES_IN_LENS");
   const overlap = await page.evaluate(() => {
-    const panel = document.querySelector("#geoSearchPanel").getBoundingClientRect();
+    // The inline field lives in the header and its OPEN SURFACE hangs in the map
+    // corridor, so both are measured. The corridor placement of the overlay form
+    // must not be applied to the inline field at all.
+    const rects = [document.querySelector("#geoSearchQuery"), document.querySelector(".geo-search-surface")].map((node) => node.getBoundingClientRect());
     const hit = (selector) => {
       const node = document.querySelector(selector);
       if (!node) return false;
       const r = node.getBoundingClientRect();
-      return !(r.right <= panel.left || r.left >= panel.right || r.bottom <= panel.top || r.top >= panel.bottom);
+      return rects.some((panel) => !(r.right <= panel.left || r.left >= panel.right || r.bottom <= panel.top || r.top >= panel.bottom));
     };
     return {
       placement: document.querySelector("#geoSearchPanel").dataset.placement,
@@ -761,7 +771,7 @@ test("on a wide screen the finder stays in the map corridor and covers neither t
       rail: hit("#layerRail"), analysis: hit("#analysisPanel"), modeNav: hit("#modeNav"),
     };
   });
-  assert.equal(overlap.placement, "corridor");
+  assert.equal(overlap.placement, undefined, "an inline field never carries the overlay's corridor placement");
   assert.deepEqual([overlap.zoom, overlap.attribution, overlap.rail, overlap.analysis, overlap.modeNav], [false, false, false, false, false]);
 });
 
