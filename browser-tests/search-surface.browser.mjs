@@ -70,8 +70,8 @@ async function pageFor({ viewport = { width: 1280, height: 900 }, colorScheme = 
   });
   await page.evaluate(() => window.__QUESTION_EXPLORER_TEST__.whenReady());
   await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.questionExplorer === "ready");
-  // The field is disabled until the deliberately idle-loaded resolver arrives; focus() on it is a silent no-op before then.
-  await page.waitForFunction(() => !document.querySelector("#geoSearchQuery").disabled);
+  // Tests that are not about the loading state start from a resolved resolver (the cold-load case has its own test).
+  await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.state === "ready");
   if (language !== "en") {
     await page.selectOption("#languageSelect", language);
     await page.waitForTimeout(150);
@@ -323,4 +323,34 @@ test("the tour reveals Evidence Questions through the inline field without chang
   await page.locator("[data-tutorial-next]").click();
   assert.equal(await surfaceVisible(page), true, "advancing the tour does not dismiss the surface it opened");
   assert.deepEqual(await world(page), before);
+});
+
+// ------------------------------------------------------ Cold load
+
+test("a search activation before the deferred resolver arrives is kept, not lost", async (t) => {
+  for (const [width, activator] of [[1440, "#geoSearchQuery"], [390, "#geoSearchToggle"]]) {
+    const context = await browser.newContext({ viewport: { width, height: 900 } });
+    await track(context, t);
+    const page = await context.newPage();
+    page.setDefaultTimeout(30000);
+    await page.route("**/*", async (route) => {
+      const url = new URL(route.request().url());
+      if (url.hostname !== "127.0.0.1") return route.abort();
+      if (url.pathname.endsWith("/geo-search.js")) await new Promise((resolve) => setTimeout(resolve, 3000));
+      return route.continue();
+    });
+    await page.goto(`http://127.0.0.1:${port}/?haloRegressionTest=1`, { waitUntil: "domcontentloaded" });
+    await page.locator(activator).waitFor({ state: "visible" });
+    assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-state"), "loading", `${width}px starts before the resolver`);
+    assert.equal(await page.locator("#geoSearchQuery").isDisabled(), false, `${width}px the field is not disabled while loading`);
+    await page.locator(activator).click();
+    await page.keyboard.type("Palacio");
+    assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-open"), "true", `${width}px the first activation opened the surface`);
+    assert.equal(await page.locator("#geoSearchQuery").inputValue(), "Palacio", `${width}px the typed text was kept`);
+    assert.match(await page.locator("#geoSearchStatus").innerText(), /loading|Cargando/i, `${width}px the surface says it is loading`);
+    await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.state === "ready");
+    await page.waitForFunction(() => document.querySelectorAll("#geoSearchResults button").length > 0);
+    assert.equal(await page.locator("#geoSearchQuery").inputValue(), "Palacio", `${width}px the query survives resolution`);
+    assert.equal(await activeId(page), "geoSearchQuery", `${width}px focus stays in the field`);
+  }
 });

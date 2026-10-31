@@ -9435,8 +9435,13 @@ function renderGeoSearch() {
   const state = index ? "ready" : loading ? "loading" : "unavailable";
   host.dataset.state = state;
   host.dataset.hasQuery = geoSearch.query.trim() ? "true" : "false";
-  input.disabled = state !== "ready";
-  if (state === "ready" && geoSearch.focusPending) focusGeoSearchQuery();
+  // Only "unavailable" disables the field. While the resolver is still loading the
+  // field stays operable: a click or keystroke opens the surface, which reports the
+  // loading state, and the typed query is kept and answered as soon as it is ready.
+  // A disabled field would drop that first interaction without any feedback.
+  input.disabled = state === "unavailable";
+  input.setAttribute("aria-busy", state === "loading" ? "true" : "false");
+  if (state !== "unavailable" && geoSearch.focusPending) focusGeoSearchQuery();
   results.replaceChildren();
 
   if (state !== "ready") {
