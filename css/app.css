@@ -1888,15 +1888,15 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
 .geo-search-query:disabled{opacity:.55;cursor:not-allowed}
 /* Civic Search field: a leading cartographic magnifier and a trailing "/" key
    hint. Both are decoration (aria-hidden) over the one real input. */
-.geo-search-field{position:relative;display:block}
-.geo-search-icon{position:absolute;left:var(--s-3);top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--chrome-text-control-caption);pointer-events:none}
-.geo-search-field .geo-search-query{padding-left:calc(var(--s-3) + 18px + var(--s-2));padding-right:calc(var(--s-3) + 24px + var(--s-2));border-radius:var(--r-large);transition:border-color .12s ease}
+.geo-search-field{--geo-search-icon-size:18px;--geo-search-hint-size:24px;position:relative;display:block}
+.geo-search-icon{position:absolute;left:var(--s-3);top:50%;transform:translateY(-50%);width:var(--geo-search-icon-size);height:var(--geo-search-icon-size);color:var(--chrome-text-control-caption);pointer-events:none}
+.geo-search-field .geo-search-query{padding-left:calc(var(--s-3) + var(--geo-search-icon-size) + var(--s-2));padding-right:calc(var(--s-3) + var(--geo-search-hint-size) + var(--s-2));border-radius:var(--r-large);transition:border-color .12s ease}
 .geo-search-query::placeholder{color:var(--chrome-text-control-caption);opacity:1}
 .geo-search-query:hover{border-color:var(--chrome-mobile-control-open-border)}
 .geo-search[data-open="true"] .geo-search-query,.geo-search-query:focus{border-color:var(--chrome-mobile-control-open-border)}
 .geo-search[data-open="true"] .geo-search-icon,.geo-search-field:focus-within .geo-search-icon{color:var(--chrome-text-control-strong)}
 .geo-search-hint{
-  position:absolute;right:var(--s-3);top:50%;transform:translateY(-50%);min-width:20px;box-sizing:border-box;padding:1px var(--s-1);
+  position:absolute;right:var(--s-3);top:50%;transform:translateY(-50%);min-width:20px;box-sizing:border-box;padding:0 var(--s-1);
   border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-control-group-surface);
   color:var(--chrome-text-control-caption);font:inherit;font-size:var(--t-meta);line-height:1.3;text-align:center;pointer-events:none
 }

@@ -70,6 +70,8 @@ async function pageFor({ viewport = { width: 1280, height: 900 }, colorScheme = 
   });
   await page.evaluate(() => window.__QUESTION_EXPLORER_TEST__.whenReady());
   await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.questionExplorer === "ready");
+  // The field is disabled until the deliberately idle-loaded resolver arrives; focus() on it is a silent no-op before then.
+  await page.waitForFunction(() => !document.querySelector("#geoSearchQuery").disabled);
   if (language !== "en") {
     await page.selectOption("#languageSelect", language);
     await page.waitForTimeout(150);
