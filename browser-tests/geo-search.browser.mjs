@@ -449,7 +449,10 @@ test("keyboard alone operates the whole finder, and focus never falls to the doc
   t.after(() => context.close());
   await page.locator("#geoSearchToggle").focus();
   await page.keyboard.press("Enter");
-  await page.waitForFunction(() => !document.querySelector("#geoSearchPanel").hasAttribute("hidden"));
+  // Compact opening retries focus on the next animation frame for WebKit,
+  // which can reject focus while a just-unhidden overlay is laying out. Await
+  // the actual keyboard contract instead of racing that deliberate handoff.
+  await page.waitForFunction(() => !document.querySelector("#geoSearchPanel").hasAttribute("hidden") && document.activeElement?.id === "geoSearchQuery");
   assert.equal(await page.evaluate(() => document.activeElement.id), "geoSearchQuery");
 
   await page.keyboard.type("APR.02.0");
@@ -478,7 +481,7 @@ test("keyboard alone operates the whole finder, and focus never falls to the doc
   // "/" opens the finder from anywhere that is not a field.
   await page.locator("#modePlaceButton").focus();
   await page.keyboard.press("/");
-  await page.waitForFunction(() => !document.querySelector("#geoSearchPanel").hasAttribute("hidden"));
+  await page.waitForFunction(() => !document.querySelector("#geoSearchPanel").hasAttribute("hidden") && document.activeElement?.id === "geoSearchQuery");
   assert.equal((await snapshot(page)).open, true);
   assert.equal(await page.evaluate(() => document.activeElement.id), "geoSearchQuery");
 

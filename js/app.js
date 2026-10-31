@@ -8942,6 +8942,7 @@ const geoSearch = {
   // This belongs only to the compact activator. Inline visibility is a layout
   // decision, never evidence that a reader opened the compact overlay.
   compactOpen: false,
+  focusPending: false,
 };
 let geoSearchRenderer = null;
 let geoSearchLayer = null;
@@ -9150,7 +9151,11 @@ function applyInlineGeoSearchSurfaceGeometry() {
 function focusGeoSearchQuery() {
   const focus = () => {
     const input = document.getElementById("geoSearchQuery");
-    if (!input) return;
+    // The resolver and official universes can still be loading when the compact
+    // overlay first appears. Disabled controls cannot receive focus in WebKit;
+    // retain the request until renderGeoSearch enables the real field.
+    if (!input || input.disabled) return;
+    geoSearch.focusPending = false;
     // WebKit needs layout for a just-unhidden overlay before it accepts focus.
     void input.offsetHeight;
     input.focus();
@@ -9191,6 +9196,7 @@ function setGeoSearchOpen(open) {
   const panel = document.getElementById("geoSearchPanel");
   const toggle = document.getElementById("geoSearchToggle");
   if (!panel || !toggle) return;
+  geoSearch.focusPending = Boolean(open);
   if (geoSearchCanInline()) {
     panel.hidden = false;
     panel.dataset.presentation = "inline";
@@ -9398,6 +9404,7 @@ function renderGeoSearch() {
   host.dataset.state = state;
   host.dataset.hasQuery = geoSearch.query.trim() ? "true" : "false";
   input.disabled = state !== "ready";
+  if (state === "ready" && geoSearch.focusPending) focusGeoSearchQuery();
   results.replaceChildren();
 
   if (state !== "ready") {
@@ -9464,6 +9471,7 @@ function dismissGeoSearch({ clearSearch = false } = {}) {
   // Keyboard dismissal from the finder field/results clears its transient
   // selection and outline. The explicit close control and Question Explorer
   // Escape retain a still-current answer and its selected-place context.
+  geoSearch.focusPending = false;
   if (clearSearch) clearGeoSearch();
   if (geoSearchCanInline()) {
     // In inline mode Escape is the explicit dismissal for the expanded
