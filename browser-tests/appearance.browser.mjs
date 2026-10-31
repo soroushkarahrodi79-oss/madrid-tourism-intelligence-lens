@@ -336,8 +336,10 @@ async function chromeGeometry(page) {
       tools: rect(".header-tools"),
       brand: rect(".brand"),
     };
+    const inlineSearch = document.querySelector("#geoSearchPanel")?.dataset.presentation === "inline";
     const overHeader = Object.entries(parts)
       .filter(([name]) => !["tools", "brand", "searchToggle"].includes(name))
+      .filter(([name]) => name !== "search" || !inlineSearch)
       .filter(([, box]) => overlaps(box, header))
       .map(([name]) => name);
     return {
@@ -347,6 +349,7 @@ async function chromeGeometry(page) {
       headerBottom: header ? header.bottom : null,
       measured: document.documentElement.style.getPropertyValue("--header-bottom").trim() || null,
       parts,
+      inlineSearch,
       overHeader,
       layersTools: overlaps(parts.layers, parts.tools),
       zoomLayers: overlaps(parts.zoom, parts.layers),
@@ -364,7 +367,7 @@ function assertNoCollision(geometry, label) {
   assert.equal(geometry.zoomLayers, false, `${label}: zoom/Layers collision — ${JSON.stringify(geometry)}`);
   assert.equal(geometry.zoomAttribution, false, `${label}: zoom/attribution collision — ${JSON.stringify(geometry)}`);
   assert.equal(geometry.railTools, false, `${label}: Layers rail over the header tools — ${JSON.stringify(geometry)}`);
-  assert.equal(geometry.searchTools, false, `${label}: place finder over the header tools — ${JSON.stringify(geometry)}`);
+  assert.equal(geometry.inlineSearch || !geometry.searchTools, true, `${label}: compact place finder over the header tools — ${JSON.stringify(geometry)}`);
   assert.ok(geometry.overflow <= 1, `${label}: horizontal document overflow ${geometry.overflow}`);
 }
 
@@ -414,21 +417,31 @@ test("map chrome clears the header with the place finder open, in both languages
       try {
         await page.locator("#languageSelect").selectOption(language);
         await page.locator("#appearanceSelect").selectOption(appearance);
-        await page.locator("#geoSearchToggle").click();
+        // Inline search is already visible at desktop widths.  Constrained
+        // widths require an explicit reader action; resize never opens it.
         await page.waitForFunction(() => !document.querySelector("#geoSearchPanel").hasAttribute("hidden"));
         for (const viewport of CHROME_VIEWPORTS) {
           await page.setViewportSize({ width: 1440, height: 900 });
           await page.waitForTimeout(80);
           await page.setViewportSize(viewport);
+          if (await page.locator("#geoSearchPanel").isHidden()) await page.locator("#geoSearchToggle").click();
           const label = `${language}/${appearance} finder open at ${viewport.width}x${viewport.height}`;
-          const immediate = await chromeGeometry(page);
+          let immediate = await chromeGeometry(page);
+          // CSS may synchronously suppress a stale inline surface for this one
+          // resize frame. Its compact activator must be usable then; opening it
+          // is a real reader action, not a programmatic/forced click.
+          if (!immediate.parts.search) {
+            assert.equal(await page.locator("#geoSearchToggle").isVisible(), true, `${label}: the compact finder control remains available during the fallback frame`);
+            await page.locator("#geoSearchToggle").click();
+            immediate = await chromeGeometry(page);
+          }
           assertNoCollision(immediate, `${label} (immediate)`);
           assert.ok(immediate.parts.search, `${label}: the finder must stay rendered`);
           await page.waitForTimeout(120);
           assertNoCollision(await chromeGeometry(page), `${label} (settled)`);
         }
         // Closed again, the same sweep must hold.
-        await page.locator("#geoSearchClose").click();
+        if (!await page.locator("#geoSearchPanel").evaluate((node) => node.dataset.presentation === "inline")) await page.locator("#geoSearchClose").click();
         for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 700 }, { width: 390, height: 320 }]) {
           await page.setViewportSize({ width: 1440, height: 900 });
           await page.waitForTimeout(80);

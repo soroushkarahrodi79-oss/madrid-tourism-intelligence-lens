@@ -39,9 +39,24 @@ test("UX-H1.2 map controls hang from the real header edge without collisions", a
         const b = el.getBoundingClientRect(); return { left:b.left, top:b.top, right:b.right, bottom:b.bottom, width:b.width, height:b.height };
       };
       const header = document.querySelector("header");
+      const headerBox = header.getBoundingClientRect();
+      // The inline finder deliberately owns an absolutely positioned result /
+      // Question Explorer surface below the header. That popover contributes to
+      // header.scrollHeight even though the header row itself is fully visible.
+      // Measure the rendered direct controls instead, so this still fails for a
+      // brand, finder field or preferences group clipped by the header bounds.
+      const headerControlClipped = [...header.children]
+        .filter((element) => {
+          const style = getComputedStyle(element);
+          return !element.hidden && style.display !== "none" && style.visibility !== "hidden";
+        })
+        .some((element) => {
+          const box = element.getBoundingClientRect();
+          return box.left < headerBox.left - 1 || box.right > headerBox.right + 1 || box.top < headerBox.top - 1 || box.bottom > headerBox.bottom + 1;
+        });
       return {
         overflow:document.documentElement.scrollWidth > innerWidth,
-        clipped:header.scrollWidth > header.clientWidth + 1 || header.scrollHeight > header.clientHeight + 1,
+        clipped:headerControlClipped,
         header:rect("header"), button:rect("#mobileLayersButton"), rail:rect("#layerRail"),
         prefs:["#appearanceSelect", "#languageSelect", "#tutorialHelpButton"].map(rect),
         zoom:rect(".leaflet-control-zoom"), attribution:rect(".leaflet-control-attribution"),

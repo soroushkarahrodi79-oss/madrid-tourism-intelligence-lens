@@ -163,7 +163,9 @@ function runNodeTests(args, options = {}) {
 }
 
 function lastTapCount(output, label) {
-  const matches = [...output.matchAll(new RegExp(`^# ${label} (\\d+)$`, "gm"))];
+  // Node 24's default reporter writes summary counters as `ℹ label N`; TAP
+  // writes `# label N`.  Accept both without changing the test invocation.
+  const matches = [...output.matchAll(new RegExp(`^(?:#|ℹ) ${label} (\\d+)$`, "gm"))];
   return matches.length ? Number(matches.at(-1)[1]) : null;
 }
 
@@ -181,13 +183,20 @@ function runUxC2Partition(selection, engine) {
   const failed = lastTapCount(result.stdout, "fail");
   const skipped = lastTapCount(result.stdout, "skipped");
   const expectedSkipped = config.registeredTests - partition.expectedPass;
-  if (tests !== config.registeredTests || passed !== partition.expectedPass || failed !== 0 || skipped !== expectedSkipped) {
+  // Node 24 reports only selected name-pattern tests. Node 20 reports the whole
+  // registered inventory and counts non-matches as skipped. Accept precisely
+  // those two reporter shapes while keeping pass/fail and inventory totals
+  // fail-closed on both CI and current local runtimes.
+  const selectedOnlySummary = tests === partition.expectedPass && skipped === 0;
+  const registeredSummary = tests === config.registeredTests && skipped === expectedSkipped;
+  if (passed !== partition.expectedPass || failed !== 0 || (!selectedOnlySummary && !registeredSummary)) {
     throw new Error(
-      `UX-C2 ${engine} partition ${selection} inventory mismatch: tests=${tests}, pass=${passed}, fail=${failed}, skipped=${skipped}; ` +
-      `expected tests=${config.registeredTests}, pass=${partition.expectedPass}, fail=0, skipped=${expectedSkipped}`,
+      `UX-C2 ${engine} partition ${selection} selected-test mismatch: tests=${tests}, pass=${passed}, fail=${failed}, skipped=${skipped}; ` +
+      `expected either selected-only tests=${partition.expectedPass}, skipped=0 or registered tests=${config.registeredTests}, skipped=${expectedSkipped}; ` +
+      `pass=${partition.expectedPass}, fail=0`,
     );
   }
-  console.log(`UX-C2 ${engine} partition ${selection} verified: ${passed} asserted, ${skipped} assigned elsewhere/capture-only.`);
+  console.log(`UX-C2 ${engine} partition ${selection} verified: ${passed} asserted, ${expectedSkipped} assigned elsewhere/capture-only.`);
   return 0;
 }
 

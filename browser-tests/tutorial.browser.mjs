@@ -142,7 +142,7 @@ test("tour preserves active reading, registry and a completed M2 answer and neve
     return context.readiness.planning === "ready" && window.__QUESTION_EXPLORER_TEST__.registry();
   });
   const licences = page.locator('[data-layer="licences"]');
-  if (!await licences.isChecked()) await licences.check({ force: true });
+  if (!await licences.isChecked()) await licences.locator("xpath=..").click();
   await page.waitForFunction(() => {
     const context = window.__QUESTION_EXPLORER_TEST__.context();
     return context.readiness.licences === "ready" && Boolean(context.licenceWindow);
@@ -161,8 +161,15 @@ test("tour preserves active reading, registry and a completed M2 answer and neve
   await startManual(page);
   await goToStep(page, 5);
   const navigation = page.locator("[data-tutorial-navigate]");
-  if (await navigation.count()) await navigation.click();
-  await page.waitForFunction(() => document.getElementById("geoSearchToggle").getAttribute("aria-expanded") === "true");
+  assert.equal(await navigation.count(), 1, "a closed inline Question Explorer retains its explicit tour reveal action");
+  await navigation.click();
+  await page.waitForFunction(() => {
+    const panel = document.getElementById("geoSearchPanel");
+    const questions = document.getElementById("geoSearchQuestions");
+    return panel?.dataset.presentation === "inline"
+      ? Boolean(questions?.open && !document.getElementById("questionExplorer")?.hidden)
+      : document.getElementById("geoSearchToggle")?.getAttribute("aria-expanded") === "true";
+  });
   await page.locator("[data-tutorial-next]").click();
   assert.match(await page.locator("#tutorialGuide").textContent(), /Create one evidence dossier/);
   await page.locator("[data-tutorial-next]").click();
@@ -233,6 +240,7 @@ test("finder loading uses the real M1 fallback without hiding tutorial controls"
   assert.match(await page.locator("#tutorialGuide").textContent(), /registered evidence questions/);
   assert.equal(await page.locator("[data-tutorial-navigate]").isEnabled(), true);
   await page.locator("[data-tutorial-navigate]").click();
+  assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-presentation"), "overlay");
   assert.equal(await page.locator("#geoSearchToggle").getAttribute("aria-expanded"), "true");
   assert.equal(await page.locator("#tutorialGuide").count(), 1);
   assert.deepEqual(page.errors_, []);

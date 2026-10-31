@@ -1813,6 +1813,27 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
   box-shadow:0 14px 40px rgba(0,0,0,.28);color:var(--chrome-text-primary)
 }
 .geo-search[hidden]{display:none!important}
+.geo-search-surface{min-width:0}
+.geo-search[data-presentation="inline"]{
+  /* An explicit input-height containing block keeps the result/disclosure
+     surface below the field rather than in the header on first inline paint. */
+  position:relative;z-index:1102;top:auto;right:auto;left:auto;width:auto;height:44px;flex:1 1 260px;min-width:260px;
+  max-width:480px;max-height:none;overflow:visible;padding:0;border:0;border-radius:0;background:transparent;backdrop-filter:none;box-shadow:none
+}
+/* The tools retain their auto margin to preserve the institutional right edge.
+   Once search joins the header, space-between would add a second distribution
+   gap and can paint the field beneath those tools at wide metrics. */
+header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
+.geo-search[data-presentation="inline"] .geo-search-head{display:none}
+.geo-search[data-presentation="inline"] .geo-search-query{margin-top:0}
+.geo-search[data-presentation="inline"] .geo-search-surface{
+  position:absolute;z-index:1;top:var(--geo-search-inline-surface-top,calc(100% + var(--s-2)));left:0;width:min(100%,var(--geo-search-inline-surface-width,100%));max-height:min(620px,calc(100dvh - var(--header-chrome-top) - 28px - var(--safe-bottom)));
+  padding:var(--s-3);overflow:auto;overscroll-behavior:contain;border:1px solid var(--chrome-border);border-radius:var(--r-large);
+  background:var(--chrome-panel-surface);backdrop-filter:blur(18px);box-shadow:0 14px 40px rgba(0,0,0,.28);display:none
+}
+.geo-search[data-presentation="inline"][data-has-query="true"] .geo-search-surface{display:block}
+.geo-search[data-presentation="inline"][data-question-explorer="ready"] .geo-search-surface{display:block}
+.geo-search[data-presentation="inline"]~.header-tools .geo-search-toggle{display:none}
 /* Corridor placement is driven by --geo-search-left / --geo-search-width,
    which js/app.js measures. Like --header-bottom, those inline values still
    describe the PREVIOUS viewport in the frame right after a change, so the
@@ -1894,6 +1915,15 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 .geo-search-note[hidden]{display:none!important}
 .geo-search-coverage{margin:var(--s-3) 0 0;padding-top:var(--s-2);border-top:1px solid var(--chrome-divider);font-size:var(--t-micro);color:var(--chrome-text-control-label);line-height:1.5}
 .geo-search-coverage:empty{display:none}
+.geo-search-questions{margin-top:var(--s-3);border-top:1px solid var(--chrome-divider)}
+.geo-search-questions[hidden]{display:none!important}
+.geo-search-questions>summary{
+  display:flex;align-items:center;min-height:44px;box-sizing:border-box;padding:var(--s-2) var(--s-1);
+  color:var(--chrome-text-control-value);font-size:var(--t-meta);font-weight:650;cursor:pointer
+}
+.geo-search-questions>summary:hover{color:var(--chrome-text-control-strong)}
+.geo-search-questions>summary:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
+.geo-search-questions[open]>summary{border-bottom:1px solid var(--chrome-divider)}
 
 /* Tablet and phone: the finder spans the available width below the header so no
    result is clipped and no code wraps mid-identifier. */
@@ -1903,6 +1933,15 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 /* The narrow header already stacks brand and tools on two 44px rows. The finder
    keeps its 44px target there but drops its text label, exactly as the guided
    tour control does, so row two cannot overflow at 320px. */
+@media(max-width:850px){
+  /* Resize is delivered after style recalculation.  Until JS changes the
+     presentation from inline to overlay, remove the stale third header row and
+     expose the compact activator. At phone widths the fixed map chrome
+     therefore uses the two-row header floor in the very first post-resize
+     frame. */
+  header .geo-search[data-presentation="inline"]{display:none}
+  .geo-search[data-presentation="inline"]~.header-tools .geo-search-toggle{display:flex}
+}
 @media(max-width:680px){
   .geo-search-toggle{min-width:44px;width:44px;padding:var(--s-1)}
   .geo-search-toggle-label{display:none}

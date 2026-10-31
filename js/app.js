@@ -8939,6 +8939,10 @@ const geoSearch = {
   cameraMoves: 0,
   lensMoves: 0,
   lastAction: null,
+  // This belongs only to the compact activator. Inline visibility is a layout
+  // decision, never evidence that a reader opened the compact overlay.
+  compactOpen: false,
+  focusPending: false,
 };
 let geoSearchRenderer = null;
 let geoSearchLayer = null;
@@ -8986,8 +8990,12 @@ function prefetchGeoSearchModule() {
   if (typeof requestIdleCallback === "function") requestIdleCallback(() => loadGeoSearchModule(), { timeout: 5000 });
   else setTimeout(loadGeoSearchModule, 1500);
 }
-if (document.readyState === "complete") prefetchGeoSearchModule();
-else window.addEventListener("load", prefetchGeoSearchModule, { once: true });
+// A task boundary is intentional.  `load` listeners run before the navigation
+// timing entry records loadEventEnd, and WebKit can otherwise begin the import
+// while that event is still being completed.
+function scheduleGeoSearchPrefetch() { setTimeout(prefetchGeoSearchModule, 0); }
+if (document.readyState === "complete") scheduleGeoSearchPrefetch();
+else window.addEventListener("load", scheduleGeoSearchPrefetch, { once: true });
 
 // Rebuild only when the set of AVAILABLE universes actually changes, so a render
 // triggered by a Lens move or a language switch never re-walks the entity lists.
@@ -9081,6 +9089,82 @@ function renderGeoSearchHighlight() {
 // widened — the finder is an explicit transient overlay, dismissed with Escape or
 // the close control.
 const GEO_SEARCH_MIN_CORRIDOR_PX = 300;
+const GEO_SEARCH_MIN_HEADER_INPUT_PX = 260;
+
+function geoSearchCanInline() {
+  const header = document.querySelector("header");
+  const brand = header && header.querySelector(".brand");
+  const tools = header && header.querySelector(".header-tools");
+  // At tablet and below the analysis panel is a bottom sheet. Keep the finder
+  // in its compact overlay there: an inline expanded question list would share
+  // that sheet's hit area instead of offering a clear close/Escape dismissal.
+  if (!header || !brand || !tools || window.matchMedia("(max-width:850px)").matches) return false;
+  // `scrollWidth` is the intrinsic content width even after flexbox has shrunk a
+  // child. Deliberately do not read the search panel: its own inline width must
+  // not participate in the decision that decides whether it is inline.
+  const gap = Number.parseFloat(getComputedStyle(header).columnGap) || 12;
+  const available = header.clientWidth - brand.scrollWidth - tools.scrollWidth - 2 * gap;
+  return available >= GEO_SEARCH_MIN_HEADER_INPUT_PX;
+}
+
+function syncGeoSearchPresentation({ focus = false } = {}) {
+  const panel = document.getElementById("geoSearchPanel");
+  const toggle = document.getElementById("geoSearchToggle");
+  const questions = document.getElementById("geoSearchQuestions");
+  if (!panel || !toggle) return;
+  const inline = geoSearchCanInline();
+  panel.dataset.presentation = inline ? "inline" : "overlay";
+  if (inline) {
+    panel.hidden = false;
+    toggle.setAttribute("aria-expanded", "false");
+    applyInlineGeoSearchSurfaceGeometry();
+    renderGeoSearch();
+    if (questions) questions.open = false;
+    if (focus) focusGeoSearchQuery();
+    return;
+  }
+  panel.hidden = !geoSearch.compactOpen;
+  toggle.setAttribute("aria-expanded", geoSearch.compactOpen ? "true" : "false");
+  if (questions) questions.open = geoSearch.compactOpen;
+  if (!panel.hidden) applyGeoSearchPlacement();
+}
+
+// The inline field lives inside the header, but its results belong in the map
+// corridor. Measure both boundaries so the surface clears the full rendered
+// header (including a language/font-induced taller header) and stops before
+// the analysis panel without changing the field's horizontal origin.
+function applyInlineGeoSearchSurfaceGeometry() {
+  const panel = document.getElementById("geoSearchPanel");
+  const header = document.querySelector("header");
+  const analysis = document.getElementById("analysisPanel");
+  if (!panel || !header || panel.dataset.presentation !== "inline") return;
+  const panelRect = panel.getBoundingClientRect();
+  const headerRect = header.getBoundingClientRect();
+  const analysisRect = analysis && analysis.offsetWidth ? analysis.getBoundingClientRect() : null;
+  const gap = 12;
+  const top = Math.ceil(headerRect.bottom - panelRect.top + gap);
+  const width = analysisRect ? Math.floor(analysisRect.left - panelRect.left - gap) : panelRect.width;
+  document.documentElement.style.setProperty("--geo-search-inline-surface-top", `${top}px`);
+  document.documentElement.style.setProperty("--geo-search-inline-surface-width", `${Math.max(0, width)}px`);
+}
+
+function focusGeoSearchQuery() {
+  const focus = () => {
+    const input = document.getElementById("geoSearchQuery");
+    // The resolver and official universes can still be loading when the compact
+    // overlay first appears. Disabled controls cannot receive focus in WebKit;
+    // retain the request until renderGeoSearch enables the real field.
+    if (!input || input.disabled) return;
+    geoSearch.focusPending = false;
+    // WebKit needs layout for a just-unhidden overlay before it accepts focus.
+    void input.offsetHeight;
+    input.focus();
+  };
+  focus();
+  // Safari/WebKit can ignore focus while the just-unhidden overlay has not
+  // completed layout.  Retrying in the next frame preserves keyboard opening.
+  requestAnimationFrame(focus);
+}
 
 function applyGeoSearchPlacement() {
   const panel = document.getElementById("geoSearchPanel");
@@ -9112,10 +9196,21 @@ function setGeoSearchOpen(open) {
   const panel = document.getElementById("geoSearchPanel");
   const toggle = document.getElementById("geoSearchToggle");
   if (!panel || !toggle) return;
-  geoSearch.open = Boolean(open);
-  panel.hidden = !geoSearch.open;
-  toggle.setAttribute("aria-expanded", geoSearch.open ? "true" : "false");
-  if (geoSearch.open) {
+  geoSearch.focusPending = Boolean(open);
+  if (geoSearchCanInline()) {
+    panel.hidden = false;
+    panel.dataset.presentation = "inline";
+    toggle.setAttribute("aria-expanded", "false");
+    loadGeoSearchModule();
+    renderGeoSearch();
+    document.getElementById("geoSearchQuestions").open = false;
+    if (open) focusGeoSearchQuery();
+    return;
+  }
+  geoSearch.compactOpen = Boolean(open);
+  panel.hidden = !geoSearch.compactOpen;
+  toggle.setAttribute("aria-expanded", geoSearch.compactOpen ? "true" : "false");
+  if (geoSearch.compactOpen) {
     // Opening is the deadline for the resolver. If the idle prefetch has not run
     // yet this issues the request now and the surface shows its loading state
     // until it resolves; if it has, this is a no-op on the memoised promise.
@@ -9123,8 +9218,8 @@ function setGeoSearchOpen(open) {
     loadQuestionExplorer();
     renderGeoSearch();
     applyGeoSearchPlacement();
-    const input = document.getElementById("geoSearchQuery");
-    if (input) input.focus();
+    document.getElementById("geoSearchQuestions").open = true;
+    focusGeoSearchQuery();
   }
 }
 
@@ -9307,7 +9402,9 @@ function renderGeoSearch() {
   const loading = !geoSearch.module || geographyState === "loading" || planningState === "loading";
   const state = index ? "ready" : loading ? "loading" : "unavailable";
   host.dataset.state = state;
+  host.dataset.hasQuery = geoSearch.query.trim() ? "true" : "false";
   input.disabled = state !== "ready";
+  if (state === "ready" && geoSearch.focusPending) focusGeoSearchQuery();
   results.replaceChildren();
 
   if (state !== "ready") {
@@ -9370,15 +9467,31 @@ const geoSearchClose = document.getElementById("geoSearchClose");
 const geoSearchViewMap = document.getElementById("geoSearchViewMap");
 const geoSearchAnalyze = document.getElementById("geoSearchAnalyze");
 
-function dismissGeoSearch() {
-  clearGeoSearch();
-  setGeoSearchOpen(false);
-  if (geoSearchToggle) geoSearchToggle.focus();
+function dismissGeoSearch({ clearSearch = false } = {}) {
+  // Keyboard dismissal from the finder field/results clears its transient
+  // selection and outline. The explicit close control and Question Explorer
+  // Escape retain a still-current answer and its selected-place context.
+  geoSearch.focusPending = false;
+  if (clearSearch) clearGeoSearch();
+  if (geoSearchCanInline()) {
+    // In inline mode Escape is the explicit dismissal for the expanded
+    // Question Explorer. Closing the disclosure leaves the underlying Lens and
+    // mode controls immediately reachable; clearing search does not move either
+    // Lens or change its mode, radius, or layers.
+    const questions = document.getElementById("geoSearchQuestions");
+    if (questions) questions.open = false;
+    geoSearchQuery?.focus();
+  }
+  else {
+    geoSearch.compactOpen = false;
+    setGeoSearchOpen(false);
+    if (geoSearchToggle) geoSearchToggle.focus();
+  }
 }
 
 if (geoSearchToggle) {
   geoSearchToggle.addEventListener("click", () => {
-    if (geoSearch.open) {
+    if (geoSearch.compactOpen) {
       setGeoSearchOpen(false);
       geoSearchToggle.focus();
     } else {
@@ -9391,12 +9504,13 @@ if (geoSearchQuery) {
     geoSearch.query = event.target.value;
     // Typing changes the RESULT LIST only. The selection, the highlight, the
     // Lenses, the camera, the radii, the mode and the layers are untouched.
+    loadGeoSearchModule();
     renderGeoSearch();
   });
   geoSearchQuery.addEventListener("keydown", (event) => {
     const buttons = [...document.querySelectorAll("#geoSearchResults button")];
     if (event.key === "ArrowDown" && buttons.length) { event.preventDefault(); buttons[0].focus(); }
-    if (event.key === "Escape") { event.preventDefault(); dismissGeoSearch(); }
+    if (event.key === "Escape") { event.preventDefault(); dismissGeoSearch({ clearSearch: true }); }
   });
 }
 const geoSearchResultsList = document.getElementById("geoSearchResults");
@@ -9406,10 +9520,10 @@ if (geoSearchResultsList) {
     const current = buttons.indexOf(document.activeElement);
     if (event.key === "ArrowDown" && current >= 0 && buttons[current + 1]) { event.preventDefault(); buttons[current + 1].focus(); }
     if (event.key === "ArrowUp") { event.preventDefault(); if (current > 0) buttons[current - 1].focus(); else if (geoSearchQuery) geoSearchQuery.focus(); }
-    if (event.key === "Escape") { event.preventDefault(); dismissGeoSearch(); }
+    if (event.key === "Escape") { event.preventDefault(); dismissGeoSearch({ clearSearch: true }); }
   });
 }
-if (geoSearchClose) geoSearchClose.addEventListener("click", dismissGeoSearch);
+if (geoSearchClose) geoSearchClose.addEventListener("click", () => dismissGeoSearch());
 // Escape dismisses the finder from the question explorer too, exactly as it does
 // from the field and the result list, so no control inside the panel is a trap.
 const questionExplorerNode = document.getElementById("questionExplorer");
@@ -9418,10 +9532,19 @@ if (questionExplorerNode) {
     if (event.key === "Escape") { event.preventDefault(); dismissGeoSearch(); }
   });
 }
-window.addEventListener("resize", applyGeoSearchPlacement);
+// The inline Question Explorer is a disclosure, not a modal. Analysis-panel
+// controls sit above its extended surface; using one closes the disclosure so
+// it cannot remain visibly stranded behind the panel. No geographic or
+// evidence-context state is changed here.
+document.addEventListener("click", (event) => {
+  if (!event.target.closest("#lensAButton,#lensBButton,#modePlaceButton,#modeCompareButton,#modeCityButton")) return;
+  const questions = document.getElementById("geoSearchQuestions");
+  if (questions?.open) questions.open = false;
+});
+window.addEventListener("resize", () => syncGeoSearchPresentation());
 if (typeof ResizeObserver === "function") {
   const analysisPanelNode = document.getElementById("analysisPanel");
-  if (analysisPanelNode) new ResizeObserver(applyGeoSearchPlacement).observe(analysisPanelNode);
+  if (analysisPanelNode) new ResizeObserver(() => { applyGeoSearchPlacement(); applyInlineGeoSearchSurfaceGeometry(); }).observe(analysisPanelNode);
 }
 if (geoSearchViewMap) geoSearchViewMap.addEventListener("click", showGeoSearchOnMap);
 if (geoSearchAnalyze) geoSearchAnalyze.addEventListener("click", analyzeGeoSearchWithLens);
@@ -9437,6 +9560,8 @@ document.addEventListener("keydown", (event) => {
   event.preventDefault();
   setGeoSearchOpen(true);
 });
+
+syncGeoSearchPresentation();
 
 // ===================================================================== M2
 // Urban evidence questions — the application adapter.
@@ -9468,6 +9593,11 @@ function loadQuestionExplorer() {
         },
       });
       document.getElementById("questionExplorer").hidden = false;
+      document.getElementById("geoSearchQuestions").hidden = false;
+      const panel = document.getElementById("geoSearchPanel");
+      if (panel) panel.dataset.questionExplorer = "ready";
+      syncGeoSearchPresentation();
+      renderGeoSearch();
       return questionExplorer.view;
     })
     .catch((error) => {
@@ -9656,8 +9786,9 @@ function prefetchQuestionExplorer() {
   if (typeof requestIdleCallback === "function") requestIdleCallback(() => loadQuestionExplorer(), { timeout: 6000 });
   else setTimeout(loadQuestionExplorer, 2000);
 }
-if (document.readyState === "complete") prefetchQuestionExplorer();
-else window.addEventListener("load", prefetchQuestionExplorer, { once: true });
+function scheduleQuestionExplorerPrefetch() { setTimeout(prefetchQuestionExplorer, 0); }
+if (document.readyState === "complete") scheduleQuestionExplorerPrefetch();
+else window.addEventListener("load", scheduleQuestionExplorerPrefetch, { once: true });
 
 if (haloRegressionRequested && haloRegressionLocal) {
   window.__QUESTION_EXPLORER_TEST__ = Object.freeze({
@@ -9685,7 +9816,8 @@ if (haloRegressionRequested && haloRegressionLocal) {
     snapshot: () => ({
       state: document.getElementById("geoSearchPanel").dataset.state || null,
       placement: document.getElementById("geoSearchPanel").dataset.placement || null,
-      open: geoSearch.open,
+      open: geoSearchCanInline() || geoSearch.compactOpen,
+      compactOpen: geoSearch.compactOpen,
       query: geoSearch.query,
       selectedId: geoSearch.selectedId,
       selectedLayer: Boolean(geoSearchLayer),
