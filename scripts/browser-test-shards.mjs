@@ -163,7 +163,9 @@ function runNodeTests(args, options = {}) {
 }
 
 function lastTapCount(output, label) {
-  const matches = [...output.matchAll(new RegExp(`^# ${label} (\\d+)$`, "gm"))];
+  // Node 24's default reporter writes summary counters as `ℹ label N`; TAP
+  // writes `# label N`.  Accept both without changing the test invocation.
+  const matches = [...output.matchAll(new RegExp(`^(?:#|ℹ) ${label} (\\d+)$`, "gm"))];
   return matches.length ? Number(matches.at(-1)[1]) : null;
 }
 
@@ -181,13 +183,16 @@ function runUxC2Partition(selection, engine) {
   const failed = lastTapCount(result.stdout, "fail");
   const skipped = lastTapCount(result.stdout, "skipped");
   const expectedSkipped = config.registeredTests - partition.expectedPass;
-  if (tests !== config.registeredTests || passed !== partition.expectedPass || failed !== 0 || skipped !== expectedSkipped) {
+  // Node's name-pattern runner reports only selected tests (rather than the
+  // non-matching registered tests as skipped).  Validate its direct summary,
+  // then account for the assigned-elsewhere inventory from the checked config.
+  if (tests !== partition.expectedPass || passed !== partition.expectedPass || failed !== 0 || skipped !== 0) {
     throw new Error(
-      `UX-C2 ${engine} partition ${selection} inventory mismatch: tests=${tests}, pass=${passed}, fail=${failed}, skipped=${skipped}; ` +
-      `expected tests=${config.registeredTests}, pass=${partition.expectedPass}, fail=0, skipped=${expectedSkipped}`,
+      `UX-C2 ${engine} partition ${selection} selected-test mismatch: tests=${tests}, pass=${passed}, fail=${failed}, skipped=${skipped}; ` +
+      `expected selected tests=${partition.expectedPass}, pass=${partition.expectedPass}, fail=0, skipped=0`,
     );
   }
-  console.log(`UX-C2 ${engine} partition ${selection} verified: ${passed} asserted, ${skipped} assigned elsewhere/capture-only.`);
+  console.log(`UX-C2 ${engine} partition ${selection} verified: ${passed} asserted, ${expectedSkipped} assigned elsewhere/capture-only.`);
   return 0;
 }
 

@@ -78,7 +78,7 @@ const world = (page) => page.evaluate(() => ({
 }));
 
 async function openSearch(page) {
-  await page.locator("#geoSearchToggle").click();
+  if (await page.locator("#geoSearchPanel").isHidden()) await page.locator("#geoSearchToggle").click();
   await page.waitForFunction(() => !document.querySelector("#geoSearchPanel").hasAttribute("hidden"));
   // The resolver is deliberately off the critical path, so opening may precede
   // its arrival. A test asserting on results waits for the surface to say ready;
@@ -100,22 +100,65 @@ test.after(async () => {
   await new Promise((resolve) => server.close(resolve));
 });
 
-test("the finder is closed by default, opens from the header and indexes the committed universes", async (t) => {
+test("the finder exposes its single query field inline when the measured header has room", async (t) => {
   const { page, context, errors } = await pageFor();
   t.after(() => context.close());
-  assert.equal(await page.locator("#geoSearchPanel").isHidden(), true);
-  assert.equal(await page.locator("#geoSearchToggle").getAttribute("aria-expanded"), "false");
-  await openSearch(page);
+  assert.equal(await page.locator("#geoSearchPanel").isHidden(), false);
+  assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-presentation"), "inline");
+  assert.equal(await page.locator("#geoSearchToggle").isVisible(), false);
   const open = await snapshot(page);
   assert.equal(open.state, "ready");
-  assert.equal(await page.locator("#geoSearchToggle").getAttribute("aria-expanded"), "true");
+  assert.equal(await page.locator("#geoSearchToggle").getAttribute("aria-expanded"), "false", "automatic inline visibility is not an explicit compact open state");
   assert.deepEqual(open.counts, { total: 877, MUNICIPALITY: 1, DISTRICT: 21, BARRIO: 131, AMBITO: 724 });
   assert.deepEqual(open.coverage, { administrative: true, ambito: true });
-  // Opening focuses the field, so a keyboard user can type immediately.
-  assert.equal(await page.evaluate(() => document.activeElement.id), "geoSearchQuery");
+  await page.locator("#geoSearchQuery").fill("Palacio");
+  assert.equal(await page.locator(".geo-search-surface").isVisible(), true, "typing exposes results directly below the inline field");
   assert.match(await page.locator("#geoSearchCoverage").textContent(), /21 official districts, 131 official barrios and 724 planning ámbitos/);
   assert.match(await page.locator("#geoSearchCoverage").textContent(), /Street addresses are not searchable/);
   assert.deepEqual(errors, []);
+});
+
+test("header presentation uses intrinsic control widths and never carries automatic visibility into compact layouts", async (t) => {
+  const widths = [1440, 1024, 768, 390, 1440];
+  const { page, context } = await pageFor({ viewport: { width: widths[0], height: 844 } });
+  t.after(() => context.close());
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.waitForTimeout(80);
+    const state = await page.evaluate(() => {
+      const panel = document.querySelector("#geoSearchPanel");
+      const header = document.querySelector("header");
+      const brand = document.querySelector(".brand").getBoundingClientRect();
+      const tools = document.querySelector(".header-tools").getBoundingClientRect();
+      return {
+        presentation: panel.dataset.presentation,
+        hidden: panel.hidden,
+        compactOpen: window.__GEO_SEARCH_TEST__.snapshot().compactOpen,
+        headerOverflow: header.scrollWidth - header.clientWidth,
+        pageOverflow: document.documentElement.scrollWidth - innerWidth,
+        brandRight: brand.right, brandBottom: brand.bottom, toolsLeft: tools.left, toolsTop: tools.top,
+      };
+    });
+    assert.ok(state.headerOverflow <= 0, `${width}px header overflow ${state.headerOverflow}`);
+    assert.ok(state.pageOverflow <= 0, `${width}px page overflow ${state.pageOverflow}`);
+    if (state.brandBottom > state.toolsTop) assert.ok(state.brandRight <= state.toolsLeft + .5, `${width}px brand overlaps preferences`);
+    if (state.presentation === "inline") assert.equal(state.hidden, false, `${width}px inline field is available`);
+    else {
+      assert.equal(state.hidden, true, `${width}px compact overlay stays closed after resize`);
+      assert.equal(state.compactOpen, false, `${width}px has no implicit compact-open state`);
+    }
+  }
+  // Fresh pages make the same promise; no hidden desktop state leaks into a
+  // direct tablet or phone load.
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    const fresh = await pageFor({ viewport: { width, height: 844 } });
+    const state = await fresh.page.evaluate(() => ({ presentation: document.querySelector("#geoSearchPanel").dataset.presentation, hidden: document.querySelector("#geoSearchPanel").hidden, compactOpen: window.__GEO_SEARCH_TEST__.snapshot().compactOpen }));
+    if (state.presentation === "overlay") {
+      assert.equal(state.hidden, true, `${width}px direct compact load is closed`);
+      assert.equal(state.compactOpen, false, `${width}px direct compact load is not open`);
+    }
+    await fresh.context.close();
+  }
 });
 
 test("the search resolver is kept off the initial critical path", async (t) => {
@@ -144,7 +187,7 @@ test("the search resolver is kept off the initial critical path", async (t) => {
 
   // And the deferral never costs the reader anything: opening still reaches a
   // ready surface, with the real universes indexed.
-  await page.locator("#geoSearchToggle").click();
+  if (await page.locator("#geoSearchPanel").isHidden()) await page.locator("#geoSearchToggle").click();
   await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.state === "ready");
   const counts = await page.evaluate(() => window.__GEO_SEARCH_TEST__.snapshot().counts);
   assert.deepEqual(counts, { total: 877, MUNICIPALITY: 1, DISTRICT: 21, BARRIO: 131, AMBITO: 724 });
@@ -400,7 +443,9 @@ test("restoring a shared link, then searching, leaves the restored reading intac
 });
 
 test("keyboard alone operates the whole finder, and focus never falls to the document", async (t) => {
-  const { page, context } = await pageFor();
+  // The compact presentation retains the activator so its Escape/focus-return
+  // contract is exercised where that control is actually available.
+  const { page, context } = await pageFor({ viewport: { width: 390, height: 844 } });
   t.after(() => context.close());
   await page.locator("#geoSearchToggle").focus();
   await page.keyboard.press("Enter");
@@ -504,12 +549,12 @@ test("Light, Dark and System all render the finder from appearance tokens", asyn
   await openSearch(page);
   await selectFirst(page, "Palacio");
   const sample = () => page.evaluate(() => {
-    const panel = document.querySelector("#geoSearchPanel");
+    const surface = document.querySelector(".geo-search-surface");
     const result = document.querySelector("#geoSearchResults button");
     return {
       appearance: document.documentElement.dataset.appearance,
-      panelColor: getComputedStyle(panel).color,
-      panelBackground: getComputedStyle(panel).backgroundColor,
+      panelColor: getComputedStyle(surface).color,
+      panelBackground: getComputedStyle(surface).backgroundColor,
       resultBackground: getComputedStyle(result).backgroundColor,
       view: window.__HALO_REGRESSION__.mapView(),
     };
@@ -525,7 +570,7 @@ test("Light, Dark and System all render the finder from appearance tokens", asyn
   assert.equal(dark.appearance, "dark");
   assert.equal(system.appearance, "dark", "System follows the emulated dark preference");
   assert.notEqual(light.panelColor, dark.panelColor);
-  assert.notEqual(light.panelBackground, dark.panelBackground);
+  assert.notEqual(light.panelBackground, dark.panelBackground, "the visible finder surface inherits appearance tokens");
   for (const state of [light, dark, system]) assert.deepEqual(state.view, initial.view, "appearance never moves the map");
 });
 
@@ -583,11 +628,9 @@ test("rapid typing, rapid selection and mode changes during search leave no brok
   assert.equal(rapid.lensMoves, 0);
   assert.equal(rapid.cameraMoves, 0);
 
-  // With the finder OPEN on a desktop viewport it must sit in the measured map
-  // corridor, so the mode navigation stays directly clickable: a reader can
-  // change mode mid-search without dismissing anything. A mode change must then
-  // leave no stale selection claiming to be a COMPARE choice.
-  assert.equal((await snapshot(page)).placement, "corridor");
+  // On a wide header the real field is inline and its results are anchored to
+  // that field. The mode navigation remains directly clickable mid-search.
+  assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-presentation"), "inline");
   await page.locator("#modeCompareButton").click();
   await page.waitForFunction(() => document.querySelector("#analysisPanel").dataset.mode === "COMPARE");
   assert.equal((await snapshot(page)).open, true, "the finder survives a mode change");
@@ -740,5 +783,16 @@ test("capture the finder's real states for the visual audit", async (t) => {
     await selectFirst(page, "AOE.00.02-RP");
     await page.locator("#geoSearchViewMap").click();
   });
-  assert.ok(fs.readdirSync(CAPTURE_DIR).length >= 10);
+  // Reviewer matrix: each required viewport in both appearances with a real
+  // result selection. This intentionally uses the production selection and map
+  // controls rather than a synthetic fixture, so collisions are visible.
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    for (const colorScheme of ["light", "dark"]) {
+      await shot(`header-${width}-${colorScheme}`, { viewport: { width, height: width < 600 ? 568 : 844 }, colorScheme }, async (page) => {
+        await openSearch(page);
+        await selectFirst(page, "Palacio");
+      });
+    }
+  }
+  assert.ok(fs.readdirSync(CAPTURE_DIR).length >= 20);
 });

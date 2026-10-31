@@ -157,7 +157,10 @@
   function navigationFor(step, target) {
     const key = STEPS[step]?.navigate; if (!key) return null;
     if (key === "controls" && target?.id === "radiusSlider") return null;
-    if (key === "questions" && target && target.id !== "geoSearchToggle" && isVisible(target)) return null;
+    // A details child can retain a layout box while its disclosure is closed.
+    // Treat M2 as already reachable only when the real disclosure is open;
+    // otherwise retain the tour's explicit, non-state-changing reveal action.
+    if (key === "questions" && target && target.id !== "geoSearchToggle" && isVisible(target) && byId("geoSearchQuestions")?.open) return null;
     return { key, label: t().navigation[key] };
   }
   function navigate(step) {
@@ -173,12 +176,21 @@
     }
     if (key === "questions") {
       const panel = byId("geoSearchPanel"); const toggle = byId("geoSearchToggle");
-      if (panel?.hidden && toggle) toggle.click();
+      const inline = panel?.dataset.presentation === "inline";
+      // M1 has one search surface with two presentations.  Desktop already
+      // exposes its field, so reveal M2 through its real disclosure; compact
+      // layouts retain the existing opener.  Neither path changes the reading.
+      if (inline) {
+        const disclosure = byId("geoSearchQuestions");
+        if (disclosure && !disclosure.open) disclosure.open = true;
+      } else if (panel?.hidden && toggle) toggle.click();
       let attempts = 0;
       const reveal = () => {
         state.navigationFrame = null; if (!current()) return;
         const questions = byId("questionExplorer");
-        if (questions && !questions.hidden) { questions.scrollIntoView({ block: "nearest", behavior: "auto" }); renderGuide(); return; }
+        const disclosure = byId("geoSearchQuestions");
+        const accessible = inline ? Boolean(disclosure?.open && questions && !questions.hidden) : Boolean(questions && !questions.hidden);
+        if (accessible) { questions.scrollIntoView({ block: "nearest", behavior: "auto" }); renderGuide(); return; }
         if (++attempts < 120) state.navigationFrame = root.requestAnimationFrame(reveal); else renderGuide();
       };
       state.navigationFrame = root.requestAnimationFrame(reveal);

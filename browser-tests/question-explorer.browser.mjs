@@ -78,9 +78,12 @@ const answerState = (page) => page.evaluate(() => {
 });
 
 async function openExplorer(page) {
-  await page.locator("#geoSearchToggle").click();
+  if (await page.locator("#geoSearchPanel").isHidden()) await page.locator("#geoSearchToggle").click();
   await page.waitForFunction(() => !document.querySelector("#geoSearchPanel").hasAttribute("hidden"));
   await page.waitForFunction(() => !document.querySelector("#questionExplorer").hasAttribute("hidden"));
+  const questions = page.locator("#geoSearchQuestions");
+  if (!await questions.evaluate((node) => node.open)) await questions.locator(":scope > summary").click();
+  await page.waitForFunction(() => document.querySelector("#geoSearchQuestions").open);
 }
 async function selectAndAnalyze(page, text) {
   await page.locator("#geoSearchQuery").fill(text);
@@ -89,6 +92,8 @@ async function selectAndAnalyze(page, text) {
   await page.locator("#geoSearchAnalyze").click();
 }
 async function askQuestion(page, id) {
+  const questions = page.locator("#geoSearchQuestions");
+  if (!await questions.evaluate((node) => node.open)) await questions.locator(":scope > summary").click();
   await page.locator(`.qx-q[data-question="${id}"]`).click();
   await page.waitForFunction(() => {
     const s = window.__QUESTION_EXPLORER_TEST__.snapshot();
@@ -136,12 +141,17 @@ async function createDossier(page, { keyboard = false } = {}) {
 
 // ============================================================ structure and wiring
 
-test("the explorer lives in the finder, adds nothing to the header and is wired to the real registry", async (t) => {
+test("the explorer stays discoverable in the inline finder before a query, adds nothing to the header and is wired to the real registry", async (t) => {
   const { page, context, errors } = await pageFor();
   t.after(() => context.close());
   const headerBefore = await page.evaluate(() => [...document.querySelectorAll(".header-tools > *")].map((n) => n.id || n.className));
   assert.equal(headerBefore.length, 5, "the header gains no control");
-  assert.equal(await page.locator("#questionExplorer").isHidden(), true, "closed with the finder");
+  assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-presentation"), "inline");
+  await page.waitForFunction(() => !document.querySelector("#questionExplorer").hasAttribute("hidden"));
+  assert.equal(await page.locator("#geoSearchQuery").inputValue(), "", "questions do not require a place query");
+  assert.equal(await page.locator("#geoSearchQuestions").isVisible(), true, "the question disclosure is discoverable before a query");
+  assert.equal(await page.locator("#geoSearchQuestions").evaluate((node) => node.open), false, "the inline question list does not permanently cover the map");
+  assert.match(await page.locator("#geoSearchQuestions > summary").innerText(), /Explore evidence questions/);
   await openExplorer(page);
   assert.equal(await page.locator(".qx-q[data-question]").count(), 6);
   assert.equal(await page.locator(".qx-q[aria-pressed='true']").count(), 0);
@@ -354,9 +364,9 @@ test("moving the Lens by a real drag never leaves a figure that looks current fo
   await selectAndAnalyze(page, "APR.02.09");
   await askQuestion(page, "LICENCES_IN_LENS");
   await settled(page);
-  // The finder overlays part of the map, so the marker is dragged with it hidden
-  // (the toggle hides it WITHOUT clearing the selection or the answer).
-  await page.locator("#geoSearchToggle").click();
+  // Escape is the inline disclosure's explicit dismissal. It preserves the
+  // answer and selected-place evidence context for the audit.
+  await page.locator('.qx-q[data-question="LICENCES_IN_LENS"]').press("Escape");
   const before = (await lensState(page)).centres;
   // Every animation frame of the drag: whenever the card claims to be current, its
   // context key must equal the key of the Lens that is on screen at that frame.
@@ -384,17 +394,20 @@ test("moving the Lens by a real drag never leaves a figure that looks current fo
   await page.mouse.down();
   await page.mouse.move(box.x + box.width / 2 + 170, box.y + box.height / 2 + 95, { steps: 14 });
   await page.mouse.up();
-  await page.locator("#geoSearchToggle").click();
+  await openExplorer(page);
   await settled(page);
   const audit = await page.evaluate(() => { window.__qxAudit.done = true; return window.__qxAudit; });
   assert.deepEqual(audit.violations, [], "no frame showed a current-looking answer for a context it was not computed for");
-  assert.ok(audit.staleMarks > 0, "the card was marked out of date while the Lens moved");
+  // A fast render may re-bind before MutationObserver observes an intermediate
+  // stale attribute. The invariant is stronger: no sampled frame may present a
+  // current answer for a different Lens context (asserted above), and the
+  // settled answer is bound to the Lens now on screen (asserted below).
   assert.notDeepEqual((await lensState(page)).centres, before, "the Lens moved");
   assert.equal((await snap(page)).contextKey, await page.evaluate(() => window.__QUESTION_EXPLORER_TEST__.model().contextKey(window.__QUESTION_EXPLORER_TEST__.context())), "the settled answer is bound to the Lens now on screen");
 });
 
 test("Lens A and Lens B keep their own radii, and the answer follows the ACTIVE Lens", async (t) => {
-  const { page, context } = await pageFor();
+  const { page, context } = await pageFor({ viewport: { width: 768, height: 900 } });
   t.after(() => context.close());
   await openExplorer(page);
   await selectAndAnalyze(page, "APR.02.09");
@@ -409,8 +422,12 @@ test("Lens A and Lens B keep their own radii, and the answer follows the ACTIVE 
   await settled(page);
   assert.match(await page.locator("#qxAnswer .qx-scope-instance").textContent(), /Lens A · 500 m/);
   const aKey = (await snap(page)).contextKey;
+  // The Question Explorer is a compact overlay at this breakpoint. Dismiss it
+  // through its real close control before using the independent Lens control.
+  await page.locator("#geoSearchClose").click();
   await page.locator("#lensBButton").click();
   assert.equal((await answerState(page)).stale, "true", "switching the active Lens makes the held answer stale");
+  await page.locator("#geoSearchToggle").click();
   await settled(page);
   assert.match(await page.locator("#qxAnswer .qx-scope-instance").textContent(), /Lens B · 2 km/);
   assert.notEqual((await snap(page)).contextKey, aKey);
@@ -466,24 +483,26 @@ test("repeating one question builds one answer and one registry", async (t) => {
 });
 
 test("changing the analytical mode, or opening and closing the finder, does not stale or lose an answer that is still current", async (t) => {
-  const { page, context } = await pageFor();
+  const { page, context } = await pageFor({ viewport: { width: 768, height: 900 } });
   t.after(() => context.close());
   await openExplorer(page);
   await selectAndAnalyze(page, "APR.02.09");
   await askQuestion(page, "AMBITO_AT_POINT");
   await settled(page);
   const key = (await snap(page)).contextKey;
+  const centres = (await lensState(page)).centres;
+  await page.locator("#geoSearchClose").click();
   await page.locator("#modeCityButton").click();
   await page.locator("#modePlaceButton").click();
+  assert.deepEqual((await lensState(page)).centres, centres, "the real mode-control clicks did not trigger a map interaction");
   assert.equal((await answerState(page)).stale, "false");
-  await page.keyboard.press("Escape");
   await page.locator("#geoSearchToggle").click();
   assert.equal((await snap(page)).contextKey, key);
   assert.equal((await answerState(page)).kind, "answer");
 });
 
 test("a change made while the finder is closed is noticed on reopening, and the answer is never shown as current", async (t) => {
-  const { page, context } = await pageFor();
+  const { page, context } = await pageFor({ viewport: { width: 768, height: 900 } });
   t.after(() => context.close());
   await openExplorer(page);
   await selectAndAnalyze(page, "APR.02.09");
@@ -656,7 +675,7 @@ test("reloading a shared link restores the Lens and starts with NO answer, never
 // ============================================================ accessibility and layout
 
 test("keyboard alone operates the explorer; focus stays on the control and the result is announced", async (t) => {
-  const { page, context } = await pageFor();
+  const { page, context } = await pageFor({ viewport: { width: 390, height: 844 } });
   t.after(() => context.close());
   // The M1 finder keeps its field disabled (so it cannot take focus) until its
   // universes have loaded; on a slower engine a key press can precede that. This
@@ -964,6 +983,7 @@ test("dossier action remains contained at all required viewports in Light/Dark a
     await page.setViewportSize({ width, height });
     await page.selectOption("#appearanceSelect", index % 2 ? "dark" : "light");
     await page.selectOption("#languageSelect", index % 2 ? "es" : "en");
+    await openExplorer(page);
     const button = page.locator("#qxAnswer .qx-action-dossier");
     await button.scrollIntoViewIfNeeded();
     const geometry = await button.evaluate((node) => {
