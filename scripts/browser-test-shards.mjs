@@ -183,13 +183,17 @@ function runUxC2Partition(selection, engine) {
   const failed = lastTapCount(result.stdout, "fail");
   const skipped = lastTapCount(result.stdout, "skipped");
   const expectedSkipped = config.registeredTests - partition.expectedPass;
-  // Node's name-pattern runner reports only selected tests (rather than the
-  // non-matching registered tests as skipped).  Validate its direct summary,
-  // then account for the assigned-elsewhere inventory from the checked config.
-  if (tests !== partition.expectedPass || passed !== partition.expectedPass || failed !== 0 || skipped !== 0) {
+  // Node 24 reports only selected name-pattern tests. Node 20 reports the whole
+  // registered inventory and counts non-matches as skipped. Accept precisely
+  // those two reporter shapes while keeping pass/fail and inventory totals
+  // fail-closed on both CI and current local runtimes.
+  const selectedOnlySummary = tests === partition.expectedPass && skipped === 0;
+  const registeredSummary = tests === config.registeredTests && skipped === expectedSkipped;
+  if (passed !== partition.expectedPass || failed !== 0 || (!selectedOnlySummary && !registeredSummary)) {
     throw new Error(
       `UX-C2 ${engine} partition ${selection} selected-test mismatch: tests=${tests}, pass=${passed}, fail=${failed}, skipped=${skipped}; ` +
-      `expected selected tests=${partition.expectedPass}, pass=${partition.expectedPass}, fail=0, skipped=0`,
+      `expected either selected-only tests=${partition.expectedPass}, skipped=0 or registered tests=${config.registeredTests}, skipped=${expectedSkipped}; ` +
+      `pass=${partition.expectedPass}, fail=0`,
     );
   }
   console.log(`UX-C2 ${engine} partition ${selection} verified: ${passed} asserted, ${expectedSkipped} assigned elsewhere/capture-only.`);
