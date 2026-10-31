@@ -172,6 +172,10 @@ jobs:
         run: node --test --test-concurrency=1 browser-tests/geo-search.browser.mjs
         env:
           GEOSEARCH_BROWSER: webkit
+      - name: Search surface interaction suite (WebKit)
+        run: node --test --test-concurrency=1 browser-tests/search-surface.browser.mjs
+        env:
+          GEOSEARCH_BROWSER: webkit
       - name: Capture adaptive-search viewport and appearance evidence (WebKit)
         if: ${{ always() }}
         run: node --test --test-concurrency=1 --test-name-pattern="capture" browser-tests/geo-search.browser.mjs

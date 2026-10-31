@@ -78,7 +78,11 @@ const world = (page) => page.evaluate(() => ({
 }));
 
 async function openSearch(page) {
-  if (await page.locator("#geoSearchPanel").isHidden()) await page.locator("#geoSearchToggle").click();
+  // Inline, activating the field is what opens the surface; compact, the
+  // activator is. Neither is ever open merely because the page loaded.
+  if (await page.locator("#geoSearchPanel").getAttribute("data-presentation") === "inline") {
+    if (await page.locator("#geoSearchPanel").getAttribute("data-open") !== "true") await page.locator("#geoSearchQuery").click();
+  } else if (await page.locator("#geoSearchPanel").isHidden()) await page.locator("#geoSearchToggle").click();
   await page.waitForFunction(() => !document.querySelector("#geoSearchPanel").hasAttribute("hidden"));
   // The resolver is deliberately off the critical path, so opening may precede
   // its arrival. A test asserting on results waits for the surface to say ready;
@@ -327,6 +331,12 @@ test("Lens B keeps its own radius and its own position through an Analyze on Len
   // With Lens B active, the SAME action moves B and leaves A alone.
   await page.locator("#lensBButton").click();
   const beforeA = (await world(page)).centres.A;
+  // Switching Lens is an outside interaction, so the surface closed and its
+  // selection cleared. The reader reopens the finder (the query was retained)
+  // and selects again; nothing was selected on their behalf.
+  await page.locator("#geoSearchQuery").click();
+  await page.waitForFunction(() => document.querySelectorAll("#geoSearchResults button").length > 0);
+  await page.locator("#geoSearchResults button").first().click();
   await page.locator("#geoSearchAnalyze").click();
   const second = await world(page);
   assert.equal(second.activeLens, "B");
@@ -636,7 +646,10 @@ test("rapid typing, rapid selection and mode changes during search leave no brok
   assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-presentation"), "inline");
   await page.locator("#modeCompareButton").click();
   await page.waitForFunction(() => document.querySelector("#analysisPanel").dataset.mode === "COMPARE");
-  assert.equal((await snapshot(page)).open, true, "the finder survives a mode change");
+  // Using another control is an outside interaction: it dismisses the surface
+  // but never swallows the click, and the typed query is kept for reopening.
+  assert.equal((await snapshot(page)).open, false, "a mode change dismisses the surface");
+  assert.equal((await snapshot(page)).query, (await page.locator("#geoSearchQuery").inputValue()), "the query survives the mode change");
   assert.equal((await snapshot(page)).state, "ready");
   await page.locator("#modeCityButton").click();
   await page.waitForFunction(() => document.querySelector("#analysisPanel").dataset.mode === "CITY");

@@ -8939,10 +8939,15 @@ const geoSearch = {
   cameraMoves: 0,
   lensMoves: 0,
   lastAction: null,
-  // This belongs only to the compact activator. Inline visibility is a layout
-  // decision, never evidence that a reader opened the compact overlay.
-  compactOpen: false,
+  // The ONE source of truth for whether the result surface is shown, in both
+  // presentations. It changes only through a reader action (activating the
+  // field or activator, "/", the tour's explicit reveal) or a dismissal. A
+  // layout decision or a module finishing its load never sets it.
+  surfaceOpen: false,
   focusPending: false,
+  // True while the application itself returns focus after a dismissal, so that
+  // the focus event it causes is not mistaken for a reader reopening the surface.
+  restoringFocus: false,
 };
 let geoSearchRenderer = null;
 let geoSearchLayer = null;
@@ -9107,26 +9112,55 @@ function geoSearchCanInline() {
   return available >= GEO_SEARCH_MIN_HEADER_INPUT_PX;
 }
 
-function syncGeoSearchPresentation({ focus = false } = {}) {
+// Reflects `geoSearch.surfaceOpen` onto the DOM. Inline, the field is always
+// present and only the surface toggles (CSS keys off data-open). Compact, the
+// whole panel is the surface. Placement is an overlay concern: an inline field
+// must never inherit the overlay's corridor offsets.
+function applyGeoSearchOpenState() {
   const panel = document.getElementById("geoSearchPanel");
   const toggle = document.getElementById("geoSearchToggle");
   const questions = document.getElementById("geoSearchQuestions");
   if (!panel || !toggle) return;
-  const inline = geoSearchCanInline();
-  panel.dataset.presentation = inline ? "inline" : "overlay";
+  const inline = panel.dataset.presentation === "inline";
+  const open = geoSearch.surfaceOpen;
+  panel.dataset.open = open ? "true" : "false";
+  panel.hidden = inline ? false : !open;
+  toggle.setAttribute("aria-expanded", !inline && open ? "true" : "false");
+  if (!open && questions) questions.open = false;
   if (inline) {
-    panel.hidden = false;
-    toggle.setAttribute("aria-expanded", "false");
+    delete panel.dataset.placement;
+    document.documentElement.style.removeProperty("--geo-search-left");
+    document.documentElement.style.removeProperty("--geo-search-width");
+  } else if (open) applyGeoSearchPlacement();
+}
+
+function syncGeoSearchPresentation({ focus = false } = {}) {
+  const panel = document.getElementById("geoSearchPanel");
+  const toggle = document.getElementById("geoSearchToggle");
+  if (!panel || !toggle) return;
+  const wasInline = panel.dataset.presentation === "inline";
+  const inline = geoSearchCanInline();
+  // A change of presentation ends the interaction. The surface geometry that
+  // was open belonged to the other layout, and carrying it across a resize is
+  // what let stale placement survive; the reader reopens it explicitly.
+  const hadFocus = wasInline !== inline && geoSearch.surfaceOpen && panel.contains(document.activeElement);
+  if (wasInline !== inline) { geoSearch.surfaceOpen = false; geoSearch.focusPending = false; }
+  panel.dataset.presentation = inline ? "inline" : "overlay";
+  applyGeoSearchOpenState();
+  if (inline) {
     applyInlineGeoSearchSurfaceGeometry();
     renderGeoSearch();
-    if (questions) questions.open = false;
     if (focus) focusGeoSearchQuery();
-    return;
   }
-  panel.hidden = !geoSearch.compactOpen;
-  toggle.setAttribute("aria-expanded", geoSearch.compactOpen ? "true" : "false");
-  if (questions) questions.open = geoSearch.compactOpen;
-  if (!panel.hidden) applyGeoSearchPlacement();
+  if (hadFocus) restoreGeoSearchFocus(inline ? document.getElementById("geoSearchQuery") : toggle);
+}
+
+// Returns focus after a dismissal without that focus counting as the reader
+// activating the field again.
+function restoreGeoSearchFocus(node) {
+  if (!node) return;
+  geoSearch.restoringFocus = true;
+  try { node.focus(); } finally { geoSearch.restoringFocus = false; }
 }
 
 // The inline field lives inside the header, but its results belong in the map
@@ -9168,7 +9202,8 @@ function focusGeoSearchQuery() {
 
 function applyGeoSearchPlacement() {
   const panel = document.getElementById("geoSearchPanel");
-  if (!panel || panel.hidden) return;
+  // Corridor placement belongs to the overlay presentation only.
+  if (!panel || panel.hidden || panel.dataset.presentation !== "overlay") return;
   const analysis = document.getElementById("analysisPanel");
   const rail = document.getElementById("layerRail");
   const root = document.documentElement;
@@ -9192,35 +9227,29 @@ function applyGeoSearchPlacement() {
   panel.dataset.placement = "overlay";
 }
 
-function setGeoSearchOpen(open) {
+// The single entry for opening or closing the surface on a reader's behalf.
+// `focus:false` is for activations that already carry focus (the field itself).
+function setGeoSearchOpen(open, { focus = true } = {}) {
   const panel = document.getElementById("geoSearchPanel");
-  const toggle = document.getElementById("geoSearchToggle");
-  if (!panel || !toggle) return;
-  geoSearch.focusPending = Boolean(open);
-  if (geoSearchCanInline()) {
-    panel.hidden = false;
-    panel.dataset.presentation = "inline";
-    toggle.setAttribute("aria-expanded", "false");
-    loadGeoSearchModule();
-    renderGeoSearch();
-    document.getElementById("geoSearchQuestions").open = false;
-    if (open) focusGeoSearchQuery();
-    return;
-  }
-  geoSearch.compactOpen = Boolean(open);
-  panel.hidden = !geoSearch.compactOpen;
-  toggle.setAttribute("aria-expanded", geoSearch.compactOpen ? "true" : "false");
-  if (geoSearch.compactOpen) {
-    // Opening is the deadline for the resolver. If the idle prefetch has not run
-    // yet this issues the request now and the surface shows its loading state
-    // until it resolves; if it has, this is a no-op on the memoised promise.
-    loadGeoSearchModule();
-    loadQuestionExplorer();
-    renderGeoSearch();
-    applyGeoSearchPlacement();
-    document.getElementById("geoSearchQuestions").open = true;
-    focusGeoSearchQuery();
-  }
+  if (!panel || !document.getElementById("geoSearchToggle")) return;
+  const inline = geoSearchCanInline();
+  const opening = Boolean(open) && !geoSearch.surfaceOpen;
+  panel.dataset.presentation = inline ? "inline" : "overlay";
+  geoSearch.surfaceOpen = Boolean(open);
+  geoSearch.focusPending = Boolean(open) && focus;
+  applyGeoSearchOpenState();
+  if (!open) return;
+  // Opening is the deadline for the resolver. If the idle prefetch has not run
+  // yet this issues the request now and the surface shows its loading state
+  // until it resolves; if it has, this is a no-op on the memoised promise.
+  loadGeoSearchModule();
+  loadQuestionExplorer();
+  // The compact overlay has no other room, so it presents the explorer open.
+  // The inline surface offers it as a collapsed entry the reader expands.
+  const questions = document.getElementById("geoSearchQuestions");
+  if (!inline && opening && questions) questions.open = true;
+  renderGeoSearch();
+  if (focus) focusGeoSearchQuery();
 }
 
 // Closing clears the QUERY and the SELECTION, including the map highlight, so a
@@ -9467,47 +9496,75 @@ const geoSearchClose = document.getElementById("geoSearchClose");
 const geoSearchViewMap = document.getElementById("geoSearchViewMap");
 const geoSearchAnalyze = document.getElementById("geoSearchAnalyze");
 
+// Explicit dismissal (Escape, the close control). Keyboard dismissal from the
+// finder field/results also clears the query, selection and outline; the close
+// control and Question Explorer Escape retain a still-current answer and its
+// selected-place context. Neither moves a Lens or changes mode, radius or layers.
 function dismissGeoSearch({ clearSearch = false } = {}) {
-  // Keyboard dismissal from the finder field/results clears its transient
-  // selection and outline. The explicit close control and Question Explorer
-  // Escape retain a still-current answer and its selected-place context.
   geoSearch.focusPending = false;
   if (clearSearch) clearGeoSearch();
-  if (geoSearchCanInline()) {
-    // In inline mode Escape is the explicit dismissal for the expanded
-    // Question Explorer. Closing the disclosure leaves the underlying Lens and
-    // mode controls immediately reachable; clearing search does not move either
-    // Lens or change its mode, radius, or layers.
-    const questions = document.getElementById("geoSearchQuestions");
-    if (questions) questions.open = false;
-    geoSearchQuery?.focus();
-  }
-  else {
-    geoSearch.compactOpen = false;
-    setGeoSearchOpen(false);
-    if (geoSearchToggle) geoSearchToggle.focus();
-  }
+  const inline = geoSearchCanInline();
+  geoSearch.surfaceOpen = false;
+  applyGeoSearchOpenState();
+  restoreGeoSearchFocus(inline ? geoSearchQuery : geoSearchToggle);
 }
+
+// Dismissal by moving to something else (an outside click or Tab). The typed
+// query stays in the field so reopening regenerates the same results, but the
+// SELECTION and its map outline are cleared: once the surface that explained
+// that geometry is gone, nothing on screen would. Nothing here prevents the
+// event that caused it, so the click or focus still reaches its own target.
+function dismissGeoSearchOutside() {
+  if (!geoSearch.surfaceOpen) return;
+  geoSearch.focusPending = false;
+  geoSearch.selectedId = null;
+  geoSearch.lastAction = null;
+  geoSearch.surfaceOpen = false;
+  renderGeoSearchHighlight();
+  applyGeoSearchOpenState();
+  renderGeoSearch();
+}
+
+// Controls that legitimately live outside the panel while it is open: the tour
+// that is revealing it and the evidence dialog its answers open.
+const GEO_SEARCH_INSIDE_SELECTOR = "#geoSearchPanel,#geoSearchToggle,#tutorialGuide,#tutorialInvite,dialog";
+document.addEventListener("pointerdown", (event) => {
+  if (!geoSearch.surfaceOpen || !(event.target instanceof Element)) return;
+  if (event.target.closest(GEO_SEARCH_INSIDE_SELECTOR)) return;
+  dismissGeoSearchOutside();
+}, true);
+document.getElementById("geoSearchPanel")?.addEventListener("focusout", (event) => {
+  // A null relatedTarget is a re-render or a window blur, never a destination.
+  if (!geoSearch.surfaceOpen || !(event.relatedTarget instanceof Element)) return;
+  if (event.relatedTarget.closest(GEO_SEARCH_INSIDE_SELECTOR)) return;
+  dismissGeoSearchOutside();
+});
 
 if (geoSearchToggle) {
   geoSearchToggle.addEventListener("click", () => {
-    if (geoSearch.compactOpen) {
-      setGeoSearchOpen(false);
-      geoSearchToggle.focus();
+    if (geoSearch.surfaceOpen) {
+      dismissGeoSearch();
     } else {
       setGeoSearchOpen(true);
     }
   });
 }
 if (geoSearchQuery) {
+  // Activating the field IS the request to search, so it opens the surface.
+  // Focus the application restores after a dismissal is not an activation.
+  const openFromField = () => { if (!geoSearch.restoringFocus && !geoSearch.surfaceOpen) setGeoSearchOpen(true, { focus: false }); };
+  geoSearchQuery.addEventListener("focus", openFromField);
+  geoSearchQuery.addEventListener("click", openFromField);
   geoSearchQuery.addEventListener("input", (event) => {
     geoSearch.query = event.target.value;
     // Typing changes the RESULT LIST only. The selection, the highlight, the
     // Lenses, the camera, the radii, the mode and the layers are untouched.
+    openFromField();
     loadGeoSearchModule();
     renderGeoSearch();
   });
   geoSearchQuery.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown" && !geoSearch.surfaceOpen) { event.preventDefault(); setGeoSearchOpen(true, { focus: false }); return; }
     const buttons = [...document.querySelectorAll("#geoSearchResults button")];
     if (event.key === "ArrowDown" && buttons.length) { event.preventDefault(); buttons[0].focus(); }
     if (event.key === "Escape") { event.preventDefault(); dismissGeoSearch({ clearSearch: true }); }
@@ -9532,15 +9589,6 @@ if (questionExplorerNode) {
     if (event.key === "Escape") { event.preventDefault(); dismissGeoSearch(); }
   });
 }
-// The inline Question Explorer is a disclosure, not a modal. Analysis-panel
-// controls sit above its extended surface; using one closes the disclosure so
-// it cannot remain visibly stranded behind the panel. No geographic or
-// evidence-context state is changed here.
-document.addEventListener("click", (event) => {
-  if (!event.target.closest("#lensAButton,#lensBButton,#modePlaceButton,#modeCompareButton,#modeCityButton")) return;
-  const questions = document.getElementById("geoSearchQuestions");
-  if (questions?.open) questions.open = false;
-});
 window.addEventListener("resize", () => syncGeoSearchPresentation());
 if (typeof ResizeObserver === "function") {
   const analysisPanelNode = document.getElementById("analysisPanel");
@@ -9816,8 +9864,8 @@ if (haloRegressionRequested && haloRegressionLocal) {
     snapshot: () => ({
       state: document.getElementById("geoSearchPanel").dataset.state || null,
       placement: document.getElementById("geoSearchPanel").dataset.placement || null,
-      open: geoSearchCanInline() || geoSearch.compactOpen,
-      compactOpen: geoSearch.compactOpen,
+      open: geoSearch.surfaceOpen,
+      compactOpen: geoSearch.surfaceOpen && document.getElementById("geoSearchPanel").dataset.presentation === "overlay",
       query: geoSearch.query,
       selectedId: geoSearch.selectedId,
       selectedLayer: Boolean(geoSearchLayer),

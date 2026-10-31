@@ -76,7 +76,8 @@
 
   const STEPS = Object.freeze([
     Object.freeze({ id: "lens", target: () => firstVisible(byId("map")) }),
-    Object.freeze({ id: "search", target: () => firstVisible(byId("geoSearchToggle")) }),
+    // Inline headers expose the field itself and hide the activator; compact ones do the reverse.
+    Object.freeze({ id: "search", target: () => firstVisible(byId("geoSearchToggle"), byId("geoSearchQuery")) }),
     Object.freeze({ id: "controls", target: () => firstVisible(byId("radiusSlider"), byId("modePlaceButton")), navigate: "controls" }),
     Object.freeze({ id: "layers", target: () => root.matchMedia("(max-width: 560px)").matches ? firstVisible(byId("mobileLayersButton"), byId("layerRail")) : firstVisible(byId("layerRail"), byId("mobileLayersButton")) }),
     Object.freeze({ id: "modes", target: () => firstVisible(byId("modeNav"), byId("analysisPanel")) }),
@@ -181,6 +182,9 @@
       // exposes its field, so reveal M2 through its real disclosure; compact
       // layouts retain the existing opener.  Neither path changes the reading.
       if (inline) {
+        // The surface is closed until it is activated. Activate the field exactly
+        // as a reader does; this opens the real surface and changes no analytical state.
+        if (panel.dataset.open !== "true") byId("geoSearchQuery")?.click();
         const disclosure = byId("geoSearchQuestions");
         if (disclosure && !disclosure.open) disclosure.open = true;
       } else if (panel?.hidden && toggle) toggle.click();

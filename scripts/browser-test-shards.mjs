@@ -30,6 +30,7 @@ const SHARDS = Object.freeze({
     "browser-tests/ta3-identity.browser.mjs",
     "browser-tests/rail-ambito-layout.browser.mjs",
     "browser-tests/geo-search.browser.mjs",
+    "browser-tests/search-surface.browser.mjs",
     "discover/interaction.browser.mjs",
   ],
   "3": [
