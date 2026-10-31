@@ -45,6 +45,15 @@ test.after(async () => {
 // The Question Explorer is loaded on idle in production. Tests force it so the
 // regression is deterministic: "ready" is exactly the state that used to force
 // the surface open.
+// Looping tests create many pages. WebKit closes the whole browser when dozens
+// of contexts stay open at once, so only the most recent one is kept alive.
+let openContext = null;
+async function track(context, t) {
+  if (openContext) await openContext.close().catch(() => {});
+  openContext = context;
+  t.after(() => context.close().catch(() => {}));
+}
+
 async function pageFor({ viewport = { width: 1280, height: 900 }, colorScheme = "light", language = "en" } = {}) {
   const context = await browser.newContext({ viewport, colorScheme });
   const page = await context.newPage();
@@ -102,7 +111,7 @@ async function capture(page, name) {
 test("idle: a ready Question Explorer never opens the search surface over the map", async (t) => {
   for (const width of [1024, 1280, 1440, 1536]) {
     const { page, context, errors } = await pageFor({ viewport: { width, height: 900 } });
-    t.after(() => context.close());
+    await track(context, t);
     const geometry = await headerGeometry(page);
     if (width >= 1280) assert.equal(geometry.presentation, "inline", `${width}px exposes the inline field`);
     assert.equal(await surfaceVisible(page), false, `${width}px: no surface at idle`);
@@ -114,7 +123,7 @@ test("idle: a ready Question Explorer never opens the search surface over the ma
 
 test("idle: the surface contains no instructional copy before the reader acts", async (t) => {
   const { page, context } = await pageFor({ viewport: { width: 1440, height: 900 } });
-  t.after(() => context.close());
+  await track(context, t);
   const box = await page.locator(".geo-search-surface").boundingBox();
   assert.ok(!box || box.width === 0 || box.height === 0, "the surface occupies no area at idle");
 });
@@ -125,7 +134,7 @@ test("the inline field never overlaps the brand or the header controls, in EN an
   for (const language of ["en", "es"]) {
     for (const width of [1024, 1100, 1280, 1440, 1536]) {
       const { page, context } = await pageFor({ viewport: { width, height: 900 }, language });
-      t.after(() => context.close());
+      await track(context, t);
       const g = await headerGeometry(page);
       if (g.presentation !== "inline") continue;
       assert.ok(g.field.left >= g.brand.right + 11.5, `${language}/${width}: field clears the brand (${g.field.left} vs ${g.brand.right})`);
@@ -136,7 +145,7 @@ test("the inline field never overlaps the brand or the header controls, in EN an
 
 test("an inline field never inherits the overlay's corridor placement", async (t) => {
   const { page, context } = await pageFor({ viewport: { width: 1440, height: 900 } });
-  t.after(() => context.close());
+  await track(context, t);
   const state = await page.evaluate(() => {
     const panel = document.querySelector("#geoSearchPanel");
     return { placement: panel.dataset.placement || null, left: getComputedStyle(panel).left, leftVar: document.documentElement.style.getPropertyValue("--geo-search-left") };
@@ -150,7 +159,7 @@ test("an inline field never inherits the overlay's corridor placement", async (t
 
 test("focusing, clicking or typing opens the surface and moves nothing", async (t) => {
   const { page, context } = await pageFor();
-  t.after(() => context.close());
+  await track(context, t);
   const before = await world(page);
   await page.locator("#geoSearchQuery").click();
   assert.equal(await surfaceVisible(page), true, "activating the field opens the surface");
@@ -168,7 +177,7 @@ test("focusing, clicking or typing opens the surface and moves nothing", async (
 
 test("Escape closes the surface, clears query, selection and highlight, and keeps focus in the field", async (t) => {
   const { page, context } = await pageFor();
-  t.after(() => context.close());
+  await track(context, t);
   await page.locator("#geoSearchQuery").fill("APR.02.09");
   await page.waitForFunction(() => document.querySelectorAll("#geoSearchResults button").length > 0);
   await page.locator("#geoSearchResults button").first().click();
@@ -190,7 +199,7 @@ test("Escape closes the surface, clears query, selection and highlight, and keep
 
 test("an outside click closes the surface, keeps the query, clears the selection and passes the click through", async (t) => {
   const { page, context } = await pageFor();
-  t.after(() => context.close());
+  await track(context, t);
   await page.locator("#geoSearchQuery").fill("APR.02.09");
   await page.waitForFunction(() => document.querySelectorAll("#geoSearchResults button").length > 0);
   await page.locator("#geoSearchResults button").first().click();
@@ -218,7 +227,7 @@ test("an outside click closes the surface, keeps the query, clears the selection
 
 test("tabbing out of the surface dismisses it without losing the query", async (t) => {
   const { page, context } = await pageFor();
-  t.after(() => context.close());
+  await track(context, t);
   await page.locator("#geoSearchQuery").fill("Palacio");
   assert.equal(await surfaceVisible(page), true);
   await page.locator("#languageSelect").focus();
@@ -230,7 +239,7 @@ test("tabbing out of the surface dismisses it without losing the query", async (
 
 test("Evidence Questions stay discoverable but only open on request, and survive dismissal", async (t) => {
   const { page, context, errors } = await pageFor();
-  t.after(() => context.close());
+  await track(context, t);
   assert.equal(await page.locator("#geoSearchQuestions").isVisible(), false, "nothing opens merely because the explorer loaded");
   await page.locator("#geoSearchQuery").click();
   await page.locator("#geoSearchQuestions > summary").click();
@@ -251,7 +260,7 @@ test("Evidence Questions stay discoverable but only open on request, and survive
 
 test("resizing between inline and compact never carries an open surface or stale placement", async (t) => {
   const { page, context } = await pageFor({ viewport: { width: 1440, height: 900 } });
-  t.after(() => context.close());
+  await track(context, t);
   await page.locator("#geoSearchQuery").click();
   assert.equal(await surfaceVisible(page), true);
   await page.setViewportSize({ width: 768, height: 1024 });
@@ -270,7 +279,7 @@ test("resizing between inline and compact never carries an open surface or stale
 
 test("compact: the activator opens the one panel; Escape clears, an outside click keeps the query", async (t) => {
   const { page, context } = await pageFor({ viewport: { width: 768, height: 1024 } });
-  t.after(() => context.close());
+  await track(context, t);
   assert.equal(await page.locator("#geoSearchToggle").isVisible(), true);
   await page.locator("#geoSearchToggle").click();
   assert.equal(await page.locator("#geoSearchPanel").isHidden(), false);
@@ -291,7 +300,7 @@ test("compact: the activator opens the one panel; Escape clears, an outside clic
 test("the Guided Tour search step always has a visible target", async (t) => {
   for (const [width, expected] of [[1440, "geoSearchQuery"], [768, "geoSearchToggle"], [390, "geoSearchToggle"]]) {
     const { page, context } = await pageFor({ viewport: { width, height: 900 } });
-    t.after(() => context.close());
+    await track(context, t);
     const target = await page.evaluate(() => {
       const node = window.MadridLensTutorial.targetFor(1);
       return node ? node.id : null;
@@ -302,7 +311,7 @@ test("the Guided Tour search step always has a visible target", async (t) => {
 
 test("the tour reveals Evidence Questions through the inline field without changing the analytical state", async (t) => {
   const { page, context } = await pageFor({ viewport: { width: 1440, height: 900 } });
-  t.after(() => context.close());
+  await track(context, t);
   const before = await world(page);
   await page.evaluate(() => window.MadridLensTutorial.start(document.getElementById("tutorialHelpButton")));
   for (let step = 0; step < 5; step += 1) await page.locator("[data-tutorial-next]").click();

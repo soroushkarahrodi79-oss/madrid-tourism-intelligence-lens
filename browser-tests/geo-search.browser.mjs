@@ -110,6 +110,9 @@ test("the finder exposes its single query field inline when the measured header 
   assert.equal(await page.locator("#geoSearchPanel").isHidden(), false);
   assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-presentation"), "inline");
   assert.equal(await page.locator("#geoSearchToggle").isVisible(), false);
+  // The resolver is deliberately fetched when the browser is idle (asserted by
+  // its own test), so the field can be inline before it has arrived. Wait for it.
+  await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.state === "ready");
   const open = await snapshot(page);
   assert.equal(open.state, "ready");
   assert.equal(await page.locator("#geoSearchToggle").getAttribute("aria-expanded"), "false", "automatic inline visibility is not an explicit compact open state");
