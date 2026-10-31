@@ -9460,12 +9460,16 @@ const geoSearchClose = document.getElementById("geoSearchClose");
 const geoSearchViewMap = document.getElementById("geoSearchViewMap");
 const geoSearchAnalyze = document.getElementById("geoSearchAnalyze");
 
-function dismissGeoSearch() {
+function dismissGeoSearch({ clearSearch = false } = {}) {
+  // Keyboard dismissal from the finder field/results clears its transient
+  // selection and outline. The explicit close control and Question Explorer
+  // Escape retain a still-current answer and its selected-place context.
+  if (clearSearch) clearGeoSearch();
   if (geoSearchCanInline()) {
     // In inline mode Escape is the explicit dismissal for the expanded
     // Question Explorer. Closing the disclosure leaves the underlying Lens and
-    // mode controls immediately reachable without changing the answer's
-    // selected-place evidence context.
+    // mode controls immediately reachable; clearing search does not move either
+    // Lens or change its mode, radius, or layers.
     const questions = document.getElementById("geoSearchQuestions");
     if (questions) questions.open = false;
     geoSearchQuery?.focus();
@@ -9498,7 +9502,7 @@ if (geoSearchQuery) {
   geoSearchQuery.addEventListener("keydown", (event) => {
     const buttons = [...document.querySelectorAll("#geoSearchResults button")];
     if (event.key === "ArrowDown" && buttons.length) { event.preventDefault(); buttons[0].focus(); }
-    if (event.key === "Escape") { event.preventDefault(); dismissGeoSearch(); }
+    if (event.key === "Escape") { event.preventDefault(); dismissGeoSearch({ clearSearch: true }); }
   });
 }
 const geoSearchResultsList = document.getElementById("geoSearchResults");
@@ -9508,10 +9512,10 @@ if (geoSearchResultsList) {
     const current = buttons.indexOf(document.activeElement);
     if (event.key === "ArrowDown" && current >= 0 && buttons[current + 1]) { event.preventDefault(); buttons[current + 1].focus(); }
     if (event.key === "ArrowUp") { event.preventDefault(); if (current > 0) buttons[current - 1].focus(); else if (geoSearchQuery) geoSearchQuery.focus(); }
-    if (event.key === "Escape") { event.preventDefault(); dismissGeoSearch(); }
+    if (event.key === "Escape") { event.preventDefault(); dismissGeoSearch({ clearSearch: true }); }
   });
 }
-if (geoSearchClose) geoSearchClose.addEventListener("click", dismissGeoSearch);
+if (geoSearchClose) geoSearchClose.addEventListener("click", () => dismissGeoSearch());
 // Escape dismisses the finder from the question explorer too, exactly as it does
 // from the field and the result list, so no control inside the panel is a trap.
 const questionExplorerNode = document.getElementById("questionExplorer");
