@@ -45,6 +45,15 @@ test.after(async () => {
 // The Question Explorer is loaded on idle in production. Tests force it so the
 // regression is deterministic: "ready" is exactly the state that used to force
 // the surface open.
+// Looping tests create many pages. WebKit closes the whole browser when dozens
+// of contexts stay open at once, so only the most recent one is kept alive.
+let openContext = null;
+async function track(context, t) {
+  if (openContext) await openContext.close().catch(() => {});
+  openContext = context;
+  t.after(() => context.close().catch(() => {}));
+}
+
 async function pageFor({ viewport = { width: 1280, height: 900 }, colorScheme = "light", language = "en" } = {}) {
   const context = await browser.newContext({ viewport, colorScheme });
   const page = await context.newPage();
@@ -61,6 +70,8 @@ async function pageFor({ viewport = { width: 1280, height: 900 }, colorScheme = 
   });
   await page.evaluate(() => window.__QUESTION_EXPLORER_TEST__.whenReady());
   await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.questionExplorer === "ready");
+  // Tests that are not about the loading state start from a resolved resolver (the cold-load case has its own test).
+  await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.state === "ready");
   if (language !== "en") {
     await page.selectOption("#languageSelect", language);
     await page.waitForTimeout(150);
@@ -102,7 +113,7 @@ async function capture(page, name) {
 test("idle: a ready Question Explorer never opens the search surface over the map", async (t) => {
   for (const width of [1024, 1280, 1440, 1536]) {
     const { page, context, errors } = await pageFor({ viewport: { width, height: 900 } });
-    t.after(() => context.close());
+    await track(context, t);
     const geometry = await headerGeometry(page);
     if (width >= 1280) assert.equal(geometry.presentation, "inline", `${width}px exposes the inline field`);
     assert.equal(await surfaceVisible(page), false, `${width}px: no surface at idle`);
@@ -114,7 +125,7 @@ test("idle: a ready Question Explorer never opens the search surface over the ma
 
 test("idle: the surface contains no instructional copy before the reader acts", async (t) => {
   const { page, context } = await pageFor({ viewport: { width: 1440, height: 900 } });
-  t.after(() => context.close());
+  await track(context, t);
   const box = await page.locator(".geo-search-surface").boundingBox();
   assert.ok(!box || box.width === 0 || box.height === 0, "the surface occupies no area at idle");
 });
@@ -125,7 +136,7 @@ test("the inline field never overlaps the brand or the header controls, in EN an
   for (const language of ["en", "es"]) {
     for (const width of [1024, 1100, 1280, 1440, 1536]) {
       const { page, context } = await pageFor({ viewport: { width, height: 900 }, language });
-      t.after(() => context.close());
+      await track(context, t);
       const g = await headerGeometry(page);
       if (g.presentation !== "inline") continue;
       assert.ok(g.field.left >= g.brand.right + 11.5, `${language}/${width}: field clears the brand (${g.field.left} vs ${g.brand.right})`);
@@ -136,7 +147,7 @@ test("the inline field never overlaps the brand or the header controls, in EN an
 
 test("an inline field never inherits the overlay's corridor placement", async (t) => {
   const { page, context } = await pageFor({ viewport: { width: 1440, height: 900 } });
-  t.after(() => context.close());
+  await track(context, t);
   const state = await page.evaluate(() => {
     const panel = document.querySelector("#geoSearchPanel");
     return { placement: panel.dataset.placement || null, left: getComputedStyle(panel).left, leftVar: document.documentElement.style.getPropertyValue("--geo-search-left") };
@@ -150,7 +161,7 @@ test("an inline field never inherits the overlay's corridor placement", async (t
 
 test("focusing, clicking or typing opens the surface and moves nothing", async (t) => {
   const { page, context } = await pageFor();
-  t.after(() => context.close());
+  await track(context, t);
   const before = await world(page);
   await page.locator("#geoSearchQuery").click();
   assert.equal(await surfaceVisible(page), true, "activating the field opens the surface");
@@ -168,7 +179,7 @@ test("focusing, clicking or typing opens the surface and moves nothing", async (
 
 test("Escape closes the surface, clears query, selection and highlight, and keeps focus in the field", async (t) => {
   const { page, context } = await pageFor();
-  t.after(() => context.close());
+  await track(context, t);
   await page.locator("#geoSearchQuery").fill("APR.02.09");
   await page.waitForFunction(() => document.querySelectorAll("#geoSearchResults button").length > 0);
   await page.locator("#geoSearchResults button").first().click();
@@ -190,7 +201,7 @@ test("Escape closes the surface, clears query, selection and highlight, and keep
 
 test("an outside click closes the surface, keeps the query, clears the selection and passes the click through", async (t) => {
   const { page, context } = await pageFor();
-  t.after(() => context.close());
+  await track(context, t);
   await page.locator("#geoSearchQuery").fill("APR.02.09");
   await page.waitForFunction(() => document.querySelectorAll("#geoSearchResults button").length > 0);
   await page.locator("#geoSearchResults button").first().click();
@@ -218,7 +229,7 @@ test("an outside click closes the surface, keeps the query, clears the selection
 
 test("tabbing out of the surface dismisses it without losing the query", async (t) => {
   const { page, context } = await pageFor();
-  t.after(() => context.close());
+  await track(context, t);
   await page.locator("#geoSearchQuery").fill("Palacio");
   assert.equal(await surfaceVisible(page), true);
   await page.locator("#languageSelect").focus();
@@ -230,7 +241,7 @@ test("tabbing out of the surface dismisses it without losing the query", async (
 
 test("Evidence Questions stay discoverable but only open on request, and survive dismissal", async (t) => {
   const { page, context, errors } = await pageFor();
-  t.after(() => context.close());
+  await track(context, t);
   assert.equal(await page.locator("#geoSearchQuestions").isVisible(), false, "nothing opens merely because the explorer loaded");
   await page.locator("#geoSearchQuery").click();
   await page.locator("#geoSearchQuestions > summary").click();
@@ -251,7 +262,7 @@ test("Evidence Questions stay discoverable but only open on request, and survive
 
 test("resizing between inline and compact never carries an open surface or stale placement", async (t) => {
   const { page, context } = await pageFor({ viewport: { width: 1440, height: 900 } });
-  t.after(() => context.close());
+  await track(context, t);
   await page.locator("#geoSearchQuery").click();
   assert.equal(await surfaceVisible(page), true);
   await page.setViewportSize({ width: 768, height: 1024 });
@@ -270,7 +281,7 @@ test("resizing between inline and compact never carries an open surface or stale
 
 test("compact: the activator opens the one panel; Escape clears, an outside click keeps the query", async (t) => {
   const { page, context } = await pageFor({ viewport: { width: 768, height: 1024 } });
-  t.after(() => context.close());
+  await track(context, t);
   assert.equal(await page.locator("#geoSearchToggle").isVisible(), true);
   await page.locator("#geoSearchToggle").click();
   assert.equal(await page.locator("#geoSearchPanel").isHidden(), false);
@@ -291,7 +302,7 @@ test("compact: the activator opens the one panel; Escape clears, an outside clic
 test("the Guided Tour search step always has a visible target", async (t) => {
   for (const [width, expected] of [[1440, "geoSearchQuery"], [768, "geoSearchToggle"], [390, "geoSearchToggle"]]) {
     const { page, context } = await pageFor({ viewport: { width, height: 900 } });
-    t.after(() => context.close());
+    await track(context, t);
     const target = await page.evaluate(() => {
       const node = window.MadridLensTutorial.targetFor(1);
       return node ? node.id : null;
@@ -302,7 +313,7 @@ test("the Guided Tour search step always has a visible target", async (t) => {
 
 test("the tour reveals Evidence Questions through the inline field without changing the analytical state", async (t) => {
   const { page, context } = await pageFor({ viewport: { width: 1440, height: 900 } });
-  t.after(() => context.close());
+  await track(context, t);
   const before = await world(page);
   await page.evaluate(() => window.MadridLensTutorial.start(document.getElementById("tutorialHelpButton")));
   for (let step = 0; step < 5; step += 1) await page.locator("[data-tutorial-next]").click();
@@ -312,4 +323,227 @@ test("the tour reveals Evidence Questions through the inline field without chang
   await page.locator("[data-tutorial-next]").click();
   assert.equal(await surfaceVisible(page), true, "advancing the tour does not dismiss the surface it opened");
   assert.deepEqual(await world(page), before);
+});
+
+// ------------------------------------------------------ Cold load
+
+test("a search activation before the deferred resolver arrives is kept, not lost", async (t) => {
+  for (const [width, activator] of [[1440, "#geoSearchQuery"], [390, "#geoSearchToggle"]]) {
+    const context = await browser.newContext({ viewport: { width, height: 900 } });
+    await track(context, t);
+    const page = await context.newPage();
+    page.setDefaultTimeout(30000);
+    await page.route("**/*", async (route) => {
+      const url = new URL(route.request().url());
+      if (url.hostname !== "127.0.0.1") return route.abort();
+      if (url.pathname.endsWith("/geo-search.js")) await new Promise((resolve) => setTimeout(resolve, 3000));
+      return route.continue();
+    });
+    await page.goto(`http://127.0.0.1:${port}/?haloRegressionTest=1`, { waitUntil: "domcontentloaded" });
+    await page.locator(activator).waitFor({ state: "visible" });
+    assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-state"), "loading", `${width}px starts before the resolver`);
+    assert.equal(await page.locator("#geoSearchQuery").isDisabled(), false, `${width}px the field is not disabled while loading`);
+    await page.locator(activator).click();
+    await page.keyboard.type("Palacio");
+    assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-open"), "true", `${width}px the first activation opened the surface`);
+    assert.equal(await page.locator("#geoSearchQuery").inputValue(), "Palacio", `${width}px the typed text was kept`);
+    assert.match(await page.locator("#geoSearchStatus").innerText(), /loading|Cargando/i, `${width}px the surface says it is loading`);
+    await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.state === "ready");
+    await page.waitForFunction(() => document.querySelectorAll("#geoSearchResults button").length > 0);
+    assert.equal(await page.locator("#geoSearchQuery").inputValue(), "Palacio", `${width}px the query survives resolution`);
+    assert.equal(await activeId(page), "geoSearchQuery", `${width}px focus stays in the field`);
+  }
+});
+
+// ------------------------------------------------------ Mobile map-control collisions
+
+// The compact finder is a full-width overlay. It used to start on the same row as
+// the 44px Layers control, whose z-index (1101) beats the header's stacking
+// context (1100) that holds the panel, so the button painted over the panel's
+// label. The panel now clears that row. The finder deliberately covers the map
+// (and the zoom and attribution inside it) while open; what must never happen is
+// the finder and Layers sharing space, or the map controls colliding with each other.
+const intersects = (a, b) => a && b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+
+test("the open compact finder never shares space with the Layers control or its own label", async (t) => {
+  const viewports = [[320, 568], [390, 844], [430, 932], [390, 560], [430, 420], [320, 480]];
+  for (const [width, height] of viewports) {
+    for (const language of ["en", "es"]) {
+      for (const colorScheme of ["light", "dark"]) {
+        const { page, context } = await pageFor({ viewport: { width, height }, colorScheme, language });
+        await track(context, t);
+        const tag = `${width}x${height} ${language} ${colorScheme}`;
+        const rect = (selector) => page.evaluate((s) => {
+          const node = document.querySelector(s);
+          if (!node) return null;
+          const r = node.getBoundingClientRect();
+          return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+        }, selector);
+        const layersClosed = await rect(".mobile-layers-button");
+        const zoom = await rect(".leaflet-control-zoom");
+        const attribution = await rect(".leaflet-control-attribution");
+        assert.ok(layersClosed.width >= 44 && layersClosed.height >= 44, `${tag}: Layers keeps its 44px target`);
+        assert.equal(intersects(layersClosed, zoom), false, `${tag}: Layers and zoom do not overlap`);
+        assert.equal(intersects(layersClosed, attribution), false, `${tag}: Layers and attribution do not overlap`);
+        assert.equal(intersects(zoom, attribution), false, `${tag}: zoom and attribution do not overlap`);
+
+        await page.locator("#geoSearchToggle").click();
+        await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.open === "true");
+        const layers = await rect(".mobile-layers-button");
+        const panel = await rect("#geoSearchPanel");
+        const label = await rect(".geo-search-label");
+        assert.deepEqual([layers.width, layers.height], [layersClosed.width, layersClosed.height], `${tag}: opening search does not resize Layers`);
+        assert.ok(layers.width >= 44 && layers.height >= 44, `${tag}: Layers stays at least 44px while search is open`);
+        assert.equal(intersects(layers, panel), false, `${tag}: the panel clears the Layers control`);
+        assert.equal(intersects(layers, label), false, `${tag}: the panel label clears the Layers control`);
+        assert.ok(panel.left >= 0 && panel.right <= width && panel.bottom <= height + 0.5, `${tag}: the panel stays inside the viewport`);
+        // Nothing paints over the Layers control, and it stays operable.
+        const covered = await page.evaluate(() => {
+          const node = document.querySelector(".mobile-layers-button");
+          const r = node.getBoundingClientRect();
+          const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return !(hit && (hit === node || node.contains(hit)));
+        });
+        assert.equal(covered, false, `${tag}: the Layers control is not covered`);
+        // The map credit is still in the document and not hidden by the finder's own styles.
+        assert.equal(await page.locator(".leaflet-control-attribution").count(), 1, `${tag}: attribution is retained`);
+        assert.equal(await page.locator("#geoSearchQuery").isVisible(), true, `${tag}: the field is visible`);
+        const fieldRect = await rect("#geoSearchQuery");
+        assert.ok(fieldRect.bottom <= height, `${tag}: the field is reachable without scrolling the page`);
+      }
+    }
+  }
+});
+
+test("Layers stays operable while the compact finder is open, and the finder yields", async (t) => {
+  for (const language of ["en", "es"]) {
+    const { page, context } = await pageFor({ viewport: { width: 390, height: 844 }, language });
+    await track(context, t);
+    await page.locator("#geoSearchToggle").click();
+    await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.open === "true");
+    await page.locator("#mobileLayersButton").click();
+    assert.equal(await page.locator("#mobileLayersButton").getAttribute("aria-expanded"), "true", `${language}: Layers opened`);
+    assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-open"), "false", `${language}: the finder closed on the outside press`);
+  }
+});
+
+// ------------------------------------------------------ Map credit stays visible
+
+// OpenStreetMap's tile usage policy (and the CARTO and Esri terms) require the
+// credit to stay visible and its links usable. The compact finder is a full-width
+// overlay, so it must start beneath the credit, whatever the active basemap makes
+// that credit's height. Rendered geometry and hit testing, never DOM presence.
+const PNG_1X1 = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
+
+async function creditPage({ viewport, colorScheme = "light", language = "en", carto = false }) {
+  const context = await browser.newContext({ viewport, colorScheme });
+  const page = await context.newPage();
+  page.setDefaultTimeout(30000);
+  await page.route("**/*", (route) => {
+    const url = new URL(route.request().url());
+    // A CARTO key makes the active basemap credit OSM + CARTO; tiles are 1x1 stubs
+    // so the basemap's own credit, not the offline OSM fallback, is what is under test.
+    if (carto && url.pathname.endsWith("/runtime-config.js")) return route.fulfill({ contentType: "text/javascript", body: 'window.RUNTIME_CONFIG={CARTO_BASEMAP_KEY:"test"};' });
+    if (url.hostname === "127.0.0.1") return route.continue();
+    if (route.request().resourceType() === "image") return route.fulfill({ contentType: "image/png", body: PNG_1X1 });
+    return route.abort();
+  });
+  await page.goto(`http://127.0.0.1:${port}/?haloRegressionTest=1`, { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.state === "ready");
+  if (language !== "en") await page.selectOption("#languageSelect", language);
+  return { page, context };
+}
+
+async function readCredit(page) {
+  return page.evaluate(() => {
+    const box = (node) => { const r = node.getBoundingClientRect(); return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height }; };
+    const hits = (node) => {
+      const r = node.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return Boolean(hit) && (hit === node || node.contains(hit));
+    };
+    const credit = document.querySelector(".leaflet-control-attribution");
+    const field = document.querySelector("#geoSearchQuery");
+    const zoom = document.querySelector(".leaflet-control-zoom");
+    return {
+      text: credit.textContent.trim(),
+      credit: box(credit),
+      panel: box(document.querySelector("#geoSearchPanel")),
+      zoom: zoom ? box(zoom) : null,
+      layers: document.querySelector(".mobile-layers-button").offsetWidth ? box(document.querySelector(".mobile-layers-button")) : null,
+      field: box(field),
+      fontSize: parseFloat(getComputedStyle(credit).fontSize),
+      creditVisible: getComputedStyle(credit).visibility !== "hidden" && getComputedStyle(credit).display !== "none",
+      creditHit: hits(credit),
+      links: [...credit.querySelectorAll("a")].map((link) => ({ name: link.textContent, href: link.href, hit: hits(link) })),
+      fieldHit: hits(field),
+      viewport: { width: document.documentElement.clientWidth, height: window.innerHeight },
+    };
+  });
+}
+
+function assertCreditClear(reading, tag) {
+  assert.equal(reading.creditVisible, true, `${tag}: the credit is displayed`);
+  assert.ok(reading.credit.width > 0 && reading.credit.height > 0, `${tag}: the credit has a rendered box`);
+  assert.ok(reading.credit.left >= 0 && reading.credit.right <= reading.viewport.width && reading.credit.top >= 0 && reading.credit.bottom <= reading.viewport.height, `${tag}: the credit is inside the viewport`);
+  assert.ok(reading.fontSize >= 10, `${tag}: the credit stays readable (${reading.fontSize}px)`);
+  assert.equal(intersects(reading.credit, reading.panel), false, `${tag}: the open finder does not cover the credit`);
+  assert.equal(reading.creditHit, true, `${tag}: nothing paints over the credit`);
+  assert.ok(reading.links.length > 0 || /Esri/.test(reading.text), `${tag}: the credit carries its links`);
+  for (const link of reading.links) assert.equal(link.hit, true, `${tag}: the "${link.name}" link is operable`);
+  // The Layers control only exists at phone widths.
+  assert.equal(reading.layers ? intersects(reading.credit, reading.layers) : false, false, `${tag}: the credit clears Layers`);
+  assert.equal(reading.zoom ? intersects(reading.credit, reading.zoom) : false, false, `${tag}: the credit clears the zoom control`);
+  assert.equal(reading.fieldHit, true, `${tag}: the search field itself stays reachable`);
+  assert.ok(reading.field.bottom <= reading.viewport.height, `${tag}: the field is inside the viewport`);
+  if (reading.layers) assert.ok(reading.layers.width >= 44 && reading.layers.height >= 44, `${tag}: Layers keeps its 44px target`);
+}
+
+test("the open compact finder never covers the map credit, whatever the basemap credit's height", async (t) => {
+  const viewports = [[320, 568], [390, 844], [430, 932], [768, 1024], [390, 560], [320, 480], [768, 600]];
+  for (const [width, height] of viewports) {
+    for (const carto of [false, true]) {
+      const tag = `${width}x${height} ${carto ? "OSM+CARTO" : "OSM"}`;
+      const { page, context } = await creditPage({ viewport: { width, height }, carto });
+      await track(context, t);
+      await page.waitForTimeout(300);
+      const closed = await readCredit(page);
+      assert.equal(closed.creditHit, true, `${tag}: the credit is operable before search opens`);
+      await page.locator("#geoSearchToggle").click();
+      await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.open === "true");
+      const open = await readCredit(page);
+      assertCreditClear(open, tag);
+      assert.equal(open.credit.top, closed.credit.top, `${tag}: opening search does not move the credit`);
+      if (carto) {
+        assert.deepEqual(open.links.map((link) => link.name), ["OpenStreetMap", "CARTO"], `${tag}: both required credits are present`);
+        assert.ok(open.links.every((link) => link.href.startsWith("https://")), `${tag}: credit links are real`);
+      } else {
+        assert.deepEqual(open.links.map((link) => link.name), ["OpenStreetMap"], `${tag}: the OSM credit is present`);
+      }
+      // A taller credit (switching to the Esri basemap while search is open) moves the finder, not the credit.
+      await page.evaluate(() => { const select = document.querySelector("#basemapSelect"); select.value = "satellite"; select.dispatchEvent(new Event("change")); });
+      await page.waitForFunction(() => /Esri/.test(document.querySelector(".leaflet-control-attribution").textContent));
+      await page.waitForFunction(() => {
+        const credit = document.querySelector(".leaflet-control-attribution").getBoundingClientRect();
+        return document.querySelector("#geoSearchPanel").getBoundingClientRect().top >= credit.bottom;
+      });
+      assertCreditClear(await readCredit(page), `${tag} -> Esri`);
+    }
+  }
+});
+
+test("the map credit stays clear in Spanish and in Dark, and while the finder holds results", async (t) => {
+  for (const [language, colorScheme] of [["es", "light"], ["en", "dark"], ["es", "dark"]]) {
+    const { page, context } = await creditPage({ viewport: { width: 390, height: 844 }, language, colorScheme, carto: true });
+    await track(context, t);
+    await page.locator("#geoSearchToggle").click();
+    await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.open === "true");
+    await page.locator("#geoSearchQuery").fill("Palacio");
+    await page.waitForFunction(() => document.querySelectorAll("#geoSearchResults button").length > 0);
+    assertCreditClear(await readCredit(page), `${language} ${colorScheme}`);
+    // After dismissal nothing lingers over the credit.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.open === "false");
+    assert.equal((await readCredit(page)).creditHit, true, `${language} ${colorScheme}: the credit is operable after dismissal`);
+  }
 });

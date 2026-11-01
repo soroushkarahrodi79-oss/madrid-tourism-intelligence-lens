@@ -6085,9 +6085,24 @@ function renderRailGroupBadges() {
 const headerEl = document.querySelector("header");
 function syncHeaderBottom() {
   document.documentElement.style.setProperty("--header-bottom", `${Math.ceil(headerEl.getBoundingClientRect().bottom)}px`);
+  syncMapCreditBottom();
+}
+// The legal credit's height depends on the active basemap (OSM alone, OSM + CARTO,
+// Esri imagery) and its position follows the header, so the compact finder, which
+// must start beneath it, reads where it really ends rather than a guessed offset.
+const mapCreditEl = map.attributionControl.getContainer();
+function syncMapCreditBottom() {
+  if (!mapCreditEl) return;
+  const rect = mapCreditEl.getBoundingClientRect();
+  const root = document.documentElement.style;
+  if (rect.height > 0) root.setProperty("--map-credit-bottom", `${Math.ceil(rect.bottom)}px`);
+  else root.removeProperty("--map-credit-bottom");
 }
 syncHeaderBottom();
-if (typeof ResizeObserver === "function") new ResizeObserver(syncHeaderBottom).observe(headerEl);
+if (typeof ResizeObserver === "function") {
+  new ResizeObserver(syncHeaderBottom).observe(headerEl);
+  if (mapCreditEl) new ResizeObserver(syncMapCreditBottom).observe(mapCreditEl);
+}
 window.addEventListener("resize", syncHeaderBottom);
 window.addEventListener("orientationchange", syncHeaderBottom);
 
@@ -9131,7 +9146,11 @@ function applyGeoSearchOpenState() {
     delete panel.dataset.placement;
     document.documentElement.style.removeProperty("--geo-search-left");
     document.documentElement.style.removeProperty("--geo-search-width");
-  } else if (open) applyGeoSearchPlacement();
+    applyInlineGeoSearchSurfaceGeometry();
+  } else {
+    document.documentElement.style.removeProperty("--geo-search-inline-surface-width");
+    if (open) applyGeoSearchPlacement();
+  }
 }
 
 function syncGeoSearchPresentation({ focus = false } = {}) {
@@ -9148,7 +9167,6 @@ function syncGeoSearchPresentation({ focus = false } = {}) {
   panel.dataset.presentation = inline ? "inline" : "overlay";
   applyGeoSearchOpenState();
   if (inline) {
-    applyInlineGeoSearchSurfaceGeometry();
     renderGeoSearch();
     if (focus) focusGeoSearchQuery();
   }
@@ -9163,23 +9181,23 @@ function restoreGeoSearchFocus(node) {
   try { node.focus(); } finally { geoSearch.restoringFocus = false; }
 }
 
-// The inline field lives inside the header, but its results belong in the map
-// corridor. Measure both boundaries so the surface clears the full rendered
-// header (including a language/font-induced taller header) and stops before
-// the analysis panel without changing the field's horizontal origin.
+// The inline surface hangs from the field and is anchored in CSS (to the
+// header-tall search cell), so nothing about its vertical position is measured.
+// Only its WIDTH is: it must stop before the analysis panel, whose width the
+// reader can resize. The value exists only while the surface is open, so it can
+// never describe a previous viewport for a surface that is not on screen.
 function applyInlineGeoSearchSurfaceGeometry() {
   const panel = document.getElementById("geoSearchPanel");
-  const header = document.querySelector("header");
+  const root = document.documentElement;
+  if (!panel || panel.dataset.presentation !== "inline" || !geoSearch.surfaceOpen) {
+    root.style.removeProperty("--geo-search-inline-surface-width");
+    return;
+  }
   const analysis = document.getElementById("analysisPanel");
-  if (!panel || !header || panel.dataset.presentation !== "inline") return;
   const panelRect = panel.getBoundingClientRect();
-  const headerRect = header.getBoundingClientRect();
   const analysisRect = analysis && analysis.offsetWidth ? analysis.getBoundingClientRect() : null;
-  const gap = 12;
-  const top = Math.ceil(headerRect.bottom - panelRect.top + gap);
-  const width = analysisRect ? Math.floor(analysisRect.left - panelRect.left - gap) : panelRect.width;
-  document.documentElement.style.setProperty("--geo-search-inline-surface-top", `${top}px`);
-  document.documentElement.style.setProperty("--geo-search-inline-surface-width", `${Math.max(0, width)}px`);
+  const width = analysisRect ? Math.floor(analysisRect.left - panelRect.left - 12) : panelRect.width;
+  root.style.setProperty("--geo-search-inline-surface-width", `${Math.max(0, width)}px`);
 }
 
 function focusGeoSearchQuery() {
@@ -9432,8 +9450,13 @@ function renderGeoSearch() {
   const state = index ? "ready" : loading ? "loading" : "unavailable";
   host.dataset.state = state;
   host.dataset.hasQuery = geoSearch.query.trim() ? "true" : "false";
-  input.disabled = state !== "ready";
-  if (state === "ready" && geoSearch.focusPending) focusGeoSearchQuery();
+  // Only "unavailable" disables the field. While the resolver is still loading the
+  // field stays operable: a click or keystroke opens the surface, which reports the
+  // loading state, and the typed query is kept and answered as soon as it is ready.
+  // A disabled field would drop that first interaction without any feedback.
+  input.disabled = state === "unavailable";
+  input.setAttribute("aria-busy", state === "loading" ? "true" : "false");
+  if (state !== "unavailable" && geoSearch.focusPending) focusGeoSearchQuery();
   results.replaceChildren();
 
   if (state !== "ready") {
@@ -9592,7 +9615,10 @@ if (questionExplorerNode) {
 window.addEventListener("resize", () => syncGeoSearchPresentation());
 if (typeof ResizeObserver === "function") {
   const analysisPanelNode = document.getElementById("analysisPanel");
-  if (analysisPanelNode) new ResizeObserver(() => { applyGeoSearchPlacement(); applyInlineGeoSearchSurfaceGeometry(); }).observe(analysisPanelNode);
+  const headerNode = document.querySelector("header");
+  const remeasure = new ResizeObserver(() => { applyGeoSearchPlacement(); applyInlineGeoSearchSurfaceGeometry(); });
+  if (analysisPanelNode) remeasure.observe(analysisPanelNode);
+  if (headerNode) remeasure.observe(headerNode);
 }
 if (geoSearchViewMap) geoSearchViewMap.addEventListener("click", showGeoSearchOnMap);
 if (geoSearchAnalyze) geoSearchAnalyze.addEventListener("click", analyzeGeoSearchWithLens);

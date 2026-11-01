@@ -3,6 +3,8 @@
   --t-title:20px;
   --t-figure:16px;
   --t-body:14px;
+  --geo-search-field-min:260px;
+  --geo-search-field-max:480px;
   --t-label:12px;
   --t-meta:11px;
   --t-micro:10px;
@@ -1815,19 +1817,36 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 .geo-search[hidden]{display:none!important}
 .geo-search-surface{min-width:0}
 .geo-search[data-presentation="inline"]{
-  /* An explicit input-height containing block keeps the result/disclosure
-     surface below the field rather than in the header on first inline paint. */
-  position:relative;z-index:1102;top:auto;right:auto;left:auto;width:auto;height:44px;flex:1 1 260px;min-width:260px;
-  max-width:480px;max-height:none;overflow:visible;padding:0;border:0;border-radius:0;background:transparent;backdrop-filter:none;box-shadow:none
+  /* The panel is the middle cell of the three-zone header grid below. It
+     stretches to the header's content height, so the surface can hang from its
+     bottom edge in CSS with no measured offset, while the field stays centred. */
+  position:relative;z-index:1102;top:auto;right:auto;left:auto;width:auto;flex:1 1 var(--geo-search-field-min);min-width:var(--geo-search-field-min);max-width:var(--geo-search-field-max);max-height:none;
+  display:flex;align-items:center;align-self:stretch;overflow:visible;padding:0;border:0;border-radius:0;background:transparent;backdrop-filter:none;box-shadow:none
 }
-/* The tools retain their auto margin to preserve the institutional right edge.
-   Once search joins the header, space-between would add a second distribution
-   gap and can paint the field beneath those tools at wide metrics. */
+.geo-search[data-presentation="inline"] .geo-search-field{flex:1 1 auto;min-width:0}
+/* Three-zone institutional header: brand | search | preferences. The side
+   tracks are sized to their content (max-content floor) and share the rest
+   equally, so the field is centred whenever the header has room and otherwise
+   slides toward the roomier side. It can never take space from, or overlap,
+   a neighbour, in any language or font metric. This replaces the earlier
+   flex-fill, which only avoided overlap by accident of order. */
+/* Up to 1100px the header keeps its shrinkable flex layout (the brand may
+   truncate), which is the only layout that cannot overflow in the one frame
+   between a resize and the script re-deciding inline versus compact. */
 header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
+@media(min-width:1101px){
+  header:has(.geo-search[data-presentation="inline"]){
+    display:grid;grid-template-columns:minmax(max-content,1fr) minmax(var(--geo-search-field-min),var(--geo-search-field-max)) minmax(max-content,1fr);
+    justify-content:normal;column-gap:var(--s-3)
+  }
+  header:has(.geo-search[data-presentation="inline"]) .geo-search[data-presentation="inline"]{flex:none;min-width:0;max-width:none}
+  header:has(.geo-search[data-presentation="inline"]) .brand{justify-self:start}
+  header:has(.geo-search[data-presentation="inline"]) .header-tools{justify-self:end;margin-left:0}
+}
 .geo-search[data-presentation="inline"] .geo-search-head{display:none}
 .geo-search[data-presentation="inline"] .geo-search-query{margin-top:0}
 .geo-search[data-presentation="inline"] .geo-search-surface{
-  position:absolute;z-index:1;top:var(--geo-search-inline-surface-top,calc(100% + var(--s-2)));left:0;width:min(100%,var(--geo-search-inline-surface-width,100%));max-height:min(620px,calc(100dvh - var(--header-chrome-top) - 28px - var(--safe-bottom)));
+  position:absolute;z-index:1;top:calc(100% + var(--s-2) + 1px + var(--s-3));left:0;width:min(100%,var(--geo-search-inline-surface-width,100%));max-height:min(620px,calc(100dvh - var(--header-chrome-top) - 28px - var(--safe-bottom)));
   padding:var(--s-3);overflow:auto;overscroll-behavior:contain;border:1px solid var(--chrome-border);border-radius:var(--r-large);
   background:var(--chrome-panel-surface);backdrop-filter:blur(18px);box-shadow:0 14px 40px rgba(0,0,0,.28);display:none
 }
@@ -1835,6 +1854,8 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
    opened it (data-open), never because a query exists or because the Question
    Explorer finished loading in the background. */
 .geo-search[data-presentation="inline"][data-open="true"] .geo-search-surface{display:block}
+@keyframes geo-search-surface-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.geo-search[data-presentation="inline"][data-open="true"] .geo-search-surface{animation:geo-search-surface-in .12s ease-out}
 .geo-search[data-presentation="inline"]~.header-tools .geo-search-toggle{display:none}
 /* Corridor placement is driven by --geo-search-left / --geo-search-width,
    which js/app.js measures. Like --header-bottom, those inline values still
@@ -1865,6 +1886,22 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
 }
 .geo-search-query:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
 .geo-search-query:disabled{opacity:.55;cursor:not-allowed}
+/* Civic Search field: a leading cartographic magnifier and a trailing "/" key
+   hint. Both are decoration (aria-hidden) over the one real input. */
+.geo-search-field{--geo-search-icon-size:18px;--geo-search-hint-size:24px;position:relative;display:block}
+.geo-search-icon{position:absolute;left:var(--s-3);top:50%;transform:translateY(-50%);width:var(--geo-search-icon-size);height:var(--geo-search-icon-size);color:var(--chrome-text-control-caption);pointer-events:none}
+.geo-search-field .geo-search-query{padding-left:calc(var(--s-3) + var(--geo-search-icon-size) + var(--s-2));padding-right:calc(var(--s-3) + var(--geo-search-hint-size) + var(--s-2));border-radius:var(--r-large);transition:border-color .12s ease}
+.geo-search-query::placeholder{color:var(--chrome-text-control-caption);opacity:1}
+.geo-search-query:hover{border-color:var(--chrome-mobile-control-open-border)}
+.geo-search[data-open="true"] .geo-search-query,.geo-search-query:focus{border-color:var(--chrome-mobile-control-open-border)}
+.geo-search[data-open="true"] .geo-search-icon,.geo-search-field:focus-within .geo-search-icon{color:var(--chrome-text-control-strong)}
+.geo-search-hint{
+  position:absolute;right:var(--s-3);top:50%;transform:translateY(-50%);min-width:20px;box-sizing:border-box;padding:0 var(--s-1);
+  border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-control-group-surface);
+  color:var(--chrome-text-control-caption);font:inherit;font-size:var(--t-meta);line-height:1.3;text-align:center;pointer-events:none
+}
+.geo-search[data-open="true"] .geo-search-hint,.geo-search-query:not(:placeholder-shown)~.geo-search-hint{display:none}
+@media(pointer:coarse){.geo-search-hint{display:none}.geo-search-field .geo-search-query{padding-right:var(--s-3)}}
 .geo-search-status{margin:var(--s-2) 0 0;color:var(--chrome-text-control-caption);font-size:var(--t-meta);line-height:1.4}
 .geo-search-status:empty{display:none}
 
@@ -1881,7 +1918,7 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
 .geo-search-result:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
 .geo-search-result[aria-current="true"]{border-color:var(--chrome-mobile-control-open-border);background:var(--chrome-mobile-control-open-surface)}
 .geo-search-result-head{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-2);min-width:0}
-.geo-search-result-type{font-size:var(--t-micro);font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--chrome-text-section)}
+.geo-search-result-type{padding:0 var(--s-1);border:1px solid var(--chrome-divider);border-radius:var(--r-small);font-size:var(--t-micro);font-weight:650;letter-spacing:.08em;line-height:1.5;text-transform:uppercase;color:var(--chrome-text-section)}
 .geo-search-result-code{font-size:var(--t-meta);font-variant-numeric:tabular-nums;color:var(--chrome-text-control-caption);overflow-wrap:anywhere}
 .geo-search-result-badge{
   padding:var(--s-1);border:1px solid var(--chrome-border);border-radius:var(--r-small);
@@ -1930,7 +1967,21 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
 /* Tablet and phone: the finder spans the available width below the header so no
    result is clipped and no code wraps mid-identifier. */
 @media(max-width:850px){
-  .geo-search{top:calc(var(--header-chrome-top) + 10px);left:calc(10px + var(--safe-left));right:calc(10px + var(--safe-right));width:auto;padding:var(--s-2);max-height:calc(100dvh - var(--header-chrome-top) - 20px - var(--safe-bottom))}
+  /* At this width the map credit hangs in the right column under the header and
+     zoom control (js/app.js keeps --map-credit-bottom at its real lower edge). The
+     finder must not cover it, so it starts beneath it: legal attribution has to
+     stay visible and its links operable while search is open. */
+  .geo-search{--geo-search-top:max(calc(var(--header-chrome-top) + 10px),calc(var(--map-credit-bottom,0px) + var(--s-2)));top:var(--geo-search-top);left:calc(10px + var(--safe-left));right:calc(10px + var(--safe-right));width:auto;padding:var(--s-2);max-height:calc(100dvh - var(--geo-search-top) - 10px - var(--safe-bottom))}
+}
+@media(max-width:560px){
+  /* The Layers control is a 44px map control on the row 10px below the header.
+     The open finder spans the full width, so it hangs beneath that row exactly as
+     the opened Layers rail does (.left above) instead of sharing it. Sharing it
+     put the button's box over the panel's label: the panel lives inside the
+     header's stacking context (z 1100), so its own z-index never rose above the
+     sibling button (z 1101). Clearing the row removes the overlap at every
+     width, label length and language without touching either z-index. */
+  .geo-search{--geo-search-top:max(calc(var(--header-chrome-top) + 10px + 44px + var(--s-2)),calc(var(--map-credit-bottom,0px) + var(--s-2)))}
 }
 /* The narrow header already stacks brand and tools on two 44px rows. The finder
    keeps its 44px target there but drops its text label, exactly as the guided
@@ -2023,5 +2074,5 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
   .qx-q[aria-pressed="true"]{outline:2px solid Highlight}
 }
 @media(prefers-reduced-motion:reduce){
-  .geo-search,.geo-search-result,.geo-search-action,.qx-q,.qx-action{transition:none!important}
+  .geo-search,.geo-search-surface,.geo-search-query,.geo-search-result,.geo-search-action,.qx-q,.qx-action{transition:none!important;animation:none!important}
 }

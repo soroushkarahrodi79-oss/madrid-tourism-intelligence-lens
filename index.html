@@ -43,8 +43,12 @@
       <label for="geoSearchQuery" class="geo-search-label" data-i18n="search.label">Official code, barrio, district or planning ámbito</label>
       <button type="button" id="geoSearchClose" class="geo-search-close" aria-label="Close the place finder" data-i18n-attr="aria-label:search.closeAria"><span aria-hidden="true">✕</span></button>
     </div>
-    <input id="geoSearchQuery" class="geo-search-query" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-controls="geoSearchResults" aria-describedby="geoSearchStatus" placeholder="Palacio, Centro, APR.02.09" data-i18n-attr="placeholder:search.placeholder">
-    <div class="geo-search-surface">
+    <div class="geo-search-field">
+      <svg class="geo-search-icon" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false"><circle cx="8.5" cy="8.5" r="5.75" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12.8 12.8 17 17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+      <input id="geoSearchQuery" class="geo-search-query" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-keyshortcuts="/" aria-controls="geoSearchResults" aria-describedby="geoSearchStatus" placeholder="Palacio, Centro, APR.02.09" data-i18n-attr="placeholder:search.placeholder">
+      <kbd class="geo-search-hint" aria-hidden="true">/</kbd>
+    </div>
+    <div class="geo-search-surface" id="geoSearchSurface">
       <p id="geoSearchStatus" class="geo-search-status" aria-live="polite"></p>
       <ul id="geoSearchResults" class="geo-search-results" aria-label="Official place search results" data-i18n-attr="aria-label:search.resultsAria"></ul>
       <article id="geoSearchCard" class="geo-search-card" hidden>

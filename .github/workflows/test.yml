@@ -176,12 +176,25 @@ jobs:
         run: node --test --test-concurrency=1 browser-tests/search-surface.browser.mjs
         env:
           GEOSEARCH_BROWSER: webkit
+          SEARCH_SURFACE_CAPTURE_DIR: ${{ github.workspace }}/test-results/search-surface-webkit
+      - name: Civic Search header and accessibility suite (WebKit)
+        run: node --test --test-concurrency=1 browser-tests/search-header.browser.mjs
+        env:
+          GEOSEARCH_BROWSER: webkit
+          SEARCH_SURFACE_CAPTURE_DIR: ${{ github.workspace }}/test-results/search-surface-webkit
       - name: Capture adaptive-search viewport and appearance evidence (WebKit)
         if: ${{ always() }}
         run: node --test --test-concurrency=1 --test-name-pattern="capture" browser-tests/geo-search.browser.mjs
         env:
           GEOSEARCH_BROWSER: webkit
           GEOSEARCH_CAPTURE_DIR: ${{ github.workspace }}/test-results/geo-search-webkit
+      - name: Upload search surface and header WebKit evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: search-surface-webkit-evidence
+          path: test-results/search-surface-webkit
+          if-no-files-found: warn
       - name: Upload geographic-search WebKit evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
