@@ -1,18 +1,27 @@
 // LENS-UX-VISION-G0 — marker/basemap contrast and categorical-separability analysis.
 //
 // Pure Node, no dependencies, no network, no CARTO key. It consumes a measured
-// Positron background palette (results/positron_palette_*.json, produced by
-// sample_positron_tiles.mjs) and reproduces the numbers cited in issues #149,
-// #150 and #152.
+// background palette (results/positron_palette_*.json, produced by
+// sample_positron_tiles.mjs) and evaluates the acceptance criterion stated in
+// issue #150.
 //
 // This script reads only. It renders nothing and changes no application asset.
 //
 //   node research/lens_ux_vision_g0/color_analysis.mjs
 //   node research/lens_ux_vision_g0/color_analysis.mjs --palette <path> --json
 //
-// Exit code is 1 when any default operational category fails the 3:1 edge-contrast
-// floor, so the acceptance criterion in #150 is machine-checkable rather than
-// asserted in prose.
+// WHAT IT CAN AND CANNOT DO — read before citing it.
+//
+//   * It computes contrast over the 22-colour AREA-WEIGHTED palette. That is an
+//     approximation. It is NOT the full per-pixel pass whose figures the audit
+//     report and issues #149/#150 quote, and it cannot reproduce those figures:
+//     the palette drops the rare dark tail. The recorded full-pixel results are
+//     carried in the palette file under `full_pixel_reference` and reported here
+//     side by side, with the divergence checked against a declared tolerance.
+//   * It evaluates ONE basemap — the one the palette file was measured from
+//     (normally CARTO Positron `light_all`, the product default). #150's
+//     criterion spans three basemaps. The other two are reported as NOT
+//     EVALUATED rather than silently folded into a pass.
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -20,7 +29,6 @@ import { dirname, resolve } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
-// ---------------------------------------------------------------- CLI
 const argv = process.argv.slice(2);
 const flag = (name, fallback) => {
   const i = argv.indexOf(`--${name}`);
@@ -38,9 +46,9 @@ const contrast = (a, b) => {
   const la = relL(a), lb = relL(b);
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 };
+const contrastL = (la, lb) => (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 const blend = (c, bg, a) => [0, 1, 2].map((i) => a * c[i] + (1 - a) * bg[i]);
 
-// CIELAB (D65, 2°) and CIEDE2000.
 function rgb2lab(p) {
   const r = lin(p[0]), g = lin(p[1]), b = lin(p[2]);
   let X = (0.4124564 * r + 0.3575761 * g + 0.1804375 * b) / 0.95047;
@@ -93,8 +101,8 @@ function simulate(p, type) {
 // ------------------------------------------------- subject under test
 // Mirrors js/app.js: LAYER_COLOR and addMarker(). Keep in step with the app.
 const SHIPPED = { museum: "#9d72ff", info: "#c79cff", stay: "#3da8ff", bike: "#54e2b5", rail: "#ffd166" };
-const FILL_ALPHA = 0.78;    // addMarker fillOpacity
-const STROKE_ALPHA = 0.95;  // addMarker opacity (the detectability edge)
+const FILL_ALPHA = 0.78;
+const STROKE_ALPHA = 0.95;
 
 const CANDIDATES = [
   { id: "A_shipped", colours: SHIPPED, outline: null,
@@ -106,12 +114,26 @@ const CANDIDATES = [
     note: "Recommended in #150. Shipped hues unchanged; opaque dark outline (Light --text token) supplies detectability." },
 ];
 
+// #150's acceptance criterion, in full: >=3:1 edge contrast across >=99% of
+// sampled tile area, on all three basemaps. Both halves are enforced below.
 const WCAG_NON_TEXT_MIN = 3.0;
+const MIN_AREA_COVERAGE_PCT = 99.0;
+const MAX_AREA_BELOW_PCT = 100 - MIN_AREA_COVERAGE_PCT;
+const REQUIRED_BASEMAPS = ["light_all", "dark_all", "satellite"];
+// Drift detector for the weighted approximation against the recorded full-pixel
+// pass. Set just above the largest divergence observed on 2026-11-01 (0.12, on
+// B_contrast_adjusted/info) so that a future palette re-measurement which moves
+// the approximation materially fails the run. It is NOT a claim that the two
+// estimators agree to 0.15 in general.
+const APPROXIMATION_TOLERANCE = 0.15;
+const APPROXIMATION_OBSERVED_MAX_20261101 = 0.12;
 
 // --------------------------------------------------------- analysis
 const palette = JSON.parse(readFileSync(PALETTE_PATH, "utf8"));
 const BG = palette.palette.colours.map((c) => ({ rgb: c.rgb, w: c.pct }));
 const totalW = BG.reduce((s, b) => s + b.w, 0);
+const MEASURED_BASEMAP = palette.basemap.style;
+const GLOBAL_LMIN = palette.luminance_summary?.relative_luminance_global_min ?? null;
 
 function weighted(fn) {
   const rows = BG.map((b) => ({ w: b.w, v: fn(b.rgb) })).sort((x, y) => x.v - y.v);
@@ -122,17 +144,35 @@ function weighted(fn) {
     min: +rows[0].v.toFixed(2),
     median: +median.toFixed(2),
     max: +rows[rows.length - 1].v.toFixed(2),
-    pctTileAreaBelowMin: +below.toFixed(1),
+    pctAreaBelowMin: +below.toFixed(1),
+    pctAreaAtOrAboveMin: +(100 - below).toFixed(1),
   };
 }
 
-const modal = BG[0].rgb; // most common Positron colour, for separability
+const modal = BG[0].rgb;
 const report = {
-  contract_version: "1.0.0",
+  contract_version: "2.0.0",
   generated_at: new Date().toISOString(),
-  palette_source: { path: PALETTE_PATH.replace(/\\/g, "/").split("/").slice(-1)[0], ...palette.pinned_inputs },
-  method: `Marker composited per js/app.js addMarker() (fill a=${FILL_ALPHA}, stroke a=${STROKE_ALPHA}) over ${BG.length} dominant CARTO Positron light_all colours weighted by measured area share (${palette.sampling.pixels_total.toLocaleString("en-US")} px, ${palette.sampling.tiles_sampled} tiles). Contrast per WCAG relative luminance. Separability per CIEDE2000 over the modal background colour.`,
-  wcag_non_text_minimum: WCAG_NON_TEXT_MIN,
+  palette_source: {
+    file: PALETTE_PATH.replace(/\\/g, "/").split("/").slice(-1)[0],
+    basemap_style: MEASURED_BASEMAP,
+    ...palette.pinned_inputs,
+  },
+  estimator: {
+    kind: "area_weighted_palette_approximation",
+    background_colours: BG.length,
+    coverage_pct_of_sampled_area: palette.palette.coverage_pct,
+    caveat: "Approximation. It does not reproduce the full per-pixel figures quoted in the audit report and issues; see full_pixel_reconciliation.",
+  },
+  criterion: {
+    source: "issue #150",
+    edge_contrast_min: WCAG_NON_TEXT_MIN,
+    min_area_coverage_pct: MIN_AREA_COVERAGE_PCT,
+    required_basemaps: REQUIRED_BASEMAPS,
+    basemaps_evaluated: [MEASURED_BASEMAP],
+    basemaps_not_evaluated: REQUIRED_BASEMAPS.filter((b) => b !== MEASURED_BASEMAP),
+    scope_warning: "This run evaluates one basemap. The criterion is not satisfied in full until every required basemap has its own measured palette.",
+  },
   candidates: {},
 };
 
@@ -140,18 +180,34 @@ for (const cand of CANDIDATES) {
   const entry = { note: cand.note, outline: cand.outline, colours: cand.colours, layers: {} };
   for (const [layer, hex] of Object.entries(cand.colours)) {
     const c = hex2rgb(hex);
+    // The detectable edge is the opaque outline where one exists, otherwise the
+    // marker's own stroke composited at STROKE_ALPHA.
+    const edgeOf = cand.outline
+      ? (bg) => contrast(hex2rgb(cand.outline), bg)
+      : (bg) => contrast(blend(c, bg, STROKE_ALPHA), bg);
     entry.layers[layer] = {
       hex,
       fill_vs_tile: weighted((bg) => contrast(blend(c, bg, FILL_ALPHA), bg)),
-      edge_vs_tile: cand.outline
-        ? weighted((bg) => contrast(hex2rgb(cand.outline), bg))
-        : weighted((bg) => contrast(blend(c, bg, STROKE_ALPHA), bg)),
+      edge_vs_tile: weighted(edgeOf),
     };
     if (cand.outline) {
       entry.layers[layer].fill_vs_outline =
         +contrast(blend(c, hex2rgb(cand.outline), FILL_ALPHA), hex2rgb(cand.outline)).toFixed(2);
     }
   }
+
+  // An opaque outline's contrast depends only on the background pixel, so its
+  // true worst case over the FULL pixel set is bounded by the observed global
+  // luminance extremum. This is a derived bound, not a measurement.
+  if (cand.outline && GLOBAL_LMIN !== null) {
+    const lOutline = relL(hex2rgb(cand.outline));
+    entry.worst_case_bound_full_pixel = {
+      value: +contrastL(GLOBAL_LMIN, lOutline).toFixed(2),
+      derivation: `contrast(outline ${cand.outline}, darkest observed tile pixel L=${GLOBAL_LMIN})`,
+      kind: "derived_bound_not_measurement",
+    };
+  }
+
   const keys = Object.keys(cand.colours);
   const labOf = (k, sim) => {
     const composited = blend(hex2rgb(cand.colours[k]), modal, FILL_ALPHA);
@@ -178,54 +234,127 @@ for (const cand of CANDIDATES) {
       total_pairs: pp.length,
     };
   }
-  const failing = Object.entries(entry.layers).filter(([, v]) => v.edge_vs_tile.median < WCAG_NON_TEXT_MIN);
+
+  // Both halves of the criterion, reported separately so a median-only pass can
+  // never be mistaken for a coverage pass.
+  const failMedian = Object.entries(entry.layers).filter(([, v]) => v.edge_vs_tile.median < WCAG_NON_TEXT_MIN);
+  const failArea = Object.entries(entry.layers).filter(([, v]) => v.edge_vs_tile.pctAreaBelowMin > MAX_AREA_BELOW_PCT);
   entry.verdict = {
-    categories_failing_edge_minimum: failing.map(([k]) => k),
-    passes_wcag_1_4_11: failing.length === 0,
+    basemap: MEASURED_BASEMAP,
+    failing_median: failMedian.map(([k]) => k),
+    failing_area_coverage: failArea.map(([k]) => k),
+    meets_criterion_on_this_basemap: failMedian.length === 0 && failArea.length === 0,
+    meets_criterion_on_all_required_basemaps: false,
+    all_basemaps_note: `Only ${MEASURED_BASEMAP} was measured. ${REQUIRED_BASEMAPS.filter((b) => b !== MEASURED_BASEMAP).join(" and ")} are NOT EVALUATED.`,
   };
   report.candidates[cand.id] = entry;
 }
+
+// ---------------------------- reconciliation against the full-pixel pass
+const fpr = palette.full_pixel_reference;
+const reconciliation = { available: Boolean(fpr), tolerance: APPROXIMATION_TOLERANCE, rows: [], within_tolerance: true };
+if (fpr) {
+  reconciliation.note = fpr.note;
+  reconciliation.sampled_background_pixels = fpr.sampled_background_pixels;
+  for (const [candId, layers] of Object.entries(fpr.candidates)) {
+    for (const [layer, ref] of Object.entries(layers)) {
+      const approx = report.candidates[candId]?.layers?.[layer]?.edge_vs_tile;
+      if (!approx) continue;
+      const delta = +(approx.median - ref.edge.median).toFixed(2);
+      const ok = Math.abs(delta) <= APPROXIMATION_TOLERANCE;
+      if (!ok) reconciliation.within_tolerance = false;
+      reconciliation.rows.push({
+        candidate: candId, layer,
+        full_pixel_edge_median: ref.edge.median,
+        weighted_edge_median: approx.median,
+        delta, within_tolerance: ok,
+        full_pixel_pct_area_below_3: ref.edge.pctAreaBelow3,
+        weighted_pct_area_below_3: approx.pctAreaBelowMin,
+      });
+    }
+  }
+  reconciliation.max_abs_delta = +Math.max(...reconciliation.rows.map((r) => Math.abs(r.delta))).toFixed(2);
+  reconciliation.direction = "weighted approximation runs high (optimistic); the full-pixel figures are the conservative ones";
+  reconciliation.observed_max_delta_20261101 = APPROXIMATION_OBSERVED_MAX_20261101;
+  reconciliation.not_measured = fpr.not_measured;
+}
+report.full_pixel_reconciliation = reconciliation;
 
 // ----------------------------------------------------------- output
 if (AS_JSON) {
   console.log(JSON.stringify(report, null, 1));
 } else {
-  console.log(`LENS-UX-VISION-G0 — marker contrast vs CARTO Positron light_all`);
-  console.log(`palette: ${report.palette_source.path}  app commit: ${report.palette_source.app_commit.slice(0, 7)}`);
-  console.log(`background: ${BG.length} colours, ${palette.palette.coverage_pct}% of ${palette.sampling.pixels_total.toLocaleString("en-US")} sampled px\n`);
+  const c = report.criterion;
+  console.log(`LENS-UX-VISION-G0 — marker contrast vs CARTO ${MEASURED_BASEMAP}`);
+  console.log(`palette: ${report.palette_source.file}  app commit: ${(report.palette_source.app_commit || "?").slice(0, 7)}`);
+  console.log(`estimator: ${report.estimator.kind} (${BG.length} colours, ${report.estimator.coverage_pct_of_sampled_area}% of sampled area)`);
+  console.log(`criterion (#150): edge >= ${WCAG_NON_TEXT_MIN}:1 across >= ${MIN_AREA_COVERAGE_PCT}% of tile area, on ${REQUIRED_BASEMAPS.join(", ")}`);
+  console.log(`evaluated here: ${c.basemaps_evaluated.join(", ")}   NOT EVALUATED: ${c.basemaps_not_evaluated.join(", ")}\n`);
   for (const [id, e] of Object.entries(report.candidates)) {
     console.log(`=== ${id}${e.outline ? ` (outline ${e.outline})` : ""} ===`);
     console.log(`    ${e.note}`);
-    console.log(`    layer     hex       fill_med  edge_med  edge_min  %area<3:1`);
+    console.log(`    layer     hex       fill_med  edge_med  edge_min  %area>=3:1  verdict`);
     for (const [k, v] of Object.entries(e.layers)) {
-      const bad = v.edge_vs_tile.median < WCAG_NON_TEXT_MIN ? "  <-- FAIL" : "";
+      const okM = v.edge_vs_tile.median >= WCAG_NON_TEXT_MIN;
+      const okA = v.edge_vs_tile.pctAreaBelowMin <= MAX_AREA_BELOW_PCT;
+      const tag = okM && okA ? "ok" : !okM && !okA ? "FAIL median+area" : !okM ? "FAIL median" : "FAIL area";
       console.log(`    ${k.padEnd(9)} ${v.hex.padEnd(9)} ${String(v.fill_vs_tile.median).padEnd(9)} ` +
                   `${String(v.edge_vs_tile.median).padEnd(9)} ${String(v.edge_vs_tile.min).padEnd(9)} ` +
-                  `${String(v.edge_vs_tile.pctTileAreaBelowMin).padEnd(6)}${bad}`);
+                  `${String(v.edge_vs_tile.pctAreaAtOrAboveMin).padEnd(11)} ${tag}`);
+    }
+    if (e.worst_case_bound_full_pixel) {
+      console.log(`    full-pixel worst-case bound: ${e.worst_case_bound_full_pixel.value}:1  (${e.worst_case_bound_full_pixel.kind})`);
     }
     console.log(`    worst dE2000 (normal vision): ${e.worst_pair_normal_vision[0]} = ${e.worst_pair_normal_vision[1]}`);
-    for (const [sim, c] of Object.entries(e.cvd_simulated)) {
-      console.log(`      ${sim.padEnd(13)} worst ${c.worst_pairs.map((p) => `${p[0]}=${p[1]}`).join("  ")}` +
-                  `   | pairs dE<10: ${c.pairs_below_deltaE_10}/${c.total_pairs}`);
+    for (const [sim, cv] of Object.entries(e.cvd_simulated)) {
+      console.log(`      ${sim.padEnd(13)} worst ${cv.worst_pairs.map((p) => `${p[0]}=${p[1]}`).join("  ")}` +
+                  `   | pairs dE<10: ${cv.pairs_below_deltaE_10}/${cv.total_pairs}`);
     }
-    console.log(`    SC 1.4.11: ${e.verdict.passes_wcag_1_4_11 ? "PASS" : `FAIL (${e.verdict.categories_failing_edge_minimum.join(", ")})`}\n`);
+    const v = e.verdict;
+    console.log(`    on ${MEASURED_BASEMAP}: ${v.meets_criterion_on_this_basemap ? "meets criterion" :
+      `does NOT meet criterion (median: ${v.failing_median.join(",") || "ok"}; area: ${v.failing_area_coverage.join(",") || "ok"})`}`);
+    console.log(`    all required basemaps: NOT ESTABLISHED — ${v.all_basemaps_note}\n`);
+  }
+  if (reconciliation.available) {
+    console.log(`=== reconciliation: weighted approximation vs recorded full-pixel pass ===`);
+    console.log(`    ${reconciliation.sampled_background_pixels.toLocaleString("en-US")} background pixels; tolerance ${APPROXIMATION_TOLERANCE}`);
+    console.log(`    cand/layer                    full-pixel   weighted   delta`);
+    for (const r of reconciliation.rows) {
+      console.log(`    ${(r.candidate + "/" + r.layer).padEnd(29)} ${String(r.full_pixel_edge_median).padEnd(12)} ` +
+                  `${String(r.weighted_edge_median).padEnd(10)} ${r.delta >= 0 ? "+" : ""}${r.delta}${r.within_tolerance ? "" : "  OUT OF TOLERANCE"}`);
+    }
+    console.log(`    max |delta| = ${reconciliation.max_abs_delta}; ${reconciliation.direction}`);
+    console.log(`    no full-pixel reference for: ${reconciliation.not_measured.join(", ")}\n`);
   }
   const dark = palette.dark_basemap_control;
   if (dark) {
     console.log(`=== control: same shipped palette over CARTO ${dark.style} ===`);
     console.log(`    ${Object.entries(dark.stroke_contrast_median).map(([k, v]) => `${k}=${v}`).join("  ")}`);
-    console.log(`    The shipped palette passes on the dark basemap and fails on the default light one.\n`);
+    console.log(`    Evidence of dark-basemap origin. This control is a SUMMARY, not a full palette,`);
+    console.log(`    so it does not discharge the ${dark.style} half of #150's criterion.\n`);
   }
 }
 
-// The shipped palette is expected to fail today; that is the finding in #150.
-// Exit non-zero only when a candidate that claims to fix it does not.
-const shipped = report.candidates.A_shipped.verdict.passes_wcag_1_4_11;
-const recommended = report.candidates.C_shipped_hues_dark_outline.verdict.passes_wcag_1_4_11;
-if (!recommended) {
-  console.error("ERROR: candidate C does not meet the 3:1 edge minimum — acceptance criterion in #150 not met.");
+// ------------------------------------------------------------- gate
+// The shipped palette is expected to fail today; that is the finding in #150,
+// not a regression, so it does not fail the run. The run fails if the
+// recommended candidate stops meeting EITHER half of the criterion on the
+// measured basemap, or if the approximation drifts from the recorded
+// full-pixel pass beyond tolerance.
+const failures = [];
+const rec = report.candidates.C_shipped_hues_dark_outline.verdict;
+if (rec.failing_median.length) failures.push(`candidate C below ${WCAG_NON_TEXT_MIN}:1 median — ${rec.failing_median.join(", ")}`);
+if (rec.failing_area_coverage.length) failures.push(`candidate C below ${MIN_AREA_COVERAGE_PCT}% area coverage — ${rec.failing_area_coverage.join(", ")}`);
+if (reconciliation.available && !reconciliation.within_tolerance) {
+  failures.push(`weighted approximation diverges from the recorded full-pixel pass by more than ${APPROXIMATION_TOLERANCE} (max ${reconciliation.max_abs_delta})`);
+}
+if (failures.length) {
+  for (const f of failures) console.error(`ERROR: ${f}`);
   process.exit(1);
 }
-if (!AS_JSON && !shipped) {
-  console.log("Shipped palette fails SC 1.4.11 as reported in #150. Candidate C meets the minimum.");
+if (!AS_JSON) {
+  const a = report.candidates.A_shipped.verdict;
+  console.log(`Shipped palette does not meet #150's criterion on ${MEASURED_BASEMAP} ` +
+              `(median: ${a.failing_median.join(", ")}; area: ${a.failing_area_coverage.join(", ")}) — the finding, not a regression.`);
+  console.log(`Candidate C meets both halves on ${MEASURED_BASEMAP}. The other required basemaps remain unevaluated.`);
 }

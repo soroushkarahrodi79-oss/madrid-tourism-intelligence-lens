@@ -27,6 +27,8 @@ The palette in `results/` was measured against one exact deployed build:
 - [`color_analysis.mjs`](color_analysis.mjs) — composites markers over that palette and reports WCAG contrast, CIEDE2000 separability and simulated colour-vision deficiency, for the shipped palette and two candidates. **No key, no network, no dependencies.**
 - [`results/positron_palette_20261101.json`](results/positron_palette_20261101.json) — the measured background: 22 dominant colours covering 86.3% of 1,572,864 pixels from 24 tiles (6 Madrid sites × z12/14/16/17), plus the `dark_all` control sample.
 - [`results/color_analysis_20261101.json`](results/color_analysis_20261101.json) — full machine-readable output for the three candidates.
+- [`capture_map_evidence.mjs`](capture_map_evidence.mjs) — executable reproduction of the map's **visual** claims: cluster census, viewport coverage, whether two cluster types render identically, and the salience ratio. Opens the public deployment read-only in headless Chromium. Screenshots are opt-in (`--screenshots`) and are **not committed**; captures contain third-party basemap imagery and the attribution requirement travels in the metadata.
+- [`results/map_evidence_20261101.json`](results/map_evidence_20261101.json) — that script's output, including its six stated limitations.
 
 ## Reproduce
 
@@ -60,7 +62,7 @@ Against CARTO Positron `light_all`, shipped palette:
 
 | Category | Hex | Edge contrast (median) | % tile area below 3:1 |
 |---|---|---|---|
-| Metro & Cercanías | `#ffd166` | **1.30** | **100%** |
+| Metro & Cercanías | `#ffd166` | **1.28** | **100%** |
 | BiciMAD | `#54e2b5` | **1.43** | **100%** |
 | Tourist info | `#c79cff` | **1.93** | **100%** |
 | Hotels & stays | `#3da8ff` | **2.24** | **100%** |
@@ -72,21 +74,35 @@ Issues #149/#150 quote marker contrast from the **full per-pixel sample** (224,7
 
 | Category | Full per-pixel sample (quoted in #150) | This harness (22-colour weighted) |
 |---|---|---|
-| Metro & Cercanías | 1.30 | 1.30 |
+| Metro & Cercanías | 1.28 | 1.30 |
 | BiciMAD | 1.43 | 1.46 |
 | Tourist info | 1.88 | 1.93 |
 | Hotels & stays | 2.19 | 2.24 |
 | Museums | 2.82 | 2.88 |
 
-Maximum divergence is 0.06, always in the optimistic direction, because the long tail the approximation drops is slightly darker than the dominant colours. **The issue figures are therefore the conservative ones**, and no conclusion changes under either estimator: all five categories fail the 3:1 floor by a wide margin on both.
+Maximum divergence across **both** palettes is **0.12** (on `B_contrast_adjusted/info`), always in the optimistic direction, because the long tail the approximation drops is slightly darker than the dominant colours. **The report and issue figures are therefore the conservative ones**, and no conclusion changes under either estimator: all five shipped categories fail the 3:1 floor by a wide margin on both.
+
+`color_analysis.mjs` checks this divergence on every run against a declared tolerance of **0.15**, set just above the 2026-11-01 observed maximum so that a future re-measurement which moves the approximation materially fails the run. The tolerance is a drift detector, not a claim that the estimators agree to 0.15 in general.
 
 The same palette over CARTO `dark_all` scores **4.88 – 11.11** and passes. That control is the evidence that this is a dark-basemap palette inherited by a light-default product, not a palette that was ever wrong in its own terms.
 
 Candidate **C** (shipped hues, opaque `#16222f` outline — the fix recommended in #150) reaches **14.75** median / **11.40** minimum with **0%** of tile area failing, changing no colour identity. Candidate **B** also passes the contrast floor but collapses grayscale separability to 10/10 pairs below ΔE 10 and worsens deuteranopia; it is reported so the trade-off is visible, and is **not recommended**.
 
+## Guard rails
+
+Both scripts are built to fail rather than mislead:
+
+- **`sample_positron_tiles.mjs` verifies the pinned deployment**, it does not merely record it. It compares the live `app_commit`, workflow run, manifest SHA-256, POI SHA-256 and `build_state` against an existing palette (`--expect`) and **exits 3** if the deployment has moved. Re-pinning needs `--accept-new-deployment`, so it is a deliberate act.
+- **It refuses a degraded build** (`build_state` other than `pass`).
+- **It refuses to run without `CARTO_BASEMAP_KEY`** (exit 2), because a keyless run measures OpenStreetMap and would label it Positron (#155). This is checked *before* output-path validation, so the scientific error is reported ahead of the operational one.
+- **Output is constrained to this gate's `results/`** and will not overwrite an existing file without `--force`, so a re-run cannot quietly destroy committed evidence.
+- **`capture_map_evidence.mjs` applies the same pin verification and output guards.**
+
 ## Exit code
 
-`color_analysis.mjs` exits non-zero if **candidate C** stops meeting the 3:1 edge minimum, so #150's acceptance criterion is enforced rather than asserted. The shipped palette failing is the expected present state and does not fail the run — that is the finding, not a regression.
+`color_analysis.mjs` enforces **both halves** of #150's criterion — ≥3:1 edge contrast **and** ≥99% of tile area — not the median alone. It exits non-zero if candidate C fails either half on the measured basemap, or if the weighted approximation drifts from the recorded per-pixel pass beyond tolerance. The shipped palette failing is the expected present state and does not fail the run: that is the finding, not a regression.
+
+**Basemap scope.** #150's criterion spans three basemaps. A palette file describes **one**. The harness prints which basemap it evaluated and which are `NOT EVALUATED`, and never reports a criterion-wide pass from a single-basemap run. The `dark_all` block in the palette file is a five-number summary, not a palette, so it does not discharge the dark half. Satisfying the criterion in full needs a measured palette per basemap.
 
 ## Limits — read before citing these numbers
 

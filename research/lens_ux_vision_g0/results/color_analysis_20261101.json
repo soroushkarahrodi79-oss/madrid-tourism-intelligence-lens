@@ -1,8 +1,9 @@
 {
- "contract_version": "1.0.0",
- "generated_at": "2026-11-01T14:31:37.495Z",
+ "contract_version": "2.0.0",
+ "generated_at": "2026-11-01T15:12:55.357Z",
  "palette_source": {
-  "path": "positron_palette_20261101.json",
+  "file": "positron_palette_20261101.json",
+  "basemap_style": "light_all",
   "app_commit": "913de2766a718b2c64b0419542d5117cc380293b",
   "pages_deployment_workflow_run": "41307637236",
   "deployment_manifest_sha256": "9fc74f9aa660b274bd73cd1d5c6983012ad45ec53a5b85c27a8ab4a0db1b4c0c",
@@ -11,8 +12,30 @@
   "deployment_build_state": "pass",
   "deployment_generated_at": "2026-11-01T12:41:31.949Z"
  },
- "method": "Marker composited per js/app.js addMarker() (fill a=0.78, stroke a=0.95) over 22 dominant CARTO Positron light_all colours weighted by measured area share (1,572,864 px, 24 tiles). Contrast per WCAG relative luminance. Separability per CIEDE2000 over the modal background colour.",
- "wcag_non_text_minimum": 3,
+ "estimator": {
+  "kind": "area_weighted_palette_approximation",
+  "background_colours": 22,
+  "coverage_pct_of_sampled_area": 86.3,
+  "caveat": "Approximation. It does not reproduce the full per-pixel figures quoted in the audit report and issues; see full_pixel_reconciliation."
+ },
+ "criterion": {
+  "source": "issue #150",
+  "edge_contrast_min": 3,
+  "min_area_coverage_pct": 99,
+  "required_basemaps": [
+   "light_all",
+   "dark_all",
+   "satellite"
+  ],
+  "basemaps_evaluated": [
+   "light_all"
+  ],
+  "basemaps_not_evaluated": [
+   "dark_all",
+   "satellite"
+  ],
+  "scope_warning": "This run evaluates one basemap. The criterion is not satisfied in full until every required basemap has its own measured palette."
+ },
  "candidates": {
   "A_shipped": {
    "note": "Current production palette (js/app.js LAYER_COLOR).",
@@ -31,13 +54,15 @@
       "min": 1.95,
       "median": 2.35,
       "max": 2.5,
-      "pctTileAreaBelowMin": 100
+      "pctAreaBelowMin": 100,
+      "pctAreaAtOrAboveMin": 0
      },
      "edge_vs_tile": {
       "min": 2.27,
       "median": 2.88,
       "max": 3.13,
-      "pctTileAreaBelowMin": 85.2
+      "pctAreaBelowMin": 85.2,
+      "pctAreaAtOrAboveMin": 14.8
      }
     },
     "info": {
@@ -46,13 +71,15 @@
       "min": 1.41,
       "median": 1.7,
       "max": 1.81,
-      "pctTileAreaBelowMin": 100
+      "pctAreaBelowMin": 100,
+      "pctAreaAtOrAboveMin": 0
      },
      "edge_vs_tile": {
       "min": 1.51,
       "median": 1.93,
       "max": 2.09,
-      "pctTileAreaBelowMin": 100
+      "pctAreaBelowMin": 100,
+      "pctAreaAtOrAboveMin": 0
      }
     },
     "stay": {
@@ -61,13 +88,15 @@
       "min": 1.6,
       "median": 1.94,
       "max": 2.07,
-      "pctTileAreaBelowMin": 100
+      "pctAreaBelowMin": 100,
+      "pctAreaAtOrAboveMin": 0
      },
      "edge_vs_tile": {
       "min": 1.76,
       "median": 2.24,
       "max": 2.43,
-      "pctTileAreaBelowMin": 100
+      "pctAreaBelowMin": 100,
+      "pctAreaAtOrAboveMin": 0
      }
     },
     "bike": {
@@ -76,13 +105,15 @@
       "min": 1.13,
       "median": 1.38,
       "max": 1.48,
-      "pctTileAreaBelowMin": 100
+      "pctAreaBelowMin": 100,
+      "pctAreaAtOrAboveMin": 0
      },
      "edge_vs_tile": {
       "min": 1.15,
       "median": 1.46,
       "max": 1.59,
-      "pctTileAreaBelowMin": 100
+      "pctAreaBelowMin": 100,
+      "pctAreaAtOrAboveMin": 0
      }
     },
     "rail": {
@@ -91,13 +122,15 @@
       "min": 1.02,
       "median": 1.25,
       "max": 1.33,
-      "pctTileAreaBelowMin": 100
+      "pctAreaBelowMin": 100,
+      "pctAreaAtOrAboveMin": 0
      },
      "edge_vs_tile": {
       "min": 1.02,
       "median": 1.3,
       "max": 1.42,
-      "pctTileAreaBelowMin": 100
+      "pctAreaBelowMin": 100,
+      "pctAreaAtOrAboveMin": 0
      }
     }
    },
@@ -192,14 +225,24 @@
     }
    },
    "verdict": {
-    "categories_failing_edge_minimum": [
+    "basemap": "light_all",
+    "failing_median": [
      "museum",
      "info",
      "stay",
      "bike",
      "rail"
     ],
-    "passes_wcag_1_4_11": false
+    "failing_area_coverage": [
+     "museum",
+     "info",
+     "stay",
+     "bike",
+     "rail"
+    ],
+    "meets_criterion_on_this_basemap": false,
+    "meets_criterion_on_all_required_basemaps": false,
+    "all_basemaps_note": "Only light_all was measured. dark_all and satellite are NOT EVALUATED."
    }
   },
   "B_contrast_adjusted": {
@@ -219,13 +262,15 @@
       "min": 2.87,
       "median": 3.42,
       "max": 3.63,
-      "pctTileAreaBelowMin": 6.3
+      "pctAreaBelowMin": 6.3,
+      "pctAreaAtOrAboveMin": 93.7
      },
      "edge_vs_tile": {
       "min": 3.74,
       "median": 4.75,
       "max": 5.15,
-      "pctTileAreaBelowMin": 0
+      "pctAreaBelowMin": 0,
+      "pctAreaAtOrAboveMin": 100
      }
     },
     "info": {
@@ -234,13 +279,15 @@
       "min": 3.2,
       "median": 3.81,
       "max": 4.03,
-      "pctTileAreaBelowMin": 0
+      "pctAreaBelowMin": 0,
+      "pctAreaAtOrAboveMin": 100
      },
      "edge_vs_tile": {
       "min": 4.22,
       "median": 5.35,
       "max": 5.8,
-      "pctTileAreaBelowMin": 0
+      "pctAreaBelowMin": 0,
+      "pctAreaAtOrAboveMin": 100
      }
     },
     "stay": {
@@ -249,13 +296,15 @@
       "min": 2.82,
       "median": 3.37,
       "max": 3.58,
-      "pctTileAreaBelowMin": 7.1
+      "pctAreaBelowMin": 7.1,
+      "pctAreaAtOrAboveMin": 92.9
      },
      "edge_vs_tile": {
       "min": 3.6,
       "median": 4.58,
       "max": 4.96,
-      "pctTileAreaBelowMin": 0
+      "pctAreaBelowMin": 0,
+      "pctAreaAtOrAboveMin": 100
      }
     },
     "bike": {
@@ -264,13 +313,15 @@
       "min": 2.76,
       "median": 3.29,
       "max": 3.5,
-      "pctTileAreaBelowMin": 17.3
+      "pctAreaBelowMin": 17.3,
+      "pctAreaAtOrAboveMin": 82.7
      },
      "edge_vs_tile": {
       "min": 3.49,
       "median": 4.43,
       "max": 4.8,
-      "pctTileAreaBelowMin": 0
+      "pctAreaBelowMin": 0,
+      "pctAreaAtOrAboveMin": 100
      }
     },
     "rail": {
@@ -279,13 +330,15 @@
       "min": 2.82,
       "median": 3.36,
       "max": 3.56,
-      "pctTileAreaBelowMin": 8.6
+      "pctAreaBelowMin": 8.6,
+      "pctAreaAtOrAboveMin": 91.4
      },
      "edge_vs_tile": {
       "min": 3.66,
       "median": 4.64,
       "max": 5.03,
-      "pctTileAreaBelowMin": 0
+      "pctAreaBelowMin": 0,
+      "pctAreaAtOrAboveMin": 100
      }
     }
    },
@@ -380,8 +433,12 @@
     }
    },
    "verdict": {
-    "categories_failing_edge_minimum": [],
-    "passes_wcag_1_4_11": true
+    "basemap": "light_all",
+    "failing_median": [],
+    "failing_area_coverage": [],
+    "meets_criterion_on_this_basemap": true,
+    "meets_criterion_on_all_required_basemaps": false,
+    "all_basemaps_note": "Only light_all was measured. dark_all and satellite are NOT EVALUATED."
    }
   },
   "C_shipped_hues_dark_outline": {
@@ -401,13 +458,15 @@
       "min": 1.95,
       "median": 2.35,
       "max": 2.5,
-      "pctTileAreaBelowMin": 100
+      "pctAreaBelowMin": 100,
+      "pctAreaAtOrAboveMin": 0
      },
      "edge_vs_tile": {
       "min": 11.4,
       "median": 14.75,
       "max": 16.1,
-      "pctTileAreaBelowMin": 0
+      "pctAreaBelowMin": 0,
+      "pctAreaAtOrAboveMin": 100
      },
      "fill_vs_outline": 3.46
     },
@@ -417,13 +476,15 @@
       "min": 1.41,
       "median": 1.7,
       "max": 1.81,
-      "pctTileAreaBelowMin": 100
+      "pctAreaBelowMin": 100,
+      "pctAreaAtOrAboveMin": 0
      },
      "edge_vs_tile": {
       "min": 11.4,
       "median": 14.75,
       "max": 16.1,
-      "pctTileAreaBelowMin": 0
+      "pctAreaBelowMin": 0,
+      "pctAreaAtOrAboveMin": 100
      },
      "fill_vs_outline": 5.04
     },
@@ -433,13 +494,15 @@
       "min": 1.6,
       "median": 1.94,
       "max": 2.07,
-      "pctTileAreaBelowMin": 100
+      "pctAreaBelowMin": 100,
+      "pctAreaAtOrAboveMin": 0
      },
      "edge_vs_tile": {
       "min": 11.4,
       "median": 14.75,
       "max": 16.1,
-      "pctTileAreaBelowMin": 0
+      "pctAreaBelowMin": 0,
+      "pctAreaAtOrAboveMin": 100
      },
      "fill_vs_outline": 4.4
     },
@@ -449,13 +512,15 @@
       "min": 1.13,
       "median": 1.38,
       "max": 1.48,
-      "pctTileAreaBelowMin": 100
+      "pctAreaBelowMin": 100,
+      "pctAreaAtOrAboveMin": 0
      },
      "edge_vs_tile": {
       "min": 11.4,
       "median": 14.75,
       "max": 16.1,
-      "pctTileAreaBelowMin": 0
+      "pctAreaBelowMin": 0,
+      "pctAreaAtOrAboveMin": 100
      },
      "fill_vs_outline": 6.56
     },
@@ -465,16 +530,23 @@
       "min": 1.02,
       "median": 1.25,
       "max": 1.33,
-      "pctTileAreaBelowMin": 100
+      "pctAreaBelowMin": 100,
+      "pctAreaAtOrAboveMin": 0
      },
      "edge_vs_tile": {
       "min": 11.4,
       "median": 14.75,
       "max": 16.1,
-      "pctTileAreaBelowMin": 0
+      "pctAreaBelowMin": 0,
+      "pctAreaAtOrAboveMin": 100
      },
      "fill_vs_outline": 7.28
     }
+   },
+   "worst_case_bound_full_pixel": {
+    "value": 5.41,
+    "derivation": "contrast(outline #16222f, darkest observed tile pixel L=0.303)",
+    "kind": "derived_bound_not_measurement"
    },
    "deltaE2000_normal_vision": {
     "museum|info": 10.2,
@@ -567,9 +639,128 @@
     }
    },
    "verdict": {
-    "categories_failing_edge_minimum": [],
-    "passes_wcag_1_4_11": true
+    "basemap": "light_all",
+    "failing_median": [],
+    "failing_area_coverage": [],
+    "meets_criterion_on_this_basemap": true,
+    "meets_criterion_on_all_required_basemaps": false,
+    "all_basemaps_note": "Only light_all was measured. dark_all and satellite are NOT EVALUATED."
    }
   }
+ },
+ "full_pixel_reconciliation": {
+  "available": true,
+  "tolerance": 0.15,
+  "rows": [
+   {
+    "candidate": "A_shipped",
+    "layer": "museum",
+    "full_pixel_edge_median": 2.82,
+    "weighted_edge_median": 2.88,
+    "delta": 0.06,
+    "within_tolerance": true,
+    "full_pixel_pct_area_below_3": 87,
+    "weighted_pct_area_below_3": 85.2
+   },
+   {
+    "candidate": "A_shipped",
+    "layer": "info",
+    "full_pixel_edge_median": 1.88,
+    "weighted_edge_median": 1.93,
+    "delta": 0.05,
+    "within_tolerance": true,
+    "full_pixel_pct_area_below_3": 100,
+    "weighted_pct_area_below_3": 100
+   },
+   {
+    "candidate": "A_shipped",
+    "layer": "stay",
+    "full_pixel_edge_median": 2.19,
+    "weighted_edge_median": 2.24,
+    "delta": 0.05,
+    "within_tolerance": true,
+    "full_pixel_pct_area_below_3": 100,
+    "weighted_pct_area_below_3": 100
+   },
+   {
+    "candidate": "A_shipped",
+    "layer": "bike",
+    "full_pixel_edge_median": 1.43,
+    "weighted_edge_median": 1.46,
+    "delta": 0.03,
+    "within_tolerance": true,
+    "full_pixel_pct_area_below_3": 100,
+    "weighted_pct_area_below_3": 100
+   },
+   {
+    "candidate": "A_shipped",
+    "layer": "rail",
+    "full_pixel_edge_median": 1.28,
+    "weighted_edge_median": 1.3,
+    "delta": 0.02,
+    "within_tolerance": true,
+    "full_pixel_pct_area_below_3": 100,
+    "weighted_pct_area_below_3": 100
+   },
+   {
+    "candidate": "B_contrast_adjusted",
+    "layer": "museum",
+    "full_pixel_edge_median": 4.65,
+    "weighted_edge_median": 4.75,
+    "delta": 0.1,
+    "within_tolerance": true,
+    "full_pixel_pct_area_below_3": 0.3,
+    "weighted_pct_area_below_3": 0
+   },
+   {
+    "candidate": "B_contrast_adjusted",
+    "layer": "info",
+    "full_pixel_edge_median": 5.23,
+    "weighted_edge_median": 5.35,
+    "delta": 0.12,
+    "within_tolerance": true,
+    "full_pixel_pct_area_below_3": 0.2,
+    "weighted_pct_area_below_3": 0
+   },
+   {
+    "candidate": "B_contrast_adjusted",
+    "layer": "stay",
+    "full_pixel_edge_median": 4.48,
+    "weighted_edge_median": 4.58,
+    "delta": 0.1,
+    "within_tolerance": true,
+    "full_pixel_pct_area_below_3": 0.4,
+    "weighted_pct_area_below_3": 0
+   },
+   {
+    "candidate": "B_contrast_adjusted",
+    "layer": "bike",
+    "full_pixel_edge_median": 4.33,
+    "weighted_edge_median": 4.43,
+    "delta": 0.1,
+    "within_tolerance": true,
+    "full_pixel_pct_area_below_3": 0.4,
+    "weighted_pct_area_below_3": 0
+   },
+   {
+    "candidate": "B_contrast_adjusted",
+    "layer": "rail",
+    "full_pixel_edge_median": 4.54,
+    "weighted_edge_median": 4.64,
+    "delta": 0.1,
+    "within_tolerance": true,
+    "full_pixel_pct_area_below_3": 0.3,
+    "weighted_pct_area_below_3": 0
+   }
+  ],
+  "within_tolerance": true,
+  "note": "Contrast computed over INDIVIDUAL sampled background pixels, not the 22-colour weighted palette. These are the figures quoted in docs/LENS_UX_VISION_G0_AUDIT.md and issues #149/#150. color_analysis.mjs CANNOT recompute them from the committed palette; it reports them as a recorded reference and checks its own approximation against them.",
+  "sampled_background_pixels": 224712,
+  "max_abs_delta": 0.12,
+  "direction": "weighted approximation runs high (optimistic); the full-pixel figures are the conservative ones",
+  "observed_max_delta_20261101": 0.12,
+  "not_measured": [
+   "C_shipped_hues_dark_outline"
+  ]
  }
 }

@@ -15,9 +15,9 @@
 
 **Partly — and the part that fails is the most important one.**
 
-The *application chrome* (left rail, analysis panel, header, dialogs) is, by measurement, a competently built Light theme: **0 text-contrast failures out of 124 rendered text elements in both Light and Dark appearance**, a **universal and consistent focus indicator on 251/251 focusable controls**, a **clean SC 1.4.12 text-spacing pass**, and **no clipping or truncation in either English or Spanish**. This is better than most analytical web GIS, and it should not be disturbed.
+The *application chrome* (left rail, analysis panel, header, dialogs) is, in every state this audit reached, a competently built Light theme: **0 text-contrast failures out of 124 rendered text elements in both Light and Dark appearance**, a **universal and consistent focus indicator on 251/251 focusable controls**, a **clean SC 1.4.12 text-spacing pass**, and **no clipping or truncation in either English or Spanish**. This is better than most analytical web GIS, and it should not be disturbed.
 
-The *map* — which is where the evidence actually lives — fails. **All five default-on operational categories fall below the WCAG 3:1 non-text-contrast threshold against the actual default basemap**, four of them across 100% of sampled tile area, with Metro & Cercanías at a median **1.30:1** (effectively invisible). Simultaneously, the aggregation layer that carries *no* category identity renders at **12.98:1** and covers **21.4% of the map viewport**. The result is an inverted visual hierarchy of roughly **11×**: the least informative mark on screen is the most visually dominant, and the actual evidence is the least.
+The *map* — which is where the evidence actually lives — fails. **All five default-on operational categories fall below the WCAG 3:1 non-text-contrast threshold against the actual default basemap**, four of them across 100% of sampled tile area, with Metro & Cercanías at a median **1.28:1** (effectively invisible). Simultaneously, the aggregation layer that carries *no* category identity renders at **12.98:1** and covers **21.4% of the map viewport**. The result is an inverted visual hierarchy of roughly **11×**: the least informative mark on screen is the most visually dominant, and the actual evidence is the least.
 
 The cause is identifiable and documented in the codebase's own comments: the marker palette was tuned for the **dark** basemap and was never re-tuned when Light became the default appearance. Measured against CARTO `dark_all`, the identical palette scores **4.88–11.11:1** and passes. Against the default `light_all`, it scores **1.30–2.88:1**.
 
@@ -121,21 +121,23 @@ Marker edge (stroke, α 0.95) and fill (α 0.78) were alpha-composited over **22
 
 **Current palette against the default basemap (CARTO Positron `light_all`):**
 
+All figures in this table are from the **full per-pixel estimator**. (An earlier draft mixed two estimators in this table; corrected at review — see §J.)
+
 | Category | Hex | Fill CR (median) | **Edge CR (median)** | Edge CR (min) | **% tile area below 3:1** |
 |---|---|---|---|---|---|
-| Metro & Cercanías | `#ffd166` | 1.23 | **1.30** | 1.02 | **100%** |
+| Metro & Cercanías | `#ffd166` | 1.23 | **1.28** | 1.00 | **100%** |
 | BiciMAD | `#54e2b5` | 1.36 | **1.43** | 1.00 | **100%** |
-| Tourist info | `#c79cff` | 1.67 | **1.88** | 1.51 | **100%** |
+| Tourist info | `#c79cff` | 1.67 | **1.88** | 1.00 | **100%** |
 | Hotels & stays | `#3da8ff` | 1.91 | **2.19** | 1.00 | **100%** |
 | Museums | `#9d72ff` | 2.31 | **2.82** | 1.12 | **87%** |
 
-**Not one default category reaches 3:1 anywhere meaningful on the default map.** Metro at 1.30:1 and BiciMAD at 1.43:1 are below the threshold at which a mark is reliably *detectable*, let alone identifiable. BiciMAD compounds this with the smallest radius in the system (2.8px vs 4.2px).
+**Not one default category reaches 3:1 anywhere meaningful on the default map.** Metro at 1.28:1 and BiciMAD at 1.43:1 are below the threshold at which a mark is reliably *detectable*, let alone identifiable. BiciMAD compounds this with the smallest radius in the system (2.8px vs 4.2px).
 
 **The same palette against CARTO `dark_all`** (43,692 sampled pixels, mean bg luminance 0.019):
 
 | Category | `light_all` (default) | `dark_all` | % below 3:1 on dark |
 |---|---|---|---|
-| Metro & Cercanías | **1.30** | **11.11** | 0% |
+| Metro & Cercanías | **1.28** | **11.11** | 0% |
 | BiciMAD | **1.43** | **9.88** | 0% |
 | Tourist info | **1.88** | **7.40** | 0% |
 | Hotels & stays | **2.19** | **6.35** | 1.1% |
@@ -158,7 +160,7 @@ Marker edge (stroke, α 0.95) and fill (α 0.78) were alpha-composited over **22
 
 Three distinct defects:
 
-1. **Hierarchy inversion.** Cluster 12.98:1 against Metro marker 1.15:1 — an **11.3× inversion**. The mark that encodes *"some unspecified number of things are near here"* is an order of magnitude more salient than the mark that encodes *"this specific museum is here."* §5.3 of the brief requires that styling never imply greater reliability through visual prominence; here it does so emphatically, and in favour of the less informative object.
+1. **Hierarchy inversion.** Cluster 12.98:1 against Metro marker 1.15:1 — an **≈11× inversion**. The mark that encodes *"some unspecified number of things are near here"* is an order of magnitude more salient than the mark that encodes *"this specific museum is here."* The ratio moves slightly with the reference tile colour: **11.3×** against the sampled Positron median, **11.2×** against `#ededed`, which is the figure `capture_map_evidence.mjs` reproduces. Nothing turns on the second decimal; the finding is the order of magnitude. §5.3 of the brief requires that styling never imply greater reliability through visual prominence; here it does so emphatically, and in favour of the less informative object.
 2. **Total loss of category identity.** Two different operational categories aggregate into pixel-identical black chips. This is beyond SC 1.4.1 (Use of Colour) — colour is not merely the *only* distinguishing cue, there is **no** distinguishing cue. A user cannot tell a hotel cluster from a bike-station cluster without clicking.
 3. **Dark-theme surface leaking into Light.** `rgba(8,16,27,.92)` is the Dark `--panel` token hard-coded into map chrome. Combined with a white dashed border and white glow on a pale basemap, it produces the dense, spiky, near-black blanket visible in the evidence screenshots.
 
@@ -217,12 +219,17 @@ Machado, Oliveira & Fernandes (2009) severity-1.0 matrices, applied in linear RG
 
 ### E.1 Geometry
 
+Content height is **state-dependent**: a fresh browser profile shows the first-run tutorial card inside the analysis panel, adding ~225px. The rows below are the **tutorial-dismissed steady state**; the fresh-profile state is given underneath.
+
 | Viewport | Panel height | Available height | **Unused vertical space** | Content height | **Below fold** |
 |---|---|---|---|---|---|
 | 1366×768 | 660px | 660px | 0 | 1,331px | **51%** |
 | 1440×900 | **720px (capped)** | 792px | **72px** | 1,331px | **46%** |
 | 1920×1080 | **720px (capped)** | 972px | **252px** | 1,331px | **46%** |
 | 1366×768, Spanish | 660px | 660px | 0 | 1,591px | **59%** |
+| 1440×900, fresh profile (tutorial shown) | 720px | 792px | 72px | 1,557px | **54%** |
+
+The last row is the one `capture_map_evidence.mjs` reproduces, because it runs on a clean profile. Both are true; the cap finding holds in either state.
 
 Root cause, `css/app.css:298`:
 ```
@@ -284,14 +291,14 @@ Re-base the scale one step for sustained analytical reading: body 14→15px, lab
 | SC | Result | Evidence |
 |---|---|---|
 | **1.4.1 Use of Colour** | **FAIL** | Clusters: `cluster-stay` and `cluster-bike` computed styles byte-identical — no cue of any kind. Markers: plain circles of near-identical radius; Tourist info↔Hotels ΔE 0.9 under simulated protanopia with no shape/glyph/pattern alternative. |
-| **1.4.3 Contrast (Minimum)** | **PASS** | 0 failures / 124 elements, Light and Dark. Min 5.59:1 (Light), 4.64:1 (Dark) against 4.5:1. All three modes. Composited backgrounds computed through the translucent panel stack. |
+| **1.4.3 Contrast (Minimum)** | **NO FAILURE OBSERVED** | 0 failures / 124 rendered text elements, Light and Dark. Min 5.59:1 (Light), 4.64:1 (Dark) against 4.5:1. Three modes, two languages. Composited backgrounds computed through the translucent panel stack. **Scope:** the states this harness reached. Error states, transient toasts and parts of the evidence drawer were never rendered, so this is not a conformance claim for the product. |
 | 1.4.4 Resize Text | **PASS (indicative)** | At 683×384 (≈200% of 1366×768) layout reflows to the stacked small-screen IA; no horizontal page scroll; no clipping. Measured by viewport emulation, **not** by true browser zoom — see limitations. |
 | 1.4.10 Reflow | **PASS (indicative)** | Same test; stacked layout, `horizontalPageScroll: false`. |
-| **1.4.11 Non-text Contrast** | **FAIL** | All 5 default operational categories below 3:1 against the default basemap; 4 of 5 across 100% of sampled tile area; worst median 1.30:1. 224,712 real tile pixels. |
-| **1.4.12 Text Spacing** | **PASS** | Injected line-height 1.5 / letter-spacing 0.12em / word-spacing 0.16em / paragraph 2em: **0 newly clipped elements**, no horizontal scroll. |
-| **2.4.7 Focus Visible** | **PASS** | **251/251** focusable elements show an indicator; 243 use a consistent 2px `#075f9a` outline at 2px offset. |
+| **1.4.11 Non-text Contrast** | **FAIL (default basemap)** | All 5 default operational categories below 3:1 against the default basemap; 4 of 5 across 100% of sampled tile area; worst median 1.28:1 (full-pixel estimator). 224,712 real tile pixels, one basemap. |
+| **1.4.12 Text Spacing** | **NO FAILURE OBSERVED** | Injected line-height 1.5 / letter-spacing 0.12em / word-spacing 0.16em / paragraph 2em: **0 newly clipped elements**, no horizontal scroll. **Scope:** one viewport, one mode, Inter installed — not re-run on the Segoe UI fallback (§F.2). |
+| **2.4.7 Focus Visible** | **NO FAILURE OBSERVED** | **251/251** focusable elements reachable in the default PLACE state show an indicator; 243 use a consistent 2px `#075f9a` outline at 2px offset. **Scope:** elements present in that one state; controls that appear only in other modes or dialogs were not enumerated. |
 | 2.4.11 Focus Not Obscured | **NOT TESTED** | Requires scroll-position-dependent testing against sticky headers and the evidence drawer. Not measured; **do not claim conformance.** |
-| **2.5.8 Target Size** | **PASS (with exceptions)** | 22 targets below 24px; 20 pass the spacing exception (nearest real neighbour 27.4–88.2px) or the inline exception. The 2 residuals are map markers/clusters, where position is geographically essential (explicit WCAG exception). |
+| **2.5.8 Target Size** | **NO FAILURE CONFIRMED (via exceptions)** | 22 targets below 24px; 20 pass the spacing exception (nearest real neighbour 27.4–88.2px) or the inline exception. The 2 residuals are map markers/clusters, where position is geographically essential (explicit WCAG exception). |
 
 **Honest limits on these results.**
 - Contrast was computed from composited sRGB values, which is correct for the chrome but is a *model* for the map: it assumes uniform alpha compositing over sampled tile pixels and does not account for anti-aliasing at a 2.8–4.2px radius, which will make small markers perform **worse**, not better, than reported.
@@ -345,7 +352,7 @@ Identical conditions: composited over the 22 dominant Positron colours weighted 
 | **Component** | `js/app.js:4-12` `LAYER_COLOR`; `js/app.js:2325-2344` `addMarker()` |
 | **Failure** | Museums, Tourist info, Hotels, BiciMAD, Metro are not reliably detectable on the default map. Not a hypothesis — measured. |
 | **Affected** | All users, default configuration, every task beginning "find/identify a place". Worst for low-vision users and on low-quality or glare-affected displays. |
-| **Baseline** | Metro 1.30:1, BiciMAD 1.43:1, Tourist info 1.88:1, Hotels 2.19:1, Museums 2.82:1 |
+| **Baseline** | Full-pixel edge medians: Metro 1.28:1, BiciMAD 1.43:1, Tourist info 1.88:1, Hotels 2.19:1, Museums 2.82:1 |
 | **Proposal** | Candidate C: opaque dark outline (`#16222f`, weight ≈1.5) retaining all current fills. |
 | **Benefit** | Edge CR → 14.75 median / 11.40 min; 0% failing area; **no colour identity changed**. |
 | **Regression risk** | Added visual weight at 2.8px (BiciMAD) may read as heavier dots; outline must not approach cluster-chip darkness. Requires a visual check at z12 and z17 on dense and park tiles. |
@@ -358,7 +365,7 @@ Identical conditions: composited over the 22 dominant Positron colours weighted 
 |---|---|
 | **Evidence** | §C.3. 191 clusters, 21.4% of viewport, 12.98:1, `cluster-stay` ≡ `cluster-bike` byte-identical. |
 | **Component** | `.poi-cluster` / `.cluster-*` in `css/app.css`; `addClusterMarker()` `js/app.js:2388+`; `DENSE_LAYER_TYPES` |
-| **Failure** | The least informative mark dominates the map at 11.3× the salience of the evidence; two categories are visually indistinguishable; the Dark `--panel` surface is hard-coded into Light map chrome. |
+| **Failure** | The least informative mark dominates the map at ≈11× the salience of the evidence; two categories are visually indistinguishable; the Dark `--panel` surface is hard-coded into Light map chrome. |
 | **Affected** | All users; directly violates the §5.3 contract that prominence must not imply reliability. |
 | **Baseline** | Cluster 12.98:1 vs Metro marker 1.15:1; 0 distinguishing cues between cluster types. |
 | **Proposal** | Appearance-aware cluster surface (light-theme token, not `rgba(8,16,27,.92)`); reduce the white glow/dashed treatment; give each cluster its category colour and/or glyph; reconsider cluster thresholds so 191 chips is not the default state. |
@@ -413,6 +420,8 @@ The measurement harness and its outputs are committed under
 | [`sample_positron_tiles.mjs`](../research/lens_ux_vision_g0/sample_positron_tiles.mjs) | Regenerates the background palette from production tiles (requires `CARTO_BASEMAP_KEY`) |
 | [`results/positron_palette_20261101.json`](../research/lens_ux_vision_g0/results/positron_palette_20261101.json) | Measured Positron palette, per-tile luminance summary, `dark_all` control |
 | [`results/color_analysis_20261101.json`](../research/lens_ux_vision_g0/results/color_analysis_20261101.json) | Full three-candidate output |
+| [`capture_map_evidence.mjs`](../research/lens_ux_vision_g0/capture_map_evidence.mjs) | Executable reproduction of the §C.3 visual claims: cluster census, coverage, category-identity check, salience ratio |
+| [`results/map_evidence_20261101.json`](../research/lens_ux_vision_g0/results/map_evidence_20261101.json) | That script's output, with attribution and limitations |
 
 Reproduce the contrast and separability tables in §C and §H with:
 
@@ -420,7 +429,17 @@ Reproduce the contrast and separability tables in §C and §H with:
 node research/lens_ux_vision_g0/color_analysis.mjs
 ```
 
-**Two estimators.** This report quotes the **full per-pixel sample** (224,712 background pixels). The committed harness uses a **22-colour area-weighted approximation**, so that it runs with no dependencies and no CARTO key. The two diverge by at most **0.06**, always in the optimistic direction — so the figures in this report are the conservative ones, and no verdict changes under either. The harness README tabulates both.
+**Two estimators.** This report quotes the **full per-pixel sample** (224,712 background pixels). `color_analysis.mjs` uses a **22-colour area-weighted approximation**, so that it runs with no dependencies and no CARTO key. **It therefore cannot reproduce this report's contrast figures**; it reports them from the recorded `full_pixel_reference` block alongside its own, and checks the divergence. Observed maximum divergence across both palettes is **0.12**, always in the optimistic direction, so this report carries the conservative figures. The per-pixel estimator is regenerable with `sample_positron_tiles.mjs --full-pixel-contrast`.
+
+**Corrections applied at review (2026-11-01).** This report was re-audited against its own harness before the evidence was committed. Five numeric claims were wrong and are corrected above:
+
+1. The §C.2 table mixed the two estimators (Metro edge 1.30 and two `min` cells came from the weighted approximation, the rest from the per-pixel pass). It is now purely per-pixel: Metro edge median is **1.28**, not 1.30.
+2. The maximum estimator divergence was stated as 0.06. That was derived from palette A alone; across both palettes it is **0.12**.
+3. The salience ratio was stated flatly as 11.3×. It depends on the reference tile colour: **11.2×–11.3×**, reported as ≈11×.
+4. Analysis-panel content height is **state-dependent** (the first-run tutorial card adds ~225px). The original figures were the tutorial-dismissed state without saying so; both states are now tabulated in §E.1.
+5. Several WCAG rows read as unqualified PASS verdicts. They are now **NO FAILURE OBSERVED**, scoped to the states this harness actually reached.
+
+None of these changes a verdict. All five made a claim stronger or broader than its evidence, which is the failure mode this report is supposed to guard against.
 
 **Not committed.** Screenshots and the isolated-server log were working artifacts and are not part of the evidence package; every numeric claim here is regenerable from the harness above. The verified baseline tree was obtained with `git archive origin/main` into a scratch directory and discarded.
 
@@ -473,19 +492,19 @@ Separate verdicts, because the evidence differs sharply by component.
 
 | Component | Verdict | Basis |
 |---|---|---|
-| **Basemap (CARTO Positron)** | **GO — KEEP** | 1.57M pixels measured. 16–32 colours/tile, 0.69–1.00 luminance band, structured hierarchy. Correct choice; no experiment justified. |
-| **Map overlay colours & clusters** | **MODIFY — TARGETED** | Reproducible SC 1.4.11 failure across all 5 default categories; 11.3× hierarchy inversion; zero cluster category identity. #150, #149. |
+| **Basemap (CARTO Positron)** | **GO — KEEP** | 1.57M pixels measured across 6 sites × 4 zooms. 16–32 colours/tile, 0.69–1.00 luminance band, structured hierarchy. Correct choice on this evidence; no experiment justified. Six sites are not a survey of Madrid. |
+| **Map overlay colours & clusters** | **MODIFY — TARGETED** | Reproducible SC 1.4.11 failure across all 5 default categories; ≈11× hierarchy inversion; zero cluster category identity. #150, #149. |
 | **Left panel** | **MODIFY — TARGETED** | Structure and contrast are sound (0/40 failures, min 6.23:1). 100% of text ≤12px, caveats at 10px. #151. |
 | **Right panel** | **MODIFY — TARGETED** | 0 contrast failures in all 3 modes. 720px cap wastes 252px and hides 46% of content at 1920×1080. #154. |
 | **Typography system** | **MODIFY — TARGETED (scale: GO)** | All 7 tokens intact and correctly defined. Defects are in application (10px caveats) and in the undeclared webfont. T1, not T2, for now. |
-| **Chrome colour system (Light)** | **GO — KEEP** | 0/124 failures Light *and* Dark; 251/251 focus indicators; clean 1.4.12 pass; bilingual with no clipping. |
+| **Chrome colour system (Light)** | **GO — KEEP** | 0/124 failures Light *and* Dark; 251/251 focus indicators; clean 1.4.12 result; bilingual with no clipping. Scoped to the states exercised — see §G. |
 | **Categorical discrimination (CVD)** | **HOLD — INSUFFICIENT EVIDENCE** | Simulation shows ΔE 0.9 protan confusion, but no person with CVD has been tested, and **no palette fixes it** (B is worse in deuteranopia and grayscale). Needs §K before any colour change. |
 
 ### Explicitly distinguished
 
 **Verified** (direct observation): baseline is `913de27`; local checkout is 200 commits stale and dirty; Positron loads genuinely with no fallback; default appearance is System→Light; appearance and basemap are independent; default layers; all 7 type tokens; Light tokens active; cluster styles byte-identical; `.panel` 720px cap in source; no `@font-face` anywhere.
 
-**Measured** (quantified): 1,572,864 tile pixels; 224,712 contrast samples; marker edge contrast 1.30–2.88 on light vs 4.88–11.11 on dark; 191 clusters / 21.4% coverage / 12.98:1; 11.3× inversion; 0 text-contrast failures across 124 elements in both appearances and all 3 modes; 251/251 focus indicators; 0 newly clipped elements under 1.4.12; panel below-fold 46–59%; Inter vs Segoe 6.3% width delta.
+**Measured** (quantified): 1,572,864 tile pixels; 224,712 contrast samples; marker edge contrast 1.28–2.82 (full-pixel) on light vs 4.88–11.11 on dark; 191 clusters / 21.4% coverage (bounding-box upper bound) / 12.98:1; ≈11× inversion; 0 text-contrast failures across 124 elements in both appearances and all 3 modes; 251/251 focus indicators; 0 newly clipped elements under 1.4.12; panel below-fold 46–59%; Inter vs Segoe 6.3% width delta.
 
 **Merely simulated** (not observed in humans): all protanopia/deuteranopia/tritanopia/grayscale results; Candidate B and C contrast projections (modelled compositing, not rendered pixels — anti-aliasing at 2.8–4.2px will make real markers perform *worse* than modelled); 200% zoom via viewport emulation rather than true browser zoom.
 

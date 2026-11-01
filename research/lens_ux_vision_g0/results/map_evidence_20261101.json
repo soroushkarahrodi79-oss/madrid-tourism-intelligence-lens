@@ -1,0 +1,100 @@
+{
+  "contract_version": "1.0.0",
+  "measured_at": "2026-11-01T15:10:19.248Z",
+  "tool": "research/lens_ux_vision_g0/capture_map_evidence.mjs",
+  "pinned_inputs": {
+    "app_commit": "913de2766a718b2c64b0419542d5117cc380293b",
+    "pages_deployment_workflow_run": "41307637236",
+    "deployment_manifest_sha256": "9fc74f9aa660b274bd73cd1d5c6983012ad45ec53a5b85c27a8ab4a0db1b4c0c",
+    "deployment_build_state": "pass"
+  },
+  "pin_verification": {
+    "mode": "verified",
+    "expected_from": "positron_palette_20261101.json",
+    "differences": []
+  },
+  "requested_viewport": "1440x900",
+  "measurement": {
+    "url": "https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens/?v=1&s=20261029-m3-dossier-v1&m=PLACE&a=40.41490%2C-3.69000%2C900&b=40.42240%2C-3.70370%2C900&be=0&al=A&ly=museum.info.stay.bike.rail&sc=LENS&rd=citizen&lg=en",
+    "appearance": {
+      "resolved": "light",
+      "preference": "system",
+      "systemPrefersDark": false
+    },
+    "basemap": {
+      "select": "light",
+      "tileHosts": {
+        "basemaps.cartocdn.com": 24
+      },
+      "tileCount": 24,
+      "attribution": "© OpenStreetMap contributors © CARTO",
+      "cartoKeyPresent": true
+    },
+    "viewport": {
+      "w": 1440,
+      "h": 900
+    },
+    "mapRect": {
+      "w": 1440,
+      "h": 900
+    },
+    "clusters": {
+      "total": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "viewportCoveragePctUpperBound": 21.4,
+      "coverageMethod": "sum of chip bounding boxes / map area — overstates painted area for circular chips",
+      "stayVsBikeDifferingProperties": [],
+      "stayVsBikeIdentical": true,
+      "comparedProperties": [
+        "backgroundColor",
+        "color",
+        "borderColor",
+        "borderStyle",
+        "borderWidth",
+        "boxShadow",
+        "width",
+        "height",
+        "fontSize",
+        "fontWeight",
+        "borderRadius",
+        "backgroundImage",
+        "clipPath",
+        "maskImage"
+      ]
+    },
+    "salience": {
+      "tileReference": "#ededed",
+      "clusterContrastVsTile": 13.7,
+      "weakestMarkerContrastVsTile": 1.22,
+      "ratio": 11.2,
+      "note": "Single representative tile colour, not the full distribution. color_analysis.mjs holds the distributional result."
+    },
+    "panels": {
+      "left": {
+        "renderedH": 792,
+        "contentH": 1084,
+        "belowFoldPct": 27
+      },
+      "analysis": {
+        "renderedH": 720,
+        "contentH": 1557,
+        "belowFoldPct": 54
+      },
+      "firstRunTutorialVisible": true,
+      "stateNote": "Fresh profile: the first-run tutorial card is inside the analysis panel and inflates contentH."
+    }
+  },
+  "screenshots": [],
+  "attribution": "(c) OpenStreetMap contributors (c) CARTO. Basemap tiles by CARTO; map data from OpenStreetMap, licensed under ODbL (https://opendatacommons.org/licenses/odbl/). Any redistribution of captures from this script must carry this attribution.",
+  "limitations": [
+    "Tile imagery is mutable; CARTO may re-render Positron at any time.",
+    "One view at one viewport and the restored default centre/zoom — not a survey of Madrid.",
+    "Cluster coverage is a bounding-box upper bound; circular chips paint less than their boxes.",
+    "Headless Chromium is not the user's browser: font availability and device pixel ratio differ (#151).",
+    "DOM measurement is not perception; no human has been tested (#153).",
+    "Salience uses one representative tile colour; the distributional result is in color_analysis.mjs."
+  ]
+}
