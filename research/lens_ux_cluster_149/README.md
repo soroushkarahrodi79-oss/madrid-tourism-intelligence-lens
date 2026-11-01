@@ -23,3 +23,11 @@ node research/lens_ux_cluster_149/perf.mjs --poi /tmp/runtime_poi.json --root . 
 ## Salience criterion (≤ 2:1) is unsatisfiable under #149's own definition
 Chip contrast C ≥ 3 (SC 1.4.11) and weakest marker M give C/M ≥ 3/M. With M = 1.15 (G0 edge min) → 2.61; with M = 1.22 (rail stroke on #ededed, recomputed) → 2.46. ≤ 2 needs M ≥ 1.5. The weakest marker is #150's subject, which is blocked by #149 in the issue graph — a circular dependency. A ratio of two WCAG contrast ratios is also not a validated perceptual-salience model.
 Proposed revision (not applied): close #149 on absolute criteria (≥ 3:1 findable, ≥ 4.5:1 count, non-colour identity, tokens), and move the relative-salience criterion to #150 / #153 (human validation), evaluated after markers change.
+
+## Rendered-imagery validation (validate.mjs) — added after review
+`validate.mjs` replaces the synthetic-tile experiment as the evidence of record. It measures **rendered pixels** per component (outer halo, border, fill, count text core, glyph) against the same view with chips hidden, separately for in-Lens (solid, opacity 1) and out-of-Lens (dashed, opacity .72) chips, excluding chips outside the viewport, covered by panels, or occluded by neighbouring chips. The earlier max(border,halo,fill) figure is kept only as a labelled non-verdict.
+Run it in short segments (one viewport per call; a fresh browser per capture; it writes after every capture):
+```bash
+CARTO_BASEMAP_KEY=<from your secret store> node research/lens_ux_cluster_149/validate.mjs --poi poi.json --before <origin/main checkout> --after . --shots <dir outside repo> --out out.json --basemaps satellite,light,dark --part vp:1440x900
+```
+Without `CARTO_BASEMAP_KEY`, light/dark rows are recorded as `notMeasured` — never substituted. Results: `results/validate_esri_satellite_20261101.json` (52 captures, Esri live; screenshots not committed: third-party imagery, hashes in the JSON). Proposal for the criteria: `ACCEPTANCE_CRITERIA_PROPOSAL.md`.

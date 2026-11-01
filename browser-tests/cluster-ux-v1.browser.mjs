@@ -4,7 +4,10 @@ import http from "node:http";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+import { chromium, webkit } from "playwright";
+
+// LENS_TEST_BROWSER=webkit runs the same contract in WebKit (Safari engine).
+const engine = process.env.LENS_TEST_BROWSER === "webkit" ? webkit : chromium;
 
 // UX-V1 (#149) — cluster chip contract. Measures computed styles of the real
 // `.poi-cluster` chips against FLAT stand-in backgrounds (#ededed / #262626);
@@ -33,7 +36,7 @@ const server = http.createServer((req, res) => {
 });
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const { port } = server.address();
-const browser = await chromium.launch({ headless: true });
+const browser = await engine.launch({ headless: true });
 
 async function open(appearance, { reducedMotion = "no-preference" } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1200, height: 860 }, colorScheme: appearance, reducedMotion });
@@ -148,6 +151,58 @@ test("cluster counts equal the visible source records; layer colours untouched",
   assert.equal(r.sum + r.singles, 24);
   assert.deepEqual(r.colours, { museum: "#9d72ff", info: "#c79cff", stay: "#3da8ff", bike: "#54e2b5", rail: "#ffd166", pedestrian: "#ff7aa2", park: "#70dea4", licence: "#c0794f" });
   await ctx.close();
+});
+
+
+test("Space activates a focused cluster like Enter", async () => {
+  const { page, ctx } = await open("light");
+  const before = await page.evaluate(() => map.getZoom());
+  await page.focus(".poi-cluster-icon:has(.cluster-stay)");
+  await page.keyboard.press("Space");
+  await page.waitForFunction((z) => map.getZoom() > z, before);
+  await ctx.close();
+});
+
+for (const appearance of ["light", "dark"]) {
+  test(`${appearance}: hover, keyboard focus and out-of-Lens states keep the glyph, count and a visible cue`, async () => {
+    const { page, ctx } = await open(appearance);
+    const s = await page.evaluate(() => {
+      const chip = document.querySelector(".poi-cluster-icon.outside-lens .poi-cluster.cluster-bike") || document.querySelector(".poi-cluster.cluster-bike");
+      const icon = chip.parentElement;
+      const st = getComputedStyle(chip);
+      return { outside: icon.classList.contains("outside-lens"), borderStyle: st.borderTopStyle, opacity: getComputedStyle(icon).opacity, glyph: getComputedStyle(chip, "::before").content };
+    });
+    assert.equal(s.outside, true, "fixture must contain an out-of-Lens cluster");
+    assert.equal(s.borderStyle, "dashed");
+    assert.ok(parseFloat(s.opacity) >= 0.72);
+    assert.notEqual(s.glyph, "none");
+    const sel = ".poi-cluster-icon.outside-lens:has(.cluster-bike)";
+    const idle = await page.evaluate((q) => getComputedStyle(document.querySelector(q + " .poi-cluster")).boxShadow, sel);
+    await page.focus(sel);
+    const focused = await page.evaluate((q) => { const c = getComputedStyle(document.querySelector(q + " .poi-cluster")); return { style: c.outlineStyle, width: c.outlineWidth }; }, sel);
+    assert.notEqual(focused.style, "none", "focused cluster needs a visible outline");
+    assert.ok(parseFloat(focused.width) >= 2);
+    await page.hover(sel, { force: true });
+    const hovered = await page.evaluate((q) => getComputedStyle(document.querySelector(q + " .poi-cluster")).boxShadow, sel);
+    assert.notEqual(hovered, idle, "hover must change the chip");
+    await ctx.close();
+  });
+}
+
+test("ES: count and glyph are not clipped and chip geometry matches EN", async () => {
+  const geo = {};
+  for (const lang of ["en", "es"]) {
+    const { page, ctx } = await open("light");
+    if (lang === "es") {
+      await page.evaluate(() => { const s = document.getElementById("languageSelect"); s.value = "es"; s.dispatchEvent(new Event("change", { bubbles: true })); return 0; });
+      await page.waitForTimeout(600);
+    }
+    geo[lang] = await page.evaluate(() => [...document.querySelectorAll(".poi-cluster")].map((c) => { const sp = c.querySelector("span"); return { w: c.offsetWidth, clipped: sp.scrollWidth > sp.clientWidth + 1 || sp.getBoundingClientRect().width > c.clientWidth }; }));
+    assert.ok(geo[lang].length > 0);
+    assert.ok(geo[lang].every((g) => !g.clipped), `${lang}: count clipped`);
+    await ctx.close();
+  }
+  assert.deepEqual(geo.en.map((g) => g.w), geo.es.map((g) => g.w));
 });
 
 test("reduced motion: no chip transition", async () => {
