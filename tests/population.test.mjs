@@ -15,6 +15,7 @@ function readJson(relative) {
 
 const POP = readJson("../data/population/madrid_population.json");
 const META = readJson("../data/population/madrid_population.meta.json");
+const REGISTRY_POPULATION = readJson("../data/source_registry.json").sources.find((source) => source.id === "population");
 const GEO = readJson("../data/geography/madrid_admin.geojson");
 
 const records = POP.records;
@@ -133,6 +134,31 @@ test("the metadata documents the source, licence and Padron concept", () => {
   assert.match(META.population_concept, /registered in the municipal Padron/i);
   assert.match(META.dimensions.note, /no double-counting/i);
   assert.deepEqual(META.dimensions.aggregated_over, [], "no dimension is summed for this single-total source");
+});
+
+test("the registry's population ceiling is source-scoped, barrio-level and free of development-process wording", () => {
+  assert.ok(REGISTRY_POPULATION, "the registry carries the population source");
+  const ceiling = REGISTRY_POPULATION.interpretation_ceiling;
+  // Durable wording: a residential denominator alone is not a tourism measure. It must not
+  // contradict the licensed-VUT-per-1,000-registered-residents indicator, which is a separate
+  // artifact that pairs this denominator with a licence count.
+  assert.ok(
+    ceiling.includes(
+      "The registered-resident count alone does not define a tourism indicator, an accommodation-per-resident or hotels-per-1000 ratio, a tourism-pressure measure or a composite score.",
+    ),
+  );
+  assert.doesNotMatch(ceiling, /\bPRs?\b|pull request|\bTODO\b|\bFIXME\b/i);
+  // Scope and interpretation limits are preserved.
+  assert.match(ceiling, /residential denominator only/i);
+  for (const limit of ["physically present", "daytime population", "tourists", "workers present", "households", "housing units"]) {
+    assert.match(ceiling, new RegExp(`NOT [^.]*${limit}`), `ceiling still says the figure is NOT ${limit}`);
+  }
+  assert.match(ceiling, /belongs to the whole official barrio and must never be spatially distributed into a circular Lens/);
+  assert.match(ceiling, /barrio statistic, not the population inside the circle/);
+  assert.match(ceiling, /not Comunidad de Madrid population/);
+  // The entry still describes the same official unit and reference period as the artifact.
+  assert.equal(REGISTRY_POPULATION.scope, "OFFICIAL_BARRIO");
+  assert.equal(REGISTRY_POPULATION.reference_date, META.source_period.reference_date);
 });
 
 test("the interpretation ceiling forbids tourism reuse and Lens interpolation", () => {
