@@ -16,7 +16,7 @@ Measured with `validate.mjs --prod … --part edge` on the production page with 
   * conformance of the page (conformance is per page, with all content);
   * contrast of the **focus indicator** (a single-tone `--map-cluster-edge` outline, offset 3 px) on real tiles — **not measured**;
   * human, assistive-technology or low-vision validation; WebKit pixel rendering (WebKit ran the computed-style/behaviour tests only).
-* **Established (rendered pixels, real tiles, screening only):** count text (SC 1.4.3 analogue) p05 ≥ 16:1 in-Lens and ≥ 4.8:1 out-of-Lens, 0 % of chips < 4.5:1; 11 px glyph recognisable (correlation with its own mask > other mask for 100 % of measured chips, r 0.91–0.99); keyboard Enter/Space, accessible names and tooltips in EN and ES at first render and on language switch.
+* **Established (rendered pixels, real tiles, screening only):** count text (SC 1.4.3 analogue) p05 ≥ 16:1 in-Lens and ≥ 4.8:1 out-of-Lens, 0 % of chips < 4.5:1; 11 px glyphs are discriminable by an automated test (automated graphical discrimination by mask correlation — **not human recognition**; own-mask correlation > other-mask correlation for 100 % of measured chips, r 0.91–0.99); keyboard Enter/Space, accessible names and tooltips in EN and ES at first render and on language switch.
 
 ## 3. Remaining failures — per ring and dual-tone (cluster-level; % of samples < 3:1, mean per cluster [bootstrap 95 % CI])
 | basemap · appearance · state | unique clusters | halo ring | border ring (inked) | dual-tone, all samples | dual-tone, inked only | dash gaps |
