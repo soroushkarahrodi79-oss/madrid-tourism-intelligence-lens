@@ -6085,9 +6085,24 @@ function renderRailGroupBadges() {
 const headerEl = document.querySelector("header");
 function syncHeaderBottom() {
   document.documentElement.style.setProperty("--header-bottom", `${Math.ceil(headerEl.getBoundingClientRect().bottom)}px`);
+  syncMapCreditBottom();
+}
+// The legal credit's height depends on the active basemap (OSM alone, OSM + CARTO,
+// Esri imagery) and its position follows the header, so the compact finder, which
+// must start beneath it, reads where it really ends rather than a guessed offset.
+const mapCreditEl = map.attributionControl.getContainer();
+function syncMapCreditBottom() {
+  if (!mapCreditEl) return;
+  const rect = mapCreditEl.getBoundingClientRect();
+  const root = document.documentElement.style;
+  if (rect.height > 0) root.setProperty("--map-credit-bottom", `${Math.ceil(rect.bottom)}px`);
+  else root.removeProperty("--map-credit-bottom");
 }
 syncHeaderBottom();
-if (typeof ResizeObserver === "function") new ResizeObserver(syncHeaderBottom).observe(headerEl);
+if (typeof ResizeObserver === "function") {
+  new ResizeObserver(syncHeaderBottom).observe(headerEl);
+  if (mapCreditEl) new ResizeObserver(syncMapCreditBottom).observe(mapCreditEl);
+}
 window.addEventListener("resize", syncHeaderBottom);
 window.addEventListener("orientationchange", syncHeaderBottom);
 

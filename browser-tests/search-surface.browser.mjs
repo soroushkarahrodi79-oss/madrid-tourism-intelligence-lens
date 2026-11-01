@@ -426,3 +426,124 @@ test("Layers stays operable while the compact finder is open, and the finder yie
     assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-open"), "false", `${language}: the finder closed on the outside press`);
   }
 });
+
+// ------------------------------------------------------ Map credit stays visible
+
+// OpenStreetMap's tile usage policy (and the CARTO and Esri terms) require the
+// credit to stay visible and its links usable. The compact finder is a full-width
+// overlay, so it must start beneath the credit, whatever the active basemap makes
+// that credit's height. Rendered geometry and hit testing, never DOM presence.
+const PNG_1X1 = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
+
+async function creditPage({ viewport, colorScheme = "light", language = "en", carto = false }) {
+  const context = await browser.newContext({ viewport, colorScheme });
+  const page = await context.newPage();
+  page.setDefaultTimeout(30000);
+  await page.route("**/*", (route) => {
+    const url = new URL(route.request().url());
+    // A CARTO key makes the active basemap credit OSM + CARTO; tiles are 1x1 stubs
+    // so the basemap's own credit, not the offline OSM fallback, is what is under test.
+    if (carto && url.pathname.endsWith("/runtime-config.js")) return route.fulfill({ contentType: "text/javascript", body: 'window.RUNTIME_CONFIG={CARTO_BASEMAP_KEY:"test"};' });
+    if (url.hostname === "127.0.0.1") return route.continue();
+    if (route.request().resourceType() === "image") return route.fulfill({ contentType: "image/png", body: PNG_1X1 });
+    return route.abort();
+  });
+  await page.goto(`http://127.0.0.1:${port}/?haloRegressionTest=1`, { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.state === "ready");
+  if (language !== "en") await page.selectOption("#languageSelect", language);
+  return { page, context };
+}
+
+async function readCredit(page) {
+  return page.evaluate(() => {
+    const box = (node) => { const r = node.getBoundingClientRect(); return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height }; };
+    const hits = (node) => {
+      const r = node.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return Boolean(hit) && (hit === node || node.contains(hit));
+    };
+    const credit = document.querySelector(".leaflet-control-attribution");
+    const field = document.querySelector("#geoSearchQuery");
+    const zoom = document.querySelector(".leaflet-control-zoom");
+    return {
+      text: credit.textContent.trim(),
+      credit: box(credit),
+      panel: box(document.querySelector("#geoSearchPanel")),
+      zoom: zoom ? box(zoom) : null,
+      layers: document.querySelector(".mobile-layers-button").offsetWidth ? box(document.querySelector(".mobile-layers-button")) : null,
+      field: box(field),
+      fontSize: parseFloat(getComputedStyle(credit).fontSize),
+      creditVisible: getComputedStyle(credit).visibility !== "hidden" && getComputedStyle(credit).display !== "none",
+      creditHit: hits(credit),
+      links: [...credit.querySelectorAll("a")].map((link) => ({ name: link.textContent, href: link.href, hit: hits(link) })),
+      fieldHit: hits(field),
+      viewport: { width: document.documentElement.clientWidth, height: window.innerHeight },
+    };
+  });
+}
+
+function assertCreditClear(reading, tag) {
+  assert.equal(reading.creditVisible, true, `${tag}: the credit is displayed`);
+  assert.ok(reading.credit.width > 0 && reading.credit.height > 0, `${tag}: the credit has a rendered box`);
+  assert.ok(reading.credit.left >= 0 && reading.credit.right <= reading.viewport.width && reading.credit.top >= 0 && reading.credit.bottom <= reading.viewport.height, `${tag}: the credit is inside the viewport`);
+  assert.ok(reading.fontSize >= 10, `${tag}: the credit stays readable (${reading.fontSize}px)`);
+  assert.equal(intersects(reading.credit, reading.panel), false, `${tag}: the open finder does not cover the credit`);
+  assert.equal(reading.creditHit, true, `${tag}: nothing paints over the credit`);
+  assert.ok(reading.links.length > 0 || /Esri/.test(reading.text), `${tag}: the credit carries its links`);
+  for (const link of reading.links) assert.equal(link.hit, true, `${tag}: the "${link.name}" link is operable`);
+  // The Layers control only exists at phone widths.
+  assert.equal(reading.layers ? intersects(reading.credit, reading.layers) : false, false, `${tag}: the credit clears Layers`);
+  assert.equal(reading.zoom ? intersects(reading.credit, reading.zoom) : false, false, `${tag}: the credit clears the zoom control`);
+  assert.equal(reading.fieldHit, true, `${tag}: the search field itself stays reachable`);
+  assert.ok(reading.field.bottom <= reading.viewport.height, `${tag}: the field is inside the viewport`);
+  if (reading.layers) assert.ok(reading.layers.width >= 44 && reading.layers.height >= 44, `${tag}: Layers keeps its 44px target`);
+}
+
+test("the open compact finder never covers the map credit, whatever the basemap credit's height", async (t) => {
+  const viewports = [[320, 568], [390, 844], [430, 932], [768, 1024], [390, 560], [320, 480], [768, 600]];
+  for (const [width, height] of viewports) {
+    for (const carto of [false, true]) {
+      const tag = `${width}x${height} ${carto ? "OSM+CARTO" : "OSM"}`;
+      const { page, context } = await creditPage({ viewport: { width, height }, carto });
+      await track(context, t);
+      await page.waitForTimeout(300);
+      const closed = await readCredit(page);
+      assert.equal(closed.creditHit, true, `${tag}: the credit is operable before search opens`);
+      await page.locator("#geoSearchToggle").click();
+      await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.open === "true");
+      const open = await readCredit(page);
+      assertCreditClear(open, tag);
+      assert.equal(open.credit.top, closed.credit.top, `${tag}: opening search does not move the credit`);
+      if (carto) {
+        assert.deepEqual(open.links.map((link) => link.name), ["OpenStreetMap", "CARTO"], `${tag}: both required credits are present`);
+        assert.ok(open.links.every((link) => link.href.startsWith("https://")), `${tag}: credit links are real`);
+      } else {
+        assert.deepEqual(open.links.map((link) => link.name), ["OpenStreetMap"], `${tag}: the OSM credit is present`);
+      }
+      // A taller credit (switching to the Esri basemap while search is open) moves the finder, not the credit.
+      await page.evaluate(() => { const select = document.querySelector("#basemapSelect"); select.value = "satellite"; select.dispatchEvent(new Event("change")); });
+      await page.waitForFunction(() => /Esri/.test(document.querySelector(".leaflet-control-attribution").textContent));
+      await page.waitForFunction(() => {
+        const credit = document.querySelector(".leaflet-control-attribution").getBoundingClientRect();
+        return document.querySelector("#geoSearchPanel").getBoundingClientRect().top >= credit.bottom;
+      });
+      assertCreditClear(await readCredit(page), `${tag} -> Esri`);
+    }
+  }
+});
+
+test("the map credit stays clear in Spanish and in Dark, and while the finder holds results", async (t) => {
+  for (const [language, colorScheme] of [["es", "light"], ["en", "dark"], ["es", "dark"]]) {
+    const { page, context } = await creditPage({ viewport: { width: 390, height: 844 }, language, colorScheme, carto: true });
+    await track(context, t);
+    await page.locator("#geoSearchToggle").click();
+    await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.open === "true");
+    await page.locator("#geoSearchQuery").fill("Palacio");
+    await page.waitForFunction(() => document.querySelectorAll("#geoSearchResults button").length > 0);
+    assertCreditClear(await readCredit(page), `${language} ${colorScheme}`);
+    // After dismissal nothing lingers over the credit.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.open === "false");
+    assert.equal((await readCredit(page)).creditHit, true, `${language} ${colorScheme}: the credit is operable after dismissal`);
+  }
+});

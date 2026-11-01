@@ -1967,7 +1967,11 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
 /* Tablet and phone: the finder spans the available width below the header so no
    result is clipped and no code wraps mid-identifier. */
 @media(max-width:850px){
-  .geo-search{top:calc(var(--header-chrome-top) + 10px);left:calc(10px + var(--safe-left));right:calc(10px + var(--safe-right));width:auto;padding:var(--s-2);max-height:calc(100dvh - var(--header-chrome-top) - 20px - var(--safe-bottom))}
+  /* At this width the map credit hangs in the right column under the header and
+     zoom control (js/app.js keeps --map-credit-bottom at its real lower edge). The
+     finder must not cover it, so it starts beneath it: legal attribution has to
+     stay visible and its links operable while search is open. */
+  .geo-search{--geo-search-top:max(calc(var(--header-chrome-top) + 10px),calc(var(--map-credit-bottom,0px) + var(--s-2)));top:var(--geo-search-top);left:calc(10px + var(--safe-left));right:calc(10px + var(--safe-right));width:auto;padding:var(--s-2);max-height:calc(100dvh - var(--geo-search-top) - 10px - var(--safe-bottom))}
 }
 @media(max-width:560px){
   /* The Layers control is a 44px map control on the row 10px below the header.
@@ -1977,7 +1981,7 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
      header's stacking context (z 1100), so its own z-index never rose above the
      sibling button (z 1101). Clearing the row removes the overlap at every
      width, label length and language without touching either z-index. */
-  .geo-search{top:calc(var(--header-chrome-top) + 10px + 44px + var(--s-2));max-height:calc(100dvh - var(--header-chrome-top) - 10px - 44px - var(--s-2) - 10px - var(--safe-bottom))}
+  .geo-search{--geo-search-top:max(calc(var(--header-chrome-top) + 10px + 44px + var(--s-2)),calc(var(--map-credit-bottom,0px) + var(--s-2)))}
 }
 /* The narrow header already stacks brand and tools on two 44px rows. The finder
    keeps its 44px target there but drops its text label, exactly as the guided
