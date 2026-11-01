@@ -2386,6 +2386,34 @@ function renderParkContext() {
   parkPoints.forEach(addParkContextMarker);
 }
 
+// Cluster copy follows the K4 shell dictionary (EN source, ES translation) and is
+// rebuilt in place on a language switch (refreshClusterCopy) so an open map keeps
+// its markers and focus. The accommodation sub-filter label is a legacy-catalogue
+// phrase (data-label on the <option>), so it goes through the same ES catalogue.
+function clusterCategoryLabel(type) {
+  if (type === "stay" && stayKindFilter !== "all") {
+    const label = stayFilterLabel();
+    return shellLanguage() === "es" ? localizeCopyEs(label) : label;
+  }
+  return shellT(`layer.${type}`);
+}
+function clusterCopy(type, count) {
+  const label = clusterCategoryLabel(type);
+  return {
+    title: `${count} ${label}`,
+    note: shellT("map.clusterNote"),
+    name: shellTemplate("map.clusterName", { count, label }),
+  };
+}
+function refreshClusterCopy() {
+  DENSE_LAYER_TYPES.forEach((type) => groups[type].eachLayer((m) => {
+    if (!m._cluster) return;
+    const copy = clusterCopy(type, m._cluster.count);
+    m.setTooltipContent(`<b>${copy.title}</b><br>${copy.note}`);
+    m.getElement()?.setAttribute("aria-label", copy.name);
+  }));
+}
+
 function addClusterMarker(type, cluster) {
   const count = cluster.count;
   const size = count >= 100 ? 46 : count >= 30 ? 42 : 38;
@@ -2401,15 +2429,23 @@ function addClusterMarker(type, cluster) {
   });
   m._cluster = cluster;
   m._p = { type, lat: cluster.lat, lon: cluster.lon };
-  const clusterLabel =
-    type === "stay" && stayKindFilter !== "all" ? stayFilterLabel() : LAYER_LABEL[type];
-  m.bindTooltip(
-    `<b>${count} ${clusterLabel}</b><br>Grouped for readability · zoom in to reveal individual points`,
-    { direction: "top", offset: [0, -8] }
-  );
-  m.on("click", () => {
+  const copy = clusterCopy(type, count);
+  m.bindTooltip(`<b>${copy.title}</b><br>${copy.note}`, { direction: "top", offset: [0, -8] });
+  // The divIcon has no text alternative of its own; name it for assistive tech
+  // (category + count + the zoom action the click/Enter performs).
+  m.on("add", () => m.getElement()?.setAttribute("aria-label", clusterCopy(type, count).name));
+  const zoomToCluster = () => {
     const nextZoom = Math.min(16, Math.max(map.getZoom() + 1, 15));
     map.setView([cluster.lat, cluster.lon], nextZoom, { animate: true });
+  };
+  m.on("click", zoomToCluster);
+  // Leaflet 1.9 maps Enter to click only for popups, so a focused cluster
+  // (keyboard: true) would otherwise be a dead tab stop.
+  m.on("keypress", (e) => {
+    const key = e.originalEvent;
+    if (key.key !== "Enter" && key.key !== " ") return;
+    key.preventDefault();
+    zoomToCluster();
   });
   m.addTo(groups[type]);
   return m;
@@ -5965,6 +6001,7 @@ document.getElementById("languageSelect").onchange = (event) => {
   renderGeoSearch();
   if (document.getElementById("evidenceDrawer").open) renderDrawerBody();
   applyCopyLanguage();
+  refreshClusterCopy();
   k11ApplyCopy();
   k11ScheduleUrlCommit();
 };
