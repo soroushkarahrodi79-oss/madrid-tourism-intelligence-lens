@@ -2407,9 +2407,26 @@ function addClusterMarker(type, cluster) {
     `<b>${count} ${clusterLabel}</b><br>Grouped for readability · zoom in to reveal individual points`,
     { direction: "top", offset: [0, -8] }
   );
-  m.on("click", () => {
+  // The divIcon has no text alternative of its own; name it for assistive tech
+  // (category + count + the zoom action the click/Enter performs).
+  m.on("add", () => {
+    m.getElement()?.setAttribute(
+      "aria-label",
+      `${count} ${clusterLabel}, grouped. Activate to zoom in and reveal individual points.`
+    );
+  });
+  const zoomToCluster = () => {
     const nextZoom = Math.min(16, Math.max(map.getZoom() + 1, 15));
     map.setView([cluster.lat, cluster.lon], nextZoom, { animate: true });
+  };
+  m.on("click", zoomToCluster);
+  // Leaflet 1.9 maps Enter to click only for popups, so a focused cluster
+  // (keyboard: true) would otherwise be a dead tab stop.
+  m.on("keypress", (e) => {
+    const key = e.originalEvent;
+    if (key.key !== "Enter" && key.key !== " ") return;
+    key.preventDefault();
+    zoomToCluster();
   });
   m.addTo(groups[type]);
   return m;

@@ -1,0 +1,22 @@
+/* UX-V1 #149 — scratch candidates. NOT loaded by the product; injected by
+   experiment.mjs. Scoped by html[data-cand] so one page can switch candidates. */
+html[data-cand]{--cs-light:#fff;--ce-light:#3b4a5c;--ch-light:rgba(255,255,255,.92);--ct-light:#16222f;
+  --cs-dark:rgba(12,22,36,.95);--ce-dark:#d6e2f0;--ch-dark:rgba(4,8,14,.8);--ct-dark:#fff}
+html[data-cand][data-appearance="light"]{--cs:var(--cs-light);--ce:var(--ce-light);--ch:var(--ch-light);--ct:var(--ct-light)}
+html[data-cand][data-appearance="dark"]{--cs:var(--cs-dark);--ce:var(--ce-dark);--ch:var(--ch-dark);--ct:var(--ct-dark)}
+html[data-cand] .poi-cluster{background:var(--cs);border:2px solid var(--ce);color:var(--ct);
+  box-shadow:0 0 0 1.5px var(--ch),inset 0 0 0 2px color-mix(in srgb,currentColor 0%,transparent);backdrop-filter:none}
+html[data-cand] .poi-cluster span{color:var(--ct)}
+html[data-cand] .cluster-stay{--cat:#3da8ff}
+html[data-cand] .cluster-bike{--cat:#54e2b5}
+html[data-cand] .poi-cluster{box-shadow:0 0 0 1.5px var(--ch),inset 0 0 0 2.5px var(--cat)}
+html[data-cand] .poi-cluster:hover{transform:none;box-shadow:0 0 0 1.5px var(--ch),0 0 0 3.5px var(--ce),inset 0 0 0 2.5px var(--cat)}
+/* B: glyph over count (pure CSS, no extra DOM) */
+html[data-cand="B"] .poi-cluster{flex-direction:column;gap:1px}
+html[data-cand="B"] .poi-cluster::before{content:"";width:11px;height:11px;background:var(--ct);
+  -webkit-mask:var(--glyph) center/contain no-repeat;mask:var(--glyph) center/contain no-repeat}
+html[data-cand="B"] .cluster-stay{--glyph:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 15V3.2L8 1l5 2.2V15h-3.6v-3.6H6.6V15z M5.3 4.6h1.8v1.8H5.3z M8.9 4.6h1.8v1.8H8.9z M5.3 7.6h1.8v1.8H5.3z M8.9 7.6h1.8v1.8H8.9z'/%3E%3C/svg%3E")}
+html[data-cand="B"] .cluster-bike{--glyph:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.7' stroke-linejoin='round' stroke-linecap='round'%3E%3Ccircle cx='3.8' cy='11' r='2.8'/%3E%3Ccircle cx='12.2' cy='11' r='2.8'/%3E%3Cpath d='M3.8 11L6.8 5.2h4L12.2 11M6.8 5.2L8.4 11h-4.6M5.8 3.4h2'/%3E%3C/g%3E%3C/svg%3E")}
+/* C: shape differentiation */
+html[data-cand="C"] .cluster-bike{border-radius:28%}
+html[data-cand="C"] .cluster-bike,html[data-cand="C"] .cluster-stay{}

@@ -126,6 +126,14 @@
   --map-label-edge:rgba(178,203,228,.42);
   --map-label-shadow:0 6px 18px rgba(0,0,0,.45);
   --map-label-b-edge:rgba(67,215,255,.45);
+  /* UX-V1 (#149) cluster chip. Surface/edge/text resolve per appearance; the
+     outer halo is the opposite tone of the edge so the chip is findable on
+     light, dark and satellite basemaps alike. Category colour stays the
+     inset ring only; identity is carried by the glyph, not by hue. */
+  --map-cluster-surface:rgba(12,22,36,.95);
+  --map-cluster-edge:#d6e2f0;
+  --map-cluster-halo:rgba(4,8,14,.8);
+  --map-cluster-text:#fff;
   --map-label-b-text:var(--ta3-lens-b-text);
   /* Reserved for future planning geometry. The neutral family is deliberately
      separate from Lens A/B and carries no order, progress or judgement. */
@@ -984,12 +992,15 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .marker-center{width:18px;height:18px;border-radius:50%;border:2px solid currentColor;background:rgba(8,16,27,.75);box-shadow:0 0 0 5px color-mix(in srgb,currentColor 15%,transparent),0 3px 15px rgba(0,0,0,.5)}
 .marker-a{color:var(--ta3-map-center-a)}.marker-b{color:var(--ta3-map-center-b)}
 .poi-cluster-icon{background:transparent!important;border:0!important}
-.poi-cluster{width:100%;height:100%;display:flex;align-items:center;justify-content:center;border:2px solid currentColor;border-radius:50%;background:rgba(8,16,27,.92);box-shadow:0 0 0 5px color-mix(in srgb,currentColor 14%,transparent),0 7px 20px rgba(0,0,0,.4);font-size:var(--t-meta);font-weight:800;letter-spacing:-.02em;color:white;backdrop-filter:blur(6px);transition:transform .15s ease,box-shadow .15s ease}
-.poi-cluster:hover{transform:scale(1.06);box-shadow:0 0 0 7px color-mix(in srgb,currentColor 16%,transparent),0 9px 24px rgba(0,0,0,.44)}
-.poi-cluster span{line-height:1;color:var(--text)}
+.poi-cluster{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid var(--map-cluster-edge);border-radius:50%;background:var(--map-cluster-surface);box-shadow:0 0 0 1.5px var(--map-cluster-halo),inset 0 0 0 2.5px var(--cluster-cat);font-size:var(--t-meta);font-weight:800;letter-spacing:-.02em;color:var(--map-cluster-text);transition:transform .15s ease,box-shadow .15s ease}
+.poi-cluster::before{content:"";width:11px;height:11px;background:var(--map-cluster-text);-webkit-mask:var(--cluster-glyph) center/contain no-repeat;mask:var(--cluster-glyph) center/contain no-repeat}
+.poi-cluster:hover{transform:scale(1.06);box-shadow:0 0 0 1.5px var(--map-cluster-halo),0 0 0 3.5px var(--map-cluster-edge),inset 0 0 0 2.5px var(--cluster-cat)}
+.poi-cluster span{line-height:1;color:var(--map-cluster-text)}
 .poi-cluster-icon.outside-lens .poi-cluster{border-style:dashed}
-.cluster-stay{color:var(--stay)}
-.cluster-bike{color:var(--bike)}
+.cluster-stay{--cluster-cat:var(--stay);--cluster-glyph:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 15V3.2L8 1l5 2.2V15h-3.6v-3.6H6.6V15z M5.3 4.6h1.8v1.8H5.3z M8.9 4.6h1.8v1.8H8.9z M5.3 7.6h1.8v1.8H5.3z M8.9 7.6h1.8v1.8H8.9z'/%3E%3C/svg%3E")}
+.cluster-bike{--cluster-cat:var(--bike);--cluster-glyph:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.7' stroke-linejoin='round' stroke-linecap='round'%3E%3Ccircle cx='3.8' cy='11' r='2.8'/%3E%3Ccircle cx='12.2' cy='11' r='2.8'/%3E%3Cpath d='M3.8 11L6.8 5.2h4L12.2 11M6.8 5.2L8.4 11h-4.6M5.8 3.4h2'/%3E%3C/g%3E%3C/svg%3E")}
+.poi-cluster-icon:focus-visible .poi-cluster,.poi-cluster-icon:focus .poi-cluster{outline:3px solid var(--map-cluster-edge);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.poi-cluster{transition:none}.poi-cluster:hover{transform:none}}
 .badge{display:inline-block;padding:var(--s-1) var(--s-2);border-radius:var(--r-small);font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;margin-left:var(--s-1)}
 .badge.model{background:var(--ta3-badge-model-background);color:var(--ta3-badge-model-text);border:1px solid var(--ta3-badge-model-border)}
 .badge.snapshot{background:var(--ta3-badge-snapshot-background);color:var(--ta3-badge-snapshot-text);border:1px solid var(--ta3-badge-snapshot-border)}
@@ -1566,6 +1577,10 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
   --map-label-edge:#74808e;
   --map-label-shadow:0 6px 18px rgba(16,24,34,.16);
   --map-label-b-edge:#00718f;
+  --map-cluster-surface:#fff;
+  --map-cluster-edge:#3b4a5c;
+  --map-cluster-halo:rgba(255,255,255,.92);
+  --map-cluster-text:#16222f;
   --map-label-b-text:#00718f;
   --ta3-badge-neutral-text:#16222f;
   --ta3-badge-neutral-background:#f2f4f7;
@@ -1603,7 +1618,6 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 
 /* Light colours are assigned by semantic role. Avoid descendant-wide colour
    floors: they erase consumer-owned A/B, availability and withholding states. */
-:root[data-appearance="light"] :where(.poi-cluster,.poi-cluster *){color:#fff}
 :root[data-appearance="light"] .live{color:#17663f;border-color:#6da88b;background:#edf8f2}
 :root[data-appearance="light"] .live i{background:#17663f;box-shadow:none}
 :root[data-appearance="light"] .live.mixed{color:#6b450b;border-color:#b68a4c;background:#fff8ec}
