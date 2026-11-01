@@ -112,6 +112,7 @@ async function analyse(page, label) {
     return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, r: r.width / 2, spanTop: sp.top, spanH: sp.height, cls: [...c.classList].find((x) => x.startsWith("cluster-")),
       textColor: getComputedStyle(c.querySelector("span")).color, glyphColor: s.color, hasGlyph: getComputedStyle(c, "::before").content !== "none" && getComputedStyle(c, "::before").content !== "normal",
       outside: c.parentElement.classList.contains("outside-lens"), n: c.textContent.trim(),
+      cid: (() => { const l = Object.values(map._layers).find((x) => x._icon && x._icon === c.closest(".poi-cluster-icon")); return l && l._cluster ? `${l._p.type}:${l._cluster.lat.toFixed(5)},${l._cluster.lon.toFixed(5)}:${l._cluster.count}` : null; })(),
       edgeCol: s.borderTopColor, fillCol: s.backgroundColor, op: parseFloat(getComputedStyle(c.parentElement).opacity) };
   }));
   const s1 = await page.screenshot({ type: "png" });
@@ -139,8 +140,9 @@ async function analyse(page, label) {
     }
     const pearson = (a, b) => { const n = a.length; const ma = a.reduce((s, x) => s + x, 0) / n, mb = b.reduce((s, x) => s + x, 0) / n; let sab = 0, saa = 0, sbb = 0; for (let k = 0; k < n; k++) { sab += (a[k] - ma) * (b[k] - mb); saa += (a[k] - ma) ** 2; sbb += (b[k] - mb) ** 2; } return saa && sbb ? sab / Math.sqrt(saa * sbb) : 0; };
     const mk = () => ({ multiInk: [], multi: [], bgL: [], gOwn: [], gOther: [], gOK: [], haloB: [], borderB: [], halo: [], border: [], fill: [], haloVsBorder: [], count: [], glyphIdeal: [], glyphCover: [], glyphMax: [], union: [] });
-    const accs = { inLens: mk(), outsideLens: mk() }; const nchips = { inLens: 0, outsideLens: 0 }; let nOcc = 0;
+    const perChip = []; const accs = { inLens: mk(), outsideLens: mk() }; const nchips = { inLens: 0, outsideLens: 0 }; let nOcc = 0;
     chips.forEach((c, i) => {
+      const loc = { multi: [], halo: [], border: [], ink: [] };
       const acc = accs[c.outside ? "outsideLens" : "inLens"]; nchips[c.outside ? "outsideLens" : "inLens"]++;
       const ringH = [], ringB = [], ringHB = [], ringHBand = [], ringBBand = [], inkFlag = [];
       // Band sampling tolerates +-1px rasterisation/rounding error of a 1.5-2px ring: strongest pixel inside the component's own radial band.
@@ -160,12 +162,15 @@ async function analyse(page, label) {
           const gapC = [0, 1, 2].map((k) => op * (f.a * f.rgb[k] + (1 - f.a) * bg[k]) + (1 - op) * bg[k]);
           const d2 = (u, v2) => Math.hypot(u[0] - v2[0], u[1] - v2[1], u[2] - v2[2]);
           inkFlag.push(!c.outside || d2(border, inkC) < d2(border, gapC)); }
-        { const hb = band(0.2, 1.3, bg), bb = band(-1.9, -0.4, bg); acc.multi.push(Math.max(hb, bb)); if (inkFlag[inkFlag.length - 1]) acc.multiInk.push(Math.max(hb, bb)); acc.bgL.push(L(bg)); }
+        { const hb = band(0.2, 1.3, bg), bb = band(-1.9, -0.4, bg); loc.multi.push(Math.max(hb, bb)); loc.halo.push(hb); loc.border.push(bb); loc.ink.push(inkFlag[inkFlag.length - 1]); acc.multi.push(Math.max(hb, bb)); if (inkFlag[inkFlag.length - 1]) acc.multiInk.push(Math.max(hb, bb)); acc.bgL.push(L(bg)); }
         ringHBand.push(band(0.2, 1.3, bg)); ringBBand.push(band(-1.9, -0.4, bg)); ringH.push(CR(halo, bg)); ringB.push(CR(border, bg)); ringHB.push(CR(halo, border));
       }
       // Out-of-Lens chips have a DASHED border (a deliberate structural cue): only the
       // inked half of the ring carries the border, so use the inked samples (>= chip median).
       const ink = (arr) => (c.outside ? arr.filter((_, k) => inkFlag[k]) : arr);
+      { const pct = (a) => a.length ? +(100 * a.filter((x) => x < 3).length / a.length).toFixed(1) : null; const inkOnly = (a) => a.filter((_, k) => loc.ink[k]);
+        perChip.push({ cid: c.cid, state: c.outside ? "outsideLens" : "inLens", cx: Math.round(c.cx), cy: Math.round(c.cy), samples: loc.multi.length, inkSamples: loc.ink.filter(Boolean).length,
+          multi_below3_pct: pct(loc.multi), multi_ink_below3_pct: pct(inkOnly(loc.multi)), halo_below3_pct: pct(loc.halo), border_ink_below3_pct: pct(inkOnly(loc.border)), gap_fraction_pct: loc.ink.length ? +(100 * loc.ink.filter((x) => !x).length / loc.ink.length).toFixed(1) : null }); }
       acc.haloB.push(...ringHBand); acc.borderB.push(...ink(ringBBand)); acc.halo.push(...ringH); acc.border.push(...ink(ringB)); acc.haloVsBorder.push(...ringHB);
       for (let k = 0; k < ringH.length; k++) acc.union.push(Math.max(ringH[k], ringB[k] ?? 0));
       if (chips.some((o, j) => j !== i && Math.hypot(o.cx - c.cx, o.cy - c.cy) < o.r + c.r)) { nOcc++; return; } // content occluded by a neighbouring chip (pre-existing overlap)
@@ -209,7 +214,7 @@ async function analyse(page, label) {
     const rep = (acc, n) => ({ chips: n, multi_tone_band_vs_bg_PROPOSED_CRITERION_NOT_AUTOPASS: sum(acc.multi), multi_tone_band_inked_samples_only: sum(acc.multiInk), bg_ring_feasibility: feas(acc.bgL), glyph_recognition_11px: { n: acc.gOK.length, own_mask_corr_mean: mean(acc.gOwn), other_mask_corr_mean: mean(acc.gOther), correct_pct: acc.gOK.length ? +(100 * acc.gOK.reduce((s, x) => s + x, 0) / acc.gOK.length).toFixed(1) : null }, halo_vs_bg: sum(acc.halo), halo_band_vs_bg: sum(acc.haloB), border_band_vs_bg: sum(acc.borderB), border_vs_bg: sum(acc.border), fill_vs_bg: sum(acc.fill), halo_vs_border: sum(acc.haloVsBorder),
       union_halo_or_border_vs_bg_NOT_A_WCAG_VERDICT: sum(acc.union), count_rendered_core_vs_fill: sum(acc.count), glyph_ideal_vs_fill: sum(acc.glyphIdeal),
       glyph_rendered_max_vs_fill: sum(acc.glyphMax), glyph_pixel_coverage_ge3_median_pct: acc.glyphCover.length ? +(100 * q(acc.glyphCover, 0.5)).toFixed(1) : null });
-    return { chips: chips.length, chipsWithContentOccludedByNeighbour: nOcc, inLens: rep(accs.inLens, nchips.inLens), outsideLens: rep(accs.outsideLens, nchips.outsideLens) };
+    return { perChip, chips: chips.length, chipsWithContentOccludedByNeighbour: nOcc, inLens: rep(accs.inLens, nchips.inLens), outsideLens: rep(accs.outsideLens, nchips.outsideLens) };
   }, { a: s1.toString("base64"), b: s2.toString("base64"), chips });
   return { stats, s1 };
 }

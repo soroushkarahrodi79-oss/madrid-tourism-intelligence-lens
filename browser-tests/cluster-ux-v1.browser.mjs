@@ -22,7 +22,7 @@ const FIXTURE = JSON.stringify((() => {
   const layers = { stay: [], bike: [] };
   for (const [type, lat0] of [["stay", 40.4], ["bike", 40.412]]) {
     for (let i = 0; i < 4; i++) for (let k = 0; k < 3; k++) {
-      layers[type].push({ id: `${type}-${i}-${k}`, name: `Fixture ${type} ${i}${k}`, lat: lat0 + k * 0.0006, lon: -3.72 + i * 0.012 + k * 0.0006 });
+      layers[type].push({ id: `${type}-${i}-${k}`, name: `Fixture ${type} ${i}${k}`, lat: lat0 + k * 0.0006, lon: -3.72 + i * 0.012 + k * 0.0006, ...(type === "stay" ? { stayKind: i % 2 ? "hostel" : "hotel" } : {}) });
     }
   }
   return { layers };
@@ -38,7 +38,7 @@ await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const { port } = server.address();
 const browser = await engine.launch({ headless: true });
 
-async function open(appearance, { reducedMotion = "no-preference" } = {}) {
+async function open(appearance, { reducedMotion = "no-preference", query = "" } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1200, height: 860 }, colorScheme: appearance, reducedMotion });
   const page = await ctx.newPage();
   page.setDefaultTimeout(60000);
@@ -52,7 +52,7 @@ async function open(appearance, { reducedMotion = "no-preference" } = {}) {
     if (url.pathname.endsWith("/data/runtime_poi.json")) return route.fulfill({ contentType: "application/json", body: FIXTURE });
     return route.continue();
   });
-  await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "load" });
+  await page.goto(`http://127.0.0.1:${port}/${query}`, { waitUntil: "load" });
   await page.waitForFunction(() => typeof map !== "undefined");
   await page.evaluate(() => { map.setView([40.408, -3.70], 14, { animate: false }); return 0; });
   await page.waitForFunction(() => document.querySelectorAll(".cluster-stay").length > 0 && document.querySelectorAll(".cluster-bike").length > 0);
@@ -192,17 +192,76 @@ for (const appearance of ["light", "dark"]) {
 test("ES: count and glyph are not clipped and chip geometry matches EN", async () => {
   const geo = {};
   for (const lang of ["en", "es"]) {
-    const { page, ctx } = await open("light");
-    if (lang === "es") {
-      await page.evaluate(() => { const s = document.getElementById("languageSelect"); s.value = "es"; s.dispatchEvent(new Event("change", { bubbles: true })); return 0; });
-      await page.waitForTimeout(600);
-    }
+    const { page, ctx } = await open("light", { query: `?lang=${lang}` });
     geo[lang] = await page.evaluate(() => [...document.querySelectorAll(".poi-cluster")].map((c) => { const sp = c.querySelector("span"); return { w: c.offsetWidth, clipped: sp.scrollWidth > sp.clientWidth + 1 || sp.getBoundingClientRect().width > c.clientWidth }; }));
     assert.ok(geo[lang].length > 0);
     assert.ok(geo[lang].every((g) => !g.clipped), `${lang}: count clipped`);
     await ctx.close();
   }
   assert.deepEqual(geo.en.map((g) => g.w), geo.es.map((g) => g.w));
+});
+
+// i18n: cluster accessible names and tooltips follow the shell dictionary (K4), at first render AND on switch.
+const NAME = {
+  en: { bike: /^([0-9]+) BiciMAD, grouped[.] Activate to zoom in and reveal individual points[.]$/, stay: /^([0-9]+) Hotels & stays, grouped[.] Activate to zoom in and reveal individual points[.]$/, note: "Grouped for readability · zoom in to reveal individual points" },
+  es: { bike: /^([0-9]+) BiciMAD, agrupados[.] Activa para acercar y ver los puntos individuales[.]$/, stay: /^([0-9]+) Hoteles y alojamientos, agrupados[.] Activa para acercar y ver los puntos individuales[.]$/, note: "Agrupados para facilitar la lectura · acerca el mapa para ver los puntos individuales" },
+};
+async function clusterNames(page) {
+  return page.evaluate(() => {
+    const pick = (t) => { const icon = document.querySelector(`.cluster-${t}`).parentElement; return { label: icon.getAttribute("aria-label"), count: icon.textContent.trim() }; };
+    return { bike: pick("bike"), stay: pick("stay") };
+  });
+}
+async function tooltipText(page, type) {
+  await page.hover(`.poi-cluster-icon:has(.cluster-${type})`, { force: true });
+  // The cluster tooltip is the one with a bold "<count> <category>" title and a second line (note).
+  await page.waitForFunction(() => [...document.querySelectorAll(".leaflet-tooltip")].some((e) => e.querySelector("b") && e.querySelector("br") && /[0-9]/.test(e.querySelector("b").textContent)));
+  const text = await page.evaluate(() => [...document.querySelectorAll(".leaflet-tooltip")].map((e) => e.innerText).join(" | "));
+  await page.mouse.move(2, 2);
+  return text;
+}
+for (const lang of ["en", "es"]) {
+  test(`i18n: initial ${lang.toUpperCase()} render names and tooltips clusters in that language`, async () => {
+    const { page, ctx, errors } = await open("light", { query: `?lang=${lang}` });
+    const n = await clusterNames(page);
+    assert.match(n.bike.label, NAME[lang].bike);
+    assert.match(n.stay.label, NAME[lang].stay);
+    const tip = await tooltipText(page, "bike");
+    assert.ok(tip.includes(NAME[lang].note), `tooltip: ${tip}`);
+    assert.ok(tip.includes("BiciMAD"));
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  });
+}
+
+test("i18n: switching language rewrites accessible names and tooltips in place (same markers, focus kept)", async () => {
+  const { page, ctx, errors } = await open("light");
+  await page.evaluate(() => { window.__iconBefore = document.querySelector(".cluster-bike").parentElement; });
+  await page.focus(".poi-cluster-icon:has(.cluster-bike)");
+  for (const lang of ["es", "en", "es"]) {
+    await page.selectOption("#languageSelect", lang);
+    await page.waitForFunction((l) => document.documentElement.lang === l, lang);
+    const n = await clusterNames(page);
+    assert.match(n.bike.label, NAME[lang].bike, `bike after → ${lang}`);
+    assert.match(n.stay.label, NAME[lang].stay, `stay after → ${lang}`);
+    const kept = await page.evaluate(() => ({ same: window.__iconBefore === document.querySelector(".cluster-bike").parentElement, focused: document.activeElement === window.__iconBefore }));
+    assert.equal(kept.same, true, "markers must not be rebuilt by a language switch");
+    assert.equal(kept.focused, true, "keyboard focus must survive a language switch");
+    assert.ok((await tooltipText(page, "stay")).includes(NAME[lang].note));
+  }
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("i18n: accommodation sub-filter label is localised in the cluster name (ES) and rebuilt names stay localised", async () => {
+  const { page, ctx } = await open("light", { query: "?lang=es" });
+  await page.selectOption("#stayKindFilter", "hostel");
+  await page.waitForFunction(() => /^[0-9]+ Albergues, agrupados/.test(document.querySelector(".cluster-stay")?.parentElement.getAttribute("aria-label") || ""));
+  await page.selectOption("#stayKindFilter", "hotel");
+  await page.waitForFunction(() => /^[0-9]+ Hoteles, agrupados/.test(document.querySelector(".cluster-stay")?.parentElement.getAttribute("aria-label") || ""));
+  await page.selectOption("#languageSelect", "en");
+  await page.waitForFunction(() => /^[0-9]+ Hotels, grouped/.test(document.querySelector(".cluster-stay")?.parentElement.getAttribute("aria-label") || ""));
+  await ctx.close();
 });
 
 test("reduced motion: no chip transition", async () => {
