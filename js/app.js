@@ -2477,9 +2477,41 @@ function rebuildDenseLayer(type) {
   });
 }
 
+// Keyboard focus lifecycle (#149 N1). Every zoomend rebuilds the clusters, which destroys the focused marker and would
+// drop focus to <body>. When a cluster has KEYBOARD focus (:focus-visible) the rebuild hands focus to the nearest
+// surviving cluster (same category first, within CLUSTER_FOCUS_RADIUS_PX of where the old one was), otherwise to the
+// map container (e.g. z16, where clustering is off). A cluster focused by a pointer is not :focus-visible, so mouse
+// behaviour is unchanged; focus is never left on a detached node.
+const CLUSTER_FOCUS_RADIUS_PX = 120;
+function captureKeyboardClusterFocus() {
+  const active = document.activeElement;
+  if (!active || !active.classList || !active.classList.contains("poi-cluster-icon") || !active.matches(":focus-visible")) return null;
+  let origin = null;
+  DENSE_LAYER_TYPES.forEach((type) => groups[type].eachLayer((m) => {
+    if (m._cluster && m.getElement() === active) origin = { type, latlng: L.latLng(m._cluster.lat, m._cluster.lon) };
+  }));
+  return origin;
+}
+function restoreKeyboardClusterFocus(origin) {
+  if (!origin) return;
+  const from = map.latLngToContainerPoint(origin.latlng);
+  const candidates = [];
+  DENSE_LAYER_TYPES.forEach((type) => groups[type].eachLayer((m) => {
+    const el = m._cluster && m.getElement();
+    if (!el) return;
+    const distance = from.distanceTo(map.latLngToContainerPoint(m.getLatLng()));
+    if (distance <= CLUSTER_FOCUS_RADIUS_PX) candidates.push({ el, distance, otherType: type !== origin.type });
+  }));
+  candidates.sort((a, b) => Number(a.otherType) - Number(b.otherType) || a.distance - b.distance);
+  const target = candidates.length ? candidates[0].el : map.getContainer();
+  target.focus({ preventScroll: true });
+}
+
 function rebuildDenseLayers() {
+  const keyboardFocus = captureKeyboardClusterFocus();
   DENSE_LAYER_TYPES.forEach(rebuildDenseLayer);
   shadeMarkersOutsideActiveLens();
+  restoreKeyboardClusterFocus(keyboardFocus);
 }
 
 function renderPoiLayers() {

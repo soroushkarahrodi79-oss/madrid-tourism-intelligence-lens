@@ -1001,6 +1001,8 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .cluster-bike{--cluster-cat:var(--bike);--cluster-glyph:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.7' stroke-linejoin='round' stroke-linecap='round'%3E%3Ccircle cx='3.8' cy='11' r='2.8'/%3E%3Ccircle cx='12.2' cy='11' r='2.8'/%3E%3Cpath d='M3.8 11L6.8 5.2h4L12.2 11M6.8 5.2L8.4 11h-4.6M5.8 3.4h2'/%3E%3C/g%3E%3C/svg%3E")}
 .poi-cluster-icon:focus-visible .poi-cluster,.poi-cluster-icon:focus .poi-cluster{outline:3px solid var(--map-cluster-edge);outline-offset:3px}
 @media(prefers-reduced-motion:reduce){.poi-cluster{transition:none}.poi-cluster:hover{transform:none}}
+/* #149 N2: the category glyph is a CSS mask painted with a background colour, which forced-colors flattens to Canvas (invisible). Repaint it with a system colour; forced-color adjustment stays on for everything else. */
+@media(forced-colors:active){.poi-cluster::before{background-color:CanvasText}}
 .badge{display:inline-block;padding:var(--s-1) var(--s-2);border-radius:var(--r-small);font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;margin-left:var(--s-1)}
 .badge.model{background:var(--ta3-badge-model-background);color:var(--ta3-badge-model-text);border:1px solid var(--ta3-badge-model-border)}
 .badge.snapshot{background:var(--ta3-badge-snapshot-background);color:var(--ta3-badge-snapshot-text);border:1px solid var(--ta3-badge-snapshot-border)}
