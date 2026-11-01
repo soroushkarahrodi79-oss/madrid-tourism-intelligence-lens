@@ -196,6 +196,12 @@ test("the search resolver is kept off the initial critical path", async (t) => {
   // ready surface, with the real universes indexed.
   if (await page.locator("#geoSearchPanel").isHidden()) await page.locator("#geoSearchToggle").click();
   await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.state === "ready");
+  // "ready" is reached as soon as ONE universe is indexed; the counts asserted below
+  // cover both, so wait until neither official artifact is still in flight.
+  await page.waitForFunction(() => {
+    const status = window.__GEO_SEARCH_TEST__.snapshot().universeStatus;
+    return status.administrative !== "loading" && status.ambito !== "loading";
+  });
   const counts = await page.evaluate(() => window.__GEO_SEARCH_TEST__.snapshot().counts);
   assert.deepEqual(counts, { total: 877, MUNICIPALITY: 1, DISTRICT: 21, BARRIO: 131, AMBITO: 724 });
 });
