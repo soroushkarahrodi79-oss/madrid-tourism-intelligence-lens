@@ -131,8 +131,8 @@
      light, dark and satellite basemaps alike. Category colour stays the
      inset ring only; identity is carried by the glyph, not by hue. */
   --map-cluster-surface:rgba(12,22,36,.95);
-  --map-cluster-edge:#d6e2f0;
-  --map-cluster-halo:rgba(4,8,14,.8);
+  --map-cluster-edge:#ffffff;
+  --map-cluster-halo:#04080e;
   --map-cluster-text:#fff;
   --map-label-b-text:var(--ta3-lens-b-text);
   /* Reserved for future planning geometry. The neutral family is deliberately
@@ -1578,8 +1578,8 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
   --map-label-shadow:0 6px 18px rgba(16,24,34,.16);
   --map-label-b-edge:#00718f;
   --map-cluster-surface:#fff;
-  --map-cluster-edge:#3b4a5c;
-  --map-cluster-halo:rgba(255,255,255,.92);
+  --map-cluster-edge:#0b1220;
+  --map-cluster-halo:#ffffff;
   --map-cluster-text:#16222f;
   --map-label-b-text:#00718f;
   --ta3-badge-neutral-text:#16222f;

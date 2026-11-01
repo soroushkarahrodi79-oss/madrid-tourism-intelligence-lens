@@ -1,0 +1,6 @@
+/* V1 — restrained dual-tone casing: a 1px outermost casing in the edge tone, outside the existing
+   opposite-tone halo. Ring order outward from the fill: border (edge tone) / halo (opposite) / casing (edge tone, 1px). */
+:root{--map-cluster-casing:rgba(255,255,255,.9)}
+:root[data-appearance="light"]{--map-cluster-casing:rgba(16,24,34,.9)}
+.poi-cluster{box-shadow:0 0 0 1.5px var(--map-cluster-halo),0 0 0 2.5px var(--map-cluster-casing),inset 0 0 0 2.5px var(--cluster-cat)}
+.poi-cluster:hover{box-shadow:0 0 0 1.5px var(--map-cluster-halo),0 0 0 2.5px var(--map-cluster-casing),0 0 0 4.5px var(--map-cluster-edge),inset 0 0 0 2.5px var(--cluster-cat)}

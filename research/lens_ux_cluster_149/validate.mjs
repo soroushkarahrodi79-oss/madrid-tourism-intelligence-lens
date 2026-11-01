@@ -39,6 +39,11 @@ const OUT = flag("out");
 const BASEMAPS = String(flag("basemaps", "satellite,light,dark")).split(",");
 const KEY = process.env.CARTO_BASEMAP_KEY || "";
 const ENGINE = flag("engine", "chromium");
+// --variant V1|V2|V3: append research/lens_ux_cluster_149/edge_variants/<name>.css to the intercepted AFTER app.css
+// (experiment only; production css/app.css is never edited by this flag). No flag = control (candidate B as shipped on the branch).
+const VARIANT = flag("variant", "control");
+const VARIANT_CSS = VARIANT === "control" ? "" : fs.readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "edge_variants", `${VARIANT}.css`), "utf8");
+const CROPS = flag("crops", null);
 const MATRIX = flag("matrix", "full"); // full | quick
 fs.mkdirSync(SHOTS, { recursive: true });
 
@@ -74,7 +79,7 @@ async function open(which, { vp, appearance, basemap, site, zoom, lang = "en" })
   if (PROD) {
     // Only these two responses are replaced, and only inside this browser context.
     if (which === "after") {
-      await page.route(/\/css\/app\.css(\?|$)/, (r) => r.fulfill({ contentType: "text/css", body: fs.readFileSync(path.join(ROOTS.after, "css/app.css")) }));
+      await page.route(/\/css\/app\.css(\?|$)/, (r) => r.fulfill({ contentType: "text/css", body: fs.readFileSync(path.join(ROOTS.after, "css/app.css"), "utf8") + "\n" + VARIANT_CSS }));
       await page.route(/\/js\/app\.js(\?|$)/, (r) => r.fulfill({ contentType: "text/javascript", body: fs.readFileSync(path.join(ROOTS.after, "js/app.js")) }));
     }
     page.on("response", async (r) => { if (/\/data\/runtime_poi\.json/.test(r.url())) { try { poiHash.v = createHash("sha256").update(await r.body()).digest("hex"); } catch (_) { /* ignore */ } } });
@@ -106,7 +111,8 @@ async function analyse(page, label) {
     const r = c.getBoundingClientRect(), sp = c.querySelector("span").getBoundingClientRect(), s = getComputedStyle(c);
     return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, r: r.width / 2, spanTop: sp.top, spanH: sp.height, cls: [...c.classList].find((x) => x.startsWith("cluster-")),
       textColor: getComputedStyle(c.querySelector("span")).color, glyphColor: s.color, hasGlyph: getComputedStyle(c, "::before").content !== "none" && getComputedStyle(c, "::before").content !== "normal",
-      outside: c.parentElement.classList.contains("outside-lens"), n: c.textContent.trim() };
+      outside: c.parentElement.classList.contains("outside-lens"), n: c.textContent.trim(),
+      edgeCol: s.borderTopColor, fillCol: s.backgroundColor, op: parseFloat(getComputedStyle(c.parentElement).opacity) };
   }));
   const s1 = await page.screenshot({ type: "png" });
   await page.addStyleTag({ content: ".poi-cluster-icon{visibility:hidden!important}" });
@@ -122,11 +128,21 @@ async function analyse(page, label) {
     const CR = (p, q) => { const x = L(p), y = L(q); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
     const parse = (s) => { const m = String(s).match(/rgba?\(([^)]+)\)/); return m[1].split(/[,\s/]+/).filter(Boolean).map(Number).slice(0, 3); };
     const inOther = (x, y, i) => chips.some((c, j) => j !== i && Math.hypot(x - c.cx, y - c.cy) < c.r + 5);
-    const mk = () => ({ haloB: [], borderB: [], halo: [], border: [], fill: [], haloVsBorder: [], count: [], glyphIdeal: [], glyphCover: [], glyphMax: [], union: [] });
+    // Ideal 11x11 glyph masks, rasterised by the browser from the very SVG the CSS mask uses (same 11px antialiasing).
+    const masks = {};
+    for (const cls of ["cluster-stay", "cluster-bike"]) {
+      const el = document.querySelector(".poi-cluster." + cls); if (!el) continue;
+      const m = getComputedStyle(el).getPropertyValue("--cluster-glyph").match(/url\("(.*)"\)/); if (!m) continue;
+      const img = new Image(); img.src = m[1]; try { await img.decode(); } catch (_) { continue; }
+      const cv = document.createElement("canvas"); cv.width = 11; cv.height = 11; const g = cv.getContext("2d", { willReadFrequently: true }); g.drawImage(img, 0, 0, 11, 11);
+      const d = g.getImageData(0, 0, 11, 11).data; masks[cls] = Array.from({ length: 121 }, (_, k) => d[k * 4 + 3] / 255);
+    }
+    const pearson = (a, b) => { const n = a.length; const ma = a.reduce((s, x) => s + x, 0) / n, mb = b.reduce((s, x) => s + x, 0) / n; let sab = 0, saa = 0, sbb = 0; for (let k = 0; k < n; k++) { sab += (a[k] - ma) * (b[k] - mb); saa += (a[k] - ma) ** 2; sbb += (b[k] - mb) ** 2; } return saa && sbb ? sab / Math.sqrt(saa * sbb) : 0; };
+    const mk = () => ({ multiInk: [], multi: [], bgL: [], gOwn: [], gOther: [], gOK: [], haloB: [], borderB: [], halo: [], border: [], fill: [], haloVsBorder: [], count: [], glyphIdeal: [], glyphCover: [], glyphMax: [], union: [] });
     const accs = { inLens: mk(), outsideLens: mk() }; const nchips = { inLens: 0, outsideLens: 0 }; let nOcc = 0;
     chips.forEach((c, i) => {
       const acc = accs[c.outside ? "outsideLens" : "inLens"]; nchips[c.outside ? "outsideLens" : "inLens"]++;
-      const ringH = [], ringB = [], ringHB = [], ringHBand = [], ringBBand = [];
+      const ringH = [], ringB = [], ringHB = [], ringHBand = [], ringBBand = [], inkFlag = [];
       // Band sampling tolerates +-1px rasterisation/rounding error of a 1.5-2px ring: strongest pixel inside the component's own radial band.
       const band = (lo, hi, bgp) => { let m = 0; for (let rr = lo; rr <= hi + 1e-9; rr += 0.25) { const q = px(G1, c.cx + Math.cos(rad0) * (c.r + rr), c.cy + Math.sin(rad0) * (c.r + rr)); if (q) m = Math.max(m, CR(q, bgp)); } return m; };
       let rad0 = 0;
@@ -136,11 +152,20 @@ async function analyse(page, label) {
         if ([at(c.r + 4), at(c.r + 0.8), at(c.r - 1)].some(([x, y]) => inOther(x, y, i))) continue;
         const bg = px(G2, ...at(c.r + 4)), halo = px(G1, ...at(c.r + 0.8)), border = px(G1, ...at(c.r - 1));
         if (!bg || !halo || !border) continue;
+        // Dash classification for out-of-Lens chips by RENDERED COLOUR, not by contrast: the border pixel is "ink" when it is closer
+        // to the expected inked colour (op*edge + (1-op)*bg) than to the expected gap colour (op*fill-over-bg + (1-op)*bg).
+        { const pc = (s2) => { const m2 = String(s2).match(/rgba?\(([^)]+)\)/)[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { rgb: m2.slice(0, 3), a: m2.length > 3 ? m2[3] : 1 }; };
+          const e = pc(c.edgeCol), f = pc(c.fillCol), op = c.op || 1;
+          const inkC = [0, 1, 2].map((k) => op * (e.a * e.rgb[k] + (1 - e.a) * bg[k]) + (1 - op) * bg[k]);
+          const gapC = [0, 1, 2].map((k) => op * (f.a * f.rgb[k] + (1 - f.a) * bg[k]) + (1 - op) * bg[k]);
+          const d2 = (u, v2) => Math.hypot(u[0] - v2[0], u[1] - v2[1], u[2] - v2[2]);
+          inkFlag.push(!c.outside || d2(border, inkC) < d2(border, gapC)); }
+        { const hb = band(0.2, 1.3, bg), bb = band(-1.9, -0.4, bg); acc.multi.push(Math.max(hb, bb)); if (inkFlag[inkFlag.length - 1]) acc.multiInk.push(Math.max(hb, bb)); acc.bgL.push(L(bg)); }
         ringHBand.push(band(0.2, 1.3, bg)); ringBBand.push(band(-1.9, -0.4, bg)); ringH.push(CR(halo, bg)); ringB.push(CR(border, bg)); ringHB.push(CR(halo, border));
       }
       // Out-of-Lens chips have a DASHED border (a deliberate structural cue): only the
       // inked half of the ring carries the border, so use the inked samples (>= chip median).
-      const ink = (arr) => { if (!c.outside || arr.length < 4) return arr; const m = [...arr].sort((x, y) => x - y)[Math.floor(arr.length / 2)]; return arr.filter((x) => x >= m); };
+      const ink = (arr) => (c.outside ? arr.filter((_, k) => inkFlag[k]) : arr);
       acc.haloB.push(...ringHBand); acc.borderB.push(...ink(ringBBand)); acc.halo.push(...ringH); acc.border.push(...ink(ringB)); acc.haloVsBorder.push(...ringHB);
       for (let k = 0; k < ringH.length; k++) acc.union.push(Math.max(ringH[k], ringB[k] ?? 0));
       if (chips.some((o, j) => j !== i && Math.hypot(o.cx - c.cx, o.cy - c.cy) < o.r + c.r)) { nOcc++; return; } // content occluded by a neighbouring chip (pre-existing overlap)
@@ -157,11 +182,31 @@ async function analyse(page, label) {
           const p = px(G1, xx, yy); if (!p) continue; const k = CR(p, fill); tot++; if (k >= 3) hit++; if (k > mx) mx = k;
         }
         acc.glyphCover.push(tot ? hit / tot : 0); acc.glyphMax.push(mx);
+        // Shape recognition at the real rendered 11px size (screening, NOT human validation): correlate the rendered
+        // glyph box (|dL| from the fill, best of +-1px alignment) with each category's ideal mask; correct if own > other.
+        const lf = L(fill), own = masks[c.cls], oth = masks[c.cls === "cluster-stay" ? "cluster-bike" : "cluster-stay"];
+        if (own && oth) {
+          let bo = -1, bt = -1;
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+            const x0 = Math.round(c.cx - 5.5) + dx, y0 = Math.round(c.spanTop) - 11 + dy, v = [];
+            for (let yy = 0; yy < 11; yy++) for (let xx = 0; xx < 11; xx++) { const p = px(G1, x0 + xx, y0 + yy); v.push(p ? Math.abs(L(p) - lf) : 0); }
+            bo = Math.max(bo, pearson(v, own)); bt = Math.max(bt, pearson(v, oth));
+          }
+          acc.gOwn.push(bo); acc.gOther.push(bt); acc.gOK.push(bo > bt ? 1 : 0);
+        }
       }
     });
     const q = (arr, p) => { if (!arr.length) return null; const s = [...arr].sort((x, y) => x - y); return +s[Math.min(s.length - 1, Math.floor(p * s.length))].toFixed(2); };
     const sum = (arr) => ({ n: arr.length, min: q(arr, 0), p05: q(arr, 0.05), p50: q(arr, 0.5), pctBelow3: arr.length ? +(100 * arr.filter((x) => x < 3).length / arr.length).toFixed(1) : null, pctBelow4_5: arr.length ? +(100 * arr.filter((x) => x < 4.5).length / arr.length).toFixed(1) : null });
-    const rep = (acc, n) => ({ chips: n, halo_vs_bg: sum(acc.halo), halo_band_vs_bg: sum(acc.haloB), border_band_vs_bg: sum(acc.borderB), border_vs_bg: sum(acc.border), fill_vs_bg: sum(acc.fill), halo_vs_border: sum(acc.haloVsBorder),
+    // Single-ring feasibility: for a ring of relative luminance Lr, the fraction of the ACTUAL adjacent basemap samples it
+    // clears at 3:1. best = the most favourable Lr; dual = one near-black ring AND one white ring (either clears).
+    const feas = (bgL) => {
+      if (!bgL.length) return null; const ok = (lr, b) => (Math.max(lr, b) + 0.05) / (Math.min(lr, b) + 0.05) >= 3;
+      let best = 0, bestLr = 0; for (let lr = 0; lr <= 1.0001; lr += 0.01) { const f = bgL.filter((b) => ok(lr, b)).length / bgL.length; if (f > best) { best = f; bestLr = lr; } }
+      return { samples: bgL.length, bg_luminance_p05_p50_p95: [q(bgL, 0.05), q(bgL, 0.5), q(bgL, 0.95)].map((x) => +x.toFixed(3)), best_single_ring_pct_cleared: +(100 * best).toFixed(1), best_ring_luminance: +bestLr.toFixed(2), black_ring_pct: +(100 * bgL.filter((b) => ok(0, b)).length / bgL.length).toFixed(1), white_ring_pct: +(100 * bgL.filter((b) => ok(1, b)).length / bgL.length).toFixed(1), black_or_white_pct: +(100 * bgL.filter((b) => ok(0, b) || ok(1, b)).length / bgL.length).toFixed(1) };
+    };
+    const mean = (a) => a.length ? +(a.reduce((s, x) => s + x, 0) / a.length).toFixed(3) : null;
+    const rep = (acc, n) => ({ chips: n, multi_tone_band_vs_bg_PROPOSED_CRITERION_NOT_AUTOPASS: sum(acc.multi), multi_tone_band_inked_samples_only: sum(acc.multiInk), bg_ring_feasibility: feas(acc.bgL), glyph_recognition_11px: { n: acc.gOK.length, own_mask_corr_mean: mean(acc.gOwn), other_mask_corr_mean: mean(acc.gOther), correct_pct: acc.gOK.length ? +(100 * acc.gOK.reduce((s, x) => s + x, 0) / acc.gOK.length).toFixed(1) : null }, halo_vs_bg: sum(acc.halo), halo_band_vs_bg: sum(acc.haloB), border_band_vs_bg: sum(acc.borderB), border_vs_bg: sum(acc.border), fill_vs_bg: sum(acc.fill), halo_vs_border: sum(acc.haloVsBorder),
       union_halo_or_border_vs_bg_NOT_A_WCAG_VERDICT: sum(acc.union), count_rendered_core_vs_fill: sum(acc.count), glyph_ideal_vs_fill: sum(acc.glyphIdeal),
       glyph_rendered_max_vs_fill: sum(acc.glyphMax), glyph_pixel_coverage_ge3_median_pct: acc.glyphCover.length ? +(100 * q(acc.glyphCover, 0.5)).toFixed(1) : null });
     return { chips: chips.length, chipsWithContentOccludedByNeighbour: nOcc, inLens: rep(accs.inLens, nchips.inLens), outsideLens: rep(accs.outsideLens, nchips.outsideLens) };
@@ -187,15 +232,25 @@ const runBody = async (which, cfg, { keepShot = true } = {}) => {
   const { stats, s1 } = await analyse(page, `${which}`);
   const name = `${which}_${cfg.vp.join("x")}_${cfg.appearance}_${cfg.basemap}_${cfg.siteKey}_z${cfg.zoom}${cfg.lang && cfg.lang !== "en" ? "_" + cfg.lang : ""}.png`;
   let file = null, sha = null;
+  if (CROPS && cfg.siteKey === "dense" && cfg.zoom === 14 && cfg.vp[0] === 1440) {
+    fs.mkdirSync(CROPS, { recursive: true });
+    await page.screenshot({ path: path.join(CROPS, `${VARIANT}_${cfg.basemap}_${cfg.appearance}.png`), clip: { x: 640, y: 330, width: 420, height: 260 } });
+  }
   if (keepShot) { file = path.join(SHOTS, name); fs.writeFileSync(file, s1); sha = createHash("sha256").update(s1).digest("hex"); }
-  results.rows.push({ which, viewport: cfg.vp.join("x"), appearance: cfg.appearance, basemap: cfg.basemap, site: cfg.siteKey, zoom: cfg.zoom, lang: cfg.lang || "en", tiles: tileInfo, poiSha256: poiHash.v, errors, stats, screenshot: file, sha256: sha, deviceScaleFactor: 1, browser: ENGINE });
+  results.rows.push({ which, variant: VARIANT, viewport: cfg.vp.join("x"), appearance: cfg.appearance, basemap: cfg.basemap, site: cfg.siteKey, zoom: cfg.zoom, lang: cfg.lang || "en", tiles: tileInfo, poiSha256: poiHash.v, errors, stats, screenshot: file, sha256: sha, deviceScaleFactor: 1, browser: ENGINE });
   console.error(`${which} ${name}: chips=${stats.chips} (in ${stats.inLens.chips}) tiles ${tileInfo.loaded}/${tileInfo.count} OUT: halo<3 ${stats.outsideLens.halo_vs_bg.pctBelow3}% border<3 ${stats.outsideLens.border_vs_bg.pctBelow3}% count p05 ${stats.outsideLens.count_rendered_core_vs_fill.p05} | IN: halo<3 ${stats.inLens.halo_vs_bg.pctBelow3}% border<3 ${stats.inLens.border_vs_bg.pctBelow3}% count p05 ${stats.inLens.count_rendered_core_vs_fill.p05}`);
   await ctx.close();
 };
 
 const PART = flag("part", "vp:1440x900"); // vp:<WxH> | extra   (short foreground segments; never one multi-hour run)
 const flush = () => { fs.mkdirSync(path.dirname(path.resolve(OUT)), { recursive: true }); fs.writeFileSync(OUT, JSON.stringify(results, null, 2) + "\n"); };
-if (PART.startsWith("vp:")) {
+if (PART === "edge") {
+  // Bounded edge experiment: AFTER only, 1440x900, Light appearance sites x (z12,z14) + Dark appearance Sol z14.
+  for (const basemap of BASEMAPS) {
+    for (const [siteKey, site] of Object.entries(SITES)) for (const zoom of [12, 14]) { await run("after", { vp: VIEWPORTS["1440x900"], appearance: "light", basemap, siteKey, site, zoom }); flush(); }
+    await run("after", { vp: VIEWPORTS["1440x900"], appearance: "dark", basemap, siteKey: "dense", site: SITES.dense, zoom: 14 }); flush();
+  }
+} else if (PART.startsWith("vp:")) {
   const vpk = PART.slice(3);
   for (const basemap of BASEMAPS) for (const [siteKey, site] of Object.entries(SITES)) {
     for (const zoom of [12, 14]) for (const which of ["before", "after"]) { await run(which, { vp: VIEWPORTS[vpk], appearance: "light", basemap, siteKey, site, zoom }); flush(); }
