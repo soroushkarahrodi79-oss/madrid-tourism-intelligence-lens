@@ -1,0 +1,119 @@
+{
+  "contract_version": "1.0.0",
+  "measured_at": "2026-11-01T13:45:00Z",
+  "basemap": {
+    "provider": "CARTO",
+    "style": "light_all",
+    "label": "Positron",
+    "url_template": "https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png?key=<redacted>",
+    "retina": false,
+    "note": "Tiles were fetched with the production key injected into the GitHub Pages deployment. The key is never recorded here or anywhere in this directory."
+  },
+  "pinned_inputs": {
+    "app_commit": "913de2766a718b2c64b0419542d5117cc380293b",
+    "pages_deployment_workflow_run": "41307637236",
+    "deployment_manifest_sha256": "9fc74f9aa660b274bd73cd1d5c6983012ad45ec53a5b85c27a8ab4a0db1b4c0c",
+    "runtime_poi_sha256": "adc22c52e755a235c28412616b9bebfce0f5a460417939922b931925b83ee333",
+    "pedestrian_activity_sha256": "c9bddbcc3e0bb571b87b3906d043335818e74e5dbcd7e8e28ecf687aee31c00c",
+    "deployment_build_state": "pass",
+    "deployment_generated_at": "2026-11-01T12:41:31.949Z"
+  },
+  "sampling": {
+    "sites": [
+      { "name": "dense_sol", "lat": 40.41690, "lon": -3.70330, "class": "dense_urban" },
+      { "name": "dense_salamanca", "lat": 40.42750, "lon": -3.68300, "class": "dense_urban" },
+      { "name": "park_retiro", "lat": 40.41500, "lon": -3.68300, "class": "park_heavy" },
+      { "name": "park_casacampo", "lat": 40.41800, "lon": -3.74700, "class": "park_heavy" },
+      { "name": "sparse_villaverde", "lat": 40.34300, "lon": -3.69800, "class": "sparse" },
+      { "name": "sparse_vicalvaro", "lat": 40.40300, "lon": -3.60700, "class": "sparse" }
+    ],
+    "zooms": [12, 14, 16, 17],
+    "tiles_sampled": 24,
+    "tile_size_px": 256,
+    "pixels_total": 1572864,
+    "fetch_errors": 0
+  },
+  "luminance_summary": {
+    "note": "WCAG relative luminance of raw tile pixels, per site and zoom.",
+    "relative_luminance_mean_range": [0.8059, 0.9185],
+    "relative_luminance_median_range": [0.7758, 0.9547],
+    "relative_luminance_p05_range": [0.6931, 0.7913],
+    "distinct_colours_per_tile_range": [16, 32],
+    "per_tile": [
+      { "site": "dense_sol", "z": 12, "Lmean": 0.8967, "L50": 0.9114, "L05": 0.7758, "uniq": 24 },
+      { "site": "dense_sol", "z": 14, "Lmean": 0.8059, "L50": 0.7758, "L05": 0.7379, "uniq": 24 },
+      { "site": "dense_sol", "z": 16, "Lmean": 0.8151, "L50": 0.8469, "L05": 0.7379, "uniq": 32 },
+      { "site": "dense_sol", "z": 17, "Lmean": 0.8366, "L50": 0.8469, "L05": 0.7379, "uniq": 24 },
+      { "site": "dense_salamanca", "z": 12, "Lmean": 0.8996, "L50": 0.9204, "L05": 0.7913, "uniq": 16 },
+      { "site": "dense_salamanca", "z": 14, "Lmean": 0.8260, "L50": 0.7758, "L05": 0.7449, "uniq": 24 },
+      { "site": "dense_salamanca", "z": 16, "Lmean": 0.8396, "L50": 0.8469, "L05": 0.7379, "uniq": 16 },
+      { "site": "dense_salamanca", "z": 17, "Lmean": 0.8594, "L50": 0.8469, "L05": 0.7379, "uniq": 16 },
+      { "site": "park_retiro", "z": 12, "Lmean": 0.8996, "L50": 0.9204, "L05": 0.7913, "uniq": 16 },
+      { "site": "park_retiro", "z": 14, "Lmean": 0.8260, "L50": 0.7758, "L05": 0.7449, "uniq": 24 },
+      { "site": "park_retiro", "z": 16, "Lmean": 0.8324, "L50": 0.8762, "L05": 0.6931, "uniq": 32 },
+      { "site": "park_retiro", "z": 17, "Lmean": 0.8536, "L50": 0.8762, "L05": 0.6931, "uniq": 16 },
+      { "site": "park_casacampo", "z": 12, "Lmean": 0.8967, "L50": 0.9114, "L05": 0.7758, "uniq": 24 },
+      { "site": "park_casacampo", "z": 14, "Lmean": 0.8926, "L50": 0.9114, "L05": 0.7913, "uniq": 24 },
+      { "site": "park_casacampo", "z": 16, "Lmean": 0.8959, "L50": 0.9114, "L05": 0.7869, "uniq": 16 },
+      { "site": "park_casacampo", "z": 17, "Lmean": 0.8994, "L50": 0.9114, "L05": 0.7792, "uniq": 16 },
+      { "site": "sparse_villaverde", "z": 12, "Lmean": 0.9054, "L50": 0.9204, "L05": 0.7758, "uniq": 24 },
+      { "site": "sparse_villaverde", "z": 14, "Lmean": 0.8668, "L50": 0.8873, "L05": 0.7454, "uniq": 24 },
+      { "site": "sparse_villaverde", "z": 16, "Lmean": 0.9065, "L50": 0.9114, "L05": 0.7736, "uniq": 24 },
+      { "site": "sparse_villaverde", "z": 17, "Lmean": 0.9185, "L50": 0.9547, "L05": 0.7665, "uniq": 16 },
+      { "site": "sparse_vicalvaro", "z": 12, "Lmean": 0.8996, "L50": 0.9204, "L05": 0.7913, "uniq": 16 },
+      { "site": "sparse_vicalvaro", "z": 14, "Lmean": 0.8747, "L50": 0.8909, "L05": 0.7529, "uniq": 16 },
+      { "site": "sparse_vicalvaro", "z": 16, "Lmean": 0.8395, "L50": 0.8469, "L05": 0.7379, "uniq": 24 },
+      { "site": "sparse_vicalvaro", "z": 17, "Lmean": 0.8719, "L50": 0.8469, "L05": 0.7379, "uniq": 16 }
+    ]
+  },
+  "palette": {
+    "note": "Dominant colours across all sampled tiles, by share of total pixels. Covers 86.3% of the sampled surface; this is the background set color_analysis.mjs composites markers over.",
+    "coverage_pct": 86.3,
+    "colours": [
+      { "hex": "#f2f6f1", "rgb": [242, 246, 241], "pct": 15.49 },
+      { "hex": "#ededed", "rgb": [237, 237, 237], "pct": 10.36 },
+      { "hex": "#f6f6f4", "rgb": [246, 246, 244], "pct": 9.74 },
+      { "hex": "#f6f6f5", "rgb": [246, 246, 245], "pct": 7.21 },
+      { "hex": "#fafaf8", "rgb": [250, 250, 248], "pct": 7.03 },
+      { "hex": "#e4e4e4", "rgb": [228, 228, 228], "pct": 6.41 },
+      { "hex": "#dfdfdf", "rgb": [223, 223, 223], "pct": 4.39 },
+      { "hex": "#f0f3f0", "rgb": [240, 243, 240], "pct": 4.26 },
+      { "hex": "#ffffff", "rgb": [255, 255, 255], "pct": 3.62 },
+      { "hex": "#edf2ed", "rgb": [237, 242, 237], "pct": 2.87 },
+      { "hex": "#e6e6e6", "rgb": [230, 230, 230], "pct": 2.25 },
+      { "hex": "#f1f3f0", "rgb": [241, 243, 240], "pct": 2.25 },
+      { "hex": "#fdfdfd", "rgb": [253, 253, 253], "pct": 2.24 },
+      { "hex": "#eef3ed", "rgb": [238, 243, 237], "pct": 1.59 },
+      { "hex": "#e2e2e2", "rgb": [226, 226, 226], "pct": 1.25 },
+      { "hex": "#e3e3e3", "rgb": [227, 227, 227], "pct": 1.21 },
+      { "hex": "#d4dadc", "rgb": [212, 218, 220], "pct": 1.06 },
+      { "hex": "#f2f5f1", "rgb": [242, 245, 241], "pct": 0.95 },
+      { "hex": "#eaebea", "rgb": [234, 235, 234], "pct": 0.93 },
+      { "hex": "#e1e1e1", "rgb": [225, 225, 225], "pct": 0.73 },
+      { "hex": "#eeefed", "rgb": [238, 239, 237], "pct": 0.51 },
+      { "hex": "#e7e7e6", "rgb": [231, 231, 230], "pct": 0.48 }
+    ]
+  },
+  "dark_basemap_control": {
+    "note": "Control sample proving the shipped marker palette was tuned for the dark basemap. Same compositing, CARTO dark_all.",
+    "style": "dark_all",
+    "sites": ["dense_sol", "dense_salamanca", "sparse_villaverde"],
+    "zooms": [14, 16],
+    "pixels_sampled": 43692,
+    "relative_luminance_mean": 0.019,
+    "stroke_contrast_median": {
+      "museum": 4.88,
+      "info": 7.40,
+      "stay": 6.35,
+      "bike": 9.88,
+      "rail": 11.11
+    },
+    "stroke_contrast_pct_below_3": {
+      "museum": 10.1,
+      "info": 0.0,
+      "stay": 1.1,
+      "bike": 0.0,
+      "rail": 0.0
+    }
+  }
+}
