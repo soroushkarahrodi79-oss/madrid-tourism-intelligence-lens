@@ -354,3 +354,75 @@ test("a search activation before the deferred resolver arrives is kept, not lost
     assert.equal(await activeId(page), "geoSearchQuery", `${width}px focus stays in the field`);
   }
 });
+
+// ------------------------------------------------------ Mobile map-control collisions
+
+// The compact finder is a full-width overlay. It used to start on the same row as
+// the 44px Layers control, whose z-index (1101) beats the header's stacking
+// context (1100) that holds the panel, so the button painted over the panel's
+// label. The panel now clears that row. The finder deliberately covers the map
+// (and the zoom and attribution inside it) while open; what must never happen is
+// the finder and Layers sharing space, or the map controls colliding with each other.
+const intersects = (a, b) => a && b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+
+test("the open compact finder never shares space with the Layers control or its own label", async (t) => {
+  const viewports = [[320, 568], [390, 844], [430, 932], [390, 560], [430, 420], [320, 480]];
+  for (const [width, height] of viewports) {
+    for (const language of ["en", "es"]) {
+      for (const colorScheme of ["light", "dark"]) {
+        const { page, context } = await pageFor({ viewport: { width, height }, colorScheme, language });
+        await track(context, t);
+        const tag = `${width}x${height} ${language} ${colorScheme}`;
+        const rect = (selector) => page.evaluate((s) => {
+          const node = document.querySelector(s);
+          if (!node) return null;
+          const r = node.getBoundingClientRect();
+          return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+        }, selector);
+        const layersClosed = await rect(".mobile-layers-button");
+        const zoom = await rect(".leaflet-control-zoom");
+        const attribution = await rect(".leaflet-control-attribution");
+        assert.ok(layersClosed.width >= 44 && layersClosed.height >= 44, `${tag}: Layers keeps its 44px target`);
+        assert.equal(intersects(layersClosed, zoom), false, `${tag}: Layers and zoom do not overlap`);
+        assert.equal(intersects(layersClosed, attribution), false, `${tag}: Layers and attribution do not overlap`);
+        assert.equal(intersects(zoom, attribution), false, `${tag}: zoom and attribution do not overlap`);
+
+        await page.locator("#geoSearchToggle").click();
+        await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.open === "true");
+        const layers = await rect(".mobile-layers-button");
+        const panel = await rect("#geoSearchPanel");
+        const label = await rect(".geo-search-label");
+        assert.deepEqual([layers.width, layers.height], [layersClosed.width, layersClosed.height], `${tag}: opening search does not resize Layers`);
+        assert.ok(layers.width >= 44 && layers.height >= 44, `${tag}: Layers stays at least 44px while search is open`);
+        assert.equal(intersects(layers, panel), false, `${tag}: the panel clears the Layers control`);
+        assert.equal(intersects(layers, label), false, `${tag}: the panel label clears the Layers control`);
+        assert.ok(panel.left >= 0 && panel.right <= width && panel.bottom <= height + 0.5, `${tag}: the panel stays inside the viewport`);
+        // Nothing paints over the Layers control, and it stays operable.
+        const covered = await page.evaluate(() => {
+          const node = document.querySelector(".mobile-layers-button");
+          const r = node.getBoundingClientRect();
+          const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return !(hit && (hit === node || node.contains(hit)));
+        });
+        assert.equal(covered, false, `${tag}: the Layers control is not covered`);
+        // The map credit is still in the document and not hidden by the finder's own styles.
+        assert.equal(await page.locator(".leaflet-control-attribution").count(), 1, `${tag}: attribution is retained`);
+        assert.equal(await page.locator("#geoSearchQuery").isVisible(), true, `${tag}: the field is visible`);
+        const fieldRect = await rect("#geoSearchQuery");
+        assert.ok(fieldRect.bottom <= height, `${tag}: the field is reachable without scrolling the page`);
+      }
+    }
+  }
+});
+
+test("Layers stays operable while the compact finder is open, and the finder yields", async (t) => {
+  for (const language of ["en", "es"]) {
+    const { page, context } = await pageFor({ viewport: { width: 390, height: 844 }, language });
+    await track(context, t);
+    await page.locator("#geoSearchToggle").click();
+    await page.waitForFunction(() => document.querySelector("#geoSearchPanel").dataset.open === "true");
+    await page.locator("#mobileLayersButton").click();
+    assert.equal(await page.locator("#mobileLayersButton").getAttribute("aria-expanded"), "true", `${language}: Layers opened`);
+    assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-open"), "false", `${language}: the finder closed on the outside press`);
+  }
+});

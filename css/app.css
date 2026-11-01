@@ -1969,6 +1969,16 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
 @media(max-width:850px){
   .geo-search{top:calc(var(--header-chrome-top) + 10px);left:calc(10px + var(--safe-left));right:calc(10px + var(--safe-right));width:auto;padding:var(--s-2);max-height:calc(100dvh - var(--header-chrome-top) - 20px - var(--safe-bottom))}
 }
+@media(max-width:560px){
+  /* The Layers control is a 44px map control on the row 10px below the header.
+     The open finder spans the full width, so it hangs beneath that row exactly as
+     the opened Layers rail does (.left above) instead of sharing it. Sharing it
+     put the button's box over the panel's label: the panel lives inside the
+     header's stacking context (z 1100), so its own z-index never rose above the
+     sibling button (z 1101). Clearing the row removes the overlap at every
+     width, label length and language without touching either z-index. */
+  .geo-search{top:calc(var(--header-chrome-top) + 10px + 44px + var(--s-2));max-height:calc(100dvh - var(--header-chrome-top) - 10px - 44px - var(--s-2) - 10px - var(--safe-bottom))}
+}
 /* The narrow header already stacks brand and tools on two 44px rows. The finder
    keeps its 44px target there but drops its text label, exactly as the guided
    tour control does, so row two cannot overflow at 320px. */
