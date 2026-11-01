@@ -27,8 +27,13 @@ import { chromium, webkit } from "playwright";
 
 const argv = process.argv.slice(2);
 const flag = (n, d) => { const i = argv.indexOf(`--${n}`); return i === -1 ? d : argv[i + 1]; };
-const POI = fs.readFileSync(flag("poi"));
-const ROOTS = { before: path.resolve(flag("before")), after: path.resolve(flag("after")) };
+// --prod <url>: PRODUCTION MODE. Both sides load the live site untouched (its own runtime
+// config, its own POI snapshot, its own CARTO key, which this script never reads, logs or
+// stores). "after" differs only by Playwright route interception, inside this isolated
+// browser session, of css/app.css and js/app.js answered from the local --after checkout.
+const PROD = flag("prod", null);
+const POI = PROD ? null : fs.readFileSync(flag("poi"));
+const ROOTS = PROD ? { after: path.resolve(flag("after")) } : { before: path.resolve(flag("before")), after: path.resolve(flag("after")) };
 const SHOTS = path.resolve(flag("shots"));
 const OUT = flag("out");
 const BASEMAPS = String(flag("basemaps", "satellite,light,dark")).split(",");
@@ -47,7 +52,9 @@ function serve(root) {
   });
   return new Promise((res) => s.listen(0, "127.0.0.1", () => res(s)));
 }
-const servers = { before: await serve(ROOTS.before), after: await serve(ROOTS.after) };
+const servers = PROD ? {} : { before: await serve(ROOTS.before), after: await serve(ROOTS.after) };
+// Any URL-embedded tile key that could reach an error string is masked; the key itself is never read here.
+const scrub = (t) => String(t).replace(/([?&]key=)[^&\s"']+/gi, "$1[redacted]");
 let browser = null; // a fresh browser per capture: one long-lived Chromium died after ~6 satellite captures on this machine
 
 const SITES = {
@@ -60,14 +67,22 @@ const VIEWPORTS = { "1366x768": [1366, 768], "1440x900": [1440, 900], "1920x1080
 async function open(which, { vp, appearance, basemap, site, zoom, lang = "en" }) {
   const ctx = await browser.newContext({ viewport: { width: vp[0], height: vp[1] }, colorScheme: appearance, deviceScaleFactor: 1 });
   const page = await ctx.newPage();
-  const errors = []; const hosts = {};
-  page.on("pageerror", (e) => errors.push(String(e)));
-  page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource|net::ERR/.test(m.text())) errors.push(m.text().replace(KEY || "\0", "[redacted]")); });
-  page.on("response", (r) => { try { const h = new URL(r.url()).host; if (!/127\.0\.0\.1/.test(h)) hosts[h] = (hosts[h] || 0) + 1; } catch (_) { /* ignore */ } });
+  const errors = []; const poiHash = { v: null };
+  page.on("pageerror", (e) => errors.push(scrub(e)));
+  page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource|net::ERR/.test(m.text())) errors.push(scrub(m.text())); });
   await page.addInitScript(([a, l]) => { try { localStorage.setItem("madrid-lens-appearance", a); localStorage.setItem("madrid-lens-language", l); } catch (_) { /* ignore */ } }, [appearance, lang]);
-  await page.route("**/js/runtime-config.js*", (r) => r.fulfill({ contentType: "text/javascript", body: `window.RUNTIME_CONFIG=${JSON.stringify({ CARTO_BASEMAP_KEY: KEY })};` }));
-  await page.route("**/data/runtime_poi.json*", (r) => r.fulfill({ contentType: "application/json", body: POI }));
-  await page.goto(`http://127.0.0.1:${servers[which].address().port}/`, { waitUntil: "load" });
+  if (PROD) {
+    // Only these two responses are replaced, and only inside this browser context.
+    if (which === "after") {
+      await page.route(/\/css\/app\.css(\?|$)/, (r) => r.fulfill({ contentType: "text/css", body: fs.readFileSync(path.join(ROOTS.after, "css/app.css")) }));
+      await page.route(/\/js\/app\.js(\?|$)/, (r) => r.fulfill({ contentType: "text/javascript", body: fs.readFileSync(path.join(ROOTS.after, "js/app.js")) }));
+    }
+    page.on("response", async (r) => { if (/\/data\/runtime_poi\.json/.test(r.url())) { try { poiHash.v = createHash("sha256").update(await r.body()).digest("hex"); } catch (_) { /* ignore */ } } });
+  } else {
+    await page.route("**/js/runtime-config.js*", (r) => r.fulfill({ contentType: "text/javascript", body: `window.RUNTIME_CONFIG=${JSON.stringify({ CARTO_BASEMAP_KEY: KEY })};` }));
+    await page.route("**/data/runtime_poi.json*", (r) => r.fulfill({ contentType: "application/json", body: POI }));
+  }
+  await page.goto(PROD || `http://127.0.0.1:${servers[which].address().port}/`, { waitUntil: "load" });
   await page.waitForFunction(() => typeof map !== "undefined" && document.querySelector(".leaflet-container"), null, { timeout: 60000 });
   if (lang !== "en") { await page.evaluate((l) => { const s = document.getElementById("languageSelect"); s.value = l; s.dispatchEvent(new Event("change", { bubbles: true })); return 0; }, lang); }
   await page.evaluate((b) => { const s = document.getElementById("basemapSelect"); s.value = b; s.dispatchEvent(new Event("change", { bubbles: true })); return 0; }, basemap);
@@ -78,9 +93,11 @@ async function open(which, { vp, appearance, basemap, site, zoom, lang = "en" })
   const tileInfo = await page.evaluate(() => {
     const t = [...document.querySelectorAll("img.leaflet-tile")]; const h = {};
     t.forEach((i) => { try { const x = new URL(i.src).host; h[x] = (h[x] || 0) + 1; } catch (_) { /* ignore */ } });
-    return { count: t.length, loaded: t.filter((i) => i.complete && i.naturalWidth > 0).length, hosts: h, attribution: (document.querySelector(".leaflet-control-attribution") || {}).textContent };
+    // style path only (e.g. /rastertiles/light_all): the query string, which may carry a key, is never read into the record
+    const sp = [...new Set(t.map((i) => { try { return new URL(i.src).pathname.split("/").slice(0, 3).join("/"); } catch (_) { return null; } }).filter(Boolean))];
+    return { count: t.length, loaded: t.filter((i) => i.complete && i.naturalWidth > 0).length, hosts: h, stylePaths: sp, attribution: (document.querySelector(".leaflet-control-attribution") || {}).textContent };
   });
-  return { page, ctx, errors, tileInfo };
+  return { page, ctx, errors, tileInfo, poiHash };
 }
 
 // Pixel analysis -------------------------------------------------------------
@@ -105,23 +122,26 @@ async function analyse(page, label) {
     const CR = (p, q) => { const x = L(p), y = L(q); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
     const parse = (s) => { const m = String(s).match(/rgba?\(([^)]+)\)/); return m[1].split(/[,\s/]+/).filter(Boolean).map(Number).slice(0, 3); };
     const inOther = (x, y, i) => chips.some((c, j) => j !== i && Math.hypot(x - c.cx, y - c.cy) < c.r + 5);
-    const mk = () => ({ halo: [], border: [], fill: [], haloVsBorder: [], count: [], glyphIdeal: [], glyphCover: [], glyphMax: [], union: [] });
+    const mk = () => ({ haloB: [], borderB: [], halo: [], border: [], fill: [], haloVsBorder: [], count: [], glyphIdeal: [], glyphCover: [], glyphMax: [], union: [] });
     const accs = { inLens: mk(), outsideLens: mk() }; const nchips = { inLens: 0, outsideLens: 0 }; let nOcc = 0;
     chips.forEach((c, i) => {
       const acc = accs[c.outside ? "outsideLens" : "inLens"]; nchips[c.outside ? "outsideLens" : "inLens"]++;
-      const ringH = [], ringB = [], ringHB = [];
+      const ringH = [], ringB = [], ringHB = [], ringHBand = [], ringBBand = [];
+      // Band sampling tolerates +-1px rasterisation/rounding error of a 1.5-2px ring: strongest pixel inside the component's own radial band.
+      const band = (lo, hi, bgp) => { let m = 0; for (let rr = lo; rr <= hi + 1e-9; rr += 0.25) { const q = px(G1, c.cx + Math.cos(rad0) * (c.r + rr), c.cy + Math.sin(rad0) * (c.r + rr)); if (q) m = Math.max(m, CR(q, bgp)); } return m; };
+      let rad0 = 0;
       for (let a = 0; a < 360; a += 10) {
-        const rad = a * Math.PI / 180, ux = Math.cos(rad), uy = Math.sin(rad);
+        const rad = a * Math.PI / 180; rad0 = rad; const ux = Math.cos(rad), uy = Math.sin(rad);
         const at = (rr) => [c.cx + ux * rr, c.cy + uy * rr];
         if ([at(c.r + 4), at(c.r + 0.8), at(c.r - 1)].some(([x, y]) => inOther(x, y, i))) continue;
         const bg = px(G2, ...at(c.r + 4)), halo = px(G1, ...at(c.r + 0.8)), border = px(G1, ...at(c.r - 1));
         if (!bg || !halo || !border) continue;
-        ringH.push(CR(halo, bg)); ringB.push(CR(border, bg)); ringHB.push(CR(halo, border));
+        ringHBand.push(band(0.2, 1.3, bg)); ringBBand.push(band(-1.9, -0.4, bg)); ringH.push(CR(halo, bg)); ringB.push(CR(border, bg)); ringHB.push(CR(halo, border));
       }
       // Out-of-Lens chips have a DASHED border (a deliberate structural cue): only the
       // inked half of the ring carries the border, so use the inked samples (>= chip median).
       const ink = (arr) => { if (!c.outside || arr.length < 4) return arr; const m = [...arr].sort((x, y) => x - y)[Math.floor(arr.length / 2)]; return arr.filter((x) => x >= m); };
-      acc.halo.push(...ringH); acc.border.push(...ink(ringB)); acc.haloVsBorder.push(...ringHB);
+      acc.haloB.push(...ringHBand); acc.borderB.push(...ink(ringBBand)); acc.halo.push(...ringH); acc.border.push(...ink(ringB)); acc.haloVsBorder.push(...ringHB);
       for (let k = 0; k < ringH.length; k++) acc.union.push(Math.max(ringH[k], ringB[k] ?? 0));
       if (chips.some((o, j) => j !== i && Math.hypot(o.cx - c.cx, o.cy - c.cy) < o.r + c.r)) { nOcc++; return; } // content occluded by a neighbouring chip (pre-existing overlap)
       const fill = px(G1, c.cx - c.r * 0.62, c.cy); const bgc = px(G2, c.cx, c.cy);
@@ -141,7 +161,7 @@ async function analyse(page, label) {
     });
     const q = (arr, p) => { if (!arr.length) return null; const s = [...arr].sort((x, y) => x - y); return +s[Math.min(s.length - 1, Math.floor(p * s.length))].toFixed(2); };
     const sum = (arr) => ({ n: arr.length, min: q(arr, 0), p05: q(arr, 0.05), p50: q(arr, 0.5), pctBelow3: arr.length ? +(100 * arr.filter((x) => x < 3).length / arr.length).toFixed(1) : null, pctBelow4_5: arr.length ? +(100 * arr.filter((x) => x < 4.5).length / arr.length).toFixed(1) : null });
-    const rep = (acc, n) => ({ chips: n, halo_vs_bg: sum(acc.halo), border_vs_bg: sum(acc.border), fill_vs_bg: sum(acc.fill), halo_vs_border: sum(acc.haloVsBorder),
+    const rep = (acc, n) => ({ chips: n, halo_vs_bg: sum(acc.halo), halo_band_vs_bg: sum(acc.haloB), border_band_vs_bg: sum(acc.borderB), border_vs_bg: sum(acc.border), fill_vs_bg: sum(acc.fill), halo_vs_border: sum(acc.haloVsBorder),
       union_halo_or_border_vs_bg_NOT_A_WCAG_VERDICT: sum(acc.union), count_rendered_core_vs_fill: sum(acc.count), glyph_ideal_vs_fill: sum(acc.glyphIdeal),
       glyph_rendered_max_vs_fill: sum(acc.glyphMax), glyph_pixel_coverage_ge3_median_pct: acc.glyphCover.length ? +(100 * q(acc.glyphCover, 0.5)).toFixed(1) : null });
     return { chips: chips.length, chipsWithContentOccludedByNeighbour: nOcc, inLens: rep(accs.inLens, nchips.inLens), outsideLens: rep(accs.outsideLens, nchips.outsideLens) };
@@ -150,7 +170,7 @@ async function analyse(page, label) {
 }
 
 const results = { tool: "research/lens_ux_cluster_149/validate.mjs", measured_at: new Date().toISOString(), engine: ENGINE,
-  carto_key_present: Boolean(KEY), poi_sha256: createHash("sha256").update(POI).digest("hex"), rows: [], notMeasured: [] };
+  carto_key_present: PROD ? "not read by this script (production page supplies its own)" : Boolean(KEY), poi_sha256: POI ? createHash("sha256").update(POI).digest("hex") : null, mode: PROD ? "production-interception" : "local", prod_url: PROD, rows: [], notMeasured: [] };
 const run = async (which, cfg, opts = {}) => {
   for (let attempt = 1; attempt <= 3; attempt++) {
     const firstLine = (e) => String(e).split(/\r?\n/)[0];
@@ -162,13 +182,13 @@ const runOnce = async (which, cfg, { keepShot = true } = {}) => {
   try { await runBody(which, cfg, { keepShot }); } finally { await browser.close().catch(() => {}); }
 };
 const runBody = async (which, cfg, { keepShot = true } = {}) => {
-  if ((cfg.basemap === "light" || cfg.basemap === "dark") && !KEY) { results.notMeasured.push({ ...cfg, which, reason: "CARTO_BASEMAP_KEY not provided in environment" }); return; }
-  const { page, ctx, errors, tileInfo } = await open(which, cfg);
+  if (!PROD && (cfg.basemap === "light" || cfg.basemap === "dark") && !KEY) { results.notMeasured.push({ ...cfg, which, reason: "CARTO_BASEMAP_KEY not provided in environment" }); return; }
+  const { page, ctx, errors, tileInfo, poiHash } = await open(which, cfg);
   const { stats, s1 } = await analyse(page, `${which}`);
   const name = `${which}_${cfg.vp.join("x")}_${cfg.appearance}_${cfg.basemap}_${cfg.siteKey}_z${cfg.zoom}${cfg.lang && cfg.lang !== "en" ? "_" + cfg.lang : ""}.png`;
   let file = null, sha = null;
   if (keepShot) { file = path.join(SHOTS, name); fs.writeFileSync(file, s1); sha = createHash("sha256").update(s1).digest("hex"); }
-  results.rows.push({ which, viewport: cfg.vp.join("x"), appearance: cfg.appearance, basemap: cfg.basemap, site: cfg.siteKey, zoom: cfg.zoom, lang: cfg.lang || "en", tiles: tileInfo, errors, stats, screenshot: file, sha256: sha, deviceScaleFactor: 1, browser: ENGINE });
+  results.rows.push({ which, viewport: cfg.vp.join("x"), appearance: cfg.appearance, basemap: cfg.basemap, site: cfg.siteKey, zoom: cfg.zoom, lang: cfg.lang || "en", tiles: tileInfo, poiSha256: poiHash.v, errors, stats, screenshot: file, sha256: sha, deviceScaleFactor: 1, browser: ENGINE });
   console.error(`${which} ${name}: chips=${stats.chips} (in ${stats.inLens.chips}) tiles ${tileInfo.loaded}/${tileInfo.count} OUT: halo<3 ${stats.outsideLens.halo_vs_bg.pctBelow3}% border<3 ${stats.outsideLens.border_vs_bg.pctBelow3}% count p05 ${stats.outsideLens.count_rendered_core_vs_fill.p05} | IN: halo<3 ${stats.inLens.halo_vs_bg.pctBelow3}% border<3 ${stats.inLens.border_vs_bg.pctBelow3}% count p05 ${stats.inLens.count_rendered_core_vs_fill.p05}`);
   await ctx.close();
 };

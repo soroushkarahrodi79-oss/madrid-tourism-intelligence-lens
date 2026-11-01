@@ -1,6 +1,9 @@
 {
- "tool": "validate.mjs",
- "carto_key_present": false,
+ "tool": "validate.mjs --prod",
+ "mode": "production-interception",
+ "label": "esri",
+ "prod_url": "https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens/",
+ "measured_at": "2026-11-01T20:34:31.146Z",
  "rows": [
   {
    "which": "before",
@@ -16,8 +19,12 @@
     "hosts": {
      "server.arcgisonline.com": 72
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 25,
@@ -25,6 +32,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -100,6 +123,22 @@
       "pctBelow3": 79.6,
       "pctBelow4_5": 91.9
      },
+     "halo_band_vs_bg": {
+      "n": 884,
+      "min": 1,
+      "p05": 1.1,
+      "p50": 2.19,
+      "pctBelow3": 68.4,
+      "pctBelow4_5": 86.2
+     },
+     "border_band_vs_bg": {
+      "n": 442,
+      "min": 2.72,
+      "p05": 3.11,
+      "p50": 5.15,
+      "pctBelow3": 3.6,
+      "pctBelow4_5": 37.8
+     },
      "border_vs_bg": {
       "n": 442,
       "min": 1.78,
@@ -159,8 +198,8 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1366x768_light_satellite_dense_z12.png",
-   "sha256": "749ec32feb935488d9dc004e3498dcc0458892d701e0aa45491d156b1fc888f5",
+   "screenshot": "before_1366x768_light_satellite_dense_z12.png",
+   "sha256": "ad98ef1e9560fab92dbf364bc82f6f505dc4ea7a0a2c0663f71ca7c99be81566",
    "deviceScaleFactor": 1,
    "browser": "chromium"
   },
@@ -178,8 +217,12 @@
     "hosts": {
      "server.arcgisonline.com": 72
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 25,
@@ -187,6 +230,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -262,6 +321,22 @@
       "pctBelow3": 63.5,
       "pctBelow4_5": 82
      },
+     "halo_band_vs_bg": {
+      "n": 884,
+      "min": 1,
+      "p05": 1.15,
+      "p50": 2.78,
+      "pctBelow3": 54.1,
+      "pctBelow4_5": 76.7
+     },
+     "border_band_vs_bg": {
+      "n": 442,
+      "min": 2.07,
+      "p05": 2.64,
+      "p50": 4.14,
+      "pctBelow3": 15.8,
+      "pctBelow4_5": 58.1
+     },
      "border_vs_bg": {
       "n": 442,
       "min": 1.4,
@@ -321,7 +396,7 @@
      "glyph_pixel_coverage_ge3_median_pct": 42
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1366x768_light_satellite_dense_z12.png",
+   "screenshot": "after_1366x768_light_satellite_dense_z12.png",
    "sha256": "ae252ffba50257662dcd7c3eb281f6f01123c03308d16fcae91d9e67487097e7",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -340,8 +415,12 @@
     "hosts": {
      "server.arcgisonline.com": 84
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 49,
@@ -355,6 +434,22 @@
       "p50": 1.64,
       "pctBelow3": 85.6,
       "pctBelow4_5": 91.1
+     },
+     "halo_band_vs_bg": {
+      "n": 236,
+      "min": 1,
+      "p05": 1.12,
+      "p50": 2.13,
+      "pctBelow3": 68.6,
+      "pctBelow4_5": 82.6
+     },
+     "border_band_vs_bg": {
+      "n": 236,
+      "min": 1,
+      "p05": 1.39,
+      "p50": 4.8,
+      "pctBelow3": 22.5,
+      "pctBelow4_5": 43.2
      },
      "border_vs_bg": {
       "n": 236,
@@ -424,6 +519,22 @@
       "pctBelow3": 75.6,
       "pctBelow4_5": 87.3
      },
+     "halo_band_vs_bg": {
+      "n": 1277,
+      "min": 1,
+      "p05": 1.16,
+      "p50": 2.4,
+      "pctBelow3": 62.3,
+      "pctBelow4_5": 80.3
+     },
+     "border_band_vs_bg": {
+      "n": 642,
+      "min": 2.43,
+      "p05": 3.46,
+      "p50": 6.21,
+      "pctBelow3": 0.6,
+      "pctBelow4_5": 22
+     },
      "border_vs_bg": {
       "n": 642,
       "min": 1.61,
@@ -483,7 +594,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1366x768_light_satellite_dense_z14.png",
+   "screenshot": "before_1366x768_light_satellite_dense_z14.png",
    "sha256": "76894668232197ee0cbf03650de8eb62abbeaaa1b6c81540e1da1afab9364eb6",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -502,8 +613,12 @@
     "hosts": {
      "server.arcgisonline.com": 84
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 49,
@@ -517,6 +632,22 @@
       "p50": 2.42,
       "pctBelow3": 58.9,
       "pctBelow4_5": 78
+     },
+     "halo_band_vs_bg": {
+      "n": 236,
+      "min": 1,
+      "p05": 1.16,
+      "p50": 3.61,
+      "pctBelow3": 39.8,
+      "pctBelow4_5": 66.1
+     },
+     "border_band_vs_bg": {
+      "n": 236,
+      "min": 1,
+      "p05": 1.25,
+      "p50": 2.94,
+      "pctBelow3": 50.4,
+      "pctBelow4_5": 74.6
      },
      "border_vs_bg": {
       "n": 236,
@@ -586,6 +717,22 @@
       "pctBelow3": 57,
       "pctBelow4_5": 72.7
      },
+     "halo_band_vs_bg": {
+      "n": 1277,
+      "min": 1.01,
+      "p05": 1.21,
+      "p50": 3.29,
+      "pctBelow3": 45.2,
+      "pctBelow4_5": 64.2
+     },
+     "border_band_vs_bg": {
+      "n": 642,
+      "min": 2.1,
+      "p05": 2.85,
+      "p50": 4.84,
+      "pctBelow3": 8.7,
+      "pctBelow4_5": 43.3
+     },
      "border_vs_bg": {
       "n": 642,
       "min": 1.67,
@@ -645,8 +792,8 @@
      "glyph_pixel_coverage_ge3_median_pct": 41
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1366x768_light_satellite_dense_z14.png",
-   "sha256": "f98318f58fd761f2d93111252acf5a9c1cec3a50432540881b9982b420b67de9",
+   "screenshot": "after_1366x768_light_satellite_dense_z14.png",
+   "sha256": "aaf9c66067498044cdc3ab940e45774f5d35a61710f09d3bb2a03a9c43d14015",
    "deviceScaleFactor": 1,
    "browser": "chromium"
   },
@@ -664,8 +811,12 @@
     "hosts": {
      "server.arcgisonline.com": 84
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 0,
@@ -673,6 +824,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -748,6 +915,22 @@
       "pctBelow3": null,
       "pctBelow4_5": null
      },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
      "border_vs_bg": {
       "n": 0,
       "min": null,
@@ -807,8 +990,8 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1366x768_light_satellite_dense_z17.png",
-   "sha256": "3f67d1b822efa17fe1cb405167087d2be3426a97d18fa65587317bf60f0926df",
+   "screenshot": "after_1366x768_light_satellite_dense_z17.png",
+   "sha256": "c8d3841e26d5fd03f679302e93d25fde633a8c7379d44ad2f34740e2667082f4",
    "deviceScaleFactor": 1,
    "browser": "chromium"
   },
@@ -826,8 +1009,12 @@
     "hosts": {
      "server.arcgisonline.com": 72
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 29,
@@ -835,6 +1022,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -910,6 +1113,22 @@
       "pctBelow3": 81.1,
       "pctBelow4_5": 92.1
      },
+     "halo_band_vs_bg": {
+      "n": 1028,
+      "min": 1,
+      "p05": 1.11,
+      "p50": 2.12,
+      "pctBelow3": 70.6,
+      "pctBelow4_5": 86.8
+     },
+     "border_band_vs_bg": {
+      "n": 514,
+      "min": 2.72,
+      "p05": 3.17,
+      "p50": 5.13,
+      "pctBelow3": 3.3,
+      "pctBelow4_5": 36
+     },
      "border_vs_bg": {
       "n": 514,
       "min": 1.78,
@@ -969,8 +1188,8 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1366x768_light_satellite_park_z12.png",
-   "sha256": "93490c9a1e4234ae0d8e51f94002383313d5348761d1d4380359518f67102294",
+   "screenshot": "before_1366x768_light_satellite_park_z12.png",
+   "sha256": "83d5dad4146fec15f28828c24555c29398bfccaeaf1982c2dd8f6100f5a91a80",
    "deviceScaleFactor": 1,
    "browser": "chromium"
   },
@@ -988,8 +1207,12 @@
     "hosts": {
      "server.arcgisonline.com": 72
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 29,
@@ -997,6 +1220,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -1072,6 +1311,22 @@
       "pctBelow3": 62.9,
       "pctBelow4_5": 82
      },
+     "halo_band_vs_bg": {
+      "n": 1028,
+      "min": 1,
+      "p05": 1.17,
+      "p50": 2.82,
+      "pctBelow3": 53.2,
+      "pctBelow4_5": 76.8
+     },
+     "border_band_vs_bg": {
+      "n": 514,
+      "min": 2.07,
+      "p05": 2.64,
+      "p50": 4.06,
+      "pctBelow3": 16.1,
+      "pctBelow4_5": 60.3
+     },
      "border_vs_bg": {
       "n": 514,
       "min": 1.82,
@@ -1131,7 +1386,7 @@
      "glyph_pixel_coverage_ge3_median_pct": 42
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1366x768_light_satellite_park_z12.png",
+   "screenshot": "after_1366x768_light_satellite_park_z12.png",
    "sha256": "7e8969f564f7e9d6673a4e26a365657e159a29af29a9b6ac9b93d160e2ffbbff",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -1150,8 +1405,12 @@
     "hosts": {
      "server.arcgisonline.com": 72
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 63,
@@ -1165,6 +1424,22 @@
       "p50": 1.65,
       "pctBelow3": 83.6,
       "pctBelow4_5": 90.6
+     },
+     "halo_band_vs_bg": {
+      "n": 256,
+      "min": 1.02,
+      "p05": 1.13,
+      "p50": 2.13,
+      "pctBelow3": 68,
+      "pctBelow4_5": 82.4
+     },
+     "border_band_vs_bg": {
+      "n": 256,
+      "min": 1.03,
+      "p05": 1.61,
+      "p50": 5.15,
+      "pctBelow3": 18.8,
+      "pctBelow4_5": 39.8
      },
      "border_vs_bg": {
       "n": 256,
@@ -1234,6 +1509,22 @@
       "pctBelow3": 74.1,
       "pctBelow4_5": 86.7
      },
+     "halo_band_vs_bg": {
+      "n": 1723,
+      "min": 1,
+      "p05": 1.16,
+      "p50": 2.47,
+      "pctBelow3": 60.9,
+      "pctBelow4_5": 78.9
+     },
+     "border_band_vs_bg": {
+      "n": 866,
+      "min": 2.43,
+      "p05": 3.39,
+      "p50": 6.13,
+      "pctBelow3": 0.9,
+      "pctBelow4_5": 22.6
+     },
      "border_vs_bg": {
       "n": 866,
       "min": 1.61,
@@ -1293,8 +1584,8 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1366x768_light_satellite_park_z14.png",
-   "sha256": "17d6425547c05a011553601b1aed441fc249c75bd91c9ab9bc506df90be9bfe5",
+   "screenshot": "before_1366x768_light_satellite_park_z14.png",
+   "sha256": "cb69c37be1566027bf801ee1084fb36e59e57358a8d0322742b09273c2e3bd72",
    "deviceScaleFactor": 1,
    "browser": "chromium"
   },
@@ -1312,8 +1603,12 @@
     "hosts": {
      "server.arcgisonline.com": 72
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 63,
@@ -1327,6 +1622,22 @@
       "p50": 2.67,
       "pctBelow3": 55.1,
       "pctBelow4_5": 73.4
+     },
+     "halo_band_vs_bg": {
+      "n": 256,
+      "min": 1,
+      "p05": 1.39,
+      "p50": 3.78,
+      "pctBelow3": 35.2,
+      "pctBelow4_5": 60.2
+     },
+     "border_band_vs_bg": {
+      "n": 256,
+      "min": 1.03,
+      "p05": 1.33,
+      "p50": 2.94,
+      "pctBelow3": 51.2,
+      "pctBelow4_5": 75
      },
      "border_vs_bg": {
       "n": 256,
@@ -1396,6 +1707,22 @@
       "pctBelow3": 57.1,
       "pctBelow4_5": 71.9
      },
+     "halo_band_vs_bg": {
+      "n": 1723,
+      "min": 1,
+      "p05": 1.23,
+      "p50": 3.29,
+      "pctBelow3": 45.4,
+      "pctBelow4_5": 63.9
+     },
+     "border_band_vs_bg": {
+      "n": 866,
+      "min": 2.1,
+      "p05": 2.86,
+      "p50": 4.87,
+      "pctBelow3": 7.3,
+      "pctBelow4_5": 41.9
+     },
      "border_vs_bg": {
       "n": 866,
       "min": 1.61,
@@ -1455,8 +1782,8 @@
      "glyph_pixel_coverage_ge3_median_pct": 40
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1366x768_light_satellite_park_z14.png",
-   "sha256": "8fceea511b989d4c2860ef7c128718b63594c1ecce0ee17b15c6bfa06798dc7a",
+   "screenshot": "after_1366x768_light_satellite_park_z14.png",
+   "sha256": "0d578bddf105e08b90c130e8030efc1d8766395f73f7d2c25b85d9950171db8d",
    "deviceScaleFactor": 1,
    "browser": "chromium"
   },
@@ -1474,8 +1801,12 @@
     "hosts": {
      "server.arcgisonline.com": 84
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 0,
@@ -1483,6 +1814,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -1558,6 +1905,22 @@
       "pctBelow3": null,
       "pctBelow4_5": null
      },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
      "border_vs_bg": {
       "n": 0,
       "min": null,
@@ -1617,7 +1980,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1366x768_light_satellite_park_z17.png",
+   "screenshot": "after_1366x768_light_satellite_park_z17.png",
    "sha256": "7e944d394699c6cf6d6c20deae3c88d603ac234b7c288f9fa973721b3798d1ad",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -1636,8 +1999,12 @@
     "hosts": {
      "server.arcgisonline.com": 72
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 16,
@@ -1645,6 +2012,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -1720,6 +2103,22 @@
       "pctBelow3": 83,
       "pctBelow4_5": 91.8
      },
+     "halo_band_vs_bg": {
+      "n": 576,
+      "min": 1,
+      "p05": 1.07,
+      "p50": 2.01,
+      "pctBelow3": 73.1,
+      "pctBelow4_5": 87.3
+     },
+     "border_band_vs_bg": {
+      "n": 288,
+      "min": 2.72,
+      "p05": 3.45,
+      "p50": 5.22,
+      "pctBelow3": 0.7,
+      "pctBelow4_5": 35.4
+     },
      "border_vs_bg": {
       "n": 288,
       "min": 1.91,
@@ -1779,8 +2178,8 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1366x768_light_satellite_sparse_z12.png",
-   "sha256": "bd20224e9306ae6e3a1fb7efbb9e790ac36caadcdab63d6e986f23f9eac44d94",
+   "screenshot": "before_1366x768_light_satellite_sparse_z12.png",
+   "sha256": "f880cef403bb98e39094276f76699ef7b48988c0dc3d162dc58b29590d9a18c2",
    "deviceScaleFactor": 1,
    "browser": "chromium"
   },
@@ -1798,8 +2197,12 @@
     "hosts": {
      "server.arcgisonline.com": 72
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 16,
@@ -1807,6 +2210,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -1882,6 +2301,22 @@
       "pctBelow3": 65.5,
       "pctBelow4_5": 82.6
      },
+     "halo_band_vs_bg": {
+      "n": 576,
+      "min": 1,
+      "p05": 1.18,
+      "p50": 2.7,
+      "pctBelow3": 55.4,
+      "pctBelow4_5": 77.1
+     },
+     "border_band_vs_bg": {
+      "n": 288,
+      "min": 2.07,
+      "p05": 2.63,
+      "p50": 3.97,
+      "pctBelow3": 14.9,
+      "pctBelow4_5": 62.8
+     },
      "border_vs_bg": {
       "n": 288,
       "min": 1.82,
@@ -1941,7 +2376,7 @@
      "glyph_pixel_coverage_ge3_median_pct": 41
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1366x768_light_satellite_sparse_z12.png",
+   "screenshot": "after_1366x768_light_satellite_sparse_z12.png",
    "sha256": "1c670c10ebd7693fa6638141e58724e997d50c7c3204a283c2b64335d58f9d96",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -1960,8 +2395,12 @@
     "hosts": {
      "server.arcgisonline.com": 72
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 0,
@@ -1969,6 +2408,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -2044,6 +2499,22 @@
       "pctBelow3": null,
       "pctBelow4_5": null
      },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
      "border_vs_bg": {
       "n": 0,
       "min": null,
@@ -2103,8 +2574,8 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1366x768_light_satellite_sparse_z14.png",
-   "sha256": "538c78fefe26040698666af15bef6e70cd536336f8d9e7a3e1222662c2f3f793",
+   "screenshot": "before_1366x768_light_satellite_sparse_z14.png",
+   "sha256": "01638f86736c38741f751f823e5336e22a63c3b4d5120e6e1bab05298ecfb621",
    "deviceScaleFactor": 1,
    "browser": "chromium"
   },
@@ -2122,8 +2593,12 @@
     "hosts": {
      "server.arcgisonline.com": 72
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 0,
@@ -2131,6 +2606,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -2206,6 +2697,22 @@
       "pctBelow3": null,
       "pctBelow4_5": null
      },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
      "border_vs_bg": {
       "n": 0,
       "min": null,
@@ -2265,7 +2772,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1366x768_light_satellite_sparse_z14.png",
+   "screenshot": "after_1366x768_light_satellite_sparse_z14.png",
    "sha256": "48033d7e982f439274309fb00fd06bef1c86bfbde13827546f72d0203d1f6dd8",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -2284,8 +2791,12 @@
     "hosts": {
      "server.arcgisonline.com": 72
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 0,
@@ -2293,6 +2804,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -2368,6 +2895,22 @@
       "pctBelow3": null,
       "pctBelow4_5": null
      },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
      "border_vs_bg": {
       "n": 0,
       "min": null,
@@ -2427,7 +2970,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1366x768_light_satellite_sparse_z17.png",
+   "screenshot": "after_1366x768_light_satellite_sparse_z17.png",
    "sha256": "b13d4fe6d4193a0f6e760307c660a1ec37cfb24c5c0e88f1008077ab07c58912",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -2446,8 +2989,12 @@
     "hosts": {
      "server.arcgisonline.com": 90
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 32,
@@ -2455,6 +3002,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -2530,6 +3093,22 @@
       "pctBelow3": 80.3,
       "pctBelow4_5": 91.9
      },
+     "halo_band_vs_bg": {
+      "n": 1136,
+      "min": 1,
+      "p05": 1.1,
+      "p50": 2.1,
+      "pctBelow3": 69.4,
+      "pctBelow4_5": 86.5
+     },
+     "border_band_vs_bg": {
+      "n": 568,
+      "min": 2.72,
+      "p05": 3.21,
+      "p50": 5.15,
+      "pctBelow3": 2.5,
+      "pctBelow4_5": 34.7
+     },
      "border_vs_bg": {
       "n": 568,
       "min": 1.78,
@@ -2589,7 +3168,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1440x900_light_satellite_dense_z12.png",
+   "screenshot": "before_1440x900_light_satellite_dense_z12.png",
    "sha256": "9478b364a6b98c14d9aa504682d378fbf245fd3a38b0f3b000cf42d21561e0c8",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -2608,8 +3187,12 @@
     "hosts": {
      "server.arcgisonline.com": 90
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 32,
@@ -2617,6 +3200,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -2692,6 +3291,22 @@
       "pctBelow3": 63.5,
       "pctBelow4_5": 82.3
      },
+     "halo_band_vs_bg": {
+      "n": 1136,
+      "min": 1,
+      "p05": 1.16,
+      "p50": 2.8,
+      "pctBelow3": 53.7,
+      "pctBelow4_5": 76.9
+     },
+     "border_band_vs_bg": {
+      "n": 568,
+      "min": 2.07,
+      "p05": 2.63,
+      "p50": 3.98,
+      "pctBelow3": 18.1,
+      "pctBelow4_5": 60.9
+     },
      "border_vs_bg": {
       "n": 568,
       "min": 1.61,
@@ -2751,7 +3366,7 @@
      "glyph_pixel_coverage_ge3_median_pct": 42
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1440x900_light_satellite_dense_z12.png",
+   "screenshot": "after_1440x900_light_satellite_dense_z12.png",
    "sha256": "31c871b9b93cd83988b551bb28a8008470994572a36c55dff94c1b123abebe91",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -2770,8 +3385,12 @@
     "hosts": {
      "server.arcgisonline.com": 84
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 66,
@@ -2785,6 +3404,22 @@
       "p50": 1.65,
       "pctBelow3": 83.6,
       "pctBelow4_5": 90.6
+     },
+     "halo_band_vs_bg": {
+      "n": 256,
+      "min": 1.02,
+      "p05": 1.14,
+      "p50": 2.13,
+      "pctBelow3": 68,
+      "pctBelow4_5": 82.4
+     },
+     "border_band_vs_bg": {
+      "n": 256,
+      "min": 1.03,
+      "p05": 1.61,
+      "p50": 5.15,
+      "pctBelow3": 18.8,
+      "pctBelow4_5": 39.8
      },
      "border_vs_bg": {
       "n": 256,
@@ -2854,6 +3489,22 @@
       "pctBelow3": 75.6,
       "pctBelow4_5": 87.4
      },
+     "halo_band_vs_bg": {
+      "n": 1837,
+      "min": 1,
+      "p05": 1.15,
+      "p50": 2.41,
+      "pctBelow3": 62.6,
+      "pctBelow4_5": 79.6
+     },
+     "border_band_vs_bg": {
+      "n": 924,
+      "min": 2.43,
+      "p05": 3.59,
+      "p50": 6.31,
+      "pctBelow3": 0.4,
+      "pctBelow4_5": 20.5
+     },
      "border_vs_bg": {
       "n": 924,
       "min": 1.61,
@@ -2913,8 +3564,8 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1440x900_light_satellite_dense_z14.png",
-   "sha256": "d931ed6d5ca67996023b69fa647fc564a20a7a60056abbf33666d7bd9ad89462",
+   "screenshot": "before_1440x900_light_satellite_dense_z14.png",
+   "sha256": "53666459b87bf9f43d0d3fb6390ceea2709e6388d3ffcb35ea005981f707419d",
    "deviceScaleFactor": 1,
    "browser": "chromium"
   },
@@ -2932,8 +3583,12 @@
     "hosts": {
      "server.arcgisonline.com": 84
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 66,
@@ -2947,6 +3602,22 @@
       "p50": 2.67,
       "pctBelow3": 55.1,
       "pctBelow4_5": 73.4
+     },
+     "halo_band_vs_bg": {
+      "n": 256,
+      "min": 1,
+      "p05": 1.39,
+      "p50": 3.78,
+      "pctBelow3": 35.2,
+      "pctBelow4_5": 60.2
+     },
+     "border_band_vs_bg": {
+      "n": 256,
+      "min": 1.03,
+      "p05": 1.33,
+      "p50": 2.95,
+      "pctBelow3": 51.2,
+      "pctBelow4_5": 75
      },
      "border_vs_bg": {
       "n": 256,
@@ -3016,6 +3687,22 @@
       "pctBelow3": 56.3,
       "pctBelow4_5": 72.6
      },
+     "halo_band_vs_bg": {
+      "n": 1837,
+      "min": 1,
+      "p05": 1.2,
+      "p50": 3.33,
+      "pctBelow3": 44.5,
+      "pctBelow4_5": 64.1
+     },
+     "border_band_vs_bg": {
+      "n": 924,
+      "min": 2.03,
+      "p05": 2.84,
+      "p50": 4.76,
+      "pctBelow3": 8.9,
+      "pctBelow4_5": 44.4
+     },
      "border_vs_bg": {
       "n": 924,
       "min": 1.57,
@@ -3075,7 +3762,7 @@
      "glyph_pixel_coverage_ge3_median_pct": 41
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1440x900_light_satellite_dense_z14.png",
+   "screenshot": "after_1440x900_light_satellite_dense_z14.png",
    "sha256": "be97cc29c871395e1abb823ae62fcb47f56db096215c7b9decf51a4125ad5e6a",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -3094,8 +3781,12 @@
     "hosts": {
      "server.arcgisonline.com": 105
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 0,
@@ -3103,6 +3794,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -3178,6 +3885,22 @@
       "pctBelow3": null,
       "pctBelow4_5": null
      },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
      "border_vs_bg": {
       "n": 0,
       "min": null,
@@ -3237,7 +3960,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1440x900_light_satellite_dense_z17.png",
+   "screenshot": "after_1440x900_light_satellite_dense_z17.png",
    "sha256": "f9b0dbe21e7e4eef73881dda82250d13f7b55fdb797d6e20c830eebba9343afa",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -3256,8 +3979,12 @@
     "hosts": {
      "server.arcgisonline.com": 90
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 33,
@@ -3265,6 +3992,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -3340,6 +4083,22 @@
       "pctBelow3": 80.7,
       "pctBelow4_5": 91.7
      },
+     "halo_band_vs_bg": {
+      "n": 1172,
+      "min": 1,
+      "p05": 1.1,
+      "p50": 2.14,
+      "pctBelow3": 69.8,
+      "pctBelow4_5": 86.4
+     },
+     "border_band_vs_bg": {
+      "n": 586,
+      "min": 2.72,
+      "p05": 3.2,
+      "p50": 5.12,
+      "pctBelow3": 2.4,
+      "pctBelow4_5": 35.7
+     },
      "border_vs_bg": {
       "n": 586,
       "min": 1.78,
@@ -3399,8 +4158,8 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1440x900_light_satellite_park_z12.png",
-   "sha256": "11196cd5f8a3c6268ef36780991eedb78560733141a8cea543bfa40c8b0e1cfc",
+   "screenshot": "before_1440x900_light_satellite_park_z12.png",
+   "sha256": "85b9fa63ed76f04e78743c29756a66603f5a2aebe6c6349889e421347c77820f",
    "deviceScaleFactor": 1,
    "browser": "chromium"
   },
@@ -3418,8 +4177,12 @@
     "hosts": {
      "server.arcgisonline.com": 90
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 33,
@@ -3427,6 +4190,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -3502,6 +4281,22 @@
       "pctBelow3": 63.1,
       "pctBelow4_5": 82.4
      },
+     "halo_band_vs_bg": {
+      "n": 1172,
+      "min": 1,
+      "p05": 1.17,
+      "p50": 2.81,
+      "pctBelow3": 53.8,
+      "pctBelow4_5": 77.1
+     },
+     "border_band_vs_bg": {
+      "n": 586,
+      "min": 2.07,
+      "p05": 2.64,
+      "p50": 4.06,
+      "pctBelow3": 16.9,
+      "pctBelow4_5": 60.2
+     },
      "border_vs_bg": {
       "n": 586,
       "min": 1.82,
@@ -3561,7 +4356,7 @@
      "glyph_pixel_coverage_ge3_median_pct": 41
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1440x900_light_satellite_park_z12.png",
+   "screenshot": "after_1440x900_light_satellite_park_z12.png",
    "sha256": "10a4a84b3311b1b92712b1bea69e9e69fbf2363471021d89f43b09dd327c252a",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -3580,8 +4375,12 @@
     "hosts": {
      "server.arcgisonline.com": 84
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 76,
@@ -3595,6 +4394,22 @@
       "p50": 1.65,
       "pctBelow3": 83.6,
       "pctBelow4_5": 90.6
+     },
+     "halo_band_vs_bg": {
+      "n": 256,
+      "min": 1.02,
+      "p05": 1.13,
+      "p50": 2.13,
+      "pctBelow3": 68,
+      "pctBelow4_5": 82.4
+     },
+     "border_band_vs_bg": {
+      "n": 256,
+      "min": 1.03,
+      "p05": 1.61,
+      "p50": 5.15,
+      "pctBelow3": 18.8,
+      "pctBelow4_5": 39.8
      },
      "border_vs_bg": {
       "n": 256,
@@ -3664,6 +4479,22 @@
       "pctBelow3": 74.4,
       "pctBelow4_5": 86.8
      },
+     "halo_band_vs_bg": {
+      "n": 2161,
+      "min": 1,
+      "p05": 1.17,
+      "p50": 2.46,
+      "pctBelow3": 61.2,
+      "pctBelow4_5": 78.7
+     },
+     "border_band_vs_bg": {
+      "n": 1086,
+      "min": 2.43,
+      "p05": 3.43,
+      "p50": 6.07,
+      "pctBelow3": 0.9,
+      "pctBelow4_5": 22.9
+     },
      "border_vs_bg": {
       "n": 1086,
       "min": 1.61,
@@ -3723,7 +4554,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1440x900_light_satellite_park_z14.png",
+   "screenshot": "before_1440x900_light_satellite_park_z14.png",
    "sha256": "2b83a32ee95991822bb83cd03ece96ab36079f105cfb4d89226c606c7c1014a6",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -3742,8 +4573,12 @@
     "hosts": {
      "server.arcgisonline.com": 84
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 76,
@@ -3757,6 +4592,22 @@
       "p50": 2.67,
       "pctBelow3": 55.1,
       "pctBelow4_5": 73.4
+     },
+     "halo_band_vs_bg": {
+      "n": 256,
+      "min": 1,
+      "p05": 1.39,
+      "p50": 3.78,
+      "pctBelow3": 35.2,
+      "pctBelow4_5": 60.2
+     },
+     "border_band_vs_bg": {
+      "n": 256,
+      "min": 1.03,
+      "p05": 1.33,
+      "p50": 2.94,
+      "pctBelow3": 51.2,
+      "pctBelow4_5": 75
      },
      "border_vs_bg": {
       "n": 256,
@@ -3826,6 +4677,22 @@
       "pctBelow3": 57.1,
       "pctBelow4_5": 72.1
      },
+     "halo_band_vs_bg": {
+      "n": 2161,
+      "min": 1.01,
+      "p05": 1.23,
+      "p50": 3.32,
+      "pctBelow3": 44.9,
+      "pctBelow4_5": 63.9
+     },
+     "border_band_vs_bg": {
+      "n": 1086,
+      "min": 1.93,
+      "p05": 2.84,
+      "p50": 4.86,
+      "pctBelow3": 8.6,
+      "pctBelow4_5": 42.9
+     },
      "border_vs_bg": {
       "n": 1086,
       "min": 1.61,
@@ -3885,7 +4752,7 @@
      "glyph_pixel_coverage_ge3_median_pct": 41
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1440x900_light_satellite_park_z14.png",
+   "screenshot": "after_1440x900_light_satellite_park_z14.png",
    "sha256": "db3d6cce78c251ef4306df7d00d7b6e5868dd6b326d440832b53c21e4732392c",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -3904,8 +4771,12 @@
     "hosts": {
      "server.arcgisonline.com": 84
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 0,
@@ -3913,6 +4784,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -3988,6 +4875,22 @@
       "pctBelow3": null,
       "pctBelow4_5": null
      },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
      "border_vs_bg": {
       "n": 0,
       "min": null,
@@ -4047,7 +4950,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1440x900_light_satellite_park_z17.png",
+   "screenshot": "after_1440x900_light_satellite_park_z17.png",
    "sha256": "8acfc9866585ef04943f76bffcf3fb764d2309103a1d544b09c462a6dd43bc89",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -4066,8 +4969,12 @@
     "hosts": {
      "server.arcgisonline.com": 90
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 19,
@@ -4075,6 +4982,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -4150,6 +5073,22 @@
       "pctBelow3": 83,
       "pctBelow4_5": 92.5
      },
+     "halo_band_vs_bg": {
+      "n": 684,
+      "min": 1,
+      "p05": 1.07,
+      "p50": 2.03,
+      "pctBelow3": 72.8,
+      "pctBelow4_5": 87.7
+     },
+     "border_band_vs_bg": {
+      "n": 342,
+      "min": 2.72,
+      "p05": 3.29,
+      "p50": 5.28,
+      "pctBelow3": 1.8,
+      "pctBelow4_5": 33.3
+     },
      "border_vs_bg": {
       "n": 342,
       "min": 1.67,
@@ -4209,7 +5148,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1440x900_light_satellite_sparse_z12.png",
+   "screenshot": "before_1440x900_light_satellite_sparse_z12.png",
    "sha256": "102f4b76b08fdd312ce95dad9d17248d10325e7e908efc2788ea27c5cce1cc22",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -4228,8 +5167,12 @@
     "hosts": {
      "server.arcgisonline.com": 90
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 19,
@@ -4237,6 +5180,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -4312,6 +5271,22 @@
       "pctBelow3": 64.6,
       "pctBelow4_5": 82.3
      },
+     "halo_band_vs_bg": {
+      "n": 684,
+      "min": 1,
+      "p05": 1.16,
+      "p50": 2.74,
+      "pctBelow3": 54.2,
+      "pctBelow4_5": 76.5
+     },
+     "border_band_vs_bg": {
+      "n": 342,
+      "min": 2.07,
+      "p05": 2.66,
+      "p50": 4,
+      "pctBelow3": 15.8,
+      "pctBelow4_5": 62
+     },
      "border_vs_bg": {
       "n": 342,
       "min": 1.82,
@@ -4371,7 +5346,7 @@
      "glyph_pixel_coverage_ge3_median_pct": 42
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1440x900_light_satellite_sparse_z12.png",
+   "screenshot": "after_1440x900_light_satellite_sparse_z12.png",
    "sha256": "3fea5445f39ec27fdb9a62bb94c46193259c7d3790b96068f1e22010acd973d3",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -4390,8 +5365,12 @@
     "hosts": {
      "server.arcgisonline.com": 72
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 0,
@@ -4399,6 +5378,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -4474,6 +5469,22 @@
       "pctBelow3": null,
       "pctBelow4_5": null
      },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
      "border_vs_bg": {
       "n": 0,
       "min": null,
@@ -4533,8 +5544,8 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1440x900_light_satellite_sparse_z14.png",
-   "sha256": "d64b93b5c1256148eb181165585b61260fccb7339b838a505387a6bdef4a2d59",
+   "screenshot": "before_1440x900_light_satellite_sparse_z14.png",
+   "sha256": "ffc28f6e119b59a095fd37240a01f334023af43c1b42ed1c1ebf335cfd19b721",
    "deviceScaleFactor": 1,
    "browser": "chromium"
   },
@@ -4552,8 +5563,12 @@
     "hosts": {
      "server.arcgisonline.com": 72
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 0,
@@ -4561,6 +5576,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -4636,6 +5667,22 @@
       "pctBelow3": null,
       "pctBelow4_5": null
      },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
      "border_vs_bg": {
       "n": 0,
       "min": null,
@@ -4695,7 +5742,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1440x900_light_satellite_sparse_z14.png",
+   "screenshot": "after_1440x900_light_satellite_sparse_z14.png",
    "sha256": "759f42907b06b0796c2aa6f5008f515bfbc468486dbe5f62637872f7a6acd317",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -4714,8 +5761,12 @@
     "hosts": {
      "server.arcgisonline.com": 84
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 0,
@@ -4723,6 +5774,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -4798,6 +5865,22 @@
       "pctBelow3": null,
       "pctBelow4_5": null
      },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
      "border_vs_bg": {
       "n": 0,
       "min": null,
@@ -4857,7 +5940,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1440x900_light_satellite_sparse_z17.png",
+   "screenshot": "after_1440x900_light_satellite_sparse_z17.png",
    "sha256": "7d1e3636c8a9e026fa2ccd24a8ef22599bd335c3d40e5acdff79c893b1156f4a",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -4876,8 +5959,12 @@
     "hosts": {
      "server.arcgisonline.com": 120
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 42,
@@ -4885,6 +5972,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -4960,6 +6063,22 @@
       "pctBelow3": 80.8,
       "pctBelow4_5": 91.9
      },
+     "halo_band_vs_bg": {
+      "n": 1478,
+      "min": 1,
+      "p05": 1.1,
+      "p50": 2.14,
+      "pctBelow3": 70.3,
+      "pctBelow4_5": 86.5
+     },
+     "border_band_vs_bg": {
+      "n": 740,
+      "min": 2.72,
+      "p05": 3.24,
+      "p50": 5.05,
+      "pctBelow3": 1.9,
+      "pctBelow4_5": 36.8
+     },
      "border_vs_bg": {
       "n": 740,
       "min": 1.78,
@@ -5019,7 +6138,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1920x1080_light_satellite_dense_z12.png",
+   "screenshot": "before_1920x1080_light_satellite_dense_z12.png",
    "sha256": "08238304b9bb320679135baa97c48d02548eacedc0cf0fb702656fd219e98bfe",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -5038,8 +6157,12 @@
     "hosts": {
      "server.arcgisonline.com": 120
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 42,
@@ -5047,6 +6170,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -5122,6 +6261,22 @@
       "pctBelow3": 63.7,
       "pctBelow4_5": 82.6
      },
+     "halo_band_vs_bg": {
+      "n": 1478,
+      "min": 1,
+      "p05": 1.21,
+      "p50": 2.82,
+      "pctBelow3": 53.7,
+      "pctBelow4_5": 77.2
+     },
+     "border_band_vs_bg": {
+      "n": 740,
+      "min": 2.07,
+      "p05": 2.64,
+      "p50": 4,
+      "pctBelow3": 16.4,
+      "pctBelow4_5": 61.2
+     },
      "border_vs_bg": {
       "n": 740,
       "min": 1.71,
@@ -5181,7 +6336,7 @@
      "glyph_pixel_coverage_ge3_median_pct": 41
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1920x1080_light_satellite_dense_z12.png",
+   "screenshot": "after_1920x1080_light_satellite_dense_z12.png",
    "sha256": "7844ad72a3ef47f3c072f61b1632529a1ee0c9215c90efbea1d1be32f8b051cf",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -5200,8 +6355,12 @@
     "hosts": {
      "server.arcgisonline.com": 159
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 99,
@@ -5215,6 +6374,22 @@
       "p50": 1.65,
       "pctBelow3": 83.6,
       "pctBelow4_5": 90.6
+     },
+     "halo_band_vs_bg": {
+      "n": 256,
+      "min": 1.02,
+      "p05": 1.13,
+      "p50": 2.13,
+      "pctBelow3": 68,
+      "pctBelow4_5": 82.4
+     },
+     "border_band_vs_bg": {
+      "n": 256,
+      "min": 1.03,
+      "p05": 1.61,
+      "p50": 5.15,
+      "pctBelow3": 18.8,
+      "pctBelow4_5": 39.8
      },
      "border_vs_bg": {
       "n": 256,
@@ -5284,6 +6459,22 @@
       "pctBelow3": 74.2,
       "pctBelow4_5": 86.6
      },
+     "halo_band_vs_bg": {
+      "n": 2953,
+      "min": 1,
+      "p05": 1.15,
+      "p50": 2.45,
+      "pctBelow3": 61.3,
+      "pctBelow4_5": 78.6
+     },
+     "border_band_vs_bg": {
+      "n": 1484,
+      "min": 2.43,
+      "p05": 3.53,
+      "p50": 6.2,
+      "pctBelow3": 0.7,
+      "pctBelow4_5": 20.7
+     },
      "border_vs_bg": {
       "n": 1484,
       "min": 1.61,
@@ -5343,7 +6534,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1920x1080_light_satellite_dense_z14.png",
+   "screenshot": "before_1920x1080_light_satellite_dense_z14.png",
    "sha256": "bc0b2740fe11acb7b55903603a53e06495216e66aef4d455c535271d2dcccddb",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -5362,8 +6553,12 @@
     "hosts": {
      "server.arcgisonline.com": 159
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 99,
@@ -5377,6 +6572,22 @@
       "p50": 2.67,
       "pctBelow3": 55.1,
       "pctBelow4_5": 73.4
+     },
+     "halo_band_vs_bg": {
+      "n": 256,
+      "min": 1,
+      "p05": 1.39,
+      "p50": 3.78,
+      "pctBelow3": 35.2,
+      "pctBelow4_5": 60.2
+     },
+     "border_band_vs_bg": {
+      "n": 256,
+      "min": 1.03,
+      "p05": 1.33,
+      "p50": 2.94,
+      "pctBelow3": 51.2,
+      "pctBelow4_5": 75
      },
      "border_vs_bg": {
       "n": 256,
@@ -5446,6 +6657,22 @@
       "pctBelow3": 57.8,
       "pctBelow4_5": 72.4
      },
+     "halo_band_vs_bg": {
+      "n": 2953,
+      "min": 1,
+      "p05": 1.22,
+      "p50": 3.26,
+      "pctBelow3": 45.9,
+      "pctBelow4_5": 63.9
+     },
+     "border_band_vs_bg": {
+      "n": 1484,
+      "min": 1.93,
+      "p05": 2.84,
+      "p50": 4.88,
+      "pctBelow3": 8.5,
+      "pctBelow4_5": 41.8
+     },
      "border_vs_bg": {
       "n": 1484,
       "min": 1.61,
@@ -5505,7 +6732,7 @@
      "glyph_pixel_coverage_ge3_median_pct": 41
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1920x1080_light_satellite_dense_z14.png",
+   "screenshot": "after_1920x1080_light_satellite_dense_z14.png",
    "sha256": "802f60ce90daf5bebf508444ebaae34e07174a1b1bbf5a9fe9e394973419ec38",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -5524,8 +6751,12 @@
     "hosts": {
      "server.arcgisonline.com": 135
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 0,
@@ -5533,6 +6764,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -5608,6 +6855,22 @@
       "pctBelow3": null,
       "pctBelow4_5": null
      },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
      "border_vs_bg": {
       "n": 0,
       "min": null,
@@ -5667,7 +6930,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1920x1080_light_satellite_dense_z17.png",
+   "screenshot": "after_1920x1080_light_satellite_dense_z17.png",
    "sha256": "c4af9b57f7e091a5aea85a444346010889df64ac86b1f849808c101be3fa0ba1",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -5686,8 +6949,12 @@
     "hosts": {
      "server.arcgisonline.com": 120
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 43,
@@ -5695,6 +6962,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -5770,6 +7053,22 @@
       "pctBelow3": 80.9,
       "pctBelow4_5": 91.9
      },
+     "halo_band_vs_bg": {
+      "n": 1514,
+      "min": 1,
+      "p05": 1.1,
+      "p50": 2.14,
+      "pctBelow3": 70.5,
+      "pctBelow4_5": 86.6
+     },
+     "border_band_vs_bg": {
+      "n": 758,
+      "min": 2.72,
+      "p05": 3.23,
+      "p50": 5.04,
+      "pctBelow3": 1.8,
+      "pctBelow4_5": 37.3
+     },
      "border_vs_bg": {
       "n": 758,
       "min": 1.78,
@@ -5829,7 +7128,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1920x1080_light_satellite_park_z12.png",
+   "screenshot": "before_1920x1080_light_satellite_park_z12.png",
    "sha256": "2b06e0e859c79d715d28f763d4cff43aae13a3455e543dd11bd5c0b5301c6f52",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -5848,8 +7147,12 @@
     "hosts": {
      "server.arcgisonline.com": 120
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 43,
@@ -5857,6 +7160,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -5932,6 +7251,22 @@
       "pctBelow3": 63.9,
       "pctBelow4_5": 82.7
      },
+     "halo_band_vs_bg": {
+      "n": 1514,
+      "min": 1,
+      "p05": 1.21,
+      "p50": 2.81,
+      "pctBelow3": 54.1,
+      "pctBelow4_5": 77.3
+     },
+     "border_band_vs_bg": {
+      "n": 758,
+      "min": 2.07,
+      "p05": 2.63,
+      "p50": 3.98,
+      "pctBelow3": 16.9,
+      "pctBelow4_5": 61.5
+     },
      "border_vs_bg": {
       "n": 758,
       "min": 1.7,
@@ -5991,7 +7326,7 @@
      "glyph_pixel_coverage_ge3_median_pct": 41
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1920x1080_light_satellite_park_z12.png",
+   "screenshot": "after_1920x1080_light_satellite_park_z12.png",
    "sha256": "23daaf5a4d3caa116f60adad895dbdb91c118c902b1806a66f64353b3eb54260",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -6010,8 +7345,12 @@
     "hosts": {
      "server.arcgisonline.com": 159
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 98,
@@ -6025,6 +7364,22 @@
       "p50": 1.65,
       "pctBelow3": 83.6,
       "pctBelow4_5": 90.6
+     },
+     "halo_band_vs_bg": {
+      "n": 256,
+      "min": 1.02,
+      "p05": 1.13,
+      "p50": 2.13,
+      "pctBelow3": 68,
+      "pctBelow4_5": 82.4
+     },
+     "border_band_vs_bg": {
+      "n": 256,
+      "min": 1.03,
+      "p05": 1.61,
+      "p50": 5.15,
+      "pctBelow3": 18.8,
+      "pctBelow4_5": 39.8
      },
      "border_vs_bg": {
       "n": 256,
@@ -6094,6 +7449,22 @@
       "pctBelow3": 74.5,
       "pctBelow4_5": 87
      },
+     "halo_band_vs_bg": {
+      "n": 2933,
+      "min": 1,
+      "p05": 1.14,
+      "p50": 2.43,
+      "pctBelow3": 61.6,
+      "pctBelow4_5": 78.9
+     },
+     "border_band_vs_bg": {
+      "n": 1474,
+      "min": 2.43,
+      "p05": 3.51,
+      "p50": 6.22,
+      "pctBelow3": 0.7,
+      "pctBelow4_5": 21.4
+     },
      "border_vs_bg": {
       "n": 1474,
       "min": 1.61,
@@ -6153,7 +7524,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1920x1080_light_satellite_park_z14.png",
+   "screenshot": "before_1920x1080_light_satellite_park_z14.png",
    "sha256": "6d8f07aabc121f7ee3cca3aac8a127d59f8eb4de73c992af1a4af4b164d0b4fa",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -6172,8 +7543,12 @@
     "hosts": {
      "server.arcgisonline.com": 159
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 98,
@@ -6187,6 +7562,22 @@
       "p50": 2.67,
       "pctBelow3": 55.1,
       "pctBelow4_5": 73.4
+     },
+     "halo_band_vs_bg": {
+      "n": 256,
+      "min": 1,
+      "p05": 1.39,
+      "p50": 3.78,
+      "pctBelow3": 35.2,
+      "pctBelow4_5": 60.2
+     },
+     "border_band_vs_bg": {
+      "n": 256,
+      "min": 1.03,
+      "p05": 1.33,
+      "p50": 2.94,
+      "pctBelow3": 51.2,
+      "pctBelow4_5": 75
      },
      "border_vs_bg": {
       "n": 256,
@@ -6256,6 +7647,22 @@
       "pctBelow3": 57.7,
       "pctBelow4_5": 72.3
      },
+     "halo_band_vs_bg": {
+      "n": 2933,
+      "min": 1,
+      "p05": 1.2,
+      "p50": 3.27,
+      "pctBelow3": 46,
+      "pctBelow4_5": 63.8
+     },
+     "border_band_vs_bg": {
+      "n": 1474,
+      "min": 1.93,
+      "p05": 2.82,
+      "p50": 4.88,
+      "pctBelow3": 8.7,
+      "pctBelow4_5": 42.1
+     },
      "border_vs_bg": {
       "n": 1474,
       "min": 1.53,
@@ -6315,7 +7722,7 @@
      "glyph_pixel_coverage_ge3_median_pct": 41
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1920x1080_light_satellite_park_z14.png",
+   "screenshot": "after_1920x1080_light_satellite_park_z14.png",
    "sha256": "87bd96efc160c60c52018ac00e410caff20df633fa61d2ec4c472d1ec3bc1dbd",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -6334,8 +7741,12 @@
     "hosts": {
      "server.arcgisonline.com": 135
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 0,
@@ -6343,6 +7754,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -6418,6 +7845,22 @@
       "pctBelow3": null,
       "pctBelow4_5": null
      },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
      "border_vs_bg": {
       "n": 0,
       "min": null,
@@ -6477,7 +7920,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1920x1080_light_satellite_park_z17.png",
+   "screenshot": "after_1920x1080_light_satellite_park_z17.png",
    "sha256": "8988abdc29cf9cb9717087cc945be816a9e80e4510c49a091d6a0ba4a2e858aa",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -6496,8 +7939,12 @@
     "hosts": {
      "server.arcgisonline.com": 120
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 30,
@@ -6505,6 +7952,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -6580,6 +8043,22 @@
       "pctBelow3": 83,
       "pctBelow4_5": 92.4
      },
+     "halo_band_vs_bg": {
+      "n": 1080,
+      "min": 1,
+      "p05": 1.08,
+      "p50": 2.04,
+      "pctBelow3": 73.3,
+      "pctBelow4_5": 87.8
+     },
+     "border_band_vs_bg": {
+      "n": 540,
+      "min": 2.72,
+      "p05": 3.26,
+      "p50": 5.03,
+      "pctBelow3": 2.2,
+      "pctBelow4_5": 38.7
+     },
      "border_vs_bg": {
       "n": 540,
       "min": 1.51,
@@ -6639,7 +8118,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1920x1080_light_satellite_sparse_z12.png",
+   "screenshot": "before_1920x1080_light_satellite_sparse_z12.png",
    "sha256": "5887d7692a87812812b91d1f18c56ff3b6e4885c85bc755131bf8ef3df26b10f",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -6658,8 +8137,12 @@
     "hosts": {
      "server.arcgisonline.com": 120
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 30,
@@ -6667,6 +8150,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -6742,6 +8241,22 @@
       "pctBelow3": 65.3,
       "pctBelow4_5": 83.3
      },
+     "halo_band_vs_bg": {
+      "n": 1080,
+      "min": 1,
+      "p05": 1.18,
+      "p50": 2.76,
+      "pctBelow3": 55.2,
+      "pctBelow4_5": 77.7
+     },
+     "border_band_vs_bg": {
+      "n": 540,
+      "min": 2.07,
+      "p05": 2.64,
+      "p50": 3.93,
+      "pctBelow3": 16.9,
+      "pctBelow4_5": 63.5
+     },
      "border_vs_bg": {
       "n": 540,
       "min": 1.49,
@@ -6801,7 +8316,7 @@
      "glyph_pixel_coverage_ge3_median_pct": 41
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1920x1080_light_satellite_sparse_z12.png",
+   "screenshot": "after_1920x1080_light_satellite_sparse_z12.png",
    "sha256": "7c2c0358fff20d8fde9b7e4ca6ae803efb4bf77534b8760dfcf99f8b4770d419",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -6820,8 +8335,12 @@
     "hosts": {
      "server.arcgisonline.com": 192
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 0,
@@ -6829,6 +8348,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -6904,6 +8439,22 @@
       "pctBelow3": null,
       "pctBelow4_5": null
      },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
      "border_vs_bg": {
       "n": 0,
       "min": null,
@@ -6963,7 +8514,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1920x1080_light_satellite_sparse_z14.png",
+   "screenshot": "before_1920x1080_light_satellite_sparse_z14.png",
    "sha256": "ed6e79c61b56df698a8af11ba77f0159cb711b6b469b65d4f822809262fc49a1",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -6982,8 +8533,12 @@
     "hosts": {
      "server.arcgisonline.com": 192
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 0,
@@ -6991,6 +8546,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -7066,6 +8637,22 @@
       "pctBelow3": null,
       "pctBelow4_5": null
      },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
      "border_vs_bg": {
       "n": 0,
       "min": null,
@@ -7125,7 +8712,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1920x1080_light_satellite_sparse_z14.png",
+   "screenshot": "after_1920x1080_light_satellite_sparse_z14.png",
    "sha256": "532baf819320f211cced63d306423b3c9509333402a52378f275a89472949884",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -7144,8 +8731,12 @@
     "hosts": {
      "server.arcgisonline.com": 120
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 0,
@@ -7153,6 +8744,22 @@
     "inLens": {
      "chips": 0,
      "halo_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
       "n": 0,
       "min": null,
       "p05": null,
@@ -7228,6 +8835,22 @@
       "pctBelow3": null,
       "pctBelow4_5": null
      },
+     "halo_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
+     "border_band_vs_bg": {
+      "n": 0,
+      "min": null,
+      "p05": null,
+      "p50": null,
+      "pctBelow3": null,
+      "pctBelow4_5": null
+     },
      "border_vs_bg": {
       "n": 0,
       "min": null,
@@ -7287,7 +8910,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1920x1080_light_satellite_sparse_z17.png",
+   "screenshot": "after_1920x1080_light_satellite_sparse_z17.png",
    "sha256": "e72b568534f0cd6ba0090ae76d3b55f9e907fdc8a0072e5dc8e1a01eb1eda787",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -7306,8 +8929,12 @@
     "hosts": {
      "server.arcgisonline.com": 84
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 66,
@@ -7321,6 +8948,22 @@
       "p50": 1.53,
       "pctBelow3": 87.9,
       "pctBelow4_5": 93.4
+     },
+     "halo_band_vs_bg": {
+      "n": 256,
+      "min": 1.04,
+      "p05": 1.14,
+      "p50": 1.86,
+      "pctBelow3": 77,
+      "pctBelow4_5": 89.1
+     },
+     "border_band_vs_bg": {
+      "n": 256,
+      "min": 1.04,
+      "p05": 1.31,
+      "p50": 3.21,
+      "pctBelow3": 46.9,
+      "pctBelow4_5": 70.3
      },
      "border_vs_bg": {
       "n": 256,
@@ -7390,6 +9033,22 @@
       "pctBelow3": 75.7,
       "pctBelow4_5": 88.9
      },
+     "halo_band_vs_bg": {
+      "n": 1837,
+      "min": 1,
+      "p05": 1.15,
+      "p50": 2.34,
+      "pctBelow3": 65.4,
+      "pctBelow4_5": 83.6
+     },
+     "border_band_vs_bg": {
+      "n": 924,
+      "min": 2.04,
+      "p05": 2.83,
+      "p50": 4.91,
+      "pctBelow3": 7.3,
+      "pctBelow4_5": 42.9
+     },
      "border_vs_bg": {
       "n": 924,
       "min": 1.58,
@@ -7449,7 +9108,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_1440x900_dark_satellite_dense_z14.png",
+   "screenshot": "before_1440x900_dark_satellite_dense_z14.png",
    "sha256": "3c10a6db8be1e977003f923f60dbfcb19a621f6b579c22c7c8ee4db321e374ba",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -7468,8 +9127,12 @@
     "hosts": {
      "server.arcgisonline.com": 84
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 66,
@@ -7483,6 +9146,22 @@
       "p50": 2.17,
       "pctBelow3": 65.6,
       "pctBelow4_5": 79.3
+     },
+     "halo_band_vs_bg": {
+      "n": 256,
+      "min": 1.01,
+      "p05": 1.16,
+      "p50": 3.7,
+      "pctBelow3": 37.5,
+      "pctBelow4_5": 60.5
+     },
+     "border_band_vs_bg": {
+      "n": 256,
+      "min": 1.06,
+      "p05": 1.38,
+      "p50": 3.38,
+      "pctBelow3": 44.5,
+      "pctBelow4_5": 61.3
      },
      "border_vs_bg": {
       "n": 256,
@@ -7552,6 +9231,22 @@
       "pctBelow3": 64.3,
       "pctBelow4_5": 81.3
      },
+     "halo_band_vs_bg": {
+      "n": 1837,
+      "min": 1,
+      "p05": 1.21,
+      "p50": 3.06,
+      "pctBelow3": 48.9,
+      "pctBelow4_5": 71.1
+     },
+     "border_band_vs_bg": {
+      "n": 924,
+      "min": 2.09,
+      "p05": 3.02,
+      "p50": 5.35,
+      "pctBelow3": 4.5,
+      "pctBelow4_5": 34.8
+     },
      "border_vs_bg": {
       "n": 924,
       "min": 1.58,
@@ -7611,7 +9306,7 @@
      "glyph_pixel_coverage_ge3_median_pct": 45
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1440x900_dark_satellite_dense_z14.png",
+   "screenshot": "after_1440x900_dark_satellite_dense_z14.png",
    "sha256": "e015cc511cc691ce30f928f8de8efc8c6cf999d6e673472cece842eb503ba0b9",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -7630,8 +9325,12 @@
     "hosts": {
      "server.arcgisonline.com": 90
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 63,
@@ -7645,6 +9344,22 @@
       "p50": 1.68,
       "pctBelow3": 80.8,
       "pctBelow4_5": 89.2
+     },
+     "halo_band_vs_bg": {
+      "n": 213,
+      "min": 1.01,
+      "p05": 1.12,
+      "p50": 2.23,
+      "pctBelow3": 63.8,
+      "pctBelow4_5": 81.2
+     },
+     "border_band_vs_bg": {
+      "n": 213,
+      "min": 1.03,
+      "p05": 1.53,
+      "p50": 4.86,
+      "pctBelow3": 21.1,
+      "pctBelow4_5": 43.2
      },
      "border_vs_bg": {
       "n": 213,
@@ -7714,6 +9429,22 @@
       "pctBelow3": 73.7,
       "pctBelow4_5": 87.5
      },
+     "halo_band_vs_bg": {
+      "n": 1777,
+      "min": 1,
+      "p05": 1.14,
+      "p50": 2.49,
+      "pctBelow3": 60.8,
+      "pctBelow4_5": 79.7
+     },
+     "border_band_vs_bg": {
+      "n": 895,
+      "min": 2.59,
+      "p05": 3.61,
+      "p50": 6.19,
+      "pctBelow3": 0.4,
+      "pctBelow4_5": 19.3
+     },
      "border_vs_bg": {
       "n": 895,
       "min": 1.7,
@@ -7773,7 +9504,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_820x1180_light_satellite_dense_z14.png",
+   "screenshot": "before_820x1180_light_satellite_dense_z14.png",
    "sha256": "6d0ee2111e07f7ebd0d06d230afaa315eb200b5a9da9f23650a92f84f730260c",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -7792,8 +9523,12 @@
     "hosts": {
      "server.arcgisonline.com": 90
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 63,
@@ -7807,6 +9542,22 @@
       "p50": 2.65,
       "pctBelow3": 54.9,
       "pctBelow4_5": 73.2
+     },
+     "halo_band_vs_bg": {
+      "n": 213,
+      "min": 1,
+      "p05": 1.29,
+      "p50": 3.66,
+      "pctBelow3": 36.6,
+      "pctBelow4_5": 61.5
+     },
+     "border_band_vs_bg": {
+      "n": 213,
+      "min": 1.03,
+      "p05": 1.41,
+      "p50": 2.94,
+      "pctBelow3": 51.2,
+      "pctBelow4_5": 71.4
      },
      "border_vs_bg": {
       "n": 213,
@@ -7876,6 +9627,22 @@
       "pctBelow3": 56.3,
       "pctBelow4_5": 71.8
      },
+     "halo_band_vs_bg": {
+      "n": 1777,
+      "min": 1,
+      "p05": 1.19,
+      "p50": 3.35,
+      "pctBelow3": 44.4,
+      "pctBelow4_5": 63.2
+     },
+     "border_band_vs_bg": {
+      "n": 895,
+      "min": 1.93,
+      "p05": 2.75,
+      "p50": 4.86,
+      "pctBelow3": 9.4,
+      "pctBelow4_5": 42.7
+     },
      "border_vs_bg": {
       "n": 895,
       "min": 1.6,
@@ -7935,7 +9702,7 @@
      "glyph_pixel_coverage_ge3_median_pct": 41
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_820x1180_light_satellite_dense_z14.png",
+   "screenshot": "after_820x1180_light_satellite_dense_z14.png",
    "sha256": "6c1fe46fc0ed51e079f8b35b948361fe1c510810a4c98d13319fd05f3f8daf6f",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -7954,8 +9721,12 @@
     "hosts": {
      "server.arcgisonline.com": 36
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 23,
@@ -7969,6 +9740,22 @@
       "p50": 1.65,
       "pctBelow3": 80.4,
       "pctBelow4_5": 89.3
+     },
+     "halo_band_vs_bg": {
+      "n": 168,
+      "min": 1.01,
+      "p05": 1.04,
+      "p50": 2.13,
+      "pctBelow3": 66.7,
+      "pctBelow4_5": 83.3
+     },
+     "border_band_vs_bg": {
+      "n": 168,
+      "min": 1.01,
+      "p05": 1.28,
+      "p50": 4.77,
+      "pctBelow3": 24.4,
+      "pctBelow4_5": 45.2
      },
      "border_vs_bg": {
       "n": 168,
@@ -8038,6 +9825,22 @@
       "pctBelow3": 76.4,
       "pctBelow4_5": 90.4
      },
+     "halo_band_vs_bg": {
+      "n": 491,
+      "min": 1,
+      "p05": 1.06,
+      "p50": 2.31,
+      "pctBelow3": 64.4,
+      "pctBelow4_5": 84.7
+     },
+     "border_band_vs_bg": {
+      "n": 249,
+      "min": 3.1,
+      "p05": 3.47,
+      "p50": 5.83,
+      "pctBelow3": 0,
+      "pctBelow4_5": 24.5
+     },
      "border_vs_bg": {
       "n": 249,
       "min": 1.7,
@@ -8097,7 +9900,7 @@
      "glyph_pixel_coverage_ge3_median_pct": null
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\before_390x844_light_satellite_dense_z14.png",
+   "screenshot": "before_390x844_light_satellite_dense_z14.png",
    "sha256": "b6779460eefa5a2931945cfe3910409dbe80f74842519e12f52d5275e4522569",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -8116,8 +9919,12 @@
     "hosts": {
      "server.arcgisonline.com": 36
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 23,
@@ -8131,6 +9938,22 @@
       "p50": 2.36,
       "pctBelow3": 60.7,
       "pctBelow4_5": 75
+     },
+     "halo_band_vs_bg": {
+      "n": 168,
+      "min": 1,
+      "p05": 1.02,
+      "p50": 3.58,
+      "pctBelow3": 41.1,
+      "pctBelow4_5": 63.1
+     },
+     "border_band_vs_bg": {
+      "n": 168,
+      "min": 1,
+      "p05": 1.13,
+      "p50": 2.97,
+      "pctBelow3": 51.2,
+      "pctBelow4_5": 69.6
      },
      "border_vs_bg": {
       "n": 168,
@@ -8200,6 +10023,22 @@
       "pctBelow3": 56,
       "pctBelow4_5": 74.1
      },
+     "halo_band_vs_bg": {
+      "n": 491,
+      "min": 1,
+      "p05": 1.1,
+      "p50": 3.36,
+      "pctBelow3": 44.4,
+      "pctBelow4_5": 64.4
+     },
+     "border_band_vs_bg": {
+      "n": 249,
+      "min": 1.89,
+      "p05": 2.79,
+      "p50": 5.02,
+      "pctBelow3": 8.4,
+      "pctBelow4_5": 39.8
+     },
      "border_vs_bg": {
       "n": 249,
       "min": 1.5,
@@ -8259,7 +10098,7 @@
      "glyph_pixel_coverage_ge3_median_pct": 40
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_390x844_light_satellite_dense_z14.png",
+   "screenshot": "after_390x844_light_satellite_dense_z14.png",
    "sha256": "3dee30bd55caedd468992f2ececdb0f499a1474f9efb75eabb0d791f98c12946",
    "deviceScaleFactor": 1,
    "browser": "chromium"
@@ -8278,8 +10117,12 @@
     "hosts": {
      "server.arcgisonline.com": 84
     },
+    "stylePaths": [
+     "/ArcGIS/rest"
+    ],
     "attribution": "Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
    },
+   "poiSha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
    "errors": [],
    "stats": {
     "chips": 66,
@@ -8293,6 +10136,22 @@
       "p50": 2.67,
       "pctBelow3": 55.1,
       "pctBelow4_5": 73.4
+     },
+     "halo_band_vs_bg": {
+      "n": 256,
+      "min": 1,
+      "p05": 1.39,
+      "p50": 3.78,
+      "pctBelow3": 35.2,
+      "pctBelow4_5": 60.2
+     },
+     "border_band_vs_bg": {
+      "n": 256,
+      "min": 1.03,
+      "p05": 1.33,
+      "p50": 2.95,
+      "pctBelow3": 51.2,
+      "pctBelow4_5": 75
      },
      "border_vs_bg": {
       "n": 256,
@@ -8362,6 +10221,22 @@
       "pctBelow3": 56.3,
       "pctBelow4_5": 72.6
      },
+     "halo_band_vs_bg": {
+      "n": 1837,
+      "min": 1,
+      "p05": 1.2,
+      "p50": 3.33,
+      "pctBelow3": 44.5,
+      "pctBelow4_5": 64.1
+     },
+     "border_band_vs_bg": {
+      "n": 924,
+      "min": 2.03,
+      "p05": 2.84,
+      "p50": 4.76,
+      "pctBelow3": 8.9,
+      "pctBelow4_5": 44.4
+     },
      "border_vs_bg": {
       "n": 924,
       "min": 1.57,
@@ -8421,12 +10296,12 @@
      "glyph_pixel_coverage_ge3_median_pct": 41
     }
    },
-   "screenshot": "C:\\Users\\Dell\\AppData\\Local\\Temp\\claude\\C--workspace-madrid-intelligence-tourism-lens\\f98eda80-b232-4838-894c-335889bfe765\\scratchpad\\evidence\\after_1440x900_light_satellite_dense_z14_es.png",
+   "screenshot": "after_1440x900_light_satellite_dense_z14_es.png",
    "sha256": "acc6836d92dea48ea48fd84bd205552fa1074d40e2c6f1cc359f26d3c615dc4e",
    "deviceScaleFactor": 1,
    "browser": "chromium"
   }
  ],
  "notMeasured": [],
- "attribution": "Esri World Imagery: Tiles (c) Esri - Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community."
+ "attribution": "Basemap tiles: (c) OpenStreetMap contributors (c) CARTO; Esri World Imagery: Tiles (c) Esri - Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community. Captures not committed."
 }
