@@ -155,6 +155,24 @@ jobs:
         env:
           TUTORIAL_BROWSER: webkit
 
+  # UX-V1 (#149): cluster chip contract (glyph identity, tokens, keyboard, states)
+  # on real WebKit. Computed-style/pixel-free assertions only; real-tile contrast is
+  # measured by research/lens_ux_cluster_149/validate.mjs, not by CI.
+  cluster-ux-v1-webkit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps webkit
+      - name: Cluster chip contract (WebKit)
+        run: node --test --test-concurrency=1 browser-tests/cluster-ux-v1.browser.mjs
+        env:
+          LENS_TEST_BROWSER: webkit
+
   # M1 follow-up: verify the adaptive header and its one shared search surface
   # on the Safari engine too, then retain the viewport/theme evidence produced
   # by the existing capture hook.

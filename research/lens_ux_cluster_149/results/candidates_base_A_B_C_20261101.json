@@ -1,0 +1,2007 @@
+{
+  "tool": "research/lens_ux_cluster_149/experiment.mjs",
+  "measured_at": "2026-11-01T15:50:02.375Z",
+  "checkout_head": "c3d73ed46a8bbd2ccb89f32a87a4cee649ea61a8",
+  "poi_sha256": "56ab078e8c099dad54470d46861a83b3813d8441bfa1a01c91a820886e49e0ef",
+  "viewport": "1440x900",
+  "view": {
+    "lat": 40.415,
+    "lon": -3.692,
+    "zoom": 14
+  },
+  "basemap_provenance": {
+    "light": "SYNTHETIC flat #ededed (NOT CARTO Positron)",
+    "dark": "SYNTHETIC flat #262626 (NOT CARTO Dark Matter)",
+    "satellite": "REAL Esri World Imagery, live fetch; attribution: Tiles (c) Esri - Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+  },
+  "configs": [
+    {
+      "cand": "BASE",
+      "appearance": "light",
+      "basemap": "light",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [],
+      "allDifferingProps": [],
+      "boundaryContrast": {
+        "samples": 4825,
+        "min": 4.25,
+        "p05": 10.73,
+        "p50": 13.73,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2156,
+          "min": 4.37,
+          "p05": 10.73,
+          "p50": 13.73,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 4.25,
+          "p05": 10.73,
+          "p50": 13.73,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 16.08,
+          "surfaceAlpha": 0.92,
+          "surfaceRgb": [
+            26,
+            34,
+            44
+          ]
+        },
+        "bike": {
+          "count": 16.08,
+          "surfaceAlpha": 0.92,
+          "surfaceRgb": [
+            26,
+            34,
+            44
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0,
+          "pctPixelsDiffering": 0
+        },
+        "grayscale": {
+          "meanLumDiff": 0,
+          "pctPixelsDiffering": 0
+        },
+        "protanopia": {
+          "meanLumDiff": 0,
+          "pctPixelsDiffering": 0
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0,
+          "pctPixelsDiffering": 0
+        },
+        "tritanopia": {
+          "meanLumDiff": 0,
+          "pctPixelsDiffering": 0
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "cand": "BASE",
+      "appearance": "light",
+      "basemap": "dark",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [],
+      "allDifferingProps": [],
+      "boundaryContrast": {
+        "samples": 4825,
+        "min": 4.23,
+        "p05": 10.44,
+        "p50": 15.13,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2156,
+          "min": 4.23,
+          "p05": 10.44,
+          "p50": 15.13,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 4.23,
+          "p05": 10.44,
+          "p50": 15.13,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 18.83,
+          "surfaceAlpha": 0.92,
+          "surfaceRgb": [
+            10,
+            18,
+            28
+          ]
+        },
+        "bike": {
+          "count": 18.83,
+          "surfaceAlpha": 0.92,
+          "surfaceRgb": [
+            10,
+            18,
+            28
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0,
+          "pctPixelsDiffering": 0
+        },
+        "grayscale": {
+          "meanLumDiff": 0,
+          "pctPixelsDiffering": 0
+        },
+        "protanopia": {
+          "meanLumDiff": 0,
+          "pctPixelsDiffering": 0
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0,
+          "pctPixelsDiffering": 0
+        },
+        "tritanopia": {
+          "meanLumDiff": 0,
+          "pctPixelsDiffering": 0
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "cand": "BASE",
+      "appearance": "light",
+      "basemap": "satellite",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [],
+      "allDifferingProps": [],
+      "boundaryContrast": {
+        "samples": 4825,
+        "min": 4.21,
+        "p05": 4.54,
+        "p50": 8.67,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2156,
+          "min": 4.23,
+          "p05": 4.57,
+          "p50": 8.34,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 4.21,
+          "p05": 4.51,
+          "p50": 9.09,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 17.68,
+          "surfaceAlpha": 0.92,
+          "surfaceRgb": [
+            18,
+            25,
+            35
+          ]
+        },
+        "bike": {
+          "count": 17.68,
+          "surfaceAlpha": 0.92,
+          "surfaceRgb": [
+            18,
+            25,
+            35
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0,
+          "pctPixelsDiffering": 0
+        },
+        "grayscale": {
+          "meanLumDiff": 0,
+          "pctPixelsDiffering": 0
+        },
+        "protanopia": {
+          "meanLumDiff": 0,
+          "pctPixelsDiffering": 0
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0,
+          "pctPixelsDiffering": 0
+        },
+        "tritanopia": {
+          "meanLumDiff": 0,
+          "pctPixelsDiffering": 0
+        }
+      },
+      "consoleErrors": [],
+      "satelliteNote": "count/surface figures use a mid-grey stand-in only for translucent surfaces; boundary figures are real per-pixel"
+    },
+    {
+      "cand": "BASE",
+      "appearance": "dark",
+      "basemap": "light",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [],
+      "allDifferingProps": [
+        "color",
+        "borderColor",
+        "boxShadow"
+      ],
+      "boundaryContrast": {
+        "samples": 4825,
+        "min": 2.73,
+        "p05": 6.3,
+        "p50": 13.73,
+        "pctBelow3": 0.1
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2156,
+          "min": 2.73,
+          "p05": 6.21,
+          "p50": 13.62,
+          "pctBelow3": 0.1
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.33,
+          "p05": 9.16,
+          "p50": 13.73,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 14.98,
+          "surfaceAlpha": 0.92,
+          "surfaceRgb": [
+            26,
+            34,
+            44
+          ]
+        },
+        "bike": {
+          "count": 14.98,
+          "surfaceAlpha": 0.92,
+          "surfaceRgb": [
+            26,
+            34,
+            44
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.0418,
+          "pctPixelsDiffering": 13.2
+        },
+        "grayscale": {
+          "meanLumDiff": 0.0418,
+          "pctPixelsDiffering": 13.2
+        },
+        "protanopia": {
+          "meanLumDiff": 0.0424,
+          "pctPixelsDiffering": 13.4
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.0409,
+          "pctPixelsDiffering": 13.2
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.0358,
+          "pctPixelsDiffering": 12.7
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "cand": "BASE",
+      "appearance": "dark",
+      "basemap": "dark",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [],
+      "allDifferingProps": [
+        "color",
+        "borderColor",
+        "boxShadow"
+      ],
+      "boundaryContrast": {
+        "samples": 4825,
+        "min": 2.77,
+        "p05": 5.05,
+        "p50": 7.92,
+        "pctBelow3": 0.2
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2156,
+          "min": 2.77,
+          "p05": 4.16,
+          "p50": 5.94,
+          "pctBelow3": 0.5
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.51,
+          "p05": 6.83,
+          "p50": 9.31,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 17.54,
+          "surfaceAlpha": 0.92,
+          "surfaceRgb": [
+            10,
+            18,
+            28
+          ]
+        },
+        "bike": {
+          "count": 17.54,
+          "surfaceAlpha": 0.92,
+          "surfaceRgb": [
+            10,
+            18,
+            28
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.0328,
+          "pctPixelsDiffering": 11.9
+        },
+        "grayscale": {
+          "meanLumDiff": 0.0328,
+          "pctPixelsDiffering": 11.9
+        },
+        "protanopia": {
+          "meanLumDiff": 0.0335,
+          "pctPixelsDiffering": 11.9
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.032,
+          "pctPixelsDiffering": 11.8
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.0273,
+          "pctPixelsDiffering": 10.2
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "cand": "BASE",
+      "appearance": "dark",
+      "basemap": "satellite",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [],
+      "allDifferingProps": [
+        "color",
+        "borderColor",
+        "boxShadow"
+      ],
+      "boundaryContrast": {
+        "samples": 4825,
+        "min": 2.67,
+        "p05": 3.1,
+        "p50": 6.36,
+        "pctBelow3": 3.7
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2156,
+          "min": 2.67,
+          "p05": 2.86,
+          "p50": 5.52,
+          "pctBelow3": 8.3
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.33,
+          "p05": 3.61,
+          "p50": 7.22,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 16.46,
+          "surfaceAlpha": 0.92,
+          "surfaceRgb": [
+            18,
+            25,
+            35
+          ]
+        },
+        "bike": {
+          "count": 16.46,
+          "surfaceAlpha": 0.92,
+          "surfaceRgb": [
+            18,
+            25,
+            35
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.0366,
+          "pctPixelsDiffering": 12.7
+        },
+        "grayscale": {
+          "meanLumDiff": 0.0366,
+          "pctPixelsDiffering": 12.7
+        },
+        "protanopia": {
+          "meanLumDiff": 0.0372,
+          "pctPixelsDiffering": 12.7
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.0357,
+          "pctPixelsDiffering": 12.6
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.0308,
+          "pctPixelsDiffering": 11.1
+        }
+      },
+      "consoleErrors": [],
+      "satelliteNote": "count/surface figures use a mid-grey stand-in only for translucent surfaces; boundary figures are real per-pixel"
+    },
+    {
+      "cand": "A",
+      "appearance": "light",
+      "basemap": "light",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [],
+      "allDifferingProps": [
+        "boxShadow"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.08,
+        "p05": 5.88,
+        "p50": 7.73,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.08,
+          "p05": 5.88,
+          "p50": 7.73,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.13,
+          "p05": 5.88,
+          "p50": 7.73,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        },
+        "bike": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.0381,
+          "pctPixelsDiffering": 15.4
+        },
+        "grayscale": {
+          "meanLumDiff": 0.0381,
+          "pctPixelsDiffering": 15.4
+        },
+        "protanopia": {
+          "meanLumDiff": 0.0389,
+          "pctPixelsDiffering": 15.4
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.0372,
+          "pctPixelsDiffering": 15.4
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.0324,
+          "pctPixelsDiffering": 14.5
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "cand": "A",
+      "appearance": "light",
+      "basemap": "dark",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [],
+      "allDifferingProps": [
+        "boxShadow"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.04,
+        "p05": 8.05,
+        "p50": 15.13,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.08,
+          "p05": 8.38,
+          "p50": 15.13,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.04,
+          "p05": 7.92,
+          "p50": 15.13,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        },
+        "bike": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.0381,
+          "pctPixelsDiffering": 15.4
+        },
+        "grayscale": {
+          "meanLumDiff": 0.0381,
+          "pctPixelsDiffering": 15.4
+        },
+        "protanopia": {
+          "meanLumDiff": 0.0389,
+          "pctPixelsDiffering": 15.4
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.0372,
+          "pctPixelsDiffering": 15.4
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.0324,
+          "pctPixelsDiffering": 14.5
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "cand": "A",
+      "appearance": "light",
+      "basemap": "satellite",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [],
+      "allDifferingProps": [
+        "boxShadow"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.01,
+        "p05": 3.23,
+        "p50": 6.74,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.01,
+          "p05": 3.22,
+          "p50": 6.47,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.01,
+          "p05": 3.25,
+          "p50": 7.08,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        },
+        "bike": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.0381,
+          "pctPixelsDiffering": 15.4
+        },
+        "grayscale": {
+          "meanLumDiff": 0.0381,
+          "pctPixelsDiffering": 15.4
+        },
+        "protanopia": {
+          "meanLumDiff": 0.0389,
+          "pctPixelsDiffering": 15.4
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.0372,
+          "pctPixelsDiffering": 15.4
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.0324,
+          "pctPixelsDiffering": 14.5
+        }
+      },
+      "consoleErrors": [],
+      "satelliteNote": "count/surface figures use a mid-grey stand-in only for translucent surfaces; boundary figures are real per-pixel"
+    },
+    {
+      "cand": "A",
+      "appearance": "dark",
+      "basemap": "light",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [],
+      "allDifferingProps": [
+        "boxShadow"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.65,
+        "p05": 9.45,
+        "p50": 13.89,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.78,
+          "p05": 9.45,
+          "p50": 13.89,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.65,
+          "p05": 9.54,
+          "p50": 13.89,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 16.26,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            23,
+            33,
+            46
+          ]
+        },
+        "bike": {
+          "count": 16.26,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            23,
+            33,
+            46
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.0341,
+          "pctPixelsDiffering": 12.7
+        },
+        "grayscale": {
+          "meanLumDiff": 0.0341,
+          "pctPixelsDiffering": 12.7
+        },
+        "protanopia": {
+          "meanLumDiff": 0.0348,
+          "pctPixelsDiffering": 12.7
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.0333,
+          "pctPixelsDiffering": 12.7
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.0284,
+          "pctPixelsDiffering": 12
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "cand": "A",
+      "appearance": "dark",
+      "basemap": "dark",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [],
+      "allDifferingProps": [
+        "boxShadow"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.68,
+        "p05": 7.95,
+        "p50": 11.53,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.73,
+          "p05": 7.95,
+          "p50": 11.53,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.68,
+          "p05": 7.95,
+          "p50": 11.53,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 18.04,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            13,
+            23,
+            36
+          ]
+        },
+        "bike": {
+          "count": 18.04,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            13,
+            23,
+            36
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.0339,
+          "pctPixelsDiffering": 12.6
+        },
+        "grayscale": {
+          "meanLumDiff": 0.0339,
+          "pctPixelsDiffering": 12.6
+        },
+        "protanopia": {
+          "meanLumDiff": 0.0346,
+          "pctPixelsDiffering": 12.7
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.0331,
+          "pctPixelsDiffering": 12.6
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.0282,
+          "pctPixelsDiffering": 12
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "cand": "A",
+      "appearance": "dark",
+      "basemap": "satellite",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [],
+      "allDifferingProps": [
+        "boxShadow"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.64,
+        "p05": 3.9,
+        "p50": 7.54,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.64,
+          "p05": 3.87,
+          "p50": 7.23,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.64,
+          "p05": 3.92,
+          "p50": 7.95,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 17.26,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            18,
+            27,
+            41
+          ]
+        },
+        "bike": {
+          "count": 17.26,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            18,
+            27,
+            41
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.034,
+          "pctPixelsDiffering": 12.7
+        },
+        "grayscale": {
+          "meanLumDiff": 0.034,
+          "pctPixelsDiffering": 12.7
+        },
+        "protanopia": {
+          "meanLumDiff": 0.0347,
+          "pctPixelsDiffering": 12.7
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.0332,
+          "pctPixelsDiffering": 12.6
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.0283,
+          "pctPixelsDiffering": 12
+        }
+      },
+      "consoleErrors": [],
+      "satelliteNote": "count/surface figures use a mid-grey stand-in only for translucent surfaces; boundary figures are real per-pixel"
+    },
+    {
+      "cand": "B",
+      "appearance": "light",
+      "basemap": "light",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [
+        "pseudoMask"
+      ],
+      "allDifferingProps": [
+        "boxShadow",
+        "pseudoMask"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.08,
+        "p05": 5.88,
+        "p50": 7.73,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.08,
+          "p05": 5.88,
+          "p50": 7.73,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.13,
+          "p05": 5.88,
+          "p50": 7.73,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        },
+        "bike": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.062,
+          "pctPixelsDiffering": 19.1
+        },
+        "grayscale": {
+          "meanLumDiff": 0.062,
+          "pctPixelsDiffering": 19.1
+        },
+        "protanopia": {
+          "meanLumDiff": 0.0627,
+          "pctPixelsDiffering": 19.1
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.0612,
+          "pctPixelsDiffering": 19
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.0563,
+          "pctPixelsDiffering": 18.1
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "cand": "B",
+      "appearance": "light",
+      "basemap": "dark",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [
+        "pseudoMask"
+      ],
+      "allDifferingProps": [
+        "boxShadow",
+        "pseudoMask"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.04,
+        "p05": 8.05,
+        "p50": 15.13,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.08,
+          "p05": 8.38,
+          "p50": 15.13,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.04,
+          "p05": 7.92,
+          "p50": 15.13,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        },
+        "bike": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.062,
+          "pctPixelsDiffering": 19.1
+        },
+        "grayscale": {
+          "meanLumDiff": 0.062,
+          "pctPixelsDiffering": 19.1
+        },
+        "protanopia": {
+          "meanLumDiff": 0.0627,
+          "pctPixelsDiffering": 19.1
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.0612,
+          "pctPixelsDiffering": 19
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.0563,
+          "pctPixelsDiffering": 18.1
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "cand": "B",
+      "appearance": "light",
+      "basemap": "satellite",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [
+        "pseudoMask"
+      ],
+      "allDifferingProps": [
+        "boxShadow",
+        "pseudoMask"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.01,
+        "p05": 3.23,
+        "p50": 6.74,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.01,
+          "p05": 3.22,
+          "p50": 6.47,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.01,
+          "p05": 3.25,
+          "p50": 7.08,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        },
+        "bike": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.062,
+          "pctPixelsDiffering": 19.1
+        },
+        "grayscale": {
+          "meanLumDiff": 0.062,
+          "pctPixelsDiffering": 19.1
+        },
+        "protanopia": {
+          "meanLumDiff": 0.0627,
+          "pctPixelsDiffering": 19.1
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.0612,
+          "pctPixelsDiffering": 19
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.0563,
+          "pctPixelsDiffering": 18.1
+        }
+      },
+      "consoleErrors": [],
+      "satelliteNote": "count/surface figures use a mid-grey stand-in only for translucent surfaces; boundary figures are real per-pixel"
+    },
+    {
+      "cand": "B",
+      "appearance": "dark",
+      "basemap": "light",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [
+        "pseudoMask"
+      ],
+      "allDifferingProps": [
+        "boxShadow",
+        "pseudoMask"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.65,
+        "p05": 9.45,
+        "p50": 13.89,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.78,
+          "p05": 9.45,
+          "p50": 13.89,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.65,
+          "p05": 9.54,
+          "p50": 13.89,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 16.26,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            23,
+            33,
+            46
+          ]
+        },
+        "bike": {
+          "count": 16.26,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            23,
+            33,
+            46
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.0567,
+          "pctPixelsDiffering": 16.7
+        },
+        "grayscale": {
+          "meanLumDiff": 0.0567,
+          "pctPixelsDiffering": 16.7
+        },
+        "protanopia": {
+          "meanLumDiff": 0.0574,
+          "pctPixelsDiffering": 16.7
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.0559,
+          "pctPixelsDiffering": 16.6
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.051,
+          "pctPixelsDiffering": 16
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "cand": "B",
+      "appearance": "dark",
+      "basemap": "dark",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [
+        "pseudoMask"
+      ],
+      "allDifferingProps": [
+        "boxShadow",
+        "pseudoMask"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.68,
+        "p05": 7.95,
+        "p50": 11.53,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.73,
+          "p05": 7.95,
+          "p50": 11.53,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.68,
+          "p05": 7.95,
+          "p50": 11.53,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 18.04,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            13,
+            23,
+            36
+          ]
+        },
+        "bike": {
+          "count": 18.04,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            13,
+            23,
+            36
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.0566,
+          "pctPixelsDiffering": 16.4
+        },
+        "grayscale": {
+          "meanLumDiff": 0.0566,
+          "pctPixelsDiffering": 16.4
+        },
+        "protanopia": {
+          "meanLumDiff": 0.0573,
+          "pctPixelsDiffering": 16.6
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.0558,
+          "pctPixelsDiffering": 16.4
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.0509,
+          "pctPixelsDiffering": 15.9
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "cand": "B",
+      "appearance": "dark",
+      "basemap": "satellite",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [
+        "pseudoMask"
+      ],
+      "allDifferingProps": [
+        "boxShadow",
+        "pseudoMask"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.64,
+        "p05": 3.9,
+        "p50": 7.54,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.64,
+          "p05": 3.87,
+          "p50": 7.23,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.64,
+          "p05": 3.92,
+          "p50": 7.95,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 17.26,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            18,
+            27,
+            41
+          ]
+        },
+        "bike": {
+          "count": 17.26,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            18,
+            27,
+            41
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.0567,
+          "pctPixelsDiffering": 16.6
+        },
+        "grayscale": {
+          "meanLumDiff": 0.0567,
+          "pctPixelsDiffering": 16.6
+        },
+        "protanopia": {
+          "meanLumDiff": 0.0573,
+          "pctPixelsDiffering": 16.6
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.0558,
+          "pctPixelsDiffering": 16.5
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.0509,
+          "pctPixelsDiffering": 15.9
+        }
+      },
+      "consoleErrors": [],
+      "satelliteNote": "count/surface figures use a mid-grey stand-in only for translucent surfaces; boundary figures are real per-pixel"
+    },
+    {
+      "cand": "C",
+      "appearance": "light",
+      "basemap": "light",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [
+        "borderRadius"
+      ],
+      "allDifferingProps": [
+        "borderRadius",
+        "boxShadow"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.08,
+        "p05": 5.88,
+        "p50": 7.73,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.08,
+          "p05": 5.88,
+          "p50": 7.73,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.13,
+          "p05": 5.88,
+          "p50": 7.73,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        },
+        "bike": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.2331,
+          "pctPixelsDiffering": 43.4
+        },
+        "grayscale": {
+          "meanLumDiff": 0.2331,
+          "pctPixelsDiffering": 43.4
+        },
+        "protanopia": {
+          "meanLumDiff": 0.2324,
+          "pctPixelsDiffering": 43.1
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.2334,
+          "pctPixelsDiffering": 43.8
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.2274,
+          "pctPixelsDiffering": 43.4
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "cand": "C",
+      "appearance": "light",
+      "basemap": "dark",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [
+        "borderRadius"
+      ],
+      "allDifferingProps": [
+        "borderRadius",
+        "boxShadow"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.04,
+        "p05": 8.05,
+        "p50": 15.13,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.08,
+          "p05": 8.38,
+          "p50": 15.13,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.04,
+          "p05": 7.92,
+          "p50": 15.13,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        },
+        "bike": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.1945,
+          "pctPixelsDiffering": 40.9
+        },
+        "grayscale": {
+          "meanLumDiff": 0.1945,
+          "pctPixelsDiffering": 40.9
+        },
+        "protanopia": {
+          "meanLumDiff": 0.1949,
+          "pctPixelsDiffering": 40.5
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.194,
+          "pctPixelsDiffering": 40.9
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.1889,
+          "pctPixelsDiffering": 40.8
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "cand": "C",
+      "appearance": "light",
+      "basemap": "satellite",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [
+        "borderRadius"
+      ],
+      "allDifferingProps": [
+        "borderRadius",
+        "boxShadow"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.01,
+        "p05": 3.23,
+        "p50": 6.74,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.01,
+          "p05": 3.22,
+          "p50": 6.47,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.01,
+          "p05": 3.25,
+          "p50": 7.08,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        },
+        "bike": {
+          "count": 16.1,
+          "surfaceAlpha": 1,
+          "surfaceRgb": [
+            255,
+            255,
+            255
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.2013,
+          "pctPixelsDiffering": 42.7
+        },
+        "grayscale": {
+          "meanLumDiff": 0.2013,
+          "pctPixelsDiffering": 42.7
+        },
+        "protanopia": {
+          "meanLumDiff": 0.2011,
+          "pctPixelsDiffering": 42.3
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.2012,
+          "pctPixelsDiffering": 44.8
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.1956,
+          "pctPixelsDiffering": 42.7
+        }
+      },
+      "consoleErrors": [],
+      "satelliteNote": "count/surface figures use a mid-grey stand-in only for translucent surfaces; boundary figures are real per-pixel"
+    },
+    {
+      "cand": "C",
+      "appearance": "dark",
+      "basemap": "light",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [
+        "borderRadius"
+      ],
+      "allDifferingProps": [
+        "borderRadius",
+        "boxShadow"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.65,
+        "p05": 9.45,
+        "p50": 13.89,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.78,
+          "p05": 9.45,
+          "p50": 13.89,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.65,
+          "p05": 9.54,
+          "p50": 13.89,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 16.26,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            23,
+            33,
+            46
+          ]
+        },
+        "bike": {
+          "count": 16.26,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            23,
+            33,
+            46
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.1465,
+          "pctPixelsDiffering": 36.1
+        },
+        "grayscale": {
+          "meanLumDiff": 0.1465,
+          "pctPixelsDiffering": 36.1
+        },
+        "protanopia": {
+          "meanLumDiff": 0.1513,
+          "pctPixelsDiffering": 34.6
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.1434,
+          "pctPixelsDiffering": 36.6
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.1486,
+          "pctPixelsDiffering": 36.8
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "cand": "C",
+      "appearance": "dark",
+      "basemap": "dark",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [
+        "borderRadius"
+      ],
+      "allDifferingProps": [
+        "borderRadius",
+        "boxShadow"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.68,
+        "p05": 7.95,
+        "p50": 11.53,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.73,
+          "p05": 7.95,
+          "p50": 11.53,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.68,
+          "p05": 7.95,
+          "p50": 11.53,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 18.04,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            13,
+            23,
+            36
+          ]
+        },
+        "bike": {
+          "count": 18.04,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            13,
+            23,
+            36
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.1616,
+          "pctPixelsDiffering": 38.6
+        },
+        "grayscale": {
+          "meanLumDiff": 0.1616,
+          "pctPixelsDiffering": 38.6
+        },
+        "protanopia": {
+          "meanLumDiff": 0.1685,
+          "pctPixelsDiffering": 36.4
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.1574,
+          "pctPixelsDiffering": 38.1
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.1639,
+          "pctPixelsDiffering": 38.9
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "cand": "C",
+      "appearance": "dark",
+      "basemap": "satellite",
+      "chips": 191,
+      "byType": {
+        "cluster-stay": 86,
+        "cluster-bike": 105
+      },
+      "coveragePctUpperBound": 21.4,
+      "nonColourDifferingProps": [
+        "borderRadius"
+      ],
+      "allDifferingProps": [
+        "borderRadius",
+        "boxShadow"
+      ],
+      "boundaryContrast": {
+        "samples": 4823,
+        "min": 3.64,
+        "p05": 3.9,
+        "p50": 7.54,
+        "pctBelow3": 0
+      },
+      "boundaryByType": {
+        "cluster-stay": {
+          "samples": 2154,
+          "min": 3.64,
+          "p05": 3.87,
+          "p50": 7.23,
+          "pctBelow3": 0
+        },
+        "cluster-bike": {
+          "samples": 2669,
+          "min": 3.64,
+          "p05": 3.92,
+          "p50": 7.95,
+          "pctBelow3": 0
+        }
+      },
+      "countVsSurface": {
+        "stay": {
+          "count": 17.26,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            18,
+            27,
+            41
+          ]
+        },
+        "bike": {
+          "count": 17.26,
+          "surfaceAlpha": 0.95,
+          "surfaceRgb": [
+            18,
+            27,
+            41
+          ]
+        }
+      },
+      "categoryScreen": {
+        "normal": {
+          "meanLumDiff": 0.1526,
+          "pctPixelsDiffering": 40.2
+        },
+        "grayscale": {
+          "meanLumDiff": 0.1526,
+          "pctPixelsDiffering": 40.2
+        },
+        "protanopia": {
+          "meanLumDiff": 0.1587,
+          "pctPixelsDiffering": 38.1
+        },
+        "deuteranopia": {
+          "meanLumDiff": 0.1487,
+          "pctPixelsDiffering": 39.8
+        },
+        "tritanopia": {
+          "meanLumDiff": 0.1548,
+          "pctPixelsDiffering": 40.7
+        }
+      },
+      "consoleErrors": [],
+      "satelliteNote": "count/surface figures use a mid-grey stand-in only for translucent surfaces; boundary figures are real per-pixel"
+    }
+  ]
+}

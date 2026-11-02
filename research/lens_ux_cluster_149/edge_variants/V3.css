@@ -1,0 +1,3 @@
+/* V3 — widths only: border 2.5px and halo 2.5px (same tones as the control) to survive +-1px rasterisation and thin-line aliasing. */
+.poi-cluster{border-width:2.5px;box-shadow:0 0 0 2.5px var(--map-cluster-halo),inset 0 0 0 2.5px var(--cluster-cat)}
+.poi-cluster:hover{box-shadow:0 0 0 2.5px var(--map-cluster-halo),0 0 0 4.5px var(--map-cluster-edge),inset 0 0 0 2.5px var(--cluster-cat)}

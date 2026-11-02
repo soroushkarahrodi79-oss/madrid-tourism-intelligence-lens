@@ -1,0 +1,96 @@
+{
+  "root": "C:\\workspace\\madrid-ux-v1-base",
+  "runs": 9,
+  "median": {
+    "rebuildMs": 35,
+    "nodes": 575,
+    "chips": 191,
+    "zoomMsPerStep": 495.73,
+    "panLongFramesPer120": 118,
+    "hoverMs": 0.92,
+    "heapMB": 24.8
+  },
+  "raw": [
+    {
+      "rebuildMs": 30.599999994039536,
+      "nodes": 575,
+      "chips": 191,
+      "zoomMsPerStep": 491.6499999985099,
+      "panLongFramesPer120": 119,
+      "hoverMs": 1.5349999979138373,
+      "heapMB": 23.365020751953125
+    },
+    {
+      "rebuildMs": 30.100000008940697,
+      "nodes": 575,
+      "chips": 191,
+      "zoomMsPerStep": 426.98333333432674,
+      "panLongFramesPer120": 119,
+      "hoverMs": 0.7799999989569187,
+      "heapMB": 24.7955322265625
+    },
+    {
+      "rebuildMs": 35.400000005960464,
+      "nodes": 575,
+      "chips": 191,
+      "zoomMsPerStep": 507.51666666567326,
+      "panLongFramesPer120": 118,
+      "hoverMs": 0.8700000010430813,
+      "heapMB": 24.7955322265625
+    },
+    {
+      "rebuildMs": 35,
+      "nodes": 575,
+      "chips": 191,
+      "zoomMsPerStep": 439.40000000099343,
+      "panLongFramesPer120": 119,
+      "hoverMs": 1.0600000008940698,
+      "heapMB": 24.7955322265625
+    },
+    {
+      "rebuildMs": 43.5,
+      "nodes": 575,
+      "chips": 191,
+      "zoomMsPerStep": 516.4166666666666,
+      "panLongFramesPer120": 117,
+      "hoverMs": 0.9249999992549419,
+      "heapMB": 24.7955322265625
+    },
+    {
+      "rebuildMs": 38.80000001192093,
+      "nodes": 575,
+      "chips": 191,
+      "zoomMsPerStep": 539.3333333333334,
+      "panLongFramesPer120": 118,
+      "hoverMs": 0.7699999988079071,
+      "heapMB": 24.7955322265625
+    },
+    {
+      "rebuildMs": 26.200000002980232,
+      "nodes": 575,
+      "chips": 191,
+      "zoomMsPerStep": 420.4500000004967,
+      "panLongFramesPer120": 119,
+      "hoverMs": 0.8549999989569187,
+      "heapMB": 24.7955322265625
+    },
+    {
+      "rebuildMs": 31.299999997019768,
+      "nodes": 575,
+      "chips": 191,
+      "zoomMsPerStep": 519.2666666656733,
+      "panLongFramesPer120": 118,
+      "hoverMs": 1.4399999998509885,
+      "heapMB": 24.7955322265625
+    },
+    {
+      "rebuildMs": 43.099999994039536,
+      "nodes": 575,
+      "chips": 191,
+      "zoomMsPerStep": 495.7333333318432,
+      "panLongFramesPer120": 118,
+      "hoverMs": 1.0750000029802322,
+      "heapMB": 24.7955322265625
+    }
+  ]
+}
