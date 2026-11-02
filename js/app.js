@@ -39,6 +39,8 @@ const MODULE_BASE = (document.currentScript && document.currentScript.src) || wi
 const AREA_ASSET_VERSION = "20261029-m3-dossier-v1";
 // The domestic-origin context module is versioned independently of AREA_ASSET_VERSION (which is also the K11 snapshot id).
 const ORIGIN_CONTEXT_MODULE_VERSION = "20261102-origin-bars-v1";
+// Likewise for the Area Profile module, which gained the registered-unemployment block: a changed module needs a new URL, but the K11 snapshot id must not move.
+const AREA_PROFILE_MODULE_VERSION = "20261102-paro-v1";
 const moduleUrl = (name, version = AREA_ASSET_VERSION) => new URL(`${name}?v=${version}`, MODULE_BASE).href;
 
 // K11 (#73): the evidence-snapshot identity carried in a shared link, so a reader
@@ -3129,12 +3131,19 @@ let RESIDENTS_STATE = null;
 let AREA_COMPARISON = null;
 let VUT_STATE = null;
 let RATIO_STATE = null;
+let PARO_STATE = null;
+let PARO_REASON = null;
 let geographyIndex = null;
 let populationIndex = null;
 let vutIndex = null;
+let unemploymentIndex = null;
 let geographyMeta = null;
 let populationMeta = null;
 let vutMeta = null;
+let unemploymentMeta = null;
+// A fourth independent runtime state: the registered-unemployment rate is a VALUE
+// attached to an already-resolved barrio, so losing it costs that block only.
+let paroState = "loading"; // loading | ready | unavailable
 // Three independent runtime states, because the three artifacts fail
 // independently in a browser. The canonical geography is the DEPENDENCY for
 // resolving a place: without it there is no barrio, no district, no highlight
@@ -3321,7 +3330,7 @@ function areaProfileFor(which) {
   const centre = centerOf(which);
   const located = geographyIndex.resolve(centre.lon, centre.lat, areaHint[which]);
   areaHint[which] = located.barrio ? located.barrio.official_id : null;
-  return model.buildAreaProfile({ lens: which, located, populationIndex, vutIndex });
+  return model.buildAreaProfile({ lens: which, located, populationIndex, vutIndex, unemploymentIndex });
 }
 
 function setText(id, value) {
@@ -3363,6 +3372,57 @@ function renderAreaProfile(profile) {
   setText("areaPeriod", residents.state === RESIDENTS_STATE.AVAILABLE && period ? `Reference ${period}` : "");
   setText("areaScopeNote", profile.note || profile.scopeCaveat);
   renderVutContext(profile);
+  renderUnemploymentContext(profile);
+}
+
+// The registered-unemployment block: ONE contextual socioeconomic figure for the
+// SAME whole barrio, kept visually subordinate to the place identity and the
+// resident figure. Neutral at every value: no colour scale, band, rank,
+// percentile or comparison. The publisher's rate is transcribed, never derived,
+// and says nothing about tourism. A missing value is stated in words, never 0%.
+function renderUnemploymentContext(profile) {
+  const host = document.getElementById("areaParo");
+  // PARO_STATE is bound when the area module loads; a language switch can precede it.
+  if (!host || !profile || !PARO_STATE) return;
+  const paro = profile.paro;
+  const language = shellLanguage();
+
+  // No whole barrio, no barrio statistic (outside Madrid, no barrio contains the
+  // point, geography unreadable): absent, emptied rather than merely hidden so a
+  // previous barrio's figure cannot linger inside the polite live region.
+  if (!paro || paro.state === PARO_STATE.NOT_APPLICABLE) {
+    host.hidden = true;
+    host.dataset.state = PARO_STATE.NOT_APPLICABLE;
+    setText("areaParoValue", "—");
+    setText("areaParoState", "");
+    setText("areaParoNote", "");
+    return;
+  }
+  host.hidden = false;
+  host.dataset.state = paro.state;
+  host.dataset.reason = paro.reason || "";
+
+  const value = document.getElementById("areaParoValue");
+  const available = paro.state === PARO_STATE.AVAILABLE;
+  value.textContent = available ? paro.rate.display[language] : shellT("area.paro.unavailable");
+  value.className = available ? "area-vut-value" : "area-vut-value abstain";
+  setText("areaParoUnit", available ? shellT("area.paro.unit") : "");
+
+  if (available) {
+    setText("areaParoState", shellTemplate("area.paro.state", { period: paro.period.label[language] }));
+    setText("areaParoNote", shellT("area.paro.note"));
+  } else {
+    setText("areaParoState", unemploymentUnavailableLine(paro));
+    setText("areaParoNote", shellT("area.paro.note"));
+  }
+}
+
+function unemploymentUnavailableLine(paro) {
+  if (paro.reason === PARO_REASON.ARTIFACT_UNAVAILABLE) {
+    return shellT(paroState === "loading" ? "area.paro.loading" : "area.paro.sourceUnavailable");
+  }
+  if (paro.reason === PARO_REASON.MISSING_IN_SOURCE) return shellT("area.paro.missing");
+  return shellT("area.paro.notPublished");
 }
 
 // The licensed-VUT block: a SECOND administrative figure for the SAME whole
@@ -3530,6 +3590,15 @@ function renderAreaSourceDetails() {
         vutMeta,
         sourceState: vutIndex ? vutIndex.sourceState : null,
       }),
+    },
+    {
+      title: shellT("area.paro.title"),
+      lines: unemploymentIndex
+        ? model.buildUnemploymentProvenanceLines({
+            meta: unemploymentMeta,
+            period: unemploymentIndex.period,
+          })
+        : [],
     },
   ].filter((group) => group.lines.length > 0);
 
@@ -5014,7 +5083,7 @@ async function loadAreaContext() {
   let geographyModule;
   try {
     [profileModule, geographyModule] = await Promise.all([
-      import(moduleUrl("area-profile.js")),
+      import(moduleUrl("area-profile.js", AREA_PROFILE_MODULE_VERSION)),
       import(moduleUrl("geography.js")),
     ]);
   } catch (error) {
@@ -5023,6 +5092,7 @@ async function loadAreaContext() {
     geographyState = "unavailable";
     populationState = "unavailable";
     vutState = "unavailable";
+    paroState = "unavailable";
     disableBoundaryControl();
     console.warn("area context modules unavailable", error);
     return;
@@ -5030,7 +5100,7 @@ async function loadAreaContext() {
 
   areaModel.profile = profileModule;
   areaModel.geography = geographyModule;
-  ({ AREA_STATE, RESIDENTS_STATE, AREA_COMPARISON, VUT_STATE, RATIO_STATE } = profileModule);
+  ({ AREA_STATE, RESIDENTS_STATE, AREA_COMPARISON, VUT_STATE, RATIO_STATE, PARO_STATE, PARO_REASON } = profileModule);
   updateAreaContext();
 
   // Settled, not all-or-nothing. A failure of the population request must not
@@ -5042,13 +5112,15 @@ async function loadAreaContext() {
   // from them are reused for the rest of the session: moving a Lens performs a
   // code lookup against an in-memory Map and never a fetch, and no
   // administrative aggregate is ever recomputed in the browser.
-  const [geojson, population, vut, geoMeta, popMeta, vutMetaResult] = await Promise.allSettled([
+  const [geojson, population, vut, geoMeta, popMeta, vutMetaResult, paro, paroMetaResult] = await Promise.allSettled([
     fetchAreaJson("data/geography/madrid_admin.geojson"),
     fetchAreaJson("data/population/madrid_population.json"),
     fetchAreaJson("data/accommodation/madrid_vut_licences.json"),
     fetchAreaJson("data/geography/madrid_admin.meta.json"),
     fetchAreaJson("data/population/madrid_population.meta.json"),
     fetchAreaJson("data/accommodation/madrid_vut_licences.meta.json"),
+    fetchAreaJson("data/socioeconomic/madrid_registered_unemployment.json"),
+    fetchAreaJson("data/socioeconomic/madrid_registered_unemployment.meta.json"),
   ]);
 
   // A payload that parses but carries no administrative division is not a
@@ -5086,9 +5158,19 @@ async function loadAreaContext() {
     console.warn("licensed VUT context unavailable", vut.reason);
   }
 
+  // createUnemploymentIndex returns null for an unusable artifact, so a failed
+  // request or malformed commit leaves the block explicitly unavailable and never
+  // a 0% rate for every barrio.
+  unemploymentIndex = profileModule.createUnemploymentIndex(settledValue(paro));
+  paroState = unemploymentIndex ? "ready" : "unavailable";
+  if (paroState === "unavailable") {
+    console.warn("registered unemployment context unavailable", paro.reason);
+  }
+
   geographyMeta = settledValue(geoMeta);
   populationMeta = settledValue(popMeta);
   vutMeta = settledValue(vutMetaResult);
+  unemploymentMeta = settledValue(paroMetaResult);
 
   if (geographyState === "ready") {
     renderAreaSourceDetails();
@@ -6087,6 +6169,9 @@ document.getElementById("languageSelect").onchange = (event) => {
   renderUrbanLicences();
   restoreCopy();
   applyShellCopy();
+  // The unemployment block builds its copy and number format at render time.
+  renderUnemploymentContext(areaProfiles[active] || areaProfiles.A);
+  renderAreaSourceDetails();
   renderModeUi();
   // The search surface builds its product-authored copy at render time; the
   // official codes and denominations inside it are never translated.
@@ -6404,6 +6489,7 @@ function currentFlags() {
   const placeDetail = P0A_ENABLED ? null : document.getElementById("placeDetail");
   return {
     vut: !document.getElementById("areaVut").hidden,
+    paro: !document.getElementById("areaParo").hidden,
     hospitality: hospitalityVisible,
     hati: isHatiVisible(),
     pedestrian: isPedestrianVisible(),
@@ -8532,6 +8618,22 @@ function k11PlaceValues(reading) {
       id: "residents", label: "Registered residents", scope: "OFFICIAL_BARRIO", unit: "residents", source_family: null,
       value: available && Number.isFinite(r.value) ? r.value : null, display: available ? (r.display ?? null) : null,
       state: available ? "VALID" : "UNAVAILABLE", source_ids: "population geography".split(" "),
+    }));
+  }
+  // Registered unemployment rate (OFFICIAL_BARRIO), displayed in the Area Profile,
+  // so it is transcribed here. Emitted whenever the block is shown (available OR
+  // unavailable for a resolved barrio) with its withholding reason, never as a 0.
+  if (area && area.paro && area.paro.state !== "not_applicable") {
+    const paro = area.paro;
+    const paroAvailable = paro.state === "available";
+    values.push(k11WithProvenance({
+      id: "registered_unemployment_rate", label: "Registered unemployment rate (tasa absoluta de paro registrado)",
+      scope: "OFFICIAL_BARRIO", unit: "percent", source_family: null,
+      value: paroAvailable && Number.isFinite(paro.rate.value) ? paro.rate.value : null,
+      display: paroAvailable ? (paro.rate.display?.en ?? null) : null,
+      state: paroAvailable ? "VALID" : "UNAVAILABLE",
+      withheld_reason: paroAvailable ? undefined : (paro.reason || null),
+      source_ids: "registered_unemployment_rate geography".split(" "),
     }));
   }
   if (area && area.vut && area.vut.units) {

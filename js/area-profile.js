@@ -146,7 +146,14 @@ function residentsFor(populationIndex, barrio) {
  * independently: a place with no population figure is still a place, and a
  * place with no licence figure still reports its residents.
  */
-export function buildAreaProfile({ lens, located, populationIndex, vutIndex = null, state = null } = {}) {
+export function buildAreaProfile({
+  lens,
+  located,
+  populationIndex,
+  vutIndex = null,
+  unemploymentIndex = null,
+  state = null,
+} = {}) {
   const period = populationIndex ? populationIndex.period : { referenceDate: null, label: null };
 
   const base = {
@@ -154,6 +161,9 @@ export function buildAreaProfile({ lens, located, populationIndex, vutIndex = nu
     evidenceType: EVIDENCE_TYPE,
     evidenceLabel: EVIDENCE_LABEL,
     scopeCaveat: SCOPE_CAVEAT,
+    // Overridden in the RESOLVED branch only: every other state has no whole
+    // barrio to carry a barrio statistic.
+    paro: buildUnemploymentContext({ unemploymentIndex, barrio: null }),
     period,
     barrioId: null,
     barrioName: null,
@@ -247,6 +257,7 @@ export function buildAreaProfile({ lens, located, populationIndex, vutIndex = nu
         : "Residential population unavailable for this administrative area.",
     residents,
     vut,
+    paro: buildUnemploymentContext({ unemploymentIndex, barrio }),
     key: `barrio:${barrio.official_id}:${residents.state}:${vut.state}:${vut.ratio.state}`,
   };
 }
@@ -663,5 +674,145 @@ export function buildVutProvenanceLines({ vutMeta, sourceState } = {}) {
   // single most consequential thing a reader of this figure has to know.
   lines.push(VUT_OPERATION_CAVEAT);
 
+  return lines;
+}
+
+// ------------------------------------------- registered unemployment (paro)
+//
+// ONE contextual socioeconomic figure for the SAME whole barrio: the
+// publisher's "tasa absoluta de paro registrado" — registered unemployed
+// persons (SEPE, February) divided by the 16-64 Padron population of the same
+// barrio. The value is TRANSCRIBED from the committed artifact, never computed
+// here: this module does not divide anything, derive a rate, average, rank,
+// band, score, compare two barrios or relate the figure to tourism.
+//
+// It is NOT the EPA unemployment rate, NOT unemployed residents over total
+// registered population, and NOT a tourism impact. Like every figure in this
+// file it belongs to the WHOLE OFFICIAL BARRIO and is never allocated into,
+// weighted by or interpolated into the Lens circle.
+//
+// Three states are kept apart: a valid observation, an official barrio whose
+// value is missing or unpublished (never a zero), and no barrio at all.
+
+export const PARO_EVIDENCE_TYPE = "ADMINISTRATIVE_REGISTER";
+export const PARO_STATE = {
+  AVAILABLE: "available",
+  // The barrio exists but the artifact carries no usable value for it. The
+  // `reason` says which of the distinct causes applies.
+  UNAVAILABLE: "unavailable",
+  // No whole barrio to carry the figure (outside Madrid, no barrio contains the
+  // point, or the geography is unreadable).
+  NOT_APPLICABLE: "not_applicable",
+};
+export const PARO_REASON = {
+  MISSING_IN_SOURCE: "MISSING_IN_SOURCE",
+  NOT_PUBLISHED: "NOT_PUBLISHED",
+  INVALID_VALUE: "INVALID_VALUE",
+  NO_RECORD: "NO_RECORD",
+  ARTIFACT_UNAVAILABLE: "ARTIFACT_UNAVAILABLE",
+};
+
+const PARO_SOURCE_MONTH = { febrero: { number: 2, en: "Feb", es: "feb" } };
+
+/** "5.41" -> {en: "5.41%", es: "5,41 %"}: two decimals, as the source publishes. */
+export function formatUnemploymentRate(value) {
+  if (!Number.isFinite(value)) return null;
+  const fixed = value.toFixed(2);
+  return { en: `${fixed}%`, es: `${fixed.replace(".", ",")} %` };
+}
+
+/**
+ * Index the committed registered-unemployment artifact for code-based lookup.
+ * Returns null for an unusable artifact (not an array of records, or an
+ * unrecognised period), so a load failure cannot become "0% everywhere".
+ */
+export function createUnemploymentIndex(artifact) {
+  if (!artifact || !Array.isArray(artifact.records)) return null;
+  const period = artifact.source_period || {};
+  const month = PARO_SOURCE_MONTH[period.numerator_month];
+  if (!month || !/^\d{4}$/.test(String(period.reference_year))) return null;
+
+  const barrio = new Map();
+  for (const record of artifact.records) {
+    if (!record || record.official_id == null) continue;
+    barrio.set(String(record.official_id), record);
+  }
+  if (barrio.size === 0) return null;
+
+  return {
+    barrio,
+    counts: artifact.counts || null,
+    period: {
+      year: String(period.reference_year),
+      sourceMonth: period.numerator_month,
+      label: { en: `${month.en} ${period.reference_year}`, es: `${month.es} ${period.reference_year}` },
+    },
+  };
+}
+
+/**
+ * Build the unemployment block of the Area Profile for one whole barrio.
+ * Reads the barrio's own record only: no nearest-barrio fallback, no district
+ * or city figure standing in, and no zero for a missing value.
+ */
+export function buildUnemploymentContext({ unemploymentIndex, barrio } = {}) {
+  const base = {
+    evidenceType: PARO_EVIDENCE_TYPE,
+    scopeCaveat: SCOPE_CAVEAT,
+    period: unemploymentIndex ? unemploymentIndex.period : null,
+  };
+  const absent = (state, reason) => ({
+    ...base,
+    state,
+    reason,
+    rate: { value: null, display: null },
+  });
+
+  if (!barrio) return absent(PARO_STATE.NOT_APPLICABLE, null);
+  if (!unemploymentIndex) return absent(PARO_STATE.UNAVAILABLE, PARO_REASON.ARTIFACT_UNAVAILABLE);
+
+  const record = unemploymentIndex.barrio.get(String(barrio.official_id));
+  if (!record) return absent(PARO_STATE.UNAVAILABLE, PARO_REASON.NO_RECORD);
+  if (record.state !== "VALID") {
+    const reason =
+      record.state === PARO_REASON.MISSING_IN_SOURCE || record.state === PARO_REASON.NOT_PUBLISHED
+        ? record.state
+        : PARO_REASON.INVALID_VALUE;
+    return absent(PARO_STATE.UNAVAILABLE, reason);
+  }
+  const value = record.rate_percent;
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 100) {
+    return absent(PARO_STATE.UNAVAILABLE, PARO_REASON.INVALID_VALUE);
+  }
+  return {
+    ...base,
+    state: PARO_STATE.AVAILABLE,
+    reason: null,
+    rate: { value, display: formatUnemploymentRate(value) },
+  };
+}
+
+/**
+ * Provenance lines for the unemployment indicator, read from its committed
+ * sidecar so the disclosure cannot drift from the artifact. The period line
+ * names the two bases (SEPE February, Padron 1 January) as different instants.
+ */
+export function buildUnemploymentProvenanceLines({ meta, period } = {}) {
+  const lines = [];
+  const source = (meta && meta.source) || {};
+  if (source.dataset && source.authority) lines.push(`${source.dataset} · ${source.authority}`);
+  else if (source.dataset) lines.push(source.dataset);
+
+  const definition = firstSentences(meta && meta.indicator_definition, 1);
+  if (definition) lines.push(definition);
+
+  if (period && period.label) {
+    lines.push(
+      `Edition ${period.year}: SEPE registered unemployment of ${period.label.en}, over the Padron 16-64 population at 1 Jan ${period.year}. The month is the published label of the indicator, not an independently verified date.`
+    );
+  }
+
+  const ceiling = firstSentences(meta && meta.interpretation_ceiling, 2);
+  if (ceiling) lines.push(ceiling);
   return lines;
 }

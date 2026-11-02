@@ -1,0 +1,811 @@
+{
+  "contract_version": "1.0.0",
+  "indicator": {
+    "id": "registered_unemployment_rate",
+    "source_label": "Tasa absoluta de paro registrado (febrero)",
+    "unit": "percent",
+    "source_unit_label": "Tasa",
+    "decimals": 2
+  },
+  "source_period": {
+    "panel_edition": "2026",
+    "reference_year": "2026",
+    "numerator_month": "febrero",
+    "label": "febrero 2026",
+    "fecha_indicador_in_source": "01/01/2026",
+    "provisional": false
+  },
+  "counts": {
+    "barrios": 131,
+    "valid": 131,
+    "missing": 0
+  },
+  "records": [
+    {
+      "official_id": "011",
+      "parent_id": "01",
+      "rate_percent": 5.41,
+      "state": "VALID"
+    },
+    {
+      "official_id": "012",
+      "parent_id": "01",
+      "rate_percent": 5.6,
+      "state": "VALID"
+    },
+    {
+      "official_id": "013",
+      "parent_id": "01",
+      "rate_percent": 4.38,
+      "state": "VALID"
+    },
+    {
+      "official_id": "014",
+      "parent_id": "01",
+      "rate_percent": 4.55,
+      "state": "VALID"
+    },
+    {
+      "official_id": "015",
+      "parent_id": "01",
+      "rate_percent": 4.84,
+      "state": "VALID"
+    },
+    {
+      "official_id": "016",
+      "parent_id": "01",
+      "rate_percent": 3.83,
+      "state": "VALID"
+    },
+    {
+      "official_id": "021",
+      "parent_id": "02",
+      "rate_percent": 4.46,
+      "state": "VALID"
+    },
+    {
+      "official_id": "022",
+      "parent_id": "02",
+      "rate_percent": 4.62,
+      "state": "VALID"
+    },
+    {
+      "official_id": "023",
+      "parent_id": "02",
+      "rate_percent": 5.61,
+      "state": "VALID"
+    },
+    {
+      "official_id": "024",
+      "parent_id": "02",
+      "rate_percent": 3.78,
+      "state": "VALID"
+    },
+    {
+      "official_id": "025",
+      "parent_id": "02",
+      "rate_percent": 4.65,
+      "state": "VALID"
+    },
+    {
+      "official_id": "026",
+      "parent_id": "02",
+      "rate_percent": 4.9,
+      "state": "VALID"
+    },
+    {
+      "official_id": "027",
+      "parent_id": "02",
+      "rate_percent": 3.23,
+      "state": "VALID"
+    },
+    {
+      "official_id": "031",
+      "parent_id": "03",
+      "rate_percent": 4.66,
+      "state": "VALID"
+    },
+    {
+      "official_id": "032",
+      "parent_id": "03",
+      "rate_percent": 4.32,
+      "state": "VALID"
+    },
+    {
+      "official_id": "033",
+      "parent_id": "03",
+      "rate_percent": 3.6,
+      "state": "VALID"
+    },
+    {
+      "official_id": "034",
+      "parent_id": "03",
+      "rate_percent": 4.2,
+      "state": "VALID"
+    },
+    {
+      "official_id": "035",
+      "parent_id": "03",
+      "rate_percent": 3.09,
+      "state": "VALID"
+    },
+    {
+      "official_id": "036",
+      "parent_id": "03",
+      "rate_percent": 2.93,
+      "state": "VALID"
+    },
+    {
+      "official_id": "041",
+      "parent_id": "04",
+      "rate_percent": 2.48,
+      "state": "VALID"
+    },
+    {
+      "official_id": "042",
+      "parent_id": "04",
+      "rate_percent": 3.53,
+      "state": "VALID"
+    },
+    {
+      "official_id": "043",
+      "parent_id": "04",
+      "rate_percent": 4.38,
+      "state": "VALID"
+    },
+    {
+      "official_id": "044",
+      "parent_id": "04",
+      "rate_percent": 4.01,
+      "state": "VALID"
+    },
+    {
+      "official_id": "045",
+      "parent_id": "04",
+      "rate_percent": 3.61,
+      "state": "VALID"
+    },
+    {
+      "official_id": "046",
+      "parent_id": "04",
+      "rate_percent": 2.66,
+      "state": "VALID"
+    },
+    {
+      "official_id": "051",
+      "parent_id": "05",
+      "rate_percent": 2.37,
+      "state": "VALID"
+    },
+    {
+      "official_id": "052",
+      "parent_id": "05",
+      "rate_percent": 4.49,
+      "state": "VALID"
+    },
+    {
+      "official_id": "053",
+      "parent_id": "05",
+      "rate_percent": 4.37,
+      "state": "VALID"
+    },
+    {
+      "official_id": "054",
+      "parent_id": "05",
+      "rate_percent": 3.51,
+      "state": "VALID"
+    },
+    {
+      "official_id": "055",
+      "parent_id": "05",
+      "rate_percent": 2.98,
+      "state": "VALID"
+    },
+    {
+      "official_id": "056",
+      "parent_id": "05",
+      "rate_percent": 3.64,
+      "state": "VALID"
+    },
+    {
+      "official_id": "061",
+      "parent_id": "06",
+      "rate_percent": 4.94,
+      "state": "VALID"
+    },
+    {
+      "official_id": "062",
+      "parent_id": "06",
+      "rate_percent": 4.03,
+      "state": "VALID"
+    },
+    {
+      "official_id": "063",
+      "parent_id": "06",
+      "rate_percent": 4.55,
+      "state": "VALID"
+    },
+    {
+      "official_id": "064",
+      "parent_id": "06",
+      "rate_percent": 7.03,
+      "state": "VALID"
+    },
+    {
+      "official_id": "065",
+      "parent_id": "06",
+      "rate_percent": 5.36,
+      "state": "VALID"
+    },
+    {
+      "official_id": "066",
+      "parent_id": "06",
+      "rate_percent": 5.19,
+      "state": "VALID"
+    },
+    {
+      "official_id": "071",
+      "parent_id": "07",
+      "rate_percent": 3.93,
+      "state": "VALID"
+    },
+    {
+      "official_id": "072",
+      "parent_id": "07",
+      "rate_percent": 4.1,
+      "state": "VALID"
+    },
+    {
+      "official_id": "073",
+      "parent_id": "07",
+      "rate_percent": 3.79,
+      "state": "VALID"
+    },
+    {
+      "official_id": "074",
+      "parent_id": "07",
+      "rate_percent": 3.03,
+      "state": "VALID"
+    },
+    {
+      "official_id": "075",
+      "parent_id": "07",
+      "rate_percent": 3.62,
+      "state": "VALID"
+    },
+    {
+      "official_id": "076",
+      "parent_id": "07",
+      "rate_percent": 3.12,
+      "state": "VALID"
+    },
+    {
+      "official_id": "081",
+      "parent_id": "08",
+      "rate_percent": 4.62,
+      "state": "VALID"
+    },
+    {
+      "official_id": "082",
+      "parent_id": "08",
+      "rate_percent": 2.56,
+      "state": "VALID"
+    },
+    {
+      "official_id": "083",
+      "parent_id": "08",
+      "rate_percent": 4.74,
+      "state": "VALID"
+    },
+    {
+      "official_id": "084",
+      "parent_id": "08",
+      "rate_percent": 5.22,
+      "state": "VALID"
+    },
+    {
+      "official_id": "085",
+      "parent_id": "08",
+      "rate_percent": 4.01,
+      "state": "VALID"
+    },
+    {
+      "official_id": "086",
+      "parent_id": "08",
+      "rate_percent": 4.64,
+      "state": "VALID"
+    },
+    {
+      "official_id": "087",
+      "parent_id": "08",
+      "rate_percent": 3.26,
+      "state": "VALID"
+    },
+    {
+      "official_id": "088",
+      "parent_id": "08",
+      "rate_percent": 3.01,
+      "state": "VALID"
+    },
+    {
+      "official_id": "091",
+      "parent_id": "09",
+      "rate_percent": 5.95,
+      "state": "VALID"
+    },
+    {
+      "official_id": "092",
+      "parent_id": "09",
+      "rate_percent": 3.47,
+      "state": "VALID"
+    },
+    {
+      "official_id": "093",
+      "parent_id": "09",
+      "rate_percent": 2.93,
+      "state": "VALID"
+    },
+    {
+      "official_id": "094",
+      "parent_id": "09",
+      "rate_percent": 4.95,
+      "state": "VALID"
+    },
+    {
+      "official_id": "095",
+      "parent_id": "09",
+      "rate_percent": 2.44,
+      "state": "VALID"
+    },
+    {
+      "official_id": "096",
+      "parent_id": "09",
+      "rate_percent": 2.62,
+      "state": "VALID"
+    },
+    {
+      "official_id": "097",
+      "parent_id": "09",
+      "rate_percent": 3.19,
+      "state": "VALID"
+    },
+    {
+      "official_id": "101",
+      "parent_id": "10",
+      "rate_percent": 7.89,
+      "state": "VALID"
+    },
+    {
+      "official_id": "102",
+      "parent_id": "10",
+      "rate_percent": 6.35,
+      "state": "VALID"
+    },
+    {
+      "official_id": "103",
+      "parent_id": "10",
+      "rate_percent": 6.14,
+      "state": "VALID"
+    },
+    {
+      "official_id": "104",
+      "parent_id": "10",
+      "rate_percent": 6.07,
+      "state": "VALID"
+    },
+    {
+      "official_id": "105",
+      "parent_id": "10",
+      "rate_percent": 6.06,
+      "state": "VALID"
+    },
+    {
+      "official_id": "106",
+      "parent_id": "10",
+      "rate_percent": 5.55,
+      "state": "VALID"
+    },
+    {
+      "official_id": "107",
+      "parent_id": "10",
+      "rate_percent": 6.24,
+      "state": "VALID"
+    },
+    {
+      "official_id": "111",
+      "parent_id": "11",
+      "rate_percent": 6.41,
+      "state": "VALID"
+    },
+    {
+      "official_id": "112",
+      "parent_id": "11",
+      "rate_percent": 5.96,
+      "state": "VALID"
+    },
+    {
+      "official_id": "113",
+      "parent_id": "11",
+      "rate_percent": 7.71,
+      "state": "VALID"
+    },
+    {
+      "official_id": "114",
+      "parent_id": "11",
+      "rate_percent": 6.31,
+      "state": "VALID"
+    },
+    {
+      "official_id": "115",
+      "parent_id": "11",
+      "rate_percent": 6.8,
+      "state": "VALID"
+    },
+    {
+      "official_id": "116",
+      "parent_id": "11",
+      "rate_percent": 5.59,
+      "state": "VALID"
+    },
+    {
+      "official_id": "117",
+      "parent_id": "11",
+      "rate_percent": 6.51,
+      "state": "VALID"
+    },
+    {
+      "official_id": "121",
+      "parent_id": "12",
+      "rate_percent": 7.58,
+      "state": "VALID"
+    },
+    {
+      "official_id": "122",
+      "parent_id": "12",
+      "rate_percent": 9.15,
+      "state": "VALID"
+    },
+    {
+      "official_id": "123",
+      "parent_id": "12",
+      "rate_percent": 7.83,
+      "state": "VALID"
+    },
+    {
+      "official_id": "124",
+      "parent_id": "12",
+      "rate_percent": 5.91,
+      "state": "VALID"
+    },
+    {
+      "official_id": "125",
+      "parent_id": "12",
+      "rate_percent": 6.04,
+      "state": "VALID"
+    },
+    {
+      "official_id": "126",
+      "parent_id": "12",
+      "rate_percent": 6.63,
+      "state": "VALID"
+    },
+    {
+      "official_id": "127",
+      "parent_id": "12",
+      "rate_percent": 5.94,
+      "state": "VALID"
+    },
+    {
+      "official_id": "131",
+      "parent_id": "13",
+      "rate_percent": 9.49,
+      "state": "VALID"
+    },
+    {
+      "official_id": "132",
+      "parent_id": "13",
+      "rate_percent": 7.28,
+      "state": "VALID"
+    },
+    {
+      "official_id": "133",
+      "parent_id": "13",
+      "rate_percent": 7.36,
+      "state": "VALID"
+    },
+    {
+      "official_id": "134",
+      "parent_id": "13",
+      "rate_percent": 7.57,
+      "state": "VALID"
+    },
+    {
+      "official_id": "135",
+      "parent_id": "13",
+      "rate_percent": 8.39,
+      "state": "VALID"
+    },
+    {
+      "official_id": "136",
+      "parent_id": "13",
+      "rate_percent": 7.47,
+      "state": "VALID"
+    },
+    {
+      "official_id": "141",
+      "parent_id": "14",
+      "rate_percent": 7.03,
+      "state": "VALID"
+    },
+    {
+      "official_id": "142",
+      "parent_id": "14",
+      "rate_percent": 6.86,
+      "state": "VALID"
+    },
+    {
+      "official_id": "143",
+      "parent_id": "14",
+      "rate_percent": 6.42,
+      "state": "VALID"
+    },
+    {
+      "official_id": "144",
+      "parent_id": "14",
+      "rate_percent": 7.38,
+      "state": "VALID"
+    },
+    {
+      "official_id": "145",
+      "parent_id": "14",
+      "rate_percent": 6.98,
+      "state": "VALID"
+    },
+    {
+      "official_id": "146",
+      "parent_id": "14",
+      "rate_percent": 5.99,
+      "state": "VALID"
+    },
+    {
+      "official_id": "151",
+      "parent_id": "15",
+      "rate_percent": 5.96,
+      "state": "VALID"
+    },
+    {
+      "official_id": "152",
+      "parent_id": "15",
+      "rate_percent": 6.15,
+      "state": "VALID"
+    },
+    {
+      "official_id": "153",
+      "parent_id": "15",
+      "rate_percent": 5.79,
+      "state": "VALID"
+    },
+    {
+      "official_id": "154",
+      "parent_id": "15",
+      "rate_percent": 5.32,
+      "state": "VALID"
+    },
+    {
+      "official_id": "155",
+      "parent_id": "15",
+      "rate_percent": 5.5,
+      "state": "VALID"
+    },
+    {
+      "official_id": "156",
+      "parent_id": "15",
+      "rate_percent": 4.36,
+      "state": "VALID"
+    },
+    {
+      "official_id": "157",
+      "parent_id": "15",
+      "rate_percent": 4.35,
+      "state": "VALID"
+    },
+    {
+      "official_id": "158",
+      "parent_id": "15",
+      "rate_percent": 3.5,
+      "state": "VALID"
+    },
+    {
+      "official_id": "159",
+      "parent_id": "15",
+      "rate_percent": 3.79,
+      "state": "VALID"
+    },
+    {
+      "official_id": "161",
+      "parent_id": "16",
+      "rate_percent": 3.54,
+      "state": "VALID"
+    },
+    {
+      "official_id": "162",
+      "parent_id": "16",
+      "rate_percent": 3.19,
+      "state": "VALID"
+    },
+    {
+      "official_id": "163",
+      "parent_id": "16",
+      "rate_percent": 5.36,
+      "state": "VALID"
+    },
+    {
+      "official_id": "164",
+      "parent_id": "16",
+      "rate_percent": 5.9,
+      "state": "VALID"
+    },
+    {
+      "official_id": "165",
+      "parent_id": "16",
+      "rate_percent": 6.09,
+      "state": "VALID"
+    },
+    {
+      "official_id": "166",
+      "parent_id": "16",
+      "rate_percent": 3.48,
+      "state": "VALID"
+    },
+    {
+      "official_id": "171",
+      "parent_id": "17",
+      "rate_percent": 7.92,
+      "state": "VALID"
+    },
+    {
+      "official_id": "172",
+      "parent_id": "17",
+      "rate_percent": 8.16,
+      "state": "VALID"
+    },
+    {
+      "official_id": "173",
+      "parent_id": "17",
+      "rate_percent": 6.15,
+      "state": "VALID"
+    },
+    {
+      "official_id": "174",
+      "parent_id": "17",
+      "rate_percent": 7.18,
+      "state": "VALID"
+    },
+    {
+      "official_id": "175",
+      "parent_id": "17",
+      "rate_percent": 6.84,
+      "state": "VALID"
+    },
+    {
+      "official_id": "181",
+      "parent_id": "18",
+      "rate_percent": 8.66,
+      "state": "VALID"
+    },
+    {
+      "official_id": "182",
+      "parent_id": "18",
+      "rate_percent": 6.96,
+      "state": "VALID"
+    },
+    {
+      "official_id": "183",
+      "parent_id": "18",
+      "rate_percent": 5.55,
+      "state": "VALID"
+    },
+    {
+      "official_id": "191",
+      "parent_id": "19",
+      "rate_percent": 7.81,
+      "state": "VALID"
+    },
+    {
+      "official_id": "192",
+      "parent_id": "19",
+      "rate_percent": 7.73,
+      "state": "VALID"
+    },
+    {
+      "official_id": "193",
+      "parent_id": "19",
+      "rate_percent": 4.48,
+      "state": "VALID"
+    },
+    {
+      "official_id": "194",
+      "parent_id": "19",
+      "rate_percent": 3.49,
+      "state": "VALID"
+    },
+    {
+      "official_id": "201",
+      "parent_id": "20",
+      "rate_percent": 6.26,
+      "state": "VALID"
+    },
+    {
+      "official_id": "202",
+      "parent_id": "20",
+      "rate_percent": 7.74,
+      "state": "VALID"
+    },
+    {
+      "official_id": "203",
+      "parent_id": "20",
+      "rate_percent": 9.05,
+      "state": "VALID"
+    },
+    {
+      "official_id": "204",
+      "parent_id": "20",
+      "rate_percent": 6.61,
+      "state": "VALID"
+    },
+    {
+      "official_id": "205",
+      "parent_id": "20",
+      "rate_percent": 4.97,
+      "state": "VALID"
+    },
+    {
+      "official_id": "206",
+      "parent_id": "20",
+      "rate_percent": 4.83,
+      "state": "VALID"
+    },
+    {
+      "official_id": "207",
+      "parent_id": "20",
+      "rate_percent": 6.47,
+      "state": "VALID"
+    },
+    {
+      "official_id": "208",
+      "parent_id": "20",
+      "rate_percent": 5.1,
+      "state": "VALID"
+    },
+    {
+      "official_id": "211",
+      "parent_id": "21",
+      "rate_percent": 4.4,
+      "state": "VALID"
+    },
+    {
+      "official_id": "212",
+      "parent_id": "21",
+      "rate_percent": 5.73,
+      "state": "VALID"
+    },
+    {
+      "official_id": "213",
+      "parent_id": "21",
+      "rate_percent": 4.67,
+      "state": "VALID"
+    },
+    {
+      "official_id": "214",
+      "parent_id": "21",
+      "rate_percent": 4.56,
+      "state": "VALID"
+    },
+    {
+      "official_id": "215",
+      "parent_id": "21",
+      "rate_percent": 3.57,
+      "state": "VALID"
+    }
+  ]
+}

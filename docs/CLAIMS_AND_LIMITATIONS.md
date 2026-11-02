@@ -216,6 +216,21 @@ file, so a successful deployment does not mean the upstream source was
 re-fetched. Refreshing it requires re-running the builder and reviewing the
 diff. Nothing about this layer is live data.
 
+### Registered unemployment in the Area Profile
+
+The Area Profile shows the publisher's barrio-level *tasa absoluta de paro
+registrado* (SEPE registered unemployed over the 16–64 Padrón population) for the
+whole official barrio containing the Lens centre. It is contextual socioeconomic
+evidence about residents. It is **not** a tourism impact, does **not** show that
+tourism or visitor activity relates to, causes or relieves unemployment, is
+**not** the EPA unemployment rate, and is **not** a measure of vulnerability,
+deprivation or poverty. It is never ranked, banded, scored, compared between
+barrios as a difference, mapped as a surface or combined into an index, and it is
+never allocated into the Lens circle. Its SEPE month ("febrero") and edition year
+are published labels; the population base is verified against the Padrón of
+1 January 2026, and the publisher's own year tables disagree with its data rows
+(see `docs/DATA_PROVENANCE.md`).
+
 ### Destination Context — hotel demand
 
 The Destination Context surface reports **hotel-sector demand in the
