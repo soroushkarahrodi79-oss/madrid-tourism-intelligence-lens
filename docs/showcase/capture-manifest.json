@@ -1,0 +1,121 @@
+{
+  "purpose": "Provenance for the showcase images used in docs/showcase.md",
+  "deployed_commit": "77505435579299f2fd1d2de0bb5e7213bd39f1ad",
+  "deployment": {
+    "commit": "77505435579299f2fd1d2de0bb5e7213bd39f1ad",
+    "workflow_run": "41360861520",
+    "generated_at": "2026-11-01T23:11:56.115Z",
+    "build_state": "pass",
+    "validation_errors": 0,
+    "validation_warnings": 0,
+    "layers_available": "19/19"
+  },
+  "sessions": [
+    {
+      "frames": [
+        "lens-01-place",
+        "lens-02-compare"
+      ],
+      "captured_at": "2026-11-01T23:39:26.177Z",
+      "browser": "Playwright 1.64.1 Chromium (headless), Windows 11, light colour scheme, locale en-GB",
+      "viewport": "1440x900",
+      "tiles": {
+        "place": [
+          24,
+          24
+        ],
+        "compare": [
+          24,
+          24
+        ]
+      },
+      "attribution": "© OpenStreetMap contributors © CARTO",
+      "compare_state_url": "https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens/?v=1&s=20261029-m3-dossier-v1&m=COMPARE&a=40.41490%2C-3.69000%2C900&b=40.40520%2C-3.72119%2C500&be=1&al=B&ly=museum.info.stay.bike.rail&om=2026-07&sc=LENS&rd=citizen&lg=en"
+    },
+    {
+      "frames": [
+        "lens-03a-refusal",
+        "lens-03b-evidence-limits"
+      ],
+      "captured_at": "2026-11-01T23:58:29.059Z",
+      "browser": "Playwright 1.64.1 Chromium headless, Windows 11, light, en-GB",
+      "viewport": "1440x900",
+      "tiles": {
+        "refusal": [
+          24,
+          24
+        ],
+        "evidence_limits": [
+          24,
+          24
+        ]
+      },
+      "attribution": "© OpenStreetMap contributors © CARTO",
+      "how": "Place: Civic Search 'Jerónimos' > official barrio 035 > Analyze with Lens. Refusal: Explore evidence questions > What this tool will not answer > 'Is this area under too much tourist pressure?'. Evidence & limits: opened from the Place panel's 'Source & interpretation' control."
+    }
+  ],
+  "presentation_choices": [
+    "Light appearance",
+    "Guided-tour prompt dismissed",
+    "Place-finder list dismissed in the Place image",
+    "No layers disabled"
+  ],
+  "source_snapshots": {
+    "population_padron": {
+      "reference_date": "2026-01-01",
+      "retrieved": "2026-09-29T14:11:37Z",
+      "state": "Definitive"
+    },
+    "vut_licences": {
+      "retrieved": "2026-09-30T10:13:04Z",
+      "source_file_state": "Sep 2026 (as shown in UI)"
+    },
+    "operational_poi_layers": {
+      "retrieved_at_deploy": "2026-11-01T23:11:28.692Z",
+      "note": "no publisher period"
+    },
+    "app_state_param_s": "20261029-m3-dossier-v1 (URL schema/state token; not asserted to be a dataset snapshot id)"
+  },
+  "files": {
+    "lens-cover": {
+      "file": "lens-cover.webp",
+      "pixels": "1600x1000",
+      "bytes": 424088,
+      "sha256": "c16ac92c30b432126f7bcd914c67a4b0ccb08b3106517027f2f835c582492868",
+      "source_png_sha256": "a917783d50cd65ac56ecd309a29bab5c659e53a5a9e9c13c420e76df513d9cd9",
+      "lossless_identical_to_png": true
+    },
+    "lens-01-place": {
+      "file": "lens-01-place.webp",
+      "pixels": "1440x900",
+      "bytes": 538688,
+      "sha256": "a9837c299d8741b9f643c73fc107b48034d9e0fd07b7954a7042ce5b0360be85",
+      "source_png_sha256": "34fd6875c14f390e41101b2fad9e22dece449a7c968dab62be290505f40f08fa",
+      "lossless_identical_to_png": true
+    },
+    "lens-02-compare": {
+      "file": "lens-02-compare.webp",
+      "pixels": "1440x900",
+      "bytes": 557642,
+      "sha256": "f5fb3edd9e773a6948d0cc2e5d9f916b33f1ac3b2a7a3782c66cba2462c535a5",
+      "source_png_sha256": "c74b79f10008b4efc09b01c080b7ee3d5b4e4b0331e93af019042612e7528cb4",
+      "lossless_identical_to_png": true
+    },
+    "lens-03a-refusal": {
+      "file": "lens-03a-refusal.webp",
+      "pixels": "1440x900",
+      "bytes": 332080,
+      "sha256": "0e60f7966373bc816162d5fdba77d752a792b1051e8c5911bfa3ec4885d8b68c",
+      "source_png_sha256": "4152a8e62e9aaa2c0f9066d318efb5e69d0d0375455182efe218a6b04cdca7bc",
+      "lossless_identical_to_png": true
+    },
+    "lens-03b-evidence-limits": {
+      "file": "lens-03b-evidence-limits.webp",
+      "pixels": "1440x900",
+      "bytes": 481198,
+      "sha256": "87f474f55e8a360d0f4f62f61dda6a30327674b5c41caef6721cc458da2f0cf1",
+      "source_png_sha256": "1d2c645d70df87a1bb47f8bcdd1719d422ad634386841f75939564ffbd65781f",
+      "lossless_identical_to_png": true
+    }
+  }
+}
