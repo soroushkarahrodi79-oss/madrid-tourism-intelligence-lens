@@ -9,6 +9,16 @@ than guaranteed on every value.
 
 [Open the live Madrid lens](https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens/) · [Current scope and limits](docs/GATE_K_URBAN_DECISION_WORKSPACE.md)
 
+## See Lens in action
+
+[![Lens Compare view: Lens A at 900 m and Lens B at 500 m, with the mobility comparison withheld because the window sizes differ.](docs/showcase/lens-cover.webp)](docs/showcase.md)
+
+- **Place:** search an official barrio and read its registered residents and licensed VUT units, each with its scope and reference date. Barrio figures are never presented as Lens-circle figures.
+- **Compare:** place two Lens windows side by side. Densities are compared where that is valid; the mobility comparison above is withheld because the window sizes differ.
+- **Evidence:** ask a question the evidence cannot support and Lens refuses it, then open Evidence & limits for the source, dates and interpretation ceiling.
+
+[See the full evidence demonstration, with screenshots, limits and capture provenance →](docs/showcase.md)
+
 ## 1. What question does it answer?
 
 It starts from a place and a question about it, not from a dataset. For a point
