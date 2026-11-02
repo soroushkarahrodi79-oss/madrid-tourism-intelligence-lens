@@ -4,6 +4,8 @@ import {
   OPERATIONAL_MARKER_SHAPES,
   MARKER_SHAPE_EXTENT,
   renderedMarkerRadius,
+  markerShapeReach,
+  markerShapeContains,
   traceMarkerShape,
   markerShapeClipPath,
 } from "../js/marker-shapes.js";
@@ -51,6 +53,32 @@ test("shapes stay inside the existing marker footprint (radius 4 plus the outlin
     const reach = Math.max(...points.map(([x, y]) => Math.hypot(x, y))) * r;
     assert.ok(reach <= r * 1.25 + 0.75 + 0.5, `${type} reach ${reach.toFixed(2)}px`);
   }
+});
+
+test("stroked reach covers every vertex plus its outline join, and exceeds the old circle for the triangle", () => {
+  const r = renderedMarkerRadius(4.2);
+  const weight = 1.5;
+  const oldCircle = 4.2 + weight / 2; // Leaflet's inherited hit radius
+  for (const [type, { points }] of Object.entries(OPERATIONAL_MARKER_SHAPES)) {
+    if (!points) continue;
+    const vertexMax = Math.max(...points.map(([x, y]) => Math.hypot(x, y))) * r;
+    const reach = markerShapeReach(OPERATIONAL_MARKER_SHAPES[type], r, weight);
+    assert.ok(reach >= vertexMax + weight / 2 - 1e-9, `${type} reach ${reach.toFixed(2)} covers vertex ${vertexMax.toFixed(2)} + half-weight`);
+  }
+  assert.ok(markerShapeReach(OPERATIONAL_MARKER_SHAPES.museum, r, weight) > oldCircle + 1, "triangle pokes well past the inherited circle");
+  assert.equal(markerShapeReach(OPERATIONAL_MARKER_SHAPES.bike, r, weight), 0, "circle has no polygon reach (stays native)");
+});
+
+test("polygon containment includes the base vertex the old circle missed, and nothing far beyond", () => {
+  const tri = OPERATIONAL_MARKER_SHAPES.museum;
+  const r = 4, weight = 1.5;
+  const [vx, vy] = tri.points[1]; // base-right vertex, ~5.49 px out
+  const d = Math.hypot(vx, vy) * r;
+  assert.ok(d > 4.2 + weight / 2, "vertex lies beyond the inherited circle");
+  assert.equal(markerShapeContains(tri, r, weight, 0, (vx / Math.hypot(vx, vy)) * (d + 0.5), (vy / Math.hypot(vx, vy)) * (d + 0.5)), true, "inside the stroke and miter at the vertex");
+  assert.equal(markerShapeContains(tri, r, weight, 0, (vx / Math.hypot(vx, vy)) * (d + weight / 2 + 2), (vy / Math.hypot(vx, vy)) * (d + weight / 2 + 2)), false, "2 px past the stroke is not a hit");
+  assert.equal(markerShapeContains(tri, r, weight, 0, 0, 0), true, "centre");
+  assert.equal(markerShapeContains(OPERATIONAL_MARKER_SHAPES.bike, r, weight, 0, 0, 0), false, "native circle has no polygon containment");
 });
 
 test("rendered radius follows Leaflet's whole-pixel rounding (4.2 -> 4, 2.8 -> 3)", () => {

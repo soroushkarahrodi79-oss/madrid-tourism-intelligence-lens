@@ -210,6 +210,117 @@ test("tooltip, hit-testing and lens shading still work on a shaped marker", asyn
   await ctx.close();
 });
 
+// Leaflet sizes the hit area and the partial-redraw rectangle from the circle. A polygon's
+// vertices and stroke joins reach past it, so those must be covered for polygons only.
+test("polygon hit area and bounds cover every visible pixel and extremity; BiciMAD stays native", async () => {
+  const { page, ctx, errors } = await open();
+  await plantRow(page);
+  const r = await page.evaluate((types) => {
+    const out = {};
+    for (const t of types) {
+      let m = null;
+      groups[t].eachLayer((l) => { if (l._p) m = l; });
+      const rd = m._renderer, g = rd._container.getContext("2d", { willReadFrequently: true });
+      const N = 32, x0 = Math.round(m._point.x - rd._bounds.min.x - N / 2), y0 = Math.round(m._point.y - rd._bounds.min.y - N / 2);
+      const px = g.getImageData(x0, y0, N, N).data;
+      const b = m._pxBounds;
+      let drawn = 0, unhit = 0, outsideBounds = 0, far = 0;
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+        const a = px[(y * N + x) * 4 + 3];
+        if (a === 0) continue;
+        // pixel centre in layer coordinates
+        const p = L.point(x0 + x + 0.5 + rd._bounds.min.x, y0 + y + 0.5 + rd._bounds.min.y);
+        drawn++;
+        if (!b.contains(p)) outsideBounds++;
+        if (a >= 128 && !m._containsPoint(p)) unhit++;
+        far = Math.max(far, p.distanceTo(m._point));
+      }
+      // hit-area size against the circle Leaflet would have used
+      let polyHits = 0, circleHits = 0;
+      const native = m._radius + m._clickTolerance();
+      for (let dy = -9; dy <= 9; dy += 0.25) for (let dx = -9; dx <= 9; dx += 0.25) {
+        if (m._containsPoint(m._point.add([dx, dy]))) polyHits++;
+        if (Math.hypot(dx, dy) <= native) circleHits++;
+      }
+      // just inside each vertex must hit; 2 px beyond the stroked vertex must not
+      const shape = m.options.markerShape;
+      let vertexMiss = 0, overreach = 0;
+      if (shape && shape.points) {
+        const rr = Math.max(Math.round(m._radius), 1), tol = m._clickTolerance() + 0.75;
+        shape.points.forEach(([vx, vy]) => {
+          const d = Math.hypot(vx, vy) * rr, ux = vx / Math.hypot(vx, vy), uy = vy / Math.hypot(vx, vy);
+          if (!m._containsPoint(m._point.add([ux * (d - 0.3), uy * (d - 0.3)]))) vertexMiss++;
+          if (m._containsPoint(m._point.add([ux * (d + tol + 2), uy * (d + tol + 2)]))) overreach++;
+        });
+      }
+      out[t] = { native: m.constructor === L.CircleMarker, drawn, unhit, outsideBounds, far: +far.toFixed(2), halfBounds: b.getSize().x / 2, ratio: +(polyHits / circleHits).toFixed(2), vertexMiss, overreach };
+    }
+    return out;
+  }, TYPES);
+  for (const t of ["stay", "rail", "museum", "info"]) {
+    assert.ok(r[t].drawn > 0, `${t} drawn`);
+    assert.equal(r[t].unhit, 0, `${t}: every opaque pixel must be hit-testable`);
+    assert.equal(r[t].outsideBounds, 0, `${t}: every drawn pixel must be inside the redraw bounds (far ${r[t].far}px, half-bounds ${r[t].halfBounds}px)`);
+    assert.equal(r[t].vertexMiss, 0, `${t}: a point just inside each vertex must hit`);
+    assert.equal(r[t].overreach, 0, `${t}: no hit target 2px beyond the stroked vertex`);
+    assert.ok(r[t].ratio <= 1.5, `${t}: hit area ${r[t].ratio}x the old circle must stay proportionate`);
+  }
+  assert.equal(r.bike.native, true, "BiciMAD keeps native CircleMarker bounds and hit-testing");
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("a style change redraws a polygon without stale pixels at its extremities", async () => {
+  const { page, ctx, errors } = await open();
+  await plantRow(page);
+  const r = await page.evaluate(async () => {
+    const frames = () => new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
+    // Leaflet repaints on the next animation frame; under load that can take longer, so wait for the
+    // expected state (bounded). A stale extremity never clears, so a real defect still fails afterwards.
+    const settle = async (m, done) => {
+      const t0 = performance.now();
+      for (;;) { await frames(); const s = read(m); if (done(s) || performance.now() - t0 > 2000) return s; }
+    };
+    const read = (m) => {
+      const rd = m._renderer, g = rd._container.getContext("2d", { willReadFrequently: true });
+      const N = 32, x0 = Math.round(m._point.x - rd._bounds.min.x - N / 2), y0 = Math.round(m._point.y - rd._bounds.min.y - N / 2);
+      const px = g.getImageData(x0, y0, N, N).data;
+      let maxAlpha = 0, n = 0;
+      for (let i = 0; i < N * N; i++) { const a = px[i * 4 + 3]; if (a) n++; maxAlpha = Math.max(maxAlpha, a); }
+      return { maxAlpha, n };
+    };
+    const out = {};
+    for (const t of ["museum", "info", "rail", "stay"]) {
+      let m = null;
+      groups[t].eachLayer((l) => { if (l._p) m = l; });
+      const before = await settle(m, (v) => v.maxAlpha === 255), halfBefore = m._pxBounds.getSize().x / 2;
+      // the lens-shading style: faint and thinner outline
+      m.setStyle({ opacity: 0.2, fillOpacity: 0.1, weight: 0.7 });
+      const faded = await settle(m, (v) => v.n > 0 && v.maxAlpha <= 90), halfThin = m._pxBounds.getSize().x / 2;
+      m.setStyle({ opacity: 1, fillOpacity: 0.86, weight: MARKER_OUTLINE_WEIGHT });
+      const back = await settle(m, (v) => v.maxAlpha === 255);
+      const rr = Math.max(Math.round(m._radius), 1), shape = m.options.markerShape;
+      out[t] = {
+        before, faded, back, halfBefore, halfThin, halfBack: m._pxBounds.getSize().x / 2,
+        needBefore: markerShapeReach(shape, rr, MARKER_OUTLINE_WEIGHT), needThin: markerShapeReach(shape, rr, 0.7),
+      };
+    }
+    return out;
+  });
+  for (const [t, v] of Object.entries(r)) {
+    // 0.2 outline opacity on a transparent canvas is alpha ~51; a surviving full-opacity extremity would be 255.
+    assert.ok(v.faded.maxAlpha <= 90, `${t}: stale opaque pixels left after fading (max alpha ${v.faded.maxAlpha})`);
+    assert.ok(v.faded.n > 0, `${t}: faded marker still drawn`);
+    assert.ok(v.halfBefore + 1e-6 >= v.needBefore && v.halfThin + 1e-6 >= v.needThin, `${t}: bounds after each style change cover the stroked reach (${v.halfBefore}/${v.needBefore.toFixed(2)}, ${v.halfThin}/${v.needThin.toFixed(2)})`);
+    assert.ok(v.halfThin < v.halfBefore, `${t}: bounds follow the thinner outline (${v.halfBefore} -> ${v.halfThin})`);
+    assert.equal(v.halfBack, v.halfBefore, `${t}: bounds restored with the outline`);
+    assert.equal(v.back.n, v.before.n, `${t}: restoring the style redraws the identical silhouette`);
+    assert.equal(v.back.maxAlpha, 255);
+  }
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
 test("without a canvas renderer the marker falls back to Leaflet's circle instead of drawing on a missing context", async () => {
   const { page, ctx, errors } = await open();
   const d = await page.evaluate(() => {
