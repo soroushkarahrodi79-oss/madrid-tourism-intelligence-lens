@@ -244,6 +244,9 @@ header{
 .dot-heat{color:var(--heat);background:var(--heat)}
 .dot-licence{color:var(--licence-neutral);background:var(--licence-neutral)}
 .dot-inline{display:inline-block;margin-right:var(--s-1)}
+/* #152: rail dots for the five operational layers are clipped to the same silhouette the map marker draws (clip-path set from js/marker-shapes.js). The glow is dropped because clip-path would crop it. */
+.layer-left>.dot-shaped{width:10px;height:10px;flex:0 0 10px;border-radius:0;box-shadow:none}
+@media(forced-colors:active){.layer-left>.dot-shaped{background-color:CanvasText}}
 .switch{position:relative;width:27px;height:15px;flex:0 0 auto}.switch input{position:absolute;width:1px;height:1px;opacity:0}.switch span{position:absolute;inset:0;background:#253344;border-radius:10px;cursor:pointer;transition:.2s}
 .switch span:after{content:"";position:absolute;width:11px;height:11px;left:2px;top:2px;border-radius:50%;background:#8da0b7;transition:.2s}
 .switch input:checked+span{background:#1f5472}.switch input:checked+span:after{left:14px;background:#eaf8ff}
