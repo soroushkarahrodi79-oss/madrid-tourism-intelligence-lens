@@ -5690,6 +5690,15 @@ function renderDomesticOriginDynamics() {
   const transitions = document.getElementById("domesticOriginDynamicsTransitions"); if (transitions) transitions.hidden = !ready;
   setText("domesticOriginDynamicsState", dynamicsStateLine(module, model)); setText("domesticOriginDynamicsDisclosure", dynamicsT("disclosure"));
 }
+function renderDomesticOriginChart(top) {
+  const figure = document.getElementById("domesticOriginsChart"), list = document.getElementById("domesticOriginsBars");
+  if (!figure || !list) return;
+  figure.hidden = top.bars.length === 0;
+  list.innerHTML = top.bars.map((bar) => `<li data-origin="${bar.code}" data-count="${bar.count}"><span class="dob-name">${escapeHtml(bar.name)} <span class="muted">${bar.code}</span></span><b class="dob-value">${bar.countDisplay}</b><span class="dob-track" aria-hidden="true"><i style="width:${bar.widthPercent}%"></i></span></li>`).join("");
+  if (!top.bars.length) { for (const id of ["domesticOriginsChartTitle", "domesticOriginsChartCount", "domesticOriginsChartScale"]) setText(id, ""); return; }
+  const fill = (key) => originT(key).replace(/\{(\w+)\}/g, (_, name) => ({ month: top.month, shown: top.shown.toLocaleString("en-GB"), total: top.total.toLocaleString("en-GB") })[name] ?? "");
+  setText("domesticOriginsChartTitle", fill("chartTitle")); setText("domesticOriginsChartCount", fill("chartCount")); setText("domesticOriginsChartScale", fill("chartScale"));
+}
 function renderDomesticOrigins() {
   const host = document.getElementById("domesticOrigins");
   if (!host || !originModel.module || !originModel.i18n) return;
@@ -5708,6 +5717,7 @@ function renderDomesticOrigins() {
   setText("domesticOriginsOrigin", originT("origin")); setText("domesticOriginsTourists", originT("tourists"));
   const select = document.getElementById("domesticOriginsMonth");
   if (select) { select.innerHTML = (model.availableMonths || []).slice().reverse().map((month) => `<option value="${month}">${month}</option>`).join(""); select.value = model.month || ""; select.disabled = model.state === module.ORIGIN_STATE.UNAVAILABLE; }
+  renderDomesticOriginChart(module.buildDomesticOriginRanking(model));
   const rows = document.getElementById("domesticOriginsRows");
   if (rows) rows.innerHTML = model.origins.map((row) => `<tr><td>${escapeHtml(row.origin_municipality_name)} <span class="muted">${row.origin_municipality_code}</span></td><td>${row.countDisplay}</td></tr>`).join("");
   setText("domesticOriginsState", model.state === module.ORIGIN_STATE.UNAVAILABLE ? originT("unavailable") : model.state === module.ORIGIN_STATE.MONTH_UNAVAILABLE ? originT("periodUnavailable") : module.ORIGIN_SCOPE_CAVEAT);

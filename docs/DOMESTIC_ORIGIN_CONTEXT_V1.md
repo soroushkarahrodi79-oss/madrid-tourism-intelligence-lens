@@ -37,3 +37,17 @@ descriptive transformation of official observations, not a new external source,
 causal finding, prediction, all-origin share, province aggregation, map layer
 or international-origin series. Same-province travel remains outside the source
 universe.
+
+## Top published origins chart v1
+
+A horizontal bar chart above the full table shows the ten highest published
+origin-municipality counts of the selected source month, taken from the same
+validated, sorted model as the table (`buildDomesticOriginRanking`). Each bar is
+labelled with the municipality name, its code and the exact source-reported
+count; length is count divided by the largest bar shown, on a zero baseline, so
+it is linear and never truncated. A month with fewer than ten published origins
+shows only those. The chart states that it is not the full origin universe and
+that unpublished origins are not zero. No total, share, percentage, "Other"
+category, map point or flow line is derived, and the chart follows the existing
+source-month control, including a month restored from a K11 link. It does not
+change the K11 export, the URL fields or the stored artifact.
