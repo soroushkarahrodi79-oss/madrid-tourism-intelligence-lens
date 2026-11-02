@@ -202,8 +202,15 @@ function createOsmBasemap() {
   }));
 }
 
+let cartoKeyWarned = false;
 function createCartoBasemap(style) {
-  if (!cartoBasemapKey) return createOsmBasemap();
+  if (!cartoBasemapKey) {
+    if (!cartoKeyWarned) {
+      cartoKeyWarned = true;
+      console.warn("[basemap] CARTO_BASEMAP_KEY is not configured; serving OpenStreetMap tiles instead of CARTO.");
+    }
+    return createOsmBasemap();
+  }
   const url =
     `https://basemaps.cartocdn.com/rastertiles/${style}/{z}/{x}/{y}${k12CartoRetina()}.png` +
     `?key=${encodeURIComponent(cartoBasemapKey)}`;
@@ -250,6 +257,26 @@ function createSatelliteBasemap() {
   return hybrid;
 }
 
+// The selector names the provider actually serving tiles. [requested, OSM-fallback]
+// labels; the effective provider is also exposed as data-effective-provider
+// (carto | esri | osm) and, for OSM, data-fallback-reason (missing-key | tile-error).
+const BASEMAP_LABELS = {
+  light: ["Light · CARTO Positron", "Light · OpenStreetMap standard (CARTO unavailable)"],
+  satellite: ["Satellite + labels · Esri", "Satellite · OpenStreetMap (Esri unavailable)"],
+  dark: ["Dark · CARTO Dark Matter", "Dark unavailable · OpenStreetMap standard (light)"],
+};
+function reportEffectiveBasemap(provider, reason, fallbackNames) {
+  const select = document.getElementById("basemapSelect");
+  select.dataset.effectiveProvider = provider;
+  if (reason) select.dataset.fallbackReason = reason;
+  else delete select.dataset.fallbackReason;
+  for (const [value, [own, osm]] of Object.entries(BASEMAP_LABELS)) {
+    const text = fallbackNames.includes(value) ? osm : own;
+    const option = select.querySelector(`option[value="${value}"]`);
+    if (option && option.textContent !== text) option.textContent = text;
+  }
+}
+
 function setBasemap(name) {
   const requested = ["light", "satellite", "dark"].includes(name) ? name : "light";
   if (activeBasemap && map.hasLayer(activeBasemap)) map.removeLayer(activeBasemap);
@@ -263,16 +290,21 @@ function setBasemap(name) {
 
   activeBasemap = next;
   activeBasemapName = requested;
+  // Without a key the CARTO options are OSM whichever basemap is selected.
+  const keyless = !cartoBasemapKey;
+  const provider = requested === "satellite" ? "esri" : keyless ? "osm" : "carto";
+  reportEffectiveBasemap(provider, provider === "osm" ? "missing-key" : null, keyless ? ["light", "dark"] : []);
   if (lensStyleController) lensStyleController(requested);
   if (adminStyleController) adminStyleController(requested);
   if (hospitalityStyleController) hospitalityStyleController(requested);
 
   let fellBack = false;
   next.on("tileerror", () => {
-    if (fellBack || activeBasemap !== next) return;
+    if (provider === "osm" || fellBack || activeBasemap !== next) return;
     fellBack = true;
     if (map.hasLayer(next)) map.removeLayer(next);
     activeBasemap = createOsmBasemap().addTo(map);
+    reportEffectiveBasemap("osm", "tile-error", [requested]);
   });
 
   next.addTo(map);

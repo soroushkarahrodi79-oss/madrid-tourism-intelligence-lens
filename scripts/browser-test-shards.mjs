@@ -45,6 +45,7 @@ const SHARDS = Object.freeze({
     "discover/release-check.browser.mjs",
     "browser-tests/hospitality-fill-hold.browser.mjs",
     "browser-tests/cluster-ux-v1.browser.mjs",
+    "browser-tests/basemap-fallback.browser.mjs",
   ],
 });
 
