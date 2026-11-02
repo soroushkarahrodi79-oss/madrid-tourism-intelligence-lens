@@ -261,9 +261,9 @@ function createSatelliteBasemap() {
 // labels; the effective provider is also exposed as data-effective-provider
 // (carto | esri | osm) and, for OSM, data-fallback-reason (missing-key | tile-error).
 const BASEMAP_LABELS = {
-  light: ["Light · CARTO Positron", "Light · OpenStreetMap (CARTO unavailable)"],
+  light: ["Light · CARTO Positron", "Light · OpenStreetMap standard (CARTO unavailable)"],
   satellite: ["Satellite + labels · Esri", "Satellite · OpenStreetMap (Esri unavailable)"],
-  dark: ["Dark · CARTO Dark Matter", "Dark · OpenStreetMap (CARTO unavailable)"],
+  dark: ["Dark · CARTO Dark Matter", "Dark unavailable · OpenStreetMap standard (light)"],
 };
 function reportEffectiveBasemap(provider, reason, fallbackNames) {
   const select = document.getElementById("basemapSelect");
@@ -271,7 +271,7 @@ function reportEffectiveBasemap(provider, reason, fallbackNames) {
   if (reason) select.dataset.fallbackReason = reason;
   else delete select.dataset.fallbackReason;
   for (const [value, [own, osm]] of Object.entries(BASEMAP_LABELS)) {
-    const text = provider === "osm" && fallbackNames.includes(value) ? osm : own;
+    const text = fallbackNames.includes(value) ? osm : own;
     const option = select.querySelector(`option[value="${value}"]`);
     if (option && option.textContent !== text) option.textContent = text;
   }
@@ -290,16 +290,17 @@ function setBasemap(name) {
 
   activeBasemap = next;
   activeBasemapName = requested;
-  const keyless = requested !== "satellite" && !cartoBasemapKey;
-  if (keyless) reportEffectiveBasemap("osm", "missing-key", ["light", "dark"]);
-  else reportEffectiveBasemap(requested === "satellite" ? "esri" : "carto", null, []);
+  // Without a key the CARTO options are OSM whichever basemap is selected.
+  const keyless = !cartoBasemapKey;
+  const provider = requested === "satellite" ? "esri" : keyless ? "osm" : "carto";
+  reportEffectiveBasemap(provider, provider === "osm" ? "missing-key" : null, keyless ? ["light", "dark"] : []);
   if (lensStyleController) lensStyleController(requested);
   if (adminStyleController) adminStyleController(requested);
   if (hospitalityStyleController) hospitalityStyleController(requested);
 
   let fellBack = false;
   next.on("tileerror", () => {
-    if (keyless || fellBack || activeBasemap !== next) return;
+    if (provider === "osm" || fellBack || activeBasemap !== next) return;
     fellBack = true;
     if (map.hasLayer(next)) map.removeLayer(next);
     activeBasemap = createOsmBasemap().addTo(map);

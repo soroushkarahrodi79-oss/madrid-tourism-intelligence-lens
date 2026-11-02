@@ -69,7 +69,12 @@ test("missing CARTO key: UI names OpenStreetMap, state is machine-readable, one 
 
   await page.selectOption("#basemapSelect", "dark");
   await page.selectOption("#basemapSelect", "satellite");
-  assert.equal((await state(page)).provider, "esri");
+  s = await state(page);
+  assert.equal(s.provider, "esri");
+  assert.equal(s.reason, null);
+  assert.doesNotMatch(s.labels.light, /Positron/, "fallback labels persist while Satellite is selected");
+  assert.doesNotMatch(s.labels.dark, /Dark Matter/);
+  assert.match(s.labels.dark, /light/, "Dark fallback says the OSM tiles are standard/light");
   await page.selectOption("#basemapSelect", "light");
   assert.equal((await state(page)).provider, "osm");
   assert.equal(warnings.filter((w) => w.includes("CARTO_BASEMAP_KEY")).length, 1, "warns exactly once");
