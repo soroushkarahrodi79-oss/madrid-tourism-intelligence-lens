@@ -49,6 +49,15 @@ to demote an important limitation. Interpretation ceilings use `BODY` in the
 evidence drawer and substantive surfaces, or `META` only when placement is
 genuinely compact.
 
+**Reading-size amendment (#102).** The seven roles and their ratios are fixed, but
+rendered sizes follow the user's reading-size preference (Normal 100%, Comfortable
+112%, Large 125%; default Normal). Tokens are declared in `rem` and the preference
+sets one root multiplier (`html[data-text-size]` -> `--text-scale`), so the table
+values are the Normal size at the standard 16px browser root and still respect the
+browser's own text-size setting. Spacing, radius, map geometry and tiles do not
+scale. The preference is stored under `madrid-lens-text-size` only, never in
+K11/URL state or exports.
+
 ## Spacing and radius
 
 The four layout-spacing tokens follow the product's existing 4px rhythm:

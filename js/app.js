@@ -44,9 +44,9 @@ const AREA_ASSET_VERSION = "20261029-m3-dossier-v1";
 // release version, so a browser can never combine a new app.js with an old registry,
 // dictionary or Area Profile module. tests/domestic_origin_dynamics_ui.test.mjs pins
 // that they stay equal.
-const ORIGIN_CONTEXT_MODULE_VERSION = "20261102-paro-v1";
-const AREA_PROFILE_MODULE_VERSION = "20261102-paro-v1";
-const REGISTRY_ASSET_VERSION = "20261102-paro-v1";
+const ORIGIN_CONTEXT_MODULE_VERSION = "20261102-textsize-v1";
+const AREA_PROFILE_MODULE_VERSION = "20261102-textsize-v1";
+const REGISTRY_ASSET_VERSION = "20261102-textsize-v1";
 const moduleUrl = (name, version = AREA_ASSET_VERSION) => new URL(`${name}?v=${version}`, MODULE_BASE).href;
 
 // K11 (#73): the evidence-snapshot identity carried in a shared link, so a reader
@@ -6146,6 +6146,8 @@ document.getElementById("boundarySelect").onchange = (e) => setBoundaryMode(e.ta
 // Appearance is presentation-only and intentionally has no path into basemap,
 // map camera, evidence state or URL restoration.
 window.MadridAppearance?.init();
+// Reading size likewise only sets a root presentation multiplier.
+window.MadridTextSize?.init();
 // ONE document language at a time (docs/INFORMATION_ARCHITECTURE_V2.md §Language):
 // this control sets the document language and every dictionary-backed surface
 // follows it — shell, Bridge/Insight/Sensitivity, hospitality and domestic origins.
