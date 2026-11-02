@@ -2095,10 +2095,8 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
   .geo-search,.geo-search-surface,.geo-search-query,.geo-search-result,.geo-search-action,.qx-q,.qx-action{transition:none!important;animation:none!important}
 }
 /* UX-V3 (#151) T1: interpretation limits and rail headings move from --t-micro (10px) to --t-meta (11px); incidental metadata stays at 10px */
-.rail-group-note,.layer-source-note,.layer-source-preview,.layer-source-status,.layer-source-render-note,.evidence-note,.hospitality-selector-hint,.hospitality-interpretation,.hospitality-state,.hospitality-dual-date,.hospitality-unit,
-.area-scope p,.area-vut-state,.area-other,.destination-state,.destination-ceiling,.destination-provisional,.source,.metric-foot,.mode-question,
-.activity-card-note,.comparison-mode-cue,.halo-legend,.compare-evidence,.halo-visibility-note,.comparison-bridge-empty,.cb-qualifier,.di-status,.di-guard,
-.ss-status,.ss-empty,.ss-notice,.ss-guard,.ss-transition-detail,.drawer-ceiling,.drawer-ceiling b,.drawer-notes .halo-legend,.drawer-notes .source,.geo-search-coverage,.lic-window-clamped,
-.ambito-guard,.ambito-guard-di,.ambito-scale-note,.ambito-radius-note,.ambito-edition-note,.ambito-reason,.ambito-bridge-empty,.ab-qual,.ambito-pick-hint,
-.mix-label,.mixrow,.nearest li,.badge,.area-vut-unit,.area-vut-secondary,.section-head small,.comparison-radius-readout,.area-source-toggle,.planning-source-toggle,.planning-change-provenance-edition,.halo-toggle small,.planning-touched-centre{font-size:var(--t-meta)}
+.rail-group-note,.layer-source-preview,.layer-source-status,.layer-source-render-note,.hospitality-selector-hint,.hospitality-interpretation,.hospitality-state,.hospitality-dual-date,.hospitality-unit,.area-other,.mode-question,.halo-legend,
+.geo-search-coverage,.lic-window-clamped,.ambito-guard,.ambito-guard-di,.ambito-scale-note,.ambito-radius-note,.ambito-edition-note,.ambito-reason,.ab-qual,.ambito-pick-hint,
+.mix-label,.mixrow,.nearest li,.badge,.area-vut-unit,.area-vut-secondary,.section-head small,.comparison-radius-readout,.area-source-toggle,.planning-source-toggle,.planning-change-provenance-edition,.halo-toggle small,
+.planning-touched-centre{font-size:var(--t-meta)}
 .left h3,.rail-group-copy,.basemap-control label,.map-control label,.language-control label,.stay-filter label,.hospitality-controls label,.activity-divider span,.context-divider span,.research-divider span,.administrative-divider span{font-size:var(--t-meta);letter-spacing:.04em;text-transform:none}
