@@ -187,13 +187,15 @@ for (const appearance of ["light", "dark"]) {
     assert.notEqual(s.glyph, "none");
     const sel = ".poi-cluster-icon.outside-lens:has(.cluster-bike)";
     const idle = await page.evaluate((q) => getComputedStyle(document.querySelector(q + " .poi-cluster")).boxShadow, sel);
+    // Hover is checked on the UNFOCUSED chip: a focused chip's ring shadow (#159) intentionally wins over :hover, and the
+    // 150ms box-shadow transition must settle before reading.
+    await page.hover(sel, { force: true });
+    await page.waitForFunction(([q, v]) => getComputedStyle(document.querySelector(q + " .poi-cluster")).boxShadow !== v, [sel, idle]);
+    await page.mouse.move(0, 0);
     await page.focus(sel);
     const focused = await page.evaluate((q) => { const c = getComputedStyle(document.querySelector(q + " .poi-cluster")); return { style: c.outlineStyle, width: c.outlineWidth }; }, sel);
     assert.notEqual(focused.style, "none", "focused cluster needs a visible outline");
     assert.ok(parseFloat(focused.width) >= 2);
-    await page.hover(sel, { force: true });
-    const hovered = await page.evaluate((q) => getComputedStyle(document.querySelector(q + " .poi-cluster")).boxShadow, sel);
-    assert.notEqual(hovered, idle, "hover must change the chip");
     await ctx.close();
   });
 }
