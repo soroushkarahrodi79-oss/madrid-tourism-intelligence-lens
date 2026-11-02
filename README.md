@@ -338,6 +338,11 @@ browser-side static app, the deployed key is still visible to visitors, so
 restrict it in the CARTO Basemaps dashboard to the GitHub Pages host
 `soroushkarahrodi79-oss.github.io`.
 
+A local checkout (or fork, or PR preview) has no CARTO key, so it renders OpenStreetMap tiles
+instead of CARTO Positron/Dark Matter; the base-map selector says so, logs one console
+warning, and exposes `data-effective-provider` on `#basemapSelect`. Account for this when
+measuring marker contrast, which depends on the basemap.
+
 ## 9. What is the evidence status?
 
 - Museums, tourist information, BiciMAD, Metro/Cercanías and accommodation: live public data
