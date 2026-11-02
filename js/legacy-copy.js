@@ -62,6 +62,8 @@ const LEGACY_COPY_ES = [
   ["Madrid administrative geography", "Geografía administrativa de Madrid"],
   ["Madrid residential population (Padron)", "Población residente de Madrid (Padrón)"],
   ["Licensed tourist-dwelling units (VUT activity licences)", "Viviendas de uso turístico con licencia (licencias de actividad VUT)"],
+  ["Registered unemployment rate (barrio, Panel de indicadores)", "Tasa de paro registrado (barrio, Panel de indicadores)"],
+  ["Edition {a}: SEPE registered unemployment of {b}, over the Padron 16-64 population at 1 Jan {c}. The month and year are confirmed against the Ayuntamiento's Banco de Datos monthly series 1.1.D.", "Edición {a}: paro registrado del SEPE de {b}, sobre la población de 16 a 64 años del Padrón a 1 ene {c}. El mes y el año están confirmados con la serie mensual 1.1.D del Banco de Datos del Ayuntamiento."],
   ["Official callejero NDP crosswalk", "Correspondencia oficial de NDP del callejero"],
   ["Granted urban licences", "Licencias urbanísticas otorgadas"],
   ["Hospitality & Commercial Context", "Contexto de hostelería y actividad comercial"],

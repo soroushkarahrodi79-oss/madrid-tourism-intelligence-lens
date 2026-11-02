@@ -1,0 +1,102 @@
+{
+  "contract_version": "1.0.0",
+  "title": "Barrio-level tasa absoluta de paro registrado (Panel de indicadores de distritos y barrios)",
+  "artifact": "madrid_registered_unemployment.json",
+  "source": {
+    "authority": "Ayuntamiento de Madrid - Direccion General de Coordinacion Territorial y Desconcentracion (Servicio de Estudios y Evaluacion Territorial)",
+    "dataset": "Panel de indicadores de distritos y barrios de Madrid. Estudio sociodemografico",
+    "dataset_id": "300087-0-indicadores-distritos",
+    "catalogue": "https://datos.madrid.es/dataset/300087-0-indicadores-distritos",
+    "csv": "https://datos.madrid.es/dataset/300087-0-indicadores-distritos/resource/300087-0-indicadores-distritos-csv/download/acumulado.csv",
+    "methodology_pdf": "https://datos.madrid.es/dataset/300087-0-indicadores-distritos/resource/300087-22-indicadores-distritos/download/300087-22-indicadores-distritos.pdf",
+    "indicator_row": {
+      "indicador_completo": "Tasa absoluta de paro registrado (febrero)",
+      "categoria_1": "Indicadores Población desempleo",
+      "unidad_indicador": "Tasa",
+      "periodo_panel_selected": "2026"
+    },
+    "underlying_registers": "SEPE registered unemployment (numerator); Padron Municipal de Habitantes, ages 16 to 64 (denominator)",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "attribution": "(c) Ayuntamiento de Madrid",
+    "update_frequency": "annual"
+  },
+  "indicator_definition": "Tasa absoluta de paro registrado: registered unemployed persons of a zone divided by the population of working age (16 to 64) of the same zone, the latter taken from the Padron Municipal de Habitantes (methodology PDF, 'Indicadores de desempleo'). Published as a percentage with two decimals. The barrio figure excludes persons coded 'no consta' (which only the district figure counts).",
+  "not_this": [
+    "NOT the EPA unemployment rate (unemployed / active population, a different indicator in the same panel)",
+    "NOT unemployed residents divided by total registered population",
+    "NOT a rate derived by this builder: the value is the publisher's own, transcribed unchanged"
+  ],
+  "source_period": {
+    "panel_edition": "2026",
+    "reference_year": "2026",
+    "numerator_month": "febrero",
+    "label": "febrero 2026",
+    "fecha_indicador_in_source": "01/01/2026",
+    "provisional": false,
+    "selection": "latest Periodo panel edition that carries exactly one row for every canonical barrio; no other edition's values are substituted or mixed",
+    "period_verification": {
+      "status": "VERIFIED_AGAINST_INDEPENDENT_OFFICIAL_SERIES",
+      "numerator_month_year_gate": {
+        "performed": true,
+        "series": "0904010000014",
+        "series_title": "I. Mercado de Trabajo > Paro registrado > 1.1.D. Tasa absoluta de Paro registrado por Distrito y Barrio segun Sexo, Grupo de Edad y Mes (desde noviembre 2017)",
+        "series_url": "https://servpub.madrid.es/CSEBD_WBINTER/seleccionSerie.html?numSerie=0904010000014",
+        "fixture": "tests/fixtures/banco_datos_paro_febrero.json",
+        "fixture_retrieved_on": "2026-11-02",
+        "month": "febrero",
+        "year": "2026",
+        "barrios_compared": 131,
+        "mismatches": 0,
+        "same_barrio_value_in_other_years": {
+          "2024": 1,
+          "2025": 1
+        }
+      },
+      "numerator_gate_method": "the Ayuntamiento's Banco de Datos monthly series 1.1.D labels every value with its month and year (source: SEPE, same definition). Its February <year> value must equal the edition's rate for every barrio; the same barrios' February values for the other years are recorded as contrast",
+      "denominator_year_gate": {
+        "performed": true,
+        "padron_reference_date": "2026-01-01",
+        "barrios_compared": 131,
+        "mismatches": 0
+      },
+      "denominator_gate_method": "the same edition's 'Número habitantes' must equal data/population/madrid_population.json for every barrio; this pins the rate's population base to the Padron reference date. It does not establish the numerator's year and is not used for that",
+      "edition_repeat_check": {
+        "previous_edition": "2025",
+        "barrios_with_identical_value": 1,
+        "barrios_compared": 131
+      },
+      "publisher_year_tables_disagree": "the 2026 methodology PDF (printed p. 19) and the workbook INDICADORES sheet list a 'year of update' of 2025 for this indicator, 2024 for its own numerator and 2023 for the women's rate, while every data row is stamped año=2026 / 01/01/2026. The 2024 and 2025 editions' PDF tables match their data stamps (2024, 2025). The 2026 table is internally inconsistent and is contradicted by the independent series, so it is recorded as stale, not used"
+    }
+  },
+  "missing_values": {
+    "source_representation": "blank cell",
+    "other_codes_observed": [],
+    "handling": "blank -> rate_percent null, state MISSING_IN_SOURCE; canonical barrio with no row -> NOT_PUBLISHED; any other non-numeric text fails the build. Never 0.",
+    "counts": {
+      "barrios": 131,
+      "valid": 131,
+      "missing": 0
+    }
+  },
+  "code_reconciliation": {
+    "method": "deterministic zero-padding of official source codes; no name-based or fuzzy matching",
+    "cod_distrito": "zfill(2) -> district official_id",
+    "cod_barrio": "zfill(3) -> barrio official_id",
+    "checked": "each id must match a canonical barrio and its parent district; the source barrio label must equal the canonical label"
+  },
+  "geography_linkage": {
+    "geography_artifact": "data/geography/madrid_admin.geojson",
+    "join": "cod_barrio.zfill(3) == barrio.official_id ; cod_distrito.zfill(2) == district.official_id",
+    "note": "The value belongs to the WHOLE official barrio. District and municipality figures are not published in this artifact."
+  },
+  "selected_rows_sha256": "95ec2539560f62ccd31684f8aa46c928767e16de496d6d69d6b851ae95e0b785",
+  "builder": "scripts/build_madrid_unemployment.py",
+  "interpretation_ceiling": "Registered unemployment (SEPE, February) as a percentage of the 16-64 Padron population of the whole official barrio, as published. Contextual socioeconomic evidence about residents, NOT a tourism impact, NOT evidence that tourism or visitor activity causes or relates to unemployment, NOT the EPA rate, NOT a measure of vulnerability, deprivation or poverty, and never ranked, banded, scored or combined into an index. It describes the whole barrio and must never be allocated, weighted or interpolated into a circular Lens.",
+  "retrieval": {
+    "retrieved_at": "2026-11-02T19:50:11Z",
+    "http_last_modified": "Tue, 20 Oct 2026 13:28:32 GMT",
+    "local_file": null,
+    "note": "http_last_modified describes the file served, not a publisher reference date."
+  }
+}

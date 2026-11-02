@@ -63,6 +63,7 @@ const SCOPE_GLYPHS = Object.freeze({
 const SURFACES = Object.freeze({
   "place.area.residents": { mode: "PLACE", scope: "OFFICIAL_BARRIO", sources: ["population", "geography"], unit: "unit.residents", derivation: "derive.published" },
   "place.area.vut": { mode: "PLACE", scope: "OFFICIAL_BARRIO", sources: ["vut_licences"], unit: "unit.vutUnits", derivation: "derive.published", when: "vut" },
+  "place.area.paro": { mode: "PLACE", scope: "OFFICIAL_BARRIO", sources: ["registered_unemployment_rate", "geography"], unit: "unit.paro", derivation: "derive.published", when: "paro" },
   "place.metric.tourism": { mode: "PLACE", scope: "LENS_CIRCLE", sources: ["museum", "info"], unit: "unit.records", derivation: "derive.lensCount" },
   "place.metric.stays": { mode: "PLACE", scope: "LENS_CIRCLE", sources: ["stay"], unit: "unit.records", derivation: "derive.lensCount" },
   "place.metric.mobility": { mode: "PLACE", scope: "LENS_CIRCLE", sources: ["bike", "rail"], unit: "unit.records", derivation: "derive.lensCount" },

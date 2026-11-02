@@ -834,6 +834,43 @@ function healthyRailRetrieval(rail, patch = {}) {
   };
 }
 
+// Barrio registered-unemployment rate: one record per canonical fixture barrio,
+// with a few explicit non-VALID states so the healthy world exercises them.
+function unemploymentArtifact() {
+  const barrios = geographyFeatureCollection().features.filter((f) => f.properties.geography_level === "barrio");
+  const records = barrios.map((b, i) => {
+    const state = i === 1 ? "MISSING_IN_SOURCE" : i === 2 ? "NOT_PUBLISHED" : "VALID";
+    return {
+      official_id: b.properties.official_id,
+      parent_id: b.properties.parent_id,
+      rate_percent: state === "VALID" ? 2.5 + (i % 7) : null,
+      state,
+    };
+  });
+  const valid = records.filter((r) => r.state === "VALID").length;
+  return {
+    contract_version: "1.0.0",
+    indicator: { id: "registered_unemployment_rate", unit: "percent" },
+    source_period: { panel_edition: "2026", reference_year: "2026", numerator_month: "febrero", provisional: false },
+    counts: { barrios: records.length, valid, missing: records.length - valid },
+    records,
+  };
+}
+
+function unemploymentMeta() {
+  return {
+    source: { dataset: "Panel de indicadores de distritos y barrios de Madrid", license: "CC BY 4.0" },
+    indicator_definition: "Registered unemployed divided by the 16-64 Padron population of the same zone.",
+    source_period: {
+      reference_year: "2026",
+      period_verification: {
+        numerator_month_year_gate: { performed: true, year: "2026", month: "febrero", barrios_compared: 131, mismatches: 0 },
+      },
+    },
+    interpretation_ceiling: "Contextual socioeconomic evidence, not a tourism impact.",
+  };
+}
+
 function healthyArtifacts() {
   const layers = {
     museum: poiRecords("museum", 3),
@@ -904,6 +941,8 @@ function healthyArtifacts() {
     "population/madrid_population.meta.json": populationMeta(),
     "accommodation/madrid_vut_licences.json": vutArtifact(),
     "accommodation/madrid_vut_licences.meta.json": vutMeta(),
+    "socioeconomic/madrid_registered_unemployment.json": unemploymentArtifact(),
+    "socioeconomic/madrid_registered_unemployment.meta.json": unemploymentMeta(),
     "destination/madrid_hotel_demand.json": destinationArtifact(),
     "destination/madrid_hotel_demand.meta.json": destinationMeta(),
     "destination/madrid_domestic_origins.json": { source: { authority: "INE", source_url: "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_2026.xlsx", workbook_year: 2026, retrieved_at: GENERATED_AT }, source_universe: { residence: "Residents in Spain", trip_condition: "Travel to a province different from the province of residence", same_province_travel_excluded: true }, geography: { level: "municipality", municipality_code: "28079" }, source_period: { latest: "2026-01", available_months: ["2026-01"] }, suppression: { rule: "more than 30 tourists", absent_is_not_zero: "never materialised as zero" }, source_schema: ["mes", "mun_orig_cod", "mun_orig", "dest_cod", "dest", "turistas", "prov_orig_cod", "prov_orig", "prov_dest_cod", "prov_dest"], schema_fingerprint: "a".repeat(64), months: [{ source_month: "2026-01", published_origins: [{ origin_municipality_code: "01001", origin_municipality_name: "A", origin_province_code: "01", origin_province_name: "A", source_reported_tourists: 40 }, { origin_municipality_code: "08019", origin_municipality_name: "B", origin_province_code: "08", origin_province_name: "B", source_reported_tourists: 50 }] }] },
@@ -2551,6 +2590,14 @@ test("source registry is internally coherent", () => {
       assert.ok(counts, `${source.id} needs expected_counts`);
       assert.equal(counts.districts, 21, `${source.id} must expect 21 districts`);
       assert.equal(counts.barrios, 131, `${source.id} must expect 131 barrios`);
+    } else if (source.shape === "admin_rate_percent") {
+      // Barrio-only exact-count contract: the publisher's district figure is on a
+      // different basis (it includes persons coded 'no consta'), so this source
+      // deliberately carries no district or municipality records.
+      const counts = source.expected_counts;
+      assert.ok(counts, `${source.id} needs expected_counts`);
+      assert.equal(counts.barrios, 131, `${source.id} must expect 131 barrios`);
+      assert.equal(counts.districts, undefined, `${source.id} must not claim district records`);
     } else {
       const guard = source.integrity_guardrail;
       assert.ok(guard, `${source.id} needs an integrity_guardrail`);
@@ -3058,6 +3105,7 @@ test("exactly the layers a user-facing feature depends on block deployment", () 
     "planning_ambito_state",
     "population",
     "rail",
+    "registered_unemployment_rate",
     "snapshot_fallback",
     "stay",
     "urban_licences",
@@ -3131,7 +3179,7 @@ test("the committed evidence artifacts satisfy the real registry", () => {
   };
   assert.deepEqual(
     committedRegistry.sources.map((s) => s.id).sort(),
-    ["callejero_ndp_crosswalk", "domestic_origin_context", "geography", "hati", "hospitality_commercial_context", "hotel_demand", "planning_ambito_geometry", "planning_ambito_state", "population", "snapshot_fallback", "urban_licences", "vut_licences"],
+    ["callejero_ndp_crosswalk", "domestic_origin_context", "geography", "hati", "hospitality_commercial_context", "hotel_demand", "planning_ambito_geometry", "planning_ambito_state", "population", "registered_unemployment_rate", "snapshot_fallback", "urban_licences", "vut_licences"],
     "the set of committed, non-rebuilt sources changed; update this test deliberately"
   );
 
@@ -3445,4 +3493,85 @@ test("F-02: the committed registry declares reconciliation as retrieval-only", (
   assert.equal(rail.integrity_guardrail.min_count, 60, "the existing collapse guardrails are untouched");
   assert.equal(rail.required_modes.modes.metro.min_count, 50);
   assert.equal(rail.required_modes.modes.cercanias.min_count, 3);
+});
+
+// --- Registered unemployment rate (barrio) -------------------------------------
+// The Area Profile shows this rate and the evidence export transcribes it, so a
+// broken committed artifact must block the build instead of surfacing a number.
+
+test("the registered-unemployment healthy world passes and reports its period", () => {
+  const result = run(healthyArtifacts());
+  assert.equal(errorText(result), "");
+  const layer = result.manifest.layers.find((l) => l.source_id === "registered_unemployment_rate");
+  assert.equal(layer.state, "available");
+  assert.equal(layer.record_count, 131);
+});
+
+test("a missing or malformed registered-unemployment artifact cannot be published", () => {
+  for (const broken of [null, {}, { records: "not-an-array" }]) {
+    const artifacts = healthyArtifacts();
+    artifacts["socioeconomic/madrid_registered_unemployment.json"] = broken;
+    assert.equal(run(artifacts).ok, false, `a ${JSON.stringify(broken)} artifact must block the build`);
+  }
+});
+
+test("a missing barrio value may never be published as a number, and a VALID rate must be plausible", () => {
+  const zeroed = healthyArtifacts();
+  const missingRecord = zeroed["socioeconomic/madrid_registered_unemployment.json"].records.find((r) => r.state === "MISSING_IN_SOURCE");
+  missingRecord.rate_percent = 0;
+  assert.match(errorText(run(zeroed)), /missing value is never a number/);
+
+  const implausible = healthyArtifacts();
+  implausible["socioeconomic/madrid_registered_unemployment.json"].records[0].rate_percent = 250;
+  assert.match(errorText(run(implausible)), /not a number within 0-100/);
+
+  const nullValid = healthyArtifacts();
+  nullValid["socioeconomic/madrid_registered_unemployment.json"].records[0].rate_percent = null;
+  assert.match(errorText(run(nullValid)), /VALID but its rate/);
+});
+
+test("registered-unemployment records must join the canonical barrios exactly", () => {
+  const foreign = healthyArtifacts();
+  foreign["socioeconomic/madrid_registered_unemployment.json"].records[0].official_id = "999";
+  assert.match(errorText(run(foreign)), /is not a canonical barrio/);
+
+  const wrongParent = healthyArtifacts();
+  wrongParent["socioeconomic/madrid_registered_unemployment.json"].records[0].parent_id = "99";
+  assert.match(errorText(run(wrongParent)), /declares parent 99/);
+
+  const duplicated = healthyArtifacts();
+  const records = duplicated["socioeconomic/madrid_registered_unemployment.json"].records;
+  records[1] = { ...records[0] };
+  assert.match(errorText(run(duplicated)), /duplicate record for barrio/);
+});
+
+test("the registered-unemployment period and counts must agree across data, metadata and registry", () => {
+  const driftedMeta = healthyArtifacts();
+  driftedMeta["socioeconomic/madrid_registered_unemployment.meta.json"].source_period.reference_year = "2025";
+  assert.match(errorText(run(driftedMeta)), /disagrees with metadata/);
+
+  const wrongCount = healthyArtifacts();
+  wrongCount["socioeconomic/madrid_registered_unemployment.json"].counts.valid = 131;
+  assert.match(errorText(run(wrongCount)), /disagree with the records/);
+
+  const noCeiling = healthyArtifacts();
+  delete noCeiling["socioeconomic/madrid_registered_unemployment.meta.json"].interpretation_ceiling;
+  assert.match(errorText(run(noCeiling)), /missing interpretation_ceiling/);
+});
+
+test("a registered-unemployment sidecar without a passed period verification cannot be published", () => {
+  for (const mutate of [
+    (g) => { g.performed = false; },
+    (g) => { g.mismatches = 3; },
+    (g) => { g.year = "2025"; },
+    (g) => { g.month = "enero"; },
+    (g) => { g.barrios_compared = 0; },
+  ]) {
+    const artifacts = healthyArtifacts();
+    mutate(artifacts["socioeconomic/madrid_registered_unemployment.meta.json"].source_period.period_verification.numerator_month_year_gate);
+    assert.match(errorText(run(artifacts)), /does not record a passed independent verification/);
+  }
+  const absent = healthyArtifacts();
+  delete absent["socioeconomic/madrid_registered_unemployment.meta.json"].source_period.period_verification;
+  assert.match(errorText(run(absent)), /does not record a passed independent verification/);
 });

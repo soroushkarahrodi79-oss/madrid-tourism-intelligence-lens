@@ -956,6 +956,112 @@ function validatePopulation(source, population, meta, geography, errors, warning
   };
 }
 
+// Barrio-level registered-unemployment rate (tasa absoluta de paro registrado).
+// Committed administrative context joined to the canonical geography by official
+// code. BLOCKING: the Area Profile shows the rate and the evidence export
+// transcribes it, so a record that is mis-joined, silently zero or detached from
+// its period must not reach the public site. A missing value is an explicit
+// non-VALID state with a null rate, never a number.
+function validateRegisteredUnemployment(source, artifact, meta, geography, errors, warnings) {
+  const label = source.display_name;
+  const sink = source.blocks_deployment ? errors : warnings;
+  const unavailable = { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
+
+  if (!artifact || typeof artifact !== "object" || !Array.isArray(artifact.records)) {
+    sink.push(`${label}: ${source.artifact} is missing or has no records array`);
+    return unavailable;
+  }
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
+    sink.push(`${label}: ${source.meta_artifact} is missing, so the figure cannot be qualified`);
+  } else {
+    for (const [name, value] of [
+      ["source.dataset", meta.source?.dataset],
+      ["source.license", meta.source?.license],
+      ["indicator_definition", meta.indicator_definition],
+      ["interpretation_ceiling", meta.interpretation_ceiling],
+    ]) {
+      if (!isNonEmptyString(value)) sink.push(`${label}: ${source.meta_artifact} is missing ${name}`);
+    }
+  }
+
+  const period = artifact.source_period ?? {};
+  if (!/^\d{4}$/.test(String(period.reference_year)) || period.numerator_month !== "febrero") {
+    sink.push(`${label}: source_period must carry a four-digit reference_year and numerator_month "febrero"`);
+  } else if (meta?.source_period && meta.source_period.reference_year !== period.reference_year) {
+    sink.push(`${label}: data reference year ${period.reference_year} disagrees with metadata ${meta.source_period.reference_year}`);
+  }
+  if (`${period.reference_year}-02` !== source.reference_date) {
+    sink.push(`${label}: registry reference_date ${source.reference_date} disagrees with the artifact period ${period.reference_year}-02`);
+  }
+  // The month/year is only published because an independent, month-labelled official
+  // series agreed with every barrio value (the builder gate). A sidecar that does not
+  // record that verification, or records a disagreement, must not ship a "February <year>".
+  const gate = meta?.source_period?.period_verification?.numerator_month_year_gate;
+  if (
+    !gate ||
+    gate.performed !== true ||
+    gate.mismatches !== 0 ||
+    gate.month !== period.numerator_month ||
+    gate.year !== period.reference_year ||
+    !(gate.barrios_compared > 0)
+  ) {
+    sink.push(`${label}: ${source.meta_artifact} does not record a passed independent verification of the reference month and year`);
+  }
+
+  const canonical = new Map();
+  for (const feature of geography?.features ?? []) {
+    const p = feature?.properties;
+    if (p?.geography_level === "barrio") canonical.set(String(p.official_id), String(p.parent_id));
+  }
+  const valid = source.valid_state;
+  const missing = new Set(source.missing_states ?? []);
+  const [low, high] = source.plausible_range_percent ?? [0, 100];
+  const seen = new Set();
+  let validCount = 0;
+  for (const r of artifact.records) {
+    const id = String(r?.[source.id_field]);
+    if (!canonical.has(id)) {
+      sink.push(`${label}: record ${id} is not a canonical barrio`);
+      continue;
+    }
+    if (r[source.hierarchy_field] !== canonical.get(id)) {
+      sink.push(`${label}: barrio ${id} declares parent ${r[source.hierarchy_field]}, canonical is ${canonical.get(id)}`);
+    }
+    if (seen.has(id)) sink.push(`${label}: duplicate record for barrio ${id}`);
+    seen.add(id);
+    const value = r[source.value_field];
+    if (r.state === valid) {
+      validCount += 1;
+      if (!isFiniteNumber(value) || value < low || value > high) {
+        sink.push(`${label}: barrio ${id} is VALID but its rate ${value} is not a number within ${low}-${high}`);
+      }
+    } else if (missing.has(r.state)) {
+      if (value !== null) sink.push(`${label}: barrio ${id} is ${r.state} but carries a value; a missing value is never a number`);
+    } else {
+      sink.push(`${label}: barrio ${id} has unknown state "${r.state}"`);
+    }
+  }
+  const wanted = source.expected_counts?.barrios;
+  if (artifact.records.length !== wanted || seen.size !== canonical.size) {
+    sink.push(`${label}: expected ${wanted} barrio record(s) covering every canonical barrio, found ${artifact.records.length} (${seen.size} distinct of ${canonical.size})`);
+  }
+  if (artifact.counts?.valid !== validCount || artifact.counts?.barrios !== artifact.records.length) {
+    sink.push(`${label}: counts ${JSON.stringify(artifact.counts)} disagree with the records (${validCount} valid of ${artifact.records.length})`);
+  }
+
+  return {
+    record_count: artifact.records.length,
+    state: "available",
+    source_period: {
+      from: `${period.reference_year}-02`,
+      to: `${period.reference_year}-02`,
+      type: "sepe_february_over_padron_base",
+      provisional: period.provisional === true,
+    },
+    warnings: [`${validCount} of ${artifact.records.length} barrios carry a valid rate`],
+  };
+}
+
 // The licensed-VUT sidecar's minimum provenance contract.
 //
 // The sidecar is not optional documentation. The user-facing disclosure reads
@@ -2708,6 +2814,16 @@ export function validateDeployment({
           warnings
         );
         break;
+      case "admin_rate_percent":
+        result = validateRegisteredUnemployment(
+          source,
+          artifacts[source.artifact],
+          artifacts[source.meta_artifact],
+          artifacts["geography/madrid_admin.geojson"],
+          errors,
+          warnings
+        );
+        break;
       case "admin_licence_counts":
         result = validateLicenceCounts(
           source,
@@ -2893,6 +3009,9 @@ const ARTIFACT_FILES = [
   // Committed residential population denominator (not rebuilt at deploy).
   "population/madrid_population.json",
   "population/madrid_population.meta.json",
+  // Committed barrio registered-unemployment rate (not rebuilt at deploy).
+  "socioeconomic/madrid_registered_unemployment.json",
+  "socioeconomic/madrid_registered_unemployment.meta.json",
   // Committed licensed tourist-dwelling numerator (not rebuilt at deploy).
   "accommodation/madrid_vut_licences.json",
   "accommodation/madrid_vut_licences.meta.json",

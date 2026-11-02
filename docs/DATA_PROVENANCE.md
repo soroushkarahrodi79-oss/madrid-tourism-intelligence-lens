@@ -420,6 +420,68 @@ evidence family `ADMINISTRATIVE_LICENSE`, committed (not rebuilt at deploy) and
   or mapped as a choropleth. Counts belong to the whole official barrio and must
   never be spatially distributed into a circular Lens.
 
+## Registered unemployment rate (`data/socioeconomic/madrid_registered_unemployment.json`)
+
+One contextual socioeconomic indicator for the whole official barrio, shown in the
+Area Profile: the publisher's **tasa absoluta de paro registrado**.
+
+- **Source:** Ayuntamiento de Madrid, *Panel de indicadores de distritos y barrios
+  de Madrid. Estudio sociodemográfico* (dataset 300087), CC BY 4.0. Retrieved from
+  the accumulated CSV
+  `https://datos.madrid.es/dataset/300087-0-indicadores-distritos/resource/300087-0-indicadores-distritos-csv/download/acumulado.csv`
+  (file served with `Last-Modified: 20 Oct 2026`, which is a file state, not a
+  reference date). The 2026 workbook (`panel2026.xlsx`) carries the same values.
+- **Definition (publisher's methodology PDF, "Indicadores de desempleo"):**
+  registered unemployed persons of a zone divided by the population aged 16 to 64
+  of the same zone, the latter from the Padrón Municipal de Habitantes; published
+  as a percentage with two decimals. The barrio figure excludes persons coded
+  "no consta", which only the district figure counts.
+- **Selection:** exact `indicador_completo` =
+  `Tasa absoluta de paro registrado (febrero)`, barrio level, unit `Tasa`, within
+  one `Periodo panel` edition. The latest edition with a row for every canonical
+  barrio is used (2026, 131/131); editions are never mixed or substituted.
+- **Period (verified):** February 2026. The CSV stamps (`año` 2026,
+  `fecha_indicador` 01/01/2026, indicator named "febrero") are not what
+  establishes it. The Ayuntamiento's own monthly **Banco de Datos series 1.1.D**
+  ("Tasa absoluta de Paro registrado por Distrito y Barrio según Sexo, Grupo de
+  Edad y Mes", series `0904010000014`, source SEPE, identical definition) labels
+  each value with its month and year. Its February 2026 values equal the 2026
+  edition's rates numerically for all 131 barrios, 21 districts and the city
+  (0 differences); the February 2024 and 2025 series equal the 2024 and 2025
+  editions the same way, and the cross-year matches are 1 of 131 barrios by
+  coincidence. Only 1 of 131 barrios repeats the previous edition's value, so
+  the 2026 edition is not a stale re-release. A transcription of the February
+  values (`tests/fixtures/banco_datos_paro_febrero.json`, retrieved 2026-11-02 by
+  manual query of the Banco de Datos form) is a build gate: the builder fails if
+  any barrio differs.
+- **Publisher year tables (stale):** the 2026 methodology PDF (printed p. 19,
+  "Indicadores y año de actualización") and the workbook's `INDICADORES` sheet
+  list "2025" for this indicator, 2024 for its own numerator and 2023 for the
+  women's rate. The 2024 and 2025 editions' PDF tables match their data, so the
+  2026 table is internally inconsistent and is contradicted by the series above;
+  it is recorded, not used. The Padrón check (the edition's `Número habitantes`
+  equals `data/population/madrid_population.json`) pins the **population base**
+  to 1 January 2026 and is not used to establish the numerator's year.
+- **Join:** `cod_barrio.zfill(3)` = barrio `official_id`, `cod_distrito.zfill(2)`
+  = parent id, and the source barrio label must equal the canonical label (an
+  extra check; identity is the code). 131/131 matched.
+- **Missing values:** the only missing representation is a blank cell →
+  `MISSING_IN_SOURCE`; a barrio with no row → `NOT_PUBLISHED`; other text fails
+  the build. None occur in the 2026 edition (131 valid, 0 missing). Never 0.
+- **No derived territory:** no district or municipality record is published here,
+  and no rate is computed by this product.
+- **Reproduce:** `python scripts/build_madrid_unemployment.py` (standard library
+  only; `--csv-path` rebuilds from a local copy). The artifact is idempotent; the
+  sidecar records `selected_rows_sha256` of the exact source rows used. The raw
+  CSV is not committed. Deployment validation treats the artifact as blocking.
+- **Interpretation ceiling:** a barrio rate of registered unemployment over the
+  16–64 Padrón population. It is **not** the EPA unemployment rate, **not**
+  unemployed residents over total registered population, **not** a tourism impact
+  and not evidence that tourism relates to unemployment; **not** a measure of
+  vulnerability, deprivation or poverty; never ranked, banded, scored, mapped as a
+  surface or combined into an index. It belongs to the whole barrio and is never
+  allocated into a circular Lens.
+
 ## Destination context: hotel demand (`data/destination/madrid_hotel_demand.json`)
 
 A **citywide monthly series**, and the first temporal evidence in this project.

@@ -12,6 +12,7 @@ const SHARDS = Object.freeze({
   "1": [
     "browser-tests/light-contrast-ux-c1.browser.mjs",
     "browser-tests/evidence-url.browser.mjs",
+    "browser-tests/socioeconomic-paro.browser.mjs",
     "browser-tests/urban-licences.browser.mjs",
     "browser-tests/mobility-extraction.browser.mjs",
     "browser-tests/institutional-journey.browser.mjs",

@@ -40,7 +40,7 @@ test("copy teaches the real M1 to M3 and K11/K13 contracts without stronger clai
 test("tutorial remains an optional visual guide rather than an analytical-state driver", () => {
   assert.match(html, /id="tutorialHelpButton"/);
   assert.match(html, /js\/tutorial\.js\?v=20261030-guided-tour-v2/);
-  assert.match(html, /css\/app\.css\?v=20261102-origin-bars-v1/);
+  assert.match(html, /css\/app\.css\?v=20261102-paro-v1/);
   assert.match(source, /const shared = \/\(\?:\\\?\|&\)v=/);
   for (const forbidden of ["setMode(", "setBasemap(", "setLayerVisible(", "setLensRadius(", "map.setView(", "createQuestionDossier(", ".ask(", "URL.createObjectURL(", "history.replaceState("]) {
     assert.equal(source.includes(forbidden), false, `guide does not invoke ${forbidden}`);
