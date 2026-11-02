@@ -808,7 +808,7 @@ export function buildUnemploymentProvenanceLines({ meta, period } = {}) {
 
   if (period && period.label) {
     lines.push(
-      `Edition ${period.year}: SEPE registered unemployment of ${period.label.en}, over the Padron 16-64 population at 1 Jan ${period.year}. The month is the published label of the indicator, not an independently verified date.`
+      `Edition ${period.year}: SEPE registered unemployment of ${period.label.en}, over the Padron 16-64 population at 1 Jan ${period.year}. The month and year are confirmed against the Ayuntamiento's Banco de Datos monthly series 1.1.D.`
     );
   }
 

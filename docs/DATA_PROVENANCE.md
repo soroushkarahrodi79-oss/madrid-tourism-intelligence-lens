@@ -440,16 +440,28 @@ Area Profile: the publisher's **tasa absoluta de paro registrado**.
   `Tasa absoluta de paro registrado (febrero)`, barrio level, unit `Tasa`, within
   one `Periodo panel` edition. The latest edition with a row for every canonical
   barrio is used (2026, 131/131); editions are never mixed or substituted.
-- **Period (what is and is not verified):** every row of the 2026 edition is
-  stamped `año` 2026 / `fecha_indicador` 01/01/2026 and the indicator name says
-  "febrero". The builder **gates** the year: the same edition's `Número habitantes`
-  must equal `data/population/madrid_population.json` (Padrón 1 January 2026) for
-  all 131 barrios, which pins the rate's population base. The SEPE numerator month
-  ("febrero", edition year) is the published label and is **not independently
-  verified**. The methodology PDF and the workbook's `INDICADORES` sheet list a
-  different "year of update" (2025) for this indicator, and a different year for
-  its own numerator, so they cannot be authoritative; the disagreement is recorded
-  in the sidecar (`source_period.period_verification`), not resolved silently.
+- **Period (verified):** February 2026. The CSV stamps (`año` 2026,
+  `fecha_indicador` 01/01/2026, indicator named "febrero") are not what
+  establishes it. The Ayuntamiento's own monthly **Banco de Datos series 1.1.D**
+  ("Tasa absoluta de Paro registrado por Distrito y Barrio según Sexo, Grupo de
+  Edad y Mes", series `0904010000014`, source SEPE, identical definition) labels
+  each value with its month and year. Its February 2026 values equal the 2026
+  edition's rates numerically for all 131 barrios, 21 districts and the city
+  (0 differences); the February 2024 and 2025 series equal the 2024 and 2025
+  editions the same way, and the cross-year matches are 1 of 131 barrios by
+  coincidence. Only 1 of 131 barrios repeats the previous edition's value, so
+  the 2026 edition is not a stale re-release. A transcription of the February
+  values (`tests/fixtures/banco_datos_paro_febrero.json`, retrieved 2026-11-02 by
+  manual query of the Banco de Datos form) is a build gate: the builder fails if
+  any barrio differs.
+- **Publisher year tables (stale):** the 2026 methodology PDF (printed p. 19,
+  "Indicadores y año de actualización") and the workbook's `INDICADORES` sheet
+  list "2025" for this indicator, 2024 for its own numerator and 2023 for the
+  women's rate. The 2024 and 2025 editions' PDF tables match their data, so the
+  2026 table is internally inconsistent and is contradicted by the series above;
+  it is recorded, not used. The Padrón check (the edition's `Número habitantes`
+  equals `data/population/madrid_population.json`) pins the **population base**
+  to 1 January 2026 and is not used to establish the numerator's year.
 - **Join:** `cod_barrio.zfill(3)` = barrio `official_id`, `cod_distrito.zfill(2)`
   = parent id, and the source barrio label must equal the canonical label (an
   extra check; identity is the code). 131/131 matched.

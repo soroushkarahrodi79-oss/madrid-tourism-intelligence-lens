@@ -993,6 +993,20 @@ function validateRegisteredUnemployment(source, artifact, meta, geography, error
   if (`${period.reference_year}-02` !== source.reference_date) {
     sink.push(`${label}: registry reference_date ${source.reference_date} disagrees with the artifact period ${period.reference_year}-02`);
   }
+  // The month/year is only published because an independent, month-labelled official
+  // series agreed with every barrio value (the builder gate). A sidecar that does not
+  // record that verification, or records a disagreement, must not ship a "February <year>".
+  const gate = meta?.source_period?.period_verification?.numerator_month_year_gate;
+  if (
+    !gate ||
+    gate.performed !== true ||
+    gate.mismatches !== 0 ||
+    gate.month !== period.numerator_month ||
+    gate.year !== period.reference_year ||
+    !(gate.barrios_compared > 0)
+  ) {
+    sink.push(`${label}: ${source.meta_artifact} does not record a passed independent verification of the reference month and year`);
+  }
 
   const canonical = new Map();
   for (const feature of geography?.features ?? []) {

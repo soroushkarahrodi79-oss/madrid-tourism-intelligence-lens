@@ -232,3 +232,59 @@ test("outside Madrid there is no barrio statistic: the block is absent, emptied 
     await close(page);
   }
 });
+
+// Cache coherence. Resources changed after AREA_ASSET_VERSION was cut are requested under ONE
+// release version; unmodified data artifacts keep the original asset identity; the K11 snapshot
+// id does not move. A browser can then never pair a new app.js with a cached registry,
+// dictionary, scope rail or Area Profile module.
+test("actual request URLs: modified resources carry the release version, unmodified data keeps its asset identity", async () => {
+  const RELEASE = "20261102-paro-v1";
+  const ASSET = "20261029-m3-dossier-v1";
+  const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
+  const page = await context.newPage();
+  page.setDefaultTimeout(20000);
+  const requested = new Map();
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.hostname !== "127.0.0.1") return;
+    const versions = requested.get(url.pathname.slice(1)) || new Set();
+    versions.add(url.searchParams.get("v"));
+    requested.set(url.pathname.slice(1), versions);
+  });
+  await page.route("**/*", (route) => {
+    const url = new URL(route.request().url());
+    return url.hostname === "127.0.0.1" ? route.continue() : route.abort();
+  });
+  try {
+    await page.goto(palacioUrl("en"), { waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => Boolean(window.__HALO_REGRESSION__) && window.__HALO_REGRESSION__.k11Restored() === true);
+    await page.waitForFunction(() => document.getElementById("areaParo").dataset.state === "available");
+
+    const modified = [
+      "css/app.css", "js/app.js", "js/scope-rail.js", "js/shell-copy.js", "js/legacy-copy.js",
+      "js/area-profile.js", "data/source_registry.json",
+    ];
+    for (const resource of modified) {
+      assert.deepEqual([...(requested.get(resource) || [])], [RELEASE], `${resource} is requested once, under ${RELEASE}`);
+    }
+    const unmodifiedData = [
+      "data/geography/madrid_admin.geojson", "data/geography/madrid_admin.meta.json",
+      "data/population/madrid_population.json", "data/population/madrid_population.meta.json",
+      "data/accommodation/madrid_vut_licences.json", "data/accommodation/madrid_vut_licences.meta.json",
+      "data/socioeconomic/madrid_registered_unemployment.json", "data/socioeconomic/madrid_registered_unemployment.meta.json",
+    ];
+    for (const resource of unmodifiedData) {
+      assert.deepEqual([...(requested.get(resource) || [])], [ASSET], `${resource} keeps the asset identity ${ASSET}`);
+    }
+    // The K11 snapshot id (the evidence identity) is unchanged by the cache fix.
+    const bundle = await page.evaluate(() => window.__HALO_REGRESSION__.k11Bundle());
+    const reading = bundle.files.find((f) => f.name.startsWith("reading-")).text;
+    assert.match(reading, new RegExp(`"snapshot_id": ?"${ASSET}"`));
+    // The loaded registry is the new one: it carries the new source, so provenance resolves.
+    const registered = await page.evaluate(() => window.__HALO_REGRESSION__.k11Bundle().files.find((f) => f.name.startsWith("reading-")).text.includes('"missing_from_registry"'));
+    assert.equal(registered, false, "no exported value points at a source missing from the loaded registry");
+    console.log("requested:", JSON.stringify(Object.fromEntries([...requested].filter(([k]) => modified.includes(k) || unmodifiedData.includes(k)).map(([k, v]) => [k, [...v]]))));
+  } finally {
+    await context.close();
+  }
+});

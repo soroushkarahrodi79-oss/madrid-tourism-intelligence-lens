@@ -36,15 +36,37 @@
     "provisional": false,
     "selection": "latest Periodo panel edition that carries exactly one row for every canonical barrio; no other edition's values are substituted or mixed",
     "period_verification": {
+      "status": "VERIFIED_AGAINST_INDEPENDENT_OFFICIAL_SERIES",
+      "numerator_month_year_gate": {
+        "performed": true,
+        "series": "0904010000014",
+        "series_title": "I. Mercado de Trabajo > Paro registrado > 1.1.D. Tasa absoluta de Paro registrado por Distrito y Barrio segun Sexo, Grupo de Edad y Mes (desde noviembre 2017)",
+        "series_url": "https://servpub.madrid.es/CSEBD_WBINTER/seleccionSerie.html?numSerie=0904010000014",
+        "fixture": "tests/fixtures/banco_datos_paro_febrero.json",
+        "fixture_retrieved_on": "2026-11-02",
+        "month": "febrero",
+        "year": "2026",
+        "barrios_compared": 131,
+        "mismatches": 0,
+        "same_barrio_value_in_other_years": {
+          "2024": 1,
+          "2025": 1
+        }
+      },
+      "numerator_gate_method": "the Ayuntamiento's Banco de Datos monthly series 1.1.D labels every value with its month and year (source: SEPE, same definition). Its February <year> value must equal the edition's rate for every barrio; the same barrios' February values for the other years are recorded as contrast",
       "denominator_year_gate": {
         "performed": true,
         "padron_reference_date": "2026-01-01",
         "barrios_compared": 131,
         "mismatches": 0
       },
-      "gate_method": "the same edition's 'Número habitantes' must equal data/population/madrid_population.json for every barrio; this pins the rate's population base to the Padron reference date",
-      "publisher_year_tables_disagree": "the methodology PDF and the workbook INDICADORES sheet list a 'year of update' of 2025 for this indicator in the 2026 edition (and a different year for its own numerator), while every data row is stamped año=2026 / 01/01/2026; the data rows are used, the tables are not, and this disagreement is recorded rather than resolved silently",
-      "numerator_month_basis": "the SEPE month 'febrero' comes from the indicator's published name; its year is the edition year stamped on the rows. It is a published label, not an independently verified date."
+      "denominator_gate_method": "the same edition's 'Número habitantes' must equal data/population/madrid_population.json for every barrio; this pins the rate's population base to the Padron reference date. It does not establish the numerator's year and is not used for that",
+      "edition_repeat_check": {
+        "previous_edition": "2025",
+        "barrios_with_identical_value": 1,
+        "barrios_compared": 131
+      },
+      "publisher_year_tables_disagree": "the 2026 methodology PDF (printed p. 19) and the workbook INDICADORES sheet list a 'year of update' of 2025 for this indicator, 2024 for its own numerator and 2023 for the women's rate, while every data row is stamped año=2026 / 01/01/2026. The 2024 and 2025 editions' PDF tables match their data stamps (2024, 2025). The 2026 table is internally inconsistent and is contradicted by the independent series, so it is recorded as stale, not used"
     }
   },
   "missing_values": {
@@ -72,7 +94,7 @@
   "builder": "scripts/build_madrid_unemployment.py",
   "interpretation_ceiling": "Registered unemployment (SEPE, February) as a percentage of the 16-64 Padron population of the whole official barrio, as published. Contextual socioeconomic evidence about residents, NOT a tourism impact, NOT evidence that tourism or visitor activity causes or relates to unemployment, NOT the EPA rate, NOT a measure of vulnerability, deprivation or poverty, and never ranked, banded, scored or combined into an index. It describes the whole barrio and must never be allocated, weighted or interpolated into a circular Lens.",
   "retrieval": {
-    "retrieved_at": "2026-11-02T18:35:31Z",
+    "retrieved_at": "2026-11-02T19:50:11Z",
     "http_last_modified": "Tue, 20 Oct 2026 13:28:32 GMT",
     "local_file": null,
     "note": "http_last_modified describes the file served, not a publisher reference date."

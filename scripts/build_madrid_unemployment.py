@@ -36,16 +36,26 @@ selects the latest edition that carries one row for every canonical barrio. It
 never substitutes another edition's values and never mixes editions.
 
 The edition stamps this indicator with `año` = the edition year and
-`fecha_indicador` = 01/01/<year>; the indicator name states "febrero". The
-official workbook's "INDICADORES" sheet and the methodology PDF list a different
-"year of update" for this indicator (2025 for the 2026 edition), and give its
-numerator (paro registrado) a year that differs from its own rate, so those
-tables cannot be authoritative for the period. The builder therefore GATES the
-year empirically: the same edition's `Número habitantes` (the rate's population
-base) must equal the repository's Padron artifact for that year exactly, for
-every barrio. That pins the edition's population base to 1 January <year>. The
-SEPE numerator month is taken from the indicator's own label ("febrero") and
-the edition year; it is a published label, not an independently verified date.
+`fecha_indicador` = 01/01/<year>; the indicator name states "febrero". Those
+stamps alone do not establish the numerator's year, and the publisher's own
+year tables disagree with them: the methodology PDF and the workbook
+"INDICADORES" sheet list a "year of update" of 2025 for this indicator in the
+2026 edition (2024 for its numerator, 2023 for the women's rate), whereas the
+2024 and 2025 editions' tables match their data. The builder therefore does not
+rely on any of these for the period. It GATES it twice:
+
+  1. Numerator month and year, independently: the Ayuntamiento's own monthly
+     Banco de Datos series 1.1.D (same SEPE source, same definition) labels each
+     value with its month and year. A small committed transcription of its
+     February values (tests/fixtures/banco_datos_paro_febrero.json) must equal
+     the selected edition's rate for EVERY barrio, numerically, for the edition
+     year, or the build fails. The same barrios' values for the other years are
+     recorded as a contrast (a mislabelled year would match the wrong one).
+  2. Population base: the same edition's `Número habitantes` must equal the
+     repository's Padron artifact for that year for every barrio.
+
+A repeat check also records how many barrios keep the previous edition's value
+(a stale re-release would repeat it).
 
 Missing values
 --------------
@@ -95,6 +105,7 @@ RATE_UNIT = "Tasa"
 GEOGRAPHY_ARTIFACT = "data/geography/madrid_admin.geojson"
 GEOGRAPHY_META = "data/geography/madrid_admin.meta.json"
 POPULATION_ARTIFACT = "data/population/madrid_population.json"
+SERIES_FIXTURE = "tests/fixtures/banco_datos_paro_febrero.json"
 
 REQUIRED_COLUMNS = (
     "Periodo panel",
@@ -280,6 +291,77 @@ def gate_population_year(population_rows: dict, repo_root: Path, edition: str) -
     }
 
 
+def load_series_fixture(repo_root: Path) -> dict:
+    return json.loads((repo_root / SERIES_FIXTURE).read_text(encoding="utf-8"))
+
+
+def _series_value(text: str) -> Decimal:
+    parsed = parse_rate(text)
+    if parsed is None:
+        raise SystemExit(f"independent series carries a blank value: {text!r}")
+    return parsed
+
+
+def gate_independent_series(records: list[dict], edition: str, series: dict) -> dict:
+    """Verify the edition's month/year against the Banco de Datos monthly series.
+
+    Every VALID barrio rate must equal the series' February value for the edition
+    year, numerically. The other years' values for the same barrios are counted as
+    a contrast so a one-year label shift cannot pass unnoticed.
+    """
+    by_year = series["values"]
+    if edition not in by_year:
+        raise SystemExit(f"the independent series carries no February {edition} values")
+    compared = mismatches = 0
+    contrast = {year: 0 for year in by_year if year != edition}
+    for record in records:
+        if record["state"] != STATE_VALID:
+            continue
+        key = "b" + record["official_id"]
+        compared += 1
+        value = Decimal(str(record["rate_percent"]))
+        if value != _series_value(by_year[edition][key]):
+            mismatches += 1
+        for year in contrast:
+            if value == _series_value(by_year[year][key]):
+                contrast[year] += 1
+    if compared == 0 or mismatches:
+        raise SystemExit(
+            f"edition {edition} disagrees with the independent February {edition} series for "
+            f"{mismatches} of {compared} barrio(s); the reference year is not verified"
+        )
+    return {
+        "performed": True,
+        "series": series["source"]["series"],
+        "series_title": series["source"]["series_title"],
+        "series_url": series["source"]["url"],
+        "fixture": SERIES_FIXTURE,
+        "fixture_retrieved_on": series["source"]["retrieved_on"],
+        "month": "febrero",
+        "year": edition,
+        "barrios_compared": compared,
+        "mismatches": 0,
+        "same_barrio_value_in_other_years": contrast,
+    }
+
+
+def edition_repeat_check(rate_rows: list[dict], canonical_ids: set[str], edition: str) -> dict:
+    """Count barrios whose value equals the previous complete edition's (a stale re-release repeats it)."""
+    by_edition: dict[str, dict[str, str]] = {}
+    for row in rate_rows:
+        by_edition.setdefault(row["Periodo panel"], {})[row["cod_barrio"].zfill(3)] = row["valor_indicador"]
+    previous = sorted(e for e, v in by_edition.items() if e < edition and set(v) == canonical_ids)
+    if not previous:
+        return {"previous_edition": None}
+    prior = previous[-1]
+    same = sum(
+        1
+        for barrio_id, value in by_edition[edition].items()
+        if parse_rate(value) is not None and parse_rate(value) == parse_rate(by_edition[prior].get(barrio_id, ""))
+    )
+    return {"previous_edition": prior, "barrios_with_identical_value": same, "barrios_compared": len(by_edition[edition])}
+
+
 # --------------------------------------------------------------- serialisation
 
 
@@ -296,8 +378,14 @@ def digest_rows(rows: list[dict]) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def build(text: str, repo_root: Path, requested_edition: str | None = None) -> tuple[dict, dict, dict]:
-    """Return (artifact, meta_without_retrieval, gate) for a source CSV text."""
+def build(
+    text: str, repo_root: Path, requested_edition: str | None = None, series: dict | None = None
+) -> tuple[dict, dict, dict]:
+    """Return (artifact, meta_without_retrieval, gate) for a source CSV text.
+
+    `series` is the independent month-labelled series used to verify the period
+    (default: the committed Banco de Datos transcription).
+    """
     barrio_parent, barrio_name = load_canonical_geography(repo_root)
     rows = parse_panel_rows(text)
     rate_rows = [r for r in rows if r["indicador_completo"] == RATE_INDICATOR]
@@ -321,6 +409,8 @@ def build(text: str, repo_root: Path, requested_edition: str | None = None) -> t
         raise SystemExit(f"denominator-year gate could not run: {gate['reason']}")
 
     records = build_records(rate_by_barrio, barrio_parent)
+    series_gate = gate_independent_series(records, edition, series if series is not None else load_series_fixture(repo_root))
+    repeat = edition_repeat_check(rate_rows, set(barrio_parent), edition)
     valid = sum(1 for r in records if r["state"] == STATE_VALID)
     values = [r["rate_percent"] for r in records if r["rate_percent"] is not None]
     if not values or min(values) < 0 or max(values) > 100:
@@ -388,20 +478,26 @@ def build(text: str, repo_root: Path, requested_edition: str | None = None) -> t
                 "edition's values are substituted or mixed"
             ),
             "period_verification": {
+                "status": "VERIFIED_AGAINST_INDEPENDENT_OFFICIAL_SERIES",
+                "numerator_month_year_gate": series_gate,
+                "numerator_gate_method": (
+                    "the Ayuntamiento's Banco de Datos monthly series 1.1.D labels every value with its month and "
+                    "year (source: SEPE, same definition). Its February <year> value must equal the edition's rate "
+                    "for every barrio; the same barrios' February values for the other years are recorded as contrast"
+                ),
                 "denominator_year_gate": gate,
-                "gate_method": (
+                "denominator_gate_method": (
                     "the same edition's 'Número habitantes' must equal data/population/madrid_population.json "
-                    "for every barrio; this pins the rate's population base to the Padron reference date"
+                    "for every barrio; this pins the rate's population base to the Padron reference date. It does "
+                    "not establish the numerator's year and is not used for that"
                 ),
+                "edition_repeat_check": repeat,
                 "publisher_year_tables_disagree": (
-                    "the methodology PDF and the workbook INDICADORES sheet list a 'year of update' of 2025 for "
-                    "this indicator in the 2026 edition (and a different year for its own numerator), while every "
-                    "data row is stamped año=2026 / 01/01/2026; the data rows are used, the tables are not, and "
-                    "this disagreement is recorded rather than resolved silently"
-                ),
-                "numerator_month_basis": (
-                    "the SEPE month 'febrero' comes from the indicator's published name; its year is the edition "
-                    "year stamped on the rows. It is a published label, not an independently verified date."
+                    "the 2026 methodology PDF (printed p. 19) and the workbook INDICADORES sheet list a 'year of "
+                    "update' of 2025 for this indicator, 2024 for its own numerator and 2023 for the women's rate, "
+                    "while every data row is stamped año=2026 / 01/01/2026. The 2024 and 2025 editions' PDF tables "
+                    "match their data stamps (2024, 2025). The 2026 table is internally inconsistent and is "
+                    "contradicted by the independent series, so it is recorded as stale, not used"
                 ),
             },
         },

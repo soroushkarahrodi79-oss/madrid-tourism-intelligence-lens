@@ -226,10 +226,11 @@ tourism or visitor activity relates to, causes or relieves unemployment, is
 **not** the EPA unemployment rate, and is **not** a measure of vulnerability,
 deprivation or poverty. It is never ranked, banded, scored, compared between
 barrios as a difference, mapped as a surface or combined into an index, and it is
-never allocated into the Lens circle. Its SEPE month ("febrero") and edition year
-are published labels; the population base is verified against the Padrón of
-1 January 2026, and the publisher's own year tables disagree with its data rows
-(see `docs/DATA_PROVENANCE.md`).
+never allocated into the Lens circle. Its reference month, February 2026, is
+confirmed against the Ayuntamiento's monthly Banco de Datos series 1.1.D; the
+publisher's own year table in the panel PDF (2025) is stale (see
+`docs/DATA_PROVENANCE.md`). The rate's SEPE numerator (February) and Padrón
+denominator (1 January 2026) are different instants.
 
 ### Destination Context — hotel demand
 

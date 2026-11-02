@@ -861,7 +861,12 @@ function unemploymentMeta() {
   return {
     source: { dataset: "Panel de indicadores de distritos y barrios de Madrid", license: "CC BY 4.0" },
     indicator_definition: "Registered unemployed divided by the 16-64 Padron population of the same zone.",
-    source_period: { reference_year: "2026" },
+    source_period: {
+      reference_year: "2026",
+      period_verification: {
+        numerator_month_year_gate: { performed: true, year: "2026", month: "febrero", barrios_compared: 131, mismatches: 0 },
+      },
+    },
     interpretation_ceiling: "Contextual socioeconomic evidence, not a tourism impact.",
   };
 }
@@ -3552,4 +3557,21 @@ test("the registered-unemployment period and counts must agree across data, meta
   const noCeiling = healthyArtifacts();
   delete noCeiling["socioeconomic/madrid_registered_unemployment.meta.json"].interpretation_ceiling;
   assert.match(errorText(run(noCeiling)), /missing interpretation_ceiling/);
+});
+
+test("a registered-unemployment sidecar without a passed period verification cannot be published", () => {
+  for (const mutate of [
+    (g) => { g.performed = false; },
+    (g) => { g.mismatches = 3; },
+    (g) => { g.year = "2025"; },
+    (g) => { g.month = "enero"; },
+    (g) => { g.barrios_compared = 0; },
+  ]) {
+    const artifacts = healthyArtifacts();
+    mutate(artifacts["socioeconomic/madrid_registered_unemployment.meta.json"].source_period.period_verification.numerator_month_year_gate);
+    assert.match(errorText(run(artifacts)), /does not record a passed independent verification/);
+  }
+  const absent = healthyArtifacts();
+  delete absent["socioeconomic/madrid_registered_unemployment.meta.json"].source_period.period_verification;
+  assert.match(errorText(run(absent)), /does not record a passed independent verification/);
 });

@@ -153,7 +153,8 @@ test("ES/EN labels exist, differ, and keep the official name; provenance names t
   const lines = buildUnemploymentProvenanceLines({ meta: META, period: index.period });
   assert.ok(lines.length >= 3);
   assert.ok(lines.some((line) => /Edition 2026: SEPE registered unemployment of Feb 2026/.test(line)));
-  assert.ok(lines.some((line) => /not an independently verified date/.test(line)));
+  assert.ok(lines.some((line) => /confirmed against the Ayuntamiento's Banco de Datos monthly series 1\.1\.D/.test(line)));
+  assert.ok(!lines.some((line) => /not an independently verified/.test(line)));
   assert.ok(lines.some((line) => /NOT a tourism impact/.test(line)));
   const period = lines.find((line) => /^Edition 2026/.test(line));
   assert.match(localizeCopyEs(period), /^Edición 2026: paro registrado del SEPE de feb 2026/);

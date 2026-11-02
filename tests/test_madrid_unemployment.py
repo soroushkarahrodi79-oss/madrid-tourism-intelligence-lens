@@ -41,6 +41,24 @@ HEADER = (
 )
 
 
+SERIES_FIXTURE = json.loads((ROOT / "tests" / "fixtures" / "banco_datos_paro_febrero.json").read_text(encoding="utf-8"))
+
+
+def series_for(text, edition="2026"):
+    """An independent series that agrees with the synthetic CSV's own rates for `edition`
+    (and carries clearly different values for another year as the contrast)."""
+    values = {}
+    for row in MODULE.parse_panel_rows(text):
+        if row["indicador_completo"] == MODULE.RATE_INDICATOR and row["Periodo panel"] == edition and row["valor_indicador"]:
+            values["b" + row["cod_barrio"].zfill(3)] = row["valor_indicador"]
+    return {"source": SERIES_FIXTURE["source"], "values": {edition: values, "1999": {k: "99,99" for k in values}}}
+
+
+def build(text, requested_edition=None, series=None):
+    edition = requested_edition or "2026"
+    return MODULE.build(text, ROOT, requested_edition=requested_edition, series=series or series_for(text, edition))
+
+
 def _row(edition, barrio, indicator, unit, value, year=None, fecha=None):
     barrio_id, parent_id, name = barrio
     year = year or edition
@@ -83,7 +101,7 @@ class ParseTests(unittest.TestCase):
 
 class BuildTests(unittest.TestCase):
     def test_builds_one_valid_record_per_canonical_barrio_unchanged_from_source(self):
-        artifact, meta, gate = MODULE.build(make_csv(), ROOT)
+        artifact, meta, gate = build(make_csv())
         self.assertEqual(len(artifact["records"]), 131)
         self.assertEqual([r["official_id"] for r in artifact["records"]], [b[0] for b in BARRIOS])
         first = artifact["records"][0]
@@ -95,7 +113,7 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(gate["barrios_compared"], 131)
 
     def test_decoy_indicators_are_never_selected(self):
-        artifact, _, _ = MODULE.build(make_csv(), ROOT)
+        artifact, _, _ = build(make_csv())
         self.assertNotIn(99.99, [r["rate_percent"] for r in artifact["records"]])
         self.assertNotIn(123.0, [r["rate_percent"] for r in artifact["records"]])
 
@@ -104,9 +122,9 @@ class BuildTests(unittest.TestCase):
         # Coverage by row existence is required for edition selection, so a fully
         # absent barrio must be rejected at selection, not silently zero-filled.
         with self.assertRaises(SystemExit):
-            MODULE.build(text, ROOT)
+            build(text)
         blank_only = make_csv(rate_value=lambda i: "" if i == 3 else "4,00")
-        artifact, _, _ = MODULE.build(blank_only, ROOT)
+        artifact, _, _ = build(blank_only)
         record = artifact["records"][3]
         self.assertEqual((record["state"], record["rate_percent"]), ("MISSING_IN_SOURCE", None))
         self.assertEqual(artifact["counts"], {"barrios": 131, "valid": 130, "missing": 1})
@@ -119,12 +137,12 @@ class BuildTests(unittest.TestCase):
 
     def test_deterministic_and_idempotent(self):
         text = make_csv()
-        first = MODULE.build(text, ROOT)
-        second = MODULE.build(text, ROOT)
+        first = build(text)
+        second = build(text)
         self.assertEqual(json.dumps(first[0], sort_keys=True), json.dumps(second[0], sort_keys=True))
         self.assertEqual(first[1]["selected_rows_sha256"], second[1]["selected_rows_sha256"])
         # A different value changes the fingerprint (it is not a constant).
-        changed = MODULE.build(make_csv(rate_value=lambda i: "3,33"), ROOT)
+        changed = build(make_csv(rate_value=lambda i: "3,33"))
         self.assertNotEqual(first[1]["selected_rows_sha256"], changed[1]["selected_rows_sha256"])
 
     def test_latest_complete_edition_wins_and_incomplete_newer_edition_is_ignored(self):
@@ -134,43 +152,76 @@ class BuildTests(unittest.TestCase):
             _row("2027", BARRIOS[i], MODULE.RATE_INDICATOR, "Tasa", "1,00") for i in range(2)
         )
         merged = make_csv(edition="2026", rate_value=lambda i: "4,00") + "\n".join(older.splitlines()[1:]) + "\n" + partial + "\n"
-        artifact, _, _ = MODULE.build(merged, ROOT)
+        artifact, _, _ = build(merged)
         self.assertEqual(artifact["source_period"]["panel_edition"], "2026")
         self.assertEqual({r["rate_percent"] for r in artifact["records"]}, {4.0})  # no 2025 or 2027 value mixed in
 
     def test_requested_edition_must_exist(self):
         with self.assertRaises(SystemExit):
-            MODULE.build(make_csv(), ROOT, requested_edition="1999")
+            build(make_csv(), requested_edition="1999")
 
     def test_period_stamps_and_unit_are_verified(self):
         wrong_year = make_csv() + _row("2026", BARRIOS[0], MODULE.RATE_INDICATOR, "Tasa", "1,0", year="2025") + "\n"
         with self.assertRaises(SystemExit):  # duplicate barrio, and a conflicting year stamp
-            MODULE.build(wrong_year, ROOT)
+            build(wrong_year)
         text = make_csv().replace(";Tasa;Tasa absoluta de paro registrado (febrero);", ";Personas;Tasa absoluta de paro registrado (febrero);", 1)
         with self.assertRaises(SystemExit):
-            MODULE.build(text, ROOT)
+            build(text)
 
     def test_unrecognised_missing_code_fails_the_build(self):
         with self.assertRaises(ValueError):
-            MODULE.build(make_csv(rate_value=lambda i: "n.d." if i == 0 else "4,00"), ROOT)
+            build(make_csv(rate_value=lambda i: "n.d." if i == 0 else "4,00"))
 
     def test_code_name_and_parent_must_match_the_canonical_geography(self):
         renamed = make_csv().replace(BARRIOS[0][2], "Otro barrio")
         with self.assertRaises(SystemExit):
-            MODULE.build(renamed, ROOT)
+            build(renamed)
         unknown = make_csv(extra=(_row("2026", ("999", "99", "Fantasma"), MODULE.RATE_INDICATOR, "Tasa", "4,00"),))
         with self.assertRaises(SystemExit):
-            MODULE.build(unknown, ROOT)
+            build(unknown)
 
     def test_denominator_year_gate_fails_when_the_population_base_disagrees(self):
         drifted = dict(RESIDENTS)
         drifted[BARRIOS[10][0]] += 1
         with self.assertRaises(SystemExit):
-            MODULE.build(make_csv(residents=drifted), ROOT)
+            build(make_csv(residents=drifted))
 
     def test_implausible_rate_fails(self):
         with self.assertRaises(SystemExit):
-            MODULE.build(make_csv(rate_value=lambda i: "250,00"), ROOT)
+            build(make_csv(rate_value=lambda i: "250,00"))
+
+
+    def test_period_gate_fails_when_the_independent_series_disagrees_or_is_shifted_a_year(self):
+        text = make_csv()
+        series = series_for(text)
+        series["values"]["2026"]["b" + BARRIOS[4][0]] = "9,99"  # one barrio differs
+        with self.assertRaises(SystemExit):
+            build(text, series=series)
+        # A series whose values sit under the wrong year (label shifted) must fail too.
+        shifted = series_for(text)
+        shifted["values"] = {"2025": shifted["values"]["2026"], "2026": {k: "1,11" for k in shifted["values"]["2026"]}}
+        with self.assertRaises(SystemExit):
+            build(text, series=shifted)
+        with self.assertRaises(SystemExit):  # no values for the edition year at all
+            build(text, series={"source": SERIES_FIXTURE["source"], "values": {"2025": {}}})
+
+    def test_period_gate_is_recorded_and_numeric_not_textual(self):
+        text = make_csv(rate_value=lambda i: "4,50")
+        series = series_for(text)
+        series["values"]["2026"] = {k: "4,5" for k in series["values"]["2026"]}  # same number, other formatting
+        _, meta, _ = build(text, series=series)
+        gate = meta["source_period"]["period_verification"]["numerator_month_year_gate"]
+        self.assertEqual((gate["performed"], gate["year"], gate["month"], gate["mismatches"], gate["barrios_compared"]), (True, "2026", "febrero", 0, 131))
+        self.assertEqual(gate["same_barrio_value_in_other_years"], {"1999": 0})
+        self.assertEqual(meta["source_period"]["period_verification"]["status"], "VERIFIED_AGAINST_INDEPENDENT_OFFICIAL_SERIES")
+
+    def test_edition_repeat_check_counts_barrios_that_keep_the_previous_value(self):
+        text = make_csv(edition="2026", rate_value=lambda i: "4,00") + "\n".join(
+            make_csv(edition="2025", rate_value=lambda i: "4,00" if i < 5 else "7,00").splitlines()[1:]
+        ) + "\n"
+        _, meta, _ = build(text)
+        repeat = meta["source_period"]["period_verification"]["edition_repeat_check"]
+        self.assertEqual(repeat, {"previous_edition": "2025", "barrios_with_identical_value": 5, "barrios_compared": 131})
 
 
 class CommittedArtifactTests(unittest.TestCase):
@@ -217,6 +268,36 @@ class CommittedArtifactTests(unittest.TestCase):
         ceiling = self.meta["interpretation_ceiling"]
         for phrase in ("NOT a tourism impact", "NOT the EPA rate", "never ranked", "never be allocated"):
             self.assertIn(phrase, ceiling)
+
+    def test_period_is_verified_against_the_independent_monthly_series(self):
+        """The committed rates equal the Banco de Datos February 2026 values for every barrio.
+
+        This is the evidence that the reference period is February 2026: a second official
+        publication (series 1.1.D, source SEPE, same definition) labels each value with its
+        month and year. The 2024/2025 values of the same barrios do not match (a one-year shift
+        in the CSV's labels would).
+        """
+        values = SERIES_FIXTURE["values"]
+        ours = {"b" + r["official_id"]: Decimal(str(r["rate_percent"])) for r in self.artifact["records"]}
+        as_decimal = lambda year: {k: Decimal(v.replace(",", ".")) for k, v in values[year].items() if k.startswith("b")}
+        self.assertEqual(ours, as_decimal("2026"))
+        for other in ("2024", "2025"):
+            same = sum(1 for k, v in ours.items() if as_decimal(other)[k] == v)
+            self.assertLessEqual(same, 3, f"{same} barrios coincide with February {other}")
+        self.assertEqual(SERIES_FIXTURE["source"]["series"], "0904010000014")
+        self.assertEqual(SERIES_FIXTURE["source"]["query"]["month"], "Febrero")
+
+    def test_the_period_verification_is_recorded_in_the_sidecar(self):
+        verification = self.meta["source_period"]["period_verification"]
+        self.assertEqual(verification["status"], "VERIFIED_AGAINST_INDEPENDENT_OFFICIAL_SERIES")
+        gate = verification["numerator_month_year_gate"]
+        self.assertEqual((gate["performed"], gate["series"], gate["year"], gate["month"]), (True, "0904010000014", "2026", "febrero"))
+        self.assertEqual((gate["barrios_compared"], gate["mismatches"]), (131, 0))
+        self.assertLessEqual(max(gate["same_barrio_value_in_other_years"].values()), 3)
+        self.assertEqual(verification["edition_repeat_check"]["previous_edition"], "2025")
+        self.assertLessEqual(verification["edition_repeat_check"]["barrios_with_identical_value"], 3)
+        self.assertIn("stale", verification["publisher_year_tables_disagree"])
+        self.assertIn("not used for that", verification["denominator_gate_method"])
 
     def test_no_raw_source_is_committed(self):
         sizes = {p.name: p.stat().st_size for p in ARTIFACT.parent.iterdir()}

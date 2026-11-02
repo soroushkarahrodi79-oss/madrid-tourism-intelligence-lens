@@ -37,10 +37,16 @@ Object.keys(OPERATIONAL_MARKER_SHAPES).forEach((type) => {
 // (shared with `node --test`), while the rest of the app is classic scripts.
 const MODULE_BASE = (document.currentScript && document.currentScript.src) || window.location.href;
 const AREA_ASSET_VERSION = "20261029-m3-dossier-v1";
-// The domestic-origin context module is versioned independently of AREA_ASSET_VERSION (which is also the K11 snapshot id).
-const ORIGIN_CONTEXT_MODULE_VERSION = "20261102-origin-bars-v1";
-// Likewise for the Area Profile module, which gained the registered-unemployment block: a changed module needs a new URL, but the K11 snapshot id must not move.
+// Resources changed after AREA_ASSET_VERSION was cut are versioned independently of it
+// (AREA_ASSET_VERSION is also the K11 snapshot id and must not move): the app script,
+// the stylesheet, the origin context module, the Area Profile module, the shell
+// scripts (scope-rail, shell-copy, legacy-copy) and the source registry all carry ONE
+// release version, so a browser can never combine a new app.js with an old registry,
+// dictionary or Area Profile module. tests/domestic_origin_dynamics_ui.test.mjs pins
+// that they stay equal.
+const ORIGIN_CONTEXT_MODULE_VERSION = "20261102-paro-v1";
 const AREA_PROFILE_MODULE_VERSION = "20261102-paro-v1";
+const REGISTRY_ASSET_VERSION = "20261102-paro-v1";
 const moduleUrl = (name, version = AREA_ASSET_VERSION) => new URL(`${name}?v=${version}`, MODULE_BASE).href;
 
 // K11 (#73): the evidence-snapshot identity carried in a shared link, so a reader
@@ -5069,8 +5075,8 @@ function licencePopupHtml(record) {
   return `<b>${escapeHtml(family)}</b><br>${escapeHtml(granted)}${tipo}${provenance}${disagreement}<br><em>${escapeHtml(notBuilt)}</em>`;
 }
 
-function fetchAreaJson(url) {
-  return fetch(`${url}?v=${AREA_ASSET_VERSION}`).then((response) => {
+function fetchAreaJson(url, version = AREA_ASSET_VERSION) {
+  return fetch(`${url}?v=${version}`).then((response) => {
     if (!response.ok) throw new Error(`${url}: ${response.status}`);
     return response.json();
   });
@@ -6566,7 +6572,7 @@ for (const button of document.querySelectorAll(".mode-btn")) {
 }
 
 // -------------------------------------------------------------------- rail
-fetchAreaJson("data/source_registry.json")
+fetchAreaJson("data/source_registry.json", REGISTRY_ASSET_VERSION)
   .then((registry) => { shell.registry = registry; shell.signature = ""; renderScopeRail(); if (document.getElementById("evidenceDrawer").open) renderDrawerBody(); })
   .catch((error) => { shell.registryFailed = true; console.warn("source registry unavailable", error); shell.signature = ""; renderScopeRail(); });
 
