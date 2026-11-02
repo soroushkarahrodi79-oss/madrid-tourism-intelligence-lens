@@ -2322,6 +2322,11 @@ function tooltipFor(p) {
   return `<b>${p.name}</b><br>${LAYER_LABEL[p.type] || p.type} · ${src}`;
 }
 
+// Opaque dark rim (app's Light --text token) so the unchanged category fill is
+// detectable on Positron, Dark Matter and imagery (#150, Candidate C).
+const MARKER_OUTLINE = "#16222f";
+const MARKER_OUTLINE_WEIGHT = 1.5;
+
 function addMarker(p) {
   let color = LAYER_COLOR[p.type];
   let r = p.type === "bike" ? 2.8 : 4.2;
@@ -2331,10 +2336,10 @@ function addMarker(p) {
   }
   const m = L.circleMarker([p.lat, p.lon], {
     radius: r,
-    color,
+    color: MARKER_OUTLINE,
     fillColor: color,
-    weight: 1,
-    opacity: 0.95,
+    weight: MARKER_OUTLINE_WEIGHT,
+    opacity: 1,
     fillOpacity: 0.78,
   });
   m._p = p;
@@ -5692,7 +5697,7 @@ function shadeMarkersOutsideActiveLens() {
 
       if (typeof m.setStyle !== "function") return;
       const base = m._p.type === "bike" ? 0.72 : 0.86;
-      m.setStyle({ opacity: inside ? 1 : 0.2, fillOpacity: inside ? base : 0.1, weight: inside ? 1.25 : 0.7 });
+      m.setStyle({ opacity: inside ? 1 : 0.2, fillOpacity: inside ? base : 0.1, weight: inside ? MARKER_OUTLINE_WEIGHT : 0.7 });
     })
   );
 }
