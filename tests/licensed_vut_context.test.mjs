@@ -723,7 +723,7 @@ test("the licensed-VUT block lives inside the administrative area section", () =
 });
 
 test("the place identity stays visually primary and the figure stays subordinate", () => {
-  const tokenValues = Object.fromEntries([...css.matchAll(/--t-([a-z]+):([\d.]+)px/g)].map((match) => [match[1], Number(match[2])]));
+  const tokenValues = Object.fromEntries([...css.matchAll(/--t-([a-z]+):([\d.]+)rem/g)].map((match) => [match[1], Number(match[2])]));
   assert.match(css, /\.area-value\{font-size:var\(--t-title\)\}/);
   assert.match(css, /\.metric-value,[^}]*\.area-vut-value,[^}]*\{font-size:var\(--t-figure\)\}/);
   const residents = tokenValues.title;
@@ -876,6 +876,7 @@ test("no global time control is introduced: each source keeps its own state", ()
     '<select id="hospitalityMetricSelect"',
     '<select id="languageSelect"',
     '<select id="stayKindFilter"',
+    '<select id="textSizeSelect"',
     '<select id="timeSelect"',
   ]);
 });

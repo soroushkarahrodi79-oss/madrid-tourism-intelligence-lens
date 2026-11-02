@@ -971,7 +971,7 @@ test("P1 AC1/2/6/8/10: six small-screen rail groups fit, report live state, pres
   assert.equal(await page.locator("#layerRail").isVisible(), true);
   assert.equal(await page.locator("#mobileLayersButton").getAttribute("aria-expanded"), "true");
   assert.deepEqual(await page.locator(".rail-group-badge").allTextContents(), [
-    "2 settings", "5 of 5 on", "0 of 1 on", "0 of 1 on", "0 of 2 on", "0 of 1 on",
+    "3 settings", "5 of 5 on", "0 of 1 on", "0 of 1 on", "0 of 2 on", "0 of 1 on",
   ]);
   const geometry = await page.evaluate(() => {
     const rail = document.getElementById("layerRail");

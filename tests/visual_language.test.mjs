@@ -8,13 +8,13 @@ const pkg = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.ur
 const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, "");
 
 const TYPE_TOKENS = Object.freeze({
-  display: "28px",
-  title: "20px",
-  figure: "16px",
-  body: "14px",
-  label: "12px",
-  meta: "11px",
-  micro: "10px",
+  display: "1.75rem",
+  title: "1.25rem",
+  figure: "1rem",
+  body: ".875rem",
+  label: ".75rem",
+  meta: ".6875rem",
+  micro: ".625rem",
 });
 
 test("K5 stylesheet declares exactly the seven fixed type tokens", () => {
@@ -24,7 +24,11 @@ test("K5 stylesheet declares exactly the seven fixed type tokens", () => {
 });
 
 test("K5 every production font-size declaration uses the type scale with zero exceptions", () => {
-  const declarations = [...withoutComments.matchAll(/font-size\s*:\s*([^;}]+)/g)].map((match) => match[1].trim());
+  // The single root multiplier (reading size, #102) is the one declaration that is not a token.
+  const ROOT_MULTIPLIER = "calc(100% * var(--text-scale,1))";
+  const all = [...withoutComments.matchAll(/font-size\s*:\s*([^;}]+)/g)].map((match) => match[1].trim());
+  assert.equal(all.filter((value) => value === ROOT_MULTIPLIER).length, 1, "exactly one root multiplier");
+  const declarations = all.filter((value) => value !== ROOT_MULTIPLIER);
   assert.ok(declarations.length > 100, "the whole production stylesheet was audited");
   for (const value of declarations) {
     assert.match(value, /^var\(--t-(?:display|title|figure|body|label|meta|micro)\)(?:\s*!important)?$/);

@@ -22,9 +22,11 @@ await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const { port } = server.address();
 const browser = await chromium.launch({ headless: true });
 
-async function openApp({ width = 1440, height = 900, colorScheme = "light", preference, forcedColors = "none", locale = "en-US" } = {}) {
+async function openApp({ width = 1440, height = 900, colorScheme = "light", preference, forcedColors = "none", locale = "en-US", textSize, denyStorage = false } = {}) {
   const context = await browser.newContext({ viewport: { width, height }, colorScheme, forcedColors, locale });
   if (preference) await context.addInitScript((value) => localStorage.setItem("madrid-lens-appearance", value), preference);
+  if (textSize) await context.addInitScript((value) => localStorage.setItem("madrid-lens-text-size", value), textSize);
+  if (denyStorage) await context.addInitScript(() => { Storage.prototype.getItem = () => { throw new Error("denied"); }; Storage.prototype.setItem = () => { throw new Error("denied"); }; });
   const page = await context.newPage();
   page.setDefaultTimeout(8000);
   await page.route("**/*", (route) => {
@@ -492,5 +494,125 @@ test("every interactive map control stays operable and 44px after a breakpoint c
       assertNoCollision(await chromeGeometry(page), `rail open at ${viewport.width}x${viewport.height}`);
       await page.locator("#mobileLayersButton").click();
     }
+  }
+});
+
+// ---- Reading size (#102) -------------------------------------------------
+const TOKEN_BASE = { display: 28, title: 20, figure: 16, body: 14, label: 12, meta: 11, micro: 10 };
+const SCALES = { normal: 1, comfortable: 1.12, large: 1.25 };
+const tokenSizes = (page) => page.evaluate((names) => Object.fromEntries(names.map((name) => {
+  const probe = document.body.appendChild(document.createElement("span"));
+  probe.style.fontSize = `var(--t-${name})`;
+  const px = parseFloat(getComputedStyle(probe).fontSize);
+  probe.remove();
+  return [name, px];
+})), Object.keys(TOKEN_BASE));
+
+test("all seven K5 tokens scale from their baseline at each reading size", async (t) => {
+  const page = await openApp();
+  t.after(() => closePage(page));
+  for (const [size, scale] of Object.entries(SCALES)) {
+    await page.locator("#textSizeSelect").selectOption(size);
+    const actual = await tokenSizes(page);
+    for (const [name, base] of Object.entries(TOKEN_BASE)) {
+      assert.ok(Math.abs(actual[name] - base * scale) < .02, `${size} ${name}: ${actual[name]} vs ${base * scale}`);
+    }
+  }
+});
+
+test("reading size persists, restores, and leaves map, basemap, URL and appearance untouched", async (t) => {
+  const page = await openApp({ preference: "dark" });
+  t.after(() => closePage(page));
+  assert.equal(await page.locator("#textSizeSelect").inputValue(), "normal");
+  const snapshot = () => page.evaluate(() => {
+    const m = eval("map"), c = m.getCenter();
+    return { center: [c.lat, c.lng], zoom: m.getZoom(), radius: document.querySelector("#radiusSlider").value,
+      basemap: document.querySelector("#basemapSelect").value, url: location.href, appearance: document.documentElement.dataset.appearance };
+  });
+  const before = await snapshot();
+  await page.locator("#textSizeSelect").selectOption("large");
+  assert.deepEqual(await snapshot(), before);
+  assert.equal(await page.evaluate(() => localStorage.getItem("madrid-lens-text-size")), "large");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => Boolean(window.MadridTextSize));
+  assert.equal(await page.locator("html").getAttribute("data-text-size"), "large");
+  assert.equal(await page.locator("#textSizeSelect").inputValue(), "large");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).fontSize), "20px");
+});
+
+test("an invalid saved reading size falls back to Normal", async (t) => {
+  const page = await openApp({ textSize: "enormous" });
+  t.after(() => closePage(page));
+  assert.equal(await page.locator("html").getAttribute("data-text-size"), "normal");
+  assert.equal(await page.locator("#textSizeSelect").inputValue(), "normal");
+});
+
+test("denied storage keeps reading size usable for the session", async (t) => {
+  const page = await openApp({ denyStorage: true });
+  t.after(() => closePage(page));
+  await page.locator("#textSizeSelect").selectOption("comfortable");
+  assert.equal(await page.locator("html").getAttribute("data-text-size"), "comfortable");
+  assert.ok(Math.abs((await tokenSizes(page)).body - 14 * 1.12) < .02);
+});
+
+test("reading-size copy localizes in EN and ES and is reachable through the mobile Layers button", async (t) => {
+  const page = await openApp({ width: 390, height: 844 });
+  t.after(() => closePage(page));
+  await page.locator("#mobileLayersButton").click();
+  const select = page.locator("#textSizeSelect");
+  if (!(await select.isVisible())) await page.locator('[data-rail-group="map"] > summary').click();
+  assert.equal(await select.isVisible(), true);
+  assert.deepEqual(await select.locator("option").allTextContents(), ["Normal (100%)", "Comfortable (112%)", "Large (125%)"]);
+  await page.locator("#languageSelect").selectOption("es");
+  assert.equal(await select.getAttribute("aria-label"), "Tamaño del texto");
+  assert.deepEqual(await select.locator("option").allTextContents(), ["Normal (100%)", "Cómodo (112%)", "Grande (125%)"]);
+  await select.focus();
+  assert.equal(await select.evaluate((node) => node.matches(":focus-visible")), true);
+});
+
+for (const appearance of ["light", "dark"]) {
+  for (const width of [320, 390, 768, 1440]) {
+    test(`Large text keeps ${appearance} header and rail contained without page overflow at ${width}px`, async (t) => {
+      const page = await openApp({ width, height: width < 768 ? 800 : 900, preference: appearance, textSize: "large" });
+      t.after(() => closePage(page));
+      const result = await page.evaluate(() => {
+        const header = document.querySelector("header").getBoundingClientRect();
+        const tools = document.querySelector(".header-tools").getBoundingClientRect();
+        return { overflow: document.documentElement.scrollWidth - innerWidth, toolsInside: tools.right <= header.right + .5 && tools.left >= header.left - .5 };
+      });
+      assert.ok(result.overflow <= 1, JSON.stringify(result));
+      assert.equal(result.toolsInside, true, JSON.stringify(result));
+    });
+  }
+}
+
+test("Large text keeps a recognizable product name, whole controls and a one-row header at 714px and 690px", async (t) => {
+  for (const [width, expectShort] of [[714, false], [690, true]]) {
+    const page = await openApp({ width, height: 800, textSize: "large" });
+    t.after(() => closePage(page));
+    const r = await page.evaluate(() => {
+      const box = (el) => { const b = el.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom, w: b.width, h: b.height }; };
+      const title = document.querySelector(".brand-title"), short = document.querySelector(".brand-short");
+      const visible = (el) => { const b = el.getBoundingClientRect(); return b.width > 20 && getComputedStyle(el).display !== "none"; };
+      const range = document.createRange(); range.selectNodeContents(visible(title) ? title : short);
+      const text = range.getBoundingClientRect(), brand = box(document.querySelector(".brand")), tools = box(document.querySelector(".header-tools")), header = box(document.querySelector("header"));
+      const target = (selector) => box(document.querySelector(selector));
+      return {
+        shortVisible: visible(short), titleVisible: visible(title), accessibleName: title.textContent.trim(), shortHidden: short.getAttribute("aria-hidden"),
+        textInsideBrand: text.right <= brand.r + .5 && text.width > 40, ellipsised: title.scrollWidth > title.clientWidth + 1 && visible(title),
+        headerHeight: header.h, toolsInside: tools.r <= header.r + .5 && tools.l >= header.l - .5, brandToolsGap: tools.l - brand.r,
+        targets: ["#geoSearchToggle", "#appearanceSelect", "#languageSelect", "#tutorialHelpButton"].map((s) => { const b = target(s); return [s, b.w >= 44 - .5 || s.endsWith("Select"), b.h >= 44 - .5]; }),
+        overflow: document.documentElement.scrollWidth - innerWidth
+      };
+    });
+    const note = JSON.stringify({ width, ...r });
+    assert.equal(r.accessibleName, "Madrid Urban Evidence Lens", note);
+    assert.equal(r.shortVisible, expectShort, note);
+    assert.equal(r.titleVisible, !expectShort, note);
+    assert.equal(r.ellipsised, false, note);
+    assert.equal(r.textInsideBrand, true, note);
+    assert.ok(r.brandToolsGap >= 0 && r.toolsInside && r.headerHeight <= 70, note);
+    for (const [selector, widthOk, heightOk] of r.targets) assert.ok(widthOk && heightOk, `${selector} keeps a 44px target ${note}`);
+    assert.ok(r.overflow <= 1, note);
   }
 });
