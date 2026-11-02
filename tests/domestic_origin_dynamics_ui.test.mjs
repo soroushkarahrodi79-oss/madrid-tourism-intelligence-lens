@@ -28,3 +28,14 @@ test("Production labels use published-set terminology and retain null semantics"
   assert.match(dynamics, /currentCount: null/);
   assert.doesNotMatch(html, /new market|lost market|visitor retention|market churn/i);
 });
+
+test("app script, origin context module and stylesheet share one cache version, independent of the K11 snapshot id", () => {
+  const appVersion = html.match(/js\/app\.js\?v=([\w-]+)/)?.[1];
+  const cssVersion = html.match(/css\/app\.css\?v=([\w-]+)/)?.[1];
+  const moduleVersion = app.match(/const ORIGIN_CONTEXT_MODULE_VERSION = "([\w-]+)"/)?.[1];
+  assert.ok(appVersion && cssVersion && moduleVersion);
+  assert.equal(new Set([appVersion, cssVersion, moduleVersion]).size, 1);
+  assert.match(app, /import\(moduleUrl\("domestic-origin-context\.js", ORIGIN_CONTEXT_MODULE_VERSION\)\)/);
+  assert.match(app, /const AREA_ASSET_VERSION = "20261029-m3-dossier-v1"/);
+  assert.match(app, /const K11_SNAPSHOT_ID = AREA_ASSET_VERSION/);
+});

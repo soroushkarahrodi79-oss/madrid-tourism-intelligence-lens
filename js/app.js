@@ -37,7 +37,9 @@ Object.keys(OPERATIONAL_MARKER_SHAPES).forEach((type) => {
 // (shared with `node --test`), while the rest of the app is classic scripts.
 const MODULE_BASE = (document.currentScript && document.currentScript.src) || window.location.href;
 const AREA_ASSET_VERSION = "20261029-m3-dossier-v1";
-const moduleUrl = (name) => new URL(`${name}?v=${AREA_ASSET_VERSION}`, MODULE_BASE).href;
+// The domestic-origin context module is versioned independently of AREA_ASSET_VERSION (which is also the K11 snapshot id).
+const ORIGIN_CONTEXT_MODULE_VERSION = "20261102-origin-bars-v1";
+const moduleUrl = (name, version = AREA_ASSET_VERSION) => new URL(`${name}?v=${version}`, MODULE_BASE).href;
 
 // K11 (#73): the evidence-snapshot identity carried in a shared link, so a reader
 // is warned when the committed artifacts behind the workspace have moved since the
@@ -5690,6 +5692,15 @@ function renderDomesticOriginDynamics() {
   const transitions = document.getElementById("domesticOriginDynamicsTransitions"); if (transitions) transitions.hidden = !ready;
   setText("domesticOriginDynamicsState", dynamicsStateLine(module, model)); setText("domesticOriginDynamicsDisclosure", dynamicsT("disclosure"));
 }
+function renderDomesticOriginChart(top) {
+  const figure = document.getElementById("domesticOriginsChart"), list = document.getElementById("domesticOriginsBars");
+  if (!figure || !list) return;
+  figure.hidden = top.bars.length === 0;
+  list.innerHTML = top.bars.map((bar) => `<li data-origin="${bar.code}" data-count="${bar.count}"><span class="dob-name">${escapeHtml(bar.name)} <span class="muted">${bar.code}</span></span><b class="dob-value">${bar.countDisplay}</b><span class="dob-track" aria-hidden="true"><i style="width:${bar.widthPercent}%"></i></span></li>`).join("");
+  if (!top.bars.length) { for (const id of ["domesticOriginsChartTitle", "domesticOriginsChartCount", "domesticOriginsChartScale"]) setText(id, ""); return; }
+  const fill = (key) => originT(key).replace(/\{(\w+)\}/g, (_, name) => ({ month: top.month, shown: top.shown.toLocaleString("en-GB"), total: top.total.toLocaleString("en-GB") })[name] ?? "");
+  setText("domesticOriginsChartTitle", fill("chartTitle")); setText("domesticOriginsChartCount", fill("chartCount")); setText("domesticOriginsChartScale", fill("chartScale"));
+}
 function renderDomesticOrigins() {
   const host = document.getElementById("domesticOrigins");
   if (!host || !originModel.module || !originModel.i18n) return;
@@ -5708,6 +5719,7 @@ function renderDomesticOrigins() {
   setText("domesticOriginsOrigin", originT("origin")); setText("domesticOriginsTourists", originT("tourists"));
   const select = document.getElementById("domesticOriginsMonth");
   if (select) { select.innerHTML = (model.availableMonths || []).slice().reverse().map((month) => `<option value="${month}">${month}</option>`).join(""); select.value = model.month || ""; select.disabled = model.state === module.ORIGIN_STATE.UNAVAILABLE; }
+  renderDomesticOriginChart(module.buildDomesticOriginRanking(model));
   const rows = document.getElementById("domesticOriginsRows");
   if (rows) rows.innerHTML = model.origins.map((row) => `<tr><td>${escapeHtml(row.origin_municipality_name)} <span class="muted">${row.origin_municipality_code}</span></td><td>${row.countDisplay}</td></tr>`).join("");
   setText("domesticOriginsState", model.state === module.ORIGIN_STATE.UNAVAILABLE ? originT("unavailable") : model.state === module.ORIGIN_STATE.MONTH_UNAVAILABLE ? originT("periodUnavailable") : module.ORIGIN_SCOPE_CAVEAT);
@@ -5716,7 +5728,7 @@ function renderDomesticOrigins() {
 }
 async function loadDomesticOrigins() {
   try {
-    const [module, dynamicsModule, i18nModule, artifact] = await Promise.all([import(moduleUrl("domestic-origin-context.js")), import(moduleUrl("domestic-origin-dynamics.js")), import(moduleUrl("i18n.js")), fetchAreaJson("data/destination/madrid_domestic_origins.json")]);
+    const [module, dynamicsModule, i18nModule, artifact] = await Promise.all([import(moduleUrl("domestic-origin-context.js", ORIGIN_CONTEXT_MODULE_VERSION)), import(moduleUrl("domestic-origin-dynamics.js")), import(moduleUrl("i18n.js")), fetchAreaJson("data/destination/madrid_domestic_origins.json")]);
     originModel.module = module; originModel.dynamics = dynamicsModule; originModel.i18n = i18nModule.createI18n(module.ORIGIN_DICTIONARIES, document.getElementById("languageSelect").value); originModel.dynamicsI18n = i18nModule.createI18n(dynamicsModule.DYNAMICS_DICTIONARIES, document.getElementById("languageSelect").value); originModel.index = module.createDomesticOriginIndex(artifact); originMonth = originModel.index?.latest || null; renderDomesticOrigins();
   } catch (error) { console.warn("domestic origin context unavailable", error); if (originModel.module) renderDomesticOrigins(); }
 }

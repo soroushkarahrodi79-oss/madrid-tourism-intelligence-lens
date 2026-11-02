@@ -983,3 +983,138 @@ test("CITY dynamics newly-present and no-longer-present rows match the rendered 
     await close(page);
   }
 });
+
+// ------------------------------------- CITY domestic-origin ranked bars (V1)
+
+const ORIGIN_ARTIFACT = JSON.parse(fs.readFileSync(path.join(ROOT, "data/destination/madrid_domestic_origins.json"), "utf8"));
+const publishedOrigins = (month) => ORIGIN_ARTIFACT.months.find((m) => m.source_month === month).published_origins;
+const sourceTopCounts = (month) => publishedOrigins(month).map((o) => o.source_reported_tourists).sort((a, b) => b - a).slice(0, 10);
+const readBars = (page) => page.$$eval("#domesticOriginsBars li", (items) => items.map((li) => {
+  const track = li.querySelector(".dob-track").getBoundingClientRect();
+  const fill = li.querySelector(".dob-track i").getBoundingClientRect();
+  return {
+    code: li.dataset.origin,
+    count: Number(li.dataset.count),
+    label: li.querySelector(".dob-value").textContent.trim(),
+    name: li.querySelector(".dob-name").textContent,
+    ratio: fill.width / track.width,
+  };
+}));
+
+test("CITY origin bars: top 10 of the source month, exact labelled counts, proportional zero-based lengths", async () => {
+  const page = await newPage();
+  try {
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("CITY"));
+    await page.waitForFunction(() => document.querySelectorAll("#domesticOriginsBars li").length > 0);
+    const months = await page.$$eval("#domesticOriginsMonth option", (os) => os.map((o) => o.value).filter(Boolean));
+    assert.ok(months.length >= 2);
+    const sequence = [await page.inputValue("#domesticOriginsMonth"), months[0], months[months.length - 1]];
+    let previous = null;
+    for (const month of sequence) {
+      await page.selectOption("#domesticOriginsMonth", month);
+      await page.waitForFunction((m) => document.getElementById("domesticOriginsMonth").value === m && document.getElementById("domesticOriginsChartTitle").textContent.includes(m), month);
+      const bars = await readBars(page);
+      assert.deepEqual(bars.map((b) => b.count), sourceTopCounts(month), `${month}: bars are the source's ten highest published counts`);
+      const tableRows = await page.$$eval("#domesticOriginsRows tr", (rows) => rows.map((r) => [r.querySelector(".muted").textContent.trim(), r.querySelectorAll("td")[1].textContent.trim()]));
+      assert.deepEqual(bars.map((b) => [b.code, b.label]), tableRows.slice(0, 10), `${month}: bars agree with the unchanged full table`);
+      assert.equal(tableRows.length, publishedOrigins(month).length, `${month}: full table still lists every published origin`);
+      for (const bar of bars) {
+        assert.equal(bar.label, bar.count.toLocaleString("en-GB"), "exact count printed on every bar");
+        assert.ok(bar.name.trim().length > bar.code.length, "municipality name printed on every bar");
+        assert.ok(Math.abs(bar.ratio - bar.count / bars[0].count) < 0.01, `${bar.code}: length ${bar.ratio.toFixed(3)} is proportional to ${bar.count}/${bars[0].count}`);
+      }
+      assert.ok(Math.abs(bars[0].ratio - 1) < 0.01, "largest bar fills the zero-based track");
+      const text = await page.$eval("#domesticOriginsChart", (el) => el.innerText);
+      assert.ok(!text.includes("%"), "no percentage / all-origin share appears in the chart");
+      assert.ok(!/\bother\b/i.test(text), "no manufactured Other category");
+      assert.match(text, /not the full origin universe/i);
+      assert.match(text, /not zero/i);
+      assert.ok(text.includes(`Showing 10 of ${publishedOrigins(month).length.toLocaleString("en-GB")}`), "states how many origins are published, not a share");
+      if (previous && previous.month !== month) assert.notDeepEqual(bars.map((b) => b.count), previous.counts, "month change replaced the bars");
+      previous = { month, counts: bars.map((b) => b.count) };
+    }
+  } finally {
+    await close(page);
+  }
+});
+
+test("CITY origin bars follow a K11-restored month, switch to Spanish and stay legible in Light", async () => {
+  const page = await newPage();
+  try {
+    await seam(page, () => window.__HALO_REGRESSION__.enterMode("CITY"));
+    await page.waitForFunction(() => document.querySelectorAll("#domesticOriginsMonth option").length > 0);
+    const months = await page.$$eval("#domesticOriginsMonth option", (os) => os.map((o) => o.value).filter(Boolean));
+    const month = months[months.length - 1];
+    await page.selectOption("#domesticOriginsMonth", month);
+    const url = await seam(page, () => window.__HALO_REGRESSION__.k11Url());
+    assert.ok(url.includes(`om=${month}`));
+    const restored = await restorePage(url.slice(url.indexOf("?")));
+    try {
+      await restored.waitForFunction(() => document.querySelectorAll("#domesticOriginsBars li").length > 0);
+      assert.equal(await restored.inputValue("#domesticOriginsMonth"), month);
+      assert.deepEqual((await readBars(restored)).map((b) => b.count), sourceTopCounts(month), "restored month drives the bars");
+
+      await restored.selectOption("#languageSelect", "es");
+      assert.match(await restored.textContent("#domesticOriginsChartTitle"), /^Principales orígenes publicados/);
+      assert.match(await restored.textContent("#domesticOriginsChartScale"), /parten de cero.*no son cero/);
+      await restored.selectOption("#languageSelect", "en");
+      assert.match(await restored.textContent("#domesticOriginsChartTitle"), /^Top published origins/);
+
+      await restored.selectOption("#appearanceSelect", "light");
+      assert.equal(await restored.locator("html").getAttribute("data-appearance"), "light");
+      const contrast = await restored.evaluate(() => {
+        const lum = (rgb) => {
+          const [r, g, b] = rgb.match(/[\d.]+/g).slice(0, 3).map(Number).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+        const li = document.querySelector("#domesticOriginsBars li");
+        const color = (el) => getComputedStyle(el).color;
+        return {
+          value: ratio(color(li.querySelector(".dob-value")), "rgb(255,255,255)"),
+          name: ratio(color(li.querySelector(".dob-name")), "rgb(255,255,255)"),
+          scale: ratio(color(document.getElementById("domesticOriginsChartScale")), "rgb(255,255,255)"),
+          fill: ratio(getComputedStyle(li.querySelector(".dob-track i")).backgroundColor, "rgb(255,255,255)"),
+        };
+      });
+      for (const key of ["value", "name", "scale"]) assert.ok(contrast[key] >= 4.5, `Light ${key} text contrast ${contrast[key].toFixed(2)}`);
+      assert.ok(contrast.fill >= 3, `Light bar fill contrast ${contrast.fill.toFixed(2)} against white`);
+    } finally {
+      await close(restored);
+    }
+  } finally {
+    await close(page);
+  }
+});
+
+test("CITY origin bars fit at 390, 768 and 1440 and are absent when the artifact is unavailable", async () => {
+  for (const width of [390, 768, 1440]) {
+    const page = await newPage({ viewport: { width, height: 900 } });
+    try {
+      await seam(page, () => window.__HALO_REGRESSION__.enterMode("CITY"));
+      await page.waitForFunction(() => document.querySelectorAll("#domesticOriginsBars li").length === 10);
+      const overflow = await page.$eval("#domesticOriginsChart", (el) => ({ box: el.scrollWidth - el.clientWidth, page: document.documentElement.scrollWidth - document.documentElement.clientWidth }));
+      assert.ok(overflow.box <= 1 && overflow.page <= 1, `${width}px: chart does not overflow (${JSON.stringify(overflow)})`);
+    } finally {
+      await close(page);
+    }
+  }
+  const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
+  const page = await context.newPage();
+  page.setDefaultTimeout(20000);
+  try {
+    await page.route("**/*", (route) => {
+      const u = new URL(route.request().url());
+      if ((u.hostname !== "127.0.0.1" && u.hostname !== "localhost") || u.pathname.endsWith("madrid_domestic_origins.json")) return route.abort();
+      return route.continue();
+    });
+    await page.goto(`${BASE}/?haloRegressionTest=1`, { waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => Boolean(window.__HALO_REGRESSION__));
+    await page.evaluate(() => window.__HALO_REGRESSION__.enterMode("CITY"));
+    await page.waitForFunction(() => document.getElementById("destinationContext")?.dataset.state === "available");
+    assert.equal(await page.$$eval("#domesticOriginsBars li", (l) => l.length), 0, "no bars without the artifact");
+    assert.equal(await page.$eval("#domesticOriginsChart", (el) => el.offsetParent === null), true, "chart not displayed without the artifact");
+  } finally {
+    await context.close();
+  }
+});
