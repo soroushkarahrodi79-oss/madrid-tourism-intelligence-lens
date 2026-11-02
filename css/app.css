@@ -1,3 +1,5 @@
+/* UX-V3 (#151): self-hosted Inter (latin subset covers English and Spanish), SIL OFL 1.1 - see assets/fonts/Inter-OFL.txt */
+@font-face{font-family:Inter;font-style:normal;font-weight:100 900;font-display:swap;src:url("../assets/fonts/inter-latin-wght-normal.woff2") format("woff2")}
 :root{
   --t-display:28px;
   --t-title:20px;
@@ -1757,7 +1759,7 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
   .appearance-control>span{display:none}
   .appearance-control:before{content:"◐";color:var(--chrome-text-brand-subtle)}
   .header-tools select{min-height:44px;padding:var(--s-2) var(--s-1)}
-  #appearanceSelect{width:78px;min-width:0;padding:var(--s-2) var(--s-1);line-height:normal}
+  #appearanceSelect{width:78px;min-width:0;padding:var(--s-2) var(--s-1);line-height:1.3}
   #languageSelect{width:88px;min-width:0}
   .tutorial-help{min-width:44px;width:44px;min-height:44px;justify-content:center;padding:var(--s-1)}
   .tutorial-help-label{display:none}
@@ -2092,3 +2094,11 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
 @media(prefers-reduced-motion:reduce){
   .geo-search,.geo-search-surface,.geo-search-query,.geo-search-result,.geo-search-action,.qx-q,.qx-action{transition:none!important;animation:none!important}
 }
+/* UX-V3 (#151) T1: interpretation limits and rail headings move from --t-micro (10px) to --t-meta (11px); incidental metadata stays at 10px */
+.rail-group-note,.layer-source-note,.layer-source-preview,.layer-source-status,.layer-source-render-note,.evidence-note,.hospitality-selector-hint,.hospitality-interpretation,.hospitality-state,.hospitality-dual-date,.hospitality-unit,
+.area-scope p,.area-vut-state,.area-other,.destination-state,.destination-ceiling,.destination-provisional,.source,.metric-foot,.mode-question,
+.activity-card-note,.comparison-mode-cue,.halo-legend,.compare-evidence,.halo-visibility-note,.comparison-bridge-empty,.cb-qualifier,.di-status,.di-guard,
+.ss-status,.ss-empty,.ss-notice,.ss-guard,.ss-transition-detail,.drawer-ceiling,.drawer-ceiling b,.drawer-notes .halo-legend,.drawer-notes .source,.geo-search-coverage,.lic-window-clamped,
+.ambito-guard,.ambito-guard-di,.ambito-scale-note,.ambito-radius-note,.ambito-edition-note,.ambito-reason,.ambito-bridge-empty,.ab-qual,.ambito-pick-hint,
+.mix-label,.badge,.area-vut-unit,.area-vut-secondary,.section-head small,.comparison-radius-readout,.area-source-toggle,.planning-source-toggle,.planning-change-provenance-edition,.halo-toggle small,.planning-touched-centre{font-size:var(--t-meta)}
+.left h3,.rail-group-copy,.basemap-control label,.map-control label,.language-control label,.stay-filter label,.hospitality-controls label,.activity-divider span,.context-divider span,.research-divider span,.administrative-divider span{font-size:var(--t-meta);letter-spacing:.04em;text-transform:none}
