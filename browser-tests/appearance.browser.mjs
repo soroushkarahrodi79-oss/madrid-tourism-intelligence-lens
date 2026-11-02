@@ -585,3 +585,34 @@ for (const appearance of ["light", "dark"]) {
     });
   }
 }
+
+test("Large text keeps a recognizable product name, whole controls and a one-row header at 714px and 690px", async (t) => {
+  for (const [width, expectShort] of [[714, false], [690, true]]) {
+    const page = await openApp({ width, height: 800, textSize: "large" });
+    t.after(() => closePage(page));
+    const r = await page.evaluate(() => {
+      const box = (el) => { const b = el.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom, w: b.width, h: b.height }; };
+      const title = document.querySelector(".brand-title"), short = document.querySelector(".brand-short");
+      const visible = (el) => { const b = el.getBoundingClientRect(); return b.width > 20 && getComputedStyle(el).display !== "none"; };
+      const range = document.createRange(); range.selectNodeContents(visible(title) ? title : short);
+      const text = range.getBoundingClientRect(), brand = box(document.querySelector(".brand")), tools = box(document.querySelector(".header-tools")), header = box(document.querySelector("header"));
+      const target = (selector) => box(document.querySelector(selector));
+      return {
+        shortVisible: visible(short), titleVisible: visible(title), accessibleName: title.textContent.trim(), shortHidden: short.getAttribute("aria-hidden"),
+        textInsideBrand: text.right <= brand.r + .5 && text.width > 40, ellipsised: title.scrollWidth > title.clientWidth + 1 && visible(title),
+        headerHeight: header.h, toolsInside: tools.r <= header.r + .5 && tools.l >= header.l - .5, brandToolsGap: tools.l - brand.r,
+        targets: ["#geoSearchToggle", "#appearanceSelect", "#languageSelect", "#tutorialHelpButton"].map((s) => { const b = target(s); return [s, b.w >= 44 - .5 || s.endsWith("Select"), b.h >= 44 - .5]; }),
+        overflow: document.documentElement.scrollWidth - innerWidth
+      };
+    });
+    const note = JSON.stringify({ width, ...r });
+    assert.equal(r.accessibleName, "Madrid Urban Evidence Lens", note);
+    assert.equal(r.shortVisible, expectShort, note);
+    assert.equal(r.titleVisible, !expectShort, note);
+    assert.equal(r.ellipsised, false, note);
+    assert.equal(r.textInsideBrand, true, note);
+    assert.ok(r.brandToolsGap >= 0 && r.toolsInside && r.headerHeight <= 70, note);
+    for (const [selector, widthOk, heightOk] of r.targets) assert.ok(widthOk && heightOk, `${selector} keeps a 44px target ${note}`);
+    assert.ok(r.overflow <= 1, note);
+  }
+});

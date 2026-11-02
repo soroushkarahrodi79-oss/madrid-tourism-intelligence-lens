@@ -2114,3 +2114,29 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
 .mix-label,.mixrow,.nearest li,.badge,.area-vut-unit,.area-vut-secondary,.section-head small,.comparison-radius-readout,.area-source-toggle,.planning-source-toggle,.planning-change-provenance-edition,.halo-toggle small,
 .planning-touched-centre,.lensbtn,.planning-kind,.planning-code-label{font-size:var(--t-meta)}
 .left h3,.rail-group-copy,.basemap-control label,.map-control label,.language-control label,.stay-filter label,.hospitality-controls label,.activity-divider span,.context-divider span,.research-divider span,.administrative-divider span{font-size:var(--t-meta);letter-spacing:.04em;text-transform:none}
+
+/* Reading size (#102): in the single-row header band (681-1100px) the full product name
+   truncated at Normal and nearly vanished at Large. Reuse the phone header's icon-only
+   Find / Appearance / Tour controls (same 44px targets, same accessible names) when the
+   name no longer fits: up to 820px at Normal, up to 1020px at the larger steps. At Large
+   below 713px even that leaves too little room, so a compact visible name stands in for
+   it; the full name stays in the accessibility tree. */
+.brand-short{display:none;font-size:var(--t-figure);font-weight:760;letter-spacing:-.02em;line-height:1.05;white-space:nowrap}
+@media(min-width:681px) and (max-width:820px){
+  .geo-search-toggle{min-width:44px;width:44px;padding:var(--s-1)}
+  .geo-search-toggle-label,.tutorial-help-label,.appearance-control>span{display:none}
+  .tutorial-help{min-width:44px;width:44px;justify-content:center;padding:var(--s-1)}
+  .appearance-control{position:static;display:flex;align-items:center;gap:var(--s-1);min-width:0}
+  .appearance-control:before{content:"◐";color:var(--chrome-text-brand-subtle)}
+}
+@media(min-width:821px) and (max-width:1020px){
+  :root:is([data-text-size="comfortable"],[data-text-size="large"]) .geo-search-toggle{min-width:44px;width:44px;padding:var(--s-1)}
+  :root:is([data-text-size="comfortable"],[data-text-size="large"]) .geo-search-toggle-label,:root:is([data-text-size="comfortable"],[data-text-size="large"]) .tutorial-help-label,:root:is([data-text-size="comfortable"],[data-text-size="large"]) .appearance-control>span{display:none}
+  :root:is([data-text-size="comfortable"],[data-text-size="large"]) .tutorial-help{min-width:44px;width:44px;justify-content:center;padding:var(--s-1)}
+  :root:is([data-text-size="comfortable"],[data-text-size="large"]) .appearance-control{position:static;display:flex;align-items:center;gap:var(--s-1);min-width:0}
+  :root:is([data-text-size="comfortable"],[data-text-size="large"]) .appearance-control:before{content:"◐";color:var(--chrome-text-brand-subtle)}
+}
+@media(min-width:681px) and (max-width:712px){
+  :root[data-text-size="large"] .brand-title{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  :root[data-text-size="large"] .brand-short{display:block}
+}
