@@ -22,6 +22,16 @@ const LAYER_LABEL = {
 };
 const DENSE_LAYER_TYPES = new Set(["stay", "bike"]);
 
+// Left-rail legend dots take their silhouette from the same table as the map
+// markers (js/marker-shapes.js), so the two cannot drift (#152).
+Object.keys(OPERATIONAL_MARKER_SHAPES).forEach((type) => {
+  const dot = document.querySelector(`.layer-left > .dot-${type}`);
+  if (!dot) return;
+  dot.classList.add("dot-shaped");
+  dot.style.clipPath = markerShapeClipPath(type);
+  dot.dataset.markerShape = OPERATIONAL_MARKER_SHAPES[type].name;
+});
+
 // Dynamic import resolves against this script, so the administrative-context
 // modules load identically however the page is served. They are ES modules
 // (shared with `node --test`), while the rest of the app is classic scripts.
@@ -2366,14 +2376,15 @@ function addMarker(p) {
     color = utciCategoryColor(p.utci);
     r = 5.3;
   }
-  const m = L.circleMarker([p.lat, p.lon], {
+  // Operational layers add a non-colour silhouette (#152); heat stays a circle.
+  const m = createOperationalMarker([p.lat, p.lon], {
     radius: r,
     color: MARKER_OUTLINE,
     fillColor: color,
     weight: MARKER_OUTLINE_WEIGHT,
     opacity: 1,
     fillOpacity: 0.78,
-  });
+  }, p.type);
   m._p = p;
   m.bindTooltip(tooltipFor(p), { direction: "top", offset: [0, -4] });
   m.addTo(groups[p.type]);
