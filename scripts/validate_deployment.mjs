@@ -2407,6 +2407,52 @@ function validateDomesticOrigins(source, artifact, meta, errors, warnings) {
   return { record_count: count, state: count ? "available" : "unavailable", source_period: artifact.source_period?.latest || null, warnings: [] };
 }
 
+// Committed all-Spain municipality reference points (IGN NGMEP). BLOCKING: the
+// Domestic Origins map places published origins from this file, so a swapped
+// axis, a mis-keyed code, a truncated table or an origin without a point would
+// draw a municipality in the wrong place (or silently omit it) under a correct
+// label. It must also still cover every origin the committed INE artifact
+// publishes, in every month.
+function validateMunicipalityReferencePoints(source, artifact, meta, originsArtifact, errors, warnings) {
+  const sink = source.blocks_deployment ? errors : warnings;
+  const label = source.display_name;
+  const points = artifact?.points;
+  if (!points || typeof points !== "object" || Array.isArray(points)) {
+    sink.push(`${label}: ${source.artifact} is missing or has no points object`);
+    return { record_count: 0, state: "unavailable", source_period: null, warnings: [] };
+  }
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) sink.push(`${label}: provenance sidecar is missing or invalid`);
+  const src = artifact.source ?? {};
+  if (!isNonEmptyString(src.authority) || src.authority !== source.authority || src.download_page !== source.dataset_url || !isNonEmptyString(src.retrieved_at)) sink.push(`${label}: artifact source provenance is incomplete or does not name the registered authority`);
+  if (src.licence !== source.license) sink.push(`${label}: artifact licence does not match the registered licence`);
+  if (src.edition !== source.reference_date || src.retrieved_at !== source.retrieved_at) sink.push(`${label}: artifact edition/retrieval does not match the registry reference_date/retrieved_at`);
+  if (JSON.stringify(meta?.source) !== JSON.stringify(src)) sink.push(`${label}: sidecar source provenance does not match the artifact`);
+  for (const key of ["archive_sha256", "table_sha256"]) if (!/^[0-9a-f]{64}$/.test(meta?.fingerprints?.[key] ?? "")) sink.push(`${label}: sidecar ${key} is missing or malformed`);
+  if (artifact.coordinates?.order !== "[longitude, latitude]") sink.push(`${label}: coordinate order is not [longitude, latitude]`);
+  if (!/not the centroid of the municipal territory/i.test(artifact.coordinates?.semantics || "")) sink.push(`${label}: coordinate semantics no longer say the point is not the territory centroid`);
+  const [lonMin, lonMax] = source.integrity_envelope?.longitude ?? [NaN, NaN];
+  const [latMin, latMax] = source.integrity_envelope?.latitude ?? [NaN, NaN];
+  const codes = Object.keys(points);
+  let outside = 0; let malformed = 0;
+  for (const code of codes) {
+    const point = points[code];
+    if (!/^\d{5}$/.test(code) || !Array.isArray(point) || point.length !== 2) { malformed += 1; continue; }
+    const [lon, lat] = point;
+    if (!Number.isFinite(lon) || !Number.isFinite(lat) || lon < lonMin || lon > lonMax || lat < latMin || lat > latMax) outside += 1;
+  }
+  if (malformed) sink.push(`${label}: ${malformed} point(s) have a malformed key or value`);
+  if (outside) sink.push(`${label}: ${outside} point(s) fall outside the declared integrity envelope (swapped axis or mis-scaled coordinate)`);
+  if (artifact.record_count !== codes.length || meta?.integrity?.record_count !== codes.length) sink.push(`${label}: record_count (${artifact.record_count}) does not match the ${codes.length} points`);
+  const floor = source.integrity_guardrail?.min_count;
+  if (Number.isInteger(floor) && codes.length < floor) sink.push(`${label}: ${codes.length} points is below the collapse floor ${floor}`);
+  if (!points["28079"]) sink.push(`${label}: Madrid (28079), the map destination, has no point`);
+  // Join coverage: every published origin, in every month, must have a point.
+  const missing = new Set();
+  for (const month of originsArtifact?.months ?? []) for (const origin of month?.published_origins ?? []) if (!points[origin?.origin_municipality_code]) missing.add(origin?.origin_municipality_code);
+  if (missing.size) sink.push(`${label}: ${missing.size} published origin municipality code(s) have no reference point (first: ${[...missing].slice(0, 5).join(", ")})`);
+  return { record_count: codes.length, state: codes.length ? "available" : "unavailable", source_period: src.edition ?? null, warnings: [] };
+}
+
 // Committed official-callejero NDP crosswalk (K9, #71). BLOCKING: the licence
 // layer's coordinates and barrios come from it, so a missing, truncated or
 // collapsed crosswalk would publish a mislocated or empty evidence layer. The
@@ -2847,6 +2893,9 @@ export function validateDeployment({
       case "destination_domestic_origins":
         result = validateDomesticOrigins(source, artifacts[source.artifact], artifacts[source.meta_artifact], errors, warnings);
         break;
+      case "municipality_reference_points":
+        result = validateMunicipalityReferencePoints(source, artifacts[source.artifact], artifacts[source.meta_artifact], artifacts["destination/madrid_domestic_origins.json"], errors, warnings);
+        break;
       case "planning_ambito_geometry":
         result = validatePlanningGeometry(
           source,
@@ -3006,6 +3055,10 @@ const ARTIFACT_FILES = [
   // Committed canonical administrative geography (not rebuilt at deploy).
   "geography/madrid_admin.geojson",
   "geography/madrid_admin.meta.json",
+  // Committed all-Spain municipality reference points that place published
+  // domestic origins on a map (not rebuilt at deploy).
+  "geography/spain_municipality_points.json",
+  "geography/spain_municipality_points.meta.json",
   // Committed residential population denominator (not rebuilt at deploy).
   "population/madrid_population.json",
   "population/madrid_population.meta.json",

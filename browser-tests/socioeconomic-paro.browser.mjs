@@ -238,7 +238,7 @@ test("outside Madrid there is no barrio statistic: the block is absent, emptied 
 // id does not move. A browser can then never pair a new app.js with a cached registry,
 // dictionary, scope rail or Area Profile module.
 test("actual request URLs: modified resources carry the release version, unmodified data keeps its asset identity", async () => {
-  const RELEASE = "20261102-textsize-v1";
+  const RELEASE = "20261103-originmap-v1";
   const ASSET = "20261029-m3-dossier-v1";
   const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
   const page = await context.newPage();

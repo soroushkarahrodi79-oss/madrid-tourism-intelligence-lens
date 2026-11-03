@@ -406,7 +406,7 @@ test("the open compact finder never shares space with the Layers control or its 
         });
         assert.equal(covered, false, `${tag}: the Layers control is not covered`);
         // The map credit is still in the document and not hidden by the finder's own styles.
-        assert.equal(await page.locator(".leaflet-control-attribution").count(), 1, `${tag}: attribution is retained`);
+        assert.equal(await page.locator("#map .leaflet-control-attribution").count(), 1, `${tag}: attribution is retained`);
         assert.equal(await page.locator("#geoSearchQuery").isVisible(), true, `${tag}: the field is visible`);
         const fieldRect = await rect("#geoSearchQuery");
         assert.ok(fieldRect.bottom <= height, `${tag}: the field is reachable without scrolling the page`);

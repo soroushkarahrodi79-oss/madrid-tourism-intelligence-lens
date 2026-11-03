@@ -1159,7 +1159,7 @@ test("P1 Leaflet credits: map attribution links remain navigable but never inher
   })));
   assert.ok(geometry.every((row) => row.display === "inline"), JSON.stringify(geometry));
   assert.ok(geometry.every((row) => row.width < 150 && row.height < 44 && row.href.startsWith("http")), JSON.stringify(geometry));
-  const attribution = await page.locator(".leaflet-control-attribution").boundingBox();
+  const attribution = await page.locator("#map .leaflet-control-attribution").boundingBox();
   assert.ok(attribution && attribution.height < 90, JSON.stringify(attribution));
 });
 test("P1 AC4: quick-jump controls meet 44px with a coarse pointer", async (t) => {

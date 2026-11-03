@@ -36,8 +36,8 @@ test("the pre-paint resolver, control, script and localized copy are wired", () 
   assert.match(html, /<select id="textSizeSelect"/);
   assert.ok(html.indexOf('id="basemapSelect"') < html.indexOf('id="textSizeSelect"'));
   assert.ok(html.indexOf('id="textSizeSelect"') < html.indexOf('id="boundarySelect"'));
-  assert.match(html, /js\/text-size\.js\?v=20261102-textsize-v1/);
-  assert.match(html, /css\/app\.css\?v=20261102-textsize-v1/);
+  assert.match(html, /js\/text-size\.js\?v=20261103-originmap-v1/);
+  assert.match(html, /css\/app\.css\?v=20261103-originmap-v1/);
   for (const key of ["textSize.label", "textSize.normal", "textSize.comfortable", "textSize.large"]) {
     assert.equal(shell.split(`"${key}"`).length - 1, 2, `${key} exists in EN and ES`);
   }

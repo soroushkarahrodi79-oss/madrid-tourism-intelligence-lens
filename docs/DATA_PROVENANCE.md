@@ -772,6 +772,54 @@ independent of barrios, districts, map coordinates and Lens state.
   months publish a value, and remains descriptive rather than causal or
   predictive.
 
+## Geography: Spanish municipality reference points (`data/geography/spain_municipality_points.json`)
+
+This committed, all-Spain artifact places published origin municipalities on the
+Domestic origins map. It is not rebuilt at deployment, carries no tourism,
+population or flow information, and is the only coordinate source the map uses.
+
+- **Authority / source:** Instituto Geográfico Nacional (IGN) · Centro Nacional
+  de Información Geográfica (CNIG), *Nomenclátor Geográfico de Municipios y
+  Entidades de Población* (NGMEP), CSV + MDB archive `BD_Municipios-Entidades.zip`
+  from the CNIG download centre, edition **2026-03** (`202603_NGMEP.mdb`), table
+  `MUNICIPIOS.csv`. The edition token is a label, not a publication date, so
+  `published_at` is null.
+- **Retrieval:** the download form is protected by bot detection, so the archive
+  is downloaded by a person and is never scripted. `retrieved_at`
+  (2026-11-03T07:11:22Z) is the archive's modification time. Fingerprints are in
+  the sidecar: archive SHA-256
+  `496e3079d3b1844e2827d9dfc328fcd2e629e72c2640b46840daa3711b915116`, table SHA-256
+  `00784dfae9d601fd1d3cf2ac7e00e497e755922b260a103b6f01705041bb65a5`.
+- **Key and join:** the first five digits of the eleven-digit `COD_INE`
+  (province + municipality; the other six are `000000` on municipality rows), a
+  zero-padded string identical to `origin_municipality_code` in
+  `madrid_domestic_origins.json`. 8,132 municipalities, no duplicate key. All 2,817
+  distinct origin codes across the seven committed months match (100 % of rows and
+  of source-reported tourists per month).
+- **Coordinates:** `LONGITUD_ETRS89_REGCAN95` / `LATITUD_ETRS89_REGCAN95`
+  (decimal comma in the source), ETRS89 for the Peninsula and Balearic Islands and
+  REGCAN95 for the Canary Islands; both are WGS84-compatible and used as WGS84.
+  Stored as `[longitude, latitude]`, rounded to 6 decimals (about 0.1 m, far below
+  the precision of the source). The sidecar records the IGN `ORIGENCOOR` source
+  distribution (automatic detection 7,184; research 387; GPS 366; map 129;
+  coordinated population gazetteer 66).
+- **Meaning of a point:** per the IGN documentation, a point placed as centrally
+  as possible inside the municipality's main **population nucleus**. It is not the
+  centroid of the municipal territory and not a boundary; a municipality with
+  several nuclei or a large rural area can have its point far from its geometric
+  centre. The interface says so.
+- **Licence:** Orden FOM/2807/2015 licence of use, compatible with CC BY 4.0;
+  authorship must be acknowledged (credited on the map). The exact credit formula
+  prescribed by the download page was not captured and must be confirmed before a
+  public release.
+- **Integrity and refresh:** `scripts/build_municipality_reference_points.py`
+  (`--zip <archive>`) checks the archive layout, required columns, key shape and
+  uniqueness, a Spain-wide coordinate envelope (longitude −19 to 5, latitude 27 to
+  44.5) and a floor of 8,000 rows before writing the artifact and sidecar. The
+  deployment validator additionally requires the registered licence, edition and
+  retrieval time, a Madrid (28079) point, and a point for every origin published
+  in the committed INE artifact. Never commit the archive itself.
+
 
 ## Observed pedestrian activity (`data/pedestrian_activity.json`)
 

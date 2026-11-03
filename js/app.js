@@ -44,9 +44,9 @@ const AREA_ASSET_VERSION = "20261029-m3-dossier-v1";
 // release version, so a browser can never combine a new app.js with an old registry,
 // dictionary or Area Profile module. tests/domestic_origin_dynamics_ui.test.mjs pins
 // that they stay equal.
-const ORIGIN_CONTEXT_MODULE_VERSION = "20261102-textsize-v1";
-const AREA_PROFILE_MODULE_VERSION = "20261102-textsize-v1";
-const REGISTRY_ASSET_VERSION = "20261102-textsize-v1";
+const ORIGIN_CONTEXT_MODULE_VERSION = "20261103-originmap-v1";
+const AREA_PROFILE_MODULE_VERSION = "20261103-originmap-v1";
+const REGISTRY_ASSET_VERSION = "20261103-originmap-v1";
 const moduleUrl = (name, version = AREA_ASSET_VERSION) => new URL(`${name}?v=${version}`, MODULE_BASE).href;
 
 // K11 (#73): the evidence-snapshot identity carried in a shared link, so a reader
@@ -5522,6 +5522,11 @@ const destinationModel = { module: null, index: null, meta: null };
 let destinationState = "loading"; // loading | ready | unavailable
 const originModel = { module: null, index: null, i18n: null, dynamics: null, dynamicsI18n: null };
 let originMonth = null;
+// The origin map joins the highest published origins to separately sourced municipality
+// reference points (declared in the source registry). It is a separate, optional layer:
+// if its module or points fail to load, the chart, table and
+// dynamics above are unaffected and the map simply stays hidden.
+const originMap = { module: null, i18n: null, pointIndex: null, leaflet: null, layer: null, bounds: null, limit: 10 };
 
 function renderDestinationContext() {
   const section = document.getElementById("destinationContext");
@@ -5789,6 +5794,54 @@ function renderDomesticOriginChart(top) {
   const fill = (key) => originT(key).replace(/\{(\w+)\}/g, (_, name) => ({ month: top.month, shown: top.shown.toLocaleString("en-GB"), total: top.total.toLocaleString("en-GB") })[name] ?? "");
   setText("domesticOriginsChartTitle", fill("chartTitle")); setText("domesticOriginsChartCount", fill("chartCount")); setText("domesticOriginsChartScale", fill("chartScale"));
 }
+function mapT(key, values = {}) { return (originMap.i18n?.t(key) || key).replace(/\{(\w+)\}/g, (_, name) => values[name] ?? ""); }
+function ensureOriginLeaflet() {
+  const canvas = document.getElementById("domesticOriginsMapCanvas");
+  if (!canvas || typeof L === "undefined") return null;
+  if (!originMap.leaflet) {
+    // Wheel zoom stays off so scrolling the panel never gets captured by the map.
+    const leaflet = L.map(canvas, { zoomControl: true, preferCanvas: true, scrollWheelZoom: false }).setView([40.2, -3.7], 5);
+    leaflet.attributionControl.setPrefix(false);
+    createOsmBasemap().addTo(leaflet);
+    originMap.layer = L.layerGroup().addTo(leaflet);
+    // The panel may be hidden (another mode) when this renders; fit again once it has a size.
+    if (typeof ResizeObserver === "function") new ResizeObserver(() => { leaflet.invalidateSize(); if (originMap.bounds) leaflet.fitBounds(originMap.bounds, { padding: [28, 28], maxZoom: 7 }); }).observe(canvas);
+    originMap.leaflet = leaflet;
+  }
+  return originMap.leaflet;
+}
+function renderDomesticOriginMap(model) {
+  const figure = document.getElementById("domesticOriginsMap");
+  if (!figure) return;
+  const mapModule = originMap.module;
+  const mapModel = mapModule ? mapModule.buildDomesticOriginMapModel({ model, pointIndex: originMap.pointIndex, limit: originMap.limit }) : null;
+  const ready = Boolean(mapModel) && mapModel.state === mapModule.MAP_STATE.AVAILABLE;
+  figure.hidden = !ready;
+  if (!ready) { originMap.bounds = null; originMap.layer?.clearLayers(); return; }
+  setText("domesticOriginsMapTitle", mapT("mapTitle", { month: mapModel.month }));
+  setText("domesticOriginsMapCount", mapT("mapCount", { placed: mapModel.points.length.toLocaleString("en-GB"), shown: mapModel.shown.toLocaleString("en-GB") }));
+  setText("domesticOriginsMapScale", mapT("mapScale"));
+  setText("domesticOriginsMapAttribution", mapT("attribution", { edition: mapModel.edition }));
+  setText("domesticOriginsMapLimitLabel", mapT("limitLabel"));
+  const select = document.getElementById("domesticOriginsMapLimit");
+  if (select) { select.innerHTML = mapModule.MAP_LIMITS.map((n) => `<option value="${n}">${mapT("limitOption", { n })}</option>`).join(""); select.value = String(originMap.limit); }
+  const unplaced = document.getElementById("domesticOriginsMapUnplaced");
+  if (unplaced) { unplaced.hidden = mapModel.unplaced.length === 0; unplaced.textContent = mapModel.unplaced.length ? mapT("unplaced", { list: mapModel.unplaced.map((u) => `${u.name} (${u.code})`).join(", ") }) : ""; }
+  document.getElementById("domesticOriginsMapCanvas")?.setAttribute("aria-label", mapT("mapAria", { shown: mapModel.shown, month: mapModel.month }));
+  const leaflet = ensureOriginLeaflet();
+  if (!leaflet) return;
+  originMap.layer.clearLayers();
+  // Largest first so smaller circles are drawn on top and stay hoverable.
+  for (const p of mapModel.points) {
+    L.circleMarker([p.lat, p.lon], { radius: p.radiusPx, weight: 1.5, color: "#0b3d5c", fillColor: "#2f8fd1", fillOpacity: 0.55 })
+      .bindTooltip(`${p.position}. ${p.name} (${p.code}) — ${p.countDisplay}`).addTo(originMap.layer);
+  }
+  const d = mapModel.destination;
+  L.circleMarker([d.lat, d.lon], { radius: 5, weight: 2, color: "#111111", fillColor: "#ffffff", fillOpacity: 1 }).bindTooltip(mapT("destination")).addTo(originMap.layer);
+  originMap.bounds = L.latLngBounds([...mapModel.points.map((p) => [p.lat, p.lon]), [d.lat, d.lon]]);
+  leaflet.invalidateSize();
+  leaflet.fitBounds(originMap.bounds, { padding: [28, 28], maxZoom: 7 });
+}
 function renderDomesticOrigins() {
   const host = document.getElementById("domesticOrigins");
   if (!host || !originModel.module || !originModel.i18n) return;
@@ -5808,6 +5861,7 @@ function renderDomesticOrigins() {
   const select = document.getElementById("domesticOriginsMonth");
   if (select) { select.innerHTML = (model.availableMonths || []).slice().reverse().map((month) => `<option value="${month}">${month}</option>`).join(""); select.value = model.month || ""; select.disabled = model.state === module.ORIGIN_STATE.UNAVAILABLE; }
   renderDomesticOriginChart(module.buildDomesticOriginRanking(model));
+  renderDomesticOriginMap(model);
   const rows = document.getElementById("domesticOriginsRows");
   if (rows) rows.innerHTML = model.origins.map((row) => `<tr><td>${escapeHtml(row.origin_municipality_name)} <span class="muted">${row.origin_municipality_code}</span></td><td>${row.countDisplay}</td></tr>`).join("");
   setText("domesticOriginsState", model.state === module.ORIGIN_STATE.UNAVAILABLE ? originT("unavailable") : model.state === module.ORIGIN_STATE.MONTH_UNAVAILABLE ? originT("periodUnavailable") : module.ORIGIN_SCOPE_CAVEAT);
@@ -5816,7 +5870,8 @@ function renderDomesticOrigins() {
 }
 async function loadDomesticOrigins() {
   try {
-    const [module, dynamicsModule, i18nModule, artifact] = await Promise.all([import(moduleUrl("domestic-origin-context.js", ORIGIN_CONTEXT_MODULE_VERSION)), import(moduleUrl("domestic-origin-dynamics.js")), import(moduleUrl("i18n.js")), fetchAreaJson("data/destination/madrid_domestic_origins.json")]);
+    const [module, dynamicsModule, i18nModule, artifact, mapModule, pointsArtifact] = await Promise.all([import(moduleUrl("domestic-origin-context.js", ORIGIN_CONTEXT_MODULE_VERSION)), import(moduleUrl("domestic-origin-dynamics.js")), import(moduleUrl("i18n.js")), fetchAreaJson("data/destination/madrid_domestic_origins.json"), import(moduleUrl("domestic-origin-map.js")).catch(() => null), fetchAreaJson("data/geography/spain_municipality_points.json").catch(() => null)]);
+    originMap.module = mapModule; originMap.pointIndex = mapModule && pointsArtifact ? mapModule.createMunicipalityPointIndex(pointsArtifact) : null; originMap.i18n = mapModule ? i18nModule.createI18n(mapModule.MAP_DICTIONARIES, document.getElementById("languageSelect").value) : null;
     originModel.module = module; originModel.dynamics = dynamicsModule; originModel.i18n = i18nModule.createI18n(module.ORIGIN_DICTIONARIES, document.getElementById("languageSelect").value); originModel.dynamicsI18n = i18nModule.createI18n(dynamicsModule.DYNAMICS_DICTIONARIES, document.getElementById("languageSelect").value); originModel.index = module.createDomesticOriginIndex(artifact); originMonth = originModel.index?.latest || null; renderDomesticOrigins();
   } catch (error) { console.warn("domestic origin context unavailable", error); if (originModel.module) renderDomesticOrigins(); }
 }
@@ -6160,6 +6215,7 @@ document.getElementById("languageSelect").onchange = (event) => {
   applyHospitalityCopy();
   originModel.i18n?.setLanguage(language);
   originModel.dynamicsI18n?.setLanguage(language);
+  originMap.i18n?.setLanguage(language);
   renderDomesticOrigins();
   renderComparisonBridge();
   renderDecisionInsight();
@@ -6191,6 +6247,8 @@ document.getElementById("languageSelect").onchange = (event) => {
   k11ScheduleUrlCommit();
 };
 document.getElementById("domesticOriginsMonth").onchange = (event) => { originMonth = event.target.value; renderDomesticOrigins(); k11ScheduleUrlCommit(); };
+// How many origins the map shows is a local view choice, not shared evidence state: it is not part of the K11 URL or export.
+document.getElementById("domesticOriginsMapLimit").onchange = (event) => { originMap.limit = Number(event.target.value); renderDomesticOrigins(); };
 document.getElementById("hospitalityMetricSelect").onchange = (event) => {
   if (!hospitalityModel.module?.APPROVED_INDICATOR_IDS.includes(event.target.value)) return;
   hospitalityMetric = event.target.value;
