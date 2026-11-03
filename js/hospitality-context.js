@@ -15,12 +15,18 @@ export const APPROVED_INDICATOR_IDS = Object.freeze([
   "core_hospitality_premises_per_1000_residents",
 ]);
 
-// Cartographic HOLD (docs/HOSPITALITY_CHOROPLETH_HOLD.md). The administrative
-// values, barrio selection and context card are unaffected; only the
-// value-driven polygon FILL and its min–max gradient legend are suspended, because
-// no indicator has passed the fill method gate (denominator/area bias, class
-// breaks, legend, misinterpretation review). Flip only after that review.
-export const VALUE_FILL_ENABLED = false;
+// Cartographic HOLD (docs/HOSPITALITY_CHOROPLETH_HOLD.md), lifted per indicator.
+// Only the indicators listed here may colour a barrio polygon, and only through
+// the classed encoding below (quantile classes, real breaks shown in the legend).
+// Every other indicator stays outline-only: counts are confounded by barrio size
+// and the per-resident rate is dominated by small denominators.
+export const FILL_INDICATOR_IDS = Object.freeze([
+  "core_hospitality_membership_share_of_populated_taxonomy_premises",
+]);
+export const FILL_CLASS_COUNT = 5;
+// Barrios whose populated-taxonomy base is below this are flagged: their share
+// carries a binomial standard error of about 2.5 to 7 points (see the HOLD doc).
+export const SMALL_BASE_THRESHOLD = 200;
 
 export const HOSPITALITY_DICTIONARIES = Object.freeze({
   es: Object.freeze({
@@ -45,7 +51,14 @@ export const HOSPITALITY_DICTIONARIES = Object.freeze({
     methodologyLink: "Metodología completa",
     selectorHint: "Polígonos oficiales de barrio · el clic mueve el Lens activo y fija el contexto del barrio",
     hoverHint: "Seleccione un barrio para fijar este contexto administrativo.",
-    fillHold: "Los barrios no se colorean por valor: el mapa coroplético está en suspenso hasta una revisión metodológica. Consulte el valor en el contexto administrativo.",
+    fillHold: "Esta métrica no colorea el mapa: el coroplético solo está habilitado para la proporción de hostelería. Consulte el valor en el contexto administrativo.",
+    mapBadge: "mapa",
+    panelOnlyBadge: "solo panel",
+    legendTitle: "Clases por cuantiles (5 clases de ≈26 barrios), %",
+    legendNote: "Pertenencia no excluyente dentro de locales con taxonomía poblada (incluye «sin actividad»; excluye taxonomía en blanco, 3–47 % según barrio). No indica presión, saturación, capacidad ni negocios en funcionamiento. Sep 2026; el estado del local es mutable y ~25 % no tiene coordenadas.",
+    smallBase: "Base pequeña",
+    smallBaseNote: "contorno discontinuo: menos de 200 locales con taxonomía poblada; proporción inestable",
+    smallBaseTooltip: "Base pequeña (≈{n} locales con taxonomía poblada)",
     municipalityHint: "Total del municipio; los registros sin barrio se conservan cuando corresponde.",
     countHint: "Recuento administrativo de locales documentados; no acredita funcionamiento actual.",
     sourceCountHint: "Locales documentados tras las exclusiones expresas de la fuente; no son negocios activos verificados.",
@@ -87,7 +100,14 @@ export const HOSPITALITY_DICTIONARIES = Object.freeze({
     methodologyLink: "Full methodology",
     selectorHint: "Official barrio polygons · click moves the active Lens and selects that barrio context",
     hoverHint: "Select a barrio to hold this administrative context.",
-    fillHold: "Barrios are not shaded by value: the choropleth is on hold pending a methodological review. Read the value in the administrative context.",
+    fillHold: "This metric does not shade the map: the choropleth is enabled only for the hospitality share. Read the value in the administrative context.",
+    mapBadge: "map",
+    panelOnlyBadge: "panel only",
+    legendTitle: "Quantile classes (5 classes of ≈26 barrios), %",
+    legendNote: "Non-exclusive membership among premises with populated taxonomy (includes “no activity”; excludes blank taxonomy, 3–47% by barrio). Not pressure, saturation, capacity or operating businesses. Sep 2026; premises status is mutable and ~25% have no coordinates.",
+    smallBase: "Small base",
+    smallBaseNote: "dashed outline: fewer than 200 premises with populated taxonomy; unstable share",
+    smallBaseTooltip: "Small base (≈{n} premises with populated taxonomy)",
     municipalityHint: "Municipality total; records without a barrio remain included where applicable.",
     countHint: "Administrative count of documented premises; not evidence of current operation.",
     sourceCountHint: "Documented premises after the source's explicit exclusions; not verified active businesses.",
@@ -235,10 +255,43 @@ export function normalizedMetricValue(value, domain) {
   return Math.max(0, Math.min(1, (value - domain.min) / (domain.max - domain.min)));
 }
 
-// Value-driven fill intensity in [0, 1], or null when the fill is suspended or
-// the value is unavailable. The ONLY path from an indicator value to a polygon
-// fill; callers must treat null as "no fill".
-export function fillIntensity(value, domain) {
-  if (!VALUE_FILL_ENABLED) return null;
-  return normalizedMetricValue(value, domain);
+export function hasValueFill(indicatorId) {
+  return FILL_INDICATOR_IDS.includes(indicatorId);
+}
+
+// Quantile class breaks (FILL_CLASS_COUNT - 1 cut values) over the barrio values.
+// A value belongs to class k when exactly k breaks are <= it. Null when the
+// indicator is not fill-enabled or has no values.
+export function quantileCuts(index, indicatorId) {
+  if (!hasValueFill(indicatorId)) return null;
+  const values = [...index.barrio.values()]
+    .map((row) => row.indicators[indicatorId])
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+  if (values.length < FILL_CLASS_COUNT) return null;
+  return Array.from({ length: FILL_CLASS_COUNT - 1 }, (_, k) =>
+    values[Math.ceil(((k + 1) * values.length) / FILL_CLASS_COUNT)]
+  );
+}
+
+// The ONLY path from an indicator value to a polygon fill: a class index in
+// [0, FILL_CLASS_COUNT - 1], or null ("no fill") for any non-enabled indicator,
+// missing value or missing breaks.
+export function fillClass(indicatorId, value, breaks) {
+  if (!hasValueFill(indicatorId) || !Number.isFinite(value) || !breaks) return null;
+  return breaks.filter((cut) => cut <= value).length;
+}
+
+// Populated-taxonomy base (the share's denominator) recovered from the artifact:
+// the share is stored to six decimals, so core / share is exact after rounding.
+export function populatedTaxonomyBase(row) {
+  const share = row?.indicators?.["core_hospitality_membership_share_of_populated_taxonomy_premises"];
+  const core = row?.indicators?.core_hospitality_premises_count;
+  if (!(share > 0) || !Number.isFinite(core)) return null;
+  return Math.round((core * 100) / share);
+}
+
+export function isSmallBase(row) {
+  const base = populatedTaxonomyBase(row);
+  return base != null && base < SMALL_BASE_THRESHOLD;
 }

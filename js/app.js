@@ -5231,23 +5231,36 @@ function hospitalityPalette(name = activeBasemapName) {
   }[name] || { stroke: "#4e3761", selected: "#15101a", opacity: 0.34 };
 }
 
+const HOSPITALITY_CLASS_COLORS = ["#efe0f7", "#d9b5ec", "#bd86dc", "#9a55c2", "#6e2c98"];
+
+function hospitalityFillBreaks() {
+  const { module, index } = hospitalityModel;
+  return module && index ? module.quantileCuts(index, hospitalityMetric) : null;
+}
+
+function hospitalityMetricOptionLabel(id) {
+  const badge = hospitalityModel.module?.hasValueFill(id) ? "mapBadge" : "panelOnlyBadge";
+  return `${hospitalityT(id)} · ${hospitalityT(badge)}`;
+}
+
 function hospitalityFeatureStyle(feature) {
   const module = hospitalityModel.module;
   const row = hospitalityModel.index?.barrio.get(String(feature?.properties?.official_id));
   const value = row?.indicators?.[hospitalityMetric];
-  const domain = hospitalityModel.index ? module.metricDomain(hospitalityModel.index, hospitalityMetric) : null;
-  // Cartographic HOLD: fillIntensity is null while the value fill is suspended,
-  // so no indicator value can reach a polygon fill.
-  const normalized = module?.fillIntensity(value, domain);
-  const filled = normalized != null;
+  // Cartographic HOLD, lifted per indicator: fillClass is null unless the metric
+  // is in FILL_INDICATOR_IDS, so no other value can reach a polygon fill.
+  const cls = module?.fillClass(hospitalityMetric, value, hospitalityFillBreaks());
+  const filled = cls != null;
+  const smallBase = filled && module.isSmallBase(row);
   const palette = hospitalityPalette();
   const selected = String(feature?.properties?.official_id) === hospitalitySelectedBarrio;
   return {
     color: selected ? palette.selected : palette.stroke,
     weight: selected ? 2.6 : 0.8,
     opacity: selected ? 1 : 0.72,
-    fillColor: filled ? `hsl(276 78% ${80 - normalized * 38}%)` : "#8794a2",
-    fillOpacity: filled ? palette.opacity : 0,
+    dashArray: smallBase && !selected ? "3 3" : null,
+    fillColor: filled ? HOSPITALITY_CLASS_COLORS[cls] : "#8794a2",
+    fillOpacity: filled ? Math.min(0.75, palette.opacity + 0.22) : 0,
     lineJoin: "round",
     className: selected ? "hospitality-barrio-selected" : "",
   };
@@ -5264,8 +5277,12 @@ function hospitalityTooltip(feature) {
     hospitalityModel.i18n.language
   );
   const unit = hospitalityT(module.metricUnitKey(hospitalityMetric));
+  const base = module.hasValueFill(hospitalityMetric) && module.isSmallBase(row)
+    ? `${escapeHtml(hospitalityT("smallBaseTooltip").replace("{n}", module.populatedTaxonomyBase(row)))}<br>`
+    : "";
   return (
     `<b>${escapeHtml(row.official_name)}</b><br>` +
+    base +
     `${escapeHtml(hospitalityT(hospitalityMetric))}<br>` +
     `<strong>${escapeHtml(value)}</strong> ${escapeHtml(unit)}<br>` +
     `${escapeHtml(hospitalityT("premisesReference"))} · ${escapeHtml(hospitalityT("hoverHint"))}`
@@ -5319,16 +5336,37 @@ hospitalityStyleController = applyHospitalityStyles;
 function renderHospitalityScale() {
   const scale = document.getElementById("hospitalityScale");
   if (!scale || !hospitalityModel.index || !hospitalityModel.module) return;
-  // Without a value-driven fill there is nothing for a min–max legend to explain.
-  scale.hidden = !hospitalityModel.module.VALUE_FILL_ENABLED;
-  if (scale.hidden) {
+  // Legend only for fill-enabled indicators: real class breaks, units and caveats.
+  const breaks = hospitalityFillBreaks();
+  scale.hidden = !breaks;
+  if (!breaks) {
+    scale.replaceChildren();
     delete scale.dataset.min;
     delete scale.dataset.max;
     scale.removeAttribute("aria-label");
     return;
   }
-  const domain = hospitalityModel.module.metricDomain(hospitalityModel.index, hospitalityMetric);
   const language = hospitalityModel.i18n.language;
+  const fmt = (v) => hospitalityModel.module.formatMetricValue(hospitalityMetric, v, language);
+  const domain = hospitalityModel.module.metricDomain(hospitalityModel.index, hospitalityMetric);
+  const bounds = [domain.min, ...breaks, domain.max];
+  const title = document.createElement("div");
+  title.className = "hospitality-legend-title";
+  title.textContent = hospitalityT("legendTitle");
+  const list = document.createElement("ul");
+  list.className = "hospitality-legend-list";
+  HOSPITALITY_CLASS_COLORS.forEach((color, k) => {
+    const item = document.createElement("li");
+    const swatch = document.createElement("span");
+    swatch.className = "hospitality-legend-swatch";
+    swatch.style.background = color;
+    item.append(swatch, `${fmt(bounds[k])} – ${k < HOSPITALITY_CLASS_COLORS.length - 1 ? "<" : ""}${fmt(bounds[k + 1])}`);
+    list.append(item);
+  });
+  const note = document.createElement("p");
+  note.className = "hospitality-legend-note";
+  note.textContent = `${hospitalityT("smallBase")} — ${hospitalityT("smallBaseNote")}. ${hospitalityT("legendNote")}`;
+  scale.replaceChildren(title, list, note);
   scale.dataset.min = hospitalityModel.module.formatMetricValue(hospitalityMetric, domain?.min, language) || "—";
   scale.dataset.max = hospitalityModel.module.formatMetricValue(hospitalityMetric, domain?.max, language) || "—";
   scale.setAttribute(
@@ -5352,13 +5390,13 @@ function applyHospitalityCopy() {
   setText("hospitalitySelectorHint", hospitalityT("selectorHint"));
   setText("hospitalityFillHold", hospitalityT("fillHold"));
   const fillHold = document.getElementById("hospitalityFillHold");
-  if (fillHold) fillHold.hidden = module.VALUE_FILL_ENABLED;
+  if (fillHold) fillHold.hidden = module.hasValueFill(hospitalityMetric);
   setText("hospitalityMethodologyLink", hospitalityT("methodologyLink"));
   const toggle = document.getElementById("hospitalityToggle");
   toggle.setAttribute("aria-label", hospitalityT("layerToggle"));
   const select = document.getElementById("hospitalityMetricSelect");
-  for (const option of select.options) option.textContent = hospitalityT(option.value);
-  setText("hospitalityMetricSelectValue", hospitalityT(hospitalityMetric));
+  for (const option of select.options) option.textContent = hospitalityMetricOptionLabel(option.value);
+  setText("hospitalityMetricSelectValue", hospitalityMetricOptionLabel(hospitalityMetric));
   renderHospitalityScale();
   rebuildHospitalityLayer();
   renderHospitalityContext();
@@ -5480,7 +5518,7 @@ async function loadHospitalityContext() {
       ...module.APPROVED_INDICATOR_IDS.map((id) => {
         const option = document.createElement("option");
         option.value = id;
-        option.textContent = hospitalityT(id);
+        option.textContent = hospitalityMetricOptionLabel(id);
         option.selected = id === hospitalityMetric;
         return option;
       })
@@ -6257,7 +6295,9 @@ document.getElementById("hospitalityMetricSelect").onchange = (event) => {
   if (!hospitalityModel.module?.APPROVED_INDICATOR_IDS.includes(event.target.value)) return;
   hospitalityMetric = event.target.value;
   hospitalitySelectedBarrio = hospitalitySelectedBarrio || null;
-  setText("hospitalityMetricSelectValue", hospitalityT(hospitalityMetric));
+  setText("hospitalityMetricSelectValue", hospitalityMetricOptionLabel(hospitalityMetric));
+  const fillHold = document.getElementById("hospitalityFillHold");
+  if (fillHold) fillHold.hidden = hospitalityModel.module.hasValueFill(hospitalityMetric);
   applyHospitalityStyles();
   renderHospitalityContext();
   k11ScheduleUrlCommit();
@@ -8380,7 +8420,9 @@ function k11ApplyHospitalityRestore() {
       hospitalityMetric = s.hospitalityMetric;
       const select = document.getElementById("hospitalityMetricSelect");
       if (select) select.value = hospitalityMetric;
-      setText("hospitalityMetricSelectValue", hospitalityT(hospitalityMetric));
+      setText("hospitalityMetricSelectValue", hospitalityMetricOptionLabel(hospitalityMetric));
+      const fillHold = document.getElementById("hospitalityFillHold");
+      if (fillHold && hospitalityModel.module) fillHold.hidden = hospitalityModel.module.hasValueFill(hospitalityMetric);
     }
     if (s.hospitalityBarrio && (!barrios || barrios.has(s.hospitalityBarrio))) {
       hospitalitySelectedBarrio = s.hospitalityBarrio;

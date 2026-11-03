@@ -1,13 +1,17 @@
 # Hospitality & Commercial Context — choropleth fill: cartographic HOLD
 
-**Status: HOLD.** The value-driven polygon fill and its min–max gradient legend are
-suspended. Nothing else changes: the five Gate F indicators, the artifact, barrio
-selection, the administrative context card, source attribution, ES/EN copy, and the
-shareable-URL metric/barrio state are all preserved. The barrio polygons remain as
-outlines (still hoverable and selectable; the value stays readable through the metric
-selector and the context card). The switch is the single constant
-`VALUE_FILL_ENABLED` in `js/hospitality-context.js`; every fill goes through
-`fillIntensity()`.
+**Status: HOLD for four of five indicators; the membership share is reactivated**
+(see the [Reactivation record](#reactivation-record--membership-share) at the end).
+The value-driven polygon fill and its min–max gradient legend remain suspended for
+`source_included_premises_count`, `core_hospitality_premises_count`,
+`accommodation_class_premises_count` and `core_hospitality_premises_per_1000_residents`.
+Nothing else changes: the five Gate F indicators, the artifact, barrio selection, the
+administrative context card, source attribution, ES/EN copy, and the shareable-URL
+metric/barrio state are all preserved. For held indicators the barrio polygons remain
+as outlines (still hoverable and selectable; the value stays readable through the
+metric selector and the context card). The switch is the explicit allowlist
+`FILL_INDICATOR_IDS` in `js/hospitality-context.js` (there is no global flag); every
+fill goes through `fillClass()`.
 
 ## Why
 
@@ -65,3 +69,31 @@ indicator allowlist, and record for each enabled indicator:
 
 Until then a defensible absence of a map is preferred to an attractive but
 misleading geographic claim.
+
+## Reactivation record — membership share
+
+Scope: **only** `core_hospitality_membership_share_of_populated_taxonomy_premises`.
+The other four indicators stay on HOLD and `tests/hospitality_context.test.mjs` and
+`browser-tests/hospitality-fill-hold.browser.mjs` assert that they produce no fill and
+no legend. Evidence below was produced against the committed artifact
+(premises SHA-256 `4ca33fed…`, activities SHA-256 `ba9279d6…`, geography CURRENT_131,
+barrio v3.4.1). Where a condition is only partly met, it says so.
+
+| # | Condition | Evidence | Status |
+|---|---|---|---|
+| 1 | Meaning and denominator | Gate F F.8: percentage of source-included premises **with populated taxonomy** (U2, 142,107 premises) that have at least one documented division-56 activity. Non-exclusive membership; U2 keeps populated `SIN ACTIVIDAD` and excludes blank taxonomy (blank share 3.1 %–46.9 % by barrio, F.3). Not verified operation. Shown beside the legend, ES/EN. | Met |
+| 2 | Geographic and temporal comparability | CURRENT_131 only; one fingerprinted snapshot (Sep 2026 nominal period); no per-resident rate, so no second date; no cross-2017 or cross-edition mixing. A test asserts the Gate F audit and the artifact carry identical snapshot fingerprints. | Met |
+| 3 | Class breaks and method | Five quantile classes: cut = sorted barrio value at index `ceil(k·n/5)`, class = number of cuts ≤ value. Deterministic, no randomness. n = 131, cuts 11.73 / 13.09 / 14.76 / 17.20 %, class sizes 27 / 26 / 26 / 26 / 26 (verified in the browser). No ties at any cut and no null value in the 131 barrios; non-finite values and non-enabled indicators return no class (unit-tested). Legend ranges use `<` on the upper bound so a value equal to a cut is read as the upper class; cuts are displayed to one decimal, so a barrio within 0.05 points of a cut can display the cut value yet sit in the lower class. No outlier capping: the top class spans 17.2–31.5 %. | Met |
+| 3b | Small-denominator handling | The share's base per barrio is not in the artifact. The app recovers it as `round(core count × 100 / share)`. This is **not** presented as exact on its own: a test requires it to equal, for all 131 barrios, the exact integer `source_included − blank_taxonomy` in `research/hospitality_commercial_gate/results/gate_f_denominator_audit.json` (`blank_taxonomy_effects.by_barrio`), which is computed from the same fingerprinted snapshot. It matched 131/131; the sum is 142,106, one below the Gate F U2 total because one premises has no barrio code (F.11). The UI still labels the figure approximate (≈). Barrios with base < 200 (10 barrios: 24 to 170 premises) get a dashed outline and a tooltip line. **The threshold 200 is a project heuristic, not a source value.** At the municipal share (13.7 %) the binomial standard error is ≈2.4 points at n = 200, ≈3.4 at n = 100 and ≈7.0 at n = 24; the three middle classes are 1.35, 1.67 and 2.44 points wide. So at n ≈ 200 the standard error already equals the widest middle class, and it stays at or above the narrowest one up to n ≈ 650. At the median base (≈900) it is ≈1.2 points, close to the class widths. **The absence of a dashed outline therefore does not mean a class is statistically separated**: classes are a descriptive ordering of recorded shares, and 200 only marks where the instability is largest. No suppression or winsorisation is applied. | Met, with the limitation stated |
+| 4 | Colour and legend | Single-hue purple, five lightness steps, monotonic; class legend lists the real breaks and the unit; Light and Dark inspected on screenshots. **Not done:** a colour-vision-deficiency simulation was not run, and there is no "no data" swatch because no barrio has a null value (0 of 131); a distinct swatch must be added before any indicator with gaps is enabled. No red/amber/green. | Partly met |
+| 5 | Misinterpretation review | The ceiling is on the map legend, ES/EN: not pressure, saturation, capacity or operating businesses; it describes the share of recorded premises with a documented division-56 activity, a classification, not trade, occupancy or tourism demand. A high share can arise from a small or blank-heavy base and says nothing about visitors. Population density and the area denominator remain NO-GO and are not used. | Met |
+| 6 | Source limitations | Beside the legend: premises status is mutable (a status is the last recorded value, not verified operation), about 25 % of premises have no coordinates, blank taxonomy excluded. Premises are assigned to barrios by source code, so missing coordinates do not remove them from the share (F.11). | Met |
+| 7 | Tests | `tests/hospitality_context.test.mjs`: allowlist is exactly the share, other four give no fill, five classes cover 131 barrios, recovered base equals the audit, copy keys exist ES/EN, app routes fill only through `fillClass`. `browser-tests/hospitality-fill-hold.browser.mjs`: share paints 5 distinct classes with a 5-swatch legend, selector labels mark one map and four panel-only metrics, held indicators paint nothing and show no legend, ES/EN notice, Dark at 390 px without horizontal overflow. | Met |
+
+Known limits left unchanged: the native select can truncate the `· map` suffix of a
+long label at narrow widths in Light (the option list shows it in full); the browser
+test reached `unavailable` once in three runs (hospitality state is decided at load
+time against geography readiness, a pre-existing race outside this change).
+
+**Verdict: GO for the membership share only, with conditions 3b and 4 carrying the
+limitations above. HOLD continues for the four other indicators.**

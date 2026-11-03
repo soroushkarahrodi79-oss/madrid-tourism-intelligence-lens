@@ -22,6 +22,8 @@ const MIME = {
 };
 const artifact = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "hospitality-commercial-context.json"), "utf8"));
 const INDICATORS = artifact.metadata.selectable_indicator_ids;
+const SHARE = "core_hospitality_membership_share_of_populated_taxonomy_premises";
+const HELD = INDICATORS.filter((id) => id !== SHARE);
 
 const server = http.createServer((request, response) => {
   const pathname = decodeURIComponent(new URL(request.url, "http://127.0.0.1").pathname);
@@ -51,10 +53,35 @@ async function newPage(options = {}) {
 
 const fills = (page) => page.evaluate(() => window.__HALO_REGRESSION__.hospitalityFillSnapshot());
 
-test("no indicator colours any barrio polygon, and the min-max legend is absent", async () => {
+test("only the membership share colours polygons, in 5 classes with a class legend", async () => {
   const page = await newPage();
   assert.equal(await page.evaluate(() => window.__HALO_REGRESSION__.enableHospitality()), "ready");
-  for (const id of INDICATORS) {
+  await page.evaluate((metric) => window.__HALO_REGRESSION__.setHospitalityMetric(metric), SHARE);
+  const snap = await fills(page);
+  assert.equal(snap.fills.length, 131);
+  assert.ok(snap.fills.every((f) => f.fillOpacity > 0));
+  assert.equal(new Set(snap.fills.map((f) => f.fillColor)).size, 5);
+  assert.equal(snap.scaleHidden, false);
+  assert.equal(await page.locator("#hospitalityScale .hospitality-legend-swatch").count(), 5);
+  assert.equal(snap.holdNoticeHidden, true);
+  assert.match(await page.locator("#hospitalityScale").textContent(), /no activity|sin actividad/i);
+  await page.context().close();
+});
+
+test("selector labels say which metrics have a map", async () => {
+  const page = await newPage();
+  await page.evaluate(() => window.__HALO_REGRESSION__.enableHospitality());
+  const labels = await page.locator("#hospitalityMetricSelect option").allTextContents();
+  assert.equal(labels.length, 5);
+  assert.equal(labels.filter((t) => /· (mapa|map)$/.test(t)).length, 1);
+  assert.equal(labels.filter((t) => /· (solo panel|panel only)$/.test(t)).length, 4);
+  await page.context().close();
+});
+
+test("held indicators colour no barrio polygon and show no legend", async () => {
+  const page = await newPage();
+  assert.equal(await page.evaluate(() => window.__HALO_REGRESSION__.enableHospitality()), "ready");
+  for (const id of HELD) {
     await page.evaluate((metric) => window.__HALO_REGRESSION__.setHospitalityMetric(metric), id);
     const snap = await fills(page);
     assert.equal(snap.fills.length, 131, id);
@@ -80,9 +107,9 @@ test("administrative value, selection and ES/EN copy still work during the hold"
   assert.ok((await fills(page)).fills.every((f) => f.fillOpacity === 0), "selection must not add a fill");
 
   await page.selectOption("#languageSelect", "en");
-  assert.match(await page.locator("#hospitalityFillHold").textContent(), /on hold/);
+  assert.match(await page.locator("#hospitalityFillHold").textContent(), /enabled only/);
   await page.selectOption("#languageSelect", "es");
-  assert.match(await page.locator("#hospitalityFillHold").textContent(), /suspenso/);
+  assert.match(await page.locator("#hospitalityFillHold").textContent(), /solo está habilitado/);
   await page.context().close();
 });
 

@@ -13,8 +13,12 @@ import {
   metricDomain,
   normalizedMetricValue,
   validateHospitalityArtifact,
-  VALUE_FILL_ENABLED,
-  fillIntensity,
+  FILL_INDICATOR_IDS,
+  quantileCuts,
+  fillClass,
+  hasValueFill,
+  isSmallBase,
+  populatedTaxonomyBase,
 } from "../js/hospitality-context.js";
 import { createI18n } from "../js/i18n.js";
 
@@ -167,16 +171,61 @@ test("existing accommodation catalogue remains a separate layer", () => {
   assert.doesNotMatch(appSource, /groups\.stay\s*=\s*.*hospitality|groups\.hospitality\s*=\s*groups\.stay/);
 });
 
-// Cartographic HOLD: unsupported choropleth fills must not silently return.
-test("choropleth fill is suspended and no indicator value can produce a fill", () => {
-  assert.equal(VALUE_FILL_ENABLED, false);
+// Cartographic HOLD, lifted for exactly one indicator.
+const SHARE_ID = "core_hospitality_membership_share_of_populated_taxonomy_premises";
+
+test("only the membership share is fill-enabled; every other indicator yields no fill", () => {
+  assert.deepEqual([...FILL_INDICATOR_IDS], [SHARE_ID]);
   const index = createHospitalityIndex(artifact);
   for (const id of APPROVED_INDICATOR_IDS) {
-    const domain = metricDomain(index, id);
+    assert.equal(hasValueFill(id), id === SHARE_ID, id);
+    const breaks = quantileCuts(index, id);
+    if (id !== SHARE_ID) assert.equal(breaks, null, id);
     for (const row of index.barrio.values()) {
-      assert.equal(fillIntensity(row.indicators[id], domain), null, id);
+      const cls = fillClass(id, row.indicators[id], id === SHARE_ID ? quantileCuts(index, SHARE_ID) : [1, 2, 3, 4]);
+      if (id !== SHARE_ID) assert.equal(cls, null, id);
     }
   }
+});
+
+test("share classes are five quantile classes with ascending breaks covering all 131 barrios", () => {
+  const index = createHospitalityIndex(artifact);
+  const breaks = quantileCuts(index, SHARE_ID);
+  assert.equal(breaks.length, 4);
+  assert.deepEqual([...breaks], [...breaks].sort((a, b) => a - b));
+  const counts = [0, 0, 0, 0, 0];
+  for (const row of index.barrio.values()) counts[fillClass(SHARE_ID, row.indicators[SHARE_ID], breaks)] += 1;
+  assert.equal(counts.reduce((a, b) => a + b, 0), 131);
+  for (const n of counts) assert.ok(n >= 25 && n <= 28, `class size ${n}`);
+  assert.equal(fillClass(SHARE_ID, null, breaks), null);
+  assert.equal(fillClass(SHARE_ID, Number.NaN, breaks), null);
+});
+
+// The base shown in the small-base flag is recovered at runtime from the rounded
+// share. It is only trusted because it reproduces the EXACT integer counts of the
+// committed Gate F audit (source-included minus blank-taxonomy premises per barrio),
+// computed from the same fingerprinted snapshot, in all 131 barrios.
+test("recovered populated-taxonomy base equals the exact Gate F audit count in every barrio", () => {
+  const audit = JSON.parse(
+    fs.readFileSync(
+      fileURLToPath(new URL("../research/hospitality_commercial_gate/results/gate_f_denominator_audit.json", import.meta.url)),
+      "utf8"
+    )
+  );
+  assert.equal(audit.snapshot_identity.premises.content_fingerprint_sha256, artifact.metadata.premises_sha256);
+  assert.equal(audit.snapshot_identity.activities.content_fingerprint_sha256, artifact.metadata.activities_sha256);
+  const index = createHospitalityIndex(artifact);
+  const rows = audit.blank_taxonomy_effects.by_barrio;
+  assert.equal(rows.length, 131);
+  const small = [];
+  for (const r of rows) {
+    const row = index.barrio.get(r.barrio_id);
+    const exact = r.source_included - r.blank_taxonomy;
+    assert.equal(populatedTaxonomyBase(row), exact, r.barrio_id);
+    if (isSmallBase(row)) small.push(r.barrio_id);
+    assert.equal(isSmallBase(row), exact < 200, r.barrio_id);
+  }
+  assert.equal(small.length, 10);
 });
 
 test("administrative data is preserved while the fill is on hold", () => {
@@ -187,15 +236,19 @@ test("administrative data is preserved while the fill is on hold", () => {
   }
 });
 
-test("app routes every polygon fill through fillIntensity, never the raw normalizer", () => {
+test("app routes every polygon fill through fillClass, never the raw normalizer", () => {
   assert.doesNotMatch(appSource, /module\??\.normalizedMetricValue\(/);
-  assert.match(appSource, /module\?\.fillIntensity\(value, domain\)/);
-  assert.match(appSource, /fillOpacity: filled \? palette\.opacity : 0/);
+  assert.doesNotMatch(appSource, /VALUE_FILL_ENABLED|fillIntensity/);
+  assert.match(appSource, /module\?\.fillClass\(hospitalityMetric, value, hospitalityFillBreaks\(\)\)/);
+  assert.match(appSource, /fillOpacity: filled \? Math\.min\(0\.75, palette\.opacity \+ 0\.22\) : 0/);
 });
 
 test("hold notice exists in ES and EN and the HOLD doc states reactivation conditions", () => {
-  assert.match(HOSPITALITY_DICTIONARIES.es.fillHold, /suspenso/);
-  assert.match(HOSPITALITY_DICTIONARIES.en.fillHold, /on hold/);
+  assert.match(HOSPITALITY_DICTIONARIES.es.fillHold, /solo está habilitado/);
+  assert.match(HOSPITALITY_DICTIONARIES.en.fillHold, /enabled only/);
+  for (const key of ["mapBadge", "panelOnlyBadge", "legendTitle", "legendNote", "smallBase", "smallBaseNote", "smallBaseTooltip"]) {
+    assert.ok(HOSPITALITY_DICTIONARIES.es[key] && HOSPITALITY_DICTIONARIES.en[key], key);
+  }
   assert.match(html, /id="hospitalityScale"[^>]*\shidden/);
   const doc = fs.readFileSync(
     fileURLToPath(new URL("../docs/HOSPITALITY_CHOROPLETH_HOLD.md", import.meta.url)),
