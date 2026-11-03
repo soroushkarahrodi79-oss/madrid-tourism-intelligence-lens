@@ -126,5 +126,5 @@ test("copy exists in EN and ES with the same keys and the zero-baseline, no-flow
   assert.match(MAP_DICTIONARIES.en.mapScale, /not zero/i);
   assert.match(MAP_DICTIONARIES.es.mapScale, /base cero/i);
   assert.match(MAP_DICTIONARIES.es.mapScale, /no son cero/i);
-  assert.match(MAP_DICTIONARIES.en.attribution, /Instituto Geográfico Nacional/);
+  for (const language of ["en", "es"]) assert.equal(`${MAP_DICTIONARIES[language].attribution} ${MAP_DICTIONARIES[language].attributionSite}`, "Obra derivada de NGMEP CC-BY 4.0 ign.es");
 });

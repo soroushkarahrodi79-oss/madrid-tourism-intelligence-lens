@@ -789,7 +789,7 @@
       "retrieved_at": "2026-11-03T07:11:22Z",
       "update_frequency": "NONE_DECLARED",
       "source_state": "NOT_DECLARED_BY_PUBLISHER",
-      "freshness_evidence": "reference_date is the edition token of the archive's database file (202603_NGMEP.mdb, i.e. 2026-03) as shipped in the CNIG download; it is an edition label, not a publication date, so published_at is null. retrieved_at is the modification time of the archive downloaded by hand from the CNIG download centre (its download form is bot-protected and is never scripted). The IGN declares no update cadence or definitive/provisional status for this product, so update_frequency is NONE_DECLARED and source_state NOT_DECLARED_BY_PUBLISHER. scope POINT_OBSERVATION: each value is a located reference point of one municipality, not an area.",
+      "freshness_evidence": "reference_date is the edition token of the archive's database file (202603_NGMEP.mdb, i.e. 2026-03) as shipped in the CNIG download; it is an edition label, not a publication date, so published_at is null. retrieved_at is the modification time (UTC) of the archive downloaded by hand from the CNIG download centre (its download form is bot-protected and is never scripted), taken as the retrieval time: no download log or server timestamp was recorded, so it is the only retrieval evidence and not an independently logged download time. The IGN declares no update cadence or definitive/provisional status for this product, so update_frequency is NONE_DECLARED and source_state NOT_DECLARED_BY_PUBLISHER. scope POINT_OBSERVATION: each value is a located reference point of one municipality, not an area.",
       "display_name": "Spanish municipality reference points (IGN Nomenclator, NGMEP)",
       "authority": "Instituto Geografico Nacional (IGN) - Centro Nacional de Informacion Geografica (CNIG)",
       "dataset_url": "https://centrodedescargas.cnig.es/CentroDescargas/nomenclator-geografico-municipios-entidades-poblacion",
@@ -815,6 +815,8 @@
       "source_period_exposed_by_source": true,
       "source_period_semantics": "The edition (2026-03) of the Nomenclator. Reference points are not an observation period and are not compared across editions by this product.",
       "license": "Orden FOM/2807/2015 licence of use, compatible with CC BY 4.0; authorship (IGN / CNIG) must be acknowledged",
+      "attribution": "Obra derivada de NGMEP CC-BY 4.0 ign.es",
+      "attribution_source": "https://centrodedescargas.cnig.es/CentroDescargas/detalleArchivo?sec=9000004",
       "integrity_guardrail": {
         "min_count": 8000,
         "baseline_count": 8132,

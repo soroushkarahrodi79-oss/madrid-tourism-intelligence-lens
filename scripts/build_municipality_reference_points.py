@@ -44,6 +44,15 @@ LICENCE = (
     "Orden FOM/2807/2015 licence of use, compatible with CC BY 4.0; "
     "authorship (IGN / CNIG) must be acknowledged"
 )
+# The CNIG's own credit for a derived work ("Tipo 3" on the NGMEP file record).
+ATTRIBUTION = "Obra derivada de NGMEP CC-BY 4.0 ign.es"
+ATTRIBUTION_SOURCE = "https://centrodedescargas.cnig.es/CentroDescargas/detalleArchivo?sec=9000004"
+# No download log or server timestamp exists for a manual download, so the
+# archive's modification time is the only retrieval evidence there is.
+RETRIEVED_AT_BASIS = (
+    "Modification time (UTC) of the manually downloaded archive as found on disk, "
+    "taken as the retrieval time; no download log or server timestamp was recorded"
+)
 SEMANTICS = (
     "Reference point of the municipality as published by the IGN: a point placed as "
     "centrally as possible inside the municipality's main population nucleus. It is "
@@ -109,6 +118,9 @@ def main():
             "download_page": DOWNLOAD_PAGE,
             "licence": LICENCE,
             "retrieved_at": retrieved_at,
+            "retrieved_at_basis": RETRIEVED_AT_BASIS,
+            "attribution": ATTRIBUTION,
+            "attribution_source": ATTRIBUTION_SOURCE,
         },
         "key": {
             "field": "COD_INE",

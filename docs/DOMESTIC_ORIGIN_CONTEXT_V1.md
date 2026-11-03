@@ -69,7 +69,10 @@ Geográfico de Municipios y Entidades de Población* (CNIG), edition 2026-03, ta
 `MUNICIPIOS.csv`. Coordinates are ETRS89 (REGCAN95 in the Canary Islands), both
 WGS84-compatible and used as WGS84 for display. The licence is the Orden
 FOM/2807/2015 licence of use (compatible with CC BY 4.0; authorship must be
-acknowledged), credited in the map's attribution line. The IGN defines the point
+acknowledged), credited in the map's attribution line with the CNIG's own formula
+for derived works, "Obra derivada de NGMEP CC-BY 4.0 ign.es" (kept in Spanish in
+both languages; "ign.es" links to the IGN and a second link, "NGMEP 2026-03", points
+to the CNIG file record that states it). The IGN defines the point
 as placed as centrally as possible inside the municipality's **main population
 nucleus**. It is **not** the centroid of the municipal territory, and the map text
 says so. The builder never downloads: the CNIG download form is bot-protected, so
@@ -113,7 +116,7 @@ as "not placed on the map" and is never dropped silently or drawn at 0,0.
 **Governance.** No PASS / HOLD / NO-GO gate is changed. The earlier sentences that
 no map point is derived describe the bar chart and the Dynamics comparison, which
 remain true of them; this map was added at the product owner's request as a
-separate, independently sourced layer. Not yet confirmed: the exact credit formula
-the CNIG download page prescribes (its selector is rendered dynamically and was not
-captured). The map credits "Instituto Geográfico Nacional (IGN-CNIG), NGMEP 2026-03";
-confirm the prescribed wording before any public release.
+separate, independently sourced layer. The credit formula is the CNIG's own for
+derived works, "Obra derivada de NGMEP CC-BY 4.0 ign.es", taken from the NGMEP file
+record (see `docs/DATA_PROVENANCE.md`); the edition remains identified as NGMEP
+2026-03.

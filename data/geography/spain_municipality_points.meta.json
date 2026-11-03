@@ -8,7 +8,10 @@
     "table": "MUNICIPIOS.csv",
     "download_page": "https://centrodedescargas.cnig.es/CentroDescargas/nomenclator-geografico-municipios-entidades-poblacion",
     "licence": "Orden FOM/2807/2015 licence of use, compatible with CC BY 4.0; authorship (IGN / CNIG) must be acknowledged",
-    "retrieved_at": "2026-11-03T07:11:22Z"
+    "retrieved_at": "2026-11-03T07:11:22Z",
+    "retrieved_at_basis": "Modification time (UTC) of the manually downloaded archive as found on disk, taken as the retrieval time; no download log or server timestamp was recorded",
+    "attribution": "Obra derivada de NGMEP CC-BY 4.0 ign.es",
+    "attribution_source": "https://centrodedescargas.cnig.es/CentroDescargas/detalleArchivo?sec=9000004"
   },
   "fingerprints": {
     "archive_sha256": "496e3079d3b1844e2827d9dfc328fcd2e629e72c2640b46840daa3711b915116",

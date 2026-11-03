@@ -5821,7 +5821,11 @@ function renderDomesticOriginMap(model) {
   setText("domesticOriginsMapTitle", mapT("mapTitle", { month: mapModel.month }));
   setText("domesticOriginsMapCount", mapT("mapCount", { placed: mapModel.points.length.toLocaleString("en-GB"), shown: mapModel.shown.toLocaleString("en-GB") }));
   setText("domesticOriginsMapScale", mapT("mapScale"));
-  setText("domesticOriginsMapAttribution", mapT("attribution", { edition: mapModel.edition }));
+  const credit = document.getElementById("domesticOriginsMapAttribution");
+  if (credit) {
+    const creditLink = (href, text) => { const a = document.createElement("a"); a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = text; return a; };
+    credit.replaceChildren(`${mapT("attribution")} `, creditLink(mapModule.MAP_CREDIT_URLS.site, mapT("attributionSite")), " · ", creditLink(mapModule.MAP_CREDIT_URLS.record, mapT("attributionRecord", { edition: mapModel.edition })));
+  }
   setText("domesticOriginsMapLimitLabel", mapT("limitLabel"));
   const select = document.getElementById("domesticOriginsMapLimit");
   if (select) { select.innerHTML = mapModule.MAP_LIMITS.map((n) => `<option value="${n}">${mapT("limitOption", { n })}</option>`).join(""); select.value = String(originMap.limit); }

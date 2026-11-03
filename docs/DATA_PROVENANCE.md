@@ -786,7 +786,14 @@ population or flow information, and is the only coordinate source the map uses.
   `published_at` is null.
 - **Retrieval:** the download form is protected by bot detection, so the archive
   is downloaded by a person and is never scripted. `retrieved_at`
-  (2026-11-03T07:11:22Z) is the archive's modification time. Fingerprints are in
+  (2026-11-03T07:11:22Z) is the archive's file modification time, taken as the
+  retrieval time: no download log or server timestamp was recorded, so it is the
+  only retrieval evidence and not an independently logged download time (the
+  artifact says so in `retrieved_at_basis`). It is not the publisher's date: the
+  `MUNICIPIOS.csv` inside the archive carries a 2026-05-27 timestamp. On the
+  working disk the archive's creation time is 07:11:34Z, 13 s after its last write,
+  consistent with the file being moved or copied there after the download finished.
+  Fingerprints are in
   the sidecar: archive SHA-256
   `496e3079d3b1844e2827d9dfc328fcd2e629e72c2640b46840daa3711b915116`, table SHA-256
   `00784dfae9d601fd1d3cf2ac7e00e497e755922b260a103b6f01705041bb65a5`.
@@ -809,9 +816,13 @@ population or flow information, and is the only coordinate source the map uses.
   several nuclei or a large rural area can have its point far from its geometric
   centre. The interface says so.
 - **Licence:** Orden FOM/2807/2015 licence of use, compatible with CC BY 4.0;
-  authorship must be acknowledged (credited on the map). The exact credit formula
-  prescribed by the download page was not captured and must be confirmed before a
-  public release.
+  authorship must be acknowledged (credited on the map). The credit is the CNIG's
+  own formula for a derived work ("Tipo 3" on the NGMEP file record,
+  <https://centrodedescargas.cnig.es/CentroDescargas/detalleArchivo?sec=9000004>,
+  read 2026-11-03): **"Obra derivada de NGMEP CC-BY 4.0 ign.es"**. It is carried in
+  the artifact and sidecar (`source.attribution`, `source.attribution_source`) and
+  the registry (`attribution`, `attribution_source`), and the edition stays
+  identified as NGMEP 2026-03.
 - **Integrity and refresh:** `scripts/build_municipality_reference_points.py`
   (`--zip <archive>`) checks the archive layout, required columns, key shape and
   uniqueness, a Spain-wide coordinate envelope (longitude −19 to 5, latitude 27 to
