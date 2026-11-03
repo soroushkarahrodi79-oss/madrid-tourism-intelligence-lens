@@ -872,6 +872,7 @@ test("no global time control is introduced: each source keeps its own state", ()
     '<select id="appearanceSelect"',
     '<select id="basemapSelect"',
     '<select id="boundarySelect"',
+    '<select id="domesticOriginsMapLimit"',
     '<select id="domesticOriginsMonth"',
     '<select id="hospitalityMetricSelect"',
     '<select id="languageSelect"',

@@ -1,0 +1,58 @@
+{
+  "contract_version": "1.0.0",
+  "artifact": "spain_municipality_points.json",
+  "source": {
+    "authority": "Instituto Geografico Nacional (IGN) - Centro Nacional de Informacion Geografica (CNIG)",
+    "dataset": "Nomenclator Geografico de Municipios y Entidades de Poblacion (NGMEP)",
+    "edition": "2026-03",
+    "table": "MUNICIPIOS.csv",
+    "download_page": "https://centrodedescargas.cnig.es/CentroDescargas/nomenclator-geografico-municipios-entidades-poblacion",
+    "licence": "Orden FOM/2807/2015 licence of use, compatible with CC BY 4.0; authorship (IGN / CNIG) must be acknowledged",
+    "retrieved_at": "2026-11-03T07:11:22Z",
+    "retrieved_at_basis": "Modification time (UTC) of the manually downloaded archive as found on disk, taken as the retrieval time; no download log or server timestamp was recorded",
+    "attribution": "Obra derivada de NGMEP CC-BY 4.0 ign.es",
+    "attribution_source": "https://centrodedescargas.cnig.es/CentroDescargas/detalleArchivo?sec=9000004"
+  },
+  "fingerprints": {
+    "archive_sha256": "496e3079d3b1844e2827d9dfc328fcd2e629e72c2640b46840daa3711b915116",
+    "table_sha256": "00784dfae9d601fd1d3cf2ac7e00e497e755922b260a103b6f01705041bb65a5"
+  },
+  "field_mapping": {
+    "key": "COD_INE[0:5]",
+    "longitude": "LONGITUD_ETRS89_REGCAN95",
+    "latitude": "LATITUD_ETRS89_REGCAN95",
+    "coordinate_source": "ORIGENCOOR"
+  },
+  "coordinate_source_distribution": {
+    "Detección automática": 7184,
+    "Investigación": 387,
+    "GPS. PNRGM": 366,
+    "Mapa": 129,
+    "Coordinado_IGR Poblaciones": 66
+  },
+  "integrity": {
+    "record_count": 8132,
+    "minimum_records": 8000,
+    "longitude_range": [
+      -18.010939,
+      4.290737
+    ],
+    "latitude_range": [
+      27.709038,
+      43.740351
+    ],
+    "envelope": {
+      "longitude": [
+        -19.0,
+        5.0
+      ],
+      "latitude": [
+        27.0,
+        44.5
+      ]
+    },
+    "rounded_to_decimals": 6
+  },
+  "interpretation_ceiling": "Reference point of the municipality as published by the IGN: a point placed as centrally as possible inside the municipality's main population nucleus. It is not the centroid of the municipal territory and not an administrative boundary. Used only to place published origin municipalities on a map; it carries no tourism, population or flow information.",
+  "refresh": "python scripts/build_municipality_reference_points.py --zip BD_Municipios-Entidades.zip (archive downloaded manually from the CNIG download centre)"
+}

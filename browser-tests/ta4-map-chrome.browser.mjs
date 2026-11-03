@@ -198,7 +198,7 @@ test("T-a4 map chrome roles render across desktop/mobile, EN/ES and all three ba
       // Real minimum-zoom interaction: Leaflet must expose and visually mute an
       // inactive control; its text is covered by the WCAG inactive-component exception.
       await page.evaluate(() => window.__HALO_REGRESSION__.setZoom(0));
-      const zoomOut = page.locator(".leaflet-control-zoom-out");
+      const zoomOut = page.locator("#map .leaflet-control-zoom-out");
       await page.waitForFunction(() => {
         const button = document.querySelector(".leaflet-control-zoom-out");
         return button?.classList.contains("leaflet-disabled") && button.getAttribute("aria-disabled") === "true";
@@ -216,7 +216,7 @@ test("T-a4 map chrome roles render across desktop/mobile, EN/ES and all three ba
       await page.waitForTimeout(250);
       assert.equal(await page.evaluate(() => eval("map").getZoom()), 0,
         "a click on the inactive zoom-out control leaves the map at its minimum zoom");
-      await page.locator(".leaflet-control-zoom-in").click();
+      await page.locator("#map .leaflet-control-zoom-in").click();
       await page.waitForFunction(() => !document.querySelector(".leaflet-control-zoom-out")?.classList.contains("leaflet-disabled"));
       assert.equal(await zoomOut.getAttribute("aria-disabled"), "false", "zoom-out returns to an active state after a real zoom-in");
 

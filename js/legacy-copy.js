@@ -69,6 +69,7 @@ const LEGACY_COPY_ES = [
   ["Hospitality & Commercial Context", "Contexto de hostelería y actividad comercial"],
   ["Hotel demand by month (Destination Context)", "Demanda hotelera por mes (Contexto del destino)"],
   ["Madrid domestic origin context by month (Destination Context)", "Contexto de orígenes nacionales de Madrid por mes (Contexto del destino)"],
+  ["Spanish municipality reference points (IGN Nomenclator, NGMEP)", "Puntos de referencia de los municipios de España (Nomenclátor del IGN, NGMEP)"],
   ["Official planning-ambito geometry (Ambitos Ordenacion)", "Geometría oficial de ámbitos de planeamiento (Ámbitos Ordenación)"],
   ["Published ambito development state and available buildability (PGOUM 97)", "Estado de desarrollo publicado y edificabilidad disponible del ámbito (PGOUM 97)"],
   // map tooltips

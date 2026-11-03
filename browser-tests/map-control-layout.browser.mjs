@@ -224,7 +224,7 @@ test("real Leaflet zoom actions remain functional after centering fix", async ()
   const { context, page } = await openApp({ width: 390, height: 844, touch: true, locale: "en" });
   try {
     const initial = await page.evaluate(() => eval("map").getZoom());
-    await page.locator(".leaflet-control-zoom-in").click();
+    await page.locator("#map .leaflet-control-zoom-in").click();
     await page.waitForFunction((before) => eval("map").getZoom() > before, initial);
     assert.ok((await page.evaluate(() => eval("map").getZoom())) > initial);
   } finally {

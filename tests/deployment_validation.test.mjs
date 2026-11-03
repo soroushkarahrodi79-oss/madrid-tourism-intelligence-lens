@@ -871,6 +871,25 @@ function unemploymentMeta() {
   };
 }
 
+// Synthetic all-Spain reference points, built from the REAL registry entry so the
+// healthy world agrees with the registered authority, licence, edition and
+// retrieval. The two points besides Madrid are the origins of the domestic-origin
+// fixture below, because the validator requires every published origin to resolve.
+function pointsArtifact() {
+  const source = REAL_REGISTRY.sources.find((s) => s.id === "municipality_reference_points");
+  return {
+    contract_version: "1.0.0",
+    source: { authority: source.authority, dataset: "NGMEP", edition: source.reference_date, table: "MUNICIPIOS.csv", download_page: source.dataset_url, licence: source.license, retrieved_at: source.retrieved_at },
+    key: { field: "COD_INE" },
+    coordinates: { order: "[longitude, latitude]", crs: "ETRS89", decimals: 6, semantics: "Reference point inside the main population nucleus; not the centroid of the municipal territory." },
+    record_count: 3,
+    points: { "01001": [-2.512508, 42.840452], "08019": [2.17744, 41.38229], "28079": [-3.691978, 40.419026] },
+  };
+}
+function pointsMeta() {
+  return { contract_version: "1.0.0", artifact: "spain_municipality_points.json", source: pointsArtifact().source, fingerprints: { archive_sha256: "a".repeat(64), table_sha256: "b".repeat(64) }, integrity: { record_count: 3 } };
+}
+
 function healthyArtifacts() {
   const layers = {
     museum: poiRecords("museum", 3),
@@ -947,6 +966,8 @@ function healthyArtifacts() {
     "destination/madrid_hotel_demand.meta.json": destinationMeta(),
     "destination/madrid_domestic_origins.json": { source: { authority: "INE", source_url: "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_2026.xlsx", workbook_year: 2026, retrieved_at: GENERATED_AT }, source_universe: { residence: "Residents in Spain", trip_condition: "Travel to a province different from the province of residence", same_province_travel_excluded: true }, geography: { level: "municipality", municipality_code: "28079" }, source_period: { latest: "2026-01", available_months: ["2026-01"] }, suppression: { rule: "more than 30 tourists", absent_is_not_zero: "never materialised as zero" }, source_schema: ["mes", "mun_orig_cod", "mun_orig", "dest_cod", "dest", "turistas", "prov_orig_cod", "prov_orig", "prov_dest_cod", "prov_dest"], schema_fingerprint: "a".repeat(64), months: [{ source_month: "2026-01", published_origins: [{ origin_municipality_code: "01001", origin_municipality_name: "A", origin_province_code: "01", origin_province_name: "A", source_reported_tourists: 40 }, { origin_municipality_code: "08019", origin_municipality_name: "B", origin_province_code: "08", origin_province_name: "B", source_reported_tourists: 50 }] }] },
     "destination/madrid_domestic_origins.meta.json": { source: { authority: "INE", source_url: "https://www.ine.es/experimental/turismo_moviles/exp_tmov_interno_mun_2026.xlsx", workbook_year: 2026, retrieved_at: GENERATED_AT }, source_universe: { residence: "Residents in Spain", trip_condition: "Travel to a province different from the province of residence", same_province_travel_excluded: true }, schema_fingerprint: "a".repeat(64), geography: { municipality_code: "28079", resolved_level: "municipality", destination_corroboration: { dest: "Madrid", prov_dest_cod: "28", prov_dest: "Madrid" } } },
+    "geography/spain_municipality_points.json": pointsArtifact(),
+    "geography/spain_municipality_points.meta.json": pointsMeta(),
     "hospitality-commercial-context.json": hospitalityArtifact(),
     "planning/madrid_ambitos.geojson": planningGeometryArtifact(),
     "planning/madrid_ambitos.meta.json": planningGeometryMeta(),
@@ -1011,6 +1032,28 @@ test("domestic-origin guards fail a near-empty month without weakening Madrid, s
   const wrongUniverse = healthyArtifacts();
   wrongUniverse["destination/madrid_domestic_origins.json"].source_universe.same_province_travel_excluded = false;
   assert.match(errorText(run(wrongUniverse)), /province-different source universe/);
+});
+
+test("municipality reference points: the healthy world passes and each integrity break fails the build", () => {
+  const mutate = (fn) => {
+    const artifacts = healthyArtifacts();
+    fn(artifacts["geography/spain_municipality_points.json"], artifacts["geography/spain_municipality_points.meta.json"], artifacts);
+    return errorText(run(artifacts));
+  };
+  assert.equal(errorText(run(healthyArtifacts())), "");
+  assert.match(mutate((p) => { p.points["28079"] = [40.419026, -3.691978]; }), /outside the declared integrity envelope/);
+  assert.match(mutate((p) => { p.points["28079"] = [-3.691978]; }), /malformed key or value/);
+  assert.match(mutate((p) => { p.coordinates.order = "[latitude, longitude]"; }), /coordinate order/);
+  assert.match(mutate((p) => { p.coordinates.semantics = "Municipality centroid."; }), /not the territory centroid/);
+  assert.match(mutate((p) => { delete p.points["08019"]; p.record_count = 2; }), /published origin municipality code\(s\) have no reference point \(first: 08019\)/);
+  assert.match(mutate((p) => { delete p.points["28079"]; p.record_count = 2; }), /Madrid \(28079\), the map destination, has no point/);
+  assert.match(mutate((p) => { p.record_count = 4; }), /record_count \(4\) does not match the 3 points/);
+  assert.match(mutate((p, m) => { delete p.points["01001"]; delete p.points["08019"]; p.record_count = 1; m.integrity.record_count = 1; }), /below the collapse floor 2/);
+  assert.match(mutate((p, m) => { p.source.licence = "unknown"; m.source = p.source; }), /licence does not match the registered licence/);
+  assert.match(mutate((p, m) => { p.source.edition = "2020-01"; m.source = p.source; }), /edition\/retrieval does not match the registry/);
+  assert.match(mutate((p, m) => { m.source = { ...m.source, retrieved_at: "2000-01-01T00:00:00Z" }; }), /sidecar source provenance does not match/);
+  assert.match(mutate((p, m) => { m.fingerprints.table_sha256 = "short"; }), /table_sha256 is missing or malformed/);
+  assert.match(mutate((p, m, a) => { delete a["geography/spain_municipality_points.json"]; }), /missing or has no points object/);
 });
 
 // ------------------------------------------------------------------ structure
@@ -3100,6 +3143,7 @@ test("exactly the layers a user-facing feature depends on block deployment", () 
     "hospitality_commercial_context",
     "hotel_demand",
     "info",
+    "municipality_reference_points",
     "museum",
     "planning_ambito_geometry",
     "planning_ambito_state",
@@ -3179,7 +3223,7 @@ test("the committed evidence artifacts satisfy the real registry", () => {
   };
   assert.deepEqual(
     committedRegistry.sources.map((s) => s.id).sort(),
-    ["callejero_ndp_crosswalk", "domestic_origin_context", "geography", "hati", "hospitality_commercial_context", "hotel_demand", "planning_ambito_geometry", "planning_ambito_state", "population", "registered_unemployment_rate", "snapshot_fallback", "urban_licences", "vut_licences"],
+    ["callejero_ndp_crosswalk", "domestic_origin_context", "geography", "hati", "hospitality_commercial_context", "hotel_demand", "municipality_reference_points", "planning_ambito_geometry", "planning_ambito_state", "population", "registered_unemployment_rate", "snapshot_fallback", "urban_licences", "vut_licences"],
     "the set of committed, non-rebuilt sources changed; update this test deliberately"
   );
 

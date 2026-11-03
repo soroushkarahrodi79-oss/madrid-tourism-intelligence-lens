@@ -305,6 +305,18 @@ The artifact is a committed, Madrid-only snapshot. Its source month, workbook
 year, retrieval time and latest actually published month are stored separately;
 moving a Lens cannot alter any origin value.
 
+The **Top published origins map** places the ten or twenty-five highest published
+origin municipalities of the selected month as circles whose area is proportional
+to the source-reported count, relative to the largest circle shown. Positions are
+IGN municipality reference points, a separate and separately licensed source. The
+map **does not establish** where in the origin municipality the tourists live (the
+point sits in the main population nucleus, not at the centre of the territory), any
+flow, route, travel path or volume between places, a complete or ranked-by-importance
+origin market, an all-origin share, a density or hotspot, or anything about the
+origins that are not shown or not published. Circle size encodes only the published
+count of the crossing in that month; unpublished origins are not zero and are not
+drawn.
+
 Domestic Origin Dynamics compares a selected source month only with the exact
 prior calendar month when it is present in the committed artifact. It describes
 published municipality sets: published in both months, newly present in the

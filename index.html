@@ -29,7 +29,7 @@
 })();
 </script>
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261102-textsize-v1">
+<link rel="stylesheet" href="css/app.css?v=20261103-originmap-v1">
 </head>
 <body>
 <a class="sr-only skip-link" href="#analysisPanel" data-i18n="a11y.skipToPanel">Skip to the analysis panel</a>
@@ -863,6 +863,14 @@
           <ol id="domesticOriginsBars" class="domestic-origin-bars"></ol>
           <p id="domesticOriginsChartScale" class="domestic-origin-chart-scale"></p>
         </figure>
+        <figure id="domesticOriginsMap" class="domestic-origin-map" aria-labelledby="domesticOriginsMapTitle" hidden>
+          <figcaption><strong id="domesticOriginsMapTitle"></strong><span id="domesticOriginsMapCount"></span></figcaption>
+          <div class="domestic-origin-map-controls"><label id="domesticOriginsMapLimitLabel" for="domesticOriginsMapLimit">Origins shown</label><select id="domesticOriginsMapLimit"></select></div>
+          <div id="domesticOriginsMapCanvas" class="domestic-origin-map-canvas" role="group"></div>
+          <p id="domesticOriginsMapScale" class="domestic-origin-chart-scale"></p>
+          <p id="domesticOriginsMapUnplaced" class="domestic-origin-chart-scale" hidden></p>
+          <p id="domesticOriginsMapAttribution" class="domestic-origin-chart-scale"></p>
+        </figure>
         <div class="domestic-origin-table-wrap"><table><thead><tr><th id="domesticOriginsOrigin">Origin municipality</th><th id="domesticOriginsTourists">Source-reported tourists</th></tr></thead><tbody id="domesticOriginsRows"></tbody></table></div>
         <p id="domesticOriginsState" class="destination-state"></p>
         <p id="domesticOriginsCaveat" class="destination-ceiling"></p>
@@ -988,17 +996,17 @@
 <script src="js/modes.js?v=20261006-1"></script>
 <script src="js/evidence-url.js?v=20261015-1"></script>
 <script src="js/evidence-export.js?v=20261017-1"></script>
-<script src="js/scope-rail.js?v=20261102-textsize-v1"></script>
-<script src="js/shell-copy.js?v=20261102-textsize-v1"></script>
+<script src="js/scope-rail.js?v=20261103-originmap-v1"></script>
+<script src="js/shell-copy.js?v=20261103-originmap-v1"></script>
 <script src="js/appearance.js?v=20261020-1"></script>
-<script src="js/text-size.js?v=20261102-textsize-v1"></script>
-<script src="js/legacy-copy.js?v=20261102-textsize-v1"></script>
+<script src="js/text-size.js?v=20261103-originmap-v1"></script>
+<script src="js/legacy-copy.js?v=20261103-originmap-v1"></script>
 <script src="js/data.js?v=20261023-1"></script>
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/marker-shapes.js?v=20261102-1"></script>
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
-<script src="js/app.js?v=20261102-textsize-v1"></script>
+<script src="js/app.js?v=20261103-originmap-v1"></script>
 <script src="js/tutorial.js?v=20261030-guided-tour-v2"></script>
 <script>
 /* The case is opt-in. Keep its DOM, styles and controller off the ordinary app
