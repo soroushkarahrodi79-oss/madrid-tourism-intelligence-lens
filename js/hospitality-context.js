@@ -262,7 +262,7 @@ export function hasValueFill(indicatorId) {
 // Quantile class breaks (FILL_CLASS_COUNT - 1 cut values) over the barrio values.
 // A value belongs to class k when exactly k breaks are <= it. Null when the
 // indicator is not fill-enabled or has no values.
-export function classBreaks(index, indicatorId) {
+export function quantileCuts(index, indicatorId) {
   if (!hasValueFill(indicatorId)) return null;
   const values = [...index.barrio.values()]
     .map((row) => row.indicators[indicatorId])

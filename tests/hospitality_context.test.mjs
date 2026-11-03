@@ -14,7 +14,7 @@ import {
   normalizedMetricValue,
   validateHospitalityArtifact,
   FILL_INDICATOR_IDS,
-  classBreaks,
+  quantileCuts,
   fillClass,
   hasValueFill,
   isSmallBase,
@@ -179,10 +179,10 @@ test("only the membership share is fill-enabled; every other indicator yields no
   const index = createHospitalityIndex(artifact);
   for (const id of APPROVED_INDICATOR_IDS) {
     assert.equal(hasValueFill(id), id === SHARE_ID, id);
-    const breaks = classBreaks(index, id);
+    const breaks = quantileCuts(index, id);
     if (id !== SHARE_ID) assert.equal(breaks, null, id);
     for (const row of index.barrio.values()) {
-      const cls = fillClass(id, row.indicators[id], id === SHARE_ID ? classBreaks(index, SHARE_ID) : [1, 2, 3, 4]);
+      const cls = fillClass(id, row.indicators[id], id === SHARE_ID ? quantileCuts(index, SHARE_ID) : [1, 2, 3, 4]);
       if (id !== SHARE_ID) assert.equal(cls, null, id);
     }
   }
@@ -190,7 +190,7 @@ test("only the membership share is fill-enabled; every other indicator yields no
 
 test("share classes are five quantile classes with ascending breaks covering all 131 barrios", () => {
   const index = createHospitalityIndex(artifact);
-  const breaks = classBreaks(index, SHARE_ID);
+  const breaks = quantileCuts(index, SHARE_ID);
   assert.equal(breaks.length, 4);
   assert.deepEqual([...breaks], [...breaks].sort((a, b) => a - b));
   const counts = [0, 0, 0, 0, 0];

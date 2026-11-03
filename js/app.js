@@ -5235,7 +5235,7 @@ const HOSPITALITY_CLASS_COLORS = ["#efe0f7", "#d9b5ec", "#bd86dc", "#9a55c2", "#
 
 function hospitalityFillBreaks() {
   const { module, index } = hospitalityModel;
-  return module && index ? module.classBreaks(index, hospitalityMetric) : null;
+  return module && index ? module.quantileCuts(index, hospitalityMetric) : null;
 }
 
 function hospitalityMetricOptionLabel(id) {

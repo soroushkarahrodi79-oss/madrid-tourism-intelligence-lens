@@ -301,11 +301,11 @@ header{
 .language-control select:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
 .hospitality-scale[hidden]{display:none}
 .hospitality-scale{margin-top:var(--s-2);font-size:var(--t-micro);color:#8296ac;font-variant-numeric:tabular-nums}
-.hospitality-legend-title{margin-bottom:4px}
-.hospitality-legend-list{list-style:none;margin:0;padding:0;display:grid;gap:2px}
-.hospitality-legend-list li{display:flex;align-items:center;gap:6px}
-.hospitality-legend-swatch{width:14px;height:10px;border-radius:2px;border:1px solid rgba(255,255,255,.35);flex:none}
-.hospitality-legend-note{margin:6px 0 0;line-height:1.35}
+.hospitality-legend-title{margin-bottom:var(--s-1)}
+.hospitality-legend-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--s-1)}
+.hospitality-legend-list li{display:flex;align-items:center;gap:var(--s-2)}
+.hospitality-legend-swatch{width:14px;height:10px;border:1px solid rgba(255,255,255,.35);flex:none}
+.hospitality-legend-note{margin:var(--s-2) 0 0;line-height:1.35}
 .hospitality-selector-hint{margin:var(--s-4) 0 0;font-size:var(--t-micro);line-height:1.45;color:#71869d}
 .heat-scale{margin:var(--s-3) 0 var(--s-1);height:5px;border-radius:6px;background:linear-gradient(90deg,#63d3b1,#ffc765,#ff875d,#ef4c58)}
 .scale-labels{display:flex;justify-content:space-between;font-size:var(--t-micro);color:#76889e}
