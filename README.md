@@ -140,8 +140,9 @@ including comparing two places at once.
 - Optionally show the official **Principal parks** context layer; it is map context only and never enters lens metrics.
 - Opt into **Hospitality & Commercial Context** as one administrative
   barrio selector over the 131 official barrios, and switch among the five
-  exact Gate F indicators. The value-driven polygon fill is on HOLD
-  ([docs/HOSPITALITY_CHOROPLETH_HOLD.md](docs/HOSPITALITY_CHOROPLETH_HOLD.md));
+  exact Gate F indicators. Only the hospitality membership share shades the
+  polygons (five quantile classes with a class legend); the other four stay on
+  HOLD ([docs/HOSPITALITY_CHOROPLETH_HOLD.md](docs/HOSPITALITY_CHOROPLETH_HOLD.md));
   values are read in the administrative context card. It remains separate from the Lens circle and A/B compare.
 - Opt into the bounded HATI research-evidence layer, then switch its modelled time-of-day (12:00 / 15:00 / 18:00).
 - Filter the accommodation layer by accommodation type where the
