@@ -225,6 +225,35 @@ test("appearance changes stay inexpensive under 4x CPU throttling", async (t) =>
   assert.ok(perChange < 150, `appearance changes averaged ${perChange.toFixed(1)}ms at 4x CPU throttling`);
   t.diagnostic(`20 changes at 4x CPU: ${elapsed.toFixed(1)}ms (${perChange.toFixed(1)}ms/change)`);
 });
+for (const preference of ["light", "dark"]) {
+  for (const lang of ["en", "es"]) {
+    test(`header select options are legible (${preference}, ${lang})`, async (t) => {
+      const page = await openApp({ preference });
+      t.after(() => closePage(page));
+      await page.locator("#languageSelect").selectOption(lang);
+      const rows = await page.evaluate(() => {
+        const lum = (c) => { const v = c.match(/[\d.]+/g).slice(0, 3).map((x) => { x /= 255; return x <= .03928 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4; }); return .2126 * v[0] + .7152 * v[1] + .0722 * v[2]; };
+        const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + .05) / (y + .05); };
+        const probe = document.createElement("option");
+        probe.disabled = true; probe.textContent = "x";
+        document.querySelector("#languageSelect").append(probe);
+        const out = [...document.querySelectorAll("#appearanceSelect option, #languageSelect option")].map((o) => {
+          const s = getComputedStyle(o);
+          return { text: o.textContent.trim(), disabled: o.disabled, bg: s.backgroundColor, ratio: ratio(s.color, s.backgroundColor) };
+        });
+        probe.remove();
+        return out;
+      });
+      assert.ok(rows.length >= 6, JSON.stringify(rows));
+      for (const row of rows) {
+        assert.ok(!/rgba\(.*, 0\)/.test(row.bg) && row.bg !== "transparent", `option needs an opaque surface: ${JSON.stringify(row)}`);
+        assert.ok(row.ratio >= 4.5, `option contrast ${row.ratio.toFixed(2)}: ${JSON.stringify(row)}`);
+      }
+      assert.ok(rows.some((row) => row.disabled), "disabled probe was measured");
+    });
+  }
+}
+
 
 test.after(async () => {
   await browser.close();

@@ -757,6 +757,9 @@ header{
 input[type=range]{width:100%;margin-inline:0;accent-color:#57b8ff}
 .row-controls{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-2);margin-top:var(--s-2)}
 select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;color:#d9e4ef;border-radius:var(--r-small);padding:var(--s-2);font-size:var(--t-micro);outline:none}
+/* Native option popups paint their own opaque surface; the translucent header select background is not inherited, leaving light text on white. */
+.header-tools select option{background:var(--chrome-form-surface);color:var(--chrome-text-control-value)}
+.header-tools select option:disabled{color:#8fa3b8}
 .smallbtn{cursor:pointer}.smallbtn:hover{border-color:var(--line2)}
 
 .mix{margin-top:var(--s-3);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(10rem,calc(50% - var(--s-1)))),1fr));gap:var(--s-2)}
@@ -1694,6 +1697,7 @@ select,.hospitality-controls select,.header-tools select,.basemap-control select
 
 :root[data-appearance="light"] :where(select,input[type="date"],.hospitality-select-wrap,.ambito-select){background:#fff;color:#16222f;border-color:#9aa7b5}
 :root[data-appearance="light"] select option{background:#fff;color:#16222f}
+:root[data-appearance="light"] .header-tools select option:disabled{color:#5b6b7c}
 :root[data-appearance="light"] .switch span{background:#b7c1cc}
 :root[data-appearance="light"] .switch span:after{background:#fff;box-shadow:0 1px 3px rgba(22,34,47,.28)}
 :root[data-appearance="light"] .switch input:checked+span{background:#176589}
