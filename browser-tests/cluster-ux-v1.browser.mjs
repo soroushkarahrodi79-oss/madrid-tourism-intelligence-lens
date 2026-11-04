@@ -44,7 +44,8 @@ await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const { port } = server.address();
 const browser = await engine.launch({ headless: true });
 
-async function open(appearance, { reducedMotion = "no-preference", query = "", forcedColors = "none" } = {}) {
+// Default "?lang=en": the bare root URL now opens the Discover landing; any query enters the app.
+async function open(appearance, { reducedMotion = "no-preference", query = "?lang=en", forcedColors = "none" } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1200, height: 860 }, colorScheme: appearance, reducedMotion, ...(forcedColors === "active" ? { forcedColors } : {}) });
   const page = await ctx.newPage();
   page.setDefaultTimeout(60000);

@@ -25,7 +25,8 @@ await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const { port } = server.address();
 const browser = await ENGINE.launch({ headless: true });
 
-async function open({ width = 1280, height = 820, storage, url = "", colorScheme = "light", reducedMotion = "no-preference", delay = null } = {}) {
+// Default "?lang=en": the bare root URL now opens the Discover landing; any query enters the app.
+async function open({ width = 1280, height = 820, storage, url = "?lang=en", colorScheme = "light", reducedMotion = "no-preference", delay = null } = {}) {
   const context = await browser.newContext({ viewport: { width, height }, colorScheme, reducedMotion });
   if (storage !== undefined) await context.addInitScript((value) => localStorage.setItem("madrid-lens-tutorial-v1", value), storage);
   const page = await context.newPage(); page.setDefaultTimeout(30000);

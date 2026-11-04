@@ -1872,7 +1872,8 @@ test("SS 14(4) the seam is absent, and the category filter keeps its production 
     if (url.hostname !== "127.0.0.1" && url.hostname !== "localhost") return route.abort();
     return route.continue();
   });
-  await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
+  // The bare root URL now opens the Discover landing; ?lang=en enters the application directly (the app default language).
+  await page.goto(`http://127.0.0.1:${port}/?lang=en`, { waitUntil: "domcontentloaded" });
   // Wait for the production availability rule to have actually RUN. The options
   // and the <select> ship in static markup, so waiting for them resolves
   // immediately and would race the rule; the `title` is set only by that rule,
