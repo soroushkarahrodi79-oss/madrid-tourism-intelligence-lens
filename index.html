@@ -2,6 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+/* Landing-first entry. Only the bare public URL (no query, no fragment) opens the
+   Discover landing; location.replace keeps Back history clean. Every URL that
+   carries state reaches the application directly: shared readings (?v=1…),
+   language entries (?lang=…, used by Discover's own CTAs), guided cases
+   (?journey=…), fragments and test seams. The app itself always commits ?v=1
+   state with replaceState, so a refresh inside Lens never returns here. */
+(function () {
+  try {
+    var l = window.location;
+    if (!l.search && !l.hash && /\/(index\.html)?$/.test(l.pathname)) l.replace("discover/");
+  } catch (e) { /* a blocked navigation leaves the application in place */ }
+})();
+</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>Madrid Urban Evidence Lens</title>

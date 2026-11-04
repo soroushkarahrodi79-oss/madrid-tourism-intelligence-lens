@@ -37,7 +37,8 @@ async function open() {
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e)));
   await page.route("**/*", (route) => (new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort()));
-  await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "load" });
+  // The bare root URL now opens the Discover landing; ?lang=en enters the application directly (the app default language).
+  await page.goto(`http://127.0.0.1:${port}/?lang=en`, { waitUntil: "load" });
   await page.waitForFunction(() => typeof map !== "undefined" && typeof groups !== "undefined" && typeof createOperationalMarker === "function");
   return { page, ctx, errors };
 }

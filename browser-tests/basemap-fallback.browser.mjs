@@ -43,7 +43,8 @@ async function openPage({ key = "", cartoTiles = "ok" } = {}) {
     if (route.request().resourceType() === "image") return route.fulfill({ contentType: "image/png", body: PNG_1X1 });
     return route.abort();
   });
-  await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
+  // The bare root URL now opens the Discover landing; ?lang=en enters the application directly (the app default language).
+  await page.goto(`http://127.0.0.1:${port}/?lang=en`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("#basemapSelect");
   return { page, context, warnings };
 }
