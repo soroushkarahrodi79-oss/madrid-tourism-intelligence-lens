@@ -182,8 +182,8 @@ body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 .leaflet-control-zoom a{display:flex!important;align-items:center;justify-content:center;box-sizing:border-box;padding:0!important;text-indent:0!important;width:36px!important;height:36px!important;line-height:1!important;background:var(--map-zoom-surface)!important;color:var(--map-zoom-text)!important;border-color:var(--map-zoom-edge)!important}
 .leaflet-control-zoom a:hover{background:var(--map-zoom-hover-surface)!important}
 .leaflet-control-zoom a.leaflet-disabled{color:var(--map-zoom-disabled-text)!important;opacity:var(--map-zoom-disabled-opacity);cursor:default}
-.leaflet-top.leaflet-left{top:calc(90px + var(--safe-top));left:calc(254px + var(--safe-left))}
-.leaflet-bottom.leaflet-right{right:auto;left:calc(254px + var(--safe-left));bottom:calc(18px + var(--safe-bottom))}
+.leaflet-top.leaflet-left{top:calc(90px + var(--safe-top));left:calc(var(--rail-offset,254px) + var(--safe-left))}
+.leaflet-bottom.leaflet-right{right:auto;left:calc(var(--rail-offset,254px) + var(--safe-left));bottom:calc(18px + var(--safe-bottom))}
 .leaflet-control-attribution{max-width:min(46vw,520px);border-radius:7px;padding:2px 5px!important;line-height:1.25}
 .leaflet-tooltip{background:var(--map-tooltip-surface);border:1px solid var(--map-tooltip-edge);color:var(--map-tooltip-text);border-radius:10px;box-shadow:var(--map-tooltip-shadow);font-size:var(--t-meta);padding:7px 9px}
 .leaflet-tooltip-top:before{border-top-color:var(--map-tooltip-arrow)}
@@ -2148,3 +2148,29 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
   :root[data-text-size="large"] .brand-title{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   :root[data-text-size="large"] .brand-short{display:block}
 }
+
+/* Desktop: side panels are anchored to the screen edges (rounded only toward the
+   map) and each can be hidden with its edge tab or the [ and ] keys. Below 851px
+   the existing stacked/phone layouts apply unchanged and the tabs are not shown. */
+.edge-toggle{display:none}
+@media(min-width:851px){
+  :root{--rail-offset:262px}
+  body.rail-collapsed{--rail-offset:46px}
+  .left{left:0;top:calc(90px + var(--safe-top));border-left:0;border-radius:0 var(--r-large) var(--r-large) 0;max-height:calc(100vh - 90px - var(--safe-top) - var(--safe-bottom));max-height:calc(100dvh - 90px - var(--safe-top) - var(--safe-bottom))}
+  .panel{right:0;top:calc(90px + var(--safe-top));border-right:0;border-radius:var(--r-large) 0 0 var(--r-large);
+    height:var(--analysis-panel-height,calc(100vh - 90px - var(--safe-top) - var(--safe-bottom)));height:var(--analysis-panel-height,calc(100dvh - 90px - var(--safe-top) - var(--safe-bottom)));
+    max-height:calc(100vh - 90px - var(--safe-top) - var(--safe-bottom));max-height:calc(100dvh - 90px - var(--safe-top) - var(--safe-bottom))}
+  body.rail-collapsed .left,body.panel-collapsed .panel,body.panel-collapsed .panel-resize-handle{display:none!important}
+  .edge-toggle{display:grid;place-items:center;position:fixed;z-index:1060;top:calc(104px + var(--safe-top));width:28px;height:64px;padding:0;cursor:pointer;
+    border:1px solid var(--chrome-border);background:var(--chrome-panel-surface);backdrop-filter:blur(18px);color:var(--chrome-text-metadata);box-shadow:0 8px 24px rgba(0,0,0,.22)}
+  .edge-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s ease}
+  .edge-toggle-left{left:222px;border-left:0;border-radius:0 var(--r-small) var(--r-small) 0}
+  body.rail-collapsed .edge-toggle-left{left:0}
+  body.rail-collapsed .edge-toggle-left svg,body.panel-collapsed .edge-toggle-right svg{transform:rotate(180deg)}
+  .edge-toggle-right{right:0;border-right:0;border-radius:var(--r-small) 0 0 var(--r-small)}
+  .edge-toggle:hover{color:var(--chrome-text-primary);border-color:var(--chrome-focus-ring-subtle-color)}
+  .edge-toggle:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:1px}
+}
+@media(min-width:851px) and (prefers-reduced-motion:reduce){.edge-toggle svg{transition:none}}
+/* OpenStreetMap fallback base (no CARTO key): quieter colour so Lens layers lead. Light appearance only. */
+:root:not([data-appearance="dark"]) .tiles-osm-soft{filter:saturate(.4) contrast(.92) brightness(1.05)}
