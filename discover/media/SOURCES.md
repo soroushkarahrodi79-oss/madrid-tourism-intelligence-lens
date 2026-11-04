@@ -1,15 +1,20 @@
 # Discover media provenance
 
-Every image here is a lossy WebP crop or downscale of an authentic, unmodified
-Lens capture already committed to this repository. No pixel content was added.
+The hero, PLACE, COMPARE and CITY images are lossy WebP crops or downscales of
+authentic, unmodified captures of the deployed Lens (Playwright Chromium, 1440×900,
+light, `lg=es`, CARTO Positron base map, 4 Nov 2026), taken at
+`https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens/` with
+the state `m=PLACE|COMPARE|CITY`, `a=40.41490,-3.69000,900`, `b=40.40520,-3.72119,500`.
+The refusal and limits details remain crops of the committed `docs/showcase` captures
+(1 Nov 2026). No pixel content was added.
 Values visible in a capture belong to its capture date and build.
 
 | File | Source capture | Operation (source pixels) |
 |---|---|---|
-| `hero-compare-detail.webp` | `docs/showcase/lens-02-compare.webp` (1 Nov 2026, see `docs/showcase/capture-manifest.json`) | crop 250,250 → 950,800 |
-| `place-1200.webp`, `place-720.webp` | `docs/showcase/lens-01-place.webp` (1 Nov 2026) | full frame, resized |
-| `compare-1200.webp`, `compare-720.webp` | `docs/showcase/lens-02-compare.webp` (1 Nov 2026) | full frame, resized |
-| `city-1200.webp`, `city-720.webp` | `research/ux_t1_appearance/screenshots/05-city-light-es.png` (21 Oct 2026, see that folder's `manifest.json`) | full frame, resized |
+| `hero-compare-detail.webp` | Fresh capture of the deployed application, COMPARE (4 Nov 2026, see below) | crop 240,275 → 940,825, fully inside the map canvas (no panel or margin pixels) |
+| `place-1200.webp`, `place-720.webp` | Fresh capture, PLACE (4 Nov 2026) | full 1440×900 frame, resized |
+| `compare-1200.webp`, `compare-720.webp` | Fresh capture, COMPARE (4 Nov 2026) | full 1440×900 frame, resized |
+| `city-1200.webp`, `city-720.webp` | Fresh capture, CITY (4 Nov 2026) | full 1440×900 frame, resized |
 | `refusal-detail.webp` | `docs/showcase/lens-03a-refusal.webp` (1 Nov 2026) | crop 480,312 → 928,578 |
 | `limits-detail.webp` | `docs/showcase/lens-03b-evidence-limits.webp` (1 Nov 2026) | crop 960,96 → 1411,620 |
 

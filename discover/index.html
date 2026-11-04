@@ -17,6 +17,7 @@
       color-scheme:light;
       --paper:#f4f1ea;--paper-deep:#ebe6da;--card:#fbfaf6;
       --ink:#16191e;--ink-soft:#4b5058;--rule:#d3ccbd;--rule-strong:#16191e;
+      --teal:#14b8a0;--sky:#2f9bd0;--sun:#f4b942;--coral:#e8573a;--teal-soft:#c9f0e6;--sky-soft:#d3e9f6;--sun-soft:#fbe8bd;
       --brick:#a8391f;--brick-hover:#8e2e17;--brick-bright:#f08a67;
       --lens-a:#123b5f;--lens-b:#00718f;
       --night:#15181d;--night-text:#ece6d8;--night-soft:#aaa498;--night-rule:#383c43;
@@ -92,10 +93,10 @@
     .plate-frame:after{bottom:-8px;right:-8px;border-width:0 1px 1px 0}
     .plate-media{position:relative;overflow:hidden;background:var(--paper-deep)}
     .plate-media img{width:100%}
-    .plate figcaption,.plate-caption{margin-top:12px;color:var(--ink-soft);line-height:1.55}
+    .plate figcaption,.plate-caption{margin-top:28px;color:var(--ink-soft);line-height:1.55}
     .plate figcaption b,.plate-caption b{color:var(--ink);font-weight:600}
     .plate-link{display:inline-block;margin-top:6px;color:var(--ink);text-underline-offset:4px}
-    .hero-plate .plate-media{--ax:70.4%;--ay:36.7%}
+    .hero-plate .plate-media{--ax:71.9%;--ay:32.2%}
     .aperture-ring{position:absolute;left:var(--ax);top:var(--ay);width:36%;aspect-ratio:1;border:2px solid var(--brick);border-radius:50%;transform:translate(-50%,-50%) scale(0);opacity:0;pointer-events:none}
 
     /* ---------- Section heads ---------- */
@@ -157,6 +158,37 @@
     .footer-grid p{margin:0}
     .footer-links{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
     .footer-links a{text-underline-offset:4px}
+
+
+    /* ---------- Colour layer: the logo's teal-to-sky gradient, the lens blues and a warm sun ---------- */
+    body{background:linear-gradient(180deg,var(--paper) 0,#f7f3e8 40%,var(--paper) 100%)}
+    .masthead{border-image:linear-gradient(90deg,var(--teal),var(--sky),var(--sun),var(--coral)) 1;border-bottom-width:2px}
+    .hero{background:radial-gradient(60% 70% at 88% 8%,rgb(20 184 160 / .22),transparent 70%),radial-gradient(48% 60% at 6% 96%,rgb(244 185 66 / .28),transparent 70%),radial-gradient(40% 50% at 62% 100%,rgb(47 155 208 / .16),transparent 70%)}
+    .hero:before{border:1.5px dashed rgb(20 184 160 / .55)}
+    .hero h1 .accent{background:linear-gradient(95deg,var(--brick) 5%,var(--coral) 55%,#f0933d 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+    .kicker{color:#0b7d6d}.kicker:before{height:2px;background:linear-gradient(90deg,var(--teal),var(--sky))}
+    .btn-primary{background-color:var(--brick);background-image:linear-gradient(135deg,var(--brick),var(--coral));box-shadow:0 8px 22px -8px rgb(232 87 58 / .65)}
+    .btn-primary:hover{background-color:var(--brick-hover);background-image:linear-gradient(135deg,var(--brick-hover),var(--brick));box-shadow:0 10px 26px -8px rgb(232 87 58 / .8)}
+    .hero-proof{border-top:2px solid transparent;border-image:linear-gradient(90deg,var(--teal),var(--sky) 40%,transparent) 1}
+    .plate-frame{border-color:var(--ink);box-shadow:12px 12px 0 var(--teal-soft),12px 12px 0 1px rgb(20 184 160 / .55)}
+    .hero-plate .plate-frame{box-shadow:14px 14px 0 var(--sun-soft),14px 14px 0 1px rgb(244 185 66 / .8)}
+    .plate-frame:before,.plate-frame:after{border-color:var(--brick);width:18px;height:18px;border-width:2px}
+    .plate-frame:before{border-width:2px 0 0 2px}.plate-frame:after{border-width:0 2px 2px 0}
+    .modes{background:linear-gradient(180deg,rgb(211 233 246 / .55),rgb(201 240 230 / .35) 55%,transparent);border-top:0}
+    .tab[aria-selected="true"]{background:linear-gradient(90deg,rgb(255 255 255 / .75),transparent)}
+    .tab:before{width:4px;background:linear-gradient(180deg,var(--teal),var(--sky))}
+    .tab:nth-child(1)[aria-selected="true"] .tab-code{color:#0b7d6d}.tab:nth-child(2)[aria-selected="true"] .tab-code{color:#1b72a8}.tab:nth-child(3)[aria-selected="true"] .tab-code{color:#b57a0b}
+    .legend li:before{background:linear-gradient(135deg,var(--teal),var(--sky))}
+    .legend li{border-top:2px solid var(--teal-soft)}
+    .marker{background:linear-gradient(135deg,var(--brick),var(--coral))}
+    .night{background:radial-gradient(60% 55% at 12% 0,rgb(20 184 160 / .22),transparent 70%),radial-gradient(50% 60% at 100% 35%,rgb(47 155 208 / .20),transparent 70%),radial-gradient(45% 45% at 80% 100%,rgb(232 87 58 / .18),transparent 70%),#10161c}
+    .keys dt{color:#5fe0c8}.keys div:nth-child(2) dt{color:#7cc4ee}.keys div:nth-child(3) dt{color:#f6c768}.keys div:nth-child(4) dt{color:#f59a7d}
+    .night .plate-frame{box-shadow:10px 10px 0 rgb(20 184 160 / .28)}
+    .night .plate-frame:before,.night .plate-frame:after{border-color:var(--sun)}
+    .closing h2{color:#c4f5e9}
+    footer{background:linear-gradient(180deg,var(--sun-soft),var(--paper) 70%);border-top:0}
+    @media (max-width:720px){.plate-frame,.hero-plate .plate-frame{box-shadow:6px 6px 0 var(--teal-soft)}}
+    @media (prefers-reduced-motion:reduce){.btn-primary{transition:none}}
 
     /* ---------- Motion (CSS only; every animation ends in the static layout) ---------- */
     @keyframes rise{from{transform:translateY(105%)}to{transform:none}}
@@ -252,7 +284,7 @@
             <span class="aperture-ring" aria-hidden="true"></span>
           </div>
         </div>
-        <figcaption class="mono"><b data-i18n="heroPlateTitle">Lámina 1 · COMPARE.</b> <span data-i18n="heroPlateText">Detalle de una captura real: lente A en Los Jerónimos (900 m), lente B en Imperial (500 m). 1 nov 2026 · Mapa base © OpenStreetMap · © CARTO.</span><br><a class="plate-link" href="../?v=1&amp;s=20261029-m3-dossier-v1&amp;m=COMPARE&amp;a=40.41490%2C-3.69000%2C900&amp;b=40.40520%2C-3.72119%2C500&amp;be=1&amp;al=B&amp;ly=museum.info.stay.bike.rail&amp;om=2026-07&amp;sc=LENS&amp;rd=citizen&amp;lg=es" data-reading-link><span data-i18n="heroPlateLink">Abrir esta misma lectura en Lens</span> ↗</a></figcaption>
+        <figcaption class="mono"><b data-i18n="heroPlateTitle">Lámina 1 · COMPARE.</b> <span data-i18n="heroPlateText">Detalle de una captura real: lente A en Los Jerónimos (900 m), lente B en Imperial (500 m). 4 nov 2026 · Mapa base © OpenStreetMap · © CARTO.</span><br><a class="plate-link" href="../?v=1&amp;s=20261029-m3-dossier-v1&amp;m=COMPARE&amp;a=40.41490%2C-3.69000%2C900&amp;b=40.40520%2C-3.72119%2C500&amp;be=1&amp;al=B&amp;ly=museum.info.stay.bike.rail&amp;om=2026-07&amp;sc=LENS&amp;rd=citizen&amp;lg=es" data-reading-link><span data-i18n="heroPlateLink">Abrir esta misma lectura en Lens</span> ↗</a></figcaption>
       </figure>
     </div>
   </section>
@@ -287,7 +319,7 @@
                 <li data-i18n="placeKey2">Barrio oficial, círculo y ámbito de planeamiento se nombran por separado.</li>
                 <li data-i18n="placeKey3">Las cifras muestran su registro oficial y su fecha de referencia.</li>
               </ol>
-              <figcaption class="mono" data-i18n="placeCaption">Captura real · PLACE · Los Jerónimos · 1 nov 2026 · interfaz en inglés</figcaption>
+              <figcaption class="mono" data-i18n="placeCaption">Captura real · PLACE · Los Jerónimos · 4 nov 2026 · interfaz en español</figcaption>
             </figure>
           </div>
           <div class="panel" role="tabpanel" id="panel-compare" aria-labelledby="tab-compare" data-panel="compare">
@@ -304,7 +336,7 @@
                 <li data-i18n="compareKey2">Compara círculos Lens o ámbitos de planeamiento, nunca una mezcla.</li>
                 <li data-i18n="compareKey3">Contrastes observados, sin orden ni recomendación; la movilidad se retiene porque las ventanas difieren.</li>
               </ol>
-              <figcaption class="mono" data-i18n="compareCaption">Captura real · COMPARE · 1 nov 2026 · interfaz en inglés</figcaption>
+              <figcaption class="mono" data-i18n="compareCaption">Captura real · COMPARE · 4 nov 2026 · interfaz en español</figcaption>
             </figure>
           </div>
           <div class="panel" role="tabpanel" id="panel-city" aria-labelledby="tab-city" data-panel="city">
@@ -321,7 +353,7 @@
                 <li data-i18n="cityKey2">Estadística oficial con su mes de referencia y su estado provisional.</li>
                 <li data-i18n="cityKey3">Indica lo que no cubre: solo establecimientos hoteleros, no todo el turismo.</li>
               </ol>
-              <figcaption class="mono" data-i18n="cityCaption">Captura real · CITY · 21 oct 2026 · interfaz en español</figcaption>
+              <figcaption class="mono" data-i18n="cityCaption">Captura real · CITY · 4 nov 2026 · interfaz en español</figcaption>
             </figure>
           </div>
         </div>
@@ -388,7 +420,7 @@
     explore:'Explore Lens', seeModes:'See what you can do',
     heroProof:'Official public data · Sources and dates you can inspect · Descriptive, not causal',
     heroAlt:'Detail of a real Lens capture in COMPARE mode: two analysis circles over central Madrid, Lens A in Los Jerónimos and Lens B in Imperial.',
-    heroPlateTitle:'Plate 1 · COMPARE.', heroPlateText:'Detail of a real capture: Lens A in Los Jerónimos (900 m), Lens B in Imperial (500 m). 1 Nov 2026 · Base map © OpenStreetMap · © CARTO.',
+    heroPlateTitle:'Plate 1 · COMPARE.', heroPlateText:'Detail of a real capture: Lens A in Los Jerónimos (900 m), Lens B in Imperial (500 m). 4 Nov 2026 · Base map © OpenStreetMap · © CARTO.',
     heroPlateLink:'Open this exact reading in Lens',
     modesKicker:'01 · What you can do', modesTitle:'Three ways to read the city.',
     modesIntro:'Each mode changes the question, not the rules. Every view is a real capture of the application.', modesLabel:'Lens modes',
@@ -397,13 +429,13 @@
     cityTitle:'Read the Madrid context', cityDesc:'Municipality-wide statistics with their reference month and status, never projected onto a street or your circle.',
     placeAlt:'Real Lens capture in PLACE mode: a 900-metre circle in Los Jerónimos and a panel with the official barrio, registered residents and licensed tourist dwellings.',
     placeKey1:'A Lens circle with an explicit radius (here, 900 m).', placeKey2:'Official barrio, circle and planning area are named separately.', placeKey3:'Figures show their official register and reference date.',
-    placeCaption:'Real capture · PLACE · Los Jerónimos · 1 Nov 2026 · English interface',
+    placeCaption:'Real capture · PLACE · Los Jerónimos · 4 Nov 2026 · Spanish interface',
     compareAlt:'Real Lens capture in COMPARE mode: a 900-metre Lens A in Los Jerónimos, a 500-metre Lens B in Imperial and a panel of observed contrasts.',
     compareKey1:'Two explicit windows: A at 900 m, B at 500 m.', compareKey2:'Compare Lens circles or planning areas — never a mix.', compareKey3:'Observed contrasts with no ranking or recommendation; mobility is withheld because the windows differ.',
-    compareCaption:'Real capture · COMPARE · 1 Nov 2026 · English interface',
+    compareCaption:'Real capture · COMPARE · 4 Nov 2026 · Spanish interface',
     cityAlt:'Real Lens capture in CITY mode, Spanish interface: Madrid municipality context with August 2026 travellers and overnight stays, marked provisional.',
     cityKey1:'Explicit scope: the whole municipality of Madrid.', cityKey2:'Official statistics with their reference month and provisional status.', cityKey3:'States what it does not cover: hotel establishments only, not all tourism.',
-    cityCaption:'Real capture · CITY · 21 Oct 2026 · Spanish interface',
+    cityCaption:'Real capture · CITY · 4 Nov 2026 · Spanish interface',
     evidenceKicker:'02 · Evidence & limits', evidenceTitle:'What we know, where it comes from, and where it ends.',
     keySourceTerm:'Source', keySource:'Every reading points to its publisher, its reference date and its status, definitive or provisional. It is not a real-time monitor.',
     keyScaleTerm:'Scale', keyScale:'Barrio, planning area and Lens circle are different units; Lens never swaps one for another.',
