@@ -25,6 +25,7 @@ const SHARDS = Object.freeze({
     "browser-tests/visual-language.browser.mjs",
     "browser-tests/information-architecture.browser.mjs",
     "browser-tests/mobile-layers-ux-h1-2.browser.mjs",
+    "browser-tests/edge-panels.browser.mjs",
     "browser-tests/ambito-comparison.browser.mjs",
     "browser-tests/map-control-layout.browser.mjs",
     "browser-tests/scope-rail-compact.browser.mjs",

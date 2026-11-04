@@ -228,6 +228,10 @@
   </details>
 </aside>
 
+<!-- Desktop only: edge tabs hide each side panel so the whole map is visible. -->
+<button type="button" id="railToggle" class="edge-toggle edge-toggle-left" aria-controls="layerRail" aria-expanded="true" aria-keyshortcuts="["><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M12.5 5 7.5 10l5 5"></path></svg></button>
+<button type="button" id="panelToggle" class="edge-toggle edge-toggle-right" aria-controls="analysisPanel" aria-expanded="true" aria-keyshortcuts="]"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M7.5 5 12.5 10l-5 5"></path></svg></button>
+
 <!-- Keep the 2D grip outside the scrolling analysis panel so its visual
      position follows the panel corner, not the scrollable evidence content. -->
 <button id="panelResizeHandle" class="panel-resize-handle" type="button"

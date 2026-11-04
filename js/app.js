@@ -217,6 +217,8 @@ function k12CartoRetina() { return k12PanOpts.has("noretina") ? "" : "{r}"; }
 function createOsmBasemap() {
   return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", k12TileOptions({
     maxZoom: 19,
+    // Fallback only: a desaturated class keeps data layers readable over OSM's colours.
+    className: "tiles-osm-soft",
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   }));
@@ -6551,6 +6553,7 @@ function applyShellCopy() {
   for (const el of document.querySelectorAll("[data-i18n]")) el.textContent = shellT(el.dataset.i18n);
   const grip = document.getElementById("panelResizeHandle");
   if (grip) grip.title = shellT("a11y.resizePanelHint");
+  if (document.getElementById("railToggle") && typeof syncEdgeToggleLabels === "function") syncEdgeToggleLabels();
   // Trusted, static dictionary HTML only (never source data or user input).
   for (const el of document.querySelectorAll("[data-i18n-html]")) el.innerHTML = shellT(el.dataset.i18nHtml);
   for (const el of document.querySelectorAll("[data-i18n-attr]")) {
@@ -7117,10 +7120,56 @@ const PANEL_SIZE_STORAGE_KEY = "madrid-tourism-intelligence-lens:analysis-panel-
 const analysisPanel = document.querySelector(".panel");
 const panelResizeHandle = document.getElementById("panelResizeHandle");
 
+// Desktop edge tabs: each side panel can be hidden to read the whole map. The
+// panels use display:none while hidden, so every geometry check that already
+// skips a zero-width panel keeps working; scroll position is restored on show.
+const railToggle = document.getElementById("railToggle");
+const panelToggle = document.getElementById("panelToggle");
+function positionEdgeToggles() {
+  const collapsed = document.body.classList.contains("panel-collapsed");
+  const right = collapsed ? 0 : Math.max(0, Math.round(document.documentElement.clientWidth - analysisPanel.getBoundingClientRect().left));
+  panelToggle.style.right = `${right}px`;
+}
+function syncEdgeToggleLabels() {
+  const railToggle = document.getElementById("railToggle"), panelToggle = document.getElementById("panelToggle");
+  const railOpen = !document.body.classList.contains("rail-collapsed");
+  const panelOpen = !document.body.classList.contains("panel-collapsed");
+  railToggle.setAttribute("aria-expanded", String(railOpen));
+  railToggle.setAttribute("aria-label", shellT(railOpen ? "edge.hideLayers" : "edge.showLayers"));
+  railToggle.title = railToggle.getAttribute("aria-label");
+  panelToggle.setAttribute("aria-expanded", String(panelOpen));
+  panelToggle.setAttribute("aria-label", shellT(panelOpen ? "edge.hideAnalysis" : "edge.showAnalysis"));
+  panelToggle.title = panelToggle.getAttribute("aria-label");
+}
+function setEdgePanelOpen(which, open) {
+  const isRail = which === "rail";
+  const node = isRail ? document.getElementById("layerRail") : analysisPanel;
+  if (!open) node.dataset.edgeScrollTop = String(node.scrollTop);
+  document.body.classList.toggle(isRail ? "rail-collapsed" : "panel-collapsed", !open);
+  if (open) node.scrollTop = Number(node.dataset.edgeScrollTop) || 0;
+  syncEdgeToggleLabels();
+  positionPanelResizeHandle();
+}
+railToggle.addEventListener("click", () => setEdgePanelOpen("rail", document.body.classList.contains("rail-collapsed")));
+panelToggle.addEventListener("click", () => setEdgePanelOpen("panel", document.body.classList.contains("panel-collapsed")));
+document.addEventListener("keydown", (event) => {
+  if ((event.key !== "[" && event.key !== "]") || event.ctrlKey || event.metaKey || event.altKey || window.innerWidth <= 850) return;
+  const target = event.target;
+  if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+  event.preventDefault();
+  if (event.key === "[") setEdgePanelOpen("rail", document.body.classList.contains("rail-collapsed"));
+  else setEdgePanelOpen("panel", document.body.classList.contains("panel-collapsed"));
+});
+
 // The analysis panel remains the scroll container (including sticky headings and
 // per-mode scroll state). Position its separate grip at the *visible* corner.
 function positionPanelResizeHandle() {
   if (window.innerWidth <= 850) {
+    panelResizeHandle.classList.remove("is-positioned");
+    return;
+  }
+  positionEdgeToggles();
+  if (document.body.classList.contains("panel-collapsed")) {
     panelResizeHandle.classList.remove("is-positioned");
     return;
   }
@@ -7262,6 +7311,7 @@ if (typeof ResizeObserver !== "undefined") {
   panelResizeObserver.observe(analysisPanel);
 }
 restorePanelSize();
+syncEdgeToggleLabels();
 positionPanelResizeHandle();
 
 async function boot() {
