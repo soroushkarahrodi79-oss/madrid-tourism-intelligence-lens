@@ -123,7 +123,8 @@ test("operational markers draw the approved silhouette; HATI/pedestrian/park sta
   const masks = await readMasks(page);
   for (const t of TYPES) {
     assert.equal(masks[t].shape, APPROVED[t], `${t} shape`);
-    assert.equal(masks[t].native, t === "bike", `${t} is ${t === "bike" ? "" : "not "}a plain Leaflet circle`);
+    // Every operational marker (BiciMAD's circle included) is a haloed ShapedCircleMarker (dual-tone outline).
+    assert.equal(masks[t].native, false, `${t} is a haloed operational marker, not a bare Leaflet circle`);
   }
   const plain = await page.evaluate(() => {
     addPedestrianActivityMarker({ type: "pedestrian", name: "p", lat: 40.4, lon: -3.7 });
@@ -213,7 +214,7 @@ test("tooltip, hit-testing and lens shading still work on a shaped marker", asyn
 
 // Leaflet sizes the hit area and the partial-redraw rectangle from the circle. A polygon's
 // vertices and stroke joins reach past it, so those must be covered for polygons only.
-test("polygon hit area and bounds cover every visible pixel and extremity; BiciMAD stays native", async () => {
+test("polygon hit area and bounds cover every visible pixel and extremity; the light halo is inside the redraw bounds; BiciMAD keeps circle geometry", async () => {
   const { page, ctx, errors } = await open();
   await plantRow(page);
   const r = await page.evaluate((types) => {
@@ -222,20 +223,34 @@ test("polygon hit area and bounds cover every visible pixel and extremity; BiciM
       let m = null;
       groups[t].eachLayer((l) => { if (l._p) m = l; });
       const rd = m._renderer, g = rd._container.getContext("2d", { willReadFrequently: true });
-      const N = 32, x0 = Math.round(m._point.x - rd._bounds.min.x - N / 2), y0 = Math.round(m._point.y - rd._bounds.min.y - N / 2);
-      const px = g.getImageData(x0, y0, N, N).data;
+      const N = 32;
+      // scan(): every drawn pixel of this marker, with its coverage against the marker's own redraw bounds and hit area
+      const scan = () => {
+        const x0 = Math.round(m._point.x - rd._bounds.min.x - N / 2), y0 = Math.round(m._point.y - rd._bounds.min.y - N / 2);
+        const px = g.getImageData(x0, y0, N, N).data;
+        const b = m._pxBounds;
+        const res = { drawn: 0, unhit: 0, outsideBounds: 0, far: 0, halfBounds: b.getSize().x / 2 };
+        for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+          const a = px[(y * N + x) * 4 + 3];
+          if (a === 0) continue;
+          // pixel centre in layer coordinates
+          const p = L.point(x0 + x + 0.5 + rd._bounds.min.x, y0 + y + 0.5 + rd._bounds.min.y);
+          res.drawn++;
+          if (!b.contains(p)) res.outsideBounds++;
+          if (a >= 128 && !m._containsPoint(p)) res.unhit++;
+          res.far = Math.max(res.far, p.distanceTo(m._point));
+        }
+        return res;
+      };
+      // 1) the marker body alone (halo off): every opaque pixel is a hit target and inside the redraw bounds, as before
+      m.options.markerHalo = false; m._project(); m.redraw(); rd._redraw && rd._redraw();
+      const body = scan();
+      // 2) with the light ring (the shipped state): the ring is decorative (not a hit target) but must be inside the bounds
+      m.options.markerHalo = true; m._project(); m.redraw(); rd._redraw && rd._redraw();
+      const withHalo = scan();
+      const halo = withHalo.drawn - body.drawn;
+      const { drawn, unhit, outsideBounds, far, halfBounds } = body;
       const b = m._pxBounds;
-      let drawn = 0, unhit = 0, outsideBounds = 0, far = 0;
-      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-        const a = px[(y * N + x) * 4 + 3];
-        if (a === 0) continue;
-        // pixel centre in layer coordinates
-        const p = L.point(x0 + x + 0.5 + rd._bounds.min.x, y0 + y + 0.5 + rd._bounds.min.y);
-        drawn++;
-        if (!b.contains(p)) outsideBounds++;
-        if (a >= 128 && !m._containsPoint(p)) unhit++;
-        far = Math.max(far, p.distanceTo(m._point));
-      }
       // hit-area size against the circle Leaflet would have used
       let polyHits = 0, circleHits = 0;
       const native = m._radius + m._clickTolerance();
@@ -254,7 +269,7 @@ test("polygon hit area and bounds cover every visible pixel and extremity; BiciM
           if (m._containsPoint(m._point.add([ux * (d + tol + 2), uy * (d + tol + 2)]))) overreach++;
         });
       }
-      out[t] = { native: m.constructor === L.CircleMarker, drawn, unhit, outsideBounds, far: +far.toFixed(2), halfBounds: b.getSize().x / 2, ratio: +(polyHits / circleHits).toFixed(2), vertexMiss, overreach };
+      out[t] = { native: m.constructor === L.CircleMarker, bikeCircle: !(m.options.markerShape && m.options.markerShape.points), halo, haloOutsideBounds: withHalo.outsideBounds, drawn, unhit, outsideBounds, far: +far.toFixed(2), halfBounds, ratio: +(polyHits / circleHits).toFixed(2), vertexMiss, overreach };
     }
     return out;
   }, TYPES);
@@ -266,7 +281,13 @@ test("polygon hit area and bounds cover every visible pixel and extremity; BiciM
     assert.equal(r[t].overreach, 0, `${t}: no hit target 2px beyond the stroked vertex`);
     assert.ok(r[t].ratio <= 1.5, `${t}: hit area ${r[t].ratio}x the old circle must stay proportionate`);
   }
-  assert.equal(r.bike.native, true, "BiciMAD keeps native CircleMarker bounds and hit-testing");
+  for (const t of TYPES) {
+    assert.ok(r[t].halo > 0, `${t}: the light outer ring of the dual-tone outline is drawn`);
+    assert.equal(r[t].haloOutsideBounds, 0, `${t}: the light ring stays inside the redraw bounds`);
+  }
+  assert.equal(r.bike.bikeCircle, true, "BiciMAD keeps circle geometry (no polygon)");
+  assert.equal(r.bike.outsideBounds, 0, "BiciMAD: body (halo off) stays inside the redraw bounds");
+  assert.ok(r.bike.ratio >= 0.95 && r.bike.ratio <= 1.05, `BiciMAD hit area is the native circle (${r.bike.ratio}x)`);
   assert.deepEqual(errors, []);
   await ctx.close();
 });

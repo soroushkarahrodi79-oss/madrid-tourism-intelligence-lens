@@ -37,6 +37,15 @@ const MARKER_SHAPE_EXTENT = 1.25;
 // The legend circle is drawn at the standard (non-BiciMAD) radius of 4 px.
 const MARKER_CIRCLE_LEGEND_RADIUS = 1;
 
+// Dual-tone outline (#150 follow-up). The opaque dark outline set by app.js carries
+// detectability on light basemaps; on Dark Matter and satellite imagery a single dark
+// ring is invisible (rendered rim >= 3:1 on only ~15-40 % of in-Lens samples). A light
+// ring drawn just outside it carries the dark/photographic case. Purely a rim: fill,
+// radius, colours, hit area and semantics are untouched.
+const MARKER_HALO_COLOR = "#ffffff";
+const MARKER_HALO_WIDTH = 1.25; // px of light ring visible outside the dark outline
+const MARKER_HALO_ALPHA = 0.92;
+
 // Leaflet's canvas renderer rounds a circle's radius to whole pixels; polygons
 // follow the same rounding so a shape never grows or shrinks by a sub-pixel.
 function renderedMarkerRadius(radius) {
@@ -134,7 +143,6 @@ if (typeof L !== "undefined" && L.CircleMarker && L.Canvas) {
       const shape = this.options.markerShape;
       if (
         !shape ||
-        !shape.points ||
         !(renderer instanceof L.Canvas) ||
         !renderer._drawing ||
         !renderer._ctx ||
@@ -146,11 +154,35 @@ if (typeof L !== "undefined" && L.CircleMarker && L.Canvas) {
       }
       const ctx = renderer._ctx;
       const radius = renderedMarkerRadius(this._radius);
+      this._drawHalo(ctx, shape, radius);
+      if (!shape.points) {
+        L.CircleMarker.prototype._updatePath.call(this);
+        return;
+      }
       if (!traceMarkerShape(ctx, shape, this._point.x, this._point.y, radius)) {
         L.CircleMarker.prototype._updatePath.call(this);
         return;
       }
       renderer._fillStroke(ctx, this);
+    },
+
+    // Light ring under the dark outline: a wider stroke of the same path, drawn first so
+    // the opaque outline and fill paint over its inner part. It follows the layer's own
+    // stroke opacity, so markers dimmed outside the Lens dim their ring with them.
+    _drawHalo(ctx, shape, radius) {
+      if (!this.options.stroke || !this.options.markerHalo) return;
+      ctx.save();
+      if (shape.points) traceMarkerShape(ctx, shape, this._point.x, this._point.y, radius);
+      else {
+        ctx.beginPath();
+        ctx.arc(this._point.x, this._point.y, radius, 0, Math.PI * 2);
+      }
+      ctx.globalAlpha = MARKER_HALO_ALPHA * (this.options.opacity == null ? 1 : this.options.opacity);
+      ctx.lineJoin = "round";
+      ctx.lineWidth = this.options.weight + 2 * MARKER_HALO_WIDTH;
+      ctx.strokeStyle = MARKER_HALO_COLOR;
+      ctx.stroke();
+      ctx.restore();
     },
 
     // Leaflet sizes the hit area and the partial-redraw rectangle from the CIRCLE
@@ -161,12 +193,21 @@ if (typeof L !== "undefined" && L.CircleMarker && L.Canvas) {
     _updateBounds() {
       L.CircleMarker.prototype._updateBounds.call(this);
       const shape = this.options.markerShape;
-      if (!shape || !shape.points) return;
+      if (!shape) return;
+      const halo = this.options.stroke && this.options.markerHalo ? MARKER_HALO_WIDTH : 0;
+      if (!shape.points) {
+        // circle: native bounds, grown only by the light ring so a redraw clears it
+        if (halo) {
+          const nativeHalf = this._pxBounds.getSize().x / 2 + halo;
+          this._pxBounds = L.bounds(this._point.subtract([nativeHalf, nativeHalf]), this._point.add([nativeHalf, nativeHalf]));
+        }
+        return;
+      }
       const stroked = this.options.stroke ? this.options.weight : 0;
       const rendererTolerance = this._clickTolerance() - stroked / 2;
       const reach = markerShapeReach(shape, renderedMarkerRadius(this._radius), stroked) + rendererTolerance;
       const native = this._pxBounds.getSize().x / 2;
-      const half = Math.max(native, reach);
+      const half = Math.max(native, reach + halo, native + halo);
       this._pxBounds = L.bounds(this._point.subtract([half, half]), this._point.add([half, half]));
     },
 
@@ -185,8 +226,8 @@ if (typeof L !== "undefined" && L.CircleMarker && L.Canvas) {
 // pedestrian, parks) stays a plain Leaflet circle.
 function createOperationalMarker(latlng, options, type) {
   const shape = OPERATIONAL_MARKER_SHAPES[type];
-  if (!ShapedCircleMarker || !shape || !shape.points) return L.circleMarker(latlng, options);
-  return new ShapedCircleMarker(latlng, { ...options, markerShape: shape, lineJoin: "miter" });
+  if (!ShapedCircleMarker || !shape) return L.circleMarker(latlng, options);
+  return new ShapedCircleMarker(latlng, { ...options, markerShape: shape, markerHalo: true, lineJoin: shape.points ? "miter" : options.lineJoin });
 }
 
 if (typeof module !== "undefined" && module.exports) {
@@ -198,5 +239,7 @@ if (typeof module !== "undefined" && module.exports) {
     markerShapeContains,
     traceMarkerShape,
     markerShapeClipPath,
+    MARKER_HALO_COLOR,
+    MARKER_HALO_WIDTH,
   };
 }
