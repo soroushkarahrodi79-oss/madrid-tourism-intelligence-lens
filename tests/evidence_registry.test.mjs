@@ -807,7 +807,7 @@ test("#179 THE GATE: the licence value re-derives from `applied` and the committ
   // A third-party position, exactly: the published model (js/urban-licences.js), the
   // committed artifact that applied.artifact names, and applied. Nothing else is
   // read — not the app, not the URL, not any other field of the evidence object.
-  const independentIndex = createLicenceIndex(read(`data/${applied.artifact}`));
+  const independentIndex = builtFromRecord(`licence:${applied.artifact}`, () => createLicenceIndex(readOnce(applied.artifact)));
   const rederived = independentIndex.view(
     { lon: applied.centre.lon, lat: applied.centre.lat, radiusM: applied.radiusM },
     { enabled: true, families: applied.families, window: { from: applied.window.from, to: applied.window.to } }
@@ -883,11 +883,19 @@ test("#179 an abstention never carries applied — there is no derivation to rec
   assert.ok(!("applied" in malformed));
 });
 
-test("the shapes that read several artifacts declare no `applied` yet, rather than a partial one", () => {
-  // AREA_PROFILE_AT_POINT, AMBITO_COMPARE and AMBITO_EDITION_DIFF re-derive from more
-  // than one registered artifact, which a single `applied.artifact` cannot express.
-  // Omission is the contract's honest state for them until it can; a partial record
-  // naming only one of their inputs would claim a re-derivation that does not work.
+test("the formerly silent shapes declare their inputs, and never one artifact for several", () => {
+  // These four used to carry nothing, because a single `applied.artifact` cannot
+  // express a reading assembled from more than one file. Reading the wiring showed
+  // two of them read exactly ONE artifact after all — the edition diff takes both
+  // editions from the same committed state file (change_detection.previous and
+  // .current), and the hotel series is one file — so they declare `artifact`. Only
+  // the two that genuinely assemble declare an ordered `artifacts`.
+  const expected = {
+    AMBITO_EDITION_DIFF: "artifact",
+    CITY_HOTEL_DEMAND: "artifact",
+    AMBITO_COMPARE: "artifacts",
+    AREA_PROFILE_AT_POINT: "artifacts",
+  };
   const probes = [
     ["AREA_PROFILE_AT_POINT", { lon: SOL.lon, lat: SOL.lat }],
     ["AMBITO_COMPARE", { a: { scope: "PLANNING_AMBITO", code: PUBLISHED_CODE }, b: { scope: "PLANNING_AMBITO", code: PUBLISHED_CODE } }],
@@ -896,8 +904,14 @@ test("the shapes that read several artifacts declare no `applied` yet, rather th
   ];
   for (const [shape, params] of probes) {
     const out = reg.query(shape, params);
-    assert.ok(R.isEvidence(out) || R.isAbstention(out), `${shape} must resolve or abstain`);
-    assert.ok(!("applied" in out), `${shape} must not carry a partial applied`);
+    assert.ok(R.isEvidence(out), `${shape} must resolve`);
+    const applied = out.applied;
+    assert.ok(applied, `${shape} must declare applied`);
+    const kind = expected[shape];
+    const other = kind === "artifact" ? "artifacts" : "artifact";
+    assert.ok(kind in applied, `${shape} must carry ${kind}`);
+    assert.ok(!(other in applied), `${shape} must carry ${kind} and not ${other}`);
+    assert.equal(applied.derivation, out.derivation, `${shape} derivation must not drift`);
   }
 });
 
@@ -915,8 +929,30 @@ test("#179 makeEvidence keeps applied optional and refuses a positional one", ()
   assert.ok(!("applied" in without), "omitting applied must leave the key absent, never null");
   assert.throws(() => R.makeEvidence({ ...base, applied: ["a", "b"] }), /named resolved inputs/);
   assert.throws(() => R.makeEvidence({ ...base, applied: "centre=Sol" }), /named resolved inputs/);
-  const present = R.makeEvidence({ ...base, applied: { centre: { lon: 1, lat: 2 } } });
+
+  // A record that names no committed file cannot be re-derived from at all, and one
+  // naming both a single file and an ordered set would leave a verifier to choose
+  // which is the real basis. Both are refused rather than normalised into one.
+  assert.throws(() => R.makeEvidence({ ...base, applied: { centre: { lon: 1, lat: 2 } } }), /must carry `artifact` or `artifacts`/);
+  assert.throws(
+    () => R.makeEvidence({ ...base, applied: { artifact: "a.json", artifacts: [{ sourceId: "s", artifact: "a.json" }] } }),
+    /both `artifact` and `artifacts`/
+  );
+  assert.throws(() => R.makeEvidence({ ...base, applied: { artifacts: [] } }), /non-empty ordered list/);
+  assert.throws(() => R.makeEvidence({ ...base, applied: { artifacts: [{ sourceId: "s" }] } }), /sourceId and its declared repository path/);
+  assert.throws(
+    () => R.makeEvidence({ ...base, applied: { artifacts: [{ sourceId: "s", artifact: "x" }, { sourceId: "s", artifact: "y" }] } }),
+    /lists source "s" twice/
+  );
+
+  const present = R.makeEvidence({ ...base, applied: { centre: { lon: 1, lat: 2 }, artifact: "some/file.json" } });
   assert.ok(Object.isFrozen(present.applied) && Object.isFrozen(present.applied.centre));
+  const assembled = R.makeEvidence({
+    ...base,
+    applied: { artifacts: [{ sourceId: "a", artifact: "a.json" }, { sourceId: "b", artifact: "b.json" }] },
+  });
+  assert.ok(Object.isFrozen(assembled.applied.artifacts) && Object.isFrozen(assembled.applied.artifacts[0]));
+  assert.deepEqual(assembled.applied.artifacts.map((entry) => entry.sourceId), ["a", "b"], "the ordered set keeps its order");
 });
 
 // ================================= 10. `applied` on the single-artifact shapes
@@ -926,7 +962,21 @@ test("#179 makeEvidence keeps applied optional and refuses a positional one", ()
 // the artifact that `applied.artifact` names, the exported pure reader that
 // `applied.reader` names, and the inputs in `applied`. Nothing else.
 
-const planningGeometryOnly = (artifactPath) => createPlanningIndex({ geometry: read(`data/${artifactPath}`) });
+// A re-derivation must build its index from the path the RECORD names, independently
+// of the harness's own index — that is the whole point of these tests. Doing it per
+// test kept several multi-megabyte parsed artifacts alive at once (geometry 3.3 MB,
+// state 3.2 MB, admin geography 2.5 MB), which crashed the Windows runner
+// intermittently with 0xC0000409. The construction is therefore memoised ON THE KEY
+// IT WAS ASKED FOR: a record naming a different path still forces a fresh build, so
+// the independence the tests assert is unchanged.
+const independent = new Map();
+const builtFromRecord = (key, build) => {
+  if (!independent.has(key)) independent.set(key, build());
+  return independent.get(key);
+};
+const readOnce = (artifactPath) => builtFromRecord(`json:${artifactPath}`, () => read(`data/${artifactPath}`));
+const planningGeometryOnly = (artifactPath) =>
+  builtFromRecord(`geometry:${artifactPath}`, () => createPlanningIndex({ geometry: readOnce(artifactPath) }));
 
 // SOL is deliberately NOT usable here: the consolidated city centre lies inside no
 // planning ámbito, so AMBITO_AT_POINT correctly abstains there. Discover a point that
@@ -999,7 +1049,7 @@ test("AMBITO_PHASES re-derives from `applied` and the state artifact alone, via 
   assert.equal(a.artifact, REGISTRY.sources.find((s) => s.id === "planning_ambito_state").artifact);
 
   // No index is built: the exported pure reader takes the artifact directly.
-  const rederived = developmentState(a.code, read(`data/${a.artifact}`));
+  const rederived = developmentState(a.code, readOnce(a.artifact));
   assert.deepEqual(rederived, out.value);
 });
 
@@ -1010,7 +1060,7 @@ test("AMBITO_BUILDABILITY shares the resolver but records its OWN reader, so the
   if (R.isEvidence(build)) {
     assert.equal(build.applied.reader, "availableBuildability");
     assert.notEqual(build.applied.reader, phases.applied.reader);
-    const rederived = availableBuildability(build.applied.code, read(`data/${build.applied.artifact}`));
+    const rederived = availableBuildability(build.applied.code, readOnce(build.applied.artifact));
     assert.deepEqual(rederived, build.value);
   } else {
     // A code with no published buildability abstains, and an abstention carries no
@@ -1054,4 +1104,179 @@ test("every `applied` carries its derivation and artifact, and they never drift"
     assert.ok(typeof out.applied.artifact === "string" && out.applied.artifact.length > 0, `${shape} must name an artifact`);
     assert.ok(fs.existsSync(new URL(`../data/${out.applied.artifact}`, import.meta.url)), `${shape} artifact must exist on disk`);
   }
+});
+
+// ========================= 11. `applied` on the assembled and the remaining shapes
+//
+// The four shapes that still carried nothing after #181. Reading the wiring showed
+// two of them re-derive from exactly ONE committed artifact after all; the other two
+// genuinely assemble several and declare an ORDERED `applied.artifacts`, whose order
+// is the order the derivation consumes them.
+//
+// Every test below takes the third-party position in the strict sense: it builds its
+// own indexes from the paths the RECORD names, never from the harness's already-built
+// ones, and calls the exported function the record names.
+
+test("AMBITO_EDITION_DIFF re-derives from one state artifact, both editions and all", () => {
+  const out = reg.query("AMBITO_EDITION_DIFF", { code: EDITION_CODE });
+  assert.ok(R.isEvidence(out));
+  const applied = out.applied;
+  assert.deepEqual(Object.keys(applied).sort(), ["artifact", "code", "derivation", "editions", "reader"]);
+  assert.equal(applied.derivation, "EDITION_DIFF");
+  assert.equal(applied.reader, "buildAmbitoComparison");
+  assert.equal(applied.code, EDITION_CODE);
+  assert.equal(applied.artifact, REGISTRY.sources.find((s) => s.id === "planning_ambito_state").artifact);
+
+  // The decisive point: BOTH editions of the diff live in that one file, under
+  // change_detection.previous and .current. That is why this shape declares a single
+  // `artifact`, and the re-derivation needs no second file to prove it.
+  const artifact = readOnce(applied.artifact);
+  const cd = artifact.change_detection;
+  const rederived = buildAmbitoComparison({
+    previous: { reference_date: cd.previous.reference_date, families: cd.previous.families },
+    current: { reference_date: cd.current.reference_date, families: cd.current.families },
+    exactCode: applied.code,
+  });
+  assert.deepEqual(rederived, out.value);
+  // And the editions the record names are the ones the model reports it compared,
+  // not the pair the harness happened to wire.
+  assert.deepEqual(applied.editions, { previous: rederived.dates.previous, current: rederived.dates.current });
+});
+
+test("CITY_HOTEL_DEMAND records the SERVED period, never the one a caller asked for", () => {
+  const served = destinationModel.period.key;
+  const plain = reg.query("CITY_HOTEL_DEMAND", {});
+  const pinned = reg.query("CITY_HOTEL_DEMAND", { period: served });
+  assert.ok(R.isEvidence(plain) && R.isEvidence(pinned));
+  const applied = plain.applied;
+  assert.deepEqual(Object.keys(applied).sort(), ["artifact", "derivation", "period", "reader"]);
+  assert.equal(applied.reader, "buildDestinationContext");
+  assert.equal(applied.period, served);
+  // Asking for the served period and asking for nothing are the same derivation, so
+  // they must leave the same record. Only the request differed.
+  assert.deepEqual(pinned.applied, applied);
+
+  const rederived = buildDestinationContext({
+    index: builtFromRecord(`dest:${applied.artifact}`, () => createDestinationIndex(readOnce(applied.artifact))),
+    state: DESTINATION_STATE.AVAILABLE,
+  });
+  assert.equal(rederived.period.key, applied.period);
+  assert.deepEqual(rederived, plain.value);
+});
+
+test("AMBITO_COMPARE declares BOTH planning artifacts, in the order the assembly reads them", () => {
+  const side = { scope: "PLANNING_AMBITO", code: PUBLISHED_CODE };
+  const out = reg.query("AMBITO_COMPARE", { a: side, b: side });
+  assert.ok(R.isEvidence(out));
+  const applied = out.applied;
+  assert.deepEqual(Object.keys(applied).sort(), ["a", "artifacts", "b", "derivation", "reader"]);
+  assert.equal(applied.reader, "buildAmbitoComparisonModel");
+  assert.ok(!("artifact" in applied), "an assembled reading must not also name a single artifact");
+
+  // Order is the contract: geometry first, because the canonical input of each side is
+  // resolved through an index built from it, then the committed state editions.
+  assert.deepEqual(applied.artifacts.map((entry) => entry.sourceId), [
+    "planning_ambito_geometry",
+    "planning_ambito_state",
+  ]);
+  assert.deepEqual(applied.artifacts.map((entry) => entry.reader), [
+    "createPlanningIndex",
+    "createCanonicalAmbitoComparisonInputResolver",
+  ]);
+  for (const entry of applied.artifacts) {
+    assert.equal(entry.artifact, REGISTRY.sources.find((s) => s.id === entry.sourceId).artifact);
+  }
+
+  const [geometryEntry, stateEntry] = applied.artifacts;
+  const stateArtifact = readOnce(stateEntry.artifact);
+  const index = builtFromRecord(
+    `planning:${geometryEntry.artifact}|${stateEntry.artifact}`,
+    () => createPlanningIndex({ geometry: readOnce(geometryEntry.artifact), state: stateArtifact })
+  );
+  const resolver = createCanonicalAmbitoComparisonInputResolver({ index, stateArtifact });
+  const rederived = buildAmbitoComparisonModel(resolver(applied.a.code, null), resolver(applied.b.code, null));
+  assert.deepEqual(rederived, out.value);
+
+  // The per-side edition identities are the ones the model ESTABLISHED. They decide
+  // whether the two sides are like-for-like, and a caller who requests no edition
+  // still gets a specific one, so the request would not reproduce this reading.
+  assert.deepEqual(applied.a.editions, {
+    development_state: rederived.editionBasis.development_state.a,
+    available_buildability: rederived.editionBasis.available_buildability.a,
+  });
+  assert.deepEqual(applied.b.editions, {
+    development_state: rederived.editionBasis.development_state.b,
+    available_buildability: rederived.editionBasis.available_buildability.b,
+  });
+});
+
+test("AREA_PROFILE_AT_POINT lists every contributor it read, and its own value agrees", () => {
+  const out = reg.query("AREA_PROFILE_AT_POINT", { lon: SOL.lon, lat: SOL.lat });
+  assert.ok(R.isEvidence(out));
+  const applied = out.applied;
+  assert.deepEqual(Object.keys(applied).sort(), ["artifacts", "barrioId", "centre", "derivation", "reader"]);
+  assert.equal(applied.reader, "buildAreaProfile");
+  assert.ok(!("artifact" in applied));
+
+  // The record and the value's own declared contributors are ONE list in the
+  // resolver, so a drift between them is not merely untested, it is unexpressible.
+  assert.deepEqual(applied.artifacts.map((entry) => entry.sourceId), out.value.sources);
+  assert.deepEqual(applied.artifacts.map((entry) => entry.sourceId), ["geography", "population"]);
+  assert.deepEqual(applied.artifacts.map((entry) => entry.reader), ["createGeographyIndex", "createPopulationIndex"]);
+
+  const byId = Object.fromEntries(applied.artifacts.map((entry) => [entry.sourceId, entry]));
+  const geoIndex = builtFromRecord(`geo:${byId.geography.artifact}`, () => createGeographyIndex(readOnce(byId.geography.artifact)));
+  const popIndex = builtFromRecord(`pop:${byId.population.artifact}`, () => createPopulationIndex(readOnce(byId.population.artifact)));
+  const rederived = buildAreaProfile({
+    lens: applied.centre,
+    located: geoIndex.locate(applied.centre.lon, applied.centre.lat),
+    populationIndex: popIndex,
+  });
+  // barrioId is the join key the population lookup actually used: the point only
+  // locates the barrio, the code selects the figure.
+  assert.equal(rederived.barrioId, applied.barrioId);
+  assert.deepEqual(rederived.residents, out.value.residents);
+  // `sources` is the one key the registry adds to the model's profile.
+  assert.deepEqual({ ...rederived, sources: out.value.sources }, out.value);
+});
+
+test("every registered shape that resolves declares exactly one kind of basis", () => {
+  // Completeness, checked against the registry's OWN shape list rather than a list
+  // repeated here: with these four landed, `applied` covers the whole registered
+  // surface. Nothing may carry both kinds, or neither.
+  const probes = [
+    ["AMBITO_AT_POINT", { lon: AMBITO_POINT.lon, lat: AMBITO_POINT.lat }],
+    ["AMBITOS_IN_LENS", { lon: SOL.lon, lat: SOL.lat, radiusM: 1000 }],
+    ["AMBITO_PHASES", { code: PUBLISHED_CODE }],
+    ["AMBITO_EDITION_DIFF", { code: EDITION_CODE }],
+    ["LICENCES_IN_LENS", { lon: SOL.lon, lat: SOL.lat, radiusM: 1000 }],
+    ["AMBITO_COMPARE", { a: { scope: "PLANNING_AMBITO", code: PUBLISHED_CODE }, b: { scope: "PLANNING_AMBITO", code: PUBLISHED_CODE } }],
+    ["SOURCE_PROVENANCE", { sourceId: "population" }],
+    ["AREA_PROFILE_AT_POINT", { lon: SOL.lon, lat: SOL.lat }],
+    ["CITY_HOTEL_DEMAND", {}],
+  ];
+  for (const [shape, params] of probes) {
+    const out = reg.query(shape, params);
+    assert.ok(R.isEvidence(out), `${shape} should resolve`);
+    const applied = out.applied;
+    assert.ok(applied && Object.isFrozen(applied), `${shape} must declare a frozen applied`);
+    assert.equal(applied.derivation, out.derivation, `${shape} derivation must not drift`);
+    const one = "artifact" in applied;
+    const many = "artifacts" in applied;
+    assert.ok(one !== many, `${shape} must declare exactly one of artifact / artifacts`);
+    const paths = one ? [applied.artifact] : applied.artifacts.map((entry) => entry.artifact);
+    for (const declaredPath of paths) {
+      assert.ok(
+        fs.existsSync(new URL(`../data/${declaredPath}`, import.meta.url)),
+        `${shape} names "${declaredPath}", which must exist on disk`
+      );
+    }
+  }
+
+  // AMBITO_BUILDABILITY is the one registered shape not probed here: it shares
+  // AMBITO_PHASES's resolver and abstains for a code with no published buildability,
+  // so its record is asserted by its own test in section 10 instead.
+  const covered = new Set(probes.map(([shape]) => shape));
+  covered.add("AMBITO_BUILDABILITY");
+  assert.deepEqual([...covered].sort(), [...R.REGISTERED_SHAPES].sort(), "every registered shape is accounted for");
 });
