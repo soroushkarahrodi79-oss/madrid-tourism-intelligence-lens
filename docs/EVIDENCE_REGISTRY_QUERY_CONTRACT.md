@@ -25,12 +25,16 @@ evidence drawer and the export bundle both read through it.
 
 ## 1. The evidence object contract
 
-Every factual answer is a frozen evidence object with exactly these fields; a
-missing field is a contract violation, never defaulted:
+Every factual answer is a frozen evidence object with exactly these **mandatory**
+fields; a missing one is a contract violation, never defaulted:
 
 ```
 { value, scope, unit, sourceId, freshness{ 5 fields }, ceiling, derivation }
 ```
+
+One further field, `applied`, is **optional and shape-specific** — the resolved
+inputs that produced the value. It is specified at the end of this section; the
+seven fields above are unchanged whether it is present or not.
 
 | Field | Meaning |
 |---|---|
@@ -66,6 +70,61 @@ equivalent to an authenticated public-query result.
 
 A derived value **always names its transformation**; the distinction survives into
 the answer.
+
+### `applied` — the resolved inputs (optional, #179 Phase 0)
+
+`derivation` **names** a transformation. It does not **specify** it: the name
+`IN_CIRCLE_FILTER` does not say which circle, which radius, which families or
+which dates produced the number. Those inputs lived only in the view layer and the
+canonical URL (`js/evidence-url.js`), so no reader outside the running application
+could recompute a figure.
+
+`applied` closes that gap. It is the **one optional field** of the evidence object
+and it is **shape-specific**: a map of named resolved inputs sufficient to
+re-derive the value from the committed artifact and the published model alone —
+with no application state, no URL and no other field of the evidence object.
+
+```
+applied: { …resolved inputs…, derivation, artifact }
+```
+
+Three rules govern it.
+
+1. **Effective, never requested.** Where a model substitutes a default or clamps a
+   parameter, `applied` records **what the model used**. `LICENCES_IN_LENS` reads
+   its window and families back off the model's own result
+   (`js/urban-licences.js` → `view().window`, `view().familiesShown`), because the
+   model clamps a requested grant-date window to the register extent, substitutes a
+   documented default when none was requested, and resolves an absent family filter
+   to the full family set. An `applied` that recorded the *request* would describe a
+   derivation that does not reproduce the value — the exact failure the field
+   exists to prevent. A clamped window additionally carries `clamped: true`.
+2. **Composed by the layer, not the resolver.** `evidenceFromSource` adds
+   `derivation` and `artifact` itself, so neither can drift: `derivation` is the
+   same name that goes on the evidence object, and `artifact` is the registry's own
+   declared path for the source. A resolver supplies only the inputs it used.
+3. **Omitted rather than guessed.** A shape that does not yet declare its inputs
+   has **no** `applied` key — never a null, never a partial record. Absence means
+   "this shape does not declare its derivation inputs yet", which is honest; a
+   present-but-inferred record would not be. Nine of the ten registered shapes are
+   in that state today. An **abstention never** carries `applied`: there is no
+   derivation to record.
+
+**`artifact` is a path, not a fingerprint.** It is a repository path relative to
+`data/` and it says *which file to re-derive from*. It is **not** evidence that the
+file is unchanged: `data/source_registry.json` carries a `sha256` for exactly one
+of its 21 sources (`planning_ambito_state`), and `urban_licences` has none.
+Artifact identity by checksum, and the verifier that would consume it, are
+deliberately **not** part of this field.
+
+| `applied` member (`LICENCES_IN_LENS`) | Meaning |
+|---|---|
+| `centre` | The resolved `{ lon, lat }` the resolver used. |
+| `radiusM` | The resolved positive radius in metres. |
+| `families` | The **resolved** family list the model reports, never the caller's `null` — a named list re-derives unambiguously, a `null` only re-derives for a reader who already knows the model's default. |
+| `window` | The **effective** grant-date window `{ from, to, clamped }`. |
+| `derivation` | The same closed-vocabulary name on the evidence object. |
+| `artifact` | The registry's declared artifact path for the source. |
 
 ---
 

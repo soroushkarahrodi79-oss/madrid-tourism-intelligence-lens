@@ -759,3 +759,152 @@ test("AMBITO_EDITION_DIFF preserves codes appearing in only one committed editio
 test("AMBITO_EDITION_DIFF requires an exact code", () => {
   assert.equal(reg.query("AMBITO_EDITION_DIFF", {}).reason, "AMBIGUOUS_SCOPE");
 });
+
+// ============================================ 9. #179 Phase 0 — the `applied` record
+//
+// THE GATE this section defends: an evidence object must carry the RESOLVED INPUTS
+// that produced its value, so a third party can re-derive the value from the
+// committed artifact and the published model ALONE — no app, no URL, no view layer,
+// and no other field of the evidence object. LICENCES_IN_LENS is the probe because
+// its inputs span four dimensions and its model substitutes defaults the caller
+// never sent, so the requested and the EFFECTIVE inputs are genuinely different.
+
+const URBAN_LICENCES = REGISTRY.sources.find((s) => s.id === "urban_licences");
+const LICENCE_EXTENT = licenceIndex.dateExtent;
+// Inside the register extent, so the shape resolves rather than abstaining.
+const IN_COVERAGE_WINDOW = { from: "2025-10-01", to: LICENCE_EXTENT.max };
+const atSol = (extra = {}) => reg.query("LICENCES_IN_LENS", { lon: SOL.lon, lat: SOL.lat, radiusM: 1000, ...extra });
+
+test("#179 LICENCES_IN_LENS carries a frozen `applied` record of named resolved inputs", () => {
+  const out = atSol();
+  assert.ok(R.isEvidence(out));
+  const a = out.applied;
+  assert.ok(a && typeof a === "object" && !Array.isArray(a), "applied must be a named-input object");
+  assert.deepEqual(Object.keys(a).sort(), ["artifact", "centre", "derivation", "families", "radiusM", "window"]);
+  assert.deepEqual(a.centre, { lon: SOL.lon, lat: SOL.lat });
+  assert.equal(a.radiusM, 1000);
+  // Composed by evidenceFromSource, so neither member can drift from the evidence
+  // it describes or from the registry entry it names.
+  assert.equal(a.derivation, out.derivation);
+  assert.equal(a.derivation, "IN_CIRCLE_FILTER");
+  assert.equal(a.artifact, URBAN_LICENCES.artifact);
+  assert.ok(Object.isFrozen(a) && Object.isFrozen(a.centre) && Object.isFrozen(a.window) && Object.isFrozen(a.families));
+});
+
+test("#179 THE GATE: the licence value re-derives from `applied` and the committed artifact alone", () => {
+  const out = atSol({ window: IN_COVERAGE_WINDOW });
+  assert.ok(R.isEvidence(out));
+  const applied = out.applied;
+
+  // A third-party position, exactly: the published model (js/urban-licences.js), the
+  // committed artifact that applied.artifact names, and applied. Nothing else is
+  // read — not the app, not the URL, not any other field of the evidence object.
+  const independentIndex = createLicenceIndex(read(`data/${applied.artifact}`));
+  const rederived = independentIndex.view(
+    { lon: applied.centre.lon, lat: applied.centre.lat, radiusM: applied.radiusM },
+    { enabled: true, families: applied.families, window: { from: applied.window.from, to: applied.window.to } }
+  );
+
+  assert.deepEqual(rederived.perFamily, out.value.perFamily);
+  assert.equal(rederived.records.length, out.value.records.length);
+  assert.deepEqual(rederived.familiesShown, out.value.familiesShown);
+  assert.deepEqual(
+    { from: rederived.window.from, to: rederived.window.to },
+    { from: applied.window.from, to: applied.window.to }
+  );
+});
+
+test("#179 applied.window is the EFFECTIVE window the model used, not the absent request", () => {
+  const out = atSol(); // no window requested at all
+  assert.ok(R.isEvidence(out));
+  const expected = licenceIndex.defaultWindow();
+  assert.deepEqual(
+    { from: out.applied.window.from, to: out.applied.window.to },
+    { from: expected.from, to: expected.to },
+    "an absent request must record the documented default of the model, never null"
+  );
+  // The whole point: recording the request (nothing) would not re-derive. This does.
+  const independentIndex = createLicenceIndex(read(`data/${out.applied.artifact}`));
+  const rederived = independentIndex.view(
+    { lon: out.applied.centre.lon, lat: out.applied.centre.lat, radiusM: out.applied.radiusM },
+    { enabled: true, families: out.applied.families, window: { from: out.applied.window.from, to: out.applied.window.to } }
+  );
+  assert.deepEqual(rederived.perFamily, out.value.perFamily);
+});
+
+test("#179 applied.window records a CLAMPED window as the model clamped it, and says so", () => {
+  const requested = { from: "2020-01-01", to: LICENCE_EXTENT.max };
+  const out = atSol({ window: requested });
+  assert.ok(R.isEvidence(out));
+  assert.equal(out.applied.window.from, LICENCE_EXTENT.min, "a request below the extent clamps to the extent floor");
+  assert.notEqual(out.applied.window.from, requested.from);
+  assert.equal(out.applied.window.clamped, true);
+  const independentIndex = createLicenceIndex(read(`data/${out.applied.artifact}`));
+  const rederived = independentIndex.view(
+    { lon: out.applied.centre.lon, lat: out.applied.centre.lat, radiusM: out.applied.radiusM },
+    { enabled: true, families: out.applied.families, window: { from: out.applied.window.from, to: out.applied.window.to } }
+  );
+  assert.deepEqual(rederived.perFamily, out.value.perFamily);
+});
+
+test("#179 applied.families is the resolved family list, for all families and a restricted request", () => {
+  const all = atSol();
+  assert.ok(Array.isArray(all.applied.families) && all.applied.families.length > 1);
+  assert.deepEqual(all.applied.families, all.value.familiesShown);
+  const one = all.applied.families[0];
+  const restricted = atSol({ families: [one] });
+  assert.ok(R.isEvidence(restricted));
+  assert.deepEqual(restricted.applied.families, [one]);
+  assert.ok(restricted.applied.families.length < all.applied.families.length);
+});
+
+test("#179 applied is deterministic across identical queries", () => {
+  assert.deepEqual(atSol({ window: IN_COVERAGE_WINDOW }).applied, atSol({ window: IN_COVERAGE_WINDOW }).applied);
+  assert.deepEqual(atSol().applied, atSol().applied);
+});
+
+test("#179 an abstention never carries applied — there is no derivation to record", () => {
+  const ambiguous = atSol({ radiusM: 0 });
+  assert.ok(R.isAbstention(ambiguous));
+  assert.ok(!("applied" in ambiguous));
+  const outsideCoverage = atSol({ window: { from: "1990-01-01", to: "1990-12-31" } });
+  assert.ok(R.isAbstention(outsideCoverage));
+  assert.ok(!("applied" in outsideCoverage));
+  const malformed = atSol({ window: { from: "2025-10-01" } });
+  assert.ok(R.isAbstention(malformed));
+  assert.ok(!("applied" in malformed));
+});
+
+test("#179 the other registered shapes are unchanged and declare no applied yet", () => {
+  const probes = [
+    ["SOURCE_PROVENANCE", { sourceId: "urban_licences" }],
+    ["AMBITO_AT_POINT", { lon: SOL.lon, lat: SOL.lat }],
+    ["AMBITOS_IN_LENS", { lon: SOL.lon, lat: SOL.lat, radiusM: 1000 }],
+    ["AMBITO_PHASES", { code: PUBLISHED_CODE }],
+    ["AREA_PROFILE_AT_POINT", { lon: SOL.lon, lat: SOL.lat }],
+    ["CITY_HOTEL_DEMAND", {}],
+  ];
+  for (const [shape, params] of probes) {
+    const out = reg.query(shape, params);
+    assert.ok(R.isEvidence(out) || R.isAbstention(out), `${shape} must resolve or abstain`);
+    assert.ok(!("applied" in out), `${shape} must not carry applied`);
+  }
+});
+
+test("#179 makeEvidence keeps applied optional and refuses a positional one", () => {
+  const base = {
+    value: 5,
+    scope: "MUNICIPALITY",
+    unit: "u",
+    sourceId: "s",
+    freshness: { reference_date: null, published_at: null, retrieved_at: null, update_frequency: "NONE_DECLARED", source_state: "NOT_DECLARED_BY_PUBLISHER" },
+    ceiling: "c",
+    derivation: "SOURCE_FACT",
+  };
+  const without = R.makeEvidence(base);
+  assert.ok(!("applied" in without), "omitting applied must leave the key absent, never null");
+  assert.throws(() => R.makeEvidence({ ...base, applied: ["a", "b"] }), /named resolved inputs/);
+  assert.throws(() => R.makeEvidence({ ...base, applied: "centre=Sol" }), /named resolved inputs/);
+  const present = R.makeEvidence({ ...base, applied: { centre: { lon: 1, lat: 2 } } });
+  assert.ok(Object.isFrozen(present.applied) && Object.isFrozen(present.applied.centre));
+});
