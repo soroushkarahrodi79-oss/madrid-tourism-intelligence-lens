@@ -32,6 +32,19 @@ jobs:
   chromium-browser-shard:
     name: chromium-browser-shard (${{ matrix.shard }})
     runs-on: ubuntu-latest
+    # The browser jobs run in Playwright's own image so the engines and their
+    # system libraries are already present. Installing them with
+    # `playwright install --with-deps` made every browser job re-download ~170
+    # apt packages whenever it landed on a runner image that lacked them: on
+    # 2026-11-06 that cost 1h11m-1h15m in three WebKit jobs and 9-14m in two
+    # Chromium shards, against 1-11m of actual tests.
+    # The image tag must stay in step with `playwright` in package-lock.json;
+    # a mismatch fails the job immediately rather than silently. `--user 1001`
+    # follows Playwright's documented GitHub Actions container recipe.
+    timeout-minutes: 30
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
     strategy:
       fail-fast: false
       matrix:
@@ -52,7 +65,6 @@ jobs:
           node-version: "20"
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
       - name: Verify complete browser-test assignment
         run: npm run test:browser:inventory
       - name: Run Chromium browser shard ${{ matrix.shard }}
@@ -105,6 +117,10 @@ jobs:
   # assertions as Chromium; the engine is selected by UXC1_BROWSER only.
   ux-c1-webkit:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -112,7 +128,6 @@ jobs:
           node-version: "20"
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps webkit
       - name: UX-C1 contrast suite (WebKit)
         run: node --test --test-concurrency=1 browser-tests/light-contrast-ux-c1.browser.mjs
         env:
@@ -138,6 +153,10 @@ jobs:
   # physical-device validation.
   qx-webkit-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -145,7 +164,6 @@ jobs:
           node-version: "20"
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps webkit
       - name: M2 explorer smoke (WebKit)
         run: node --test --test-concurrency=1 --test-name-pattern="find a place, ask a question|keyboard alone operates the explorer|unsupported ask is refused|failed licence artifact|switching language mid-answer|Spanish copy covers|layout 390x844|layout 768x1024|reloading a shared link|sharing and export|dossier export preserves" browser-tests/question-explorer.browser.mjs
         env:
@@ -160,6 +178,10 @@ jobs:
   # measured by research/lens_ux_cluster_149/validate.mjs, not by CI.
   cluster-ux-v1-webkit:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -167,7 +189,6 @@ jobs:
           node-version: "20"
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps webkit
       - name: Cluster chip contract (WebKit)
         run: node --test --test-concurrency=1 browser-tests/cluster-ux-v1.browser.mjs
         env:
@@ -178,6 +199,10 @@ jobs:
   # by the existing capture hook.
   geo-search-webkit:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -185,7 +210,6 @@ jobs:
           node-version: "20"
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps webkit
       - name: Geographic search browser suite (WebKit)
         run: node --test --test-concurrency=1 browser-tests/geo-search.browser.mjs
         env:
@@ -227,6 +251,10 @@ jobs:
   ux-c2-webkit-shard:
     name: ux-c2-webkit-shard (${{ matrix.shard }})
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
     strategy:
       fail-fast: false
       matrix:
@@ -247,7 +275,6 @@ jobs:
           node-version: "20"
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps webkit
       - name: Verify complete browser-test assignment
         run: npm run test:browser:inventory
       - name: UX-C2 panel containment shard ${{ matrix.shard }} (WebKit)
