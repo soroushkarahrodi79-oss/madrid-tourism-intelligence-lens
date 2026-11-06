@@ -78,6 +78,11 @@ const DERIVATION = Object.freeze({
 });
 const DERIVATIONS = Object.freeze(Object.values(DERIVATION));
 
+// The registry file itself, as an artifact path relative to `data/`. SOURCE_PROVENANCE
+// answers ARE registry records, so this — not the data artifact a source describes —
+// is the file its `applied` record must send a verifier to.
+const REGISTRY_ARTIFACT = "source_registry.json";
+
 // The CLOSED set of registered question shapes. Adding a shape is a code change
 // with tests, never a configuration value. Each shape names the §5 user question
 // it serves, its analytical scope, the registry source(s) it reads, the
@@ -521,6 +526,17 @@ function resolveSourceProvenance(params, deps, ctx) {
     freshness: prov.freshness,
     ceiling: prov.interpretationCeiling,
     derivation: DERIVATION.REGISTRY_LOOKUP,
+    // Composed here rather than by evidenceFromSource, and deliberately NOT
+    // `prov.artifact`: the value of this shape is the registry record itself, so the
+    // file to re-derive from is the REGISTRY, not the data artifact the source
+    // describes. Naming `prov.artifact` here would send a verifier to a file that
+    // does not contain this answer.
+    applied: deepFreeze({
+      sourceId,
+      derivation: DERIVATION.REGISTRY_LOOKUP,
+      artifact: REGISTRY_ARTIFACT,
+      reader: "sourceProvenance",
+    }),
   });
 }
 
@@ -542,7 +558,8 @@ function resolveAmbitoAtPoint(params, deps, ctx) {
       message: "a single lon/lat point is required",
     });
   }
-  const containing = index.ambitoContaining(lon, lat, params.hintCode ?? null);
+  const hintCode = params.hintCode ?? null;
+  const containing = index.ambitoContaining(lon, lat, hintCode);
   const resolvedState = deps.planningModule && deps.planningModule.AMBITO_STATE
     ? deps.planningModule.AMBITO_STATE.RESOLVED
     : "RESOLVED";
@@ -560,6 +577,12 @@ function resolveAmbitoAtPoint(params, deps, ctx) {
     unit: "unit.ambitoIdentity",
     sourceId: "planning_ambito_geometry",
     derivation: DERIVATION.POINT_IN_POLYGON,
+    // `hintCode` is recorded even though it is only a short-circuit, because it can
+    // change WHICH polygon answers where polygons overlap: a re-derivation that
+    // dropped it would not be re-running the same containment test. `reader` names
+    // the exported pure function that re-derives this, so the record says not only
+    // which inputs but which published operation consumed them.
+    appliedInputs: { centre: { lon, lat }, hintCode, reader: "ambitoContaining" },
   });
 }
 
@@ -605,6 +628,12 @@ function resolveAmbitoStateField(params, deps, ctx, { shape, method, unit }) {
     return evidenceFromSource(ctx, {
       value: record, scope: "PLANNING_AMBITO", unit, sourceId: "planning_ambito_state",
       derivation: DERIVATION.SOURCE_FACT,
+      // `method` is the name of BOTH the index reader used here and the exported
+      // pure reader `developmentState(code, artifact)` / `availableBuildability(code,
+      // artifact)`, so a third party re-derives this from the state artifact alone,
+      // without building an index. AMBITO_PHASES and AMBITO_BUILDABILITY share this
+      // resolver and differ only in that reader, so it must be in the record.
+      appliedInputs: { code, reader: method },
     });
   }
   // Not published for this code. Distinguish an UNKNOWN code (outside the ámbito
@@ -646,6 +675,7 @@ function resolveAmbitosInLens(params, deps, ctx) {
     unit: "unit.touchedAmbitos",
     sourceId: "planning_ambito_geometry",
     derivation: DERIVATION.CIRCLE_INTERSECT_POLYGON,
+    appliedInputs: { centre: { lon, lat }, radiusM, reader: "ambitosIntersecting" },
   });
 }
 

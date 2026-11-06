@@ -106,9 +106,43 @@ Three rules govern it.
 3. **Omitted rather than guessed.** A shape that does not yet declare its inputs
    has **no** `applied` key — never a null, never a partial record. Absence means
    "this shape does not declare its derivation inputs yet", which is honest; a
-   present-but-inferred record would not be. Nine of the ten registered shapes are
-   in that state today. An **abstention never** carries `applied`: there is no
-   derivation to record.
+   present-but-inferred record would not be. An **abstention never** carries
+   `applied`: there is no derivation to record.
+
+#### Which shapes declare `applied`, and why the rest do not
+
+`applied.artifact` names **one** file. A shape can therefore declare `applied` only
+when its value re-derives from a single committed artifact. Six do:
+
+| Shape | `reader` | Re-derives from |
+|---|---|---|
+| `LICENCES_IN_LENS` | — (the index's own `view`) | `planning/madrid_urban_licences.json` |
+| `AMBITO_AT_POINT` | `ambitoContaining` | `planning/madrid_ambitos.geojson` |
+| `AMBITOS_IN_LENS` | `ambitosIntersecting` | `planning/madrid_ambitos.geojson` |
+| `AMBITO_PHASES` | `developmentState` | `planning/madrid_ambito_state.json` |
+| `AMBITO_BUILDABILITY` | `availableBuildability` | `planning/madrid_ambito_state.json` |
+| `SOURCE_PROVENANCE` | `sourceProvenance` | `source_registry.json` |
+
+`reader` names the **exported pure function** that re-derives the value, so the
+record says not merely which inputs were used but which published operation
+consumed them. `AMBITO_PHASES` and `AMBITO_BUILDABILITY` share one resolver and
+differ *only* in that reader, which is why it has to be in the record. Where no
+single exported function re-derives the value — `LICENCES_IN_LENS` goes through the
+licence index's `view` — `reader` is omitted rather than invented.
+
+**`SOURCE_PROVENANCE` names the registry, not the source's own artifact.** Its value
+*is* a registry record, so `applied.artifact` is `source_registry.json`. Naming
+`prov.artifact` there would send a verifier to a data file that does not contain the
+answer; a test asserts the two differ.
+
+The remaining four — `AREA_PROFILE_AT_POINT`, `AMBITO_COMPARE`,
+`AMBITO_EDITION_DIFF` and `CITY_HOTEL_DEMAND` — read **more than one** registered
+artifact (an area profile assembles geography, population and optionally the VUT
+register; a comparison resolves both sides through the planning geometry *and* the
+state artifact). A single `applied.artifact` cannot express that, so they carry
+**no** `applied` until the record can hold an ordered set of inputs. A partial
+record naming one of several inputs would claim a re-derivation that does not work,
+which is worse than declaring nothing. A test holds them to that.
 
 **`artifact` is a path, not a fingerprint.** It is a repository path relative to
 `data/` and it says *which file to re-derive from*. It is **not** evidence that the
@@ -125,6 +159,9 @@ deliberately **not** part of this field.
 | `window` | The **effective** grant-date window `{ from, to, clamped }`. |
 | `derivation` | The same closed-vocabulary name on the evidence object. |
 | `artifact` | The registry's declared artifact path for the source. |
+
+Every `applied`, whichever shape produced it, carries at least `derivation` and
+`artifact`; the rest are the inputs that shape actually consumed.
 
 ---
 

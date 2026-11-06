@@ -33,7 +33,15 @@ const sr = require("../js/scope-rail.js");
 const ex = require("../js/evidence-export.js");
 
 import { freshnessOf } from "../js/evidence-scope.js";
-import { createPlanningIndex, AMBITO_STATE, AVAILABILITY } from "../js/planning-ambito.js";
+import {
+  createPlanningIndex,
+  AMBITO_STATE,
+  AVAILABILITY,
+  // The exported PURE readers an external verifier would use. The `applied.reader`
+  // of each planning shape names one of these by its export name.
+  developmentState,
+  availableBuildability,
+} from "../js/planning-ambito.js";
 import { createLicenceIndex } from "../js/urban-licences.js";
 import { createGeographyIndex } from "../js/geography.js";
 import { createPopulationIndex, buildAreaProfile, AREA_STATE } from "../js/area-profile.js";
@@ -875,19 +883,21 @@ test("#179 an abstention never carries applied — there is no derivation to rec
   assert.ok(!("applied" in malformed));
 });
 
-test("#179 the other registered shapes are unchanged and declare no applied yet", () => {
+test("the shapes that read several artifacts declare no `applied` yet, rather than a partial one", () => {
+  // AREA_PROFILE_AT_POINT, AMBITO_COMPARE and AMBITO_EDITION_DIFF re-derive from more
+  // than one registered artifact, which a single `applied.artifact` cannot express.
+  // Omission is the contract's honest state for them until it can; a partial record
+  // naming only one of their inputs would claim a re-derivation that does not work.
   const probes = [
-    ["SOURCE_PROVENANCE", { sourceId: "urban_licences" }],
-    ["AMBITO_AT_POINT", { lon: SOL.lon, lat: SOL.lat }],
-    ["AMBITOS_IN_LENS", { lon: SOL.lon, lat: SOL.lat, radiusM: 1000 }],
-    ["AMBITO_PHASES", { code: PUBLISHED_CODE }],
     ["AREA_PROFILE_AT_POINT", { lon: SOL.lon, lat: SOL.lat }],
+    ["AMBITO_COMPARE", { a: { scope: "PLANNING_AMBITO", code: PUBLISHED_CODE }, b: { scope: "PLANNING_AMBITO", code: PUBLISHED_CODE } }],
+    ["AMBITO_EDITION_DIFF", { code: EDITION_CODE }],
     ["CITY_HOTEL_DEMAND", {}],
   ];
   for (const [shape, params] of probes) {
     const out = reg.query(shape, params);
     assert.ok(R.isEvidence(out) || R.isAbstention(out), `${shape} must resolve or abstain`);
-    assert.ok(!("applied" in out), `${shape} must not carry applied`);
+    assert.ok(!("applied" in out), `${shape} must not carry a partial applied`);
   }
 });
 
@@ -907,4 +917,141 @@ test("#179 makeEvidence keeps applied optional and refuses a positional one", ()
   assert.throws(() => R.makeEvidence({ ...base, applied: "centre=Sol" }), /named resolved inputs/);
   const present = R.makeEvidence({ ...base, applied: { centre: { lon: 1, lat: 2 } } });
   assert.ok(Object.isFrozen(present.applied) && Object.isFrozen(present.applied.centre));
+});
+
+// ================================= 10. `applied` on the single-artifact shapes
+//
+// Each shape below re-derives from EXACTLY ONE committed artifact, which is what
+// `applied.artifact` can express. The test for each takes the third-party position:
+// the artifact that `applied.artifact` names, the exported pure reader that
+// `applied.reader` names, and the inputs in `applied`. Nothing else.
+
+const planningGeometryOnly = (artifactPath) => createPlanningIndex({ geometry: read(`data/${artifactPath}`) });
+
+// SOL is deliberately NOT usable here: the consolidated city centre lies inside no
+// planning ámbito, so AMBITO_AT_POINT correctly abstains there. Discover a point that
+// really is inside one, the same way the harness discovers PUBLISHED_CODE. Box centres
+// can fall outside a concave polygon, so candidates are tested until one resolves.
+const AMBITO_POINT = (() => {
+  for (const entry of planningIndex.entries) {
+    const lon = (entry.box.minLon + entry.box.maxLon) / 2;
+    const lat = (entry.box.minLat + entry.box.maxLat) / 2;
+    const hit = planningIndex.ambitoContaining(lon, lat);
+    if (hit && hit.ambitoCode) return { lon, lat };
+  }
+  return null;
+})();
+
+test("AMBITO_AT_POINT re-derives from `applied` and the geometry artifact alone", () => {
+  assert.ok(AMBITO_POINT, "expected at least one point inside a committed planning ambito");
+  const out = reg.query("AMBITO_AT_POINT", { lon: AMBITO_POINT.lon, lat: AMBITO_POINT.lat });
+  assert.ok(R.isEvidence(out));
+  const a = out.applied;
+  assert.deepEqual(Object.keys(a).sort(), ["artifact", "centre", "derivation", "hintCode", "reader"]);
+  assert.equal(a.derivation, "POINT_IN_POLYGON");
+  assert.equal(a.reader, "ambitoContaining");
+  assert.equal(a.artifact, REGISTRY.sources.find((s) => s.id === "planning_ambito_geometry").artifact);
+
+  // Geometry ONLY -- no state artifact is loaded, proving the single-artifact claim.
+  const rederived = planningGeometryOnly(a.artifact).ambitoContaining(a.centre.lon, a.centre.lat, a.hintCode);
+  assert.equal(rederived.ambitoCode, out.value.ambitoCode);
+  assert.equal(rederived.state, out.value.state);
+});
+
+test("AMBITO_AT_POINT records the hint actually used, which can decide which polygon answers", () => {
+  assert.ok(AMBITO_POINT, "expected at least one point inside a committed planning ambito");
+  const plain = reg.query("AMBITO_AT_POINT", { lon: AMBITO_POINT.lon, lat: AMBITO_POINT.lat });
+  assert.ok(R.isEvidence(plain));
+  assert.equal(plain.applied.hintCode, null);
+
+  const hinted = reg.query("AMBITO_AT_POINT", { lon: AMBITO_POINT.lon, lat: AMBITO_POINT.lat, hintCode: plain.value.ambitoCode });
+  assert.ok(R.isEvidence(hinted));
+  assert.equal(hinted.applied.hintCode, plain.value.ambitoCode);
+  const rederived = planningGeometryOnly(hinted.applied.artifact).ambitoContaining(
+    hinted.applied.centre.lon, hinted.applied.centre.lat, hinted.applied.hintCode
+  );
+  assert.equal(rederived.ambitoCode, hinted.value.ambitoCode);
+});
+
+test("AMBITOS_IN_LENS re-derives its membership from `applied` and the geometry artifact alone", () => {
+  const out = reg.query("AMBITOS_IN_LENS", { lon: SOL.lon, lat: SOL.lat, radiusM: 1200 });
+  assert.ok(R.isEvidence(out));
+  const a = out.applied;
+  assert.deepEqual(Object.keys(a).sort(), ["artifact", "centre", "derivation", "radiusM", "reader"]);
+  assert.equal(a.derivation, "CIRCLE_INTERSECT_POLYGON");
+  assert.equal(a.reader, "ambitosIntersecting");
+  assert.equal(a.radiusM, 1200);
+
+  const rederived = planningGeometryOnly(a.artifact).ambitosIntersecting(a.centre.lon, a.centre.lat, a.radiusM);
+  assert.deepEqual(
+    (rederived.ambitos || []).map((x) => x.ambitoCode ?? x.code),
+    (out.value.ambitos || []).map((x) => x.ambitoCode ?? x.code)
+  );
+});
+
+test("AMBITO_PHASES re-derives from `applied` and the state artifact alone, via the exported reader", () => {
+  const out = reg.query("AMBITO_PHASES", { code: PUBLISHED_CODE });
+  assert.ok(R.isEvidence(out));
+  const a = out.applied;
+  assert.deepEqual(Object.keys(a).sort(), ["artifact", "code", "derivation", "reader"]);
+  assert.equal(a.code, PUBLISHED_CODE);
+  assert.equal(a.reader, "developmentState");
+  assert.equal(a.artifact, REGISTRY.sources.find((s) => s.id === "planning_ambito_state").artifact);
+
+  // No index is built: the exported pure reader takes the artifact directly.
+  const rederived = developmentState(a.code, read(`data/${a.artifact}`));
+  assert.deepEqual(rederived, out.value);
+});
+
+test("AMBITO_BUILDABILITY shares the resolver but records its OWN reader, so the two do not collapse", () => {
+  const phases = reg.query("AMBITO_PHASES", { code: PUBLISHED_CODE });
+  const build = reg.query("AMBITO_BUILDABILITY", { code: PUBLISHED_CODE });
+  assert.ok(R.isEvidence(phases));
+  if (R.isEvidence(build)) {
+    assert.equal(build.applied.reader, "availableBuildability");
+    assert.notEqual(build.applied.reader, phases.applied.reader);
+    const rederived = availableBuildability(build.applied.code, read(`data/${build.applied.artifact}`));
+    assert.deepEqual(rederived, build.value);
+  } else {
+    // A code with no published buildability abstains, and an abstention carries no
+    // applied -- which is the contract, not a gap.
+    assert.ok(R.isAbstention(build));
+    assert.ok(!("applied" in build));
+  }
+});
+
+test("SOURCE_PROVENANCE points at the REGISTRY, not at the artifact the source describes", () => {
+  const out = reg.query("SOURCE_PROVENANCE", { sourceId: "urban_licences" });
+  assert.ok(R.isEvidence(out));
+  const a = out.applied;
+  assert.deepEqual(Object.keys(a).sort(), ["artifact", "derivation", "reader", "sourceId"]);
+  assert.equal(a.sourceId, "urban_licences");
+  assert.equal(a.derivation, "REGISTRY_LOOKUP");
+  assert.equal(a.artifact, "source_registry.json");
+  // The trap this guards: the data artifact of urban_licences does NOT contain this
+  // answer, so naming it would send a verifier to the wrong file.
+  assert.notEqual(a.artifact, REGISTRY.sources.find((s) => s.id === "urban_licences").artifact);
+
+  const rederived = read(`data/${a.artifact}`).sources.find((s) => s.id === a.sourceId);
+  assert.ok(rederived);
+  assert.equal(rederived.id, out.value.id);
+  assert.equal(rederived.interpretation_ceiling, out.value.interpretationCeiling);
+});
+
+test("every `applied` carries its derivation and artifact, and they never drift", () => {
+  const probes = [
+    ["AMBITO_AT_POINT", { lon: AMBITO_POINT.lon, lat: AMBITO_POINT.lat }],
+    ["AMBITOS_IN_LENS", { lon: SOL.lon, lat: SOL.lat, radiusM: 1000 }],
+    ["AMBITO_PHASES", { code: PUBLISHED_CODE }],
+    ["SOURCE_PROVENANCE", { sourceId: "population" }],
+    ["LICENCES_IN_LENS", { lon: SOL.lon, lat: SOL.lat, radiusM: 1000 }],
+  ];
+  for (const [shape, params] of probes) {
+    const out = reg.query(shape, params);
+    assert.ok(R.isEvidence(out), `${shape} should resolve`);
+    assert.ok(Object.isFrozen(out.applied), `${shape} applied must be frozen`);
+    assert.equal(out.applied.derivation, out.derivation, `${shape} derivation must not drift`);
+    assert.ok(typeof out.applied.artifact === "string" && out.applied.artifact.length > 0, `${shape} must name an artifact`);
+    assert.ok(fs.existsSync(new URL(`../data/${out.applied.artifact}`, import.meta.url)), `${shape} artifact must exist on disk`);
+  }
 });
