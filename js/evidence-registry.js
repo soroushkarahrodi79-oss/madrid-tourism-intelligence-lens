@@ -209,11 +209,21 @@ function isNonEmptyString(value) {
 //               nulls. Validated field-by-field; a missing field throws.
 //   ceiling     the verbatim interpretation ceiling of the source (never softened).
 //   derivation  SOURCE_FACT or a named transformation from DERIVATION.
+//
+// `applied` is the ONE optional field, and it is shape-specific (#179, Phase 0):
+// the RESOLVED INPUTS that produced this value, recorded so a third party can
+// re-derive the value from the committed artifact and the published model alone,
+// with no application state. It is never defaulted, never inferred and never
+// invented: a resolver either records what it actually used, or omits the field
+// entirely. Its absence therefore means "this shape does not yet declare its
+// derivation inputs", which is honest; a present-but-guessed record would not be.
+// The seven fields above stay mandatory and unchanged whether `applied` is present
+// or not, so the nine shapes that do not supply it are unaffected.
 function makeEvidence(fields) {
   if (!isObject(fields)) {
     throw new TypeError("makeEvidence: expected an object with the seven contract fields");
   }
-  const { value, scope, unit, sourceId, freshness, ceiling, derivation } = fields;
+  const { value, scope, unit, sourceId, freshness, ceiling, derivation, applied } = fields;
 
   if (!("value" in fields)) {
     throw new Error("makeEvidence: `value` is mandatory; an evidence object never omits its value");
@@ -239,8 +249,14 @@ function makeEvidence(fields) {
   if (!DERIVATIONS.includes(derivation)) {
     throw new Error(`makeEvidence: derivation "${derivation}" is not SOURCE_FACT or a named transformation (${DERIVATIONS.join(", ")})`);
   }
+  // An `applied` record is a map of named resolved inputs. An array is refused
+  // because a positional list would make a derivation re-readable only by code
+  // that already knows the order — the opposite of what the field is for.
+  if (applied !== undefined && (!isObject(applied) || Array.isArray(applied))) {
+    throw new TypeError("makeEvidence: `applied`, when present, must be an object of named resolved inputs");
+  }
 
-  return deepFreeze({
+  const evidence = {
     kind: "EVIDENCE",
     value,
     scope,
@@ -249,7 +265,9 @@ function makeEvidence(fields) {
     freshness: validatedFreshness,
     ceiling,
     derivation,
-  });
+  };
+  if (applied !== undefined) evidence.applied = applied;
+  return deepFreeze(evidence);
 }
 
 // The five mandatory freshness fields must all be present (explicit null is a kept
@@ -428,7 +446,7 @@ function sourceProvenance(registry, sourceId, options = {}) {
 // network, never reads a clock, and never computes a value the model did not
 // return.
 
-function evidenceFromSource(ctx, { value, scope, unit, sourceId, derivation, freshnessOverride }) {
+function evidenceFromSource(ctx, { value, scope, unit, sourceId, derivation, freshnessOverride, appliedInputs }) {
   const prov = ctx.sourceProvenance(sourceId, freshnessOverride ? { freshnessOverride } : {});
   if (!prov) {
     return abstain(ABSTENTION_REASON.OUTSIDE_SOURCE_UNIVERSE, {
@@ -444,6 +462,25 @@ function evidenceFromSource(ctx, { value, scope, unit, sourceId, derivation, fre
       message: `the publisher withheld "${sourceId}"`,
     });
   }
+  // The `applied` record is composed HERE, never in the resolver, so its two
+  // non-negotiable members cannot drift from the evidence they describe:
+  // `derivation` is the very name that goes on the evidence object, and
+  // `artifact` is the registry's OWN declared path for the source — a resolver
+  // cannot name a different file than the one its source declares. A resolver
+  // supplies only the inputs it actually used.
+  //
+  // `artifact` is a declared REPOSITORY PATH relative to `data/`, not a byte
+  // fingerprint: it says which file to re-derive from, never that the file is
+  // unchanged. Artifact identity by checksum is Phase 1 work (#179), and
+  // `urban_licences` carries no `sha256` in data/source_registry.json today.
+  let applied;
+  if (appliedInputs !== undefined) {
+    if (!isObject(appliedInputs) || Array.isArray(appliedInputs)) {
+      throw new TypeError("evidenceFromSource: `appliedInputs`, when present, must be an object of named resolved inputs");
+    }
+    applied = { ...appliedInputs, derivation, artifact: prov.artifact };
+  }
+
   return makeEvidence({
     value,
     scope,
@@ -452,6 +489,7 @@ function evidenceFromSource(ctx, { value, scope, unit, sourceId, derivation, fre
     freshness: prov.freshness,
     ceiling: prov.interpretationCeiling,
     derivation,
+    ...(applied !== undefined ? { applied } : {}),
   });
 }
 
@@ -718,6 +756,21 @@ function resolveLicencesInLens(params, deps, ctx) {
     unit: "unit.licences",
     sourceId: "urban_licences",
     derivation: DERIVATION.IN_CIRCLE_FILTER,
+    // THE EFFECTIVE INPUTS, read back off the model's OWN result — never the
+    // requested ones. The model clamps a requested grant-date window to the
+    // register extent, substitutes its documented default window when none was
+    // requested, and resolves an absent family filter to the full family set.
+    // Recording the request instead would describe a derivation that does not
+    // reproduce this value, which is precisely the failure this field exists to
+    // prevent. `families` is therefore the resolved list the model reports, not
+    // the caller's `null`: a named list re-derives unambiguously, a `null` only
+    // re-derives for a reader who already knows the model's default.
+    appliedInputs: {
+      centre: { lon, lat },
+      radiusM,
+      families: [...view.familiesShown],
+      window: { from: view.window.from, to: view.window.to, clamped: view.window.clamped },
+    },
   });
 }
 
