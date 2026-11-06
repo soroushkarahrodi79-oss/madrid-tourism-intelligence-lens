@@ -69,14 +69,21 @@ jobs:
         run: npm run test:browser:inventory
       - name: Run Chromium browser shard ${{ matrix.shard }}
         run: npm run test:browser:shard -- ${{ matrix.shard }}
+      # The capture dirs below are relative on purpose. Each step runs with the
+      # workspace as its working directory, on the runner and in the container
+      # alike. `${{ github.workspace }}` is the HOST path: the runner translates
+      # it inside `env:` values, but not inside a `run:` script, so an absolute
+      # one here resolves to /home/runner/work/... inside the container, which is
+      # not mounted there (the workspace is bind-mounted at /__w), and mkdir fails
+      # with EACCES.
       - name: Capture UX-H1 before and after screenshots
         if: ${{ always() && matrix.capture_ux_h1 }}
         run: |
           BASE_REF="${GITHUB_BASE_REF:-main}"
           git fetch --no-tags --depth=1 origin "$BASE_REF"
           git worktree add --detach ../ux-h1-main-${{ matrix.shard }} FETCH_HEAD
-          UX_H1_ROOT=../ux-h1-main-${{ matrix.shard }} UX_H1_CAPTURE_ONLY=1 UX_H1_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-h1-map-header/before node browser-tests/header-ux-h1.browser.mjs
-          UX_H1_CAPTURE_ONLY=1 UX_H1_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-h1-map-header/after node browser-tests/header-ux-h1.browser.mjs
+          UX_H1_ROOT=../ux-h1-main-${{ matrix.shard }} UX_H1_CAPTURE_ONLY=1 UX_H1_CAPTURE_DIR=test-results/ux-h1-map-header/before node browser-tests/header-ux-h1.browser.mjs
+          UX_H1_CAPTURE_ONLY=1 UX_H1_CAPTURE_DIR=test-results/ux-h1-map-header/after node browser-tests/header-ux-h1.browser.mjs
       - name: Upload UX-H1 screenshots
         if: ${{ always() && matrix.capture_ux_h1 }}
         uses: actions/upload-artifact@v4
@@ -91,8 +98,8 @@ jobs:
           BASE_REF="${GITHUB_BASE_REF:-main}"
           git fetch --no-tags --depth=1 origin "$BASE_REF"
           git worktree add --detach ../ux-c2-main-chromium-${{ matrix.shard }} FETCH_HEAD
-          UXC2_ROOT=../ux-c2-main-chromium-${{ matrix.shard }} UXC2_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-c2-chromium/before node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
-          UXC2_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-c2-chromium/after node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
+          UXC2_ROOT=../ux-c2-main-chromium-${{ matrix.shard }} UXC2_CAPTURE_DIR=test-results/ux-c2-chromium/before node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
+          UXC2_CAPTURE_DIR=test-results/ux-c2-chromium/after node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
       - name: Upload UX-C2 Chromium evidence
         if: ${{ always() && matrix.capture_ux_c2 }}
         uses: actions/upload-artifact@v4
@@ -138,8 +145,8 @@ jobs:
           BASE_REF="${GITHUB_BASE_REF:-main}"
           git fetch --no-tags --depth=1 origin "$BASE_REF"
           git worktree add --detach ../ux-c1-base FETCH_HEAD
-          UXC1_BROWSER=webkit UXC1_ROOT=../ux-c1-base UXC1_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-c1-webkit/before node --test --test-name-pattern="capture" browser-tests/light-contrast-ux-c1.browser.mjs
-          UXC1_BROWSER=webkit UXC1_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-c1-webkit/after node --test --test-name-pattern="capture" browser-tests/light-contrast-ux-c1.browser.mjs
+          UXC1_BROWSER=webkit UXC1_ROOT=../ux-c1-base UXC1_CAPTURE_DIR=test-results/ux-c1-webkit/before node --test --test-name-pattern="capture" browser-tests/light-contrast-ux-c1.browser.mjs
+          UXC1_BROWSER=webkit UXC1_CAPTURE_DIR=test-results/ux-c1-webkit/after node --test --test-name-pattern="capture" browser-tests/light-contrast-ux-c1.browser.mjs
       - name: Upload UX-C1 WebKit screenshots
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
@@ -288,8 +295,8 @@ jobs:
           BASE_REF="${GITHUB_BASE_REF:-main}"
           git fetch --no-tags --depth=1 origin "$BASE_REF"
           git worktree add --detach ../ux-c2-base-${{ matrix.shard }} FETCH_HEAD
-          UXC2_BROWSER=webkit UXC2_ROOT=../ux-c2-base-${{ matrix.shard }} UXC2_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-c2-webkit/before node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
-          UXC2_BROWSER=webkit UXC2_CAPTURE_DIR=${{ github.workspace }}/test-results/ux-c2-webkit/after node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
+          UXC2_BROWSER=webkit UXC2_ROOT=../ux-c2-base-${{ matrix.shard }} UXC2_CAPTURE_DIR=test-results/ux-c2-webkit/before node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
+          UXC2_BROWSER=webkit UXC2_CAPTURE_DIR=test-results/ux-c2-webkit/after node --test --test-name-pattern="capture" browser-tests/panel-containment-ux-c2.browser.mjs
       - name: Upload UX-C2 WebKit evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
