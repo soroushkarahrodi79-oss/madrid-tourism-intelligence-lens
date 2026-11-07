@@ -1,0 +1,977 @@
+{
+  "contract_version": "1.0.0",
+  "artifact": "madrid_ambito_building_licences.json",
+  "builder": "scripts/build_ambito_building_licences.mjs",
+  "gate": "Gate A0 MODIFY, Gate A1 GO",
+  "edition_identity": "S1:2026-01:585db074c122",
+  "edition_reference_date": "2026-01-01",
+  "derived_from": {
+    "licences": {
+      "artifact": "planning/madrid_urban_licences.json",
+      "sha256": "0c1498472e09b5e64daf554380679067f79813bb9c7268c438af749faba18d97",
+      "generated_at": "2026-10-06T21:18:08Z"
+    },
+    "geometry": {
+      "artifact": "planning/madrid_ambitos.geojson",
+      "sha256": "0233062c15193d042c8570a495000abf4c38519c11faa41bafeb1b6f79b6efc8"
+    },
+    "state": {
+      "artifact": "planning/madrid_ambito_state.json",
+      "sha256": "bb85d12db9f0fe2cf8248fa0519cc21f3cc294d534d488dc286fa929ebe97657",
+      "development_state_snapshot": "S1:2026-01:585db074c122"
+    }
+  },
+  "family": "BUILDING_URBANISTIC_LICENCE_FAMILY",
+  "licence_period": {
+    "min": "2023-01-13",
+    "max": "2026-09-30",
+    "semantics": "Grant-date extent of the building-family records in the register; a property of the records, not a publication date and not the date of the planning state."
+  },
+  "proximity_flag": {
+    "metres": 10,
+    "semantics": "Geometric proximity of the official address point to the boundary of its containing ámbito. It is NOT a positional error bound, a confidence interval or a minimum or maximum count."
+  },
+  "groups": {
+    "resolved_building_licences": 5812,
+    "inside_published_ambito": 939,
+    "inside_not_published_ambito": 341,
+    "outside_all_ambitos": 4532,
+    "unresolved_geolocation": 126,
+    "inside_published_ambito_within_10m_of_boundary": 125
+  },
+  "ambitos": {
+    "S1:2026-01:585db074c122:AOE.00.02-RP": {
+      "building_licences": 5,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:AOE.00.07": {
+      "building_licences": 18,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:AOE.00.10": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.01.08": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:APE.02.07": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.02.09": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.02.104": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.02.12": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.02.17": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.02.27": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.04.09": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.05.05": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.05.06": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.05.07": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.05.31": {
+      "building_licences": 8,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.08.06-RP": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.08.11": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 3
+    },
+    "S1:2026-01:585db074c122:APE.08.12": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.08.14": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.08.16-RP": {
+      "building_licences": 6,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.08.20": {
+      "building_licences": 11,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.09.03-RP": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.09.05": {
+      "building_licences": 5,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.09.20-RP": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:APE.09.22": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.09.24/UE-1": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.09.24/UE-4": {
+      "building_licences": 5,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.09.24/UE-5": {
+      "building_licences": 5,
+      "within_10m_of_boundary": 4
+    },
+    "S1:2026-01:585db074c122:APE.09.24/UE-6": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.09.27": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:APE.10.02": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.10.06": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.10.18": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.10.20": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.10.22": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.10.24": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:APE.11.01": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.11.04": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.11.13": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.12.01": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.12.10": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.13.03": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.15.08": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.16.01": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.16.02": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.16.07": {
+      "building_licences": 47,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.16.10": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.16.11-RP": {
+      "building_licences": 36,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.16.12": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.17.02": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.17.04": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.18.06-RP": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.19.03": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:APE.19.08": {
+      "building_licences": 7,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.19.09": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 4
+    },
+    "S1:2026-01:585db074c122:APE.19.10": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.20.02": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.20.10": {
+      "building_licences": 29,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.20.20": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.21.01": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.21.02": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.21.04": {
+      "building_licences": 20,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APE.21.05": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APE.21.07/M": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.02.01": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.02.05": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.02.06": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.02.12": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.02.18": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.02.20": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.03.03": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.03.04": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.03.05": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.05.01": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.05.02": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.05.05": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.05.06": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.05.09": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.05.11": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.06.02": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.06.03": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.06.07": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.06.08": {
+      "building_licences": 6,
+      "within_10m_of_boundary": 5
+    },
+    "S1:2026-01:585db074c122:API.06.09": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.06.10": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:API.06.11": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 3
+    },
+    "S1:2026-01:585db074c122:API.08.01": {
+      "building_licences": 12,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:API.08.02": {
+      "building_licences": 7,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.08.03": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.08.04": {
+      "building_licences": 7,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.08.05": {
+      "building_licences": 5,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.08.06": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.08.09": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.08.13": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:API.09.02": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.09.03": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:API.09.04": {
+      "building_licences": 5,
+      "within_10m_of_boundary": 3
+    },
+    "S1:2026-01:585db074c122:API.09.06": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.09.07": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.09.09": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.09.10": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.09.11": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:API.09.12": {
+      "building_licences": 8,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.09.13": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.09.14-M": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.09.16": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.10.04": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.10.12": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.11.03": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.11.06": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.11.08": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.11.09": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.11.10": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.11.13": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.11.14": {
+      "building_licences": 7,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.11.16": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.11.17": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:API.11.18": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.11.19": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.12.02": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.12.04": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.13.01": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.13.02": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:API.13.04": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.13.07": {
+      "building_licences": 5,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:API.13.08": {
+      "building_licences": 8,
+      "within_10m_of_boundary": 7
+    },
+    "S1:2026-01:585db074c122:API.13.09": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.13.10": {
+      "building_licences": 10,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.13.11": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.14.02": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.14.03": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.14.06": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.15.01": {
+      "building_licences": 8,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.15.03": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.15.07": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.15.10": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.15.11": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.15.14": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.15.15": {
+      "building_licences": 9,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.16.01": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.16.03": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.16.08": {
+      "building_licences": 7,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.16.09": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.16.10": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.16.11": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.16.15": {
+      "building_licences": 5,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.16.17": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.16.22": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.16.23": {
+      "building_licences": 9,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.16.24": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.17.01": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.17.02": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.17.03": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.17.05": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.17.07": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.17.12": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.18.02": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.18.04": {
+      "building_licences": 8,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.18.05": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.18.08": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.18.12": {
+      "building_licences": 5,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.19.01": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.19.02": {
+      "building_licences": 9,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.19.04": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.20.01": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.20.05": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.20.07": {
+      "building_licences": 6,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:API.20.08": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.20.09": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.20.12": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.20.16": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.20.17": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.21.02": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.21.07": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.21.09": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.21.11": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:API.21.14": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APR.01.02": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APR.01.07": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APR.01.08": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APR.02.04": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:APR.02.06": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.02.15/M": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APR.02.20/M": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APR.05.01": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.05.03": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:APR.05.04": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:APR.05.10": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.06.04": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APR.07.04": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APR.08.01": {
+      "building_licences": 10,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:APR.08.02": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.09.01": {
+      "building_licences": 5,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.09.02": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.09.05": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.10.01": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.10.03": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.11.02": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.11.05": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:APR.12.02": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APR.12.03": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APR.12.04": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.12.06/M": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.13.01": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APR.15.01": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.15.02": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:APR.16.01": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.16.03": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.16.05": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.17.03": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.17.04": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.17.07": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.17.10": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.17.11": {
+      "building_licences": 5,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.18.02/M": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.20.04": {
+      "building_licences": 3,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:APR.20.06": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.20.07/M": {
+      "building_licences": 1,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:APR.21.02": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:APR.21.03": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:UZI.0.02": {
+      "building_licences": 4,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:UZI.0.05": {
+      "building_licences": 5,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:UZI.0.07": {
+      "building_licences": 12,
+      "within_10m_of_boundary": 1
+    },
+    "S1:2026-01:585db074c122:UZI.0.08": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:UZI.0.09": {
+      "building_licences": 14,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:UZI.0.10": {
+      "building_licences": 20,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:UZP.1.01": {
+      "building_licences": 8,
+      "within_10m_of_boundary": 3
+    },
+    "S1:2026-01:585db074c122:UZP.1.02": {
+      "building_licences": 2,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:UZP.1.03": {
+      "building_licences": 80,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:UZP.1.05": {
+      "building_licences": 8,
+      "within_10m_of_boundary": 2
+    },
+    "S1:2026-01:585db074c122:UZP.2.01": {
+      "building_licences": 34,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:UZPp.02.03-RP": {
+      "building_licences": 8,
+      "within_10m_of_boundary": 0
+    },
+    "S1:2026-01:585db074c122:UZPp.02.04-RP": {
+      "building_licences": 39,
+      "within_10m_of_boundary": 1
+    }
+  },
+  "interpretation_ceiling": "Counts of GRANTED building licences whose official callejero address point lies inside a planning ámbito with a PUBLISHED state in the stated edition. This is administrative co-location, not evidence that works started, were executed or finished. The point is an address, not the parcel of the action. The edition state is a single dated snapshot and is never read as the state at the grant date of any licence. An ámbito without an entry has no building licence of this register with a point inside it; that says nothing about other urban activity. No rate, ranking, dwelling count, progress or cross-family total is derived."
+}

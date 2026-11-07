@@ -538,6 +538,8 @@ header{
 .planning-attributes[hidden]{display:none}
 .planning-attributes dt{font-size:var(--t-label);letter-spacing:.06em;color:#9fb1c5}
 .planning-attributes dd{margin:0;font-size:var(--t-body);line-height:1.4;color:#e3ecf6;font-variant-numeric:tabular-nums}
+/* Gate A1 licence facts carry long labels, a date range and an unbreakable edition id: always stack label over value and let the value wrap. */
+#planningLicencesFacts{grid-template-columns:minmax(0,1fr)}#planningLicencesFacts dd{margin-bottom:var(--s-2);overflow-wrap:anywhere}
 
 /* Available buildability. Every figure carries its unit and its whole-ámbito
    scope, so it can never be read as a Lens-circle or barrio quantity. */

@@ -434,6 +434,18 @@
       </div>
       <p id="planningBuildAbsent" class="planning-absent" hidden></p>
 
+      <!-- GRANTED BUILDING LICENCES CO-LOCATED WITH THIS ÁMBITO (Gate A1). A
+           count of granted building-family licences whose official address
+           point lies inside this ámbito, built offline and keyed by the state
+           edition. Administrative co-location only: not works executed, no
+           rate, ordering or cross-family total. -->
+      <div id="planningLicences" class="planning-block" hidden>
+        <div class="planning-block-head"><span data-i18n="planning.licences.title">Granted building licences located here</span></div>
+        <dl id="planningLicencesFacts" class="planning-attributes"></dl>
+        <p id="planningLicencesNote" class="planning-block-note"></p>
+        <p class="planning-block-note" data-i18n="planning.licences.note">Counts of granted building-family licences whose official address point lies inside this ámbito: administrative co-location, not works started, executed or finished, and not the state of the ámbito at the grant date. The point is an address, not necessarily the parcel of the action. The 10 m figure only flags geometric proximity to the boundary; it is not an error bound and no minimum or maximum count follows from it. No rate, ordering or total across licence families is given, and an ámbito with none recorded here says nothing about other urban activity.</p>
+      </div>
+
       <!-- MEMBERSHIP (LENS_INTERSECT_AMBITO), UX-I1/P0-a (#95). A DIFFERENT
            question from containment above: which official planning ámbitos the
            Lens CIRCLE touches. Promoted out of the closed Detail disclosure so a
