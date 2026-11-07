@@ -3679,7 +3679,7 @@ function disableBoundaryControl() {
 // It never computes a quantity, never combines a planning figure with a Lens or
 // barrio figure, and never asks the model for a share of an ámbito.
 
-const planningModel = { module: null, explorerModule: null, index: null, changeModule: null, changePair: null, changeComparison: null };
+const planningModel = { module: null, explorerModule: null, index: null, changeModule: null, changePair: null, changeComparison: null, buildingLicences: null };
 let planningState = "loading";
 let planningHint = null;
 let lastPlanningRenderKey = null;
@@ -3729,10 +3729,12 @@ async function loadPlanningContext() {
   // Settled, not all-or-nothing, and both artifacts are fetched ONCE: moving a
   // Lens performs an in-memory bounding-box scan and never a fetch. No official
   // planning service is contacted from the browser at any point.
-  const [geometry, state] = await Promise.allSettled([
+  const [geometry, state, buildingLicences] = await Promise.allSettled([
     fetchAreaJson("data/planning/madrid_ambitos.geojson"),
     fetchAreaJson("data/planning/madrid_ambito_state.json"),
+    fetchAreaJson("data/planning/madrid_ambito_building_licences.json"),
   ]);
+  planningModel.buildingLicences = settledValue(buildingLicences);
   const index = module.createPlanningIndex({
     geometry: settledValue(geometry),
     state: settledValue(state),
@@ -4023,6 +4025,11 @@ function renderPlanningContext() {
   attributes.hidden = true;
   stateAbsent.hidden = true;
   buildAbsent.hidden = true;
+  // Cleared, not merely hidden: a stale count left in the DOM is a count
+  // attached to the wrong place, even unseen (same rule as the identity below).
+  document.getElementById("planningLicences").hidden = true;
+  document.getElementById("planningLicencesFacts").replaceChildren();
+  document.getElementById("planningLicencesNote").textContent = "";
   citizen.hidden = !resolved;
   toggle.hidden = false;
 
@@ -4172,7 +4179,57 @@ function renderPlanningContext() {
     buildAbsent.hidden = false;
     buildAbsent.textContent = `${shellT("planning.buildNotPublished")} ${shellT("planning.absenceNote")}`;
   }
+  renderPlanningLicences(containing.ambitoCode, state);
   renderPlanningChange(containing.ambitoCode);
+}
+
+// Gate A1: granted BUILDING licences whose official address point lies inside this
+// ámbito. Shown only for an ámbito whose development state is PUBLISHED in the
+// edition the artifact was built against; the lookup key is `{edition}:{code}`.
+// Administrative co-location only — never works executed, never a rate, rank or
+// total, and the edition state is not read as the state at any grant date. The
+// 10 m figure is a proximity flag, not an error bound.
+function renderPlanningLicences(code, state) {
+  const block = document.getElementById("planningLicences");
+  const facts = document.getElementById("planningLicencesFacts");
+  const note = document.getElementById("planningLicencesNote");
+  facts.replaceChildren();
+  note.textContent = "";
+  note.hidden = false;
+  block.hidden = true;
+  if (!state || state.availability !== planningModel.module.AVAILABILITY.PUBLISHED) return;
+  block.hidden = false;
+  const artifact = planningModel.buildingLicences;
+  const edition = planningModel.index.editions.developmentState;
+  if (!artifact) {
+    note.textContent = shellT("planning.licences.unavailable");
+    return;
+  }
+  if (!edition || artifact.edition_identity !== edition.snapshotIdentity) {
+    note.textContent = shellT("planning.licences.mismatch");
+    return;
+  }
+  const entry = artifact.ambitos[`${artifact.edition_identity}:${code}`];
+  const addFact = (labelKey, text) => {
+    const dt = document.createElement("dt");
+    dt.textContent = shellT(labelKey);
+    const dd = document.createElement("dd");
+    dd.textContent = text;
+    facts.append(dt, dd);
+  };
+  const period = artifact.licence_period;
+  const from = planningDate(period.min);
+  const to = planningDate(period.max);
+  if (entry) {
+    addFact("planning.licences.count", planningFigure(entry.building_licences, 0));
+    addFact("planning.licences.near", planningFigure(entry.within_10m_of_boundary, 0));
+  } else {
+    note.textContent = shellT("planning.licences.none");
+  }
+  if (from && to) addFact("planning.licences.period", `${from} – ${to}`);
+  const editionDate = planningDate(artifact.edition_reference_date);
+  addFact("planning.licences.edition", `${artifact.edition_identity}${editionDate ? ` · ${editionDate}` : ""}`);
+  addFact("planning.licences.source", shellT("planning.licences.sourceText"));
 }
 
 function planningChangeLabel(outcome) {

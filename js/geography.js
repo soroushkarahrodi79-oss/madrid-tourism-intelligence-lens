@@ -179,6 +179,27 @@ export function geometryIntersectsCircle(lon, lat, radiusM, geometry) {
 }
 
 /**
+ * Metres from (lon, lat) to the nearest boundary segment (every ring, holes
+ * included) of a Polygon/MultiPolygon, or null when there is no usable geometry.
+ *
+ * It reuses the azimuthal-equidistant projection and point-to-segment distance of
+ * `geometryIntersectsCircle`, so the project keeps exactly one distance
+ * implementation. It is a geometric distance only: it says nothing about whether
+ * the point lies inside, and it is not a positional error.
+ */
+export function pointBoundaryDistanceM(lon, lat, geometry) {
+  if (!geometry || !Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+  let best = Infinity;
+  for (const edge of boundarySegments(geometry)) {
+    const [ax, ay] = localMeters(edge.a[0], edge.a[1], lon, lat);
+    const [bx, by] = localMeters(edge.b[0], edge.b[1], lon, lat);
+    const distance = pointSegmentDistance(0, 0, ax, ay, bx, by);
+    if (distance < best) best = distance;
+  }
+  return Number.isFinite(best) ? best : null;
+}
+
+/**
  * Build a containment index over the canonical geography FeatureCollection.
  *
  * Pure: no I/O, no globals. Returns lookups that take (lon, lat) in GeoJSON
