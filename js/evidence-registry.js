@@ -223,7 +223,24 @@ function isNonEmptyString(value) {
 // entirely. Its absence therefore means "this shape does not yet declare its
 // derivation inputs", which is honest; a present-but-guessed record would not be.
 // The seven fields above stay mandatory and unchanged whether `applied` is present
-// or not, so the nine shapes that do not supply it are unaffected.
+// or not, so a shape that does not supply it is unaffected.
+//
+// An `applied` record names the file(s) to re-derive from in exactly ONE of two
+// ways, never both and never neither:
+//
+//   artifact    a single declared repository path, for a value that re-derives
+//               from one committed artifact.
+//   artifacts   an ORDERED list of {sourceId, artifact, reader?}, for a value
+//               assembled from several. The order is the order the derivation
+//               consumes them, so a verifier reproduces the assembly rather than
+//               guessing it, and the list is complete: a reading that consulted a
+//               file it does not list would be describing a derivation that does
+//               not reproduce it.
+//
+// The two are mutually exclusive on purpose. A single `artifact` on a multi-source
+// reading would present one input as the whole basis — the precise mistake this
+// field exists to prevent — so the structure itself tells a verifier which kind of
+// re-derivation it is looking at.
 function makeEvidence(fields) {
   if (!isObject(fields)) {
     throw new TypeError("makeEvidence: expected an object with the seven contract fields");
@@ -260,6 +277,7 @@ function makeEvidence(fields) {
   if (applied !== undefined && (!isObject(applied) || Array.isArray(applied))) {
     throw new TypeError("makeEvidence: `applied`, when present, must be an object of named resolved inputs");
   }
+  if (applied !== undefined) validateAppliedArtifacts(applied);
 
   const evidence = {
     kind: "EVIDENCE",
@@ -292,6 +310,45 @@ function validateFreshness(freshness) {
     record.observed_cadence = freshness.observed_cadence;
   }
   return record; // frozen by makeEvidence's deepFreeze of the whole object
+}
+
+// An `applied` record names the file(s) to re-derive from in exactly ONE of two
+// ways. Neither is defaultable: a record that names no artifact cannot be verified
+// at all, and one that named both a single file and a list would leave a verifier
+// to choose which is the real basis.
+function validateAppliedArtifacts(applied) {
+  const one = Object.prototype.hasOwnProperty.call(applied, "artifact");
+  const many = Object.prototype.hasOwnProperty.call(applied, "artifacts");
+  if (one && many) {
+    throw new Error("makeEvidence: `applied` carries both `artifact` and `artifacts`; a reading re-derives from one committed file or from an ordered set, never both");
+  }
+  if (!one && !many) {
+    throw new Error("makeEvidence: `applied` must carry `artifact` or `artifacts`; a record that names no committed file cannot be re-derived");
+  }
+  if (one) {
+    if (!isNonEmptyString(applied.artifact)) {
+      throw new Error("makeEvidence: `applied.artifact` must be the declared repository path of the committed file");
+    }
+    return;
+  }
+  if (!Array.isArray(applied.artifacts) || applied.artifacts.length === 0) {
+    throw new Error("makeEvidence: `applied.artifacts` must be a non-empty ordered list of the contributing artifacts");
+  }
+  const seen = new Set();
+  for (const entry of applied.artifacts) {
+    if (!isObject(entry) || Array.isArray(entry)) {
+      throw new Error("makeEvidence: each `applied.artifacts` entry must be an object naming its sourceId and artifact");
+    }
+    if (!isNonEmptyString(entry.sourceId) || !isNonEmptyString(entry.artifact)) {
+      throw new Error("makeEvidence: each `applied.artifacts` entry must name both its sourceId and its declared repository path");
+    }
+    // A repeated source would make the order say two different things about when
+    // that file was read, and no registered derivation consults one source twice.
+    if (seen.has(entry.sourceId)) {
+      throw new Error(`makeEvidence: \`applied.artifacts\` lists source "${entry.sourceId}" twice`);
+    }
+    seen.add(entry.sourceId);
+  }
 }
 
 function isEvidence(value) {
@@ -451,7 +508,7 @@ function sourceProvenance(registry, sourceId, options = {}) {
 // network, never reads a clock, and never computes a value the model did not
 // return.
 
-function evidenceFromSource(ctx, { value, scope, unit, sourceId, derivation, freshnessOverride, appliedInputs }) {
+function evidenceFromSource(ctx, { value, scope, unit, sourceId, derivation, freshnessOverride, appliedInputs, appliedArtifacts }) {
   const prov = ctx.sourceProvenance(sourceId, freshnessOverride ? { freshnessOverride } : {});
   if (!prov) {
     return abstain(ABSTENTION_REASON.OUTSIDE_SOURCE_UNIVERSE, {
@@ -478,12 +535,47 @@ function evidenceFromSource(ctx, { value, scope, unit, sourceId, derivation, fre
   // fingerprint: it says which file to re-derive from, never that the file is
   // unchanged. Artifact identity by checksum is Phase 1 work (#179), and
   // `urban_licences` carries no `sha256` in data/source_registry.json today.
+  //
+  // A reading ASSEMBLED from several registered sources passes `appliedArtifacts`
+  // instead: an ordered list of the contributing sources, in the order the
+  // derivation consumed them. Each one's path is resolved THROUGH the registry
+  // here, exactly as the single-artifact case is, so a resolver can no more name
+  // a file for a contributor than it can for its own source.
   let applied;
   if (appliedInputs !== undefined) {
     if (!isObject(appliedInputs) || Array.isArray(appliedInputs)) {
       throw new TypeError("evidenceFromSource: `appliedInputs`, when present, must be an object of named resolved inputs");
     }
-    applied = { ...appliedInputs, derivation, artifact: prov.artifact };
+    if (appliedArtifacts === undefined) {
+      applied = { ...appliedInputs, derivation, artifact: prov.artifact };
+    } else {
+      if (!Array.isArray(appliedArtifacts) || appliedArtifacts.length === 0) {
+        throw new TypeError("evidenceFromSource: `appliedArtifacts`, when present, must be a non-empty ordered list of contributing sources");
+      }
+      const artifacts = [];
+      for (const entry of appliedArtifacts) {
+        const contributorId = isObject(entry) ? entry.sourceId : entry;
+        const contributor = ctx.sourceProvenance(contributorId);
+        if (!contributor) {
+          return abstain(ABSTENTION_REASON.OUTSIDE_SOURCE_UNIVERSE, {
+            scope,
+            message: `contributing source "${contributorId}" is not in the registry`,
+          });
+        }
+        artifacts.push({
+          sourceId: contributor.id,
+          artifact: contributor.artifact,
+          ...(isObject(entry) && isNonEmptyString(entry.reader) ? { reader: entry.reader } : {}),
+        });
+      }
+      // The reading's own declared source must be among the files it lists. A
+      // record that left it out would describe an assembly that does not include
+      // the basis the evidence object itself claims.
+      if (!artifacts.some((item) => item.sourceId === sourceId)) {
+        throw new Error(`evidenceFromSource: \`appliedArtifacts\` does not include the reading's own source "${sourceId}"`);
+      }
+      applied = { ...appliedInputs, derivation, artifacts };
+    }
   }
 
   return makeEvidence({
@@ -733,6 +825,16 @@ function resolveAmbitoEditionDiff(params, deps, ctx) {
     unit: "unit.ambitoChange",
     sourceId: "planning_ambito_state",
     derivation: DERIVATION.EDITION_DIFF,
+    // ONE artifact, not several: both editions of this diff live in the same
+    // committed state file, under `change_detection.previous` and `.current`.
+    // The two reference dates are read back off the model's OWN result, so the
+    // record names the editions actually compared rather than the pair the
+    // caller's deps happened to be wired with.
+    appliedInputs: {
+      code,
+      editions: { previous: comparison.dates.previous, current: comparison.dates.current },
+      reader: "buildAmbitoComparison",
+    },
   });
 }
 
@@ -902,6 +1004,26 @@ function resolveAmbitoCompare(params, deps, ctx) {
     unit: "unit.ambitoCompare",
     sourceId: "planning_ambito_state",
     derivation: DERIVATION.SAME_SCOPE_COMPARISON,
+    // TWO artifacts, in consumption order: the canonical comparison input of each
+    // side is resolved through an index built from the geometry, then read against
+    // the committed state editions.
+    //
+    // The per-side edition identities come off the model's OWN `editionBasis`, so
+    // the record says which edition each side was actually read at — the thing
+    // that decides whether the two sides are like-for-like. A caller may request
+    // no edition at all and still get a specific one, so recording the request
+    // would describe a comparison that does not reproduce. When the model refused
+    // the pair it establishes no basis, and the record says null rather than
+    // reaching into an absent one.
+    appliedInputs: {
+      a: { code: resolvedA.code, editions: sideEditionIdentities(model, "a") },
+      b: { code: resolvedB.code, editions: sideEditionIdentities(model, "b") },
+      reader: "buildAmbitoComparisonModel",
+    },
+    appliedArtifacts: [
+      { sourceId: "planning_ambito_geometry", reader: "createPlanningIndex" },
+      { sourceId: "planning_ambito_state", reader: "createCanonicalAmbitoComparisonInputResolver" },
+    ],
   });
 }
 
@@ -961,6 +1083,24 @@ function resolveAreaProfileAtPoint(params, deps, ctx) {
     unit: "unit.residents",
     sourceId: "population",
     derivation: DERIVATION.AREA_PROFILE_ASSEMBLY,
+    // TWO artifacts, or three when the VUT register resolved. `barrioId` is the
+    // join key the population lookup actually used, read off the profile the
+    // model returned: the point only locates the barrio, and it is the barrio
+    // code that selects the figure.
+    appliedInputs: {
+      centre: { lon, lat },
+      barrioId: profile.barrioId ?? null,
+      reader: "buildAreaProfile",
+    },
+    // The SAME list that goes on `value.sources`, in the order the assembly
+    // consumes them — locate the point in the geography, then read the register(s)
+    // for the barrio it resolved. Deriving both from one list is deliberate: a
+    // record that could disagree with the value's own declared contributors would
+    // be worse than no record.
+    appliedArtifacts: contributingSourceIds.map((id) => ({
+      sourceId: id,
+      reader: AREA_PROFILE_READERS[id],
+    })),
   });
 }
 
@@ -1015,7 +1155,38 @@ function resolveCityHotelDemand(params, deps, ctx) {
     unit: "unit.hotelDemand",
     sourceId: "hotel_demand",
     derivation: DERIVATION.DESTINATION_CONTEXT_ASSEMBLY,
+    // ONE artifact: the published municipal series. The period recorded is the
+    // SERVED one the model was built for, never `params.period` — a caller may
+    // pass the served period or nothing at all, and both re-derive the same way.
+    appliedInputs: {
+      period: servedPeriod ?? null,
+      reader: "buildDestinationContext",
+    },
   });
+}
+
+// ----- applied-record helpers -----
+
+// The exported pure reader that turns each area-profile contributor's committed
+// artifact into the index the assembly consumes. Naming them keeps `applied` a
+// re-derivation recipe rather than a list of filenames.
+const AREA_PROFILE_READERS = Object.freeze({
+  geography: "createGeographyIndex",
+  population: "createPopulationIndex",
+  vut_licences: "createVutIndex",
+});
+
+// The edition identity each comparison side was actually read at, per source
+// family, taken off the model's own basis. Null when the model established no
+// basis at all — it refused the pair — because an identity is then not a fact
+// about this reading.
+function sideEditionIdentities(model, side) {
+  const basis = model && model.editionBasis;
+  if (!isObject(basis)) return null;
+  return {
+    development_state: isObject(basis.development_state) ? basis.development_state[side] : null,
+    available_buildability: isObject(basis.available_buildability) ? basis.available_buildability[side] : null,
+  };
 }
 
 // ----- shared scope helpers -----

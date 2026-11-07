@@ -85,8 +85,22 @@ re-derive the value from the committed artifact and the published model alone �
 with no application state, no URL and no other field of the evidence object.
 
 ```
-applied: { …resolved inputs…, derivation, artifact }
+applied: { …resolved inputs…, derivation, artifact }    // re-derives from ONE file
+applied: { …resolved inputs…, derivation, artifacts }   // …from an ORDERED set
 ```
+
+A record names the file(s) to re-derive from in exactly **one** of those two ways,
+never both and never neither; `makeEvidence` rejects either mistake.
+
+- `artifact` is a single declared repository path, for a value that re-derives from
+  one committed artifact.
+- `artifacts` is an **ordered** list of `{ sourceId, artifact, reader? }`, for a value
+  assembled from several, in the order the derivation consumed them.
+
+The two are mutually exclusive on purpose. A single `artifact` on a multi-source
+reading would present one input as the whole basis — the precise mistake this field
+exists to prevent — so the structure itself tells a verifier which kind of
+re-derivation it is looking at.
 
 Three rules govern it.
 
@@ -100,19 +114,28 @@ Three rules govern it.
    derivation that does not reproduce the value — the exact failure the field
    exists to prevent. A clamped window additionally carries `clamped: true`.
 2. **Composed by the layer, not the resolver.** `evidenceFromSource` adds
-   `derivation` and `artifact` itself, so neither can drift: `derivation` is the
-   same name that goes on the evidence object, and `artifact` is the registry's own
-   declared path for the source. A resolver supplies only the inputs it used.
+   `derivation` and the artifact record itself, so neither can drift: `derivation` is
+   the same name that goes on the evidence object, and every path is the registry's
+   own declared path for its source. A resolver supplies only the inputs it used and,
+   for an assembled value, the **ids** of the contributing sources — each one's path
+   is resolved **through** the registry here, exactly as the reading's own source is,
+   so a resolver can no more name a file for a contributor than it can for itself. A
+   contributor id the registry does not know abstains with
+   `OUTSIDE_SOURCE_UNIVERSE`, and a list that omits the reading's own `sourceId`
+   throws, since it would describe an assembly that excludes the basis the evidence
+   object claims.
 3. **Omitted rather than guessed.** A shape that does not yet declare its inputs
    has **no** `applied` key — never a null, never a partial record. Absence means
    "this shape does not declare its derivation inputs yet", which is honest; a
    present-but-inferred record would not be. An **abstention never** carries
    `applied`: there is no derivation to record.
 
-#### Which shapes declare `applied`, and why the rest do not
+#### Which shapes declare `applied`
 
-`applied.artifact` names **one** file. A shape can therefore declare `applied` only
-when its value re-derives from a single committed artifact. Six do:
+**All ten registered shapes declare it.** Which of the two forms a shape uses
+follows from how many registered artifacts its value actually reads — not from how
+many its question mentions. Eight re-derive from a single committed artifact; six of
+those were declared in Phase 0:
 
 | Shape | `reader` | Re-derives from |
 |---|---|---|
@@ -135,18 +158,49 @@ licence index's `view` — `reader` is omitted rather than invented.
 `prov.artifact` there would send a verifier to a data file that does not contain the
 answer; a test asserts the two differ.
 
-The remaining four — `AREA_PROFILE_AT_POINT`, `AMBITO_COMPARE`,
-`AMBITO_EDITION_DIFF` and `CITY_HOTEL_DEMAND` — read **more than one** registered
-artifact (an area profile assembles geography, population and optionally the VUT
-register; a comparison resolves both sides through the planning geometry *and* the
-state artifact). A single `applied.artifact` cannot express that, so they carry
-**no** `applied` until the record can hold an ordered set of inputs. A partial
-record naming one of several inputs would claim a re-derivation that does not work,
-which is worse than declaring nothing. A test holds them to that.
+Two further shapes belong in that first table too, and this **corrects #181**, which
+described all four remaining shapes as multi-artifact. Reading the wiring shows two
+of them are not:
 
-**`artifact` is a path, not a fingerprint.** It is a repository path relative to
-`data/` and it says *which file to re-derive from*. It is **not** evidence that the
-file is unchanged: `data/source_registry.json` carries a `sha256` for exactly one
+| Shape | `reader` | Re-derives from | Why one file |
+|---|---|---|---|
+| `AMBITO_EDITION_DIFF` | `buildAmbitoComparison` | `planning/madrid_ambito_state.json` | Both compared editions live in the **same** committed state file, under `change_detection.previous` and `.current`. |
+| `CITY_HOTEL_DEMAND` | `buildDestinationContext` | `destination/madrid_hotel_demand.json` | One published municipal series; the destination context assembles nothing else from the registry. |
+
+#### The two assembled shapes
+
+Only two readings genuinely consult more than one registered artifact, and they use
+`applied.artifacts`:
+
+| Shape | Artifacts, in consumption order | `reader` per artifact |
+|---|---|---|
+| `AMBITO_COMPARE` | `planning_ambito_geometry`, then `planning_ambito_state` | `createPlanningIndex`, then `createCanonicalAmbitoComparisonInputResolver` |
+| `AREA_PROFILE_AT_POINT` | `geography`, `population`, and `vut_licences` **when it resolves** | `createGeographyIndex`, `createPopulationIndex`, `createVutIndex` |
+
+**The order is the derivation's own.** The list runs in the order the assembly
+consumed the files — locate the point in the geography, then read the register for
+the barrio it resolved — so a verifier reproduces the assembly instead of guessing
+it. The list is also **complete**: a reading that consulted a file it does not list
+would describe a derivation that does not reproduce the value. For
+`AREA_PROFILE_AT_POINT` the list is built from the **same** contributor list that
+goes on `value.sources`, so the record cannot disagree with the value's own declared
+contributors — which is why the VUT register appears only when it resolved.
+
+#### What the four newly-declaring shapes record
+
+Rule 1 does the same work for them as for `LICENCES_IN_LENS`: each reads its inputs
+back off the model's **own** result, never off the request.
+
+| Shape | What it records | What recording the request would have said instead |
+|---|---|---|
+| `AMBITO_EDITION_DIFF` | The two `editions` off the model's own `comparison.dates`. | The pair the caller's deps happened to be wired with, not the editions compared. |
+| `AMBITO_COMPARE` | Per-side `editions` off the model's `editionBasis` — the thing that decides whether the two sides are like-for-like. `null` when the model refused the pair and so established no basis. | An edition the caller never named: a caller may request none at all and still be served a specific one. |
+| `AREA_PROFILE_AT_POINT` | The `barrioId` the population lookup actually joined on, read off the returned profile. | Only the point — but the point merely locates the barrio, and it is the barrio code that selects the figure. |
+| `CITY_HOTEL_DEMAND` | The **served** period the model was built for. | `params.period`, which a caller may omit entirely. |
+
+**A path is not a fingerprint.** Every path in the record — `artifact`, and each
+entry of `artifacts` — is a repository path relative to `data/` and it says *which
+file to re-derive from*. It is **not** evidence that the file is unchanged: `data/source_registry.json` carries a `sha256` for exactly one
 of its 21 sources (`planning_ambito_state`), and `urban_licences` has none.
 Artifact identity by checksum, and the verifier that would consume it, are
 deliberately **not** part of this field.
@@ -160,8 +214,10 @@ deliberately **not** part of this field.
 | `derivation` | The same closed-vocabulary name on the evidence object. |
 | `artifact` | The registry's declared artifact path for the source. |
 
-Every `applied`, whichever shape produced it, carries at least `derivation` and
-`artifact`; the rest are the inputs that shape actually consumed.
+Every `applied`, whichever shape produced it, carries `derivation` and exactly one
+of `artifact` / `artifacts`; the rest are the inputs that shape actually consumed.
+A test checks the set of shapes declaring `applied` against `REGISTERED_SHAPES`
+itself rather than a hand-kept list, so a new shape that declares nothing fails.
 
 ---
 
