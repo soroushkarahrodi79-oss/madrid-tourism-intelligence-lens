@@ -1,13 +1,100 @@
+<div align="center">
+
 # Madrid Urban Evidence Lens
 
-A place-first, source-disciplined geospatial workspace for reading what official
-sources document about **urban development in Madrid** — and what that evidence
-does **not** permit you to conclude. The next architecture (Gate K / #64)
-formalizes **scope, freshness and interpretation ceiling** as explicit, uniform
-properties of every evidence object; today they are documented per source rather
-than guaranteed on every value.
+**A place-first, source-disciplined map for reading what official sources document about urban development in Madrid — and what that evidence does *not* let you conclude.**
 
-[Open the live Madrid lens](https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens/) · [Current scope and limits](docs/GATE_K_URBAN_DECISION_WORKSPACE.md)
+[![Live demo](https://img.shields.io/badge/live_demo-open_the_lens-2ea0d8?style=for-the-badge)](https://soroushkarahrodi79-oss.github.io/madrid-tourism-intelligence-lens/)
+&nbsp;
+[![Claims & limits](https://img.shields.io/badge/read_first-claims_%26_limits-555?style=for-the-badge)](docs/CLAIMS_AND_LIMITATIONS.md)
+
+![Static site](https://img.shields.io/badge/static_site-no_build_step-1f6feb)
+![Vanilla JS](https://img.shields.io/badge/vanilla_JS-Leaflet-199900)
+![Official open data](https://img.shields.io/badge/data-official_open_data-b30000)
+![EN / ES](https://img.shields.io/badge/language-EN_%7C_ES-6f42c1)
+![License](https://img.shields.io/badge/code-MIT-lightgrey)
+
+<br>
+
+<img src="docs/screenshots/place-desktop.jpg" alt="Madrid Urban Evidence Lens, Place mode: a draggable Lens circle over central Madrid, with the containing barrio, registered residents, licensed VUT, registered unemployment and planning-ámbito context in the side panel" width="920">
+
+<sub>Place mode · a draggable Lens circle over central Madrid, read against the official barrio it sits in.</sub>
+
+</div>
+
+## At a glance
+
+| | |
+|---|---|
+| **Starts from** | a place and a question about it, not from a dataset |
+| **Answers** | which official area this is · what official sources document there · how it compares with another place · which source backs each statement and what it **cannot** be used to claim |
+| **Built for** | residents and local stakeholders as primary readers, and planners, researchers or assessors who verify the **same** evidence |
+| **Evidence** | official Madrid, INE, EMT and CRTM open data, each documented with provenance, licence and an interpretation ceiling |
+| **Also** | place search, a guided tour, system / light / dark appearance, adjustable text size and an English / Español switch |
+| **Runs as** | a static browser app — vanilla JS in `js/`, Leaflet vendored, no framework, no build |
+
+> **Why trust it.** Figures are shown with their source, unit and date wherever the publisher provides them; unavailable data reads `N/A`, never a silent zero; and nothing is scored, ranked or presented as the thing it only approximates. The next architecture (Gate K / #64) formalizes **scope, freshness and interpretation ceiling** as explicit, uniform properties of every evidence object; today they are documented per source rather than guaranteed on every value.
+
+## Three ways to read the same evidence
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+**◎ Place**
+
+What the evidence says about *this* place: the official barrio, registered residents, licensed VUT, registered unemployment as socioeconomic context, the containing planning ámbito and the four Lens-circle figures.
+
+</td>
+<td width="33%" valign="top">
+
+**⇄ Compare**
+
+Lens A against Lens B, or two planning ámbitos: Comparison Bridge, Decision Insight, spatial-window sensitivity. Observed differences only — no score, no ranking.
+
+</td>
+<td width="33%" valign="top">
+
+**▦ City**
+
+Municipality-wide hotel demand and domestic-origin context from INE. Independent of the Lens: moving it changes nothing here.
+
+</td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/place-desktop.jpg" alt="Place mode"></td>
+<td><img src="docs/screenshots/compare-desktop.jpg" alt="Compare mode: Lens A and Lens B side by side with the Decision Insight panel"></td>
+<td><img src="docs/screenshots/city-desktop.jpg" alt="City mode: monthly hotel demand for the municipality of Madrid"></td>
+</tr>
+</table>
+
+A mode changes how existing evidence is read; it never flies the camera, switches a layer or moves a Lens.
+
+## Quick start
+
+No build step, no dependencies. Any static file server works:
+
+```bash
+python3 -m http.server 8000
+# then open http://localhost:8000
+```
+
+Optional tests: unit tests use the Node built-in runner (`node --test tests/<name>.test.mjs`); browser tests need `npm install` first, then `npm run test:browser`.
+
+## Documentation map
+
+| Read this | For |
+|---|---|
+| [`docs/PRODUCT_SEMANTICS.md`](docs/PRODUCT_SEMANTICS.md) | the vocabulary that keeps the citizen and analyst readings honest |
+| [`docs/CLAIMS_AND_LIMITATIONS.md`](docs/CLAIMS_AND_LIMITATIONS.md) | what the project does and does not claim |
+| [`docs/DATA_PROVENANCE.md`](docs/DATA_PROVENANCE.md) | every dataset's source, licence and vintage |
+| [`docs/GATE_K_URBAN_DECISION_WORKSPACE.md`](docs/GATE_K_URBAN_DECISION_WORKSPACE.md) | current scope, product boundary and next direction |
+| [`docs/INFORMATION_ARCHITECTURE_V2.md`](docs/INFORMATION_ARCHITECTURE_V2.md) | Place / Compare / City, scope-and-freshness rail, evidence drawer |
+| [`docs/EVIDENCE_EXPORT.md`](docs/EVIDENCE_EXPORT.md) | shareable URLs and the five-file export bundle |
+
+The sections below are the full reference. The two longest are collapsed; expand what you need.
+
+---
 
 ## See Lens in action
 
@@ -64,6 +151,9 @@ window, given the evidence currently loaded?" — and move it around the map,
 including comparing two places at once.
 
 ## 3. What can the user explore?
+
+<details>
+<summary><b>Show the full list of interactions and evidence surfaces</b></summary>
 
 - Move **Lens A** (always on) by dragging it or clicking the map.
 - Enable **Lens B** to compare two locations side by side.
@@ -207,7 +297,12 @@ including comparing two places at once.
 - Optionally overlay the full lattice of **district** or **barrio** outlines;
   the containing barrio is always outlined, the lattice defaults to off.
 
+</details>
+
 ## 4. Which datasets are used?
+
+<details>
+<summary><b>Show every dataset, source and licence note</b></summary>
 
 - **Museums** and **tourist information** — Madrid Open Data
 - **Accommodation** — Madrid Destino / esmadrid.com accommodation catalogue
@@ -272,6 +367,8 @@ curated repository sample is the final packaged fallback where a deployment
 source is unavailable. Direct live requests are only attempted when no packaged
 data exists. No coordinates are invented. See
 [`docs/DATA_PROVENANCE.md`](docs/DATA_PROVENANCE.md).
+
+</details>
 
 ## 5. What is HATI's role?
 
