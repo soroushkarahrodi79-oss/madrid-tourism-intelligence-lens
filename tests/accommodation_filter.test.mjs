@@ -30,7 +30,11 @@ test("UI exposes bounded source-derived accommodation families", () => {
 
 test("lens statistics and stay rendering use the same active accommodation filter", () => {
   assert.match(app, /return filterPoiPointsByStayKind\(poiPoints, stayKindFilter\)/);
-  assert.match(app, /poiStatsInLens\(visiblePoiPoints\(\), centerOf\(which\), radiusFor\(which\)\)/);
+  // The statistics read the SAME filtered point set the map renders. The call
+  // now names an analysis geometry rather than a centre and a radius (#187
+  // Phase 3: circle or custom polygon), and `activeAnalysisGeometry` returns the
+  // circular geometry unchanged in every case but an active polygon in PLACE.
+  assert.match(app, /poiStatsInGeometry\(visiblePoiPoints\(\), activeAnalysisGeometry\(which\)\)/);
   assert.match(app, /const points = visiblePoiPoints\(\)\.filter\(\(p\) => p\.type === type\)/);
 });
 

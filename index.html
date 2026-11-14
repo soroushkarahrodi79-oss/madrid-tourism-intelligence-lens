@@ -185,7 +185,13 @@
     <summary><span class="rail-group-copy"><span data-i18n="aside.observed">Observed activity</span></span><span class="rail-group-badge" data-rail-badge></span></summary>
     <div class="rail-group-content">
       <p class="rail-group-note" data-i18n="aside.observedNote">not tourism-specific</p>
-      <div class="layer activity-layer"><div class="layer-left"><i class="dot dot-pedestrian"></i><span data-i18n="layer.pedestrian">Pedestrian counters</span></div><label class="switch"><input data-layer="pedestrian" type="checkbox" aria-label="Toggle observed pedestrian activity" aria-checked="false"><span></span></label></div>
+      <!-- The deployment snapshot behind this layer is built in CI, so a plain
+           checkout ships the explicit "no evidence" stub. The row therefore has to
+           be able to SAY it is unavailable: `aria-disabled` rather than `disabled`
+           keeps the control focusable, so a keyboard or screen-reader user reaches
+           the reason in #pedestrianLayerState instead of a mouse-only tooltip. -->
+      <div class="layer activity-layer" data-layer-row="pedestrian"><div class="layer-left"><i class="dot dot-pedestrian"></i><span data-i18n="layer.pedestrian">Pedestrian counters</span></div><label class="switch"><input data-layer="pedestrian" type="checkbox" aria-label="Toggle observed pedestrian activity" aria-checked="false" aria-describedby="pedestrianLayerState"><span></span></label></div>
+      <p id="pedestrianLayerState" class="layer-state" role="status" hidden></p>
     </div>
   </details>
 
@@ -241,6 +247,64 @@
     <path d="M5 15 15 5 M11 15 15 11"></path>
   </svg>
 </button>
+<!-- ===================== SPATIAL TOOLBAR (map chrome) ====================== -->
+<!-- WHAT THIS IS FOR. The controls that decide WHICH GEOMETRY is analysed belong
+     with the map, not among the readings: the analysis panel reports results, the
+     map is where a reader changes the question. The radius control previously sat
+     at the very bottom of the scrolling panel, below every result, so adjusting
+     the Lens meant scrolling away from the figures it changes.
+     Positioned below the Leaflet zoom cluster on desktop and clear of the zoom /
+     attribution / rail / panel chrome on mobile; browser-tests assert the
+     non-overlap. Hidden in CITY mode by the shared [data-controls-for] gate,
+     because no Lens geometry is active there. -->
+<div id="spatialToolbar" class="spatial-toolbar" role="group"
+     aria-labelledby="spatialToolbarLabel" data-controls-for="PLACE COMPARE">
+  <h2 id="spatialToolbarLabel" class="sr-only" data-i18n="toolbar.geometry">Analysis geometry</h2>
+
+  <!-- ONE active analysis geometry at a time. The circular Lens is the default
+       and is unchanged; a custom polygon replaces it as the geometry the
+       point-level readings are computed over. Polygon analysis is PLACE-only:
+       the A/B comparison, the comparison halo and the radius-sensitivity test
+       are all defined on circles, so the polygon mode is refused in COMPARE with
+       a stated reason rather than silently reinterpreted. -->
+  <div id="geometryModeGroup" class="geometry-mode" role="group" aria-labelledby="geometryModeLabel">
+    <span id="geometryModeLabel" class="sr-only" data-i18n="toolbar.geometryMode">Analysis geometry type</span>
+    <button type="button" id="geometryModeCircle" class="geometry-mode-btn" data-geometry-mode="CIRCLE" aria-pressed="true" data-i18n="toolbar.circle">Circle</button>
+    <button type="button" id="geometryModePolygon" class="geometry-mode-btn" data-geometry-mode="POLYGON" aria-pressed="false" aria-describedby="geometryModeNote" data-i18n="toolbar.polygon">Polygon</button>
+  </div>
+  <p id="geometryModeNote" class="spatial-toolbar-note" hidden></p>
+
+  <div class="spatial-toolbar-field" id="spatialRadiusField">
+    <div class="spatial-toolbar-head">
+      <label id="radiusControlLabel" for="radiusSlider">Lens A radius</label>
+      <b id="radiusText">—</b>
+    </div>
+    <input id="radiusSlider" type="range" aria-label="Lens A radius">
+  </div>
+
+  <!-- Polygon workflow. Every step is a real button, so the whole workflow is
+       operable from the keyboard: the map pans and zooms with the arrow keys when
+       focused, and "Add vertex here" drops a vertex at the map centre. Clicking
+       the map is the pointer shortcut for the same action, not the only route. -->
+  <div class="spatial-toolbar-field polygon-tools" id="polygonTools" hidden>
+    <div class="polygon-tool-row">
+      <button type="button" id="polygonDrawButton" class="polygon-btn" data-i18n="toolbar.draw">Draw polygon</button>
+      <button type="button" id="polygonAddVertexButton" class="polygon-btn" data-i18n="toolbar.addVertex" hidden>Add vertex here</button>
+    </div>
+    <div class="polygon-tool-row">
+      <button type="button" id="polygonFinishButton" class="polygon-btn polygon-btn-primary" data-i18n="toolbar.finish" hidden>Finish</button>
+      <button type="button" id="polygonCancelButton" class="polygon-btn" data-i18n="toolbar.cancel" hidden>Cancel</button>
+      <button type="button" id="polygonDeleteButton" class="polygon-btn" data-i18n="toolbar.delete" hidden>Delete polygon</button>
+    </div>
+    <p id="polygonStatus" class="spatial-toolbar-note" role="status" aria-live="polite"></p>
+    <dl id="polygonMeasure" class="polygon-measure" hidden>
+      <div><dt data-i18n="toolbar.vertices">Vertices</dt><dd id="polygonVertexCount">—</dd></div>
+      <div><dt data-i18n="toolbar.area">Area</dt><dd id="polygonArea">—</dd></div>
+      <div><dt data-i18n="toolbar.perimeter">Perimeter</dt><dd id="polygonPerimeter">—</dd></div>
+    </dl>
+  </div>
+</div>
+
 <section class="panel" id="analysisPanel" data-mode="PLACE" aria-label="Spatial analysis panel" tabindex="-1">
 
   <!-- READING ORDER (docs/INFORMATION_ARCHITECTURE_V2.md): the compact mode
@@ -363,6 +427,20 @@
          overall stage, no ordering, no percentage, no progress line and no
          single summarising badge. Available buildability always carries its
          unit and its whole-ámbito scope. No dwelling count exists anywhere. -->
+    <!-- WHAT A CUSTOM POLYGON CAN AND CANNOT ANSWER, stated on screen whenever a
+         polygon is the active geometry. Point-level records are clipped exactly by
+         point-in-polygon. Territorial aggregates published per barrio or per
+         ámbito CANNOT be clipped to an arbitrary shape without assuming the
+         quantity is spread evenly inside the published unit — an assumption this
+         product does not make — so those readings are marked unavailable rather
+         than recomputed. Precision is never invented to fill the gap. -->
+    <section id="polygonScopeNotice" class="polygon-scope" aria-labelledby="polygonScopeHeading" hidden>
+      <h3 id="polygonScopeHeading" data-i18n="polygon.scopeHeading">Custom polygon is the active geometry</h3>
+      <p id="polygonScopeGeometry" class="polygon-scope-geometry"></p>
+      <p class="polygon-scope-line" data-i18n="polygon.computed">Computed by exact point-in-polygon membership: tourism POIs, hotels &amp; stays, mobility nodes, category mix, nearest features, observed pedestrian activity and HATI UTCI samples.</p>
+      <p class="polygon-scope-line polygon-scope-withheld" data-i18n="polygon.unsupported">Not available for a custom polygon, and not estimated: the administrative area register, planning ámbitos, the granted urban-licence register, hospitality &amp; commercial context, and radius sensitivity. These are published per official area or per radius and cannot be clipped to an arbitrary shape without assuming an even spread inside the published unit.</p>
+      <p class="polygon-scope-line" data-i18n="polygon.share">A shareable link carries the circular Lens only. Open a shared link and the circle is restored, with the usual partial-restore notice; use Export evidence to keep the polygon geometry.</p>
+    </section>
   <section id="planningAmbito" class="planning" aria-labelledby="planningSectionHeading" hidden>
     <div class="section-head"><span id="planningSectionHeading" data-i18n="sec.planning">Planning ámbito</span><small id="planningScopeHint" data-i18n="planning.scopeHint">whole planning ámbito</small><button type="button" class="evidence-link" data-evidence-prefix="place.planning." data-evidence-name="sec.planning" aria-haspopup="dialog"><span aria-hidden="true">i</span></button></div>
     <div id="planningLive" aria-live="polite">
@@ -938,8 +1016,11 @@
         <button id="lensBButton" class="lensbtn b">+ Enable Lens B</button>
       </div>
   <div class="controlbox">
-    <div class="controltop"><span id="radiusControlLabel">Lens A radius</span><b id="radiusText">—</b></div>
-    <input id="radiusSlider" type="range" aria-label="Lens A radius">
+    <!-- The radius control is MAP CHROME, not a panel control: it changes which
+         geography is analysed, so it lives on the map in #spatialToolbar where it
+         is reachable without scrolling past every reading. The structural rule it
+         was placed here to satisfy — no control stranded among results — still
+         holds, and holds more strongly: see #spatialToolbar. -->
     <div class="row-controls">
       <select id="timeSelect" aria-label="HATI model time">
         <option value="12:00">HATI · 12:00</option>

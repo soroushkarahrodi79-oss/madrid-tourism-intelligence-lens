@@ -32,7 +32,11 @@ test("park records stay outside analytical POI statistics", () => {
   assert.match(app, /let poiPoints = \[\];/);
   assert.match(app, /let parkPoints = \[\];/);
   assert.match(app, /parkPoints = \(runtimePOI\?\.layers\?\.park \|\| \[\]\)/);
-  assert.match(app, /poiStatsInLens\(visiblePoiPoints\(\), centerOf\(which\), radiusFor\(which\)\)/);
+  // The statistics read the SAME filtered point set the map renders. The call
+  // now names an analysis geometry rather than a centre and a radius (#187
+  // Phase 3: circle or custom polygon), and `activeAnalysisGeometry` returns the
+  // circular geometry unchanged in every case but an active polygon in PLACE.
+  assert.match(app, /poiStatsInGeometry\(visiblePoiPoints\(\), activeAnalysisGeometry\(which\)\)/);
   assert.match(app, /Park context is excluded from lens counts, category mix, nearest features and A\/B comparisons/);
 });
 

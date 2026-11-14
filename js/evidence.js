@@ -27,9 +27,31 @@ function hatiPointFor(asset, timestep) {
   };
 }
 
-// Descriptive statistics only: count and mean of whatever HATI samples are
-// inside the lens at the selected timestep. Returns evidence:"NONE" rather
-// than a fabricated value when the lens contains zero samples.
+// Descriptive statistics only: count and mean of whatever HATI samples fall
+// inside the analysis geometry at the selected timestep. Returns evidence:"NONE"
+// rather than a fabricated value when the geometry contains zero samples.
+//
+// HATI assets are POINT observations, so they are exactly clippable by any
+// analysis geometry — a circle or a custom polygon. `containsFn` and `distanceFn`
+// are injected so this module keeps no dependency on the Lens model; the caller
+// passes js/lens.js geometryContainsPoint and haversineMeters. Membership is
+// decided by containsFn ALONE; `d` is attached only so a sample can be reported
+// with its distance from the geometry's reference point.
+function hatiStatsInGeometry(hatiAssets, timestep, geometry, containsFn, distanceFn, referencePoint) {
+  const inside = (hatiAssets || [])
+    .filter((a) => containsFn(geometry, a))
+    .map((a) => ({ ...a, d: referencePoint ? distanceFn(referencePoint, a) : null }))
+    .map((a) => ({ ...a, utci: a.utci_mean_10m[timestep] }))
+    .filter((a) => Number.isFinite(a.utci));
+
+  if (!inside.length) {
+    return { evidence: "NONE", count: 0, mean: null, samples: [] };
+  }
+  const mean = inside.reduce((s, a) => s + a.utci, 0) / inside.length;
+  return { evidence: "MODEL-DERIVED", count: inside.length, mean, samples: inside };
+}
+
+// The circular entry point, unchanged.
 function hatiStatsInLens(hatiAssets, timestep, center, radiusM, distanceFn) {
   const inside = hatiAssets
     .map((a) => ({ ...a, d: distanceFn(center, a) }))
@@ -51,5 +73,6 @@ if (typeof module !== "undefined" && module.exports) {
     utciCategoryColor,
     hatiPointFor,
     hatiStatsInLens,
+    hatiStatsInGeometry,
   };
 }

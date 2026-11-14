@@ -35,6 +35,7 @@ const DRAWER_REGISTRY_API =
 // rail always pairs it with a text label, and the glyph is aria-hidden.
 const SCOPE_GLYPHS = Object.freeze({
   LENS_CIRCLE: "◎",
+  LENS_POLYGON: "⬟",
   OFFICIAL_BARRIO: "⬡",
   OFFICIAL_DISTRICT: "⬢",
   MUNICIPALITY: "▦",
@@ -131,7 +132,13 @@ function requireSource(map, id, surfaceKey) {
 // has no reference date. The rail never invents a common date. `sourceStates` is
 // the DISTINCT publisher source states, in registry order; it is descriptive and
 // never mapped to a colour, grade or score.
-function railModel({ mode, flags = {}, registry, instances = {} }) {
+// `scopeOverrides` remaps a surface's declared scope to another DECLARED scope,
+// for the one case where the same surface genuinely changes meaning with user
+// state: the PLACE metrics are LENS_CIRCLE-scoped while the circular Lens is
+// active and LENS_POLYGON-scoped while a custom polygon is. It is validated
+// against the closed enum, so it can never invent a scope, and it is the only
+// way the rail's declared scope can differ from the surface table.
+function railModel({ mode, flags = {}, registry, instances = {}, scopeOverrides = {} }) {
   const map = registrySourceMap(registry);
   const keys = surfaceKeysFor(mode, flags);
   const entries = [];
@@ -140,7 +147,15 @@ function railModel({ mode, flags = {}, registry, instances = {} }) {
 
   for (const key of keys) {
     const surface = SURFACES[key];
-    const scope = EVIDENCE_SCOPE_API.scopeOf(surface); // throws if undeclared / outside the enum
+    const declared = EVIDENCE_SCOPE_API.scopeOf(surface); // throws if undeclared / outside the enum
+    const override = scopeOverrides[declared];
+    // ANALYTICAL_SCOPES, not isAnalyticalScope(): the browser build of this
+    // module is handed a narrower API object than the Node one, and the enum is
+    // the member both paths carry.
+    if (override !== undefined && !EVIDENCE_SCOPE_API.ANALYTICAL_SCOPES.includes(override)) {
+      throw new RangeError(`railModel: scope override "${override}" is not a declared analytical scope`);
+    }
+    const scope = override === undefined ? declared : override;
     let entry = entries.find((candidate) => candidate.scope === scope);
     if (!entry) {
       entry = { scope, glyph: SCOPE_GLYPHS[scope], instances: [...(instances[scope] || [])], surfaces: [] };

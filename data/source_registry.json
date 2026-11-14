@@ -10,6 +10,10 @@
         "kind": "analytical_scope",
         "definition": "A user-positioned circle (100 m to 5 km). A value counted or measured inside the circle; it is user state, never a source-native geometry."
       },
+      "LENS_POLYGON": {
+        "kind": "analytical_scope",
+        "definition": "A user-drawn polygon. A value counted or measured inside the exact ring by point-in-polygon membership; it is user state, never a source-native geometry. Kept distinct from LENS_CIRCLE because a count inside an arbitrary ring does not carry a radius."
+      },
       "OFFICIAL_BARRIO": {
         "kind": "analytical_scope",
         "definition": "One of the 131 current-era official barrio polygons. A value that belongs to the whole barrio and is never apportioned to a part of it."
