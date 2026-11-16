@@ -2236,6 +2236,7 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
 .qx-dossier-status{margin:var(--s-2) 0 0;font-size:var(--t-meta);line-height:1.45;color:var(--chrome-text-metadata);overflow-wrap:anywhere}
 .qx-dossier-status[data-tone="error"]{color:var(--chrome-text-control-strong);font-weight:650}
 .qx-dossier-status a{display:inline-block;margin-inline-end:var(--s-1);color:var(--chrome-text-control-strong);font-weight:650;text-decoration:underline}
+.qx-dossier-note{display:block;margin-top:var(--s-1)}
 .qx-share-note{margin:var(--s-2) 0 0;font-size:var(--t-meta);line-height:1.45;color:var(--chrome-text-metadata)}
 .qx-loading{margin:var(--s-2) 0 0;font-size:var(--t-meta);line-height:1.45}
 @media(max-width:850px){

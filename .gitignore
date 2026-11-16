@@ -25,3 +25,7 @@ node_modules/
 # normalized JSON reports under research/urban_planning_gate/results/ are. See
 # research/urban_planning_gate/README.md.
 research/urban_planning_gate/cache/
+
+# Written by the Pages deploy (scripts/write_build_identity.mjs): the commit and
+# artifact fingerprints of that deployment. Never committed; absent locally.
+build-identity.json

@@ -79,6 +79,15 @@ jobs:
           CARTO_BASEMAP_KEY: ${{ secrets.CARTO_BASEMAP_KEY }}
         run: |
           node -e 'const fs=require("fs"); const config={CARTO_BASEMAP_KEY:process.env.CARTO_BASEMAP_KEY||""}; fs.writeFileSync("js/runtime-config.js","window.RUNTIME_CONFIG = "+JSON.stringify(config)+";\n");'
+      # Publishes the commit this site was built from, with fingerprints of the
+      # two artifacts a verifiable dossier depends on, so the browser can export a
+      # V2 dossier that scripts/dossier_verify.mjs can check. The script refuses
+      # (and so fails the job, like every other step here) unless the checked-out
+      # artifacts and code equal HEAD: an identity that did not describe the
+      # deployed bytes must never ship. Local checkouts have no such file, and the
+      # app then exports plain V1.
+      - name: Record build identity
+        run: node scripts/write_build_identity.mjs build-identity.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
