@@ -193,9 +193,13 @@ def main() -> int:
         "osm_note": "This file carries no value derived from OpenStreetMap.",
         "features": [barrio],
     }
+    # newline="\n" on every write: the default would emit CRLF on Windows, so the
+    # same inputs would produce different bytes on different platforms and the
+    # SHA-256s recorded here would stop meaning anything.
     OUT_BARRIO.write_text(
         json.dumps(barrio_collection, ensure_ascii=False, indent=1) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
 
     report = json.loads(REPORT_JSON.read_text(encoding="utf-8"))
@@ -273,7 +277,9 @@ def main() -> int:
         },
     }
     OUT_MANIFEST.write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
     )
 
     print(f"portals written      : {len(out_rows)}")
