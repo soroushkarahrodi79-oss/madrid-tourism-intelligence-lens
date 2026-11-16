@@ -7,6 +7,11 @@
 // validated dossier object.
 
 export const DOSSIER_SCHEMA_VERSION = 1;
+// V2 is V1 plus two additive members, and is produced ONLY when the caller supplies
+// a `verification` record: `outcome.evidence.applied` (the resolved inputs) and a
+// top-level `verification` block (commit, artifact fingerprints, code identity).
+// Without that input the builder emits exactly V1.
+export const DOSSIER_SCHEMA_VERSION_V2 = 2;
 
 export const SUPPORTED_QUESTION_IDS = Object.freeze([
   "AMBITO_AT_POINT",
@@ -60,13 +65,43 @@ function requireText(value, field) {
   return value;
 }
 
-function validateEvidence(result) {
+function validateEvidence(result, withApplied = false) {
   if (!isObject(result) || result.kind !== "EVIDENCE") throw new TypeError("buildEvidenceDossier: answered outcome must contain K13 EVIDENCE");
   for (const field of EVIDENCE_FIELDS) {
     if (!Object.hasOwn(result, field) || result[field] === undefined) throw new TypeError(`buildEvidenceDossier: evidence is missing ${field}`);
   }
   if (!isObject(result.freshness)) throw new TypeError("buildEvidenceDossier: evidence freshness must be an object");
-  return Object.fromEntries(EVIDENCE_FIELDS.map((field) => [field, clone(result[field])]));
+  const evidence = Object.fromEntries(EVIDENCE_FIELDS.map((field) => [field, clone(result[field])]));
+  if (withApplied) {
+    if (!isObject(result.applied)) throw new TypeError("buildEvidenceDossier: a verifiable dossier needs evidence.applied");
+    evidence.applied = clone(result.applied);
+  }
+  return evidence;
+}
+
+const HEX40 = /^[0-9a-f]{40}$/;
+const HEX64 = /^[0-9a-f]{64}$/;
+
+// Shape-only check of the verification record. What it MEANS (and whether it is
+// true) is decided by the headless verifier, never here.
+function validateVerificationRecord(record) {
+  if (!isObject(record) || record.verification_schema_version !== 1) {
+    throw new TypeError("buildEvidenceDossier: verification record must declare verification_schema_version 1");
+  }
+  if (typeof record.commit !== "string" || !HEX40.test(record.commit)) {
+    throw new TypeError("buildEvidenceDossier: verification.commit must be a full 40-hex git commit id");
+  }
+  if (!Array.isArray(record.artifacts) || record.artifacts.length === 0 || record.artifacts.some((item) =>
+    !isObject(item) || typeof item.path !== "string" || !item.path || typeof item.sha256 !== "string" || !HEX64.test(item.sha256))) {
+    throw new TypeError("buildEvidenceDossier: verification.artifacts must list {path, sha256} entries");
+  }
+  if (!Array.isArray(record.code) || record.code.some((item) => typeof item !== "string" || !item)) {
+    throw new TypeError("buildEvidenceDossier: verification.code must list repository paths");
+  }
+  if (typeof record.reader !== "string" || !record.reader) {
+    throw new TypeError("buildEvidenceDossier: verification.reader must name the pure reader");
+  }
+  return clone(record);
 }
 
 function sourceIdsFor(outcome) {
@@ -155,7 +190,10 @@ export function buildEvidenceDossier(input) {
   }
 
   const answered = outcome.status === "answered";
-  const evidence = answered ? validateEvidence(outcome.result) : null;
+  const verification = input.verification === undefined ? null : validateVerificationRecord(input.verification);
+  if (verification && !answered) throw new Error("DOSSIER_VERIFICATION_REQUIRES_ANSWER");
+  const schemaVersion = verification ? DOSSIER_SCHEMA_VERSION_V2 : DOSSIER_SCHEMA_VERSION;
+  const evidence = answered ? validateEvidence(outcome.result, Boolean(verification)) : null;
   if (!answered && (!isObject(outcome.result) || outcome.result.kind !== "ABSTENTION")) {
     throw new TypeError("buildEvidenceDossier: abstained outcome must preserve the K13 abstention");
   }
@@ -189,7 +227,7 @@ export function buildEvidenceDossier(input) {
   for (const text of presentation.limits || []) limitations.push({ kind: "METHODOLOGICAL_LIMIT", text, verbatim: false, language });
 
   const dossier = {
-    dossier_schema_version: DOSSIER_SCHEMA_VERSION,
+    dossier_schema_version: schemaVersion,
     generated_at: generatedAt,
     identification: {
       product: "Madrid Urban Evidence Lens",
@@ -234,13 +272,14 @@ export function buildEvidenceDossier(input) {
       registered_question_shape: outcome.shape,
       question_parameters: clone(outcome.params),
       source_ids: sourceIds,
-      dossier_schema_version: DOSSIER_SCHEMA_VERSION,
+      dossier_schema_version: schemaVersion,
       restores: language === "es" ? "La URL K11 restaura el estado validado del espacio de trabajo incluido en el esquema URL v1." : "The K11 URL restores validated workspace state carried by URL schema v1.",
       does_not_restore: language === "es" ? "La URL K11 no restaura la pregunta M2 seleccionada ni esta respuesta guardada. El dosier conserva ese registro exportado." : "The K11 URL does not restore the selected M2 question or this saved answer. The dossier preserves that exported record.",
       future_evidence_warning: language === "es" ? "Volver a abrir Lens más adelante puede producir evidencia distinta si cambian los artefactos publicados. Una identidad de compilación coincidente no demuestra por sí sola evidencia idéntica byte a byte." : "Reopening Lens later may produce different evidence if published artifacts change. A matching deployment build id alone does not prove byte-identical evidence.",
       geometry_guidance: language === "es" ? "Use la exportación de evidencia K11 independiente, de cinco archivos, cuando necesite toda la geometría del espacio de trabajo o evidencia entre modos." : "Use the separate K11 five-file evidence export when complete workspace geometry or cross-mode evidence is required.",
     },
   };
+  if (verification) dossier.verification = verification;
   return deepFreeze(dossier);
 }
 
@@ -250,8 +289,11 @@ export function serializeEvidenceDossier(dossier) {
 }
 
 function validateDossier(dossier) {
-  if (!isObject(dossier) || dossier.dossier_schema_version !== DOSSIER_SCHEMA_VERSION) {
+  if (!isObject(dossier) || ![DOSSIER_SCHEMA_VERSION, DOSSIER_SCHEMA_VERSION_V2].includes(dossier.dossier_schema_version)) {
     throw new TypeError("Evidence dossier schema version is unsupported");
+  }
+  if (dossier.dossier_schema_version === DOSSIER_SCHEMA_VERSION_V2 && !isObject(dossier.verification)) {
+    throw new TypeError("Evidence dossier V2 requires a verification record");
   }
   if (!isObject(dossier.question) || !SUPPORTED_QUESTION_IDS.includes(dossier.question.id)) {
     throw new TypeError("Evidence dossier question is unsupported");
@@ -332,9 +374,9 @@ export function renderEvidenceDossierHtml(dossier) {
 <section><h2>${esc(c.sources)}</h2>${sourceHtml}</section>
 <section><h2>${esc(c.method)}</h2>${method}</section>
 <section><h2>${esc(c.limits)}</h2><ul>${limitations}</ul></section>
-<section><h2>${esc(c.reproduce)}</h2>${table(dossier.reproducibility, c)}<p class="url"><a href="${esc(dossier.reproducibility.canonical_k11_state_url)}">${esc(dossier.reproducibility.canonical_k11_state_url)}</a></p></section>
+<section><h2>${esc(c.reproduce)}</h2>${table(dossier.reproducibility, c)}<p class="url"><a href="${esc(dossier.reproducibility.canonical_k11_state_url)}">${esc(dossier.reproducibility.canonical_k11_state_url)}</a></p>${dossier.verification ? `<h3>Verification record</h3>${table(dossier.verification, c)}` : ""}</section>
 <section><h2>${esc(c.attribution)}</h2>${attributions ? `<ul>${attributions}</ul>` : `<p>—</p>`}</section>
-<footer>Madrid Urban Evidence Lens · dossier schema ${DOSSIER_SCHEMA_VERSION} · ${esc(dossier.generated_at)}</footer>
+<footer>Madrid Urban Evidence Lens · dossier schema ${dossier.dossier_schema_version} · ${esc(dossier.generated_at)}</footer>
 </main></body></html>\n`;
 }
 
