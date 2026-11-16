@@ -111,8 +111,8 @@
   },
   "pilot": "Madrid Network Accessibility — straight-line vs pedestrian-network distance",
   "question": "For official address portals in one Madrid barrio, how far does the straight-line distance to the nearest official municipal basic sports facility depart from the shortest distance along the OSM pedestrian network, and does the choice of metric change WHICH facility is nearest?",
-  "run_finished_utc": "2026-11-16T19:51:22Z",
-  "run_started_utc": "2026-11-16T19:51:05Z",
+  "run_finished_utc": "2026-11-16T19:53:39Z",
+  "run_started_utc": "2026-11-16T19:53:21Z",
   "s1_sources": {
     "facilities": {
       "coordinate_crs": "EPSG:4326",
@@ -133,7 +133,7 @@
     "network": {
       "attribution_required": "© OpenStreetMap contributors",
       "declared_licence": "Open Database License (ODbL) 1.0",
-      "distribution_decision": "OSM-derived LINEAR GEOMETRY and route traces are written to the git-ignored cache only and are NOT committed. Only the derived distance table and the official point geometry are committed, each carrying the OSM attribution.",
+      "distribution_decision": "OSM-derived LINEAR GEOMETRY and route traces are written to the git-ignored cache only and are NOT committed to this repository. Only the derived distance table and the official point geometry are committed, each carrying the OSM attribution. The source EXTRACT is separately published under ODbL 1.0 as the Zenodo deposit recorded in odbl_4_6_statement.zenodo_deposit; the derived graph is published nowhere and is reproducible from that deposit with this code.",
       "distribution_decision_basis": "A PRECAUTION, not a legal determination. Whether a distance table derived from OSM is a Produced Work or a Derivative Database under ODbL 1.0 is a question this pilot is not competent to settle, and the boundary is genuinely contested for derived measurements. The pilot therefore takes the conservative route on both sides: it withholds the extracted geometry, which is the clearest derivative-database case, AND it attributes OpenStreetMap on the derived outputs, which a Produced Work would require anyway. Nothing here is legal advice, and adopting any of this into the application should be reviewed by someone who can give it.",
       "endpoint": "https://overpass-api.de/api/interpreter",
       "not_official": "OSM is volunteered geographic information, not an official municipal source. It is kept categorically distinct from the official sources above and from the derived results.",

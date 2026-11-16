@@ -332,8 +332,11 @@ def stage_s1() -> dict:
             "attribution_required": "© OpenStreetMap contributors",
             "distribution_decision": (
                 "OSM-derived LINEAR GEOMETRY and route traces are written to the git-ignored "
-                "cache only and are NOT committed. Only the derived distance table and the "
-                "official point geometry are committed, each carrying the OSM attribution."
+                "cache only and are NOT committed to this repository. Only the derived distance "
+                "table and the official point geometry are committed, each carrying the OSM "
+                "attribution. The source EXTRACT is separately published under ODbL 1.0 as the "
+                "Zenodo deposit recorded in odbl_4_6_statement.zenodo_deposit; the derived graph "
+                "is published nowhere and is reproducible from that deposit with this code."
             ),
             "distribution_decision_basis": (
                 "A PRECAUTION, not a legal determination. Whether a distance table derived "

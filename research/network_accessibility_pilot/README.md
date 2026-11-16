@@ -161,14 +161,21 @@ The licence drives concrete decisions about what is committed. They were
 reviewed against the OSMF's published community guidelines, and the conclusions
 below are **technical readings, not legal determinations**.
 
-**A Derivative Database exists, and is not published.** The Overpass query takes
-*every* `way[highway]` in a ~22 km² bounding box — 17,665 ways, filtered to
-16,715 and restructured into a 77,399-edge graph. The OSMF *Substantial*
-guideline calls extraction of that kind systematic and sets its thresholds far
-below this scale ("village map OK, town map not OK"), and the *Licence and Legal
-FAQ* says a Derivative Database arises where you "adapt, modify, enhance,
-correct or extend" the data. Both plainly apply. That extract and that graph
-stay in the git-ignored `cache/`.
+**A Derivative Database exists.** The Overpass query takes *every*
+`way[highway]` in a ~22 km² bounding box — 17,665 ways, filtered to 16,715 and
+restructured into a 77,399-edge graph. The OSMF *Substantial* guideline calls
+extraction of that kind systematic and sets its thresholds far below this scale
+("village map OK, town map not OK"), and the *Licence and Legal FAQ* says a
+Derivative Database arises where you "adapt, modify, enhance, correct or extend"
+the data. Both plainly apply.
+
+Neither the extract nor the graph is **committed to this repository** — both
+stay in the git-ignored `cache/`. The **extract** is, however, **published**:
+it is deposited on Zenodo under ODbL 1.0 at
+[`10.5281/zenodo.24288645`](https://doi.org/10.5281/zenodo.24288645), so a
+recipient of these results can be handed the underlying database itself rather
+than instructions for approximating it. The derived **graph** is published
+nowhere; it is reproducible from the deposit with the code in this package.
 
 **The committed results are Produced Works under the OSMF test**, which asks
 whether "the published result of your project is intended for the extraction of
