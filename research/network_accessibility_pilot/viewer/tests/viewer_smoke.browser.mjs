@@ -300,10 +300,19 @@ test("no route geometry is drawn, and the layer controls work", async () => {
     assert.equal(geometry.open, 0, "no open polyline that could read as a route");
     assert.ok(geometry.paths <= 1, "only the closed barrio boundary is drawn");
 
+    // The toggle lives in the scrollable side column. Scroll it into that
+    // container and wait for it explicitly: under load the actionability check
+    // can otherwise outlast its default timeout while the column settles. This
+    // still drives the real checkbox through a real click; only the waiting is
+    // relaxed.
+    const facilityToggle = page.locator("#toggle-facilities");
+    await facilityToggle.waitFor({ state: "visible", timeout: 30000 });
+    await facilityToggle.scrollIntoViewIfNeeded({ timeout: 30000 });
+
     assert.equal(await page.evaluate(() => window.__explorer.hasFacilityLayer()), true);
-    await page.locator("#toggle-facilities").uncheck();
+    await facilityToggle.uncheck({ timeout: 30000 });
     assert.equal(await page.evaluate(() => window.__explorer.hasFacilityLayer()), false);
-    await page.locator("#toggle-facilities").check();
+    await facilityToggle.check({ timeout: 30000 });
     assert.equal(await page.evaluate(() => window.__explorer.hasFacilityLayer()), true);
 
     // Reset extent is operable and leaves the study area framed.
