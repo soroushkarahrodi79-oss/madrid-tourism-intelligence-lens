@@ -29,3 +29,13 @@ research/urban_planning_gate/cache/
 # Written by the Pages deploy (scripts/write_build_identity.mjs): the commit and
 # artifact fingerprints of that deployment. Never committed; absent locally.
 build-identity.json
+
+# Network-accessibility pilot research cache. The pilot streams the official
+# callejero CSV, the official facility register and an OpenStreetMap Overpass
+# extract into this directory to fingerprint and parse them. Raw third-party
+# files are never committed; only the normalized JSON report, the derived
+# distance table, the official point geometry and the figure under
+# research/network_accessibility_pilot/results/ are. OSM-derived LINE geometry
+# stays here on purpose, so no ODbL derivative database is distributed from
+# this repository. See research/network_accessibility_pilot/README.md.
+research/network_accessibility_pilot/cache/

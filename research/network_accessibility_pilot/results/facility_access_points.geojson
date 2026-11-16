@@ -1,0 +1,845 @@
+{
+ "type": "FeatureCollection",
+ "attribution": [
+  "Origen de los datos: Ayuntamiento de Madrid (Instalaciones Deportivas Basicas Municipales, dataset 200215, CC BY 4.0)."
+ ],
+ "osm_note": "This file carries no value derived from OpenStreetMap. See ATTRIBUTION.md for the files that do.",
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7505153,
+     40.3938896
+    ]
+   },
+   "properties": {
+    "access_point_id": "4563497",
+    "title": "Instalación Deportiva Municipal Básica Parque Cerro Almodóvar I Los Yébenes",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4563497"
+    ],
+    "subtypes": [
+     "CamposEstadiosFutbol"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7481883,
+     40.3949062
+    ]
+   },
+   "properties": {
+    "access_point_id": "6336549",
+    "title": "Instalación Deportiva Municipal Básica Parque Cerro Almodóvar II",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "6336549"
+    ],
+    "subtypes": [
+     "PistaBolosPetancaCalvaChito"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7447406,
+     40.40261
+    ]
+   },
+   "properties": {
+    "access_point_id": "4563440",
+    "title": "Instalación Deportiva Municipal Básica Jardines Alhambra",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4563440"
+    ],
+    "subtypes": [
+     "CamposEstadiosFutbol"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7438567,
+     40.3974657
+    ]
+   },
+   "properties": {
+    "access_point_id": "4560927",
+    "title": "Instalación Deportiva Municipal Básica Los Cármenes",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4560927"
+    ],
+    "subtypes": [
+     "CamposEstadiosFutbol"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7420291,
+     40.3922198
+    ]
+   },
+   "properties": {
+    "access_point_id": "4561139",
+    "title": "Instalación Deportiva Municipal Básica Jardines Vía Carpetana",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4561139"
+    ],
+    "subtypes": [
+     "PistasPatinaje"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.737148,
+     40.4046708
+    ]
+   },
+   "properties": {
+    "access_point_id": "4566165",
+    "title": "Instalación Deportiva Municipal Básica San Benigno",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4566165"
+    ],
+    "subtypes": [
+     "PistaFutbolSala"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7328794,
+     40.3982773
+    ]
+   },
+   "properties": {
+    "access_point_id": "4542543",
+    "title": "Instalación Deportiva Municipal Básica Alonso Ezquerra Matamoros (San Martín de Porres)",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4542543"
+    ],
+    "subtypes": [
+     "CamposEstadiosFutbol"
+    ],
+    "inside_study_barrio": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7316736,
+     40.3803941
+    ]
+   },
+   "properties": {
+    "access_point_id": "4545202",
+    "title": "Instalación Deportiva Municipal Básica Camino Viejo de Leganés",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4545202"
+    ],
+    "subtypes": [
+     "InstalacionesDeportivasBasicas"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7304453,
+     40.4048996
+    ]
+   },
+   "properties": {
+    "access_point_id": "4561081",
+    "title": "Instalación Deportiva Municipal Básica Barrio Goya",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4561081"
+    ],
+    "subtypes": [
+     "CamposEstadiosFutbol"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7301518,
+     40.396927
+    ]
+   },
+   "properties": {
+    "access_point_id": "4651979",
+    "title": "Instalación Deportiva Municipal Básica Parque de San Isidro - Vicente Quesada",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4651979"
+    ],
+    "subtypes": [
+     "InstalacionesDeportivasBasicas"
+    ],
+    "inside_study_barrio": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7295154,
+     40.3963048
+    ]
+   },
+   "properties": {
+    "access_point_id": "4542098",
+    "title": "Instalación Deportiva Municipal Básica Parque de San Isidro - Gorrión",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4542098"
+    ],
+    "subtypes": [
+     "CamposEstadiosFutbol"
+    ],
+    "inside_study_barrio": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7289306,
+     40.3946985
+    ]
+   },
+   "properties": {
+    "access_point_id": "4659289",
+    "title": "Instalación Deportiva Municipal Básica Tercio Terol",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4659289"
+    ],
+    "subtypes": [
+     "InstalacionesDeportivasBasicas"
+    ],
+    "inside_study_barrio": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7285454,
+     40.4057974
+    ]
+   },
+   "properties": {
+    "access_point_id": "4580413",
+    "title": "Instalación Deportiva Municipal Básica Los Caprichos",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4580413"
+    ],
+    "subtypes": [
+     "PistasTenisBadminton"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7251418,
+     40.4002366
+    ]
+   },
+   "properties": {
+    "access_point_id": "50256193",
+    "title": "Instalación Deportiva Municipal Básica Parque de San Isidro Pistas",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "50256193"
+    ],
+    "subtypes": [
+     "PistaFutbolSala"
+    ],
+    "inside_study_barrio": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7242353,
+     40.4027975
+    ]
+   },
+   "properties": {
+    "access_point_id": "4538129",
+    "title": "Instalación Deportiva Municipal Básica Iván de Vargas",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4538129"
+    ],
+    "subtypes": [
+     "InstalacionesDeportivasBasicas"
+    ],
+    "inside_study_barrio": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7238809,
+     40.4020995
+    ]
+   },
+   "properties": {
+    "access_point_id": "6280408",
+    "title": "Instalación Deportiva Municipal Básica Rocódromo 'Roc 30'",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "6280408"
+    ],
+    "subtypes": [
+     "InstalacionesDeportivasBasicas"
+    ],
+    "inside_study_barrio": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7238766,
+     40.4122142
+    ]
+   },
+   "properties": {
+    "access_point_id": "4580267",
+    "title": "Instalación Deportiva Municipal Básica Pablo Casals",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4580267"
+    ],
+    "subtypes": [
+     "PistaFutbolSala"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7230671,
+     40.4035881
+    ]
+   },
+   "properties": {
+    "access_point_id": "50316458",
+    "title": "Instalación Deportiva Municipal Básica Madrid Río Puente San Isidro Calistenia",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "50316458"
+    ],
+    "subtypes": [
+     "Calistenia"
+    ],
+    "inside_study_barrio": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7222998,
+     40.3928641
+    ]
+   },
+   "properties": {
+    "access_point_id": "4541764",
+    "title": "Instalación Deportiva Municipal Básica Mercedes Arteaga",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4541764"
+    ],
+    "subtypes": [
+     "InstalacionesDeportivasBasicas"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7222003,
+     40.3967149
+    ]
+   },
+   "properties": {
+    "access_point_id": "4659353",
+    "title": "Instalación Deportiva Municipal Básica Caronte",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4659353"
+    ],
+    "subtypes": [
+     "PistaFutbolSala"
+    ],
+    "inside_study_barrio": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7208635,
+     40.3880669
+    ]
+   },
+   "properties": {
+    "access_point_id": "4659422",
+    "title": "Instalación Deportiva Municipal Básica Hornero",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4659422"
+    ],
+    "subtypes": [
+     "InstalacionesDeportivasBasicas"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7200603,
+     40.402185
+    ]
+   },
+   "properties": {
+    "access_point_id": "50239263",
+    "title": "Instalación Deportiva Municipal Básica Pista atletismo Parque Atlético de Madrid",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "50239263"
+    ],
+    "subtypes": [
+     "PistasAtletismo"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7194068,
+     40.3986654
+    ]
+   },
+   "properties": {
+    "access_point_id": "4659364",
+    "title": "Instalación Deportiva Municipal Básica Julián González",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4659364"
+    ],
+    "subtypes": [
+     "PistasTenisBadminton"
+    ],
+    "inside_study_barrio": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7178371,
+     40.3883265
+    ]
+   },
+   "properties": {
+    "access_point_id": "4643501",
+    "title": "Instalación Deportiva Municipal Básica Arroyo de Opañel",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4643501"
+    ],
+    "subtypes": [
+     "InstalacionesDeportivasBasicas"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7162644,
+     40.3951539
+    ]
+   },
+   "properties": {
+    "access_point_id": "4538476",
+    "title": "Instalación Deportiva Municipal Básica Jacinto Verdaguer",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4538476"
+    ],
+    "subtypes": [
+     "PistasPatinaje"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7158505,
+     40.4107828
+    ]
+   },
+   "properties": {
+    "access_point_id": "10915659",
+    "title": "Instalación Deportiva Municipal Básica Parque de la Cornisa",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "10915659"
+    ],
+    "subtypes": [
+     "InstalacionesDeportivasBasicas"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.715247,
+     40.3930876
+    ]
+   },
+   "properties": {
+    "access_point_id": "4543052",
+    "title": "Instalación Deportiva Municipal Básica Parque Comillas",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4543052"
+    ],
+    "subtypes": [
+     "CamposEstadiosFutbol"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7133155,
+     40.3967578
+    ]
+   },
+   "properties": {
+    "access_point_id": "4544631",
+    "title": "Instalación Deportiva Municipal Básica Virgen de los Remedios - P.A.R. Antonio López",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4544631"
+    ],
+    "subtypes": [
+     "PistaFutbolSala"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7127199,
+     40.4006041
+    ]
+   },
+   "properties": {
+    "access_point_id": "4527222",
+    "title": "Instalación Deportiva Municipal Básica Yeserías",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4527222"
+    ],
+    "subtypes": [
+     "PistaBolosPetancaCalvaChito"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7120469,
+     40.3890713
+    ]
+   },
+   "properties": {
+    "access_point_id": "4556996",
+    "title": "Instalación Deportiva Municipal Básica P.A.R. Manuel Noya",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4556996"
+    ],
+    "subtypes": [
+     "PistasPatinaje"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7090682,
+     40.3995085
+    ]
+   },
+   "properties": {
+    "access_point_id": "4543757",
+    "title": "Instalación Deportiva Municipal Básica Arganda",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4543757"
+    ],
+    "subtypes": [
+     "PistaFutbolSala"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7084051,
+     40.4002109
+    ]
+   },
+   "properties": {
+    "access_point_id": "5701075",
+    "title": "Instalación Deportiva Municipal Básica Jardín Papelera Peninsular",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "5701075"
+    ],
+    "subtypes": [
+     "PistasTenisBadminton"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7081145,
+     40.4069828
+    ]
+   },
+   "properties": {
+    "access_point_id": "10915708",
+    "title": "Instalación Deportiva Municipal Básica Plaza del Campillo de Mundo Nuevo",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "10915708"
+    ],
+    "subtypes": [
+     "PistasPatinaje"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7080805,
+     40.3922056
+    ]
+   },
+   "properties": {
+    "access_point_id": "50256238",
+    "title": "Instalación Deportiva Municipal Básica Pedro Yagüe",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "50256238"
+    ],
+    "subtypes": [
+     "InstalacionesDeportivasBasicas"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7080621,
+     40.4023391
+    ]
+   },
+   "properties": {
+    "access_point_id": "4543938",
+    "title": "Instalación Deportiva Municipal Básica Doctor Vallejo - Nájera",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4543938"
+    ],
+    "subtypes": [
+     "InstalacionesDeportivasBasicas"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7058825,
+     40.3948409
+    ]
+   },
+   "properties": {
+    "access_point_id": "6280430",
+    "title": "Instalación Deportiva Municipal Básica Puente de Praga",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "6280430"
+    ],
+    "subtypes": [
+     "PistasTenisBadminton"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7058004,
+     40.3979115
+    ]
+   },
+   "properties": {
+    "access_point_id": "4527695",
+    "title": "Instalación Deportiva Municipal Básica Valdelasierra",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "4527695"
+    ],
+    "subtypes": [
+     "InstalacionesDeportivasBasicas"
+    ],
+    "inside_study_barrio": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7049351,
+     40.3969821
+    ]
+   },
+   "properties": {
+    "access_point_id": "11239500",
+    "title": "Instalación Deportiva Municipal Básica Parque de la Arganzuela",
+    "record_count": 1,
+    "collapsed_record_ids": [
+     "11239500"
+    ],
+    "subtypes": [
+     "CamposEstadiosFutbol"
+    ],
+    "inside_study_barrio": false
+   }
+  }
+ ]
+}
