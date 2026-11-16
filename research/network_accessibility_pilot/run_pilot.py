@@ -1085,6 +1085,25 @@ MADRID_CREDIT_FACILITIES = (
 #: credit "where users would customarily expect it" rather than inside the data.
 ATTRIBUTION_SIDECAR = "ATTRIBUTION.md"
 
+#: Zenodo deposit for the archived OSM extract.
+#:
+#: The identifier below is **RESERVED on a draft deposit**, which is not the
+#: same thing as published. Zenodo lets a DOI be reserved before the Publish
+#: step; until then the record is not public and the DOI is not registered with
+#: the global Handle System. Recorded here so the identifier travels with the
+#: results, explicitly marked as not yet resolvable, and never as a citation.
+ZENODO_DOI_RESERVED = "10.5281/zenodo.24288645"
+ZENODO_STATE = "RESERVED_ON_DRAFT_NOT_PUBLISHED"
+ZENODO_VERIFIED_ON = "2026-11-16"
+ZENODO_VERIFICATION = (
+    "Checked on " + ZENODO_VERIFIED_ON + ": https://doi.org/api/handles/"
+    + ZENODO_DOI_RESERVED + " returned HTTP 404 (handle not registered), and both "
+    "https://zenodo.org/api/records/24288645 and https://zenodo.org/records/24288645 "
+    "returned HTTP 404. A control DOI resolved normally through the same endpoints in the "
+    "same session, so the negative is not an endpoint failure. The deposit must not be "
+    "cited until the DOI resolves."
+)
+
 
 def export_attribution(archive_note: dict) -> pathlib.Path:
     """Write the credit and the ODbL 4.6 statement beside the results."""
@@ -1126,7 +1145,13 @@ precondition of adopting any of this.
    *Substantial* guideline an extract of that scale and kind is substantial, and
    under the *Licence and Legal FAQ* adapting data in that way creates a
    Derivative Database. None of it is published here.
-2. **It is not archived.** The extract lives only in the pilot's git-ignored
+2. **It is not archived publicly yet.** A Zenodo deposit has been prepared and a
+   DOI reserved, but the deposit is **still a draft and is not published**, so
+   the identifier below does **not resolve** and must not be cited:
+   - reserved DOI `{ZENODO_DOI_RESERVED}` — state `{ZENODO_STATE}`
+   - {ZENODO_VERIFICATION}
+
+   Until it is published, the extract lives only in the pilot's git-ignored
    `cache/`. Its identity is recorded:
    - SHA-256 `{archive_note['extract_sha256']}`
    - {archive_note['extract_bytes']:,} bytes
@@ -1147,8 +1172,10 @@ precondition of adopting any of this.
    regenerable is an open question here.
 5. **Requests.** Anyone who receives these results and wants the underlying
    extract or the derived graph should raise an issue on this repository. The
-   cached extract can be supplied under ODbL 1.0 while it exists; see
-   `../README.md` on archiving it properly.
+   cached extract can be supplied under ODbL 1.0 while it exists. Once the
+   Zenodo deposit above is published and its DOI resolves, that becomes the
+   route, and this file and `pilot_report.json` should be regenerated so they
+   state the published state rather than the reserved one.
 
 Nothing in this file is legal advice. The OSMF's own Licence and Legal FAQ says
 the same of itself.
@@ -1464,6 +1491,25 @@ def main() -> int:
             "derivative_database_published": False,
             "derivative_database_archived": False,
             "extract_identity": archive_note,
+            "zenodo_deposit": {
+                "doi_reserved": ZENODO_DOI_RESERVED,
+                "state": ZENODO_STATE,
+                "resolves": False,
+                "citable": False,
+                "verified_on": ZENODO_VERIFIED_ON,
+                "verification": ZENODO_VERIFICATION,
+                "meaning": (
+                    "A DOI reserved on a Zenodo draft is an identifier that has been set aside, "
+                    "not a published record. It is recorded here so it travels with the results, "
+                    "and is marked unresolvable so nothing cites it as though the deposit "
+                    "existed."
+                ),
+                "on_publication": (
+                    "Re-run run_pilot.py after updating ZENODO_STATE so this block and "
+                    "results/ATTRIBUTION.md state the published state, and add the resolved DOI "
+                    "to the README's archiving section."
+                ),
+            },
             "means_to_recreate_published": [
                 "s3_osm_extraction.query (the exact Overpass query)",
                 "s3_osm_extraction.data_vintage.timestamp_osm_base",

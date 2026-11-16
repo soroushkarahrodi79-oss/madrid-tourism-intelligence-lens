@@ -34,7 +34,13 @@ precondition of adopting any of this.
    *Substantial* guideline an extract of that scale and kind is substantial, and
    under the *Licence and Legal FAQ* adapting data in that way creates a
    Derivative Database. None of it is published here.
-2. **It is not archived.** The extract lives only in the pilot's git-ignored
+2. **It is not archived publicly yet.** A Zenodo deposit has been prepared and a
+   DOI reserved, but the deposit is **still a draft and is not published**, so
+   the identifier below does **not resolve** and must not be cited:
+   - reserved DOI `10.5281/zenodo.24288645` — state `RESERVED_ON_DRAFT_NOT_PUBLISHED`
+   - Checked on 2026-11-16: https://doi.org/api/handles/10.5281/zenodo.24288645 returned HTTP 404 (handle not registered), and both https://zenodo.org/api/records/24288645 and https://zenodo.org/records/24288645 returned HTTP 404. A control DOI resolved normally through the same endpoints in the same session, so the negative is not an endpoint failure. The deposit must not be cited until the DOI resolves.
+
+   Until it is published, the extract lives only in the pilot's git-ignored
    `cache/`. Its identity is recorded:
    - SHA-256 `74416526312589d95fc5857c9469850545ec0649abbb197c49faca548d085edf`
    - 12,282,835 bytes
@@ -55,8 +61,10 @@ precondition of adopting any of this.
    regenerable is an open question here.
 5. **Requests.** Anyone who receives these results and wants the underlying
    extract or the derived graph should raise an issue on this repository. The
-   cached extract can be supplied under ODbL 1.0 while it exists; see
-   `../README.md` on archiving it properly.
+   cached extract can be supplied under ODbL 1.0 while it exists. Once the
+   Zenodo deposit above is published and its DOI resolves, that becomes the
+   route, and this file and `pilot_report.json` should be regenerated so they
+   state the published state rather than the reserved one.
 
 Nothing in this file is legal advice. The OSMF's own Licence and Legal FAQ says
 the same of itself.

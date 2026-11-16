@@ -220,12 +220,24 @@ approximating it, and the pilot's figures would become publicly reproducible
 instead of merely publicly re-derivable. It is practical — the extract is
 11.71 MiB raw and **1.46 MiB gzipped** — and its identity is already recorded.
 
-It is **not done here**, and two conditions apply if it ever is. It must live
-**outside this repository**, because it is an ODbL database and this repository
-is MIT with a documented licensing boundary; a release asset or a data archive
-such as Zenodo, referenced by SHA-256, keeps the two instruments apart. And it
-must carry the ODbL notice and the OpenStreetMap attribution in its own right,
-since redistributing it is distributing OSM data, not a reading of it.
+Two conditions apply. It must live **outside this repository**, because it is an
+ODbL database and this repository is MIT with a documented licensing boundary; a
+release asset or a data archive such as Zenodo, referenced by SHA-256, keeps the
+two instruments apart. And it must carry the ODbL notice and the OpenStreetMap
+attribution in its own right, since redistributing it is distributing OSM data,
+not a reading of it.
+
+**Current state: prepared, DOI reserved, NOT published.** A Zenodo deposit has
+been assembled outside this repository and a DOI reserved —
+`10.5281/zenodo.24288645` — but the deposit is still a draft. Verified on
+2026-11-16 that the DOI does **not** resolve: the DOI Handle System API returned
+HTTP 404 for it (handle not registered) while a control DOI resolved normally
+through the same endpoint in the same session, and both the Zenodo record page
+and the Zenodo record API returned HTTP 404. **It must not be cited**, and
+nothing in this package claims the deposit is published. When it is published,
+regenerate the artifacts so they state the published state and add the resolved
+DOI here. Until then, `results/ATTRIBUTION.md` directs requests for the
+underlying data to an issue on this repository.
 
 OSM is also, substantively, volunteered data of uneven completeness — not a
 municipal pavement cadastre — and the results say so.

@@ -89,12 +89,22 @@
       "An Overpass attic query against the recorded vintage is the route to approach the original state; this pilot records the vintage but HAS NOT tested an attic re-retrieval and does not claim one would succeed.",
       "Whether publishing the means to recreate a database discharges a request under ODbL 4.6 when the exact state is no longer regenerable is an open question.",
       "Whether a structured per-record table of derived measurements (origin_facility_distances.csv) is a Produced Work or attracts the OSMF attribution guideline's treatment of works that recreate substantial parts of the data is NOT settled here. See classification_uncertainty below."
-    ]
+    ],
+    "zenodo_deposit": {
+      "citable": false,
+      "doi_reserved": "10.5281/zenodo.24288645",
+      "meaning": "A DOI reserved on a Zenodo draft is an identifier that has been set aside, not a published record. It is recorded here so it travels with the results, and is marked unresolvable so nothing cites it as though the deposit existed.",
+      "on_publication": "Re-run run_pilot.py after updating ZENODO_STATE so this block and results/ATTRIBUTION.md state the published state, and add the resolved DOI to the README's archiving section.",
+      "resolves": false,
+      "state": "RESERVED_ON_DRAFT_NOT_PUBLISHED",
+      "verification": "Checked on 2026-11-16: https://doi.org/api/handles/10.5281/zenodo.24288645 returned HTTP 404 (handle not registered), and both https://zenodo.org/api/records/24288645 and https://zenodo.org/records/24288645 returned HTTP 404. A control DOI resolved normally through the same endpoints in the same session, so the negative is not an endpoint failure. The deposit must not be cited until the DOI resolves.",
+      "verified_on": "2026-11-16"
+    }
   },
   "pilot": "Madrid Network Accessibility — straight-line vs pedestrian-network distance",
   "question": "For official address portals in one Madrid barrio, how far does the straight-line distance to the nearest official municipal basic sports facility depart from the shortest distance along the OSM pedestrian network, and does the choice of metric change WHICH facility is nearest?",
-  "run_finished_utc": "2026-11-16T18:31:44Z",
-  "run_started_utc": "2026-11-16T18:31:26Z",
+  "run_finished_utc": "2026-11-16T19:39:13Z",
+  "run_started_utc": "2026-11-16T19:38:52Z",
   "s1_sources": {
     "facilities": {
       "coordinate_crs": "EPSG:4326",

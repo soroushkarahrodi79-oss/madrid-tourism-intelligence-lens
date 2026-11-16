@@ -538,10 +538,16 @@ recorded vintage would in fact return it — **untested**.
 
 ### Archiving the extract
 
-Assessed, not done. The extract is 11.71 MiB raw and 1.46 MiB gzipped, and its
-SHA-256 was re-verified against the recorded provenance during this review.
-Archiving it separately under ODbL 1.0, outside this MIT repository and
-referenced by hash, would make the pilot publicly reproducible and would let a
-recipient be handed the database itself rather than instructions for
-approximating it. §"Archiving the extract" in `README.md` states the two
-conditions that would apply.
+The extract is 11.71 MiB raw and 1.46 MiB gzipped, and its SHA-256 was
+re-verified against the recorded provenance during this review. Archiving it
+separately under ODbL 1.0, outside this MIT repository and referenced by hash,
+makes the pilot publicly reproducible and lets a recipient be handed the
+database itself rather than instructions for approximating it.
+
+**State as of 2026-11-16: prepared, DOI reserved, not published.** The deposit
+is assembled outside this repository and the DOI `10.5281/zenodo.24288645` is
+reserved, but it is still a draft and the DOI **does not resolve** — verified
+against the DOI Handle System and the Zenodo record and API endpoints, with a
+control DOI resolving normally in the same session. Nothing here cites it or
+treats the deposit as existing publicly. §"Archiving the extract" in
+`README.md` states the conditions and what to do once it is published.
