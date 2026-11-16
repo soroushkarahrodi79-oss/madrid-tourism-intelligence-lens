@@ -1,0 +1,1700 @@
+{
+  "acceptance_criteria": {
+    "A1_snapping": {
+      "criterion": ">= 95% of origins snap within the baseline 30 m tolerance",
+      "observed_pct": 99.661,
+      "pass": true,
+      "threshold_pct": 95.0
+    },
+    "A2_geometric_coherence": {
+      "criterion": "no measured pair has network distance below the straight line",
+      "observed_violations": 0,
+      "pass": true,
+      "threshold": 0
+    },
+    "A3_coverage": {
+      "criterion": "< 5% of origins unmeasurable (not snapped or unreachable)",
+      "observed_pct": 0.566,
+      "pass": true,
+      "threshold_pct": 5.0
+    },
+    "A4_sensitivity_stability": {
+      "all_medians_above_one": true,
+      "criterion": "the direction of the finding survives every variant: median detour ratio stays above 1.0 and the ranking of thresholds by false-inclusion rate is not reversed",
+      "median_detour_ratio_by_variant": {
+        "baseline": 1.3545,
+        "facility_buffer_500m": 1.3545,
+        "no_steps": 1.3558,
+        "permissive_access": 1.3545,
+        "snap_15m": 1.3478,
+        "snap_50m": 1.354,
+        "strict_pedestrian": 1.9443
+      },
+      "pass": true
+    }
+  },
+  "attribution": {
+    "applies_to": "every file in results/. The per-file breakdown and the ODbL 4.6 statement are in results/ATTRIBUTION.md.",
+    "official_callejero": "Origen de los datos: Ayuntamiento de Madrid (callejero oficial, CC BY 4.0).",
+    "official_facilities": "Origen de los datos: Ayuntamiento de Madrid (Instalaciones Deportivas Basicas Municipales, dataset 200215, CC BY 4.0).",
+    "openstreetmap": "Contains information from OpenStreetMap, which is made available under the Open Database License (ODbL) 1.0. (c) OpenStreetMap contributors. https://www.openstreetmap.org/copyright",
+    "openstreetmap_copyright_url": "https://www.openstreetmap.org/copyright"
+  },
+  "exports": {
+    "attribution": "research/network_accessibility_pilot/results/ATTRIBUTION.md",
+    "figure": "research/network_accessibility_pilot/results/figure_straightline_vs_network.png",
+    "geometry": [
+      "research/network_accessibility_pilot/results/facility_access_points.geojson"
+    ],
+    "note": "A per-origin GeoJSON is no longer written: it duplicated the CSV record for record and added no property the CSV lacks. See export_geometry().",
+    "table_csv": "research/network_accessibility_pilot/results/origin_facility_distances.csv"
+  },
+  "interpretation_ceiling": [
+    "This measures distance along a mapped network. It is not travel time, not perceived walkability, not comfort, not safety, not slope-adjusted effort and not accessibility for a wheelchair user or a person with reduced mobility.",
+    "It describes ONE barrio and ONE facility category. Nothing here generalises to Madrid, to other barrios or to other facility types.",
+    "The network is OpenStreetMap: volunteered data of unknown and spatially uneven completeness, not an official municipal cadastre of pavements.",
+    "A facility access point is the coordinate the municipal register publishes, not a surveyed entrance door, and not an opening-hours-aware service point. Every path here ends at a published coordinate; where the real entrance is elsewhere, the figure is wrong by an amount this pilot cannot bound.",
+    "The snap offset is a MODELLED straight connector from a published coordinate to the nearest retained segment. It is not an observed walk and not evidence that a way exists along it. It is included in the reported metres because excluding it would understate the distance, not because it was surveyed.",
+    "The result says nothing about whether a facility is open, usable, in repair, or of any particular quality.",
+    "This is NOT the Lens observation circle and must never be presented as one. The Lens circle is a declared observation window over published records; a network distance is a measured property of a street network."
+  ],
+  "odbl_4_6_statement": {
+    "attribution_carried": "results/ATTRIBUTION.md covers every file; the figure carries a visible credit; this report carries the attribution block above; the official-only GeoJSON carries its own CC BY 4.0 credit and states that it holds no OSM-derived value.",
+    "classification_uncertainty": {
+      "the_technical_argument_for_Produced_Work": "A shortest-path length is a functional of the whole graph, not a sample of it, and is not invertible to geometry. The withheld network holds 66181 nodes (132362 coordinates) plus topology and tags; the table publishes about 5272 OSM-informed scalars, roughly 25x underdetermined on coordinates alone. snap_offset_m is the only value that localises OSM geometry at all, and it gives a distance from a known official point to the nearest way with no topology, tags or node positions.",
+      "what_the_guideline_says": "The OSMF Produced Work guideline's test is whether the published result 'is intended for the extraction of the original data'. These results are not. The attribution guideline separately treats a Produced Work that extracts or recreates substantial parts of the data as a Derivative Database.",
+      "why_that_is_not_a_conclusion": "Substantiality under the ODbL is 'substantial in terms of quantity or quality or a combination of both', and the OSMF Substantial guideline's tests count extracted features rather than addressing derived or aggregated outputs at all. This case falls in a gap the published guidelines do not cover, so the argument above is a technical reading and not a determination. A reviewer could reasonably reach a different view.",
+      "why_the_csv_is_the_uncertain_one": "origin_facility_distances.csv is the most database-like artifact that remains: one row per official portal, systematic over the whole portal universe of the study barrio, each row carrying values computed from OSM. A systematic per-record table is closer to a database in form than a figure or a statistics report is, even when its contents are measurements rather than map data."
+    },
+    "derivative_database_archived": false,
+    "derivative_database_exists": "Yes. Producing these results required a systematic OpenStreetMap extract (87364 elements; every way[highway] in the study bounding box), filtered and restructured into a pedestrian graph. Under the OSMF Substantial guideline an extract of that scale and kind is substantial.",
+    "derivative_database_published": false,
+    "extract_identity": {
+      "endpoint": "https://overpass-api.de/api/interpreter",
+      "extract_bytes": 12282835,
+      "extract_elements": 87364,
+      "extract_sha256": "74416526312589d95fc5857c9469850545ec0649abbb197c49faca548d085edf",
+      "first_retrieved_at": "2026-11-16T17:21:14Z",
+      "timestamp_osm_base": "2026-11-16T17:20:19Z"
+    },
+    "means_to_recreate_published": [
+      "s3_osm_extraction.query (the exact Overpass query)",
+      "s3_osm_extraction.data_vintage.timestamp_osm_base",
+      "s3_osm_extraction.rules (the filtering rules)",
+      "run_pilot.py classify_way() and pilot_common.py (the full pipeline)"
+    ],
+    "status": "FACTUAL RECORD, NOT A CLAIM OF LEGAL COMPLIANCE. This pilot is not competent to determine its own ODbL position and does not assert one.",
+    "unresolved": [
+      "Re-running the query answers against a later state of a continuously edited database and will not reproduce the recorded SHA-256.",
+      "An Overpass attic query against the recorded vintage is the route to approach the original state; this pilot records the vintage but HAS NOT tested an attic re-retrieval and does not claim one would succeed.",
+      "Whether publishing the means to recreate a database discharges a request under ODbL 4.6 when the exact state is no longer regenerable is an open question.",
+      "Whether a structured per-record table of derived measurements (origin_facility_distances.csv) is a Produced Work or attracts the OSMF attribution guideline's treatment of works that recreate substantial parts of the data is NOT settled here. See classification_uncertainty below."
+    ]
+  },
+  "pilot": "Madrid Network Accessibility — straight-line vs pedestrian-network distance",
+  "question": "For official address portals in one Madrid barrio, how far does the straight-line distance to the nearest official municipal basic sports facility depart from the shortest distance along the OSM pedestrian network, and does the choice of metric change WHICH facility is nearest?",
+  "run_finished_utc": "2026-11-16T18:31:44Z",
+  "run_started_utc": "2026-11-16T18:31:26Z",
+  "s1_sources": {
+    "facilities": {
+      "coordinate_crs": "EPSG:4326",
+      "coordinate_fields": [
+        "location.latitude",
+        "location.longitude"
+      ],
+      "dataset_id": "200215-0-instalaciones-deportivas",
+      "declared_licence": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+      "declared_licence_url": "https://creativecommons.org/licenses/by/4.0/legalcode.es",
+      "download_url": "https://datos.madrid.es/dataset/200215-0-instalaciones-deportivas/resource/200215-1-instalaciones-deportivas-json/download/200215-0-instalaciones-deportivas.json",
+      "family_note": "Same municipal 'Equipamientos' publication family and same CC BY 4.0 instrument as the museums dataset the application already adopts (201132). No new licensing instrument is introduced by this pilot.",
+      "publisher": "Ayuntamiento de Madrid",
+      "resource_description": "Deportes. Instalaciones Deportivas Básicas Municipales. ",
+      "resource_id": "200215-1-instalaciones-deportivas-json",
+      "role": "facility universe (one urban facility category)"
+    },
+    "network": {
+      "attribution_required": "© OpenStreetMap contributors",
+      "declared_licence": "Open Database License (ODbL) 1.0",
+      "distribution_decision": "OSM-derived LINEAR GEOMETRY and route traces are written to the git-ignored cache only and are NOT committed. Only the derived distance table and the official point geometry are committed, each carrying the OSM attribution.",
+      "distribution_decision_basis": "A PRECAUTION, not a legal determination. Whether a distance table derived from OSM is a Produced Work or a Derivative Database under ODbL 1.0 is a question this pilot is not competent to settle, and the boundary is genuinely contested for derived measurements. The pilot therefore takes the conservative route on both sides: it withholds the extracted geometry, which is the clearest derivative-database case, AND it attributes OpenStreetMap on the derived outputs, which a Produced Work would require anyway. Nothing here is legal advice, and adopting any of this into the application should be reviewed by someone who can give it.",
+      "endpoint": "https://overpass-api.de/api/interpreter",
+      "not_official": "OSM is volunteered geographic information, not an official municipal source. It is kept categorically distinct from the official sources above and from the derived results.",
+      "role": "pedestrian network geometry",
+      "source": "OpenStreetMap, via the Overpass API"
+    },
+    "origins": {
+      "already_used_by_repository": "scripts/build_callejero_ndp_crosswalk.py resolves the same resource id",
+      "coordinate_crs": "EPSG:25830",
+      "coordinate_fields": [
+        "UTMX_ETRS",
+        "UTMY_ETRS"
+      ],
+      "dataset_id": "213605-0-callejero-oficial-madrid",
+      "declared_licence": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+      "declared_licence_url": "https://creativecommons.org/licenses/by/4.0/legalcode.es",
+      "download_url": "https://datos.madrid.es/dataset/213605-0-callejero-oficial-madrid/resource/213605-4-callejero-oficial-madrid-csv/download/direccionesvigentes_20261115.csv",
+      "encoding_observed": "cp1252",
+      "note": "The register publishes its coordinates in ETRS89/UTM 30N directly, so origins are never reprojected in this pilot.",
+      "publisher": "Ayuntamiento de Madrid",
+      "resource_description": "Callejero vigente. Relación de direcciones vigentes, con coordenadas",
+      "resource_id": "213605-4-callejero-oficial-madrid-csv",
+      "role": "origin universe (official address portals)"
+    },
+    "retrieval_provenance": {
+      "callejero_catalogue": {
+        "byte_length": 19820,
+        "cache_state": "HIT",
+        "first_retrieved_at": "2026-11-16T17:20:58Z",
+        "http_content_type": "application/json;charset=utf-8",
+        "http_etag": null,
+        "http_last_modified": null,
+        "http_method": "GET",
+        "http_status": 200,
+        "sha256": "f06588974ed1ab4f5964a1ca9f57ac2cf643386f4c2d0044a184c9fbc500b033",
+        "url": "https://datos.madrid.es/api/3/action/package_show?id=213605-0-callejero-oficial-madrid"
+      },
+      "facility_catalogue": {
+        "byte_length": 14721,
+        "cache_state": "HIT",
+        "first_retrieved_at": "2026-11-16T17:21:00Z",
+        "http_content_type": "application/json;charset=utf-8",
+        "http_etag": null,
+        "http_last_modified": null,
+        "http_method": "GET",
+        "http_status": 200,
+        "sha256": "420734c61220118e9ed577ad3b52680511846ab5d4d0a5b235e7d68111c725de",
+        "url": "https://datos.madrid.es/api/3/action/package_show?id=200215-0-instalaciones-deportivas"
+      }
+    },
+    "study_area_geometry": {
+      "artifact": "data/geography/madrid_admin.geojson",
+      "committed_in_repository": true,
+      "declared_licence": "see data/geography/madrid_admin.meta.json",
+      "role": "study-area boundary and spatial coherence check"
+    }
+  },
+  "s2_design": {
+    "facilities": {
+      "access_points_inside_study_barrio": 10,
+      "catchment_rule": "within 1000 m of the study-barrio boundary",
+      "category": "Instalaciones Deportivas Basicas Municipales (200215)",
+      "collapse_note": "The register publishes one row per sub-installation; rows sharing an identical published coordinate are one access point here. 38 rows collapse to 38 access points.",
+      "distinct_access_points_in_catchment": 38,
+      "records_citywide": 606,
+      "records_in_catchment": 38,
+      "records_without_coordinates": 0
+    },
+    "origins": {
+      "callejero_rows_scanned": 214294,
+      "coherence_note": "A portal whose official barrio code names the study barrio but which falls outside the official barrio polygon is a disagreement between two official products. It is counted here and kept in the analysis; it is not moved, re-coded or dropped.",
+      "duplicate_cod_ndp_examples": [],
+      "duplicate_cod_ndp_rejected": 0,
+      "inside_official_polygon": 2651,
+      "origins_selected": 2651,
+      "outside_official_polygon": 0,
+      "retrieval_provenance": {
+        "byte_length": 34642636,
+        "cache_state": "HIT",
+        "first_retrieved_at": "2026-11-16T17:21:06Z",
+        "http_content_type": "text/csv; charset=utf-8",
+        "http_etag": "\"1794839156.1537528-34642636-2903512525\"",
+        "http_last_modified": "Mon, 16 Nov 2026 14:25:56 GMT",
+        "http_method": "GET",
+        "http_status": 200,
+        "sha256": "82322987b2a1c01047590b73986110b8fc7cf58e2e935cdc4654f36121b84e7c",
+        "url": "https://datos.madrid.es/dataset/213605-0-callejero-oficial-madrid/resource/213605-4-callejero-oficial-madrid-csv/download/direccionesvigentes_20261115.csv"
+      },
+      "rule": "every current official address point with TIPO_NDP=PORTAL whose callejero DISTRITO/BARRIO codes name the study barrio"
+    },
+    "selection_rule": {
+      "app_envelope": {
+        "lat_max": 40.455,
+        "lat_min": 40.385,
+        "lon_max": -3.645,
+        "lon_min": -3.745
+      },
+      "barrio_declared_in_code": "113",
+      "barrio_selected_by_rule": "113",
+      "rule_agrees_with_declaration": true,
+      "statement": "Among the official barrios whose centroid lies inside the application's documented central-Madrid envelope, take the barrio with the most DISTINCT official facility access points; break ties by smaller area. The rule is recomputed here at run time and depends only on the facility register and the official geography, never on a distance or a ratio, so it cannot have been fitted to an outcome. That is an argument from the rule's INPUTS, not a claim of pre-registration: this pilot holds no independent timestamped record of when the rule was written.",
+      "top_candidates": [
+        {
+          "area_km2": 1.8993,
+          "distinct_access_points": 10,
+          "district": "Carabanchel",
+          "name": "San Isidro",
+          "official_id": "113"
+        },
+        {
+          "area_km2": 0.9088,
+          "distinct_access_points": 9,
+          "district": "Usera",
+          "name": "Moscardó",
+          "official_id": "125"
+        },
+        {
+          "area_km2": 1.4145,
+          "distinct_access_points": 9,
+          "district": "Arganzuela",
+          "name": "Legazpi",
+          "official_id": "024"
+        },
+        {
+          "area_km2": 1.0734,
+          "distinct_access_points": 6,
+          "district": "Arganzuela",
+          "name": "Acacias",
+          "official_id": "022"
+        },
+        {
+          "area_km2": 3.198,
+          "distinct_access_points": 6,
+          "district": "Ciudad Lineal",
+          "name": "Ventas",
+          "official_id": "151"
+        },
+        {
+          "area_km2": 1.4699,
+          "distinct_access_points": 5,
+          "district": "Centro",
+          "name": "Palacio",
+          "official_id": "011"
+        },
+        {
+          "area_km2": 1.6028,
+          "distinct_access_points": 5,
+          "district": "Salamanca",
+          "name": "Guindalera",
+          "official_id": "044"
+        },
+        {
+          "area_km2": 1.9064,
+          "distinct_access_points": 5,
+          "district": "Retiro",
+          "name": "Los Jerónimos",
+          "official_id": "035"
+        }
+      ]
+    },
+    "study_area": {
+      "area_km2": 1.8993,
+      "crs": "EPSG:25830",
+      "district": "Carabanchel",
+      "official_id": "113",
+      "official_name": "San Isidro",
+      "perimeter_m": 6149.6
+    }
+  },
+  "s3_osm_extraction": {
+    "bbox_wgs84": {
+      "east": -3.696278222509516,
+      "north": 40.42011495035273,
+      "south": 40.373931475133574,
+      "west": -3.759516830854729
+    },
+    "data_vintage": {
+      "copyright_notice_as_served": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+      "elements_returned": 87364,
+      "meaning": "timestamp_osm_base is the state of the OpenStreetMap database the answer was computed against. It, not the retrieval time, is this result's data vintage.",
+      "osm_api_version": 0.6,
+      "overpass_generator": "Overpass API 0.7.62.11 87bfad18",
+      "timestamp_osm_base": "2026-11-16T17:20:19Z"
+    },
+    "endpoint": "https://overpass-api.de/api/interpreter",
+    "query": "[out:json][timeout:900];way(40.373931,-3.759517,40.420115,-3.696278)[\"highway\"];(._;>;);out body qt;",
+    "reproducibility_limits": {
+      "available_mitigation": "timestamp_osm_base identifies the database state, and Overpass supports attic queries against a past date, which is the route a reader would take to approach this state again. This pilot records the timestamp; it does NOT claim to have tested an attic re-retrieval.",
+      "http_validators_absent": "The request is a POST, so no ETag or Last-Modified is returned. The payload SHA-256 is the only fingerprint, and it is of the answer, not of any upstream file.",
+      "official_sources_differ": "The callejero and facility registers are stable published editions whose resource URLs and SHA-256 are recorded, so those inputs can be retrieved again. Only the OSM side carries this limit.",
+      "what_is_not": "The raw OSM extract is NOT archived in this repository, so once the git-ignored cache is removed this exact run cannot be reproduced byte-for-byte. Re-running the query will answer against a later state of a continuously edited database and will return a different payload and a different SHA-256, so the figures will move by an unknown amount.",
+      "what_is_reproducible": "Given the cached extract, every number in this report is reproducible exactly: the cached payload's SHA-256 is recorded, the filtering, graph construction, snapping and shortest-path code are deterministic, and the variants re-filter the same bytes."
+    },
+    "retrieval_provenance": {
+      "byte_length": 12282835,
+      "cache_state": "HIT",
+      "first_retrieved_at": "2026-11-16T17:21:14Z",
+      "http_content_type": "application/json",
+      "http_etag": null,
+      "http_last_modified": null,
+      "http_method": "POST",
+      "http_status": 200,
+      "sha256": "74416526312589d95fc5857c9469850545ec0649abbb197c49faca548d085edf",
+      "url": "https://overpass-api.de/api/interpreter"
+    },
+    "rules": {
+      "area_rule": "a way tagged area=yes is kept as its closed ring, which measures walking AROUND a plaza rather than across it; this is conservative (never shorter than reality)",
+      "baseline_highway_values_retained": [
+        "cycleway",
+        "footway",
+        "living_street",
+        "path",
+        "pedestrian",
+        "primary",
+        "primary_link",
+        "residential",
+        "road",
+        "secondary",
+        "secondary_link",
+        "service",
+        "steps",
+        "tertiary",
+        "tertiary_link",
+        "track",
+        "unclassified"
+      ],
+      "directionality": "undirected; oneway tags are ignored because they restrict vehicles, not pedestrians",
+      "endpoint_ceiling": "A path ends at the published coordinate of a facility record, not at a verified entrance. Where an entrance differs from the published coordinate, the reported distance differs from the walk a person would make, and the pilot does not know by how much.",
+      "graph_level": "segment level: one edge per consecutive node pair",
+      "highway_values_excluded_always": [
+        "bus_guideway",
+        "busway",
+        "construction",
+        "corridor",
+        "elevator",
+        "escape",
+        "motorway",
+        "motorway_link",
+        "platform",
+        "proposed",
+        "raceway",
+        "rest_area",
+        "services",
+        "trunk",
+        "trunk_link"
+      ],
+      "indoor_rule": "reject indoor=yes",
+      "pedestrian_restriction_rule": "reject foot in {no, private}; reject access in {no, private} unless foot in {yes, designated, permissive, official}",
+      "simplification": "NONE. No intersection consolidation, no geometry generalisation, no degree-2 collapse, because each changes a shortest-path length.",
+      "snapping": "nearest point ON the nearest retained segment; the segment is split there; the perpendicular offset is added to the modelled path length and reported separately",
+      "snapping_ceiling": "The offset is a MODELLED straight connector from a published coordinate to the nearest retained segment. It is not an observed walk, not a surveyed path, and not evidence that a way exists along that line.",
+      "unreachable_rule": "a portal outside the largest connected component is reported UNREACHABLE, never given an imputed distance"
+    }
+  },
+  "s4_all_variants": {
+    "baseline": {
+      "connectivity": {
+        "components": 83,
+        "graph_nodes_after_snapping": 68861,
+        "largest_component_nodes": 68141,
+        "largest_component_share_pct": 98.954,
+        "measured_after_snapping": true,
+        "note": "Snapping inserts one virtual node per snapped point, so the post-snapping node count exceeds the pre-snapping count reported under 'network'. Connectivity is assessed on the graph that the shortest paths actually run on."
+      },
+      "decision_changed": "the documented baseline",
+      "detour_ratio_to_network_nearest": {
+        "p25": 1.2182,
+        "p5": 1.1209,
+        "p50": 1.3545,
+        "p75": 1.6172,
+        "p95": 2.5062,
+        "p99": 4.342
+      },
+      "euclid_nearest_m": {
+        "p25": 135.5715,
+        "p5": 58.087,
+        "p50": 224.134,
+        "p75": 379.39,
+        "p95": 560.5563,
+        "p99": 660.6603
+      },
+      "facilities_not_snapped": 0,
+      "facilities_seeded": 38,
+      "facility_buffer_m": 1000.0,
+      "geometric_invariant_examples": [],
+      "geometric_invariant_violations": 0,
+      "mean_detour_ratio_defined_pairs": 1.53847,
+      "mean_understatement_m": 118.891,
+      "nearest_facility_discordance": {
+        "all_selected_origins_n": 2651,
+        "denominator": "origins with a MEASURED state",
+        "denominator_n": 2636,
+        "denominator_note": "The headline share is over MEASURED origins, not over all selected origins: an origin that could not be snapped or could not be reached has no network answer to agree or disagree with. Both denominators are given so neither figure can be quoted without its base.",
+        "origins_where_euclid_and_network_disagree": 555,
+        "share_of_all_selected_origins_pct": 20.94,
+        "share_pct": 21.05
+      },
+      "network": {
+        "graph_nodes_before_snapping": 66181,
+        "graph_segments_before_snapping": 77399,
+        "graph_total_length_km": 1290.442,
+        "osm_nodes_in_extract": 69699,
+        "osm_ways_in_extract": 17665,
+        "ways_rejected_by_reason": {
+          "access_denied": 333,
+          "excluded_highway:construction": 73,
+          "excluded_highway:corridor": 42,
+          "excluded_highway:elevator": 2,
+          "excluded_highway:motorway": 102,
+          "excluded_highway:motorway_link": 139,
+          "excluded_highway:proposed": 7,
+          "excluded_highway:raceway": 12,
+          "excluded_highway:rest_area": 1,
+          "excluded_highway:services": 1,
+          "excluded_highway:trunk": 3,
+          "foot_denied": 211,
+          "highway_not_in_variant:bus_stop": 12,
+          "highway_not_in_variant:ladder": 3,
+          "indoor": 9
+        },
+        "ways_retained": 16715,
+        "ways_with_area_yes_kept_as_ring": 118,
+        "ways_with_unresolved_node_refs": 0
+      },
+      "network_nearest_m": {
+        "p25": 210.4462,
+        "p5": 104.696,
+        "p50": 340.8185,
+        "p75": 530.124,
+        "p95": 794.4322,
+        "p99": 954.8737
+      },
+      "origins_measured": 2636,
+      "origins_measured_pct": 99.434,
+      "origins_not_snapped": 9,
+      "origins_total": 2651,
+      "origins_unreachable": 6,
+      "ratio_denominator_rule": {
+        "excluded_below_bound": 2,
+        "excluded_exactly_zero_denominator": 0,
+        "gap_note": "The excluded separations and the smallest retained one are orders of magnitude apart, so the bound falls in an empty interval rather than cutting through the data. That is why the bound's exact value does not matter here.",
+        "measured_pairs": 2636,
+        "minimum_denominator_m": 1.0,
+        "ratio_defined_pairs": 2634,
+        "ratio_excluded_pairs": 2,
+        "robustness_alternative_floor_m": 25.0,
+        "robustness_alternative_median": 1.35373,
+        "robustness_alternative_pairs": 2616,
+        "robustness_note": "The difference between the two bounds is the whole evidence that the choice of bound does not drive the result. Compare 'robustness_alternative_median' with 'detour_ratio_to_network_nearest.p50'.",
+        "smallest_denominator_m": "3.641e-07",
+        "smallest_retained_denominator_m": 6.6433,
+        "statement": "A detour ratio is reported only where the straight-line distance is at least 1 m, the precision bound of the published coordinates themselves (facility register: WGS84 to 7 decimals, ~1.1 cm; callejero: UTM to the centimetre). Below that bound the register publishes the facility at the portal's own published coordinate and the ratio is not interpretable. Such pairs stay in the metre statistics."
+      },
+      "snap_offset_m": {
+        "p25": 5.0217,
+        "p5": 2.4202,
+        "p50": 6.0515,
+        "p75": 7.7465,
+        "p95": 15.1965,
+        "p99": 20.904
+      },
+      "snap_radius_m": 30.0,
+      "threshold_sensitivity": {
+        "300m": {
+          "euclid_says_within_network_says_not": 614,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 1737,
+          "false_inclusion_rate_pct": 35.35,
+          "false_inclusion_share_of_all_measured_pct": 23.29,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 1737,
+          "within_by_euclid_and_network": 1123,
+          "within_by_network": 1123
+        },
+        "500m": {
+          "euclid_says_within_network_says_not": 465,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 2374,
+          "false_inclusion_rate_pct": 19.59,
+          "false_inclusion_share_of_all_measured_pct": 17.64,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 2374,
+          "within_by_euclid_and_network": 1909,
+          "within_by_network": 1909
+        },
+        "800m": {
+          "euclid_says_within_network_says_not": 126,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 2636,
+          "false_inclusion_rate_pct": 4.78,
+          "false_inclusion_share_of_all_measured_pct": 4.78,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 2636,
+          "within_by_euclid_and_network": 2510,
+          "within_by_network": 2510
+        }
+      },
+      "understatement_ratio_nearest_vs_nearest": {
+        "p25": 1.2789,
+        "p5": 1.1509,
+        "p50": 1.388,
+        "p75": 1.6435,
+        "p95": 2.5316,
+        "p99": 4.342
+      },
+      "variant": "baseline"
+    },
+    "facility_buffer_500m": {
+      "connectivity": {
+        "components": 83,
+        "graph_nodes_after_snapping": 68843,
+        "largest_component_nodes": 68123,
+        "largest_component_share_pct": 98.954,
+        "measured_after_snapping": true,
+        "note": "Snapping inserts one virtual node per snapped point, so the post-snapping node count exceeds the pre-snapping count reported under 'network'. Connectivity is assessed on the graph that the shortest paths actually run on."
+      },
+      "decision_changed": "halve the out-of-barrio facility catchment to 500 m",
+      "detour_ratio_to_network_nearest": {
+        "p25": 1.2182,
+        "p5": 1.1209,
+        "p50": 1.3545,
+        "p75": 1.6172,
+        "p95": 2.5062,
+        "p99": 4.342
+      },
+      "euclid_nearest_m": {
+        "p25": 135.5715,
+        "p5": 58.087,
+        "p50": 224.134,
+        "p75": 379.39,
+        "p95": 560.5563,
+        "p99": 660.6603
+      },
+      "facilities_not_snapped": 0,
+      "facilities_seeded": 20,
+      "facility_buffer_m": 500.0,
+      "geometric_invariant_examples": [],
+      "geometric_invariant_violations": 0,
+      "mean_detour_ratio_defined_pairs": 1.53847,
+      "mean_understatement_m": 118.891,
+      "nearest_facility_discordance": {
+        "all_selected_origins_n": 2651,
+        "denominator": "origins with a MEASURED state",
+        "denominator_n": 2636,
+        "denominator_note": "The headline share is over MEASURED origins, not over all selected origins: an origin that could not be snapped or could not be reached has no network answer to agree or disagree with. Both denominators are given so neither figure can be quoted without its base.",
+        "origins_where_euclid_and_network_disagree": 555,
+        "share_of_all_selected_origins_pct": 20.94,
+        "share_pct": 21.05
+      },
+      "network": {
+        "graph_nodes_before_snapping": 66181,
+        "graph_segments_before_snapping": 77399,
+        "graph_total_length_km": 1290.442,
+        "osm_nodes_in_extract": 69699,
+        "osm_ways_in_extract": 17665,
+        "ways_rejected_by_reason": {
+          "access_denied": 333,
+          "excluded_highway:construction": 73,
+          "excluded_highway:corridor": 42,
+          "excluded_highway:elevator": 2,
+          "excluded_highway:motorway": 102,
+          "excluded_highway:motorway_link": 139,
+          "excluded_highway:proposed": 7,
+          "excluded_highway:raceway": 12,
+          "excluded_highway:rest_area": 1,
+          "excluded_highway:services": 1,
+          "excluded_highway:trunk": 3,
+          "foot_denied": 211,
+          "highway_not_in_variant:bus_stop": 12,
+          "highway_not_in_variant:ladder": 3,
+          "indoor": 9
+        },
+        "ways_retained": 16715,
+        "ways_with_area_yes_kept_as_ring": 118,
+        "ways_with_unresolved_node_refs": 0
+      },
+      "network_nearest_m": {
+        "p25": 210.4462,
+        "p5": 104.696,
+        "p50": 340.8185,
+        "p75": 530.124,
+        "p95": 794.4322,
+        "p99": 954.8737
+      },
+      "origins_measured": 2636,
+      "origins_measured_pct": 99.434,
+      "origins_not_snapped": 9,
+      "origins_total": 2651,
+      "origins_unreachable": 6,
+      "ratio_denominator_rule": {
+        "excluded_below_bound": 2,
+        "excluded_exactly_zero_denominator": 0,
+        "gap_note": "The excluded separations and the smallest retained one are orders of magnitude apart, so the bound falls in an empty interval rather than cutting through the data. That is why the bound's exact value does not matter here.",
+        "measured_pairs": 2636,
+        "minimum_denominator_m": 1.0,
+        "ratio_defined_pairs": 2634,
+        "ratio_excluded_pairs": 2,
+        "robustness_alternative_floor_m": 25.0,
+        "robustness_alternative_median": 1.35373,
+        "robustness_alternative_pairs": 2616,
+        "robustness_note": "The difference between the two bounds is the whole evidence that the choice of bound does not drive the result. Compare 'robustness_alternative_median' with 'detour_ratio_to_network_nearest.p50'.",
+        "smallest_denominator_m": "3.641e-07",
+        "smallest_retained_denominator_m": 6.6433,
+        "statement": "A detour ratio is reported only where the straight-line distance is at least 1 m, the precision bound of the published coordinates themselves (facility register: WGS84 to 7 decimals, ~1.1 cm; callejero: UTM to the centimetre). Below that bound the register publishes the facility at the portal's own published coordinate and the ratio is not interpretable. Such pairs stay in the metre statistics."
+      },
+      "snap_offset_m": {
+        "p25": 5.0217,
+        "p5": 2.4202,
+        "p50": 6.0515,
+        "p75": 7.7465,
+        "p95": 15.1965,
+        "p99": 20.904
+      },
+      "snap_radius_m": 30.0,
+      "threshold_sensitivity": {
+        "300m": {
+          "euclid_says_within_network_says_not": 614,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 1737,
+          "false_inclusion_rate_pct": 35.35,
+          "false_inclusion_share_of_all_measured_pct": 23.29,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 1737,
+          "within_by_euclid_and_network": 1123,
+          "within_by_network": 1123
+        },
+        "500m": {
+          "euclid_says_within_network_says_not": 465,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 2374,
+          "false_inclusion_rate_pct": 19.59,
+          "false_inclusion_share_of_all_measured_pct": 17.64,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 2374,
+          "within_by_euclid_and_network": 1909,
+          "within_by_network": 1909
+        },
+        "800m": {
+          "euclid_says_within_network_says_not": 126,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 2636,
+          "false_inclusion_rate_pct": 4.78,
+          "false_inclusion_share_of_all_measured_pct": 4.78,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 2636,
+          "within_by_euclid_and_network": 2510,
+          "within_by_network": 2510
+        }
+      },
+      "understatement_ratio_nearest_vs_nearest": {
+        "p25": 1.2789,
+        "p5": 1.1509,
+        "p50": 1.388,
+        "p75": 1.6435,
+        "p95": 2.5316,
+        "p99": 4.342
+      },
+      "variant": "facility_buffer_500m"
+    },
+    "no_steps": {
+      "connectivity": {
+        "components": 322,
+        "graph_nodes_after_snapping": 68398,
+        "largest_component_nodes": 66685,
+        "largest_component_share_pct": 97.496,
+        "measured_after_snapping": true,
+        "note": "Snapping inserts one virtual node per snapped point, so the post-snapping node count exceeds the pre-snapping count reported under 'network'. Connectivity is assessed on the graph that the shortest paths actually run on."
+      },
+      "decision_changed": "remove highway=steps (a step-free walking proxy)",
+      "detour_ratio_to_network_nearest": {
+        "p25": 1.2194,
+        "p5": 1.1209,
+        "p50": 1.3558,
+        "p75": 1.6184,
+        "p95": 2.5689,
+        "p99": 4.3424
+      },
+      "euclid_nearest_m": {
+        "p25": 135.5565,
+        "p5": 58.0666,
+        "p50": 224.1795,
+        "p75": 379.406,
+        "p95": 560.5811,
+        "p99": 660.7167
+      },
+      "facilities_not_snapped": 0,
+      "facilities_seeded": 38,
+      "facility_buffer_m": 1000.0,
+      "geometric_invariant_examples": [],
+      "geometric_invariant_violations": 0,
+      "mean_detour_ratio_defined_pairs": 1.54764,
+      "mean_understatement_m": 120.695,
+      "nearest_facility_discordance": {
+        "all_selected_origins_n": 2651,
+        "denominator": "origins with a MEASURED state",
+        "denominator_n": 2634,
+        "denominator_note": "The headline share is over MEASURED origins, not over all selected origins: an origin that could not be snapped or could not be reached has no network answer to agree or disagree with. Both denominators are given so neither figure can be quoted without its base.",
+        "origins_where_euclid_and_network_disagree": 558,
+        "share_of_all_selected_origins_pct": 21.05,
+        "share_pct": 21.18
+      },
+      "network": {
+        "graph_nodes_before_snapping": 65719,
+        "graph_segments_before_snapping": 75997,
+        "graph_total_length_km": 1278.784,
+        "osm_nodes_in_extract": 69699,
+        "osm_ways_in_extract": 17665,
+        "ways_rejected_by_reason": {
+          "access_denied": 328,
+          "excluded_highway:construction": 73,
+          "excluded_highway:corridor": 42,
+          "excluded_highway:elevator": 2,
+          "excluded_highway:motorway": 102,
+          "excluded_highway:motorway_link": 139,
+          "excluded_highway:proposed": 7,
+          "excluded_highway:raceway": 12,
+          "excluded_highway:rest_area": 1,
+          "excluded_highway:services": 1,
+          "excluded_highway:trunk": 3,
+          "foot_denied": 210,
+          "highway_not_in_variant:bus_stop": 12,
+          "highway_not_in_variant:ladder": 3,
+          "indoor": 3,
+          "variant_excludes_steps": 1024
+        },
+        "ways_retained": 15703,
+        "ways_with_area_yes_kept_as_ring": 118,
+        "ways_with_unresolved_node_refs": 0
+      },
+      "network_nearest_m": {
+        "p25": 212.3057,
+        "p5": 104.6872,
+        "p50": 341.1705,
+        "p75": 535.952,
+        "p95": 794.4488,
+        "p99": 954.9341
+      },
+      "origins_measured": 2634,
+      "origins_measured_pct": 99.359,
+      "origins_not_snapped": 10,
+      "origins_total": 2651,
+      "origins_unreachable": 7,
+      "ratio_denominator_rule": {
+        "excluded_below_bound": 2,
+        "excluded_exactly_zero_denominator": 0,
+        "gap_note": "The excluded separations and the smallest retained one are orders of magnitude apart, so the bound falls in an empty interval rather than cutting through the data. That is why the bound's exact value does not matter here.",
+        "measured_pairs": 2634,
+        "minimum_denominator_m": 1.0,
+        "ratio_defined_pairs": 2632,
+        "ratio_excluded_pairs": 2,
+        "robustness_alternative_floor_m": 25.0,
+        "robustness_alternative_median": 1.35435,
+        "robustness_alternative_pairs": 2614,
+        "robustness_note": "The difference between the two bounds is the whole evidence that the choice of bound does not drive the result. Compare 'robustness_alternative_median' with 'detour_ratio_to_network_nearest.p50'.",
+        "smallest_denominator_m": "3.641e-07",
+        "smallest_retained_denominator_m": 6.6433,
+        "statement": "A detour ratio is reported only where the straight-line distance is at least 1 m, the precision bound of the published coordinates themselves (facility register: WGS84 to 7 decimals, ~1.1 cm; callejero: UTM to the centimetre). Below that bound the register publishes the facility at the portal's own published coordinate and the ratio is not interpretable. Such pairs stay in the metre statistics."
+      },
+      "snap_offset_m": {
+        "p25": 5.0323,
+        "p5": 2.42,
+        "p50": 6.0685,
+        "p75": 7.7657,
+        "p95": 15.2568,
+        "p99": 21.5951
+      },
+      "snap_radius_m": 30.0,
+      "threshold_sensitivity": {
+        "300m": {
+          "euclid_says_within_network_says_not": 614,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 1735,
+          "false_inclusion_rate_pct": 35.39,
+          "false_inclusion_share_of_all_measured_pct": 23.31,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 1735,
+          "within_by_euclid_and_network": 1121,
+          "within_by_network": 1121
+        },
+        "500m": {
+          "euclid_says_within_network_says_not": 481,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 2372,
+          "false_inclusion_rate_pct": 20.28,
+          "false_inclusion_share_of_all_measured_pct": 18.26,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 2372,
+          "within_by_euclid_and_network": 1891,
+          "within_by_network": 1891
+        },
+        "800m": {
+          "euclid_says_within_network_says_not": 126,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 2634,
+          "false_inclusion_rate_pct": 4.78,
+          "false_inclusion_share_of_all_measured_pct": 4.78,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 2634,
+          "within_by_euclid_and_network": 2508,
+          "within_by_network": 2508
+        }
+      },
+      "understatement_ratio_nearest_vs_nearest": {
+        "p25": 1.2793,
+        "p5": 1.1511,
+        "p50": 1.3883,
+        "p75": 1.6456,
+        "p95": 2.5981,
+        "p99": 4.3424
+      },
+      "variant": "no_steps"
+    },
+    "permissive_access": {
+      "connectivity": {
+        "components": 55,
+        "graph_nodes_after_snapping": 70571,
+        "largest_component_nodes": 70010,
+        "largest_component_share_pct": 99.205,
+        "measured_after_snapping": true,
+        "note": "Snapping inserts one virtual node per snapped point, so the post-snapping node count exceeds the pre-snapping count reported under 'network'. Connectivity is assessed on the graph that the shortest paths actually run on."
+      },
+      "decision_changed": "ignore access=no/private (upper bound on permeability)",
+      "detour_ratio_to_network_nearest": {
+        "p25": 1.2186,
+        "p5": 1.1209,
+        "p50": 1.3545,
+        "p75": 1.6127,
+        "p95": 2.4783,
+        "p99": 4.2983
+      },
+      "euclid_nearest_m": {
+        "p25": 135.713,
+        "p5": 58.1705,
+        "p50": 224.31,
+        "p75": 379.4825,
+        "p95": 560.4758,
+        "p99": 660.4628
+      },
+      "facilities_not_snapped": 0,
+      "facilities_seeded": 38,
+      "facility_buffer_m": 1000.0,
+      "geometric_invariant_examples": [],
+      "geometric_invariant_violations": 0,
+      "mean_detour_ratio_defined_pairs": 1.53549,
+      "mean_understatement_m": 118.222,
+      "nearest_facility_discordance": {
+        "all_selected_origins_n": 2651,
+        "denominator": "origins with a MEASURED state",
+        "denominator_n": 2643,
+        "denominator_note": "The headline share is over MEASURED origins, not over all selected origins: an origin that could not be snapped or could not be reached has no network answer to agree or disagree with. Both denominators are given so neither figure can be quoted without its base.",
+        "origins_where_euclid_and_network_disagree": 558,
+        "share_of_all_selected_origins_pct": 21.05,
+        "share_pct": 21.11
+      },
+      "network": {
+        "graph_nodes_before_snapping": 67887,
+        "graph_segments_before_snapping": 79571,
+        "graph_total_length_km": 1323.056,
+        "osm_nodes_in_extract": 69699,
+        "osm_ways_in_extract": 17665,
+        "ways_rejected_by_reason": {
+          "excluded_highway:construction": 73,
+          "excluded_highway:corridor": 42,
+          "excluded_highway:elevator": 2,
+          "excluded_highway:motorway": 102,
+          "excluded_highway:motorway_link": 139,
+          "excluded_highway:proposed": 7,
+          "excluded_highway:raceway": 12,
+          "excluded_highway:rest_area": 1,
+          "excluded_highway:services": 1,
+          "excluded_highway:trunk": 3,
+          "highway_not_in_variant:bus_stop": 12,
+          "highway_not_in_variant:ladder": 3,
+          "indoor": 9
+        },
+        "ways_retained": 17259,
+        "ways_with_area_yes_kept_as_ring": 120,
+        "ways_with_unresolved_node_refs": 0
+      },
+      "network_nearest_m": {
+        "p25": 211.6145,
+        "p5": 104.7383,
+        "p50": 340.579,
+        "p75": 528.6115,
+        "p95": 789.5078,
+        "p99": 954.6624
+      },
+      "origins_measured": 2643,
+      "origins_measured_pct": 99.698,
+      "origins_not_snapped": 5,
+      "origins_total": 2651,
+      "origins_unreachable": 3,
+      "ratio_denominator_rule": {
+        "excluded_below_bound": 2,
+        "excluded_exactly_zero_denominator": 0,
+        "gap_note": "The excluded separations and the smallest retained one are orders of magnitude apart, so the bound falls in an empty interval rather than cutting through the data. That is why the bound's exact value does not matter here.",
+        "measured_pairs": 2643,
+        "minimum_denominator_m": 1.0,
+        "ratio_defined_pairs": 2641,
+        "ratio_excluded_pairs": 2,
+        "robustness_alternative_floor_m": 25.0,
+        "robustness_alternative_median": 1.35394,
+        "robustness_alternative_pairs": 2623,
+        "robustness_note": "The difference between the two bounds is the whole evidence that the choice of bound does not drive the result. Compare 'robustness_alternative_median' with 'detour_ratio_to_network_nearest.p50'.",
+        "smallest_denominator_m": "3.641e-07",
+        "smallest_retained_denominator_m": 6.6433,
+        "statement": "A detour ratio is reported only where the straight-line distance is at least 1 m, the precision bound of the published coordinates themselves (facility register: WGS84 to 7 decimals, ~1.1 cm; callejero: UTM to the centimetre). Below that bound the register publishes the facility at the portal's own published coordinate and the ratio is not interpretable. Such pairs stay in the metre statistics."
+      },
+      "snap_offset_m": {
+        "p25": 5.0275,
+        "p5": 2.4213,
+        "p50": 6.059,
+        "p75": 7.747,
+        "p95": 15.1664,
+        "p99": 20.1896
+      },
+      "snap_radius_m": 30.0,
+      "threshold_sensitivity": {
+        "300m": {
+          "euclid_says_within_network_says_not": 617,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 1741,
+          "false_inclusion_rate_pct": 35.44,
+          "false_inclusion_share_of_all_measured_pct": 23.34,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 1741,
+          "within_by_euclid_and_network": 1124,
+          "within_by_network": 1124
+        },
+        "500m": {
+          "euclid_says_within_network_says_not": 464,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 2381,
+          "false_inclusion_rate_pct": 19.49,
+          "false_inclusion_share_of_all_measured_pct": 17.56,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 2381,
+          "within_by_euclid_and_network": 1917,
+          "within_by_network": 1917
+        },
+        "800m": {
+          "euclid_says_within_network_says_not": 122,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 2643,
+          "false_inclusion_rate_pct": 4.62,
+          "false_inclusion_share_of_all_measured_pct": 4.62,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 2643,
+          "within_by_euclid_and_network": 2521,
+          "within_by_network": 2521
+        }
+      },
+      "understatement_ratio_nearest_vs_nearest": {
+        "p25": 1.2792,
+        "p5": 1.151,
+        "p50": 1.3881,
+        "p75": 1.6408,
+        "p95": 2.5195,
+        "p99": 4.2983
+      },
+      "variant": "permissive_access"
+    },
+    "snap_15m": {
+      "connectivity": {
+        "components": 83,
+        "graph_nodes_after_snapping": 68719,
+        "largest_component_nodes": 67999,
+        "largest_component_share_pct": 98.952,
+        "measured_after_snapping": true,
+        "note": "Snapping inserts one virtual node per snapped point, so the post-snapping node count exceeds the pre-snapping count reported under 'network'. Connectivity is assessed on the graph that the shortest paths actually run on."
+      },
+      "decision_changed": "tighten the snapping tolerance to 15 m",
+      "detour_ratio_to_network_nearest": {
+        "p25": 1.2163,
+        "p5": 1.1204,
+        "p50": 1.3478,
+        "p75": 1.5974,
+        "p95": 2.4921,
+        "p99": 4.3567
+      },
+      "euclid_nearest_m": {
+        "p25": 135.374,
+        "p5": 58.5334,
+        "p50": 222.347,
+        "p75": 373.602,
+        "p95": 560.5438,
+        "p99": 651.0857
+      },
+      "facilities_not_snapped": 3,
+      "facilities_seeded": 35,
+      "facility_buffer_m": 1000.0,
+      "geometric_invariant_examples": [],
+      "geometric_invariant_violations": 0,
+      "mean_detour_ratio_defined_pairs": 1.53159,
+      "mean_understatement_m": 116.07,
+      "nearest_facility_discordance": {
+        "all_selected_origins_n": 2651,
+        "denominator": "origins with a MEASURED state",
+        "denominator_n": 2497,
+        "denominator_note": "The headline share is over MEASURED origins, not over all selected origins: an origin that could not be snapped or could not be reached has no network answer to agree or disagree with. Both denominators are given so neither figure can be quoted without its base.",
+        "origins_where_euclid_and_network_disagree": 535,
+        "share_of_all_selected_origins_pct": 20.18,
+        "share_pct": 21.43
+      },
+      "network": {
+        "graph_nodes_before_snapping": 66181,
+        "graph_segments_before_snapping": 77399,
+        "graph_total_length_km": 1290.442,
+        "osm_nodes_in_extract": 69699,
+        "osm_ways_in_extract": 17665,
+        "ways_rejected_by_reason": {
+          "access_denied": 333,
+          "excluded_highway:construction": 73,
+          "excluded_highway:corridor": 42,
+          "excluded_highway:elevator": 2,
+          "excluded_highway:motorway": 102,
+          "excluded_highway:motorway_link": 139,
+          "excluded_highway:proposed": 7,
+          "excluded_highway:raceway": 12,
+          "excluded_highway:rest_area": 1,
+          "excluded_highway:services": 1,
+          "excluded_highway:trunk": 3,
+          "foot_denied": 211,
+          "highway_not_in_variant:bus_stop": 12,
+          "highway_not_in_variant:ladder": 3,
+          "indoor": 9
+        },
+        "ways_retained": 16715,
+        "ways_with_area_yes_kept_as_ring": 118,
+        "ways_with_unresolved_node_refs": 0
+      },
+      "network_nearest_m": {
+        "p25": 209.477,
+        "p5": 104.8804,
+        "p50": 335.056,
+        "p75": 518.78,
+        "p95": 795.4406,
+        "p99": 956.0802
+      },
+      "origins_measured": 2497,
+      "origins_measured_pct": 94.191,
+      "origins_not_snapped": 148,
+      "origins_total": 2651,
+      "origins_unreachable": 6,
+      "ratio_denominator_rule": {
+        "excluded_below_bound": 2,
+        "excluded_exactly_zero_denominator": 0,
+        "gap_note": "The excluded separations and the smallest retained one are orders of magnitude apart, so the bound falls in an empty interval rather than cutting through the data. That is why the bound's exact value does not matter here.",
+        "measured_pairs": 2497,
+        "minimum_denominator_m": 1.0,
+        "ratio_defined_pairs": 2495,
+        "ratio_excluded_pairs": 2,
+        "robustness_alternative_floor_m": 25.0,
+        "robustness_alternative_median": 1.34744,
+        "robustness_alternative_pairs": 2477,
+        "robustness_note": "The difference between the two bounds is the whole evidence that the choice of bound does not drive the result. Compare 'robustness_alternative_median' with 'detour_ratio_to_network_nearest.p50'.",
+        "smallest_denominator_m": "3.641e-07",
+        "smallest_retained_denominator_m": 6.6433,
+        "statement": "A detour ratio is reported only where the straight-line distance is at least 1 m, the precision bound of the published coordinates themselves (facility register: WGS84 to 7 decimals, ~1.1 cm; callejero: UTM to the centimetre). Below that bound the register publishes the facility at the portal's own published coordinate and the ratio is not interpretable. Such pairs stay in the metre statistics."
+      },
+      "snap_offset_m": {
+        "p25": 4.964,
+        "p5": 2.4058,
+        "p50": 5.923,
+        "p75": 7.348,
+        "p95": 12.2426,
+        "p99": 14.607
+      },
+      "snap_radius_m": 15.0,
+      "threshold_sensitivity": {
+        "300m": {
+          "euclid_says_within_network_says_not": 578,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 1663,
+          "false_inclusion_rate_pct": 34.76,
+          "false_inclusion_share_of_all_measured_pct": 23.15,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 1663,
+          "within_by_euclid_and_network": 1085,
+          "within_by_network": 1085
+        },
+        "500m": {
+          "euclid_says_within_network_says_not": 417,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 2251,
+          "false_inclusion_rate_pct": 18.53,
+          "false_inclusion_share_of_all_measured_pct": 16.7,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 2251,
+          "within_by_euclid_and_network": 1834,
+          "within_by_network": 1834
+        },
+        "800m": {
+          "euclid_says_within_network_says_not": 121,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 2497,
+          "false_inclusion_rate_pct": 4.85,
+          "false_inclusion_share_of_all_measured_pct": 4.85,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 2497,
+          "within_by_euclid_and_network": 2376,
+          "within_by_network": 2376
+        }
+      },
+      "understatement_ratio_nearest_vs_nearest": {
+        "p25": 1.2758,
+        "p5": 1.1491,
+        "p50": 1.3814,
+        "p75": 1.6303,
+        "p95": 2.5176,
+        "p99": 4.3567
+      },
+      "variant": "snap_15m"
+    },
+    "snap_50m": {
+      "connectivity": {
+        "components": 83,
+        "graph_nodes_after_snapping": 68869,
+        "largest_component_nodes": 68149,
+        "largest_component_share_pct": 98.955,
+        "measured_after_snapping": true,
+        "note": "Snapping inserts one virtual node per snapped point, so the post-snapping node count exceeds the pre-snapping count reported under 'network'. Connectivity is assessed on the graph that the shortest paths actually run on."
+      },
+      "decision_changed": "loosen the snapping tolerance to 50 m",
+      "detour_ratio_to_network_nearest": {
+        "p25": 1.2188,
+        "p5": 1.1209,
+        "p50": 1.354,
+        "p75": 1.6139,
+        "p95": 2.5079,
+        "p99": 4.3404
+      },
+      "euclid_nearest_m": {
+        "p25": 135.78,
+        "p5": 58.1868,
+        "p50": 224.4085,
+        "p75": 379.574,
+        "p95": 560.7056,
+        "p99": 660.4943
+      },
+      "facilities_not_snapped": 0,
+      "facilities_seeded": 38,
+      "facility_buffer_m": 1000.0,
+      "geometric_invariant_examples": [],
+      "geometric_invariant_violations": 0,
+      "mean_detour_ratio_defined_pairs": 1.53822,
+      "mean_understatement_m": 118.893,
+      "nearest_facility_discordance": {
+        "all_selected_origins_n": 2651,
+        "denominator": "origins with a MEASURED state",
+        "denominator_n": 2644,
+        "denominator_note": "The headline share is over MEASURED origins, not over all selected origins: an origin that could not be snapped or could not be reached has no network answer to agree or disagree with. Both denominators are given so neither figure can be quoted without its base.",
+        "origins_where_euclid_and_network_disagree": 555,
+        "share_of_all_selected_origins_pct": 20.94,
+        "share_pct": 20.99
+      },
+      "network": {
+        "graph_nodes_before_snapping": 66181,
+        "graph_segments_before_snapping": 77399,
+        "graph_total_length_km": 1290.442,
+        "osm_nodes_in_extract": 69699,
+        "osm_ways_in_extract": 17665,
+        "ways_rejected_by_reason": {
+          "access_denied": 333,
+          "excluded_highway:construction": 73,
+          "excluded_highway:corridor": 42,
+          "excluded_highway:elevator": 2,
+          "excluded_highway:motorway": 102,
+          "excluded_highway:motorway_link": 139,
+          "excluded_highway:proposed": 7,
+          "excluded_highway:raceway": 12,
+          "excluded_highway:rest_area": 1,
+          "excluded_highway:services": 1,
+          "excluded_highway:trunk": 3,
+          "foot_denied": 211,
+          "highway_not_in_variant:bus_stop": 12,
+          "highway_not_in_variant:ladder": 3,
+          "indoor": 9
+        },
+        "ways_retained": 16715,
+        "ways_with_area_yes_kept_as_ring": 118,
+        "ways_with_unresolved_node_refs": 0
+      },
+      "network_nearest_m": {
+        "p25": 211.3015,
+        "p5": 104.7485,
+        "p50": 341.664,
+        "p75": 530.5812,
+        "p95": 794.5312,
+        "p99": 954.6323
+      },
+      "origins_measured": 2644,
+      "origins_measured_pct": 99.736,
+      "origins_not_snapped": 1,
+      "origins_total": 2651,
+      "origins_unreachable": 6,
+      "ratio_denominator_rule": {
+        "excluded_below_bound": 2,
+        "excluded_exactly_zero_denominator": 0,
+        "gap_note": "The excluded separations and the smallest retained one are orders of magnitude apart, so the bound falls in an empty interval rather than cutting through the data. That is why the bound's exact value does not matter here.",
+        "measured_pairs": 2644,
+        "minimum_denominator_m": 1.0,
+        "ratio_defined_pairs": 2642,
+        "ratio_excluded_pairs": 2,
+        "robustness_alternative_floor_m": 25.0,
+        "robustness_alternative_median": 1.35327,
+        "robustness_alternative_pairs": 2624,
+        "robustness_note": "The difference between the two bounds is the whole evidence that the choice of bound does not drive the result. Compare 'robustness_alternative_median' with 'detour_ratio_to_network_nearest.p50'.",
+        "smallest_denominator_m": "3.641e-07",
+        "smallest_retained_denominator_m": 6.6433,
+        "statement": "A detour ratio is reported only where the straight-line distance is at least 1 m, the precision bound of the published coordinates themselves (facility register: WGS84 to 7 decimals, ~1.1 cm; callejero: UTM to the centimetre). Below that bound the register publishes the facility at the portal's own published coordinate and the ratio is not interpretable. Such pairs stay in the metre statistics."
+      },
+      "snap_offset_m": {
+        "p25": 5.0282,
+        "p5": 2.4214,
+        "p50": 6.067,
+        "p75": 7.7675,
+        "p95": 15.374,
+        "p99": 22.3844
+      },
+      "snap_radius_m": 50.0,
+      "threshold_sensitivity": {
+        "300m": {
+          "euclid_says_within_network_says_not": 615,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 1739,
+          "false_inclusion_rate_pct": 35.37,
+          "false_inclusion_share_of_all_measured_pct": 23.26,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 1739,
+          "within_by_euclid_and_network": 1124,
+          "within_by_network": 1124
+        },
+        "500m": {
+          "euclid_says_within_network_says_not": 467,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 2381,
+          "false_inclusion_rate_pct": 19.61,
+          "false_inclusion_share_of_all_measured_pct": 17.66,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 2381,
+          "within_by_euclid_and_network": 1914,
+          "within_by_network": 1914
+        },
+        "800m": {
+          "euclid_says_within_network_says_not": 126,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 2644,
+          "false_inclusion_rate_pct": 4.77,
+          "false_inclusion_share_of_all_measured_pct": 4.77,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 2644,
+          "within_by_euclid_and_network": 2518,
+          "within_by_network": 2518
+        }
+      },
+      "understatement_ratio_nearest_vs_nearest": {
+        "p25": 1.2789,
+        "p5": 1.1511,
+        "p50": 1.3875,
+        "p75": 1.6433,
+        "p95": 2.5359,
+        "p99": 4.3404
+      },
+      "variant": "snap_50m"
+    },
+    "strict_pedestrian": {
+      "connectivity": {
+        "components": 358,
+        "graph_nodes_after_snapping": 48306,
+        "largest_component_nodes": 42345,
+        "largest_component_share_pct": 87.66,
+        "measured_after_snapping": true,
+        "note": "Snapping inserts one virtual node per snapped point, so the post-snapping node count exceeds the pre-snapping count reported under 'network'. Connectivity is assessed on the graph that the shortest paths actually run on."
+      },
+      "decision_changed": "retain only ways tagged as pedestrian space; no carriageways",
+      "detour_ratio_to_network_nearest": {
+        "p25": 1.4267,
+        "p5": 1.1001,
+        "p50": 1.9443,
+        "p75": 2.7452,
+        "p95": 6.5543,
+        "p99": 7.9775
+      },
+      "euclid_nearest_m": {
+        "p25": 98.928,
+        "p5": 41.2721,
+        "p50": 168.8375,
+        "p75": 261.108,
+        "p95": 559.902,
+        "p99": 704.5725
+      },
+      "facilities_not_snapped": 8,
+      "facilities_seeded": 30,
+      "facility_buffer_m": 1000.0,
+      "geometric_invariant_examples": [],
+      "geometric_invariant_violations": 0,
+      "mean_detour_ratio_defined_pairs": 2.47752,
+      "mean_understatement_m": 278.74,
+      "nearest_facility_discordance": {
+        "all_selected_origins_n": 2651,
+        "denominator": "origins with a MEASURED state",
+        "denominator_n": 632,
+        "denominator_note": "The headline share is over MEASURED origins, not over all selected origins: an origin that could not be snapped or could not be reached has no network answer to agree or disagree with. Both denominators are given so neither figure can be quoted without its base.",
+        "origins_where_euclid_and_network_disagree": 93,
+        "share_of_all_selected_origins_pct": 3.51,
+        "share_pct": 14.72
+      },
+      "network": {
+        "graph_nodes_before_snapping": 47379,
+        "graph_segments_before_snapping": 52225,
+        "graph_total_length_km": 733.704,
+        "osm_nodes_in_extract": 69699,
+        "osm_ways_in_extract": 17665,
+        "ways_rejected_by_reason": {
+          "access_denied": 59,
+          "excluded_highway:construction": 73,
+          "excluded_highway:corridor": 42,
+          "excluded_highway:elevator": 2,
+          "excluded_highway:motorway": 102,
+          "excluded_highway:motorway_link": 139,
+          "excluded_highway:proposed": 7,
+          "excluded_highway:raceway": 12,
+          "excluded_highway:rest_area": 1,
+          "excluded_highway:services": 1,
+          "excluded_highway:trunk": 3,
+          "foot_denied": 3,
+          "highway_not_in_variant:bus_stop": 12,
+          "highway_not_in_variant:cycleway": 201,
+          "highway_not_in_variant:ladder": 3,
+          "highway_not_in_variant:primary": 346,
+          "highway_not_in_variant:primary_link": 32,
+          "highway_not_in_variant:residential": 2502,
+          "highway_not_in_variant:secondary": 215,
+          "highway_not_in_variant:service": 1315,
+          "highway_not_in_variant:tertiary": 540,
+          "highway_not_in_variant:tertiary_link": 7,
+          "highway_not_in_variant:track": 32,
+          "highway_not_in_variant:unclassified": 126,
+          "indoor": 9
+        },
+        "ways_retained": 11881,
+        "ways_with_area_yes_kept_as_ring": 117,
+        "ways_with_unresolved_node_refs": 0
+      },
+      "network_nearest_m": {
+        "p25": 201.5072,
+        "p5": 70.2456,
+        "p50": 336.691,
+        "p75": 676.3355,
+        "p95": 1353.5608,
+        "p99": 1674.0054
+      },
+      "origins_measured": 632,
+      "origins_measured_pct": 23.84,
+      "origins_not_snapped": 1754,
+      "origins_total": 2651,
+      "origins_unreachable": 265,
+      "ratio_denominator_rule": {
+        "excluded_below_bound": 2,
+        "excluded_exactly_zero_denominator": 0,
+        "gap_note": "The excluded separations and the smallest retained one are orders of magnitude apart, so the bound falls in an empty interval rather than cutting through the data. That is why the bound's exact value does not matter here.",
+        "measured_pairs": 632,
+        "minimum_denominator_m": 1.0,
+        "ratio_defined_pairs": 630,
+        "ratio_excluded_pairs": 2,
+        "robustness_alternative_floor_m": 25.0,
+        "robustness_alternative_median": 1.92223,
+        "robustness_alternative_pairs": 619,
+        "robustness_note": "The difference between the two bounds is the whole evidence that the choice of bound does not drive the result. Compare 'robustness_alternative_median' with 'detour_ratio_to_network_nearest.p50'.",
+        "smallest_denominator_m": "3.641e-07",
+        "smallest_retained_denominator_m": 6.6433,
+        "statement": "A detour ratio is reported only where the straight-line distance is at least 1 m, the precision bound of the published coordinates themselves (facility register: WGS84 to 7 decimals, ~1.1 cm; callejero: UTM to the centimetre). Below that bound the register publishes the facility at the portal's own published coordinate and the ratio is not interpretable. Such pairs stay in the metre statistics."
+      },
+      "snap_offset_m": {
+        "p25": 2.623,
+        "p5": 1.9127,
+        "p50": 5.3255,
+        "p75": 15.8522,
+        "p95": 26.1161,
+        "p99": 29.0316
+      },
+      "snap_radius_m": 30.0,
+      "threshold_sensitivity": {
+        "300m": {
+          "euclid_says_within_network_says_not": 222,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 508,
+          "false_inclusion_rate_pct": 43.7,
+          "false_inclusion_share_of_all_measured_pct": 35.13,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 508,
+          "within_by_euclid_and_network": 286,
+          "within_by_network": 286
+        },
+        "500m": {
+          "euclid_says_within_network_says_not": 205,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 585,
+          "false_inclusion_rate_pct": 35.04,
+          "false_inclusion_share_of_all_measured_pct": 32.44,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 585,
+          "within_by_euclid_and_network": 380,
+          "within_by_network": 380
+        },
+        "800m": {
+          "euclid_says_within_network_says_not": 103,
+          "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+          "false_inclusion_rate_denominator_n": 632,
+          "false_inclusion_rate_pct": 16.3,
+          "false_inclusion_share_of_all_measured_pct": 16.3,
+          "network_says_within_euclid_says_not": 0,
+          "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+          "within_by_euclid": 632,
+          "within_by_euclid_and_network": 529,
+          "within_by_network": 529
+        }
+      },
+      "understatement_ratio_nearest_vs_nearest": {
+        "p25": 1.4631,
+        "p5": 1.1585,
+        "p50": 2.0422,
+        "p75": 2.7684,
+        "p95": 6.5543,
+        "p99": 7.9775
+      },
+      "variant": "strict_pedestrian"
+    }
+  },
+  "s4_results_baseline": {
+    "connectivity": {
+      "components": 83,
+      "graph_nodes_after_snapping": 68861,
+      "largest_component_nodes": 68141,
+      "largest_component_share_pct": 98.954,
+      "measured_after_snapping": true,
+      "note": "Snapping inserts one virtual node per snapped point, so the post-snapping node count exceeds the pre-snapping count reported under 'network'. Connectivity is assessed on the graph that the shortest paths actually run on."
+    },
+    "decision_changed": "the documented baseline",
+    "detour_ratio_to_network_nearest": {
+      "p25": 1.2182,
+      "p5": 1.1209,
+      "p50": 1.3545,
+      "p75": 1.6172,
+      "p95": 2.5062,
+      "p99": 4.342
+    },
+    "euclid_nearest_m": {
+      "p25": 135.5715,
+      "p5": 58.087,
+      "p50": 224.134,
+      "p75": 379.39,
+      "p95": 560.5563,
+      "p99": 660.6603
+    },
+    "facilities_not_snapped": 0,
+    "facilities_seeded": 38,
+    "facility_buffer_m": 1000.0,
+    "geometric_invariant_examples": [],
+    "geometric_invariant_violations": 0,
+    "mean_detour_ratio_defined_pairs": 1.53847,
+    "mean_understatement_m": 118.891,
+    "nearest_facility_discordance": {
+      "all_selected_origins_n": 2651,
+      "denominator": "origins with a MEASURED state",
+      "denominator_n": 2636,
+      "denominator_note": "The headline share is over MEASURED origins, not over all selected origins: an origin that could not be snapped or could not be reached has no network answer to agree or disagree with. Both denominators are given so neither figure can be quoted without its base.",
+      "origins_where_euclid_and_network_disagree": 555,
+      "share_of_all_selected_origins_pct": 20.94,
+      "share_pct": 21.05
+    },
+    "network": {
+      "graph_nodes_before_snapping": 66181,
+      "graph_segments_before_snapping": 77399,
+      "graph_total_length_km": 1290.442,
+      "osm_nodes_in_extract": 69699,
+      "osm_ways_in_extract": 17665,
+      "ways_rejected_by_reason": {
+        "access_denied": 333,
+        "excluded_highway:construction": 73,
+        "excluded_highway:corridor": 42,
+        "excluded_highway:elevator": 2,
+        "excluded_highway:motorway": 102,
+        "excluded_highway:motorway_link": 139,
+        "excluded_highway:proposed": 7,
+        "excluded_highway:raceway": 12,
+        "excluded_highway:rest_area": 1,
+        "excluded_highway:services": 1,
+        "excluded_highway:trunk": 3,
+        "foot_denied": 211,
+        "highway_not_in_variant:bus_stop": 12,
+        "highway_not_in_variant:ladder": 3,
+        "indoor": 9
+      },
+      "ways_retained": 16715,
+      "ways_with_area_yes_kept_as_ring": 118,
+      "ways_with_unresolved_node_refs": 0
+    },
+    "network_nearest_m": {
+      "p25": 210.4462,
+      "p5": 104.696,
+      "p50": 340.8185,
+      "p75": 530.124,
+      "p95": 794.4322,
+      "p99": 954.8737
+    },
+    "origins_measured": 2636,
+    "origins_measured_pct": 99.434,
+    "origins_not_snapped": 9,
+    "origins_total": 2651,
+    "origins_unreachable": 6,
+    "ratio_denominator_rule": {
+      "excluded_below_bound": 2,
+      "excluded_exactly_zero_denominator": 0,
+      "gap_note": "The excluded separations and the smallest retained one are orders of magnitude apart, so the bound falls in an empty interval rather than cutting through the data. That is why the bound's exact value does not matter here.",
+      "measured_pairs": 2636,
+      "minimum_denominator_m": 1.0,
+      "ratio_defined_pairs": 2634,
+      "ratio_excluded_pairs": 2,
+      "robustness_alternative_floor_m": 25.0,
+      "robustness_alternative_median": 1.35373,
+      "robustness_alternative_pairs": 2616,
+      "robustness_note": "The difference between the two bounds is the whole evidence that the choice of bound does not drive the result. Compare 'robustness_alternative_median' with 'detour_ratio_to_network_nearest.p50'.",
+      "smallest_denominator_m": "3.641e-07",
+      "smallest_retained_denominator_m": 6.6433,
+      "statement": "A detour ratio is reported only where the straight-line distance is at least 1 m, the precision bound of the published coordinates themselves (facility register: WGS84 to 7 decimals, ~1.1 cm; callejero: UTM to the centimetre). Below that bound the register publishes the facility at the portal's own published coordinate and the ratio is not interpretable. Such pairs stay in the metre statistics."
+    },
+    "snap_offset_m": {
+      "p25": 5.0217,
+      "p5": 2.4202,
+      "p50": 6.0515,
+      "p75": 7.7465,
+      "p95": 15.1965,
+      "p99": 20.904
+    },
+    "snap_radius_m": 30.0,
+    "threshold_sensitivity": {
+      "300m": {
+        "euclid_says_within_network_says_not": 614,
+        "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+        "false_inclusion_rate_denominator_n": 1737,
+        "false_inclusion_rate_pct": 35.35,
+        "false_inclusion_share_of_all_measured_pct": 23.29,
+        "network_says_within_euclid_says_not": 0,
+        "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+        "within_by_euclid": 1737,
+        "within_by_euclid_and_network": 1123,
+        "within_by_network": 1123
+      },
+      "500m": {
+        "euclid_says_within_network_says_not": 465,
+        "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+        "false_inclusion_rate_denominator_n": 2374,
+        "false_inclusion_rate_pct": 19.59,
+        "false_inclusion_share_of_all_measured_pct": 17.64,
+        "network_says_within_euclid_says_not": 0,
+        "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+        "within_by_euclid": 2374,
+        "within_by_euclid_and_network": 1909,
+        "within_by_network": 1909
+      },
+      "800m": {
+        "euclid_says_within_network_says_not": 126,
+        "false_inclusion_rate_denominator": "origins inside this threshold by straight line",
+        "false_inclusion_rate_denominator_n": 2636,
+        "false_inclusion_rate_pct": 4.78,
+        "false_inclusion_share_of_all_measured_pct": 4.78,
+        "network_says_within_euclid_says_not": 0,
+        "subset_note": "The straight-line distance to the straight-line-nearest facility can never exceed the network distance to the network-nearest facility, so the network-inside set is necessarily a SUBSET of the straight-line-inside set. 'network_says_within_euclid_says_not' is therefore 0 by construction, not by coincidence, and there is no symmetric false-exclusion rate to report.",
+        "within_by_euclid": 2636,
+        "within_by_euclid_and_network": 2510,
+        "within_by_network": 2510
+      }
+    },
+    "understatement_ratio_nearest_vs_nearest": {
+      "p25": 1.2789,
+      "p5": 1.1509,
+      "p50": 1.388,
+      "p75": 1.6435,
+      "p95": 2.5316,
+      "p99": 4.342
+    },
+    "variant": "baseline"
+  },
+  "s4_sensitivity": [
+    {
+      "decision_changed": "retain only ways tagged as pedestrian space; no carriageways",
+      "discordance_delta_pp_vs_baseline": -6.33,
+      "discordance_share_pct": 14.72,
+      "geometric_invariant_violations": 0,
+      "median_detour_ratio": 1.9443,
+      "median_detour_ratio_delta_vs_baseline": 0.5898,
+      "median_network_nearest_m": 336.691,
+      "median_network_nearest_m_delta_vs_baseline": -4.127,
+      "origins_measured_pct": 23.84,
+      "variant": "strict_pedestrian"
+    },
+    {
+      "decision_changed": "remove highway=steps (a step-free walking proxy)",
+      "discordance_delta_pp_vs_baseline": 0.13,
+      "discordance_share_pct": 21.18,
+      "geometric_invariant_violations": 0,
+      "median_detour_ratio": 1.3558,
+      "median_detour_ratio_delta_vs_baseline": 0.0013,
+      "median_network_nearest_m": 341.1705,
+      "median_network_nearest_m_delta_vs_baseline": 0.352,
+      "origins_measured_pct": 99.359,
+      "variant": "no_steps"
+    },
+    {
+      "decision_changed": "ignore access=no/private (upper bound on permeability)",
+      "discordance_delta_pp_vs_baseline": 0.06,
+      "discordance_share_pct": 21.11,
+      "geometric_invariant_violations": 0,
+      "median_detour_ratio": 1.3545,
+      "median_detour_ratio_delta_vs_baseline": 0.0,
+      "median_network_nearest_m": 340.579,
+      "median_network_nearest_m_delta_vs_baseline": -0.239,
+      "origins_measured_pct": 99.698,
+      "variant": "permissive_access"
+    },
+    {
+      "decision_changed": "tighten the snapping tolerance to 15 m",
+      "discordance_delta_pp_vs_baseline": 0.38,
+      "discordance_share_pct": 21.43,
+      "geometric_invariant_violations": 0,
+      "median_detour_ratio": 1.3478,
+      "median_detour_ratio_delta_vs_baseline": -0.0067,
+      "median_network_nearest_m": 335.056,
+      "median_network_nearest_m_delta_vs_baseline": -5.762,
+      "origins_measured_pct": 94.191,
+      "variant": "snap_15m"
+    },
+    {
+      "decision_changed": "loosen the snapping tolerance to 50 m",
+      "discordance_delta_pp_vs_baseline": -0.06,
+      "discordance_share_pct": 20.99,
+      "geometric_invariant_violations": 0,
+      "median_detour_ratio": 1.354,
+      "median_detour_ratio_delta_vs_baseline": -0.0005,
+      "median_network_nearest_m": 341.664,
+      "median_network_nearest_m_delta_vs_baseline": 0.846,
+      "origins_measured_pct": 99.736,
+      "variant": "snap_50m"
+    },
+    {
+      "decision_changed": "halve the out-of-barrio facility catchment to 500 m",
+      "discordance_delta_pp_vs_baseline": 0.0,
+      "discordance_share_pct": 21.05,
+      "geometric_invariant_violations": 0,
+      "median_detour_ratio": 1.3545,
+      "median_detour_ratio_delta_vs_baseline": 0.0,
+      "median_network_nearest_m": 340.8185,
+      "median_network_nearest_m_delta_vs_baseline": 0.0,
+      "origins_measured_pct": 99.434,
+      "variant": "facility_buffer_500m"
+    }
+  ],
+  "status": "RESEARCH ONLY. Not wired into the application; no data/ artifact produced.",
+  "unit_of_analysis": "one official address portal (TIPO_NDP=PORTAL), measured to the nearest facility access point"
+}
