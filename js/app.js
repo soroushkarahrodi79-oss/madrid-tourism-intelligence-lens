@@ -397,6 +397,27 @@ if (k12PanOpts.has("thin")) {
 
 let poiPoints = [];
 let deploymentPoiRecordsReady = false;
+// Custom polygon analysis geometry (#187 Phase 3). DECLARED HERE, with the other
+// module state, not beside the polygon controller far below. `let` bindings are
+// in their temporal dead zone until the declaration RUNS, and the hoisted
+// functions that read them — activeAnalysisGeometry, polygonIsActiveGeometry —
+// are called during start-up by the halo, the scope rail and the statistics.
+// Declared late, those early calls threw a ReferenceError and silently took out
+// the halo render.
+let geometryMode = ANALYSIS_GEOMETRY.CIRCLE;
+let polygonVertices = [];       // the committed ring, as {lat, lon}
+let polygonDraft = [];          // vertices accumulated while drawing
+let polygonDrawing = false;
+// Set when a polygon request is refused because the mode cannot take one. It is
+// a separate flag precisely because the refusal resets geometryMode to CIRCLE,
+// so the reason cannot be derived from geometryMode afterwards.
+let polygonModeRefused = false;
+let polygonGeometry = null;     // frozen createPolygonGeometry() result, or null
+let polygonShape = null;
+let polygonDraftShape = null;
+let polygonHiddenCircles = [];
+const polygonLayerGroup = L.layerGroup().addTo(map);
+
 let pedestrianStations = [];
 let pedestrianStatus = "unavailable";
 let pedestrianMeta = {};
@@ -1506,6 +1527,15 @@ function updateHaloLayout() {
   if (!haloEnabled) {
     removeAll();
     if (note) note.textContent = bEnabled ? "Map halo off; the full comparison remains in this panel." : "Map halo off.";
+    return;
+  }
+  // The halo's bars are laid out on the LENS CIRCLE's screen radius. With a
+  // custom polygon as the active geometry there is no such radius, and leaving
+  // the bars in place would draw circle-shaped marks around polygon-derived
+  // figures. The mark is withdrawn and the reason is stated.
+  if (typeof polygonIsActiveGeometry === "function" && polygonIsActiveGeometry()) {
+    removeAll();
+    if (note) note.textContent = "Map halo off: its marks are laid out on the Lens circle, and a custom polygon has no radius.";
     return;
   }
   // Lens B markers never linger on the map in single-lens mode.
@@ -2639,6 +2669,33 @@ function isPedestrianVisible() {
   return map.hasLayer(groups.pedestrian);
 }
 
+// WHY THIS EXISTS. The pedestrian snapshot is built by CI
+// (.github/workflows/deploy-pages.yml), so data/pedestrian_activity.json in a
+// checkout is the committed `available: false` stub. Before this, the only trace
+// of that was `toggle.disabled = true` plus a `title` tooltip — invisible on
+// touch, and unreachable by keyboard because a disabled input is not focusable.
+// The control therefore looked identical to a working one and silently refused to
+// activate. It now stays focusable (`aria-disabled`), the row carries a visual
+// state, and the reason is rendered as text that `aria-describedby` points at.
+function renderPedestrianLayerAvailability() {
+  const toggle = document.querySelector('[data-layer="pedestrian"]');
+  const row = document.querySelector('[data-layer-row="pedestrian"]');
+  const state = document.getElementById("pedestrianLayerState");
+  const unavailable = pedestrianStatus === "unavailable";
+  if (toggle) {
+    // Deliberately NOT `disabled`: that removes the control from the tab order,
+    // which is exactly what hid the reason from keyboard users.
+    toggle.disabled = false;
+    toggle.setAttribute("aria-disabled", String(unavailable));
+    toggle.title = shellT(unavailable ? "layer.pedestrianUnavailable" : "layer.pedestrianAvailable");
+  }
+  if (row) row.dataset.state = unavailable ? "unavailable" : "available";
+  if (state) {
+    state.textContent = unavailable ? shellT("layer.pedestrianUnavailable") : "";
+    state.hidden = !unavailable;
+  }
+}
+
 function syncPedestrianUi(on) {
   const card = document.getElementById("pedestrianCard");
   const toggle = document.querySelector('[data-layer="pedestrian"]');
@@ -2698,6 +2755,19 @@ function windowRelationship() {
 // metric: derived from the Lens centre, its radius and the versioned extraction
 // contract only, so it is deterministic and never needs to be persisted in a URL.
 function mobilityEligibilityFor(which) {
+  const geometry = activeAnalysisGeometry(which);
+  if (geometry && geometry.kind === ANALYSIS_GEOMETRY.POLYGON) {
+    // Eligibility asks a DIFFERENT question from membership: "does the rail
+    // extraction actually cover the area being read?". For a polygon it is
+    // answered over the CIRCUMSCRIBING circle, which contains the polygon, so the
+    // test can only withhold Mobility more often than the polygon strictly
+    // requires — never claim coverage the extraction does not have. This is the
+    // one place an enclosing circle is used, and it is used in the safe
+    // direction; it is never substituted for membership.
+    const reference = geometryReferencePoint(geometry);
+    const radiusM = Math.max(...geometry.ring.map((vertex) => haversineMeters(reference, vertex)));
+    return LensExtractionBounds.railEligibility(reference, radiusM, railExtractionRecord);
+  }
   return LensExtractionBounds.railEligibility(centerOf(which), radiusFor(which), railExtractionRecord);
 }
 
@@ -2708,7 +2778,7 @@ function mobilityEligibilityFor(which) {
 // markers are untouched.
 function statsFor(which) {
   return LensExtractionBounds.applyMobilitySafety(
-    poiStatsInLens(visiblePoiPoints(), centerOf(which), radiusFor(which)),
+    poiStatsInGeometry(visiblePoiPoints(), activeAnalysisGeometry(which)),
     mobilityEligibilityFor(which),
   );
 }
@@ -2721,11 +2791,14 @@ function mobilitySide(stats, sourceState) {
 }
 
 function heatStatsFor(which) {
-  return hatiStatsInLens(hatiAssets, timestep, centerOf(which), radiusFor(which), haversineMeters);
+  const geometry = activeAnalysisGeometry(which);
+  return hatiStatsInGeometry(
+    hatiAssets, timestep, geometry, geometryContainsPoint, haversineMeters, geometryReferencePoint(geometry),
+  );
 }
 
 function pedestrianStatsFor(which) {
-  return pedestrianStatsInLens(pedestrianStations, centerOf(which), radiusFor(which));
+  return pedestrianStatsInGeometry(pedestrianStations, activeAnalysisGeometry(which));
 }
 
 const STATUS_LABEL = {
@@ -2894,7 +2967,14 @@ function renderPedestrianMetric(p) {
 
   value.textContent = `${Math.round(p.meanObserved).toLocaleString("en-GB")} ${p.stationCount === 1 ? "ped/h" : "passages/hour"}`;
   value.className = "activity-card-value";
-  foot.textContent = `${p.stationCount} counter${p.stationCount !== 1 ? "s" : ""} in current lens · ${formatLensRadius(radiusFor(active))} radius`;
+  // The footer names the geometry the count was actually taken over. Saying
+  // "900 m radius" over a polygon-derived count would attach a radius to a
+  // figure that has none.
+  const geometry = activeAnalysisGeometry(active);
+  const extent = geometry.kind === ANALYSIS_GEOMETRY.POLYGON
+    ? `custom polygon · ${formatAreaKm2(polygonAreaKm2(geometry.ring))}`
+    : `${formatLensRadius(radiusFor(active))} radius`;
+  foot.textContent = `${p.stationCount} counter${p.stationCount !== 1 ? "s" : ""} in current lens · ${extent}`;
   // K11 (#73): return the drawn projection so refresh() reuses it for the export
   // capture rather than recomputing pedestrianStatsFor(active) a second time.
   return p;
@@ -4943,6 +5023,11 @@ function applyLicenceWindowFromInputs() {
 
 function licenceView() {
   if (!licenceModel.index) return null;
+  // The register's own view contract is a lens CIRCLE (js/urban-licences.js takes
+  // {lat, lon, radiusM}). With a custom polygon active there is no radius to give
+  // it, and passing the Lens circle's would produce a circle-derived reading
+  // presented as the polygon's. Abstain instead; the section is marked.
+  if (typeof polygonIsActiveGeometry === "function" && polygonIsActiveGeometry()) return null;
   const centre = centerOf(active);
   return licenceModel.index.view(
     { lat: centre.lat, lon: centre.lon, radiusM: radiusFor(active) },
@@ -5978,12 +6063,25 @@ async function loadDomesticOrigins() {
 }
 
 function shadeMarkersOutsideActiveLens() {
-  const center = centerOf(active);
+  // Inside/outside is the SAME exact predicate the statistics use, so what the
+  // map shows solid can never disagree with what the panel counted.
+  //
+  // HOT PATH. This runs over every marker in every group on every refresh, and
+  // refresh() runs continuously during a lens drag. The circular case is
+  // specialised to exactly the comparison it used before — a haversine against a
+  // captured centre and radius — so the common path costs no more than it did;
+  // the polygon case goes through the shared predicate.
+  const geometry = activeAnalysisGeometry(active);
+  const isCircle = geometry.kind === ANALYSIS_GEOMETRY.CIRCLE;
+  const centre = isCircle ? geometry.center : null;
+  const radiusM = isCircle ? geometry.radiusM : 0;
+  const contains = isCircle
+    ? (point) => haversineMeters(centre, point) <= radiusM
+    : (point) => geometryContainsPoint(geometry, point);
   Object.values(groups).forEach((g) =>
     g.eachLayer((m) => {
       if (!m._p) return;
-      const d = haversineMeters(center, m._p);
-      const inside = d <= radiusFor(active);
+      const inside = contains(m._p);
 
       if (m._cluster && typeof m.setOpacity === "function") {
         // Outside/inside remains a structural distinction (dashed/solid), not
@@ -6159,6 +6257,10 @@ if (P0A_ENABLED) {
   lenses.B.marker.on("dragend", endPlanningMembershipInteraction);
 }
 map.on("click", (e) => {
+  // While a polygon is being drawn a map click PLACES A VERTEX and nothing else.
+  // Without this the same click would also drag the Lens centre under the new
+  // polygon, so the readings would move for a reason the reader never asked for.
+  if (polygonDrawing) return;
   // In COMPARE + ámbito scope a map click SELECTS an official ámbito (A then B)
   // instead of moving a Lens; otherwise the Lens-move behaviour is unchanged.
   if (!handleAmbitoCompareMapClick(e.latlng)) {
@@ -6273,8 +6375,23 @@ function renderRadiusLabels() {
   // The lens section states its own geometry, so "within the lens" can never be
   // read as the administrative area above it.
   document.getElementById("lensScopeHint").textContent = `${text} circle`;
+  // The compact band's own heading and chip are CIRCLE claims. With a polygon as
+  // the active geometry they would state a radius the reading does not have, so
+  // they say what the geometry actually is. One place, on the refresh path, so a
+  // later render cannot put the circle wording back.
+  const polygonActive = typeof polygonIsActiveGeometry === "function" && polygonIsActiveGeometry();
   const summaryRadius = document.getElementById("placeCircleSummaryRadius");
-  if (summaryRadius) summaryRadius.textContent = shellTemplate("place.circleSummaryRadius", { n: text });
+  if (summaryRadius) {
+    summaryRadius.textContent = polygonActive
+      ? `⬟ ${formatAreaKm2(polygonAreaKm2(polygonGeometry.ring))}`
+      : shellTemplate("place.circleSummaryRadius", { n: text });
+  }
+  const summaryHead = document.querySelector('#placeCircleSummary [data-i18n="place.circleSummary"]');
+  if (summaryHead) summaryHead.textContent = shellT(polygonActive ? "place.polygonSummary" : "place.circleSummary");
+  const summarySection = document.getElementById("placeCircleSummary");
+  if (summarySection) {
+    summarySection.setAttribute("aria-label", shellT(polygonActive ? "place.polygonSummaryAria" : "place.circleSummaryAria"));
+  }
 }
 const radiusSlider = document.getElementById("radiusSlider");
 radiusSlider.min = LENS_RADIUS.minM;
@@ -6408,9 +6525,401 @@ document.getElementById("resetButton").onclick = () => {
   refresh();
 };
 document.querySelectorAll("[data-layer]").forEach((x) => (x.onchange = () => {
+  // An `aria-disabled` control is focusable on purpose (so its reason can be
+  // read), which means the browser will still flip `checked`. Refuse the
+  // activation here rather than switching on a layer that has no evidence.
+  if (x.getAttribute("aria-disabled") === "true") {
+    x.checked = false;
+    x.setAttribute("aria-checked", "false");
+    return;
+  }
   setLayerVisible(x.dataset.layer, x.checked);
   renderRailGroupBadges();
 }));
+// =================== CUSTOM POLYGON ANALYSIS GEOMETRY ======================
+//
+// A second analysis geometry beside the circular Lens. ONE is active at a time:
+// the circle is the default and keeps its behaviour exactly, and a committed
+// polygon replaces it as the geometry the point-level readings are computed over.
+//
+// WHY NO DRAWING LIBRARY. Leaflet-Geoman Free was evaluated and rejected. The
+// parts that matter scientifically — exact point-in-polygon membership, spherical
+// area, great-circle perimeter — are this repository's own pure, tested model in
+// js/lens.js, kept in parity with js/geography.js by test. Geoman supplies none
+// of them. What it would supply is a vertex-dragging UI, which is the small part,
+// in exchange for a new third-party runtime dependency (the repository currently
+// has none at runtime and vendors Leaflet itself), its own stylesheet to
+// reconcile with the Light/Dark/System tokens, and its own keyboard and
+// screen-reader behaviour to audit. No demonstrable maintenance or reliability
+// advantage; a real increase in surface. Drawing is done below on the Leaflet
+// primitives the app already uses.
+//
+// POLYGON IS PLACE-ONLY. The A/B comparison, the comparison halo and the radius
+// sensitivity test are all defined on circles. Rather than reinterpret them, the
+// polygon mode is refused in COMPARE with a stated reason.
+const POLYGON_PANE_STYLE = Object.freeze({ weight: 2, dashArray: null, fillOpacity: 0.08 });
+const POLYGON_DRAFT_STYLE = Object.freeze({ weight: 2, dashArray: "6 5", fillOpacity: 0.05 });
+
+// THE single resolver every statistic goes through. It returns the polygon only
+// when a polygon is genuinely the active geometry for THIS lens in THIS mode;
+// in every other case the circular geometry is returned unchanged, which is what
+// keeps the existing circular behaviour byte-for-byte identical.
+function activeAnalysisGeometry(which) {
+  const mode = shell.modes ? shell.modes.currentMode() : "PLACE";
+  if (geometryMode === ANALYSIS_GEOMETRY.POLYGON && polygonGeometry && mode === "PLACE" && which === active) {
+    return polygonGeometry;
+  }
+  return createCircleGeometry(centerOf(which), radiusFor(which));
+}
+
+function polygonIsActiveGeometry() {
+  const mode = shell.modes ? shell.modes.currentMode() : "PLACE";
+  return geometryMode === ANALYSIS_GEOMETRY.POLYGON && Boolean(polygonGeometry) && mode === "PLACE";
+}
+
+function formatAreaKm2(areaKm2) {
+  if (!Number.isFinite(areaKm2)) return "—";
+  if (areaKm2 < 0.01) return `${Math.round(areaKm2 * 1e6).toLocaleString("en-GB")} m²`;
+  return `${Number(areaKm2.toFixed(areaKm2 < 1 ? 3 : 2))} km²`;
+}
+
+function formatDistanceM(metres) {
+  if (!Number.isFinite(metres)) return "—";
+  if (metres < 1000) return `${Math.round(metres)} m`;
+  return `${Number((metres / 1000).toFixed(2))} km`;
+}
+
+// ------------------------------------------------------------- map rendering
+
+function latLngsOf(vertices) {
+  return vertices.map((vertex) => [vertex.lat, vertex.lon]);
+}
+
+function clearPolygonLayers() {
+  polygonLayerGroup.clearLayers();
+  polygonShape = null;
+  polygonDraftShape = null;
+}
+
+// Draggable vertex handles. Editing a vertex rewrites the ring and re-renders;
+// `dragend` commits, so the statistics settle once on release rather than
+// recomputing on every pointer move.
+function addVertexHandle(index) {
+  const vertex = polygonVertices[index];
+  const handle = L.circleMarker([vertex.lat, vertex.lon], {
+    radius: 6, weight: 2, color: "#f7fbff", fillColor: "#43d7ff", fillOpacity: 1, interactive: true,
+  });
+  handle.on("mousedown", () => {
+    map.dragging.disable();
+    const move = (event) => {
+      handle.setLatLng(event.latlng);
+      polygonVertices[index] = { lat: event.latlng.lat, lon: event.latlng.lng };
+      if (polygonShape) polygonShape.setLatLngs(latLngsOf(polygonVertices));
+    };
+    const up = () => {
+      map.off("mousemove", move);
+      map.off("mouseup", up);
+      map.dragging.enable();
+      commitPolygon(polygonVertices);
+    };
+    map.on("mousemove", move);
+    map.on("mouseup", up);
+  });
+  polygonLayerGroup.addLayer(handle);
+}
+
+function renderPolygonOnMap() {
+  clearPolygonLayers();
+  if (polygonDrawing && polygonDraft.length) {
+    const style = { ...POLYGON_DRAFT_STYLE, color: "#43d7ff", fillColor: "#43d7ff" };
+    polygonDraftShape = polygonDraft.length >= 2
+      ? L.polygon(latLngsOf(polygonDraft), style)
+      : null;
+    if (polygonDraftShape) polygonLayerGroup.addLayer(polygonDraftShape);
+    polygonDraft.forEach((vertex) => polygonLayerGroup.addLayer(
+      L.circleMarker([vertex.lat, vertex.lon], { radius: 5, weight: 2, color: "#f7fbff", fillColor: "#43d7ff", fillOpacity: 1, interactive: false }),
+    ));
+    return;
+  }
+  if (!polygonGeometry) return;
+  polygonShape = L.polygon(latLngsOf(polygonVertices), { ...POLYGON_PANE_STYLE, color: "#43d7ff", fillColor: "#43d7ff" });
+  polygonLayerGroup.addLayer(polygonShape);
+  polygonVertices.forEach((_, index) => addVertexHandle(index));
+}
+
+// The Lens circle is hidden while a polygon is the active geometry, so the map
+// never shows two candidate analysis areas at once.
+//
+// IT ONLY EVER UNDOES ITS OWN REMOVALS. Circle visibility already has an owner —
+// enableLensB / disableLensB and the mode controller — and an earlier version of
+// this function recomputed `shouldShow` from `bEnabled`, which quietly took that
+// ownership over and removed a Lens B circle that its real owner had shown. It
+// now records exactly which circles it hid and restores only those.
+function syncLensCircleVisibility() {
+  if (polygonIsActiveGeometry()) {
+    for (const which of ["A", "B"]) {
+      const circle = lenses[which].circle;
+      if (map.hasLayer(circle)) {
+        map.removeLayer(circle);
+        if (!polygonHiddenCircles.includes(which)) polygonHiddenCircles.push(which);
+      }
+    }
+    return;
+  }
+  for (const which of polygonHiddenCircles) {
+    const circle = lenses[which].circle;
+    if (!map.hasLayer(circle)) map.addLayer(circle);
+  }
+  polygonHiddenCircles = [];
+}
+
+// ------------------------------------------------------------ drawing actions
+
+function polygonToolbarState() {
+  const polygonMode = geometryMode === ANALYSIS_GEOMETRY.POLYGON;
+  const mode = shell.modes ? shell.modes.currentMode() : "PLACE";
+  const compareRefused = polygonModeRefused || (polygonMode && mode !== "PLACE");
+  return { polygonMode, compareRefused, drawing: polygonDrawing, hasPolygon: Boolean(polygonGeometry) };
+}
+
+function renderSpatialToolbar() {
+  const state = polygonToolbarState();
+  const show = (id, visible) => { const el = document.getElementById(id); if (el) el.hidden = !visible; };
+
+  for (const button of document.querySelectorAll("[data-geometry-mode]")) {
+    button.setAttribute("aria-pressed", String(button.dataset.geometryMode === geometryMode));
+  }
+  show("spatialRadiusField", !state.polygonMode);
+  show("polygonTools", state.polygonMode);
+
+  const note = document.getElementById("geometryModeNote");
+  if (note) {
+    note.textContent = state.compareRefused ? shellT("polygon.modeCompareRefused") : "";
+    note.hidden = !state.compareRefused;
+  }
+
+  show("polygonDrawButton", !state.drawing && !state.hasPolygon);
+  show("polygonAddVertexButton", state.drawing);
+  show("polygonFinishButton", state.drawing);
+  show("polygonCancelButton", state.drawing);
+  show("polygonDeleteButton", !state.drawing && state.hasPolygon);
+
+  const finish = document.getElementById("polygonFinishButton");
+  if (finish) {
+    const ready = polygonDraft.length >= POLYGON_MIN_VERTICES;
+    finish.setAttribute("aria-disabled", String(!ready));
+  }
+
+  const status = document.getElementById("polygonStatus");
+  if (status) {
+    if (!state.polygonMode) status.textContent = "";
+    else if (state.drawing) {
+      status.textContent = polygonDraft.length < POLYGON_MIN_VERTICES
+        ? `${shellT("polygon.hintDrawing")} ${shellT("polygon.hintNeedsVertices")}`
+        : shellT("polygon.hintDrawing");
+    } else if (state.hasPolygon) status.textContent = shellT("polygon.hintReady");
+    else status.textContent = shellT("polygon.hintIdle");
+  }
+
+  const measure = document.getElementById("polygonMeasure");
+  const vertices = state.drawing ? polygonDraft : polygonVertices;
+  const ring = normalizePolygonRing(vertices);
+  if (measure) {
+    measure.hidden = !state.polygonMode || !ring;
+    if (ring) {
+      document.getElementById("polygonVertexCount").textContent = String(ring.length);
+      document.getElementById("polygonArea").textContent = formatAreaKm2(polygonAreaKm2(ring));
+      document.getElementById("polygonPerimeter").textContent = formatDistanceM(polygonPerimeterM(ring));
+    }
+  }
+}
+
+// Every section whose evidence is published per official area or per radius is
+// marked as unavailable while a polygon is active. It is MARKED, never
+// recomputed: clipping a barrio total to an arbitrary shape would require
+// assuming the quantity is spread evenly inside the barrio, and this product does
+// not make that assumption. data-geometry on <html> is what the stylesheet uses
+// to show the marks, so a new section cannot silently escape them.
+// TWO DIFFERENT SITUATIONS, kept apart because conflating them would itself be a
+// misstatement. A section that would otherwise compute from the Lens CIRCLE
+// produces a circle-derived reading dressed as the polygon's; it abstains. A
+// section published per official area is still saying something TRUE — it simply
+// is not clipped to the polygon — so it keeps its reading and says exactly that.
+const POLYGON_CIRCLE_DERIVED_SECTIONS = Object.freeze(["urbanLicences", "spatialSensitivity"]);
+const POLYGON_UNCLIPPED_SECTIONS = Object.freeze(["areaProfile", "planningAmbito", "hospitalityContext"]);
+const POLYGON_MARKED_SECTIONS = Object.freeze([
+  ...POLYGON_CIRCLE_DERIVED_SECTIONS.map((id) => [id, "polygon.withheldSection"]),
+  ...POLYGON_UNCLIPPED_SECTIONS.map((id) => [id, "polygon.unclippedSection"]),
+]);
+
+// Called on every mode render and every copy application. WRITE ONLY ON CHANGE:
+// assigning to <html>'s dataset invalidates style for the whole document, and
+// doing that unconditionally forces a style recalculation on renders that
+// changed nothing.
+let polygonScopeSignature = null;
+function renderPolygonScope() {
+  const active_ = polygonIsActiveGeometry();
+  const signature = `${active_}|${active_ && polygonGeometry ? polygonGeometry.ring.length : 0}|${shellLanguage()}|${active_ && polygonGeometry ? polygonAreaKm2(polygonGeometry.ring) : 0}`;
+  if (signature === polygonScopeSignature) return;
+  polygonScopeSignature = signature;
+  document.documentElement.dataset.analysisGeometry = active_ ? ANALYSIS_GEOMETRY.POLYGON : ANALYSIS_GEOMETRY.CIRCLE;
+  const notice = document.getElementById("polygonScopeNotice");
+  if (notice) notice.hidden = !active_;
+  const geometryLine = document.getElementById("polygonScopeGeometry");
+  if (geometryLine) {
+    const ring = polygonGeometry ? polygonGeometry.ring : null;
+    geometryLine.textContent = ring
+      ? `${ring.length} ${shellT("toolbar.vertices").toLowerCase()} · ${formatAreaKm2(polygonAreaKm2(ring))} · ${formatDistanceM(polygonPerimeterM(ring))}`
+      : "";
+  }
+  for (const [id, copyKey] of POLYGON_MARKED_SECTIONS) {
+    const section = document.getElementById(id);
+    if (!section) continue;
+    if (active_) section.dataset.geometryUnsupported = copyKey === "polygon.withheldSection" ? "withheld" : "unclipped";
+    else delete section.dataset.geometryUnsupported;
+    let mark = section.querySelector(":scope > .geometry-unsupported");
+    if (active_ && !mark) {
+      mark = document.createElement("p");
+      mark.className = "geometry-unsupported";
+      mark.setAttribute("role", "status");
+      section.prepend(mark);
+    }
+    if (mark) {
+      mark.textContent = shellT(copyKey);
+      mark.hidden = !active_;
+    }
+  }
+}
+
+function applyGeometryState() {
+  renderPolygonOnMap();
+  // The compact band's heading and chip are written by renderRadiusLabels, which
+  // refresh() does not call. Without this, committing a polygon left the band
+  // still saying "In this Lens circle · 900 m radius".
+  renderRadiusLabels();
+  syncLensCircleVisibility();
+  renderSpatialToolbar();
+  renderPolygonScope();
+  refresh();
+}
+
+function commitPolygon(vertices) {
+  const geometry = createPolygonGeometry(vertices);
+  if (!geometry) return false;
+  polygonVertices = geometry.ring.map((vertex) => ({ ...vertex }));
+  polygonGeometry = geometry;
+  polygonDraft = [];
+  polygonDrawing = false;
+  applyGeometryState();
+  return true;
+}
+
+function startPolygonDrawing() {
+  polygonDrawing = true;
+  polygonDraft = [];
+  polygonGeometry = null;
+  polygonVertices = [];
+  applyGeometryState();
+}
+
+function addPolygonVertex(vertex) {
+  if (!polygonDrawing || !vertex || !Number.isFinite(vertex.lat) || !Number.isFinite(vertex.lon)) return;
+  polygonDraft = [...polygonDraft, { lat: vertex.lat, lon: vertex.lon }];
+  renderPolygonOnMap();
+  renderSpatialToolbar();
+}
+
+function finishPolygonDrawing() {
+  if (!polygonDrawing) return false;
+  return commitPolygon(polygonDraft);
+}
+
+function cancelPolygonDrawing() {
+  if (!polygonDrawing) return;
+  polygonDrawing = false;
+  polygonDraft = [];
+  applyGeometryState();
+}
+
+function deletePolygon() {
+  polygonDrawing = false;
+  polygonDraft = [];
+  polygonVertices = [];
+  polygonGeometry = null;
+  setGeometryMode(ANALYSIS_GEOMETRY.CIRCLE);
+}
+
+function setGeometryMode(nextMode) {
+  if (nextMode !== ANALYSIS_GEOMETRY.CIRCLE && nextMode !== ANALYSIS_GEOMETRY.POLYGON) return;
+  // Polygon analysis is refused outside PLACE rather than silently reinterpreted.
+  if (nextMode === ANALYSIS_GEOMETRY.POLYGON && shell.modes && shell.modes.currentMode() !== "PLACE") {
+    geometryMode = ANALYSIS_GEOMETRY.CIRCLE;
+    polygonModeRefused = true;
+    renderSpatialToolbar();
+    return;
+  }
+  polygonModeRefused = false;
+  geometryMode = nextMode;
+  if (nextMode === ANALYSIS_GEOMETRY.CIRCLE) {
+    polygonDrawing = false;
+    polygonDraft = [];
+  }
+  applyGeometryState();
+}
+
+for (const button of document.querySelectorAll("[data-geometry-mode]")) {
+  button.addEventListener("click", () => setGeometryMode(button.dataset.geometryMode));
+}
+document.getElementById("polygonDrawButton")?.addEventListener("click", startPolygonDrawing);
+document.getElementById("polygonAddVertexButton")?.addEventListener("click", () => {
+  // The keyboard route: Leaflet pans and zooms the focused map with the arrow
+  // keys and +/-, and this drops a vertex at the map centre. Clicking the map is
+  // the pointer shortcut for the same action, never the only way in.
+  const centre = map.getCenter();
+  addPolygonVertex({ lat: centre.lat, lon: centre.lng });
+});
+document.getElementById("polygonFinishButton")?.addEventListener("click", () => finishPolygonDrawing());
+document.getElementById("polygonCancelButton")?.addEventListener("click", cancelPolygonDrawing);
+document.getElementById("polygonDeleteButton")?.addEventListener("click", deletePolygon);
+
+map.on("click", (event) => {
+  if (!polygonDrawing) return;
+  addPolygonVertex({ lat: event.latlng.lat, lon: event.latlng.lng });
+});
+
+// Test seams, exposed only under the same regression flag the halo tests already
+// use, so a browser test can build an EXACT ring and read back the exact point
+// set a recomputation can be checked against. Never part of the product surface.
+if (haloRegressionRequested && haloRegressionLocal) {
+  window.__addVertex = (vertex) => addPolygonVertex(vertex);
+  window.__ring = () => (polygonGeometry ? polygonGeometry.ring.map((v) => ({ ...v })) : null);
+  window.__visiblePoints = () => visiblePoiPoints().map((p) => ({ type: p.type, lat: p.lat, lon: p.lon }));
+  window.__geometryKind = () => activeAnalysisGeometry(active).kind;
+  // The same commit path a vertex drag ends in, so an edit can be exercised
+  // without synthesising pointer events over a Leaflet canvas.
+  window.__commitRing = (ring) => commitPolygon(ring);
+  window.__licenceViewIsNull = () => licenceView() === null;
+  window.__latLngToPoint = (lat, lon) => {
+    const point = map.latLngToContainerPoint([lat, lon]);
+    const rect = map.getContainer().getBoundingClientRect();
+    return { x: rect.left + point.x, y: rect.top + point.y };
+  };
+  window.__panMapBy = (dLat, dLon) => {
+    const centre = map.getCenter();
+    map.setView([centre.lat + dLat, centre.lng + dLon], map.getZoom(), { animate: false });
+  };
+}
+
+document.addEventListener("keydown", (event) => {
+  if (!polygonDrawing) return;
+  if (event.key === "Escape") { cancelPolygonDrawing(); event.preventDefault(); return; }
+  // Enter finishes, but never while the reader is on a button that has its own
+  // Enter behaviour.
+  if (event.key === "Enter" && !(event.target instanceof HTMLButtonElement)) {
+    if (finishPolygonDrawing()) event.preventDefault();
+  }
+});
+
 syncHatiUi(false);
 syncPedestrianUi(false);
 syncHospitalityUi(false);
@@ -6629,6 +7138,9 @@ function applyShellCopy() {
   setMobileRailOpen(!mobileRail.hidden);
   renderRadiusLabels();
   renderCircleSummary();
+  renderPedestrianLayerAvailability();
+  if (typeof renderSpatialToolbar === "function") renderSpatialToolbar();
+  if (typeof renderPolygonScope === "function") renderPolygonScope();
   document.getElementById("hospitalityLanguageLabel").textContent = "Idioma / Language";
 }
 
@@ -6708,6 +7220,20 @@ function renderModeUi() {
     const band = document.getElementById("placeCircleSummary");
     placeSection.insertBefore(area, band ? band.nextSibling : placeSection.firstElementChild);
   }
+  // Leaving PLACE drops back to the circular geometry: the A/B comparison, the
+  // halo and radius sensitivity are all defined on circles, so a polygon must not
+  // silently become their input. The polygon itself is kept, so returning to
+  // PLACE and pressing Polygon again restores it rather than losing the work.
+  if (mode !== "PLACE" && geometryMode === ANALYSIS_GEOMETRY.POLYGON) {
+    polygonDrawing = false;
+    polygonDraft = [];
+    geometryMode = ANALYSIS_GEOMETRY.CIRCLE;
+    renderPolygonOnMap();
+  }
+  if (mode === "PLACE") polygonModeRefused = false;
+  if (typeof syncLensCircleVisibility === "function") syncLensCircleVisibility();
+  if (typeof renderSpatialToolbar === "function") renderSpatialToolbar();
+  if (typeof renderPolygonScope === "function") renderPolygonScope();
   shell.signature = "";
   renderScopeRail();
 }
@@ -6746,6 +7272,11 @@ function railInstances(mode) {
   const resolved = shown && AREA_STATE && shown.state === AREA_STATE.RESOLVED;
   return {
     LENS_CIRCLE: mode === "COMPARE" ? [lensLabel("A"), lensLabel("B")] : [lensLabel(active)],
+    // Stated as what it is — vertices and area — never as a radius the polygon
+    // does not have.
+    LENS_POLYGON: polygonGeometry
+      ? [`${polygonGeometry.ring.length} · ${formatAreaKm2(polygonAreaKm2(polygonGeometry.ring))}`]
+      : [],
     OFFICIAL_BARRIO: [resolved ? shown.headline : shellT("rail.locating")],
     MUNICIPALITY: ["Madrid"],
     // The rail states the real planning scope: the exact official code when an
@@ -6782,14 +7313,29 @@ function renderScopeRail() {
   const mode = shell.modes.currentMode();
   const flags = currentFlags();
   const instances = railInstances(mode);
-  const model = shell.registry ? railModel({ mode, flags, registry: shell.registry, instances }) : null;
+  // While a polygon is the active geometry the PLACE metrics are NOT circle-scoped,
+  // so the rail must not say "Lens circle · A · 900 m" over polygon-derived
+  // figures. The override is validated against the closed scope enum inside
+  // railModel; it can relabel a scope, never invent one.
+  const scopeOverrides = polygonIsActiveGeometry() ? { LENS_CIRCLE: "LENS_POLYGON" } : {};
+  const model = shell.registry
+    ? railModel({ mode, flags, registry: shell.registry, instances, scopeOverrides })
+    : null;
   const entries = model
     ? model.entries
-    : [...new Set(surfaceKeysFor(mode, flags).map((key) => SURFACES[key].scope))].map((scope) => ({
-        scope, glyph: SCOPE_GLYPHS[scope], instances: instances[scope] || [], surfaces: [],
-      }));
+    : [...new Set(surfaceKeysFor(mode, flags).map((key) => scopeOverrides[SURFACES[key].scope] ?? SURFACES[key].scope))]
+        .map((scope) => ({ scope, glyph: SCOPE_GLYPHS[scope], instances: instances[scope] || [], surfaces: [] }));
+  // A section the reader has been told is unavailable must not also carry a scope
+  // claim in the rail. The rail declares the scope of DISPLAYED values, and while
+  // a polygon is active the barrio, planning-ámbito and ámbito-membership
+  // readings are marked unavailable rather than recomputed, so their entries go
+  // with them. Suppressing a claim states less; it never states anything false.
+  const suppressed = polygonIsActiveGeometry()
+    ? new Set(["OFFICIAL_BARRIO", "PLANNING_AMBITO", "LENS_INTERSECT_AMBITO"])
+    : new Set();
+  const visibleEntries = entries.filter((entry) => !suppressed.has(entry.scope));
   const line = freshnessLine(model);
-  const signature = JSON.stringify([shellLanguage(), mode, entries.map((e) => [e.scope, e.instances]), line]);
+  const signature = JSON.stringify([shellLanguage(), mode, visibleEntries.map((e) => [e.scope, e.instances]), line]);
   if (signature === shell.signature) return;
   shell.signature = signature;
 
@@ -6801,7 +7347,7 @@ function renderScopeRail() {
     ? [document.activeElement.dataset.scope, [...list.querySelectorAll("button")].indexOf(document.activeElement)]
     : null;
   list.textContent = "";
-  for (const entry of entries) {
+  for (const entry of visibleEntries) {
     const labels = entry.instances.length ? entry.instances : [null];
     for (const instance of labels) {
       const item = document.createElement("li");
@@ -7372,17 +7918,53 @@ syncEdgeToggleLabels();
 positionPanelResizeHandle();
 
 async function boot() {
-  const [snapshotPOI, runtimePOI, hatiAssetsData, hatiProvenance, pedestrianData] = await Promise.all([
-    fetch("data/snapshot_poi.json").then((r) => r.json()),
+  // A required artifact that 404s used to reach `r.json()` and reject with an
+  // opaque parse error, taking the whole of boot() down with it. Name the failure
+  // instead, so a mis-served path is diagnosable rather than silent.
+  const required = (url) =>
+    fetch(url).then((r) => {
+      if (!r.ok) throw new Error(`boot: required artifact ${url} responded ${r.status}`);
+      return r.json();
+    });
+  // INDEPENDENT OF THE POI PIPELINE, DELIBERATELY. This artifact is started here
+  // but awaited on its own below, outside the Promise.all of the required ones.
+  // Pedestrian evidence has no dependency on snapshot_poi / HATI, so a failure in
+  // those must not decide whether the pedestrian layer is offered — and a
+  // rejection inside a shared Promise.all would skip the wiring entirely.
+  const pedestrianRequest = fetch("data/pedestrian_activity.json?v=20260928-21", { cache: "no-store" })
+    .then((r) => (r.ok ? r.json() : { available: false, stations: [] }))
+    .catch(() => ({ available: false, stations: [] }));
+
+  // EVERY REQUEST IS IN FLIGHT BEFORE ANYTHING IS AWAITED. Awaiting the
+  // pedestrian artifact before even issuing these would serialise two network
+  // round trips and push the first POI render later for every visitor — the
+  // decoupling above is about failure independence, not about ordering the
+  // network.
+  const requiredRequests = Promise.all([
+    required("data/snapshot_poi.json"),
     fetch("data/runtime_poi.json?v=20260928-18")
       .then((r) => (r.ok ? r.json() : {}))
       .catch(() => ({})),
-    fetch("data/hati_assets.json").then((r) => r.json()),
-    fetch("data/hati_provenance.json?v=20260928-11").then((r) => r.json()),
-    fetch("data/pedestrian_activity.json?v=20260928-21", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : { available: false, stations: [] }))
-      .catch(() => ({ available: false, stations: [] })),
+    required("data/hati_assets.json"),
+    required("data/hati_provenance.json?v=20260928-11"),
   ]);
+
+  // ORDERING IS LOAD-BEARING. The pedestrian control is settled BEFORE the
+  // required artifacts and the heavy `loadAllLayers` await below. Previously this
+  // block sat after both, so any throw upstream left the toggle in its markup
+  // state — enabled, with zero stations — and a user could switch on an empty
+  // layer with nothing reported.
+  const pedestrianData = await pedestrianRequest;
+  pedestrianMeta = pedestrianData || {};
+  pedestrianStations = Array.isArray(pedestrianData?.stations)
+    ? pedestrianData.stations.map((p) => ({ ...p, type: "pedestrian", provenance: "published" }))
+    : [];
+  pedestrianStatus = pedestrianData?.available && pedestrianStations.length ? "published" : "unavailable";
+  renderPedestrianActivity();
+  renderPedestrianLayerAvailability();
+
+  const [snapshotPOI, runtimePOI, hatiAssetsData, hatiProvenance] = await requiredRequests;
+
   hatiAssets = hatiAssetsData;
   hatiStudyArea = hatiProvenance.study_area || null;
   drawHatiStudyArea();
@@ -7394,22 +7976,6 @@ async function boot() {
   railExtractionRecord = extraction?.rail ?? null;
   deploymentPoiRecordsReady = true;
   renderDeploymentPoiCount();
-
-  pedestrianMeta = pedestrianData || {};
-  pedestrianStations = Array.isArray(pedestrianData?.stations)
-    ? pedestrianData.stations.map((p) => ({ ...p, type: "pedestrian", provenance: "published" }))
-    : [];
-  pedestrianStatus = pedestrianData?.available && pedestrianStations.length ? "published" : "unavailable";
-  renderPedestrianActivity();
-
-  const pedestrianToggle = document.querySelector('[data-layer="pedestrian"]');
-  if (pedestrianToggle) {
-    pedestrianToggle.disabled = pedestrianStatus === "unavailable";
-    pedestrianToggle.title =
-      pedestrianStatus === "unavailable"
-        ? "Observed pedestrian activity unavailable in this deployment"
-        : "Show Madrid permanent pedestrian counters and lens activity evidence";
-  }
 
   parkPoints = (runtimePOI?.layers?.park || []).map((p) => ({
     ...p,
@@ -8257,7 +8823,13 @@ async function k11CopyShareLink() {
   if (status) {
     status.dataset.tone = ok ? "ok" : "error";
     // On failure the URL is shown in full so the copy never silently fails.
-    status.textContent = ok ? k11T("share.copied") : `${k11T("share.copyFailed")} ${url}`;
+    const base = ok ? k11T("share.copied") : `${k11T("share.copyFailed")} ${url}`;
+    // The v=1 URL schema carries the circular Lens; it has no polygon dimension,
+    // and inventing one would promise a reproducibility the link cannot deliver.
+    // So the link is still copied — it reproduces everything it does carry — and
+    // the one thing it does NOT carry is said out loud, here, at the moment of
+    // copying. Export evidence keeps the geometry.
+    status.textContent = polygonIsActiveGeometry() ? `${base} ${shellT("polygon.share")}` : base;
   }
   return ok;
 }

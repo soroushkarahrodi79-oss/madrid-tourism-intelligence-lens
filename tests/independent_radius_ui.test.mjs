@@ -8,9 +8,13 @@ const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 test("production has one explicit independent A/B radius source and side-specific consumers", () => {
   assert.match(app, /const radii = createLensRadii\(\)/);
   assert.doesNotMatch(app, /let radius\s*=/);
-  assert.match(app, /poiStatsInLens\(visiblePoiPoints\(\), centerOf\(which\), radiusFor\(which\)\)/);
-  assert.match(app, /hatiStatsInLens\(hatiAssets, timestep, centerOf\(which\), radiusFor\(which\)/);
-  assert.match(app, /pedestrianStatsInLens\(pedestrianStations, centerOf\(which\), radiusFor\(which\)\)/);
+  // The statistics read the SAME filtered point set the map renders. The call
+  // now names an analysis geometry rather than a centre and a radius (#187
+  // Phase 3: circle or custom polygon), and `activeAnalysisGeometry` returns the
+  // circular geometry unchanged in every case but an active polygon in PLACE.
+  assert.match(app, /poiStatsInGeometry\(visiblePoiPoints\(\), activeAnalysisGeometry\(which\)\)/);
+  assert.match(app, /hatiStatsInGeometry\(\s*hatiAssets, timestep, geometry, geometryContainsPoint/);
+  assert.match(app, /pedestrianStatsInGeometry\(pedestrianStations, activeAnalysisGeometry\(which\)\)/);
   assert.match(app, /lenses\[which\]\.circle\.setRadius\(radiusFor\(which\)\)/);
   assert.match(app, /radiusFor\(which\) \/ metresPerPixel/);
 });

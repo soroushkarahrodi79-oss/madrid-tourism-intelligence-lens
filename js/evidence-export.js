@@ -47,6 +47,7 @@ const EXPORT_REGISTRY_API =
 // geometry feature must carry one of these — never an ad-hoc scope string.
 const APPROVED_SCOPES = Object.freeze([
   "LENS_CIRCLE",
+  "LENS_POLYGON",
   "OFFICIAL_BARRIO",
   "OFFICIAL_DISTRICT",
   "MUNICIPALITY",

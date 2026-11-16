@@ -184,6 +184,84 @@ body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 .leaflet-control-zoom a.leaflet-disabled{color:var(--map-zoom-disabled-text)!important;opacity:var(--map-zoom-disabled-opacity);cursor:default}
 .leaflet-top.leaflet-left{top:calc(90px + var(--safe-top));left:calc(var(--rail-offset,254px) + var(--safe-left))}
 .leaflet-bottom.leaflet-right{right:auto;left:calc(var(--rail-offset,254px) + var(--safe-left));bottom:calc(18px + var(--safe-bottom))}
+
+/* ---------------------------------------------- spatial toolbar (map chrome)
+   The geometry controls sit with the map, not among the readings. Surface,
+   border, shadow and focus ring are the SAME map-chrome tokens the Leaflet zoom
+   cluster uses, so the toolbar reads as one piece of map furniture and follows
+   Light / Dark / System without a rule of its own.
+   Desktop: directly below the zoom cluster (zoom starts at 90px and is two 36px
+   buttons tall, so 90 + 72 + 10 = 172px), on the same left edge. */
+.spatial-toolbar{
+  position:absolute;z-index:410;
+  top:calc(172px + var(--safe-top));
+  left:calc(var(--rail-offset,254px) + var(--safe-left));
+  width:218px;max-width:calc(100vw - 32px - var(--safe-left) - var(--safe-right));
+  box-sizing:border-box;padding:var(--s-2) var(--s-3) var(--s-3);
+  border:1px solid var(--map-zoom-edge);border-radius:var(--r-small);
+  background:var(--map-zoom-surface);box-shadow:var(--map-zoom-shadow);
+  transition:top .18s ease,left .18s ease;
+  /* The toolbar sits ON the map, so it must not take map space it is not using.
+     The card itself is transparent to the pointer and each control re-enables
+     it, which is the same convention the halo's own transparent DivIcon boxes
+     follow: a click that is not on a control reaches the map underneath. */
+  pointer-events:none
+}
+.spatial-toolbar label,.spatial-toolbar b,.spatial-toolbar input,.spatial-toolbar button,
+.spatial-toolbar .polygon-measure,.spatial-toolbar .spatial-toolbar-note{pointer-events:auto}
+.spatial-toolbar[hidden]{display:none}
+.spatial-toolbar-field{min-width:0}
+.spatial-toolbar-head{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s-2);margin-bottom:var(--s-1);font-size:var(--t-micro);color:var(--chrome-text-control-caption)}
+.spatial-toolbar-head label{min-width:0;cursor:pointer}
+.spatial-toolbar-head b{flex:0 0 auto;color:var(--chrome-text-control-strong);font-size:var(--t-meta);font-variant-numeric:tabular-nums}
+.spatial-toolbar input[type=range]{display:block;width:100%;margin:0}
+.spatial-toolbar input[type=range]:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:3px;border-radius:var(--r-small)}
+
+/* Geometry-type switch: a two-button segmented control. State is carried by
+   aria-pressed, which is both the accessible state and the style hook, so the
+   two can never disagree. */
+.geometry-mode{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-1);margin-bottom:var(--s-2);padding:var(--s-1);border:1px solid var(--map-zoom-edge);border-radius:var(--r-small);background:var(--chrome-form-surface)}
+.geometry-mode-btn{min-height:36px;padding:var(--s-1) var(--s-2);border:0;border-radius:var(--r-small);background:transparent;color:var(--chrome-text-control-caption);font:inherit;font-size:var(--t-micro);cursor:pointer}
+.geometry-mode-btn[aria-pressed="true"]{background:var(--map-zoom-hover-surface);color:var(--chrome-text-control-strong);font-weight:600;box-shadow:inset 0 0 0 1px var(--map-zoom-edge)}
+.geometry-mode-btn:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
+.spatial-toolbar-note{margin:var(--s-1) 0 0;color:var(--muted);font-size:var(--t-micro);line-height:1.4}
+.spatial-toolbar-note:empty{display:none}
+.polygon-tools{display:grid;gap:var(--s-1)}
+.polygon-tool-row{display:flex;flex-wrap:wrap;gap:var(--s-1)}
+.polygon-tool-row:empty{display:none}
+.polygon-btn{flex:1 1 auto;min-height:36px;padding:var(--s-1) var(--s-2);border:1px solid var(--map-zoom-edge);border-radius:var(--r-small);background:var(--chrome-form-surface);color:var(--chrome-text-control-strong);font:inherit;font-size:var(--t-micro);cursor:pointer}
+.polygon-btn[hidden]{display:none}
+.polygon-btn:hover{background:var(--map-zoom-hover-surface)}
+.polygon-btn:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
+/* aria-disabled, not disabled: Finish stays focusable so a keyboard reader can
+   reach it and be told why it will not commit yet. */
+.polygon-btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.polygon-measure{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--s-1);margin:var(--s-1) 0 0;font-size:var(--t-micro)}
+.polygon-measure[hidden]{display:none}
+.polygon-measure dt{color:var(--muted)}
+.polygon-measure dd{margin:0;color:var(--chrome-text-control-strong);font-variant-numeric:tabular-nums}
+
+/* The on-screen statement of what a custom polygon can and cannot answer. */
+.polygon-scope{margin:var(--s-2) 0;padding:var(--s-3);border:1px solid var(--line2);border-radius:var(--r-small);background:var(--panel2)}
+.polygon-scope[hidden]{display:none}
+.polygon-scope h3{margin:0 0 var(--s-1);font-size:var(--t-label)}
+.polygon-scope-geometry{margin:0 0 var(--s-2);color:var(--chrome-text-control-strong);font-size:var(--t-meta);font-variant-numeric:tabular-nums}
+.polygon-scope-geometry:empty{display:none}
+.polygon-scope-line{margin:0 0 var(--s-1);color:var(--muted);font-size:var(--t-micro);line-height:1.45}
+.polygon-scope-line:last-child{margin-bottom:0}
+.polygon-scope-withheld{color:var(--text)}
+
+/* A section whose evidence is published per official area or per radius, while a
+   polygon is active. Marked, dimmed and labelled — never recomputed. */
+.geometry-unsupported{margin:0 0 var(--s-2);padding:var(--s-1) var(--s-2);border-left:3px solid var(--line2);color:var(--text);font-size:var(--t-micro);line-height:1.4;text-transform:uppercase;letter-spacing:.04em}
+.geometry-unsupported[hidden]{display:none}
+/* Deliberately NO opacity fade on the section body. Dimming real published
+   figures would cost contrast for no gain in meaning: the mark above already
+   states exactly what the reading is and is not, and the figures below it remain
+   true statements about their own official area. */
+[data-geometry-unsupported="withheld"] .geometry-unsupported{border-left-color:var(--text)}
+
+
 .leaflet-control-attribution{max-width:min(46vw,520px);border-radius:7px;padding:2px 5px!important;line-height:1.25}
 .leaflet-tooltip{background:var(--map-tooltip-surface);border:1px solid var(--map-tooltip-edge);color:var(--map-tooltip-text);border-radius:10px;box-shadow:var(--map-tooltip-shadow);font-size:var(--t-meta);padding:7px 9px}
 .leaflet-tooltip-top:before{border-top-color:var(--map-tooltip-arrow)}
@@ -259,6 +337,14 @@ header{
 /* Operational provenance, collapsed by default: one status per group,
    not a long list of repeated deployment labels below the final layer. */
 .layer-source-note{margin-top:var(--s-2);padding-top:var(--s-2);border-top:1px solid var(--chrome-divider);font-size:var(--t-micro);line-height:1.45}
+/* A layer whose evidence this build does not carry. The control stays focusable
+   (aria-disabled, not disabled) so the reason below is reachable; the row is
+   dimmed and the switch reads as inoperable. Colour comes from --muted, which is
+   redefined per appearance, so Light / Dark / System all follow. */
+.layer-state{margin:calc(var(--s-1) * -1) 0 var(--s-1);color:var(--muted);font-size:var(--t-micro);line-height:1.45}
+.layer[data-state="unavailable"] .layer-left{opacity:.62}
+.layer[data-state="unavailable"] .switch span{cursor:not-allowed;opacity:.55}
+
 .layer-source-disclosure{min-width:0;border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-form-surface)}
 .layer-source-disclosure>summary{position:relative;display:flex;flex-direction:column;justify-content:center;gap:var(--s-1);min-width:0;min-height:44px;padding:var(--s-2) var(--s-4) var(--s-2) var(--s-2);cursor:pointer;list-style:none}
 .layer-source-disclosure>summary::-webkit-details-marker{display:none}
@@ -1039,6 +1125,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
     min-width:340px;max-width:calc(100vw - 250px - var(--safe-left) - var(--safe-right))
   }
   .leaflet-top.leaflet-left,.leaflet-bottom.leaflet-right{left:calc(232px + var(--safe-left))}
+  .spatial-toolbar{left:calc(232px + var(--safe-left));width:200px}
 }
 
 @media(max-width:850px){
@@ -1092,15 +1179,63 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
      before attribution instead of overlapping its legal source text. */
   .leaflet-bottom.leaflet-right{top:calc(var(--header-chrome-top) + 110px);bottom:auto;left:auto;right:calc(10px + var(--safe-right))}
   .leaflet-control-attribution{max-width:min(46vw,220px);text-align:right}
+  /* Zoom (header+10, 88px tall) then attribution (header+110, ~22px) occupy the
+     top right, the rail overlays the left and the panel docks to the bottom. The
+     toolbar takes the band below attribution, right-aligned so it clears the rail
+     in landscape, where the rail is visible. */
+  .spatial-toolbar{
+    top:calc(var(--header-chrome-top) + 140px);left:auto;
+    right:calc(10px + var(--safe-right));
+    width:min(208px,calc(100vw - 20px - var(--safe-left) - var(--safe-right)));
+    padding:var(--s-2);
+    /* The polygon tools are far taller than the radius field, and the panel is
+       docked to the bottom, so the toolbar is capped to the band between the
+       attribution and the panel. 42dvh is the panel's own max-height; when the
+       panel is shorter than that the cap is simply conservative. The scroll is a
+       safety net — the compaction below is what normally keeps it unnecessary. */
+    max-height:calc(100dvh - var(--header-chrome-top) - 140px - 42dvh - 20px - var(--safe-bottom));
+    overflow-y:auto;overscroll-behavior:contain
+  }
+  /* One row of actions and a single-line measurement readout, so the whole
+     polygon workflow fits the band without scrolling at phone sizes. */
+  .polygon-tools{gap:var(--s-1)}
+  .polygon-tool-row{flex-wrap:nowrap}
+  .polygon-btn{padding:var(--s-1)}
+  .polygon-measure{grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-1)}
+  .spatial-toolbar-note{line-height:1.3}
+  /* Short landscape (a phone on its side) leaves only ~55px between the
+     attribution and the bottom-docked panel, so the toolbar tucks in directly
+     under attribution as ONE row. The visible label is dropped at this size
+     only; the slider keeps its aria-label, so the accessible name is unchanged
+     and the numeric readout stays on screen. */
+  @media(max-height:520px){
+    /* The band between the attribution and the panel is only ~56px at 560x400,
+       so the toolbar takes it exactly: one 44px slider plus 4px padding. */
+    .spatial-toolbar{top:calc(var(--header-chrome-top) + 92px);padding:var(--s-1) var(--s-2)}
+    .spatial-toolbar-field{display:flex;align-items:center;gap:var(--s-2)}
+    .spatial-toolbar-head{margin:0;flex:0 0 auto}
+    /* Visually hidden, not removed: the slider keeps its aria-label so the
+       accessible name is unchanged, and the numeric readout stays visible. */
+    .spatial-toolbar-head label{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+    .spatial-toolbar input[type=range]{flex:1 1 auto;min-width:0}
+  }
 }
 
 @media(pointer:coarse){
+  /* K5: the geometry switch and the polygon actions are application-owned
+     interactives, so a coarse pointer gets a real 44px target on each. */
+  .geometry-mode-btn,.polygon-btn{min-height:44px}
   .layer{min-height:44px}
   .switch{width:42px;height:24px}
   .switch span{border-radius:14px}
   .switch span:after{width:20px;height:20px;left:2px;top:2px}
   .switch input:checked+span:after{left:20px}
   .leaflet-control-zoom a{width:44px!important;height:44px!important}
+  /* The cluster is two 44px buttons, not two 36px ones, so the toolbar below
+     it has to start 16px lower (90 + 88 + 10). Desktop widths only: below 851px
+     the controls move to the top right and the toolbar is placed from there, and
+     this block would otherwise win the cascade over that rule. */
+  @media(min-width:851px){ .spatial-toolbar{top:calc(188px + var(--safe-top))} }
   /* Baseline capture/reset are touch targets wherever the pointer is coarse —
      including an iPad in landscape, which is far too wide for the width-based
      typography query above. */

@@ -517,8 +517,18 @@ test("IA 16 supporting figures, Detail, Evidence route and controls follow the r
   assert.equal(await page.locator("#placeDetail .mix").isVisible(), true, "…and reachable at every width");
   assert.equal(await page.locator("#placeDetail #nearestList").count(), 1);
   // No control between results: every control id lives in the controls region or the aside.
-  const stray = await page.evaluate(() => ["radiusSlider", "timeSelect", "resetButton", "lensAButton", "lensBButton", "haloToggle", "domesticOriginsMonth"]
+  const stray = await page.evaluate(() => ["timeSelect", "resetButton", "lensAButton", "lensBButton", "haloToggle", "domesticOriginsMonth"]
     .filter((id) => !document.getElementById(id).closest("#panelControls")));
+  // The radius control is map chrome, by design: see the matching note in
+  // tests/information_architecture.test.mjs. It must be OUTSIDE the analysis
+  // panel and inside the spatial toolbar — the rule "no control stranded among
+  // results" is what matters, and this honours it.
+  const radiusHome = await page.evaluate(() => {
+    const slider = document.getElementById("radiusSlider");
+    return { inToolbar: Boolean(slider.closest("#spatialToolbar")), inPanel: Boolean(slider.closest("#analysisPanel")) };
+  });
+  assert.equal(radiusHome.inToolbar, true, "the radius control lives in the map-anchored spatial toolbar");
+  assert.equal(radiusHome.inPanel, false, "and never inside the analysis panel");
   assert.deepEqual(stray, []);
   assert.equal(await page.locator("[data-mode-section] #hospitalityMetricSelect, [data-mode-section] #hospitalityScale").count(), 0);
   assert.equal(await page.locator("aside.left #hospitalityMetricSelect").count(), 1, "the hospitality selector moved to its layer");
@@ -553,9 +563,18 @@ test("IA 18 no breakpoint deletes provenance-bearing content", async (t) => {
   for (const width of [360, 560, 850]) {
     const page = await newPage({ width, height: 740 });
     t.after(() => closePage(page));
+    // The pedestrian layer carries no evidence in a checkout (its snapshot is
+    // built at deployment time), and since #187 the control states that and
+    // REFUSES activation instead of switching on an empty layer. Forcing
+    // `checked` and dispatching `change` no longer opens Detail, and should not:
+    // there is no reading to open. The provenance surfaces below are what this
+    // test is about, so Detail is opened the way a reader would open it.
     await page.locator('[data-layer="pedestrian"]').evaluate((node) => { node.checked = true; node.dispatchEvent(new Event("change", { bubbles: true })); });
+    assert.equal(await page.locator('[data-layer="pedestrian"]').evaluate((n) => n.checked), false,
+      "a layer with no evidence in this build refuses activation");
     await page.locator('[data-layer="heat"]').evaluate((node) => { node.checked = true; node.dispatchEvent(new Event("change", { bubbles: true })); });
-    assert.equal(await page.locator("#placeDetail").evaluate((n) => n.open), true, "switching a layer on opens the Detail that holds its reading");
+    await page.locator("#placeDetail > summary").click();
+    assert.equal(await page.locator("#placeDetail").evaluate((n) => n.open), true, "the Detail that holds the layer readings opens");
     for (const selector of [".metric-foot", ".activity-card-note", ".evidence-note", ".mix", "#scopeRailFreshness", ".evidence-route"]) {
       const display = await page.locator(selector).first().evaluate((node) => getComputedStyle(node).display);
       assert.notEqual(display, "none", `${selector} is not display:none at ${width}px`);

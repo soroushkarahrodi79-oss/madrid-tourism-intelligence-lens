@@ -161,7 +161,15 @@ test("Hospitality selection preserves the primary Lens click interaction", () =>
   );
   assert.match(mapClickBody, /lenses\[active\]\.marker\.setLatLng\(e\.latlng\);/);
   assert.match(mapClickBody, /refresh\(\);/);
-  assert.doesNotMatch(mapClickBody, /hospitalityVisible|hospitalitySelectedBarrio|return;/);
+  // The hospitality layer must never pre-empt the primary Lens click.
+  assert.doesNotMatch(mapClickBody, /hospitalityVisible|hospitalitySelectedBarrio/);
+  // Exactly ONE early return is permitted, and only this one: while a polygon is
+  // being drawn a map click places a vertex, so it must not also drag the Lens
+  // centre underneath the new shape (#187 Phase 3). Any other early return in
+  // this handler would be a layer quietly taking the primary click.
+  const earlyReturns = mapClickBody.match(/return;/g) || [];
+  assert.equal(earlyReturns.length, 1, `only the polygon-drawing guard may return early: ${mapClickBody}`);
+  assert.match(mapClickBody, /if \(polygonDrawing\) return;/);
 });
 
 test("existing accommodation catalogue remains a separate layer", () => {

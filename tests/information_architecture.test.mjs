@@ -507,9 +507,27 @@ test("structure: controls are never between results and the panel keeps one read
   const controlsAt = html.indexOf('id="panelControls"');
   assert.ok(controlsAt > html.indexOf('id="modeCity"'), "controls come after every mode section");
   assert.ok(controlsAt > html.indexOf('id="compareLine"'));
-  for (const id of ["radiusSlider", "timeSelect", "resetButton", "lensAButton", "lensBButton", "haloToggle", "domesticOriginsMonth"]) {
+  for (const id of ["timeSelect", "resetButton", "lensAButton", "lensBButton", "haloToggle", "domesticOriginsMonth"]) {
     assert.ok(html.indexOf(`id="${id}"`) > controlsAt, `${id} lives in the controls region`);
   }
+  // The radius control is the ONE exception, and a deliberate one. The rule this
+  // test defends is "no control is stranded among results"; it was expressed as
+  // "every control sits in #panelControls", which also buried the radius slider
+  // below every reading in a scrolling panel. It is now MAP CHROME in
+  // #spatialToolbar, outside #analysisPanel entirely — which satisfies the rule
+  // more strongly, not less. The structural guarantees are pinned instead:
+  const toolbarAt = html.indexOf('id="spatialToolbar"');
+  const panelAt = html.indexOf('<section class="panel"');
+  assert.ok(toolbarAt > 0 && toolbarAt < panelAt, "the spatial toolbar is map chrome, placed before the panel");
+  assert.ok(html.indexOf('id="radiusSlider"') > toolbarAt && html.indexOf('id="radiusSlider"') < panelAt,
+    "the radius control lives in the spatial toolbar, not inside the analysis panel");
+  // Exactly one radius control in the document: moved, never duplicated.
+  assert.equal((html.match(/id="radiusSlider"/g) || []).length, 1);
+  assert.equal((html.match(/id="radiusControlLabel"/g) || []).length, 1);
+  assert.equal((html.match(/id="radiusText"/g) || []).length, 1);
+  // It is mode-gated by the same shared mechanism as the panel controls, so no
+  // Lens geometry control is offered in CITY mode.
+  assert.match(html.slice(toolbarAt - 400, toolbarAt + 400), /data-controls-for="PLACE COMPARE"/);
   // Layer-scoped controls left the result flow for the aside.
   assert.ok(html.indexOf('id="hospitalityControls"') < html.indexOf('<section class="panel"'));
   assert.ok(html.indexOf('id="hatiFrameButton"') < html.indexOf('<section class="panel"'));

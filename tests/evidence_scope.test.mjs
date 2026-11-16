@@ -19,6 +19,11 @@ import {
 test("the analytical scope enum is the closed Gate K set and is frozen", () => {
   assert.deepEqual(ANALYTICAL_SCOPES, [
     "LENS_CIRCLE",
+    // Added for custom polygon analysis (#187 Phase 3). It is a SEPARATE scope
+    // from LENS_CIRCLE because a count inside an arbitrary ring carries no
+    // radius, so reusing LENS_CIRCLE for it would make the rail state a radius
+    // that is not in force.
+    "LENS_POLYGON",
     "OFFICIAL_BARRIO",
     "OFFICIAL_DISTRICT",
     "MUNICIPALITY",

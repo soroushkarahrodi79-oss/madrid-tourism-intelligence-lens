@@ -25,6 +25,11 @@
 // planning production evidence ships until Gate L closes.
 const ANALYTICAL_SCOPES = Object.freeze([
   "LENS_CIRCLE",
+  // A user-drawn polygon. A SEPARATE scope from LENS_CIRCLE on purpose: a value
+  // counted inside an arbitrary ring does not mean the same thing as one counted
+  // inside a circle of a stated radius, and the rail must never claim a radius
+  // that is not in force. Like LENS_CIRCLE it is user state, never source-native.
+  "LENS_POLYGON",
   "OFFICIAL_BARRIO",
   "OFFICIAL_DISTRICT",
   "MUNICIPALITY",
