@@ -1,0 +1,55 @@
+{
+  "generated_by": "research/network_accessibility_pilot/viewer/build_viewer_data.py",
+  "purpose": "Baseline for the in-browser integrity checks. Every number here is read from the committed pilot artifacts, never typed in by hand.",
+  "transform": {
+    "source_crs": "EPSG:25830",
+    "target_crs": "EPSG:4326",
+    "source_columns": [
+      "x_25830",
+      "y_25830"
+    ],
+    "output_decimals": 7,
+    "transform_roundtrip_worst_residual_m": 1.863e-09,
+    "transform_roundtrip_tolerance_m": 1e-06,
+    "quantisation_worst_residual_m": 0.005576205,
+    "quantisation_tolerance_m": 0.01,
+    "quantisation_note": "The quantisation residual is the displacement caused by rounding the output to 7 decimal places, not an error in the transform. Its theoretical bound at this latitude is ~0.0056 m."
+  },
+  "counts": {
+    "portals_total": 2651,
+    "portals_by_state": {
+      "MEASURED": 2636,
+      "NOT_SNAPPED": 9,
+      "UNREACHABLE": 6
+    },
+    "facility_access_points": 38,
+    "facility_access_points_inside_study_barrio": 10
+  },
+  "expected_from_pilot_report": {
+    "origins_total": 2651,
+    "origins_measured": 2636,
+    "origins_not_snapped": 9,
+    "origins_unreachable": 6,
+    "facilities_seeded": 38,
+    "nearest_facility_disagreements": 555,
+    "nearest_facility_disagreement_denominator_n": 2636,
+    "nearest_facility_disagreement_share_pct": 21.05,
+    "euclid_nearest_m_p50": 224.134,
+    "network_nearest_m_p50": 340.8185,
+    "detour_ratio_p50": 1.3545,
+    "ratio_defined_pairs": 2634,
+    "ratio_excluded_pairs": 2
+  },
+  "bounds_wgs84": {
+    "lon_min": -3.7405904,
+    "lon_max": -3.7161387,
+    "lat_min": 40.388696,
+    "lat_max": 40.4051571
+  },
+  "source_checksums_sha256": {
+    "results/origin_facility_distances.csv": "5f5b0a973460f5d7ba9f3f1067b766a1a2a7b2f7f23b78c45fde6d9e65fbb765",
+    "results/facility_access_points.geojson": "1ce90504d12c3c8887f7cc1394fc002c5ad01fe2d1c19b4811eeb216b3e48cb8",
+    "results/pilot_report.json": "a657efff500d3660a19d70b0eb39490a55d4d24be5bd1ab46f201af6898e0633",
+    "data/geography/madrid_admin.geojson": "f3d53abd3e8638b7f6c2ea12fbd8bd9c8d3d5c4a613f564815df4794bc141acb"
+  }
+}

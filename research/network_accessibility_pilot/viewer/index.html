@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Madrid Network Accessibility Explorer — San Isidro</title>
+    <meta
+      name="description"
+      content="Standalone scientific viewer for the Madrid Network Accessibility pilot:
+      straight-line versus modelled pedestrian-network distance from official address
+      portals to municipal basic sports facilities in San Isidro, Madrid."
+    />
+    <link rel="stylesheet" href="../../../assets/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="viewer.css" />
+  </head>
+  <body>
+    <div class="app" id="app">
+      <header class="masthead">
+        <div class="masthead__titles">
+          <p class="eyebrow">Research viewer · V0.1 · not part of the Madrid Urban Evidence Lens</p>
+          <h1>Network Accessibility Explorer</h1>
+          <p class="subtitle">
+            Straight-line versus modelled pedestrian-network distance to municipal basic
+            sports facilities. <strong>San Isidro</strong> (barrio 113), Carabanchel, Madrid.
+          </p>
+        </div>
+        <p class="verdict" id="verdict">
+          <span class="verdict__tag">Verdict: MODIFY</span>
+          <span class="verdict__note">
+            A sound method and a real finding. It does not license a Lens feature.
+          </span>
+        </p>
+      </header>
+
+      <main class="layout">
+        <!-- Map first in the DOM so that on small screens it is not buried
+             under the whole control column. -->
+        <section class="map-pane" aria-label="Map">
+          <div id="map" role="application" aria-label="Map of address portals and facility access points in San Isidro"></div>
+          <noscript>
+            <p class="noscript">
+              This viewer renders 2,651 address portals from committed CSV data in the
+              browser and needs JavaScript. The underlying tables are readable without
+              it: see <code>research/network_accessibility_pilot/results/</code>.
+            </p>
+          </noscript>
+        </section>
+
+        <div class="side" id="side">
+          <!-- VIEW SELECTOR -->
+          <section class="card" aria-labelledby="views-heading">
+            <h2 id="views-heading">Analytical view</h2>
+            <div class="viewpicker" role="radiogroup" aria-labelledby="views-heading">
+              <button type="button" class="viewpicker__btn" role="radio" aria-checked="true" data-view="understatement" id="view-understatement">
+                <span class="viewpicker__label">A · Distance understatement</span>
+                <span class="viewpicker__hint">metres the straight line omits</span>
+              </button>
+              <button type="button" class="viewpicker__btn" role="radio" aria-checked="false" data-view="detour" id="view-detour">
+                <span class="viewpicker__label">B · Detour ratio</span>
+                <span class="viewpicker__hint">circuity to the same facility</span>
+              </button>
+              <button type="button" class="viewpicker__btn" role="radio" aria-checked="false" data-view="agreement" id="view-agreement">
+                <span class="viewpicker__label">C · Nearest-facility disagreement</span>
+                <span class="viewpicker__hint">do the two methods pick the same facility</span>
+              </button>
+            </div>
+            <p class="definition" id="view-definition"></p>
+          </section>
+
+          <!-- LEGEND -->
+          <section class="card" aria-labelledby="legend-heading">
+            <h2 id="legend-heading">Legend</h2>
+            <ul class="legend" id="legend"></ul>
+            <p class="legend__thresholds" id="legend-thresholds"></p>
+            <div class="controls">
+              <label class="checkbox">
+                <input type="checkbox" id="toggle-facilities" checked />
+                <span>Facility access points (38)</span>
+              </label>
+              <label class="checkbox">
+                <input type="checkbox" id="toggle-barrio" checked />
+                <span>Official barrio boundary</span>
+              </label>
+              <button type="button" class="btn" id="reset-extent">Reset map extent</button>
+            </div>
+          </section>
+
+          <!-- PORTAL INSPECTOR -->
+          <section class="card" aria-labelledby="inspector-heading">
+            <h2 id="inspector-heading">Portal inspector</h2>
+            <div id="inspector" aria-live="polite">
+              <p class="placeholder">
+                Select an address portal on the map to read its published measurements.
+              </p>
+            </div>
+          </section>
+
+          <!-- STUDY SUMMARY -->
+          <section class="card" aria-labelledby="summary-heading">
+            <h2 id="summary-heading">Published baseline</h2>
+            <dl class="stats" id="stats"></dl>
+            <p class="integrity" id="integrity"></p>
+          </section>
+
+          <!-- INTERPRETATION CEILING -->
+          <section class="card card--limits" aria-labelledby="limits-heading">
+            <h2 id="limits-heading">What this map does not say</h2>
+            <ul class="limits" id="limits"></ul>
+          </section>
+
+          <!-- PROVENANCE -->
+          <section class="card card--provenance" aria-labelledby="prov-heading">
+            <h2 id="prov-heading">Sources, licences and citation</h2>
+            <div id="provenance"></div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script src="../../../assets/leaflet/leaflet.js"></script>
+    <script src="viewer.js"></script>
+  </body>
+</html>
