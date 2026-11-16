@@ -10,6 +10,9 @@ itself without breaking the parsers that read it.
 - Origen de los datos: Ayuntamiento de Madrid (Instalaciones Deportivas Basicas Municipales, dataset 200215, CC BY 4.0).
 - Contains information from OpenStreetMap, which is made available under the Open Database License (ODbL) 1.0. (c) OpenStreetMap contributors. https://www.openstreetmap.org/copyright
 
+The OpenStreetMap extract these results are computed from is deposited, under
+ODbL 1.0, at **https://doi.org/10.5281/zenodo.24288645** (version DOI `10.5281/zenodo.24288645`).
+
 ## What came from where
 
 | File | Official sources | OpenStreetMap |
@@ -34,14 +37,18 @@ precondition of adopting any of this.
    *Substantial* guideline an extract of that scale and kind is substantial, and
    under the *Licence and Legal FAQ* adapting data in that way creates a
    Derivative Database. None of it is published here.
-2. **It is not archived publicly yet.** A Zenodo deposit has been prepared and a
-   DOI reserved, but the deposit is **still a draft and is not published**, so
-   the identifier below does **not resolve** and must not be cited:
-   - reserved DOI `10.5281/zenodo.24288645` — state `RESERVED_ON_DRAFT_NOT_PUBLISHED`
-   - Checked on 2026-11-16: https://doi.org/api/handles/10.5281/zenodo.24288645 returned HTTP 404 (handle not registered), and both https://zenodo.org/api/records/24288645 and https://zenodo.org/records/24288645 returned HTTP 404. A control DOI resolved normally through the same endpoints in the same session, so the negative is not an endpoint failure. The deposit must not be cited until the DOI resolves.
+2. **It is archived and citable.** The extract is deposited on Zenodo under
+   **ODbL 1.0**, open access:
+   - **Version DOI, cite this one: `10.5281/zenodo.24288645`** — https://doi.org/10.5281/zenodo.24288645
+   - Concept DOI, always the latest version: `10.5281/zenodo.24288644`
+   - Published 2026-11-16, state `PUBLISHED`
+   - Verified on 2026-11-16: the DOI Handle System returned responseCode 1 for both the version and the concept DOI, and the Zenodo record API returned the published record (access_right 'open', resource_type dataset, version 1.0.0, publication_date 2026-11-16). Correspondence with this pilot's extract was checked by content, not by title: all three deposited files match the locally prepared archive on MD5 and byte length, and the deposited gzip decompresses to the SHA-256 recorded in this report.
+   - *Licence metadata caveat.* The deposit's STRUCTURED licence field is empty: the Zenodo record carries neither metadata.license nor metadata.rights, so machine readers of the record metadata see no licence. The ODbL 1.0 terms and the OpenStreetMap attribution appear in the record's description text only. This does not change the licence the data is under - it is OpenStreetMap data and ODbL 1.0 applies through its source, not through a Zenodo field - but the record metadata should be corrected on Zenodo so the declared licence is machine-readable. Not done here: that is a change to the depositor's Zenodo record, not to this repository.
 
-   Until it is published, the extract lives only in the pilot's git-ignored
-   `cache/`. Its identity is recorded:
+   Cite the **version** DOI, not the concept DOI: a reproducibility claim is
+   about these exact bytes, and the concept DOI would follow any later version.
+   The same bytes also remain in the pilot's git-ignored `cache/`. Its identity
+   is recorded:
    - SHA-256 `74416526312589d95fc5857c9469850545ec0649abbb197c49faca548d085edf`
    - 12,282,835 bytes
    - OSM data vintage (`timestamp_osm_base`) `2026-11-16T17:20:19Z`
@@ -59,12 +66,10 @@ precondition of adopting any of this.
    claim one would succeed. Whether publishing the means to recreate a database
    discharges a request under ODbL 4.6 when the exact state is no longer
    regenerable is an open question here.
-5. **Requests.** Anyone who receives these results and wants the underlying
-   extract or the derived graph should raise an issue on this repository. The
-   cached extract can be supplied under ODbL 1.0 while it exists. Once the
-   Zenodo deposit above is published and its DOI resolves, that becomes the
-   route, and this file and `pilot_report.json` should be regenerated so they
-   state the published state rather than the reserved one.
+5. **Requests.** The underlying extract is available to anyone from the Zenodo
+   deposit above, under ODbL 1.0, without needing to ask. Requests for the
+   derived graph, which is not deposited, can be raised as an issue on this
+   repository; it is reproducible from the deposit with the code here.
 
 Nothing in this file is legal advice. The OSMF's own Licence and Legal FAQ says
 the same of itself.

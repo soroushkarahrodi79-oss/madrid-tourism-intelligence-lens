@@ -227,17 +227,31 @@ two instruments apart. And it must carry the ODbL notice and the OpenStreetMap
 attribution in its own right, since redistributing it is distributing OSM data,
 not a reading of it.
 
-**Current state: prepared, DOI reserved, NOT published.** A Zenodo deposit has
-been assembled outside this repository and a DOI reserved —
-`10.5281/zenodo.24288645` — but the deposit is still a draft. Verified on
-2026-11-16 that the DOI does **not** resolve: the DOI Handle System API returned
-HTTP 404 for it (handle not registered) while a control DOI resolved normally
-through the same endpoint in the same session, and both the Zenodo record page
-and the Zenodo record API returned HTTP 404. **It must not be cited**, and
-nothing in this package claims the deposit is published. When it is published,
-regenerate the artifacts so they state the published state and add the resolved
-DOI here. Until then, `results/ATTRIBUTION.md` directs requests for the
-underlying data to an issue on this repository.
+**Done.** The extract is deposited on Zenodo, open access under ODbL 1.0:
+
+> **Version DOI — cite this one: [`10.5281/zenodo.24288645`](https://doi.org/10.5281/zenodo.24288645)**
+> Concept DOI (follows the latest version): `10.5281/zenodo.24288644`
+> Published 2026-11-16.
+
+Cite the **version** DOI. A reproducibility claim is about the exact bytes the
+pilot measured, and the concept DOI resolves to whatever the newest version
+happens to be.
+
+Verified on 2026-11-16, by content rather than by title: the DOI Handle System
+returns `responseCode 1` for both DOIs; the Zenodo record API returns a
+published, open dataset record at version 1.0.0; and **all three deposited files
+match the locally prepared archive on MD5 and byte length**, with the deposited
+gzip decompressing to the SHA-256 this package records for the extract.
+
+**One gap, recorded rather than smoothed over.** The Zenodo record carries
+neither `metadata.license` nor `metadata.rights`, so a machine reading the
+record metadata sees no licence; the ODbL terms and the OpenStreetMap
+attribution appear in the record's description text only. That does not change
+the licence the data is under — it is OpenStreetMap data and ODbL 1.0 applies
+through its source, not through a Zenodo field — but the record metadata should
+be corrected on Zenodo so the declared licence is machine-readable. That is a
+change to the depositor's Zenodo record, not to this repository, and is not done
+here.
 
 OSM is also, substantively, volunteered data of uneven completeness — not a
 municipal pavement cadastre — and the results say so.

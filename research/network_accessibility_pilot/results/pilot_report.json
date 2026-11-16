@@ -66,9 +66,10 @@
       "why_that_is_not_a_conclusion": "Substantiality under the ODbL is 'substantial in terms of quantity or quality or a combination of both', and the OSMF Substantial guideline's tests count extracted features rather than addressing derived or aggregated outputs at all. This case falls in a gap the published guidelines do not cover, so the argument above is a technical reading and not a determination. A reviewer could reasonably reach a different view.",
       "why_the_csv_is_the_uncertain_one": "origin_facility_distances.csv is the most database-like artifact that remains: one row per official portal, systematic over the whole portal universe of the study barrio, each row carrying values computed from OSM. A systematic per-record table is closer to a database in form than a figure or a statistics report is, even when its contents are measurements rather than map data."
     },
-    "derivative_database_archived": false,
+    "derivative_database_archived": true,
     "derivative_database_exists": "Yes. Producing these results required a systematic OpenStreetMap extract (87364 elements; every way[highway] in the study bounding box), filtered and restructured into a pedestrian graph. Under the OSMF Substantial guideline an extract of that scale and kind is substantial.",
-    "derivative_database_published": false,
+    "derivative_database_published": true,
+    "derivative_database_published_note": "The OSM extract is published as the Zenodo deposit below, under ODbL 1.0. The derived pedestrian GRAPH is still not published; it is reproducible from the deposit with the code in this package.",
     "extract_identity": {
       "endpoint": "https://overpass-api.de/api/interpreter",
       "extract_bytes": 12282835,
@@ -91,20 +92,27 @@
       "Whether a structured per-record table of derived measurements (origin_facility_distances.csv) is a Produced Work or attracts the OSMF attribution guideline's treatment of works that recreate substantial parts of the data is NOT settled here. See classification_uncertainty below."
     ],
     "zenodo_deposit": {
-      "citable": false,
-      "doi_reserved": "10.5281/zenodo.24288645",
-      "meaning": "A DOI reserved on a Zenodo draft is an identifier that has been set aside, not a published record. It is recorded here so it travels with the results, and is marked unresolvable so nothing cites it as though the deposit existed.",
-      "on_publication": "Re-run run_pilot.py after updating ZENODO_STATE so this block and results/ATTRIBUTION.md state the published state, and add the resolved DOI to the README's archiving section.",
-      "resolves": false,
-      "state": "RESERVED_ON_DRAFT_NOT_PUBLISHED",
-      "verification": "Checked on 2026-11-16: https://doi.org/api/handles/10.5281/zenodo.24288645 returned HTTP 404 (handle not registered), and both https://zenodo.org/api/records/24288645 and https://zenodo.org/records/24288645 returned HTTP 404. A control DOI resolved normally through the same endpoints in the same session, so the negative is not an endpoint failure. The deposit must not be cited until the DOI resolves.",
+      "access": "open",
+      "citable": true,
+      "cite_which": "The VERSION DOI. A reproducibility claim is about the exact bytes measured, and the concept DOI resolves to whatever the latest version is.",
+      "doi_concept": "10.5281/zenodo.24288644",
+      "doi_version": "10.5281/zenodo.24288645",
+      "licence": "ODbL-1.0",
+      "licence_metadata_caveat": "The deposit's STRUCTURED licence field is empty: the Zenodo record carries neither metadata.license nor metadata.rights, so machine readers of the record metadata see no licence. The ODbL 1.0 terms and the OpenStreetMap attribution appear in the record's description text only. This does not change the licence the data is under - it is OpenStreetMap data and ODbL 1.0 applies through its source, not through a Zenodo field - but the record metadata should be corrected on Zenodo so the declared licence is machine-readable. Not done here: that is a change to the depositor's Zenodo record, not to this repository.",
+      "publication_date": "2026-11-16",
+      "record_title": "OpenStreetMap pedestrian-network extract for the Madrid Network Accessibility pilot (San Isidro, Madrid, 2026-11-16)",
+      "resolves": true,
+      "state": "PUBLISHED",
+      "supersedes": "Earlier runs of this pilot recorded the DOI as reserved on an unpublished draft that did not resolve. That state is superseded: the deposit is published and both DOIs resolve.",
+      "url": "https://doi.org/10.5281/zenodo.24288645",
+      "verification": "Verified on 2026-11-16: the DOI Handle System returned responseCode 1 for both the version and the concept DOI, and the Zenodo record API returned the published record (access_right 'open', resource_type dataset, version 1.0.0, publication_date 2026-11-16). Correspondence with this pilot's extract was checked by content, not by title: all three deposited files match the locally prepared archive on MD5 and byte length, and the deposited gzip decompresses to the SHA-256 recorded in this report.",
       "verified_on": "2026-11-16"
     }
   },
   "pilot": "Madrid Network Accessibility — straight-line vs pedestrian-network distance",
   "question": "For official address portals in one Madrid barrio, how far does the straight-line distance to the nearest official municipal basic sports facility depart from the shortest distance along the OSM pedestrian network, and does the choice of metric change WHICH facility is nearest?",
-  "run_finished_utc": "2026-11-16T19:39:13Z",
-  "run_started_utc": "2026-11-16T19:38:52Z",
+  "run_finished_utc": "2026-11-16T19:51:22Z",
+  "run_started_utc": "2026-11-16T19:51:05Z",
   "s1_sources": {
     "facilities": {
       "coordinate_crs": "EPSG:4326",

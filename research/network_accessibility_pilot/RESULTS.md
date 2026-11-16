@@ -544,10 +544,18 @@ separately under ODbL 1.0, outside this MIT repository and referenced by hash,
 makes the pilot publicly reproducible and lets a recipient be handed the
 database itself rather than instructions for approximating it.
 
-**State as of 2026-11-16: prepared, DOI reserved, not published.** The deposit
-is assembled outside this repository and the DOI `10.5281/zenodo.24288645` is
-reserved, but it is still a draft and the DOI **does not resolve** — verified
-against the DOI Handle System and the Zenodo record and API endpoints, with a
-control DOI resolving normally in the same session. Nothing here cites it or
-treats the deposit as existing publicly. §"Archiving the extract" in
-`README.md` states the conditions and what to do once it is published.
+**Done, as of 2026-11-16.** The extract is published on Zenodo, open access
+under ODbL 1.0, at version DOI
+[`10.5281/zenodo.24288645`](https://doi.org/10.5281/zenodo.24288645) (concept
+DOI `10.5281/zenodo.24288644`). Cite the version DOI: the claim is about the
+exact bytes measured, and the concept DOI follows the latest version.
+
+Correspondence was verified **by content**, not by the record's title: all three
+deposited files match the locally prepared archive on MD5 and byte length, and
+the deposited gzip decompresses to the SHA-256 recorded for the extract in
+`pilot_report.json`. Both DOIs resolve through the DOI Handle System.
+
+One gap is recorded in `README.md` and in `odbl_4_6_statement`: the Zenodo
+record has no structured licence field, so the ODbL declaration lives in its
+description text only. The data's licence is unaffected — it is OSM data — but
+the record metadata should be corrected on Zenodo.

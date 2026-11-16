@@ -1085,23 +1085,40 @@ MADRID_CREDIT_FACILITIES = (
 #: credit "where users would customarily expect it" rather than inside the data.
 ATTRIBUTION_SIDECAR = "ATTRIBUTION.md"
 
-#: Zenodo deposit for the archived OSM extract.
+#: Zenodo deposit for the archived OSM extract. PUBLISHED and citable.
 #:
-#: The identifier below is **RESERVED on a draft deposit**, which is not the
-#: same thing as published. Zenodo lets a DOI be reserved before the Publish
-#: step; until then the record is not public and the DOI is not registered with
-#: the global Handle System. Recorded here so the identifier travels with the
-#: results, explicitly marked as not yet resolvable, and never as a citation.
-ZENODO_DOI_RESERVED = "10.5281/zenodo.24288645"
-ZENODO_STATE = "RESERVED_ON_DRAFT_NOT_PUBLISHED"
+#: Cite the VERSION DOI for the exact bytes the pilot measured. The concept DOI
+#: always resolves to the latest version, which is the wrong target for a
+#: reproducibility claim about a specific extract.
+ZENODO_DOI_VERSION = "10.5281/zenodo.24288645"
+ZENODO_DOI_CONCEPT = "10.5281/zenodo.24288644"
+ZENODO_RECORD_URL = "https://doi.org/" + ZENODO_DOI_VERSION
+ZENODO_STATE = "PUBLISHED"
+ZENODO_PUBLICATION_DATE = "2026-11-16"
+ZENODO_RECORD_TITLE = (
+    "OpenStreetMap pedestrian-network extract for the Madrid Network Accessibility pilot "
+    "(San Isidro, Madrid, 2026-11-16)"
+)
 ZENODO_VERIFIED_ON = "2026-11-16"
 ZENODO_VERIFICATION = (
-    "Checked on " + ZENODO_VERIFIED_ON + ": https://doi.org/api/handles/"
-    + ZENODO_DOI_RESERVED + " returned HTTP 404 (handle not registered), and both "
-    "https://zenodo.org/api/records/24288645 and https://zenodo.org/records/24288645 "
-    "returned HTTP 404. A control DOI resolved normally through the same endpoints in the "
-    "same session, so the negative is not an endpoint failure. The deposit must not be "
-    "cited until the DOI resolves."
+    "Verified on " + ZENODO_VERIFIED_ON + ": the DOI Handle System returned responseCode 1 "
+    "for both the version and the concept DOI, and the Zenodo record API returned the "
+    "published record (access_right 'open', resource_type dataset, version 1.0.0, "
+    "publication_date " + ZENODO_PUBLICATION_DATE + "). Correspondence with this pilot's "
+    "extract was checked by content, not by title: all three deposited files match the "
+    "locally prepared archive on MD5 and byte length, and the deposited gzip decompresses to "
+    "the SHA-256 recorded in this report."
+)
+#: An honest gap, recorded rather than smoothed over.
+ZENODO_LICENCE_NOTE = (
+    "The deposit's STRUCTURED licence field is empty: the Zenodo record carries neither "
+    "metadata.license nor metadata.rights, so machine readers of the record metadata see no "
+    "licence. The ODbL 1.0 terms and the OpenStreetMap attribution appear in the record's "
+    "description text only. This does not change the licence the data is under - it is "
+    "OpenStreetMap data and ODbL 1.0 applies through its source, not through a Zenodo field - "
+    "but the record metadata should be corrected on Zenodo so the declared licence is "
+    "machine-readable. Not done here: that is a change to the depositor's Zenodo record, not "
+    "to this repository."
 )
 
 
@@ -1120,6 +1137,9 @@ itself without breaking the parsers that read it.
 - {MADRID_CREDIT_CALLEJERO}
 - {MADRID_CREDIT_FACILITIES}
 - {OSM_CREDIT}
+
+The OpenStreetMap extract these results are computed from is deposited, under
+ODbL 1.0, at **{ZENODO_RECORD_URL}** (version DOI `{ZENODO_DOI_VERSION}`).
 
 ## What came from where
 
@@ -1145,14 +1165,18 @@ precondition of adopting any of this.
    *Substantial* guideline an extract of that scale and kind is substantial, and
    under the *Licence and Legal FAQ* adapting data in that way creates a
    Derivative Database. None of it is published here.
-2. **It is not archived publicly yet.** A Zenodo deposit has been prepared and a
-   DOI reserved, but the deposit is **still a draft and is not published**, so
-   the identifier below does **not resolve** and must not be cited:
-   - reserved DOI `{ZENODO_DOI_RESERVED}` — state `{ZENODO_STATE}`
+2. **It is archived and citable.** The extract is deposited on Zenodo under
+   **ODbL 1.0**, open access:
+   - **Version DOI, cite this one: `{ZENODO_DOI_VERSION}`** — {ZENODO_RECORD_URL}
+   - Concept DOI, always the latest version: `{ZENODO_DOI_CONCEPT}`
+   - Published {ZENODO_PUBLICATION_DATE}, state `{ZENODO_STATE}`
    - {ZENODO_VERIFICATION}
+   - *Licence metadata caveat.* {ZENODO_LICENCE_NOTE}
 
-   Until it is published, the extract lives only in the pilot's git-ignored
-   `cache/`. Its identity is recorded:
+   Cite the **version** DOI, not the concept DOI: a reproducibility claim is
+   about these exact bytes, and the concept DOI would follow any later version.
+   The same bytes also remain in the pilot's git-ignored `cache/`. Its identity
+   is recorded:
    - SHA-256 `{archive_note['extract_sha256']}`
    - {archive_note['extract_bytes']:,} bytes
    - OSM data vintage (`timestamp_osm_base`) `{archive_note['timestamp_osm_base']}`
@@ -1170,12 +1194,10 @@ precondition of adopting any of this.
    claim one would succeed. Whether publishing the means to recreate a database
    discharges a request under ODbL 4.6 when the exact state is no longer
    regenerable is an open question here.
-5. **Requests.** Anyone who receives these results and wants the underlying
-   extract or the derived graph should raise an issue on this repository. The
-   cached extract can be supplied under ODbL 1.0 while it exists. Once the
-   Zenodo deposit above is published and its DOI resolves, that becomes the
-   route, and this file and `pilot_report.json` should be regenerated so they
-   state the published state rather than the reserved one.
+5. **Requests.** The underlying extract is available to anyone from the Zenodo
+   deposit above, under ODbL 1.0, without needing to ask. Requests for the
+   derived graph, which is not deposited, can be raised as an issue on this
+   repository; it is reproducible from the deposit with the code here.
 
 Nothing in this file is legal advice. The OSMF's own Licence and Legal FAQ says
 the same of itself.
@@ -1488,26 +1510,36 @@ def main() -> int:
                 "bounding box), filtered and restructured into a pedestrian graph. Under the "
                 "OSMF Substantial guideline an extract of that scale and kind is substantial."
             ),
-            "derivative_database_published": False,
-            "derivative_database_archived": False,
+            "derivative_database_published": True,
+            "derivative_database_published_note": (
+                "The OSM extract is published as the Zenodo deposit below, under ODbL "
+                "1.0. The derived pedestrian GRAPH is still not published; it is "
+                "reproducible from the deposit with the code in this package."
+            ),
+            "derivative_database_archived": True,
             "extract_identity": archive_note,
             "zenodo_deposit": {
-                "doi_reserved": ZENODO_DOI_RESERVED,
                 "state": ZENODO_STATE,
-                "resolves": False,
-                "citable": False,
+                "doi_version": ZENODO_DOI_VERSION,
+                "doi_concept": ZENODO_DOI_CONCEPT,
+                "url": ZENODO_RECORD_URL,
+                "record_title": ZENODO_RECORD_TITLE,
+                "publication_date": ZENODO_PUBLICATION_DATE,
+                "licence": "ODbL-1.0",
+                "access": "open",
+                "resolves": True,
+                "citable": True,
+                "cite_which": (
+                    "The VERSION DOI. A reproducibility claim is about the exact bytes measured, "
+                    "and the concept DOI resolves to whatever the latest version is."
+                ),
                 "verified_on": ZENODO_VERIFIED_ON,
                 "verification": ZENODO_VERIFICATION,
-                "meaning": (
-                    "A DOI reserved on a Zenodo draft is an identifier that has been set aside, "
-                    "not a published record. It is recorded here so it travels with the results, "
-                    "and is marked unresolvable so nothing cites it as though the deposit "
-                    "existed."
-                ),
-                "on_publication": (
-                    "Re-run run_pilot.py after updating ZENODO_STATE so this block and "
-                    "results/ATTRIBUTION.md state the published state, and add the resolved DOI "
-                    "to the README's archiving section."
+                "licence_metadata_caveat": ZENODO_LICENCE_NOTE,
+                "supersedes": (
+                    "Earlier runs of this pilot recorded the DOI as reserved on an unpublished "
+                    "draft that did not resolve. That state is superseded: the deposit is "
+                    "published and both DOIs resolve."
                 ),
             },
             "means_to_recreate_published": [
