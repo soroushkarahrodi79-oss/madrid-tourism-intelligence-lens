@@ -13,8 +13,11 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import test from "node:test";
+import os from "node:os";
+import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { chromium, webkit } from "playwright";
+import { VERIFIABLE, gitProvider, buildVerificationRecord } from "../scripts/dossier_verify.mjs";
 
 const ROOT = process.env.QX_ROOT
   ? path.resolve(process.env.QX_ROOT)
@@ -43,7 +46,7 @@ test.after(async () => {
 
 // `block` fails the real network request for an artifact, so an absent source is a
 // network outcome and not a flag the application knows about.
-async function pageFor({ viewport = { width: 1280, height: 900 }, colorScheme = "light", block = null, delay = null, query = "", locale } = {}) {
+async function pageFor({ viewport = { width: 1280, height: 900 }, colorScheme = "light", block = null, delay = null, query = "", locale, identity = null } = {}) {
   const context = await browser.newContext({ viewport, colorScheme, locale });
   const page = await context.newPage();
   page.setDefaultTimeout(30000);
@@ -52,6 +55,7 @@ async function pageFor({ viewport = { width: 1280, height: 900 }, colorScheme = 
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());
     if (block && block.some((name) => url.pathname.endsWith(name))) return route.fulfill({ status: 503, body: "unavailable" });
+    if (identity && url.pathname.endsWith("/build-identity.json")) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(identity) });
     if (delay && url.pathname.endsWith(delay.name)) await new Promise((resolve) => setTimeout(resolve, delay.ms));
     return url.hostname === "127.0.0.1" ? route.continue() : route.abort();
   });
@@ -1040,4 +1044,122 @@ test("capture the explorer's real states for the visual audit", async (t) => {
     await page.screenshot({ path: path.join(CAPTURE_DIR, `${name}-3-refused.png`) });
     await context.close();
   }
+});
+
+// ============================================================ dossier V2 (AMBITO_PHASES)
+
+// A throwaway git repository holding byte-copies of exactly the files the verifier
+// may depend on. Its HEAD stands in for "the commit this deployment was built from";
+// the identity the page is served is produced by the verifier's own record builder.
+function verifierRepo() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qx-dossier-v2-"));
+  const spec = VERIFIABLE.AMBITO_PHASES;
+  const git = (...args) => execFileSync("git", ["-C", dir, "-c", "commit.gpgsign=false", ...args], {
+    encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" },
+  }).trim();
+  git("init", "-q");
+  for (const file of [...spec.artifacts, ...spec.code]) {
+    fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+    fs.copyFileSync(path.join(ROOT, file), path.join(dir, file));
+  }
+  git("add", "-A");
+  git("commit", "-q", "-m", "fixture");
+  const commit = git("rev-parse", "HEAD");
+  return { dir, commit, identity: buildVerificationRecord(gitProvider({ repo: dir, codeRoot: dir }), commit) };
+}
+const VERIFY_CLI = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "scripts", "dossier_verify.mjs");
+function runVerifier(dir, text, name) {
+  const file = path.join(dir, name);
+  fs.writeFileSync(file, text);
+  const run = spawnSync(process.execPath, [VERIFY_CLI, file, "--repo", dir], { encoding: "utf8" });
+  return { code: run.status, out: run.stdout.trim() };
+}
+async function phasesDossier(page) {
+  await openExplorer(page);
+  await selectAndAnalyze(page, "APE.02.20");
+  await askQuestion(page, "AMBITO_PHASES");
+  await settled(page);
+  const files = await createDossier(page);
+  return { files, json: files.find((file) => file.label === "JSON").text, note: await page.locator("#qxDossierStatus .qx-dossier-note").allTextContents() };
+}
+
+test("AMBITO_PHASES exported from the page is a V2 dossier the headless verifier accepts; any alteration is refused", async (t) => {
+  const repo = verifierRepo();
+  t.after(() => fs.rmSync(repo.dir, { recursive: true, force: true }));
+  const { page, context, errors } = await pageFor({ identity: repo.identity });
+  t.after(() => context.close());
+  const { files, json, note } = await phasesDossier(page);
+  const dossier = JSON.parse(json);
+  assert.equal(dossier.dossier_schema_version, 2);
+  assert.equal(dossier.verification.commit, repo.commit);
+  assert.equal(dossier.outcome.evidence.applied.reader, "developmentState");
+  assert.match(note.join(" "), /Independently verifiable \(V2\)/);
+  assert.match(note.join(" "), /does not prove the source data are correct/);
+  assert.match(files.find((file) => file.label === "HTML").text, /Verification record/);
+
+  const ok = runVerifier(repo.dir, json, "exported.json");
+  assert.equal(ok.code, 0, ok.out);
+  assert.match(ok.out, /^VERIFIED REDERIVED_EQUAL/);
+
+  const altered = structuredClone(dossier);
+  altered.outcome.evidence.value.phases = "TAMPERED";
+  const bad = runVerifier(repo.dir, JSON.stringify(altered), "altered.json");
+  assert.equal(bad.code, 1, bad.out);
+  assert.match(bad.out, /^MISMATCH VALUE_MISMATCH/);
+
+  const forged = structuredClone(dossier);
+  forged.verification.artifacts[0].sha256 = "0".repeat(64);
+  const forgedRun = runVerifier(repo.dir, JSON.stringify(forged), "forged.json");
+  assert.equal(forgedRun.code, 1, forgedRun.out);
+  assert.match(forgedRun.out, /^MISMATCH FINGERPRINT_MISMATCH/);
+  assert.deepEqual(errors, []);
+});
+
+test("AMBITO_PHASES falls back to an explicitly non-verifiable V1 when the build identity is absent or does not match the served artifacts", async (t) => {
+  const repo = verifierRepo();
+  t.after(() => fs.rmSync(repo.dir, { recursive: true, force: true }));
+  const wrong = structuredClone(repo.identity);
+  wrong.artifacts[1].sha256 = "f".repeat(64);
+  for (const [label, identity] of [["no identity (local checkout)", null], ["fingerprint differs from the served bytes", wrong]]) {
+    const { page, context, errors } = await pageFor({ identity });
+    t.after(() => context.close());
+    const { json, note } = await phasesDossier(page);
+    const dossier = JSON.parse(json);
+    assert.equal(dossier.dossier_schema_version, 1, label);
+    assert.equal(Object.hasOwn(dossier, "verification"), false, label);
+    assert.equal(Object.hasOwn(dossier.outcome.evidence, "applied"), false, label);
+    assert.match(note.join(" "), /not independently verifiable/, label);
+    assert.equal(runVerifier(repo.dir, json, "v1.json").code, 2, label);
+    assert.deepEqual(errors, [], label);
+  }
+});
+
+test("other questions export exactly V1 even when a build identity is published", async (t) => {
+  const repo = verifierRepo();
+  t.after(() => fs.rmSync(repo.dir, { recursive: true, force: true }));
+  const { page, context, errors } = await pageFor({ identity: repo.identity });
+  t.after(() => context.close());
+  await openExplorer(page);
+  await selectAndAnalyze(page, "APE.02.20");
+  await askQuestion(page, "AMBITO_EDITION_DIFF");
+  await settled(page);
+  const files = await createDossier(page);
+  const machine = JSON.parse(files.find((file) => file.label === "JSON").text);
+  assert.equal(machine.dossier_schema_version, 1);
+  assert.equal(Object.hasOwn(machine, "verification"), false);
+  assert.equal(await page.locator("#qxDossierStatus .qx-dossier-note").count(), 0);
+  assert.deepEqual(errors, []);
+});
+
+test("the V2 explanation is readable in Spanish, dark and on a phone without horizontal overflow", async (t) => {
+  const repo = verifierRepo();
+  t.after(() => fs.rmSync(repo.dir, { recursive: true, force: true }));
+  const { page, context, errors } = await pageFor({ identity: repo.identity, viewport: { width: 390, height: 844 }, colorScheme: "dark", locale: "es-ES" });
+  await page.selectOption("#languageSelect", "es");
+  t.after(() => context.close());
+  const { json, note } = await phasesDossier(page);
+  assert.equal(JSON.parse(json).dossier_schema_version, 2);
+  assert.match(note.join(" "), /Verificable de forma independiente \(V2\)/);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+  assert.deepEqual(errors, []);
 });

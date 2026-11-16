@@ -10759,6 +10759,42 @@ function questionEnsure(questionId) {
   }
 }
 
+// Dossier V2 (AMBITO_PHASES only). The deployed site has no git identity of its
+// own: the Pages deploy writes build-identity.json (scripts/write_build_identity.mjs)
+// with the commit and the SHA-256 of the two artifacts the answer depends on. A V2
+// record is offered ONLY if that file exists AND the bytes this page was served for
+// those artifacts hash to the same values. Anything else (local checkout, failed
+// deploy step, stale cache, redeploy mid-session, no Web Crypto) yields no record,
+// and the export stays a plain V1 dossier. Nothing here invents an identity.
+const DOSSIER_ARTIFACT_VERSIONS = Object.freeze({
+  "data/source_registry.json": REGISTRY_ASSET_VERSION,
+  "data/planning/madrid_ambito_state.json": AREA_ASSET_VERSION,
+});
+async function resolveDossierVerification() {
+  try {
+    if (!(window.crypto && window.crypto.subtle)) return { reason: "NO_WEB_CRYPTO" };
+    const response = await fetch("build-identity.json", { cache: "no-store" });
+    if (!response.ok) return { reason: `NO_BUILD_IDENTITY_${response.status}` };
+    const record = await response.json();
+    const declared = record && Array.isArray(record.artifacts) ? record.artifacts : [];
+    const paths = Object.keys(DOSSIER_ARTIFACT_VERSIONS);
+    if (declared.length !== paths.length || !paths.every((file) => declared.some((entry) => entry && entry.path === file))) {
+      return { reason: "IDENTITY_ARTIFACT_SET" };
+    }
+    for (const entry of declared) {
+      // Same URL the application itself fetched, so a stale cache is detected here.
+      const served = await fetch(`${entry.path}?v=${DOSSIER_ARTIFACT_VERSIONS[entry.path]}`);
+      if (!served.ok) return { reason: "ARTIFACT_UNAVAILABLE" };
+      const digest = await window.crypto.subtle.digest("SHA-256", await served.arrayBuffer());
+      const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+      if (hex !== entry.sha256) return { reason: "ARTIFACT_FINGERPRINT_DIFFERS" };
+    }
+    return { record };
+  } catch (error) {
+    return { reason: "IDENTITY_UNAVAILABLE" };
+  }
+}
+
 // M3: prepare the two-file dossier only from a completed frozen M2 outcome.
 // The pure assembler is fetched on the explicit action, so ordinary map and
 // question interactions pay no dossier-generation cost. Context is checked
@@ -10781,8 +10817,12 @@ async function createQuestionDossier({ outcome, statusNode, button }) {
     statusNode.dataset.tone = "pending";
     statusNode.textContent = copy.dossierPreparing;
   }
-  questionExplorer.dossierRequest = import(moduleUrl("evidence-dossier.js"))
-    .then((dossierModule) => {
+  const wantsVerification = outcome.questionId === "AMBITO_PHASES" && outcome.status === "answered";
+  questionExplorer.dossierRequest = Promise.all([
+    import(moduleUrl("evidence-dossier.js")),
+    wantsVerification ? resolveDossierVerification() : null,
+  ])
+    .then(([dossierModule, identity]) => {
       const context = questionContext();
       const currentKey = questionExplorer.module.contextKey(context);
       if (currentKey !== outcome.contextKey || questionExplorer.view.snapshot().stale) throw new Error("DOSSIER_CONTEXT_STALE");
@@ -10804,7 +10844,7 @@ async function createQuestionDossier({ outcome, statusNode, button }) {
         return shell.registry.sources.find((source) => source.id === id) || null;
       }).filter(Boolean);
       const generatedAt = new Date().toISOString();
-      const dossier = dossierModule.buildEvidenceDossier({
+      const input = {
         outcome,
         presentation,
         context,
@@ -10819,10 +10859,23 @@ async function createQuestionDossier({ outcome, statusNode, button }) {
           registryContractVersion: shell.registry.contract_version || null,
           deploymentBuildId: K11_SNAPSHOT_ID,
         },
-      });
+      };
+      let dossier = null;
+      if (identity && identity.record) {
+        try {
+          dossier = dossierModule.buildEvidenceDossier({ ...input, verification: identity.record });
+        } catch (error) {
+          if (error && error.message === "DOSSIER_CONTEXT_STALE") throw error;
+          console.warn("Verifiable dossier unavailable; exporting V1", error);
+        }
+      } else if (identity) {
+        console.info("Verifiable dossier not offered:", identity.reason);
+      }
+      const verifiable = Boolean(dossier);
+      if (!dossier) dossier = dossierModule.buildEvidenceDossier(input);
       const files = dossierModule.buildDossierFiles(dossier);
       questionExplorer.lastDossier = { dossier, files };
-      deliverQuestionDossier(files, statusNode, copy);
+      deliverQuestionDossier(files, statusNode, copy, identity ? (verifiable ? copy.dossierVerifiable : copy.dossierV1Only) : null);
       return { dossier, files };
     })
     .catch((error) => {
@@ -10837,7 +10890,7 @@ async function createQuestionDossier({ outcome, statusNode, button }) {
   return questionExplorer.dossierRequest;
 }
 
-function deliverQuestionDossier(files, statusNode, copy) {
+function deliverQuestionDossier(files, statusNode, copy, note = null) {
   revokeQuestionDossierUrls();
   const created = files.map((file) => ({
     name: file.name,
@@ -10863,6 +10916,12 @@ function deliverQuestionDossier(files, statusNode, copy) {
       link.rel = "noopener";
       link.textContent = file.name.endsWith(".html") ? "HTML" : "JSON";
       statusNode.append(link, document.createTextNode(" "));
+    }
+    if (note) {
+      const explanation = document.createElement("span");
+      explanation.className = "qx-dossier-note";
+      explanation.textContent = note;
+      statusNode.append(explanation);
     }
   }
 }

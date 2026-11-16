@@ -197,3 +197,34 @@ test("the verifier cannot reach the network", () => {
   const source = fs.readFileSync(path.join(ROOT, "scripts/dossier_verify.mjs"), "utf8");
   for (const banned of [/\bfetch\s*\(/, /node:https?/, /node:net/, /node:dns/, /XMLHttpRequest/, /WebSocket/]) assert.doesNotMatch(source, banned);
 });
+
+// ---------------------------------------------------- deploy-time build identity
+
+test("write_build_identity publishes exactly the verifier's own record, and refuses a tree that differs from HEAD", () => {
+  const { dir, commit } = makeRepo();
+  fs.mkdirSync(path.join(dir, "scripts"), { recursive: true });
+  fs.copyFileSync(path.join(ROOT, "scripts/write_build_identity.mjs"), path.join(dir, "scripts/write_build_identity.mjs"));
+  git(dir, "add", "-A");
+  git(dir, "commit", "-q", "-m", "add identity writer");
+  const head = git(dir, "rev-parse", "HEAD");
+  const out = path.join(dir, "build-identity.json");
+  const run = () => spawnSync(process.execPath, [path.join(dir, "scripts/write_build_identity.mjs"), out], { encoding: "utf8" });
+
+  const ok = run();
+  assert.equal(ok.status, 0, ok.stderr);
+  const record = JSON.parse(fs.readFileSync(out, "utf8"));
+  assert.deepEqual(record, buildVerificationRecord(gitProvider({ repo: dir, codeRoot: dir }), head));
+  assert.equal(record.commit, head);
+  assert.notEqual(record.commit, commit);
+  fs.rmSync(out);
+
+  for (const file of ["data/source_registry.json", "js/planning-ambito.js"]) {
+    fs.appendFileSync(path.join(dir, file), " ");
+    const refused = run();
+    assert.equal(refused.status, 1, file);
+    assert.match(refused.stderr, /DIRTY_TREE/);
+    assert.equal(fs.existsSync(out), false, "no identity is written for a dirty tree");
+    git(dir, "checkout", "--", file);
+  }
+  fs.rmSync(dir, { recursive: true, force: true });
+});
