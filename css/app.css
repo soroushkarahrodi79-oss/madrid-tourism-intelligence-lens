@@ -2361,18 +2361,41 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
 /* Historical PNOA comparison (opt-in). While active, every contemporary map pane
    is hidden (not removed), so no analytical layer can read as the state of 2006/2023. */
 .hist-compare-active .leaflet-pane:not(.leaflet-map-pane):not(.leaflet-tile-pane):not(.leaflet-pnoa-pane):not(.leaflet-histLeft-pane):not(.leaflet-histRight-pane){visibility:hidden}
-#analysisPanel[data-hist-notice]{outline:2px dashed var(--chrome-text-section);outline-offset:-2px}
-#analysisPanel[data-hist-notice]::before{content:attr(data-hist-notice);display:block;margin:0 0 var(--s-2);padding:var(--s-2) var(--s-3);border:1px solid var(--chrome-border);border-left:3px solid currentColor;border-radius:var(--r-small);background:var(--chrome-card-surface);color:var(--chrome-text-control-strong);font-size:var(--t-micro);font-weight:650;line-height:1.35}
-#spatialToolbar[inert],.rail-group[inert],.geo-search-toggle[inert]{opacity:.55}
-.hist-divider{position:absolute;z-index:450;top:0;bottom:0;width:0;border-left:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.55);pointer-events:none}
+/* Uncluttered historical view: contemporary surfaces are collapsed with display:none (never removed), so their state returns intact on exit. */
+body.hist-compare-mode #analysisPanel,body.hist-compare-mode #spatialToolbar,body.hist-compare-mode #spatialToolsToggle,body.hist-compare-mode #geoSearchPanel,body.hist-compare-mode #geoSearchToggle,body.hist-compare-mode .rail-group:not([data-rail-group="map"]){display:none}
+.hist-divider{position:absolute;z-index:450;top:0;bottom:0;width:28px;margin-left:-14px;cursor:ew-resize;touch-action:none;outline:none;-webkit-tap-highlight-color:transparent}
+.hist-divider::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:3px;margin-left:-1.5px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.55)}
 .hist-divider[hidden]{display:none}
-.hist-compare-bar{position:absolute;z-index:1090;left:calc(var(--rail-offset,254px) + var(--safe-left) + var(--s-3));bottom:calc(var(--hist-bar-lift,0px) + var(--s-4) + var(--safe-bottom));box-sizing:border-box;width:min(540px,calc(100vw - var(--rail-offset,254px) - 2 * var(--s-3)));max-height:46dvh;overflow:auto;padding:var(--s-3);border:1px solid var(--chrome-border);border-radius:var(--r-large);background:var(--chrome-panel-surface);color:var(--chrome-text-primary);backdrop-filter:blur(18px);box-shadow:0 14px 40px rgba(0,0,0,.28)}
+.hist-grip{position:absolute;top:var(--hist-grip-y,50%);left:50%;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;background:#fff;border:1px solid rgba(0,0,0,.55);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.hist-grip::before,.hist-grip::after{content:"";position:absolute;top:50%;width:0;height:0;margin-top:-5px;border:5px solid transparent}
+.hist-grip::before{left:5px;border-right-color:#33404f;border-left-width:0}
+.hist-grip::after{right:5px;border-left-color:#33404f;border-right-width:0}
+.hist-divider:focus-visible .hist-grip,.hist-divider[data-dragging] .hist-grip{outline:3px solid var(--chrome-text-section);outline-offset:2px}
+@media(pointer:coarse){.hist-divider{width:44px;margin-left:-22px}.hist-grip{width:44px;height:44px;margin:-22px 0 0 -22px}}
+.hist-side{position:absolute;top:calc(var(--hist-grip-y,50%) + 30px);display:flex;flex-direction:column;align-items:center;padding:3px 9px;border-radius:var(--r-small);background:rgba(18,26,38,.86);color:#fff;font-size:var(--t-label);line-height:1.25;white-space:nowrap;pointer-events:none}
+.hist-side b{font-weight:750;letter-spacing:.02em}
+.hist-side small{font-size:var(--t-micro);color:#ffd9a0}
+.hist-side small:empty{display:none}
+.hist-side-left{right:calc(50% + 6px)}
+.hist-side-right{left:calc(50% + 6px)}
+.hist-divider[data-left-hidden="true"] .hist-side-left,.hist-divider[data-right-hidden="true"] .hist-side-right{display:none}
+.hist-compare-bar{position:absolute;z-index:1090;left:calc(var(--rail-offset,254px) + var(--safe-left) + var(--s-3));bottom:calc(var(--hist-bar-lift,0px) + var(--s-4) + var(--safe-bottom));box-sizing:border-box;width:min(520px,calc(100vw - var(--rail-offset,254px) - 2 * var(--s-3)));max-height:46dvh;overflow:auto;padding:var(--s-2) var(--s-3);border:1px solid var(--chrome-border);border-radius:var(--r-large);background:var(--chrome-panel-surface);color:var(--chrome-text-primary);backdrop-filter:blur(18px);box-shadow:0 14px 40px rgba(0,0,0,.28)}
 .hist-compare-bar[hidden]{display:none}
 @media(max-width:850px){.hist-compare-bar{left:50%;transform:translateX(-50%);width:min(620px,calc(100vw - 20px))}}
-.hist-bar-title{margin:0 0 var(--s-1);font-size:var(--t-micro);letter-spacing:.08em;text-transform:uppercase;color:var(--chrome-text-section)}
-.hist-notice,.hist-slider-label{margin:0 0 var(--s-2);font-size:var(--t-micro);line-height:1.4;color:var(--chrome-text-control-caption)}
-.hist-compare-bar .pnoa-status{margin:0 0 var(--s-2);color:var(--chrome-text-control-value)}
-.hist-slider-row{display:flex;align-items:center;gap:var(--s-2);margin:0 0 var(--s-1)}
-.hist-slider-row input[type=range]{flex:1 1 auto;min-width:0;min-height:44px;margin:0}
-.hist-year{font-size:var(--t-label);font-weight:650;color:var(--chrome-text-control-strong)}
+.hist-bar-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-2);margin:0 0 var(--s-1)}
+.hist-bar-title{margin:0;flex:1 1 100%;font-size:var(--t-micro);letter-spacing:.08em;text-transform:uppercase;color:var(--chrome-text-section)}
+.hist-presets{display:flex;flex:1 1 auto;gap:2px}
+.hist-preset{flex:1 1 0;min-height:44px;padding:0 var(--s-2);border:1px solid var(--chrome-border);background:var(--chrome-form-surface);color:var(--chrome-text-control-value);font-size:var(--t-label);cursor:pointer}
+.hist-preset:first-child{border-radius:var(--r-small) 0 0 var(--r-small)}
+.hist-preset:last-child{border-radius:0 var(--r-small) var(--r-small) 0}
+.hist-preset[aria-pressed="true"]{background:var(--chrome-text-section);border-color:var(--chrome-text-section);color:var(--chrome-panel-surface);font-weight:700}
+.hist-years{display:flex;flex-wrap:wrap;gap:var(--s-1) var(--s-3);margin:0 0 var(--s-1);padding:0;list-style:none;font-size:var(--t-micro)}
+.hist-years li{display:flex;align-items:center;gap:var(--s-1)}
+.hist-year-name{font-weight:700;color:var(--chrome-text-control-strong)}
+.hist-years li[data-state="error"] .hist-year-state,.hist-years li[data-state="partial"] .hist-year-state{font-weight:700;text-decoration:underline dotted}
+.hist-retry{min-height:44px;padding:0 var(--s-3);border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-form-surface);color:var(--chrome-text-control-value);font-size:var(--t-micro);cursor:pointer}
+.hist-retry[hidden]{display:none}
+.hist-summary,.hist-keys,.hist-notice{margin:0 0 var(--s-1);font-size:var(--t-micro);line-height:1.4;color:var(--chrome-text-control-caption)}
+.hist-compare-bar .pnoa-status{margin:0 0 var(--s-1);color:var(--chrome-text-control-value);font-size:var(--t-micro)}
+.hist-method summary{min-height:44px;display:list-item;list-style-position:inside;padding:12px 0;box-sizing:border-box;cursor:pointer;font-size:var(--t-micro);font-weight:650;color:var(--chrome-text-control-strong)}
 .hist-exit{min-height:44px;padding:0 var(--s-3);border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-form-surface);color:var(--chrome-text-control-value);font-size:var(--t-label);cursor:pointer}

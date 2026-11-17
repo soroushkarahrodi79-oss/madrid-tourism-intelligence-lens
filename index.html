@@ -48,18 +48,32 @@
 <body>
 <a class="sr-only skip-link" href="#analysisPanel" data-i18n="a11y.skipToPanel">Skip to the analysis panel</a>
 <a class="sr-only skip-link" href="#layerRail" data-i18n="a11y.skipToLayers">Skip to the map layers</a>
-<div id="map"><div id="histDivider" class="hist-divider" hidden aria-hidden="true"></div></div>
+<div id="map"><div id="histDivider" class="hist-divider" hidden role="slider" tabindex="0" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" aria-label="Divider: left 2006, right 2023" data-i18n-attr="aria-label:hist.sliderLabel" aria-describedby="histKeys">
+  <span class="hist-side hist-side-left" data-side="left" aria-hidden="true"><b>2006</b><small></small></span>
+  <span class="hist-grip" aria-hidden="true"></span>
+  <span class="hist-side hist-side-right" data-side="right" aria-hidden="true"><b>2023</b><small></small></span>
+</div></div>
 <section id="histCompareBar" class="hist-compare-bar" hidden aria-labelledby="histBarTitle">
-  <h2 id="histBarTitle" class="hist-bar-title" data-i18n="hist.title">Historical orthophotos · reference only</h2>
-  <p id="histNotice" class="hist-notice" data-i18n="hist.notice"></p>
-  <p id="histStatus" class="pnoa-status" role="status" data-state="off"></p>
-  <div class="hist-slider-row">
-    <span class="hist-year" aria-hidden="true">2006</span>
-    <input id="histSlider" type="range" min="0" max="100" step="1" value="50" aria-labelledby="histSliderLabel">
-    <span class="hist-year" aria-hidden="true">2023</span>
+  <div class="hist-bar-row">
+    <h2 id="histBarTitle" class="hist-bar-title" data-i18n="hist.title">Historical orthophotos · reference only</h2>
+    <div class="hist-presets" role="group" aria-label="Divider position" data-i18n-attr="aria-label:hist.presetsAria">
+      <button type="button" class="hist-preset" data-hist-fraction="1" aria-pressed="false" data-i18n="hist.preset2006">2006 only</button>
+      <button type="button" class="hist-preset" data-hist-fraction="0.5" aria-pressed="true" data-i18n="hist.preset50">50/50</button>
+      <button type="button" class="hist-preset" data-hist-fraction="0" aria-pressed="false" data-i18n="hist.preset2023">2023 only</button>
+    </div>
+    <button id="histExit" type="button" class="hist-exit" data-i18n="hist.exit">Back to normal view</button>
   </div>
-  <p id="histSliderLabel" class="hist-slider-label" data-i18n="hist.sliderLabel"></p>
-  <button id="histExit" type="button" class="hist-exit" data-i18n="hist.exit">Back to normal view</button>
+  <ul class="hist-years">
+    <li data-side="left" data-state="idle"><span class="hist-year-name">2006</span><span class="hist-year-state"></span><button type="button" class="hist-retry" data-hist-retry="left" hidden data-i18n="hist.retry">Retry</button></li>
+    <li data-side="right" data-state="idle"><span class="hist-year-name">2023</span><span class="hist-year-state"></span><button type="button" class="hist-retry" data-hist-retry="right" hidden data-i18n="hist.retry">Retry</button></li>
+  </ul>
+  <p id="histStatus" class="pnoa-status" role="status" data-state="off"></p>
+  <p id="histKeys" class="hist-keys" data-i18n="hist.keys"></p>
+  <p class="hist-summary" data-i18n="hist.summary"></p>
+  <details id="histMethod" class="hist-method">
+    <summary data-i18n="hist.methodTitle">Method, sources and limits</summary>
+    <p id="histNotice" class="hist-notice" data-i18n="hist.notice"></p>
+  </details>
 </section>
 
 <header class="map-header">
@@ -162,7 +176,7 @@
     </div>
     <div class="map-control hist-control">
       <div class="layer"><div class="layer-left"><span id="histLabel" data-i18n="aside.hist">Historical orthophotos · PNOA 2006 ⇄ 2023 (reference only)</span></div><label class="switch"><input id="histToggle" type="checkbox" aria-labelledby="histLabel" aria-describedby="histHint"><span></span></label></div>
-      <p id="histHint" class="pnoa-status" data-i18n="hist.hint"></p>
+      <p id="histHint" class="pnoa-status"></p>
     </div>
     </div>
   </details>

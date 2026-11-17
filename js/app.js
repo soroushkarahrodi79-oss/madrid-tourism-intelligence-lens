@@ -416,6 +416,7 @@ document.getElementById("pnoaToggle").onchange = (e) => setPnoa(e.target.checked
 const HIST_WMS = "https://www.ign.es/wms/pnoa-historico";
 const HIST_PILOT = { centre: [40.3925, -3.699], zoom: 17 }; // Madrid Río / Matadero
 const HIST_SIDES = Object.freeze({ left: { layer: "PNOA2006", year: 2006 }, right: { layer: "PNOA2023", year: 2023 } });
+let histDrag = null; // active divider drag, if any
 const histCompare = { active: false, fraction: 0.5, layers: {}, state: { left: "idle", right: "idle" }, saved: null };
 map.createPane("histLeftPane");
 map.createPane("histRightPane");
@@ -427,7 +428,6 @@ for (const [name, z] of [["histLeftPane", "255"], ["histRightPane", "256"]]) {
 function renderHistStatus() {
   const status = document.getElementById("histStatus");
   if (!status) return;
-  if (histCompare.active) document.getElementById("analysisPanel").dataset.histNotice = shellT("hist.contemporary");
   const { left, right } = histCompare.state;
   const states = [left, right];
   let aggregate = "on";
@@ -444,17 +444,65 @@ function renderHistStatus() {
   } else {
     status.textContent = shellT(`hist.${aggregate}`);
   }
+  // The switch's own hint states the effective state, never a stale "Off".
+  const hint = document.getElementById("histHint");
+  if (hint) hint.textContent = shellT(aggregate === "off" ? "hist.hint" : `hist.hint.${aggregate}`);
+  // Per-year indicators: one row in the bar, one tag beside each year label.
+  for (const side of ["left", "right"]) {
+    const state = histCompare.active ? histCompare.state[side] : "idle";
+    const key = state === "ok" ? "ok" : state === "idle" ? "loading" : state;
+    const label = shellT(`hist.year.${key}`);
+    const row = document.querySelector(`.hist-years li[data-side="${side}"]`);
+    if (row) {
+      row.dataset.state = state;
+      row.querySelector(".hist-year-state").textContent = label;
+      row.querySelector(".hist-retry").hidden = !(state === "error" || state === "partial");
+    }
+    const tag = document.querySelector(`#histDivider .hist-side[data-side="${side}"]`);
+    if (tag) {
+      tag.dataset.state = state;
+      tag.querySelector("small").textContent = state === "ok" || state === "idle" ? "" : label;
+    }
+  }
+}
+
+// The handle sits at mid-height unless another control (attribution, comparison bar,
+// zoom) would cover it there; then it moves to the nearest free height so it can
+// always be reached. Not recomputed mid-drag, so it never slides under a finger.
+function positionHistGrip() {
+  const divider = document.getElementById("histDivider");
+  if (!divider || !histCompare.active || histDrag) return;
+  const box = map.getContainer().getBoundingClientRect();
+  const x = box.left + box.width * histCompare.fraction;
+  const blockers = [map.getContainer().querySelector(".leaflet-control-attribution"), map.getContainer().querySelector(".leaflet-control-zoom"), document.getElementById("histCompareBar")]
+    .filter(Boolean).map((el) => el.getBoundingClientRect()).filter((r) => r.width && r.height);
+  const free = (y) => !blockers.some((r) => x + 24 > r.left && x - 24 < r.right && y + 78 > r.top && y - 26 < r.bottom);
+  const at = [0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8].find((f) => free(box.top + box.height * f)) ?? 0.5;
+  divider.style.setProperty("--hist-grip-y", `${at * 100}%`);
+}
+
+function setHistFraction(fraction) {
+  histCompare.fraction = Math.min(1, Math.max(0, fraction));
+  renderHistSlider();
+  updateHistClip();
 }
 
 function renderHistSlider() {
-  const slider = document.getElementById("histSlider");
   const divider = document.getElementById("histDivider");
   const pct = Math.round(histCompare.fraction * 100);
-  if (slider) {
-    slider.value = String(pct);
-    slider.setAttribute("aria-valuetext", shellTemplate("hist.sliderValue", { left: pct, right: 100 - pct }));
+  if (divider) {
+    divider.style.left = `${pct}%`;
+    divider.setAttribute("aria-valuenow", String(pct));
+    divider.setAttribute("aria-valuetext", shellTemplate("hist.sliderValue", { left: pct, right: 100 - pct }));
+    // A label only shows while its side of the map is wide enough to hold it.
+    const width = map.getSize().x;
+    divider.dataset.leftHidden = String(width * histCompare.fraction < 84);
+    divider.dataset.rightHidden = String(width * (1 - histCompare.fraction) < 84);
+    positionHistGrip();
   }
-  if (divider) divider.style.left = `${pct}%`;
+  for (const button of document.querySelectorAll("[data-hist-fraction]")) {
+    button.setAttribute("aria-pressed", String(Math.abs(Number(button.dataset.histFraction) - histCompare.fraction) < 0.005));
+  }
 }
 
 // Each pane is clipped in layer-pixel space, so the two images stay on the
@@ -477,6 +525,7 @@ function positionHistBar() {
   if (!bar || !attribution) return;
   const r = attribution.getBoundingClientRect();
   bar.style.setProperty("--hist-bar-lift", r.top > window.innerHeight / 2 ? `${Math.ceil(window.innerHeight - r.top)}px` : "0px");
+  positionHistGrip();
 }
 
 function histSideLayer(side) {
@@ -516,9 +565,6 @@ function setHistInert(on) {
     for (const el of histCompare.inerted || []) el.inert = false;
     histCompare.inerted = [];
   }
-  const panel = document.getElementById("analysisPanel");
-  if (on) panel.dataset.histNotice = shellT("hist.contemporary");
-  else delete panel.dataset.histNotice;
 }
 
 function setHistCompare(enabled) {
@@ -535,11 +581,13 @@ function setHistCompare(enabled) {
     pnoaToggle.disabled = true;
     setPnoaState("paused");
     map.getContainer().classList.add("hist-compare-active");
+    document.body.classList.add("hist-compare-mode");
     setHistInert(true);
     histCompare.state = { left: "loading", right: "loading" };
     histCompare.fraction = 0.5;
     for (const side of ["left", "right"]) histCompare.layers[side] = histSideLayer(side).addTo(map);
     map.on("move zoom resize", updateHistClip);
+    map.on("resize", renderHistSlider);
     window.addEventListener("resize", positionHistBar);
     map.setView(HIST_PILOT.centre, HIST_PILOT.zoom, { animate: false });
     bar.hidden = false;
@@ -551,6 +599,7 @@ function setHistCompare(enabled) {
     window.removeEventListener("resize", positionHistBar);
     histCompare.active = false;
     map.off("move zoom resize", updateHistClip);
+    map.off("resize", renderHistSlider);
     for (const side of ["left", "right"]) {
       if (histCompare.layers[side]) map.removeLayer(histCompare.layers[side]);
       map.getPane(side === "left" ? "histLeftPane" : "histRightPane").style.clipPath = "";
@@ -558,6 +607,7 @@ function setHistCompare(enabled) {
     histCompare.layers = {};
     histCompare.state = { left: "idle", right: "idle" };
     map.getContainer().classList.remove("hist-compare-active");
+    document.body.classList.remove("hist-compare-mode");
     setHistInert(false);
     bar.hidden = true;
     document.getElementById("histDivider").hidden = true;
@@ -580,11 +630,56 @@ map.getContainer().addEventListener("click", (e) => {
 }, true);
 document.getElementById("histToggle").onchange = (e) => setHistCompare(e.target.checked);
 document.getElementById("histExit").onclick = () => { setHistCompare(false); document.getElementById("histToggle").focus(); };
-document.getElementById("histSlider").addEventListener("input", (e) => {
-  histCompare.fraction = Number(e.target.value) / 100;
-  renderHistSlider();
-  updateHistClip();
+// The divider is the control: drag it on the map (mouse, touch, pen) or focus it
+// and use the keyboard. It never reaches the map's own pan/zoom/draw handlers.
+const histDividerEl = document.getElementById("histDivider");
+L.DomEvent.disableClickPropagation(histDividerEl);
+L.DomEvent.on(histDividerEl, "touchstart", L.DomEvent.stopPropagation);
+function histFractionAt(clientX) {
+  const rect = map.getContainer().getBoundingClientRect();
+  return (clientX - rect.left - histDrag.grab) / rect.width;
+}
+histDividerEl.addEventListener("pointerdown", (e) => {
+  if (!histCompare.active || (e.pointerType === "mouse" && e.button !== 0)) return;
+  const rect = map.getContainer().getBoundingClientRect();
+  histDrag = { id: e.pointerId, grab: e.clientX - rect.left - rect.width * histCompare.fraction };
+  histDividerEl.setPointerCapture(e.pointerId);
+  histDividerEl.dataset.dragging = "true";
+  histDividerEl.focus({ preventScroll: true });
+  e.preventDefault();
 });
+histDividerEl.addEventListener("pointermove", (e) => {
+  if (histDrag && e.pointerId === histDrag.id) setHistFraction(histFractionAt(e.clientX));
+});
+for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+  histDividerEl.addEventListener(type, (e) => {
+    if (!histDrag || e.pointerId !== histDrag.id) return;
+    histDrag = null;
+    delete histDividerEl.dataset.dragging;
+    positionHistGrip();
+  });
+}
+histDividerEl.addEventListener("keydown", (e) => {
+  const step = e.shiftKey ? 0.1 : 0.01;
+  const next = { ArrowLeft: histCompare.fraction - step, ArrowDown: histCompare.fraction - step, ArrowRight: histCompare.fraction + step, ArrowUp: histCompare.fraction + step, PageDown: histCompare.fraction - 0.1, PageUp: histCompare.fraction + 0.1, Home: 0, End: 1 }[e.key];
+  if (next === undefined) return;
+  e.preventDefault();
+  setHistFraction(next);
+});
+for (const button of document.querySelectorAll("[data-hist-fraction]")) {
+  button.addEventListener("click", () => setHistFraction(Number(button.dataset.histFraction)));
+}
+// Retry re-requests only that year's tiles; the other side and the view are untouched.
+for (const button of document.querySelectorAll("[data-hist-retry]")) {
+  button.addEventListener("click", () => {
+    const side = button.dataset.histRetry;
+    const layer = histCompare.layers[side];
+    if (!histCompare.active || !layer) return;
+    histCompare.state[side] = "loading";
+    renderHistStatus();
+    layer.redraw();
+  });
+}
 
 const groups = {
   museum: L.layerGroup().addTo(map),
