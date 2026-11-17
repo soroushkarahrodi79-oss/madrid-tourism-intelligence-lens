@@ -170,6 +170,8 @@
     const current = () => state.active && state.step === step && state.navigationToken === token;
     const key = STEPS[step]?.navigate;
     if (key === "controls") {
+      const spatialToggle = byId("spatialToolsToggle");
+      if (isVisible(spatialToggle) && spatialToggle.getAttribute("aria-expanded") === "false") spatialToggle.click();
       const controls = byId("panelControls") || byId("radiusSlider"); controls?.scrollIntoView({ block: "nearest", behavior: "auto" });
       state.navigationTimeout = root.setTimeout(() => {
         state.navigationTimeout = null; if (current()) renderGuide();

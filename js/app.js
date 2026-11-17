@@ -506,7 +506,7 @@ function histSideLayer(side) {
 // layer is made inert while comparing (not hidden, not rewritten), so the
 // contemporary readings that stay on screen cannot be changed under imagery from
 // another year. Map display, language, appearance and the tour stay usable.
-const HIST_INERT_SELECTORS = ["#geoSearchPanel", "#geoSearchToggle", "#spatialToolbar", "#analysisPanel", '.rail-group:not([data-rail-group="map"])'];
+const HIST_INERT_SELECTORS = ["#geoSearchPanel", "#geoSearchToggle", "#spatialToolsToggle", "#spatialToolbar", "#analysisPanel", '.rail-group:not([data-rail-group="map"])'];
 function setHistInert(on) {
   if (on) {
     histCompare.inerted = [...document.querySelectorAll(HIST_INERT_SELECTORS.join(","))].filter((el) => !el.inert);
@@ -663,6 +663,7 @@ let polygonDrawing = false;
 // a separate flag precisely because the refusal resets geometryMode to CIRCLE,
 // so the reason cannot be derived from geometryMode afterwards.
 let polygonModeRefused = false;
+let spatialToolsOpen = false;
 let polygonGeometry = null;     // frozen createPolygonGeometry() result, or null
 let polygonShape = null;
 let polygonDraftShape = null;
@@ -6936,6 +6937,12 @@ function polygonToolbarState() {
 
 function renderSpatialToolbar() {
   const state = polygonToolbarState();
+  const mode = shell.modes ? shell.modes.currentMode() : "PLACE";
+  if (mode === "CITY") spatialToolsOpen = false;
+  document.getElementById("spatialToolbar").hidden = !spatialToolsOpen;
+  const toggle = document.getElementById("spatialToolsToggle");
+  toggle.setAttribute("aria-expanded", String(spatialToolsOpen));
+  toggle.title = shellT("toolbar.open");
   const show = (id, visible) => { const el = document.getElementById(id); if (el) el.hidden = !visible; };
 
   for (const button of document.querySelectorAll("[data-geometry-mode]")) {
@@ -7122,6 +7129,21 @@ function setGeometryMode(nextMode) {
 for (const button of document.querySelectorAll("[data-geometry-mode]")) {
   button.addEventListener("click", () => setGeometryMode(button.dataset.geometryMode));
 }
+document.getElementById("spatialToolsToggle").addEventListener("click", () => {
+  spatialToolsOpen = !spatialToolsOpen;
+  if (!spatialToolsOpen) cancelPolygonDrawing();
+  renderSpatialToolbar();
+  if (spatialToolsOpen) document.querySelector('[data-geometry-mode][aria-pressed="true"]').focus();
+});
+document.getElementById("spatialToolbar").addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  cancelPolygonDrawing();
+  spatialToolsOpen = false;
+  renderSpatialToolbar();
+  document.getElementById("spatialToolsToggle").focus();
+  event.preventDefault();
+  event.stopPropagation();
+});
 document.getElementById("polygonDrawButton")?.addEventListener("click", startPolygonDrawing);
 document.getElementById("polygonAddVertexButton")?.addEventListener("click", () => {
   // The keyboard route: Leaflet pans and zooms the focused map with the arrow
@@ -7163,6 +7185,14 @@ if (haloRegressionRequested && haloRegressionLocal) {
 }
 
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && spatialToolsOpen && event.target.closest?.("#map,#spatialToolsToggle")) {
+    cancelPolygonDrawing();
+    spatialToolsOpen = false;
+    renderSpatialToolbar();
+    document.getElementById("spatialToolsToggle").focus();
+    event.preventDefault();
+    return;
+  }
   if (!polygonDrawing) return;
   if (event.key === "Escape") { cancelPolygonDrawing(); event.preventDefault(); return; }
   // Enter finishes, but never while the reader is on a button that has its own

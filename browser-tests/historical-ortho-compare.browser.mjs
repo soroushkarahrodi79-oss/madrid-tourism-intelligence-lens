@@ -447,6 +447,7 @@ test("leaving the comparison restores every action: search, radius, mode, layers
 
   await page.locator("#geoSearchAnalyze").click(); // normal behaviour is back
   assert.notDeepEqual((await analytic(page)).a, start.a, "Analyze with Lens moves the Lens again");
+  await page.locator("#spatialToolsToggle").click();
   await page.evaluate(() => document.getElementById("radiusSlider").scrollIntoView({ block: "center" }));
   await page.locator("#radiusSlider").fill("1500");
   assert.equal(await page.locator("#radiusSlider").inputValue(), "1500");
