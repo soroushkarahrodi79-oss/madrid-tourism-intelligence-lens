@@ -185,6 +185,8 @@ map.getPane("haloPane").style.pointerEvents = "none";
 const cartoBasemapKey = window.RUNTIME_CONFIG?.CARTO_BASEMAP_KEY || "";
 let activeBasemap = null;
 let activeBasemapName = "light";
+// PNOA reference imagery (opt-in). Never an input to any count, indicator or URL.
+let pnoaLayer = null;
 let lensStyleController = null;
 let adminStyleController = null;
 let hospitalityStyleController = null;
@@ -333,6 +335,75 @@ function setBasemap(name) {
 }
 
 setBasemap("light");
+
+// ---- PNOA aerial imagery: OPT-IN reference overlay, not data ----------------
+// Official national-mapping-institute WMS (https://www.ign.es/wms-inspire/pnoa-ma, layer
+// OI.OrthoimageCoverage, EPSG:3857, CC BY 4.0 scne.es, CORS *). It is drawn in
+// its own pane above the basemap and below every data layer, is opaque, and is
+// never read by a count, indicator, Lens result, export or the canonical URL.
+// Catastro WMS is deliberately NOT offered: its terms prohibit tiled requests.
+// Over imagery the data layers use the satellite palette, as for the Esri basemap.
+map.createPane("pnoaPane");
+map.getPane("pnoaPane").style.zIndex = "250";
+map.getPane("pnoaPane").style.pointerEvents = "none";
+let pnoaState = "off"; // off | loading | on | partial | error
+// True only while at least one PNOA tile is actually on screen. The satellite
+// palette follows this, not the layer's existence: if every tile fails the
+// basemap is what the reader sees, so the data layers must match it.
+let pnoaShowing = false;
+
+function stylePaletteName(name) {
+  return pnoaLayer && pnoaShowing ? "satellite" : name;
+}
+
+function renderPnoaStatus() {
+  const status = document.getElementById("pnoaStatus");
+  if (!status) return;
+  status.dataset.state = pnoaState;
+  status.textContent = shellT(`pnoa.${pnoaState}`);
+}
+
+function setPnoaState(state) {
+  pnoaState = state;
+  renderPnoaStatus();
+}
+
+function applyDataStyles() {
+  if (lensStyleController) lensStyleController(activeBasemapName);
+  if (adminStyleController) adminStyleController(activeBasemapName);
+  if (hospitalityStyleController) hospitalityStyleController(activeBasemapName);
+}
+
+function setPnoa(enabled) {
+  if (pnoaLayer) { map.removeLayer(pnoaLayer); pnoaLayer = null; }
+  pnoaShowing = false;
+  if (!enabled) { setPnoaState("off"); applyDataStyles(); return; }
+  const layer = L.tileLayer.wms("https://www.ign.es/wms-inspire/pnoa-ma", {
+    layers: "OI.OrthoimageCoverage",
+    format: "image/jpeg",
+    version: "1.3.0",
+    pane: "pnoaPane",
+    maxZoom: 19,
+    attribution:
+      'PNOA cedido por &copy; <a href="https://www.ign.es">Instituto Geogr&aacute;fico Nacional de Espa&ntilde;a</a> &middot; <a href="https://www.scne.es">CC BY 4.0 scne.es</a>',
+  });
+  let failed = 0;
+  // "loading" keeps the current palette so pan/zoom does not flicker it.
+  layer.on("loading", () => { failed = 0; setPnoaState("loading"); });
+  layer.on("tileerror", () => { failed += 1; });
+  layer.on("load", () => {
+    if (pnoaLayer !== layer) return;
+    // Tiles on screen, not tiles fetched this cycle: after a pan the earlier ones still show.
+    const shown = layer.getContainer().querySelectorAll("img.leaflet-tile-loaded").length;
+    const showing = shown > 0;
+    setPnoaState(failed === 0 && showing ? "on" : !showing ? "error" : "partial");
+    if (showing !== pnoaShowing) { pnoaShowing = showing; applyDataStyles(); }
+  });
+  pnoaLayer = layer.addTo(map);
+  setPnoaState("loading");
+}
+
+document.getElementById("pnoaToggle").onchange = (e) => setPnoa(e.target.checked);
 
 const groups = {
   museum: L.layerGroup().addTo(map),
@@ -2353,7 +2424,7 @@ const LENS_BASEMAP_STYLES = {
 };
 
 function applyLensBasemapStyle(name = activeBasemapName) {
-  const palette = LENS_BASEMAP_STYLES[name] || LENS_BASEMAP_STYLES.light;
+  const palette = LENS_BASEMAP_STYLES[stylePaletteName(name)] || LENS_BASEMAP_STYLES.light;
   for (const which of ["A", "B"]) {
     const isActive = which === active;
     // V3 hierarchy: the boundary organizes the bars but must not dominate them,
@@ -3271,7 +3342,7 @@ const ADMIN_BASEMAP_STYLES = {
 };
 
 function adminPalette(name = activeBasemapName) {
-  return ADMIN_BASEMAP_STYLES[name] || ADMIN_BASEMAP_STYLES.light;
+  return ADMIN_BASEMAP_STYLES[stylePaletteName(name)] || ADMIN_BASEMAP_STYLES.light;
 }
 
 function activeAreaStyle(which, forceActive = false) {
@@ -5372,7 +5443,7 @@ function hospitalityPalette(name = activeBasemapName) {
     light: { stroke: "#4e3761", selected: "#15101a", opacity: 0.34 },
     satellite: { stroke: "#ffffff", selected: "#ffffff", opacity: 0.43 },
     dark: { stroke: "#ead8f5", selected: "#ffffff", opacity: 0.38 },
-  }[name] || { stroke: "#4e3761", selected: "#15101a", opacity: 0.34 };
+  }[stylePaletteName(name)] || { stroke: "#4e3761", selected: "#15101a", opacity: 0.34 };
 }
 
 const HOSPITALITY_CLASS_COLORS = ["#efe0f7", "#d9b5ec", "#bd86dc", "#9a55c2", "#6e2c98"];
@@ -7117,6 +7188,7 @@ const SHELL_BINDINGS = [
 ];
 function applyShellCopy() {
   for (const el of document.querySelectorAll("[data-i18n]")) el.textContent = shellT(el.dataset.i18n);
+  renderPnoaStatus();
   const grip = document.getElementById("panelResizeHandle");
   if (grip) grip.title = shellT("a11y.resizePanelHint");
   if (document.getElementById("railToggle") && typeof syncEdgeToggleLabels === "function") syncEdgeToggleLabels();

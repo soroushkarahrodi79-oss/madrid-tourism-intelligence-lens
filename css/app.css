@@ -2331,3 +2331,8 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
   .rail-group-badge{display:inline-block;max-width:none;padding:0 var(--s-1)}
 }
 @media(prefers-reduced-motion:reduce){.rail-group>summary:after{transition:none}}
+
+/* PNOA reference imagery (opt-in). Status text states presence/absence and the
+   reference-only role; it never uses an evidence colour. */
+.pnoa-status{margin:var(--s-1) 0 0;font-size:var(--t-micro);line-height:1.4;color:var(--chrome-text-control-label)}
+.pnoa-status[data-state="error"],.pnoa-status[data-state="partial"]{border-left:2px solid currentColor;padding-left:var(--s-2)}
