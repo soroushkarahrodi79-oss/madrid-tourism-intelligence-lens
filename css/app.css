@@ -1012,6 +1012,8 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 .comparetable td{max-width:112px;overflow-wrap:anywhere}
 .comparetable td{white-space:pre-line}
 .comparetable td:last-child{color:#eef5fc;font-weight:650}
+#compareLine[data-geometry-comparison="shapes"] .comparetable{min-width:560px}
+#compareLine[data-geometry-comparison="shapes"] .comparetable td{max-width:none;overflow-wrap:normal}
 .compare-evidence,.halo-visibility-note{font-size:var(--t-micro);line-height:1.4;color:#8296ac;margin:var(--s-2) var(--s-1) 0}
 .halo-visibility-note{color:#a7b8c9}
 .halo-visibility-note:empty{display:none}
@@ -1099,6 +1101,9 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
 @media (max-width:420px){.destination-metrics{grid-template-columns:1fr}}
 .source{font-size:var(--t-micro);line-height:1.45;color:#8298af;margin-top:var(--s-3)}.source a{color:#8db8dc;text-decoration:none}
 .lens-boundary{filter:drop-shadow(0 0 1.5px rgba(0,0,0,.9)) drop-shadow(0 0 2.5px rgba(255,255,255,.5));stroke-linecap:round;stroke-linejoin:round}
+.lens-polygon-label{display:grid;place-items:center;border:2px solid #f7fbff;border-radius:50%;background:#132e44;color:#fff;font-weight:700;box-shadow:0 1px 5px #0009}
+.lens-polygon-label-b{border-style:dashed;border-color:#43d7ff}
+.lens-polygon-label::before{display:none}
 /* Administrative reference geometry: a quieter halo than the lens, so the
    containing barrio stays readable on imagery without competing with it. */
 .admin-active-pane{filter:drop-shadow(0 0 1.2px rgba(0,0,0,.7)) drop-shadow(0 0 1.8px rgba(255,255,255,.32))}

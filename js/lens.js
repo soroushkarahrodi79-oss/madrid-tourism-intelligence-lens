@@ -226,6 +226,41 @@ function geometryAreaKm2(geometry) {
   return null;
 }
 
+// Intersection warning for Madrid-scale windows. Membership still uses the
+// spherical circle / exact ring predicate above; these segment tests only decide
+// whether the UI must warn that the two samples may contain shared records.
+function geometriesOverlap(a, b) {
+  if (!a || !b) return false;
+  if (a.kind === ANALYSIS_GEOMETRY.CIRCLE && b.kind === ANALYSIS_GEOMETRY.CIRCLE) {
+    return haversineMeters(a.center, b.center) <= a.radiusM + b.radiusM;
+  }
+  const edges = (ring) => ring.map((v, i) => [v, ring[(i + 1) % ring.length]]);
+  const orientation = (p, q, r) => (q.lon - p.lon) * (r.lat - p.lat) - (q.lat - p.lat) * (r.lon - p.lon);
+  const crosses = (p, q, r, s) => {
+    const o1 = orientation(p, q, r), o2 = orientation(p, q, s);
+    const o3 = orientation(r, s, p), o4 = orientation(r, s, q);
+    return o1 * o2 <= 0 && o3 * o4 <= 0
+      && Math.max(Math.min(p.lon, q.lon), Math.min(r.lon, s.lon)) <= Math.min(Math.max(p.lon, q.lon), Math.max(r.lon, s.lon))
+      && Math.max(Math.min(p.lat, q.lat), Math.min(r.lat, s.lat)) <= Math.min(Math.max(p.lat, q.lat), Math.max(r.lat, s.lat));
+  };
+  if (a.kind === ANALYSIS_GEOMETRY.POLYGON && b.kind === ANALYSIS_GEOMETRY.POLYGON) {
+    if (a.ring.some((v) => geometryContainsPoint(b, v)) || b.ring.some((v) => geometryContainsPoint(a, v))) return true;
+    return edges(a.ring).some(([p, q]) => edges(b.ring).some(([r, s]) => crosses(p, q, r, s)));
+  }
+  const circle = a.kind === ANALYSIS_GEOMETRY.CIRCLE ? a : b;
+  const polygon = a.kind === ANALYSIS_GEOMETRY.POLYGON ? a : b;
+  if (!circle || !polygon || !polygon.ring) return false;
+  if (geometryContainsPoint(polygon, circle.center) || polygon.ring.some((v) => geometryContainsPoint(circle, v))) return true;
+  const cosLat = Math.cos(circle.center.lat * Math.PI / 180);
+  return edges(polygon.ring).some(([p, q]) => {
+    const xy = (v) => ({ x: (v.lon - circle.center.lon) * cosLat * 111194.9, y: (v.lat - circle.center.lat) * 111194.9 });
+    const u = xy(p), v = xy(q);
+    const dx = v.x - u.x, dy = v.y - u.y;
+    const t = Math.max(0, Math.min(1, -(u.x * dx + u.y * dy) / (dx * dx + dy * dy || 1)));
+    return Math.hypot(u.x + t * dx, u.y + t * dy) <= circle.radiusM;
+  });
+}
+
 // The reference point for distance readouts: a circle's centre, a polygon's
 // vertex average. Distances are always reported AS distances from this point and
 // never used to decide membership.
@@ -422,6 +457,7 @@ if (typeof module !== "undefined" && module.exports) {
     polygonAreaKm2,
     polygonReferencePoint,
     geometryAreaKm2,
+    geometriesOverlap,
     geometryReferencePoint,
     combinedStatus,
     comparisonDelta,
