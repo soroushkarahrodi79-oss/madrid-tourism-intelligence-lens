@@ -481,34 +481,65 @@ test("the whole workflow is operable from the keyboard", async () => {
   await context.close();
 });
 
-test("polygon analysis is refused outside PLACE rather than reinterpreted", async () => {
+test("A and B keep independent polygons across mode changes, editing and deletion", async () => {
   const { context, page } = await openApp();
   await drawRing(page, RING);
-  assert.equal((await readState(page)).activeGeometryKind, "POLYGON");
+  const ringB = [
+    { lat: 40.420, lon: -3.695 }, { lat: 40.420, lon: -3.675 },
+    { lat: 40.435, lon: -3.675 }, { lat: 40.435, lon: -3.695 },
+  ];
   await page.locator("#modeCompareButton").click();
-  await page.waitForTimeout(400);
-  const inCompare = await page.evaluate(() => ({
-    kind: window.__geometryKind(),
-    pressed: document.getElementById("geometryModePolygon").getAttribute("aria-pressed"),
-    documentGeometry: document.documentElement.dataset.analysisGeometry,
-    noticeVisible: !document.getElementById("polygonScopeNotice").hidden,
+  assert.deepEqual(await page.evaluate(() => [window.__geometryKindFor("A"), window.__geometryKindFor("B")]), ["POLYGON", "CIRCLE"]);
+  assert.match(await page.locator("#comparisonRadiusReadout").textContent(), /A · Polygon · .+ \| B · Circle ·/);
+  const mixed = await page.evaluate(() => ({ points: window.__visiblePoints(), geometryB: window.__geometryFor("B"), countB: document.getElementById("cmpPoiB").textContent }));
+  assert.equal(parseInt(mixed.countB, 10), mixed.points.filter((p) => (p.type === "museum" || p.type === "info") && lens.geometryContainsPoint(mixed.geometryB, p)).length);
+  assert.match(await page.locator("#haloVisibilityNote").textContent(), /no radius/);
+  assert.equal(await page.locator("#spatialSensitivity").isVisible(), false);
+  await drawRing(page, ringB);
+  assert.deepEqual(await page.evaluate(() => [window.__ringFor("A"), window.__ringFor("B")]), [RING, ringB]);
+  const observed = await page.evaluate(() => ({
+    points: window.__visiblePoints(),
+    cells: ["cmpPoiA", "cmpPoiB", "cmpStayA", "cmpStayB"].map((id) => document.getElementById(id).textContent),
+    cue: document.getElementById("comparisonModeCue").textContent,
   }));
-  assert.equal(inCompare.kind, "CIRCLE", "the A/B comparison is never fed a polygon");
-  assert.equal(inCompare.pressed, "false");
-  assert.equal(inCompare.documentGeometry, "CIRCLE");
-  // Pressing Polygon in COMPARE states why it is refused.
-  await page.locator("#geometryModePolygon").click();
-  const note = await page.evaluate(() => {
-    const el = document.getElementById("geometryModeNote");
-    return { hidden: el.hidden, text: el.textContent.trim() };
-  });
-  assert.equal(await page.evaluate(() => window.__geometryKind()), "CIRCLE");
-  assert.equal(note.hidden, false, "the refusal is stated, not silent");
-  assert.match(note.text, /PLACE only/);
+  for (const [i, ring] of [RING, ringB].entries()) {
+    const inside = observed.points.filter((p) => lens.geometryContainsPoint(lens.createPolygonGeometry(ring), p));
+    assert.equal(parseInt(observed.cells[i], 10), inside.filter((p) => p.type === "museum" || p.type === "info").length);
+    assert.equal(parseInt(observed.cells[i + 2], 10), inside.filter((p) => p.type === "stay").length);
+  }
+  assert.match(observed.cue, /Different areas/);
+  assert.match(await page.locator("#cmpPoi").textContent(), /Withheld · different areas/);
+  await page.locator("#languageSelect").selectOption("es");
+  assert.match(await page.locator("#comparisonModeCue").textContent(), /Superficies distintas/);
+  await page.locator("#languageSelect").selectOption("en");
+  assert.deepEqual(await page.evaluate(() => window.__polygonOutlines().map((shape) => [shape.className, shape.dashArray])),
+    [["lens-polygon lens-polygon-a", null], ["lens-polygon lens-polygon-b", "8 5"]]);
+  assert.equal(await page.locator(".lens-polygon-label-a").count(), 1);
+  assert.equal(await page.locator(".lens-polygon-label-b").count(), 1);
+  await page.locator("#polygonEditButton").click();
+  await page.locator("#polygonEditAddButton").click();
+  await page.locator("#polygonEditCancelButton").click();
+  assert.deepEqual(await page.evaluate(() => window.__ringFor("B")), ringB);
+  await page.locator("#polygonEditButton").click();
+  await page.locator("#polygonEditAddButton").click();
+  await page.locator("#polygonEditApplyButton").click();
+  assert.equal((await page.evaluate(() => window.__ringFor("B"))).length, 5);
+  assert.deepEqual(await page.evaluate(() => window.__ringFor("A")), RING);
+  await page.locator("#modePlaceButton").click();
+  await page.locator("#modeCompareButton").click();
+  assert.deepEqual(await page.evaluate(() => window.__ringFor("A")), RING);
+  assert.equal((await page.evaluate(() => window.__ringFor("B"))).length, 5);
+  await page.locator("#polygonDeleteButton").click();
+  assert.deepEqual(await page.evaluate(() => window.__ringFor("A")), RING);
+  assert.equal(await page.evaluate(() => window.__geometryKindFor("B")), "CIRCLE");
+  await page.locator("#lensAButton").click();
+  await page.locator("#polygonDeleteButton").click();
+  assert.deepEqual(await page.evaluate(() => [window.__geometryKindFor("A"), window.__geometryKindFor("B")]), ["CIRCLE", "CIRCLE"]);
+  assert.equal(await page.locator("#comparisonBridge").isVisible(), true);
   await context.close();
 });
 
-test("the toolbar copy, the scope statement and the refusal are translated", async () => {
+test("the toolbar and scope statement are translated", async () => {
   const { context, page } = await openApp({ locale: "es" });
   const labels = await page.evaluate(() => ({
     circle: document.getElementById("geometryModeCircle").textContent.trim(),
@@ -545,9 +576,11 @@ test("the shared link still carries the circular Lens, and says the polygon is n
   await page.locator("#k11ShareBtn").click();
   await page.waitForTimeout(400);
   const status = await page.locator("#k11ShareStatus").textContent();
-  assert.match(status, /carries the circular Lens only/,
+  assert.match(status, /restores the circles, not this polygon reading/,
     "copying a link while a polygon is active must say what the link does not carry");
-  assert.match(status, /Export evidence/);
+  assert.match(status, /cannot yet be restored/);
+  await page.locator("#k11ExportBtn").click();
+  assert.match(await page.locator("#k11ShareStatus").textContent(), /export is unavailable until #197/);
   void circleUrl;
   await context.close();
 });

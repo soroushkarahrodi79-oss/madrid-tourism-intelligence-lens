@@ -286,12 +286,8 @@
      aria-labelledby="spatialToolbarLabel" data-controls-for="PLACE COMPARE">
   <h2 id="spatialToolbarLabel" class="sr-only" data-i18n="toolbar.geometry">Analysis geometry</h2>
 
-  <!-- ONE active analysis geometry at a time. The circular Lens is the default
-       and is unchanged; a custom polygon replaces it as the geometry the
-       point-level readings are computed over. Polygon analysis is PLACE-only:
-       the A/B comparison, the comparison halo and the radius-sensitivity test
-       are all defined on circles, so the polygon mode is refused in COMPARE with
-       a stated reason rather than silently reinterpreted. -->
+  <!-- Each Lens owns its confirmed geometry and draft. Finish or Apply commits
+       the active Lens ring; switching A/B or mode keeps both workspaces. -->
   <div id="geometryModeGroup" class="geometry-mode" role="group" aria-labelledby="geometryModeLabel">
     <span id="geometryModeLabel" class="sr-only" data-i18n="toolbar.geometryMode">Analysis geometry type</span>
     <button type="button" id="geometryModeCircle" class="geometry-mode-btn" data-geometry-mode="CIRCLE" aria-pressed="true" data-i18n="toolbar.circle">Circle</button>
@@ -472,7 +468,7 @@
       <p id="polygonScopeGeometry" class="polygon-scope-geometry"></p>
       <p class="polygon-scope-line" data-i18n="polygon.computed">Computed by exact point-in-polygon membership: tourism POIs, hotels &amp; stays, mobility nodes, category mix, nearest features, observed pedestrian activity and HATI UTCI samples.</p>
       <p class="polygon-scope-line polygon-scope-withheld" data-i18n="polygon.unsupported">Not available for a custom polygon, and not estimated: the administrative area register, planning ámbitos, the granted urban-licence register, hospitality &amp; commercial context, and radius sensitivity. These are published per official area or per radius and cannot be clipped to an arbitrary shape without assuming an even spread inside the published unit.</p>
-      <p class="polygon-scope-line" data-i18n="polygon.share">A shareable link carries the circular Lens only. Open a shared link and the circle is restored, with the usual partial-restore notice; use Export evidence to keep the polygon geometry.</p>
+      <p class="polygon-scope-line" data-i18n="polygon.share">Shared links restore circles only. Evidence export is unavailable for polygon readings; polygon and mixed comparisons cannot yet be restored. Record vertices separately until #197 adds faithful export and import.</p>
     </section>
   <section id="planningAmbito" class="planning" aria-labelledby="planningSectionHeading" hidden>
     <div class="section-head"><span id="planningSectionHeading" data-i18n="sec.planning">Planning ámbito</span><small id="planningScopeHint" data-i18n="planning.scopeHint">whole planning ámbito</small><button type="button" class="evidence-link" data-evidence-prefix="place.planning." data-evidence-name="sec.planning" aria-haspopup="dialog"><span aria-hidden="true">i</span></button></div>
@@ -773,7 +769,7 @@
   <div id="compareLine" class="compareline mode-section" data-mode-section="COMPARE" hidden>
     <!-- LEAD ANSWER: the focused metric reading (Comparison Bridge). -->
     <div id="compareScopeSwitch" class="compare-scope-switch" role="group" aria-label="Comparison scope" data-i18n-attr="aria-label:compare.scope.aria">
-      <button type="button" id="compareScopeLens" class="compare-scope-btn" data-compare-scope="LENS" aria-pressed="true"><span aria-hidden="true">◎</span> <span data-i18n="compare.scope.lens">Lens circles</span></button>
+      <button type="button" id="compareScopeLens" class="compare-scope-btn" data-compare-scope="LENS" aria-pressed="true"><span aria-hidden="true">◎</span> <span data-i18n="compare.scope.lens">Lens areas</span></button>
       <button type="button" id="compareScopeAmbito" class="compare-scope-btn" data-compare-scope="AMBITO" aria-pressed="false"><span aria-hidden="true">▣</span> <span data-i18n="compare.scope.ambito">Planning ámbitos</span></button>
     </div>
     <div class="section-head compare-lens-head"><span>Lens A ↔ Lens B</span><small>circle measurements only</small><button type="button" class="evidence-link" data-evidence-prefix="compare." data-evidence-name="sec.compare" aria-haspopup="dialog"><span aria-hidden="true">i</span></button></div>
@@ -867,8 +863,8 @@
       <p id="spatialSensitivityGuard" class="ss-guard">Alternative analytical window · not a forecast and not a causal effect</p>
       <p id="spatialSensitivityA11y" class="sr-only" aria-live="polite"></p>
     </section>
-    <div class="comparetable-wrap">
-      <table class="comparetable" aria-label="Lens A and Lens B circle measurements">
+    <div class="comparetable-wrap" role="region" tabindex="0" aria-label="Lens comparison measurements" data-i18n-attr="aria-label:compare.shape.tableRegion">
+      <table class="comparetable" aria-label="Lens A and Lens B circle measurements" data-i18n-attr="aria-label:compare.shape.circleTable">
         <thead><tr><th scope="col">Metric</th><th scope="col">Lens A</th><th scope="col">Lens B</th><th scope="col">B−A</th></tr></thead>
         <tbody>
           <tr data-halo-metric="tourism"><th scope="row"><button type="button" class="cmp-metric-focus" aria-pressed="false">Tourism POIs</button></th><td id="cmpPoiA">—</td><td id="cmpPoiB">—</td><td id="cmpPoi">—</td></tr>

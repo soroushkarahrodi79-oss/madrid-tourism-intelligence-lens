@@ -22,6 +22,7 @@ const {
   createCircleGeometry, createPolygonGeometry, pointInPolygonRing,
   geometryContainsPoint, polygonPerimeterM, polygonAreaKm2,
   polygonReferencePoint, geometryAreaKm2, geometryReferencePoint,
+  geometriesOverlap,
   poiStatsInGeometry, pedestrianStatsInGeometry, poiStatsInLens, haversineMeters,
 } = lens;
 
@@ -295,6 +296,16 @@ test("the geometry area and reference point dispatch correctly for both kinds", 
   assert.equal(geometryContainsPoint(polygon, null), false);
   assert.equal(geometryContainsPoint({ kind: "SOMETHING_ELSE" }, { lat: 1, lon: 1 }), false,
     "an unknown geometry kind contains nothing rather than defaulting to a circle");
+});
+
+test("overlap warning distinguishes disjoint, touching and mixed windows", () => {
+  const square = (x0, x1) => createPolygonGeometry([atStep(x0, 0), atStep(x1, 0), atStep(x1, 10), atStep(x0, 10)]);
+  const west = square(0, 5), east = square(5, 10), far = square(20, 25);
+  assert.equal(geometriesOverlap(west, east), true, "shared edge must warn");
+  assert.equal(geometriesOverlap(west, far), false);
+  assert.equal(geometriesOverlap(createCircleGeometry(atStep(2, 5), 100), west), true);
+  assert.equal(geometriesOverlap(createCircleGeometry(atStep(12, 5), 100), west), false);
+  assert.equal(geometriesOverlap(createCircleGeometry(atStep(2, 5), 100), createCircleGeometry(atStep(20, 5), 100)), false);
 });
 
 test("the module states its own refusal to substitute an approximation", () => {

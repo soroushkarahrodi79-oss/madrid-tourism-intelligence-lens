@@ -82,6 +82,7 @@ if (!/[?&]v=/.test(K11_ORIGINAL_SEARCH)) {
 // very first render without a temporal-dead-zone error. Its user functions live
 // in the K11 block at the end of the file (hoisted function declarations).
 const k11 = { suppress: false, scheduled: false, refused: false, restored: false };
+let k11CopyInitialized = false;
 let k11InitialRestore = null;
 try {
   if (typeof parseEvidenceState === "function" && /[?&]v=/.test(K11_ORIGINAL_SEARCH)) {
@@ -662,15 +663,32 @@ let polygonDrawing = false;
 let polygonEditing = false;
 let polygonEditDraft = [];
 let polygonEditSelected = null;
-// Set when a polygon request is refused because the mode cannot take one. It is
-// a separate flag precisely because the refusal resets geometryMode to CIRCLE,
-// so the reason cannot be derived from geometryMode afterwards.
-let polygonModeRefused = false;
 let spatialToolsOpen = false;
 let polygonGeometry = null;     // frozen createPolygonGeometry() result, or null
 let polygonShape = null;
 let polygonDraftShape = null;
-let polygonHiddenCircles = [];
+// Each lens owns its committed shape and any unfinished work. The scalar values
+// above are the active lens's editing workspace; switching lenses stores and
+// restores that workspace without changing the other lens.
+const polygonLensState = {
+  A: { mode: ANALYSIS_GEOMETRY.CIRCLE, vertices: [], geometry: null, draft: [], drawing: false, editing: false, editDraft: [], selected: null },
+  B: { mode: ANALYSIS_GEOMETRY.CIRCLE, vertices: [], geometry: null, draft: [], drawing: false, editing: false, editDraft: [], selected: null },
+};
+function savePolygonLens(which) {
+  polygonLensState[which] = { mode: geometryMode, vertices: polygonVertices, geometry: polygonGeometry,
+    draft: polygonDraft, drawing: polygonDrawing, editing: polygonEditing,
+    editDraft: polygonEditDraft, selected: polygonEditSelected };
+}
+function loadPolygonLens(which) {
+  const state = polygonLensState[which];
+  geometryMode = state.mode; polygonVertices = state.vertices; polygonGeometry = state.geometry;
+  polygonDraft = state.draft; polygonDrawing = state.drawing; polygonEditing = state.editing;
+  polygonEditDraft = state.editDraft; polygonEditSelected = state.selected;
+}
+function polygonStateFor(which) {
+  if (which === active) savePolygonLens(which);
+  return polygonLensState[which];
+}
 const polygonLayerGroup = L.layerGroup().addTo(map);
 
 let pedestrianStations = [];
@@ -1545,7 +1563,7 @@ function renderSpatialSensitivity() {
   if (typeof k11 !== "undefined") k11.compareSensitivity = null;
   // The section is a COMPARISON of two window configurations, so it exists only
   // in compare mode: with one lens there is no A ↔ B reading to be sensitive.
-  if (!bEnabled || !lastBridgeContext) {
+  if (!bEnabled || !lastBridgeContext || polygonIsActiveGeometry("A") || polygonIsActiveGeometry("B")) {
     host.hidden = true;
     return;
   }
@@ -1774,6 +1792,11 @@ function updateHaloLayout() {
   // perimeter bars so neither disappears when the active lens is switched.
   const whichList = bEnabled ? ["A", "B"] : ["A"];
   const removeAll = () => { for (const which of ["A", "B"]) for (const marker of Object.values(comparisonHalos[which])) map.removeLayer(marker); };
+  if (typeof polygonIsActiveGeometry === "function" && (polygonIsActiveGeometry("A") || (bEnabled && polygonIsActiveGeometry("B")))) {
+    removeAll();
+    if (note) note.textContent = shellT("compare.shape.noHalo");
+    return;
+  }
   if (!lastHaloComparison) {
     removeAll();
     if (note) note.textContent = "";
@@ -1788,11 +1811,6 @@ function updateHaloLayout() {
   // custom polygon as the active geometry there is no such radius, and leaving
   // the bars in place would draw circle-shaped marks around polygon-derived
   // figures. The mark is withdrawn and the reason is stated.
-  if (typeof polygonIsActiveGeometry === "function" && polygonIsActiveGeometry()) {
-    removeAll();
-    if (note) note.textContent = "Map halo off: its marks are laid out on the Lens circle, and a custom polygon has no radius.";
-    return;
-  }
   // Lens B markers never linger on the map in single-lens mode.
   if (!bEnabled) for (const marker of Object.values(comparisonHalos.B)) map.removeLayer(marker);
   const sides = {};
@@ -3306,6 +3324,63 @@ function setComparisonRow(prefix, state, metricId) {
   document.getElementById(prefix).textContent = comparisonDeltaCell(state, metricId);
 }
 
+function renderShapeCompare() {
+  const t = (key) => shellT(`compare.shape.${key}`);
+  const geometries = { A: activeAnalysisGeometry("A"), B: activeAnalysisGeometry("B") };
+  const areas = { A: geometryAreaKm2(geometries.A), B: geometryAreaKm2(geometries.B) };
+  const unequal = Math.abs(areas.A - areas.B) > 1e-6;
+  const overlap = geometriesOverlap(geometries.A, geometries.B);
+  const label = (which) => `${which} · ${geometries[which].kind === ANALYSIS_GEOMETRY.POLYGON ? shellT("toolbar.polygon") : shellT("toolbar.circle")} · ${formatAreaKm2(areas[which])}`;
+  const statusValue = (value, status) => status === "unavailable" ? t("unavailable")
+    : value == null ? t("withheld")
+    : `${value}${status === "snapshot" ? ` · ${t("partial")}` : status === "published" ? ` · ${t("published")}` : ""}`;
+  const stats = { A: statsFor("A"), B: statsFor("B") };
+  const rows = [
+    ["cmpPoi", "tourism", combinedStatus(layerStatus, ["museums", "info"])],
+    ["cmpStay", "stay", combinedStatus(layerStatus, ["stays"])],
+    ["cmpMobility", "mobility", combinedStatus(layerStatus, ["bikes", "rail"])],
+  ];
+  for (const [id, key, status] of rows) {
+    const values = { A: stats.A[key], B: stats.B[key] };
+    for (const which of ["A", "B"]) {
+      const cell = document.getElementById(`${id}${which}`);
+      cell.textContent = statusValue(values[which], status);
+      cell.title = key === "mobility" ? mobilityExtractionNote(stats[which].mobilityEvidence) : "";
+    }
+    document.getElementById(id).textContent = unequal ? t("unequalDelta")
+      : status === "unavailable" || values.A == null || values.B == null ? t("unavailable")
+      : `${values.B - values.A >= 0 ? "+" : ""}${values.B - values.A}`;
+  }
+  const pedestrian = isPedestrianVisible() ? { A: pedestrianStatsFor("A"), B: pedestrianStatsFor("B") } : null;
+  const heat = isHatiVisible() ? { A: heatStatsFor("A"), B: heatStatsFor("B") } : null;
+  for (const which of ["A", "B"]) {
+    document.getElementById(`cmpPedestrian${which}`).textContent = !pedestrian ? t("off")
+      : pedestrianStatus === "unavailable" ? t("unavailable")
+      : pedestrian[which].evidence === "NONE" ? t("noSample")
+      : `${Math.round(pedestrian[which].meanObserved)} ${t("pedUnit")} · ${pedestrian[which].stationCount} ${t("stations")}${pedestrianStatus === "snapshot" ? ` · ${t("partial")}` : ""}`;
+    document.getElementById(`cmpHeat${which}`).textContent = !heat ? t("off")
+      : heat[which].evidence === "NONE" ? t("noSample")
+      : `${heat[which].mean.toFixed(1)} °C · ${heat[which].count} ${t("samples")}`;
+  }
+  document.getElementById("cmpPedestrian").textContent = t("descriptive");
+  document.getElementById("cmpHeat").textContent = t("descriptive");
+  document.getElementById("comparisonRadiusReadout").textContent = `${label("A")} | ${label("B")}`;
+  document.getElementById("comparisonRadiusReadout").setAttribute("aria-label", t("areas"));
+  document.getElementById("comparisonModeCue").textContent = [unequal ? t("unequal") : t("equal"), overlap ? t("overlap") : t("disjoint")].join(" · ");
+  document.getElementById("cmpEvidence").textContent = t("evidence");
+  document.querySelector(".comparetable").setAttribute("aria-label", t("table"));
+  document.getElementById("compareLine").dataset.geometryComparison = "shapes";
+  document.querySelector(".compare-lens-head small").textContent = t("heading");
+  document.getElementById("comparisonBridge").hidden = true;
+  document.getElementById("decisionInsight").hidden = true;
+  document.querySelectorAll(".cmp-metric-focus").forEach((button) => { button.disabled = true; });
+  lastBridgeStates = null; lastBridgeContext = null; lastHaloComparison = null;
+  if (typeof k11 !== "undefined") k11.compareSensitivity = null;
+  renderSpatialSensitivity();
+  document.getElementById("comparisonHaloSummary").textContent = `${label("A")}; ${label("B")}. ${document.getElementById("comparisonModeCue").textContent}. ${t("evidence")}`;
+  updateHaloLayout();
+}
+
 function renderCompare() {
   if (!bEnabled) {
     // Single-lens: the halo still renders Lens A's four perimeter bars.
@@ -3317,6 +3392,17 @@ function renderCompare() {
     updateHalo();
     return;
   }
+  if (polygonIsActiveGeometry("A") || polygonIsActiveGeometry("B")) {
+    renderShapeCompare();
+    return;
+  }
+  document.getElementById("compareLine").dataset.geometryComparison = "circles";
+  document.querySelector(".compare-lens-head small").textContent = shellT("sec.circleOnly");
+  document.querySelector(".comparetable").setAttribute("aria-label", shellT("compare.shape.circleTable"));
+  document.getElementById("comparisonRadiusReadout").setAttribute("aria-label", shellT("compare.shape.radii"));
+  document.getElementById("comparisonBridge").hidden = false;
+  document.getElementById("decisionInsight").hidden = false;
+  document.querySelectorAll(".cmp-metric-focus").forEach((button) => { button.disabled = false; });
   const a = statsFor("A");
   const b = statsFor("B");
   const hatiOn = isHatiVisible();
@@ -6453,6 +6539,10 @@ function refresh() {
 }
 
 function activateLens(which) {
+  if (which !== active) {
+    savePolygonLens(active);
+    loadPolygonLens(which);
+  }
   active = which;
   radiusSlider.value = radiusFor(which);
   renderRadiusLabels();
@@ -6465,6 +6555,10 @@ function activateLens(which) {
       : "Lens B"
     : "+ Enable Lens B";
   document.getElementById("lensAButton").textContent = which === "A" ? "Lens A · active" : "Lens A";
+  renderPolygonOnMap();
+  syncLensCircleVisibility();
+  renderSpatialToolbar();
+  renderPolygonScope();
   refresh();
 }
 
@@ -6711,6 +6805,7 @@ document.getElementById("languageSelect").onchange = (event) => {
   renderUnemploymentContext(areaProfiles[active] || areaProfiles.A);
   renderAreaSourceDetails();
   renderModeUi();
+  if (bEnabled && (polygonIsActiveGeometry("A") || polygonIsActiveGeometry("B"))) renderShapeCompare();
   // The search surface builds its product-authored copy at render time; the
   // official codes and denominations inside it are never translated.
   renderGeoSearch();
@@ -6810,27 +6905,22 @@ document.querySelectorAll("[data-layer]").forEach((x) => (x.onchange = () => {
 // advantage; a real increase in surface. Drawing is done below on the Leaflet
 // primitives the app already uses.
 //
-// POLYGON IS PLACE-ONLY. The A/B comparison, the comparison halo and the radius
-// sensitivity test are all defined on circles. Rather than reinterpret them, the
-// polygon mode is refused in COMPARE with a stated reason.
+// Polygon membership is available to both lenses. Radial halo and sensitivity
+// remain circle-only and are explicitly withheld for mixed/shape comparisons.
 const POLYGON_PANE_STYLE = Object.freeze({ weight: 2, dashArray: null, fillOpacity: 0.08 });
 const POLYGON_DRAFT_STYLE = Object.freeze({ weight: 2, dashArray: "6 5", fillOpacity: 0.05 });
 
-// THE single resolver every statistic goes through. It returns the polygon only
-// when a polygon is genuinely the active geometry for THIS lens in THIS mode;
-// in every other case the circular geometry is returned unchanged, which is what
-// keeps the existing circular behaviour byte-for-byte identical.
+// The single resolver every point-level statistic goes through. Each side uses
+// its own confirmed geometry in PLACE and COMPARE.
 function activeAnalysisGeometry(which) {
-  const mode = shell.modes ? shell.modes.currentMode() : "PLACE";
-  if (geometryMode === ANALYSIS_GEOMETRY.POLYGON && polygonGeometry && mode === "PLACE" && which === active) {
-    return polygonGeometry;
-  }
+  const state = polygonStateFor(which);
+  if (state.mode === ANALYSIS_GEOMETRY.POLYGON && state.geometry) return state.geometry;
   return createCircleGeometry(centerOf(which), radiusFor(which));
 }
 
-function polygonIsActiveGeometry() {
-  const mode = shell.modes ? shell.modes.currentMode() : "PLACE";
-  return geometryMode === ANALYSIS_GEOMETRY.POLYGON && Boolean(polygonGeometry) && mode === "PLACE";
+function polygonIsActiveGeometry(which = active) {
+  const state = polygonStateFor(which);
+  return state.mode === ANALYSIS_GEOMETRY.POLYGON && Boolean(state.geometry);
 }
 
 function formatAreaKm2(areaKm2) {
@@ -6892,11 +6982,20 @@ function addVertexHandle(index) {
 
 function renderPolygonOnMap() {
   clearPolygonLayers();
-  // Keep the committed outline beside either draft: its readings remain
-  // authoritative until Finish or Apply.
-  if (polygonGeometry) {
-    polygonShape = L.polygon(latLngsOf(polygonVertices), { ...POLYGON_PANE_STYLE, color: "#43d7ff", fillColor: "#43d7ff" });
-    polygonLayerGroup.addLayer(polygonShape);
+  // Both committed outlines stay visible in Compare; a draft never replaces
+  // either reading until Finish or Apply.
+  for (const which of bEnabled ? ["A", "B"] : ["A"]) {
+    const state = polygonStateFor(which);
+    if (state.mode !== ANALYSIS_GEOMETRY.POLYGON || !state.geometry) continue;
+    const color = which === "A" ? "#f7fbff" : "#43d7ff";
+    const shape = L.polygon(latLngsOf(state.vertices), { ...POLYGON_PANE_STYLE,
+      color, fillColor: color, dashArray: which === "B" ? "8 5" : null,
+      className: `lens-polygon lens-polygon-${which.toLowerCase()}` });
+    polygonLayerGroup.addLayer(shape);
+    const point = geometryReferencePoint(state.geometry);
+    polygonLayerGroup.addLayer(L.marker([point.lat, point.lon], { interactive: false,
+      icon: L.divIcon({ className: `lens-polygon-label lens-polygon-label-${which.toLowerCase()}`, html: which, iconSize: [24, 24], iconAnchor: [12, 12] }) }));
+    if (which === active) polygonShape = shape;
   }
   if (polygonEditing) {
     polygonDraftShape = L.polygon(latLngsOf(polygonEditDraft), { ...POLYGON_DRAFT_STYLE, color: "#43d7ff", fillColor: "#43d7ff" });
@@ -6917,39 +7016,21 @@ function renderPolygonOnMap() {
   }
 }
 
-// The Lens circle is hidden while a polygon is the active geometry, so the map
-// never shows two candidate analysis areas at once.
-//
-// IT ONLY EVER UNDOES ITS OWN REMOVALS. Circle visibility already has an owner —
-// enableLensB / disableLensB and the mode controller — and an earlier version of
-// this function recomputed `shouldShow` from `bEnabled`, which quietly took that
-// ownership over and removed a Lens B circle that its real owner had shown. It
-// now records exactly which circles it hid and restores only those.
+// A confirmed polygon replaces only its own Lens circle on the map.
 function syncLensCircleVisibility() {
-  if (polygonIsActiveGeometry()) {
-    for (const which of ["A", "B"]) {
-      const circle = lenses[which].circle;
-      if (map.hasLayer(circle)) {
-        map.removeLayer(circle);
-        if (!polygonHiddenCircles.includes(which)) polygonHiddenCircles.push(which);
-      }
-    }
-    return;
-  }
-  for (const which of polygonHiddenCircles) {
+  for (const which of ["A", "B"]) {
     const circle = lenses[which].circle;
-    if (!map.hasLayer(circle)) map.addLayer(circle);
+    const shouldShow = (which === "A" || bEnabled) && !polygonIsActiveGeometry(which);
+    if (!shouldShow && map.hasLayer(circle)) map.removeLayer(circle);
+    if (shouldShow && !map.hasLayer(circle)) map.addLayer(circle);
   }
-  polygonHiddenCircles = [];
 }
 
 // ------------------------------------------------------------ drawing actions
 
 function polygonToolbarState() {
   const polygonMode = geometryMode === ANALYSIS_GEOMETRY.POLYGON;
-  const mode = shell.modes ? shell.modes.currentMode() : "PLACE";
-  const compareRefused = polygonModeRefused || (polygonMode && mode !== "PLACE");
-  return { polygonMode, compareRefused, drawing: polygonDrawing, editing: polygonEditing, hasPolygon: Boolean(polygonGeometry) };
+  return { polygonMode, drawing: polygonDrawing, editing: polygonEditing, hasPolygon: Boolean(polygonGeometry) };
 }
 
 function renderSpatialToolbar() {
@@ -6970,8 +7051,8 @@ function renderSpatialToolbar() {
 
   const note = document.getElementById("geometryModeNote");
   if (note) {
-    note.textContent = state.compareRefused ? shellT("polygon.modeCompareRefused") : "";
-    note.hidden = !state.compareRefused;
+    note.textContent = `${shellT("toolbar.geometry")} · ${active}`;
+    note.hidden = false;
   }
 
   show("polygonDrawButton", !state.drawing && !state.editing && !state.hasPolygon);
@@ -7047,12 +7128,14 @@ const POLYGON_MARKED_SECTIONS = Object.freeze([
 let polygonScopeSignature = null;
 function renderPolygonScope() {
   const active_ = polygonIsActiveGeometry();
-  const signature = `${active_}|${active_ && polygonGeometry ? polygonGeometry.ring.length : 0}|${shellLanguage()}|${active_ && polygonGeometry ? polygonAreaKm2(polygonGeometry.ring) : 0}`;
+  const signature = `${active}|${active_}|${k11PolygonReading()}|${active_ && polygonGeometry ? polygonGeometry.ring.length : 0}|${shellLanguage()}|${active_ && polygonGeometry ? polygonAreaKm2(polygonGeometry.ring) : 0}`;
   if (signature === polygonScopeSignature) return;
   polygonScopeSignature = signature;
   document.documentElement.dataset.analysisGeometry = active_ ? ANALYSIS_GEOMETRY.POLYGON : ANALYSIS_GEOMETRY.CIRCLE;
   const notice = document.getElementById("polygonScopeNotice");
   if (notice) notice.hidden = !active_;
+  const shareLede = document.getElementById("drawerShareLede");
+  if (shareLede && k11CopyInitialized) shareLede.textContent = k11PolygonReading() ? shellT("polygon.share") : k11T("share.lede");
   const geometryLine = document.getElementById("polygonScopeGeometry");
   if (geometryLine) {
     const ring = polygonGeometry ? polygonGeometry.ring : null;
@@ -7165,19 +7248,13 @@ function deletePolygon() {
   polygonDraft = [];
   polygonVertices = [];
   polygonGeometry = null;
+  polygonEditing = false;
+  polygonEditDraft = [];
   setGeometryMode(ANALYSIS_GEOMETRY.CIRCLE);
 }
 
 function setGeometryMode(nextMode) {
   if (nextMode !== ANALYSIS_GEOMETRY.CIRCLE && nextMode !== ANALYSIS_GEOMETRY.POLYGON) return;
-  // Polygon analysis is refused outside PLACE rather than silently reinterpreted.
-  if (nextMode === ANALYSIS_GEOMETRY.POLYGON && shell.modes && shell.modes.currentMode() !== "PLACE") {
-    geometryMode = ANALYSIS_GEOMETRY.CIRCLE;
-    polygonModeRefused = true;
-    renderSpatialToolbar();
-    return;
-  }
-  polygonModeRefused = false;
   geometryMode = nextMode;
   if (nextMode === ANALYSIS_GEOMETRY.CIRCLE) {
     polygonDrawing = false;
@@ -7249,6 +7326,12 @@ map.on("click", (event) => {
 if (haloRegressionRequested && haloRegressionLocal) {
   window.__addVertex = (vertex) => addPolygonVertex(vertex);
   window.__ring = () => (polygonGeometry ? polygonGeometry.ring.map((v) => ({ ...v })) : null);
+  window.__ringFor = (which) => polygonStateFor(which).geometry?.ring.map((v) => ({ ...v })) || null;
+  window.__geometryKindFor = (which) => activeAnalysisGeometry(which).kind;
+  window.__geometryFor = (which) => activeAnalysisGeometry(which);
+  window.__polygonOutlines = () => polygonLayerGroup.getLayers()
+    .filter((layer) => layer instanceof L.Polygon && !layer.options.dashArray?.includes("6 5"))
+    .map((layer) => ({ className: layer.options.className, dashArray: layer.options.dashArray, color: layer.options.color }));
   window.__visiblePoints = () => visiblePoiPoints().map((p) => ({ type: p.type, lat: p.lat, lon: p.lon }));
   window.__geometryKind = () => activeAnalysisGeometry(active).kind;
   // Direct commit seam for exact-geometry regression checks.
@@ -7588,20 +7671,8 @@ function renderModeUi() {
     const band = document.getElementById("placeCircleSummary");
     placeSection.insertBefore(area, band ? band.nextSibling : placeSection.firstElementChild);
   }
-  // Leaving PLACE drops back to the circular geometry: the A/B comparison, the
-  // halo and radius sensitivity are all defined on circles, so a polygon must not
-  // silently become their input. The polygon itself is kept, so returning to
-  // PLACE and pressing Polygon again restores it rather than losing the work.
-  if (mode !== "PLACE" && geometryMode === ANALYSIS_GEOMETRY.POLYGON) {
-    polygonDrawing = false;
-    polygonDraft = [];
-    polygonEditing = false;
-    polygonEditDraft = [];
-    polygonEditSelected = null;
-    geometryMode = ANALYSIS_GEOMETRY.CIRCLE;
-    renderPolygonOnMap();
-  }
-  if (mode === "PLACE") polygonModeRefused = false;
+  // Mode navigation leaves both confirmed geometries and both drafts intact.
+  renderPolygonOnMap();
   if (typeof syncLensCircleVisibility === "function") syncLensCircleVisibility();
   if (typeof renderSpatialToolbar === "function") renderSpatialToolbar();
   if (typeof renderPolygonScope === "function") renderPolygonScope();
@@ -9194,13 +9265,11 @@ async function k11CopyShareLink() {
   if (status) {
     status.dataset.tone = ok ? "ok" : "error";
     // On failure the URL is shown in full so the copy never silently fails.
-    const base = ok ? k11T("share.copied") : `${k11T("share.copyFailed")} ${url}`;
-    // The v=1 URL schema carries the circular Lens; it has no polygon dimension,
-    // and inventing one would promise a reproducibility the link cannot deliver.
-    // So the link is still copied — it reproduces everything it does carry — and
-    // the one thing it does NOT carry is said out loud, here, at the moment of
-    // copying. Export evidence keeps the geometry.
-    status.textContent = polygonIsActiveGeometry() ? `${base} ${shellT("polygon.share")}` : base;
+    const polygonReading = k11PolygonReading();
+    const base = ok ? (polygonReading ? shellT("compare.shape.linkPartial") : k11T("share.copied")) : `${k11T("share.copyFailed")} ${url}`;
+    // The v=1 URL schema carries circles only. Say plainly when a copied link
+    // cannot reproduce a polygon reading; #197 owns complete round-trip support.
+    status.textContent = polygonReading ? `${base} ${shellT("polygon.share")}` : base;
   }
   return ok;
 }
@@ -10248,6 +10317,12 @@ function k11BuildProjection() {
   };
 }
 
+function k11PolygonReading() {
+  const mode = shell.modes ? shell.modes.currentMode() : "PLACE";
+  return mode === "PLACE" ? polygonIsActiveGeometry()
+    : mode === "COMPARE" && ambitoCompare.scope === "LENS" && (polygonIsActiveGeometry("A") || polygonIsActiveGeometry("B"));
+}
+
 // Deliver the five files via standards-only browser APIs (Blob + <a download>),
 // no zip dependency. Browsers may block several automatic downloads, so a
 // clickable fallback link for every file is always rendered — delivery status is
@@ -10279,6 +10354,10 @@ function k11DeliverFiles(bundle) {
 
 function k11ExportEvidence() {
   const status = document.getElementById("k11ShareStatus");
+  if (k11PolygonReading()) {
+    if (status) { status.dataset.tone = "error"; status.textContent = shellT("compare.shape.exportPending"); }
+    return;
+  }
   try {
     const projection = k11BuildProjection();
     if (!projection || (projection.values.length === 0 && projection.evidence.length === 0)) {
@@ -10296,6 +10375,9 @@ function k11ExportEvidence() {
 // --------------------------------------------------------------- UI wiring
 (() => {
   k11ApplyCopy();
+  k11CopyInitialized = true;
+  polygonScopeSignature = null;
+  renderPolygonScope();
   const shareBtn = document.getElementById("k11ShareBtn");
   if (shareBtn) shareBtn.addEventListener("click", () => { k11CopyShareLink(); });
   const dismiss = document.getElementById("k11RestoreDismiss");
