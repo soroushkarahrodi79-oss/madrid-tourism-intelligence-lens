@@ -353,6 +353,54 @@ test("cancelling a drawing restores the circular geometry and leaves no polygon"
   await context.close();
 });
 
+test("undo removes draft vertices and leaves the committed polygon and readings intact", async () => {
+  const { context, page } = await openApp();
+  await drawRing(page, RING);
+  const committed = await readState(page);
+  await page.locator("#polygonRedrawButton").click();
+  assert.equal(await page.locator("#polygonUndoButton").isDisabled(), true);
+  assert.equal(await page.locator("#polygonDraftNotice").isVisible(), true);
+  await page.evaluate((ring) => { for (const vertex of ring) window.__addVertex(vertex); }, RING.slice(0, 3));
+  assert.equal((await readState(page)).finishAriaDisabled, "false");
+  await page.locator("#polygonUndoButton").click();
+  assert.equal((await readState(page)).finishAriaDisabled, "true");
+  assert.equal((await readState(page)).measureVisible, false);
+  await page.locator("#polygonUndoButton").click();
+  await page.locator("#polygonUndoButton").click();
+  assert.equal(await page.locator("#polygonUndoButton").isDisabled(), true);
+  const emptyDraft = await readState(page);
+  assert.deepEqual(emptyDraft.ring, committed.ring);
+  assert.deepEqual(emptyDraft.readings, committed.readings);
+  await page.locator("#polygonCancelButton").click();
+  const cancelled = await readState(page);
+  assert.deepEqual(cancelled.ring, committed.ring);
+  assert.deepEqual(cancelled.readings, committed.readings);
+  assert.equal(cancelled.activeGeometryKind, "POLYGON");
+  assert.equal(await page.locator("#polygonDraftNotice").isVisible(), false);
+  await context.close();
+});
+
+test("redraw replaces the polygon only on Finish; Escape preserves the replacement", async () => {
+  const { context, page, pageErrors } = await openApp();
+  await drawRing(page, RING);
+  const replacement = RING.map((vertex) => ({ lat: vertex.lat + 0.002, lon: vertex.lon + 0.002 }));
+  await page.locator("#polygonRedrawButton").click();
+  await page.evaluate((ring) => { for (const vertex of ring) window.__addVertex(vertex); }, replacement);
+  assert.deepEqual((await readState(page)).ring, lens.normalizePolygonRing(RING));
+  await page.locator("#polygonFinishButton").click();
+  const committed = await readState(page);
+  assert.deepEqual(committed.ring, lens.normalizePolygonRing(replacement));
+  await page.locator("#polygonRedrawButton").click();
+  await page.evaluate(() => window.__addVertex({ lat: 40.41, lon: -3.70 }));
+  await page.locator("#map").press("Escape");
+  const cancelled = await readState(page);
+  assert.deepEqual(cancelled.ring, committed.ring);
+  assert.deepEqual(cancelled.readings, committed.readings);
+  assert.equal(await page.locator("#spatialToolbar").isVisible(), false);
+  assert.deepEqual(pageErrors, []);
+  await context.close();
+});
+
 test("deleting the polygon returns to the circular Lens exactly as it was", async () => {
   const { context, page } = await openApp();
   const original = await readState(page);

@@ -241,6 +241,7 @@ body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 .polygon-btn{flex:1 1 auto;min-height:36px;padding:var(--s-1) var(--s-2);border:1px solid var(--map-zoom-edge);border-radius:var(--r-small);background:var(--chrome-form-surface);color:var(--chrome-text-control-strong);font:inherit;font-size:var(--t-micro);cursor:pointer}
 .polygon-btn[hidden]{display:none}
 .polygon-btn:hover{background:var(--map-zoom-hover-surface)}
+.polygon-btn:disabled{opacity:var(--map-zoom-disabled-opacity);cursor:default}
 .polygon-btn:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
 /* aria-disabled, not disabled: Finish stays focusable so a keyboard reader can
    reach it and be told why it will not commit yet. */

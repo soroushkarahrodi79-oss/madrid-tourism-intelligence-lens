@@ -314,7 +314,9 @@
   <div class="spatial-toolbar-field polygon-tools" id="polygonTools" hidden>
     <div class="polygon-tool-row">
       <button type="button" id="polygonDrawButton" class="polygon-btn" data-i18n="toolbar.draw">Draw polygon</button>
+      <button type="button" id="polygonRedrawButton" class="polygon-btn" data-i18n="toolbar.redraw" hidden>Redraw polygon</button>
       <button type="button" id="polygonAddVertexButton" class="polygon-btn" data-i18n="toolbar.addVertex" hidden>Add vertex here</button>
+      <button type="button" id="polygonUndoButton" class="polygon-btn" data-i18n="toolbar.undo" hidden>Undo vertex</button>
     </div>
     <div class="polygon-tool-row">
       <button type="button" id="polygonFinishButton" class="polygon-btn polygon-btn-primary" data-i18n="toolbar.finish" hidden>Finish</button>
@@ -322,6 +324,7 @@
       <button type="button" id="polygonDeleteButton" class="polygon-btn" data-i18n="toolbar.delete" hidden>Delete polygon</button>
     </div>
     <p id="polygonStatus" class="spatial-toolbar-note" role="status" aria-live="polite"></p>
+    <p id="polygonDraftNotice" class="spatial-toolbar-note" data-i18n="toolbar.draftNotice" hidden>Draft only. Readings still use the previous polygon until you finish.</p>
     <dl id="polygonMeasure" class="polygon-measure" hidden>
       <div><dt data-i18n="toolbar.vertices">Vertices</dt><dd id="polygonVertexCount">—</dd></div>
       <div><dt data-i18n="toolbar.area">Area</dt><dd id="polygonArea">—</dd></div>

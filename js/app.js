@@ -6883,7 +6883,14 @@ function addVertexHandle(index) {
 
 function renderPolygonOnMap() {
   clearPolygonLayers();
-  if (polygonDrawing && polygonDraft.length) {
+  // Keep the committed outline beside the dashed draft: its readings remain
+  // authoritative until Finish. Vertex handles belong to the committed edit only.
+  if (polygonGeometry) {
+    polygonShape = L.polygon(latLngsOf(polygonVertices), { ...POLYGON_PANE_STYLE, color: "#43d7ff", fillColor: "#43d7ff" });
+    polygonLayerGroup.addLayer(polygonShape);
+    if (!polygonDrawing) polygonVertices.forEach((_, index) => addVertexHandle(index));
+  }
+  if (polygonDrawing) {
     const style = { ...POLYGON_DRAFT_STYLE, color: "#43d7ff", fillColor: "#43d7ff" };
     polygonDraftShape = polygonDraft.length >= 2
       ? L.polygon(latLngsOf(polygonDraft), style)
@@ -6894,10 +6901,6 @@ function renderPolygonOnMap() {
     ));
     return;
   }
-  if (!polygonGeometry) return;
-  polygonShape = L.polygon(latLngsOf(polygonVertices), { ...POLYGON_PANE_STYLE, color: "#43d7ff", fillColor: "#43d7ff" });
-  polygonLayerGroup.addLayer(polygonShape);
-  polygonVertices.forEach((_, index) => addVertexHandle(index));
 }
 
 // The Lens circle is hidden while a polygon is the active geometry, so the map
@@ -6958,6 +6961,10 @@ function renderSpatialToolbar() {
   }
 
   show("polygonDrawButton", !state.drawing && !state.hasPolygon);
+  show("polygonRedrawButton", !state.drawing && state.hasPolygon);
+  show("polygonUndoButton", state.drawing);
+  document.getElementById("polygonUndoButton").disabled = polygonDraft.length === 0;
+  show("polygonDraftNotice", state.drawing && state.hasPolygon);
   show("polygonAddVertexButton", state.drawing);
   show("polygonFinishButton", state.drawing);
   show("polygonCancelButton", state.drawing);
@@ -7076,9 +7083,14 @@ function commitPolygon(vertices) {
 function startPolygonDrawing() {
   polygonDrawing = true;
   polygonDraft = [];
-  polygonGeometry = null;
-  polygonVertices = [];
   applyGeometryState();
+}
+
+function undoPolygonVertex() {
+  if (!polygonDrawing || !polygonDraft.length) return;
+  polygonDraft = polygonDraft.slice(0, -1);
+  renderPolygonOnMap();
+  renderSpatialToolbar();
 }
 
 function addPolygonVertex(vertex) {
@@ -7145,6 +7157,8 @@ document.getElementById("spatialToolbar").addEventListener("keydown", (event) =>
   event.stopPropagation();
 });
 document.getElementById("polygonDrawButton")?.addEventListener("click", startPolygonDrawing);
+document.getElementById("polygonRedrawButton").addEventListener("click", startPolygonDrawing);
+document.getElementById("polygonUndoButton").addEventListener("click", undoPolygonVertex);
 document.getElementById("polygonAddVertexButton")?.addEventListener("click", () => {
   // The keyboard route: Leaflet pans and zooms the focused map with the arrow
   // keys and +/-, and this drops a vertex at the map centre. Clicking the map is
