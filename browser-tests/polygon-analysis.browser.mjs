@@ -160,7 +160,7 @@ test("a committed polygon becomes the analytical geometry and reports its own me
   assert.equal(after.documentGeometry, "POLYGON");
   assert.equal(after.ring.length, 4);
   assert.deepEqual(after.visibleButtons, ["polygonDeleteButton"]);
-  assert.match(after.status, /Drag a vertex handle/);
+  assert.match(after.status, /Edit vertices/);
 
   // Measurements agree with the pure model computed independently in Node.
   const expectedArea = lens.polygonAreaKm2(lens.normalizePolygonRing(RING));
@@ -296,12 +296,13 @@ test("the scope rail declares the polygon, never a radius the polygon does not h
   await context.close();
 });
 
-test("vertices can be edited, and the readings follow the edited ring", async () => {
+test("vertex edits stay in a draft until Apply and Cancel restores the committed ring", async () => {
   const { context, page } = await openApp();
   await drawRing(page, RING);
   const before = await readState(page);
-  // A REAL pointer drag on a vertex handle, not a call into the commit path, so
-  // the handle wiring itself is under test.
+  await page.locator("#polygonEditButton").click();
+  assert.equal(await page.locator("#polygonEditApplyButton").isVisible(), true);
+  // A real pointer drag exercises the handle wiring and leaves readings intact.
   const handle = await page.evaluate(() => {
     const vertex = window.__ring()[0];
     return window.__latLngToPoint(vertex.lat, vertex.lon);
@@ -310,31 +311,51 @@ test("vertices can be edited, and the readings follow the edited ring", async ()
   await page.mouse.down();
   await page.mouse.move(handle.x - 60, handle.y + 40, { steps: 8 });
   await page.mouse.up();
-  await page.waitForFunction((previous) => JSON.stringify(window.__ring()) !== previous,
-    JSON.stringify(before.ring));
-  const after = await readState(page);
-  assert.notDeepEqual(after.ring, before.ring, "dragging a handle rewrote the ring");
-  assert.equal(after.ring.length, before.ring.length, "a drag moves a vertex, it does not add one");
-  assert.notEqual(after.measure.area, before.measure.area, "the measurements follow the edited ring");
-  assert.equal(after.activeGeometryKind, "POLYGON");
+  const draft = await readState(page);
+  assert.deepEqual(draft.ring, before.ring);
+  assert.deepEqual(draft.readings, before.readings);
+  assert.notEqual(draft.measure.area, before.measure.area);
+  await page.locator("#polygonEditCancelButton").click();
+  const cancelled = await readState(page);
+  assert.deepEqual(cancelled.ring, before.ring);
+  assert.deepEqual(cancelled.readings, before.readings);
+  assert.equal(cancelled.measure.area, before.measure.area);
 
-  // The readings follow the edit too: enlarging the ring cannot lose records.
-  const enlarged = await page.evaluate(() => {
-    window.__commitRing([
-      { lat: 40.4050, lon: -3.7200 }, { lat: 40.4050, lon: -3.6700 },
-      { lat: 40.4300, lon: -3.6700 }, { lat: 40.4300, lon: -3.7200 },
-    ]);
-    return {
-      tourism: Number(document.getElementById("tourismValue").textContent.trim()),
-      points: window.__visiblePoints(),
-      ring: window.__ring(),
-    };
-  });
-  const geometry = lens.createPolygonGeometry(enlarged.ring);
-  const inside = enlarged.points.filter((p) => lens.geometryContainsPoint(geometry, p));
-  assert.equal(enlarged.tourism,
-    inside.filter((p) => p.type === "museum").length + inside.filter((p) => p.type === "info").length,
-    "the edited ring's counts are exact point-in-polygon, not stale");
+  await page.locator("#polygonEditButton").click();
+  await page.mouse.move(handle.x, handle.y);
+  await page.mouse.down();
+  await page.mouse.move(handle.x - 60, handle.y + 40, { steps: 8 });
+  await page.mouse.up();
+  await page.locator("#polygonEditApplyButton").click();
+  const applied = await readState(page);
+  assert.notDeepEqual(applied.ring, before.ring);
+  assert.equal(applied.ring.length, before.ring.length);
+  assert.equal(applied.measure.area, draft.measure.area);
+  const points = await page.evaluate(() => window.__visiblePoints());
+  const inside = points.filter((p) => lens.geometryContainsPoint(lens.createPolygonGeometry(applied.ring), p));
+  assert.equal(Number(applied.readings.tourism),
+    inside.filter((p) => p.type === "museum" || p.type === "info").length);
+  await context.close();
+});
+
+test("edit add and remove work on the draft; Escape discards it", async () => {
+  const { context, page } = await openApp();
+  await drawRing(page, RING);
+  const before = await readState(page);
+  await page.locator("#polygonEditButton").click();
+  assert.equal(await page.locator("#polygonEditDeleteButton").isDisabled(), true);
+  await page.locator("#polygonEditAddButton").click();
+  assert.equal((await readState(page)).measure.vertices, "5");
+  assert.equal(await page.locator("#polygonEditDeleteButton").isDisabled(), false);
+  await page.locator("#polygonEditDeleteButton").click();
+  assert.equal((await readState(page)).measure.vertices, "4");
+  await page.locator("#polygonEditAddButton").click();
+  await page.locator("#polygonEditCancelButton").press("Escape");
+  const after = await readState(page);
+  assert.deepEqual(after.ring, before.ring);
+  assert.deepEqual(after.readings, before.readings);
+  assert.equal(await page.locator("#spatialToolbar").isVisible(), false);
+  assert.equal(await page.evaluate(() => document.activeElement.id), "spatialToolsToggle");
   await context.close();
 });
 
