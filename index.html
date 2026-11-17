@@ -48,7 +48,19 @@
 <body>
 <a class="sr-only skip-link" href="#analysisPanel" data-i18n="a11y.skipToPanel">Skip to the analysis panel</a>
 <a class="sr-only skip-link" href="#layerRail" data-i18n="a11y.skipToLayers">Skip to the map layers</a>
-<div id="map"></div>
+<div id="map"><div id="histDivider" class="hist-divider" hidden aria-hidden="true"></div></div>
+<section id="histCompareBar" class="hist-compare-bar" hidden aria-labelledby="histBarTitle">
+  <h2 id="histBarTitle" class="hist-bar-title" data-i18n="hist.title">Historical orthophotos · reference only</h2>
+  <p id="histNotice" class="hist-notice" data-i18n="hist.notice"></p>
+  <p id="histStatus" class="pnoa-status" role="status" data-state="off"></p>
+  <div class="hist-slider-row">
+    <span class="hist-year" aria-hidden="true">2006</span>
+    <input id="histSlider" type="range" min="0" max="100" step="1" value="50" aria-labelledby="histSliderLabel">
+    <span class="hist-year" aria-hidden="true">2023</span>
+  </div>
+  <p id="histSliderLabel" class="hist-slider-label" data-i18n="hist.sliderLabel"></p>
+  <button id="histExit" type="button" class="hist-exit" data-i18n="hist.exit">Back to normal view</button>
+</section>
 
 <header class="map-header">
   <div class="brand">
@@ -147,6 +159,10 @@
     <div class="map-control pnoa-control">
       <div class="layer"><div class="layer-left"><span id="pnoaLabel" data-i18n="aside.pnoa">Aerial imagery · PNOA (reference only)</span></div><label class="switch"><input id="pnoaToggle" type="checkbox" aria-labelledby="pnoaLabel" aria-describedby="pnoaStatus"><span></span></label></div>
       <p id="pnoaStatus" class="pnoa-status" role="status" data-state="off"></p>
+    </div>
+    <div class="map-control hist-control">
+      <div class="layer"><div class="layer-left"><span id="histLabel" data-i18n="aside.hist">Historical orthophotos · PNOA 2006 ⇄ 2023 (reference only)</span></div><label class="switch"><input id="histToggle" type="checkbox" aria-labelledby="histLabel" aria-describedby="histHint"><span></span></label></div>
+      <p id="histHint" class="pnoa-status" data-i18n="hist.hint"></p>
     </div>
     </div>
   </details>

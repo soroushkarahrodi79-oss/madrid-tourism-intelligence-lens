@@ -405,6 +405,186 @@ function setPnoa(enabled) {
 
 document.getElementById("pnoaToggle").onchange = (e) => setPnoa(e.target.checked);
 
+// ---- Historical PNOA comparison: OPT-IN, reference only ---------------------
+// Two ANNUAL PNOA mosaics (2006 left, 2023 right) from the national mapping institute's historical WMS,
+// revealed by one divider over this same Leaflet map. It is a visual aid, not
+// evidence: no count, indicator, export or canonical URL reads it, and it is not
+// a Lens A/B comparison. While active, every contemporary pane is hidden by CSS
+// (nothing is removed or recomputed, so selections survive) and the PNOA
+// overlay above is paused; leaving restores both and the previous map view.
+const HIST_WMS = "https://www.ign.es/wms/pnoa-historico";
+const HIST_PILOT = { centre: [40.3925, -3.699], zoom: 17 }; // Madrid Río / Matadero
+const HIST_SIDES = Object.freeze({ left: { layer: "PNOA2006", year: 2006 }, right: { layer: "PNOA2023", year: 2023 } });
+const histCompare = { active: false, fraction: 0.5, layers: {}, state: { left: "idle", right: "idle" }, saved: null };
+map.createPane("histLeftPane");
+map.createPane("histRightPane");
+for (const [name, z] of [["histLeftPane", "255"], ["histRightPane", "256"]]) {
+  map.getPane(name).style.zIndex = z;
+  map.getPane(name).style.pointerEvents = "none";
+}
+
+function renderHistStatus() {
+  const status = document.getElementById("histStatus");
+  if (!status) return;
+  if (histCompare.active) document.getElementById("analysisPanel").dataset.histNotice = shellT("hist.contemporary");
+  const { left, right } = histCompare.state;
+  const states = [left, right];
+  let aggregate = "on";
+  if (!histCompare.active) aggregate = "off";
+  else if (states.some((v) => v === "idle" || v === "loading")) aggregate = "loading";
+  else if (states.includes("error")) aggregate = "error";
+  else if (states.includes("partial")) aggregate = "partial";
+  status.dataset.state = aggregate;
+  if (aggregate === "error" || aggregate === "partial") {
+    status.textContent = ["left", "right"]
+      .filter((side) => histCompare.state[side] === "error" || histCompare.state[side] === "partial")
+      .map((side) => shellT(`hist.${side}.${histCompare.state[side]}`))
+      .join(" ");
+  } else {
+    status.textContent = shellT(`hist.${aggregate}`);
+  }
+}
+
+function renderHistSlider() {
+  const slider = document.getElementById("histSlider");
+  const divider = document.getElementById("histDivider");
+  const pct = Math.round(histCompare.fraction * 100);
+  if (slider) {
+    slider.value = String(pct);
+    slider.setAttribute("aria-valuetext", shellTemplate("hist.sliderValue", { left: pct, right: 100 - pct }));
+  }
+  if (divider) divider.style.left = `${pct}%`;
+}
+
+// Each pane is clipped in layer-pixel space, so the two images stay on the
+// same map and share one pan/zoom; only the visible half of each differs.
+function updateHistClip() {
+  if (!histCompare.active) return;
+  const size = map.getSize();
+  const nw = map.containerPointToLayerPoint([0, 0]);
+  const x = nw.x + size.x * histCompare.fraction;
+  const poly = (x0, x1) => `polygon(${x0}px ${nw.y}px, ${x1}px ${nw.y}px, ${x1}px ${nw.y + size.y}px, ${x0}px ${nw.y + size.y}px)`;
+  map.getPane("histLeftPane").style.clipPath = poly(nw.x, x);
+  map.getPane("histRightPane").style.clipPath = poly(x, nw.x + size.x);
+}
+
+// Keep the bar clear of the Leaflet attribution when that control sits at the
+// bottom (desktop); on phones it is at the top and nothing needs to move.
+function positionHistBar() {
+  const bar = document.getElementById("histCompareBar");
+  const attribution = map.getContainer().querySelector(".leaflet-control-attribution");
+  if (!bar || !attribution) return;
+  const r = attribution.getBoundingClientRect();
+  bar.style.setProperty("--hist-bar-lift", r.top > window.innerHeight / 2 ? `${Math.ceil(window.innerHeight - r.top)}px` : "0px");
+}
+
+function histSideLayer(side) {
+  const cfg = HIST_SIDES[side];
+  const layer = L.tileLayer.wms(HIST_WMS, {
+    layers: cfg.layer,
+    format: "image/jpeg",
+    version: "1.3.0",
+    pane: side === "left" ? "histLeftPane" : "histRightPane",
+    maxZoom: 19,
+    attribution:
+      `PNOA ${cfg.year} (mosaico anual) cedido por &copy; <a href="https://www.ign.es">Instituto Geogr&aacute;fico Nacional de Espa&ntilde;a</a> &middot; <a href="https://www.scne.es">CC BY 4.0 scne.es</a>`,
+  });
+  let failed = 0;
+  layer.on("loading", () => { failed = 0; histCompare.state[side] = "loading"; renderHistStatus(); });
+  layer.on("tileerror", () => { failed += 1; });
+  layer.on("load", () => {
+    if (histCompare.layers[side] !== layer) return;
+    const shown = layer.getContainer().querySelectorAll("img.leaflet-tile-loaded").length;
+    histCompare.state[side] = shown === 0 ? "error" : failed ? "partial" : "ok";
+    renderHistStatus();
+    positionHistBar();
+  });
+  return layer;
+}
+
+// Everything that could move a Lens, a selection, a radius, a mode, a geometry or a
+// layer is made inert while comparing (not hidden, not rewritten), so the
+// contemporary readings that stay on screen cannot be changed under imagery from
+// another year. Map display, language, appearance and the tour stay usable.
+const HIST_INERT_SELECTORS = ["#geoSearchPanel", "#geoSearchToggle", "#spatialToolbar", "#analysisPanel", '.rail-group:not([data-rail-group="map"])'];
+function setHistInert(on) {
+  if (on) {
+    histCompare.inerted = [...document.querySelectorAll(HIST_INERT_SELECTORS.join(","))].filter((el) => !el.inert);
+    for (const el of histCompare.inerted) el.inert = true;
+  } else {
+    for (const el of histCompare.inerted || []) el.inert = false;
+    histCompare.inerted = [];
+  }
+  const panel = document.getElementById("analysisPanel");
+  if (on) panel.dataset.histNotice = shellT("hist.contemporary");
+  else delete panel.dataset.histNotice;
+}
+
+function setHistCompare(enabled) {
+  if (enabled === histCompare.active) return;
+  const pnoaToggle = document.getElementById("pnoaToggle");
+  const bar = document.getElementById("histCompareBar");
+  const toggle = document.getElementById("histToggle");
+  if (enabled) {
+    histCompare.saved = { pnoa: pnoaToggle.checked, centre: map.getCenter(), zoom: map.getZoom() };
+    histCompare.active = true;
+    // Mutually exclusive with the current-PNOA overlay: paused, restored on exit.
+    setPnoa(false);
+    pnoaToggle.checked = false;
+    pnoaToggle.disabled = true;
+    setPnoaState("paused");
+    map.getContainer().classList.add("hist-compare-active");
+    setHistInert(true);
+    histCompare.state = { left: "loading", right: "loading" };
+    histCompare.fraction = 0.5;
+    for (const side of ["left", "right"]) histCompare.layers[side] = histSideLayer(side).addTo(map);
+    map.on("move zoom resize", updateHistClip);
+    window.addEventListener("resize", positionHistBar);
+    map.setView(HIST_PILOT.centre, HIST_PILOT.zoom, { animate: false });
+    bar.hidden = false;
+    document.getElementById("histDivider").hidden = false;
+    renderHistSlider();
+    updateHistClip();
+    positionHistBar();
+  } else {
+    window.removeEventListener("resize", positionHistBar);
+    histCompare.active = false;
+    map.off("move zoom resize", updateHistClip);
+    for (const side of ["left", "right"]) {
+      if (histCompare.layers[side]) map.removeLayer(histCompare.layers[side]);
+      map.getPane(side === "left" ? "histLeftPane" : "histRightPane").style.clipPath = "";
+    }
+    histCompare.layers = {};
+    histCompare.state = { left: "idle", right: "idle" };
+    map.getContainer().classList.remove("hist-compare-active");
+    setHistInert(false);
+    bar.hidden = true;
+    document.getElementById("histDivider").hidden = true;
+    const saved = histCompare.saved;
+    histCompare.saved = null;
+    pnoaToggle.disabled = false;
+    pnoaToggle.checked = saved.pnoa;
+    if (saved.pnoa) setPnoa(true); else setPnoaState("off");
+    map.setView(saved.centre, saved.zoom, { animate: false });
+  }
+  toggle.checked = histCompare.active;
+  renderHistStatus();
+}
+
+// Contemporary layers are hidden, so a map click would silently move a Lens, place a
+// polygon vertex or select an ámbito under imagery that describes none of them.
+// Swallow it before Leaflet sees it; map controls (zoom, attribution) still work.
+map.getContainer().addEventListener("click", (e) => {
+  if (histCompare.active && !e.target.closest(".leaflet-control")) e.stopPropagation();
+}, true);
+document.getElementById("histToggle").onchange = (e) => setHistCompare(e.target.checked);
+document.getElementById("histExit").onclick = () => { setHistCompare(false); document.getElementById("histToggle").focus(); };
+document.getElementById("histSlider").addEventListener("input", (e) => {
+  histCompare.fraction = Number(e.target.value) / 100;
+  renderHistSlider();
+  updateHistClip();
+});
+
 const groups = {
   museum: L.layerGroup().addTo(map),
   info: L.layerGroup().addTo(map),
@@ -6352,6 +6532,7 @@ document.getElementById("lensAButton").onclick = () => activateLens("A");
 document.getElementById("lensBButton").onclick = () => (bEnabled ? activateLens("B") : shell.modes.setMode("COMPARE"));
 // The HATI layer control (not the navigation) enables the layer and frames the pilot.
 document.getElementById("hatiFrameButton").onclick = () => {
+  if (histCompare.active) return; // comparison mode: no layer switch, no Lens move
   setLayerVisible("heat", true);
   const bounds = hatiStudyArea?.bounds
     ? [
@@ -7189,6 +7370,8 @@ const SHELL_BINDINGS = [
 function applyShellCopy() {
   for (const el of document.querySelectorAll("[data-i18n]")) el.textContent = shellT(el.dataset.i18n);
   renderPnoaStatus();
+  renderHistStatus();
+  renderHistSlider();
   const grip = document.getElementById("panelResizeHandle");
   if (grip) grip.title = shellT("a11y.resizePanelHint");
   if (document.getElementById("railToggle") && typeof syncEdgeToggleLabels === "function") syncEdgeToggleLabels();
@@ -10409,6 +10592,7 @@ function showGeoSearchOnMap() {
 // has CONFIRMED lies inside the official geometry, and leaves radius A, radius B,
 // the active-Lens identity, the mode and every layer exactly as they were.
 function analyzeGeoSearchWithLens() {
+  if (histCompare.active) return false; // comparison mode: no Lens moves
   const entry = geoSearchSelectedEntry();
   if (!entry || entry.type === "MUNICIPALITY") return false;
   const point = geoSearchInteriorPoint(entry);

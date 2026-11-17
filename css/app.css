@@ -2336,3 +2336,21 @@ header:has(.geo-search[data-presentation="inline"]){justify-content:flex-start}
    reference-only role; it never uses an evidence colour. */
 .pnoa-status{margin:var(--s-1) 0 0;font-size:var(--t-micro);line-height:1.4;color:var(--chrome-text-control-label)}
 .pnoa-status[data-state="error"],.pnoa-status[data-state="partial"]{border-left:2px solid currentColor;padding-left:var(--s-2)}
+/* Historical PNOA comparison (opt-in). While active, every contemporary map pane
+   is hidden (not removed), so no analytical layer can read as the state of 2006/2023. */
+.hist-compare-active .leaflet-pane:not(.leaflet-map-pane):not(.leaflet-tile-pane):not(.leaflet-pnoa-pane):not(.leaflet-histLeft-pane):not(.leaflet-histRight-pane){visibility:hidden}
+#analysisPanel[data-hist-notice]{outline:2px dashed var(--chrome-text-section);outline-offset:-2px}
+#analysisPanel[data-hist-notice]::before{content:attr(data-hist-notice);display:block;margin:0 0 var(--s-2);padding:var(--s-2) var(--s-3);border:1px solid var(--chrome-border);border-left:3px solid currentColor;border-radius:var(--r-small);background:var(--chrome-card-surface);color:var(--chrome-text-control-strong);font-size:var(--t-micro);font-weight:650;line-height:1.35}
+#spatialToolbar[inert],.rail-group[inert],.geo-search-toggle[inert]{opacity:.55}
+.hist-divider{position:absolute;z-index:450;top:0;bottom:0;width:0;border-left:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.55);pointer-events:none}
+.hist-divider[hidden]{display:none}
+.hist-compare-bar{position:absolute;z-index:1090;left:calc(var(--rail-offset,254px) + var(--safe-left) + var(--s-3));bottom:calc(var(--hist-bar-lift,0px) + var(--s-4) + var(--safe-bottom));box-sizing:border-box;width:min(540px,calc(100vw - var(--rail-offset,254px) - 2 * var(--s-3)));max-height:46dvh;overflow:auto;padding:var(--s-3);border:1px solid var(--chrome-border);border-radius:var(--r-large);background:var(--chrome-panel-surface);color:var(--chrome-text-primary);backdrop-filter:blur(18px);box-shadow:0 14px 40px rgba(0,0,0,.28)}
+.hist-compare-bar[hidden]{display:none}
+@media(max-width:850px){.hist-compare-bar{left:50%;transform:translateX(-50%);width:min(620px,calc(100vw - 20px))}}
+.hist-bar-title{margin:0 0 var(--s-1);font-size:var(--t-micro);letter-spacing:.08em;text-transform:uppercase;color:var(--chrome-text-section)}
+.hist-notice,.hist-slider-label{margin:0 0 var(--s-2);font-size:var(--t-micro);line-height:1.4;color:var(--chrome-text-control-caption)}
+.hist-compare-bar .pnoa-status{margin:0 0 var(--s-2);color:var(--chrome-text-control-value)}
+.hist-slider-row{display:flex;align-items:center;gap:var(--s-2);margin:0 0 var(--s-1)}
+.hist-slider-row input[type=range]{flex:1 1 auto;min-width:0;min-height:44px;margin:0}
+.hist-year{font-size:var(--t-label);font-weight:650;color:var(--chrome-text-control-strong)}
+.hist-exit{min-height:44px;padding:0 var(--s-3);border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-form-surface);color:var(--chrome-text-control-value);font-size:var(--t-label);cursor:pointer}

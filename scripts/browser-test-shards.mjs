@@ -52,6 +52,7 @@ const SHARDS = Object.freeze({
     "browser-tests/marker-shapes.browser.mjs",
     "browser-tests/basemap-fallback.browser.mjs",
     "browser-tests/pnoa-reference.browser.mjs",
+    "browser-tests/historical-ortho-compare.browser.mjs",
   ],
 });
 
