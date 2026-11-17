@@ -118,7 +118,7 @@
 <button type="button" id="mobileLayersButton" class="mobile-layers-button" aria-expanded="false" aria-controls="layerRail" data-i18n-attr="aria-label:aside.openLayers"><span aria-hidden="true">☷</span><span data-i18n="aside.mobileLayers">Layers</span></button>
 <aside class="left" id="layerRail" tabindex="-1" aria-label="Map layers" data-i18n-attr="aria-label:a11y.layersLandmark">
   <details class="rail-group" data-rail-group="map" name="rail" open>
-    <summary><span class="rail-group-copy"><span data-i18n="aside.map">Map display</span></span><span class="rail-group-badge" data-rail-settings="3"></span></summary>
+    <summary><span class="rail-group-copy"><span data-i18n="aside.map">Map display</span></span><span class="rail-group-badge" data-rail-settings="4"></span></summary>
     <div class="rail-group-content map-display">
     <div class="basemap-control">
       <label for="basemapSelect" data-i18n="aside.basemap">Base map</label>
@@ -143,6 +143,10 @@
         <option value="district">All district outlines</option>
         <option value="barrio">All barrio outlines</option>
       </select>
+    </div>
+    <div class="map-control pnoa-control">
+      <div class="layer"><div class="layer-left"><span id="pnoaLabel" data-i18n="aside.pnoa">Aerial imagery · PNOA (reference only)</span></div><label class="switch"><input id="pnoaToggle" type="checkbox" aria-labelledby="pnoaLabel" aria-describedby="pnoaStatus"><span></span></label></div>
+      <p id="pnoaStatus" class="pnoa-status" role="status" data-state="off"></p>
     </div>
     </div>
   </details>

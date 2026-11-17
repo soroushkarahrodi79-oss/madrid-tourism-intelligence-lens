@@ -1081,6 +1081,20 @@ and World Boundaries and Places reference overlays), and CARTO Dark Matter.
 CARTO basemaps retain OpenStreetMap/CARTO attribution; the imagery/reference
 stack retains Esri/source attribution in the Leaflet attribution control.
 
+**PNOA aerial imagery (opt-in reference overlay).** An off-by-default switch in
+*Map display* adds the Instituto Geográfico Nacional's PNOA orthophoto through
+its INSPIRE WMS (`https://www.ign.es/wms-inspire/pnoa-ma`, layer
+`OI.OrthoimageCoverage`, EPSG:3857, `L.tileLayer.wms`). The capabilities
+document (checked 2026-11-17) declares `AccessConstraints` "CC BY 4.0 scne.es",
+`Fees` "No se aplican condiciones" and CORS `*`; attribution is shown in the
+Leaflet control. It is **reference cartography only**: opaque, drawn above the
+basemap and below every data layer, never read by a count, indicator, Lens
+result, export or the shareable URL. The coverage is a mosaic of different
+acquisition dates and 0.25 m / 0.50 m resolutions, so it must not be read as the
+state of the ground on any given date. Catastro's WMS is deliberately not
+offered: its declared access constraints prohibit bulk downloads and tiled
+requests, which `L.tileLayer.wms` is.
+
 ## Licensing boundary
 
 This repository's own MIT license (`LICENSE`) covers its original code and

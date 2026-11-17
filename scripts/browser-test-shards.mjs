@@ -51,6 +51,7 @@ const SHARDS = Object.freeze({
     "browser-tests/cluster-ux-v1.browser.mjs",
     "browser-tests/marker-shapes.browser.mjs",
     "browser-tests/basemap-fallback.browser.mjs",
+    "browser-tests/pnoa-reference.browser.mjs",
   ],
 });
 
