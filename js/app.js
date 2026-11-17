@@ -426,6 +426,7 @@ for (const [name, z] of [["histLeftPane", "255"], ["histRightPane", "256"]]) {
 function renderHistStatus() {
   const status = document.getElementById("histStatus");
   if (!status) return;
+  if (histCompare.active) document.getElementById("analysisPanel").dataset.histNotice = shellT("hist.contemporary");
   const { left, right } = histCompare.state;
   const states = [left, right];
   let aggregate = "on";
@@ -501,6 +502,24 @@ function histSideLayer(side) {
   return layer;
 }
 
+// Everything that could move a Lens, a selection, a radius, a mode, a geometry or a
+// layer is made inert while comparing (not hidden, not rewritten), so the
+// contemporary readings that stay on screen cannot be changed under imagery from
+// another year. Map display, language, appearance and the tour stay usable.
+const HIST_INERT_SELECTORS = ["#geoSearchPanel", "#geoSearchToggle", "#spatialToolbar", "#analysisPanel", '.rail-group:not([data-rail-group="map"])'];
+function setHistInert(on) {
+  if (on) {
+    histCompare.inerted = [...document.querySelectorAll(HIST_INERT_SELECTORS.join(","))].filter((el) => !el.inert);
+    for (const el of histCompare.inerted) el.inert = true;
+  } else {
+    for (const el of histCompare.inerted || []) el.inert = false;
+    histCompare.inerted = [];
+  }
+  const panel = document.getElementById("analysisPanel");
+  if (on) panel.dataset.histNotice = shellT("hist.contemporary");
+  else delete panel.dataset.histNotice;
+}
+
 function setHistCompare(enabled) {
   if (enabled === histCompare.active) return;
   const pnoaToggle = document.getElementById("pnoaToggle");
@@ -515,6 +534,7 @@ function setHistCompare(enabled) {
     pnoaToggle.disabled = true;
     setPnoaState("paused");
     map.getContainer().classList.add("hist-compare-active");
+    setHistInert(true);
     histCompare.state = { left: "loading", right: "loading" };
     histCompare.fraction = 0.5;
     for (const side of ["left", "right"]) histCompare.layers[side] = histSideLayer(side).addTo(map);
@@ -537,6 +557,7 @@ function setHistCompare(enabled) {
     histCompare.layers = {};
     histCompare.state = { left: "idle", right: "idle" };
     map.getContainer().classList.remove("hist-compare-active");
+    setHistInert(false);
     bar.hidden = true;
     document.getElementById("histDivider").hidden = true;
     const saved = histCompare.saved;
@@ -6511,6 +6532,7 @@ document.getElementById("lensAButton").onclick = () => activateLens("A");
 document.getElementById("lensBButton").onclick = () => (bEnabled ? activateLens("B") : shell.modes.setMode("COMPARE"));
 // The HATI layer control (not the navigation) enables the layer and frames the pilot.
 document.getElementById("hatiFrameButton").onclick = () => {
+  if (histCompare.active) return; // comparison mode: no layer switch, no Lens move
   setLayerVisible("heat", true);
   const bounds = hatiStudyArea?.bounds
     ? [
@@ -10570,6 +10592,7 @@ function showGeoSearchOnMap() {
 // has CONFIRMED lies inside the official geometry, and leaves radius A, radius B,
 // the active-Lens identity, the mode and every layer exactly as they were.
 function analyzeGeoSearchWithLens() {
+  if (histCompare.active) return false; // comparison mode: no Lens moves
   const entry = geoSearchSelectedEntry();
   if (!entry || entry.type === "MUNICIPALITY") return false;
   const point = geoSearchInteriorPoint(entry);

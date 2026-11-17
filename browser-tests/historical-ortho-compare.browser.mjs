@@ -314,3 +314,143 @@ test("Spanish and a phone-width viewport: copy, reachable controls, bar inside t
   assert.match(await page.locator("#histSlider").getAttribute("aria-valuetext"), /El 50% del mapa muestra 2006/);
   await context.close();
 });
+
+// ---- Analytical isolation (PR #193 review) -----------------------------------
+// The comparison is a visual inspection mode. Every action that could move a Lens,
+// a selection, a radius, a mode, a geometry or a layer must be inert while it is on
+// and fully normal again afterwards, and the contemporary readings that stay
+// visible must say they are contemporary.
+const analytic = (page) => page.evaluate(() => ({
+  a: lenses.A.marker.getLatLng(),
+  b: lenses.B.marker.getLatLng(),
+  radius: document.getElementById("radiusSlider").value,
+  mode: document.getElementById("analysisPanel").dataset.mode,
+  layers: [...document.querySelectorAll("#layerRail input[type=checkbox]")].filter((i) => !["histToggle", "pnoaToggle"].includes(i.id)).map((i) => [i.id, i.checked]),
+  geometry: document.querySelector("[data-geometry-mode][aria-pressed=true]")?.dataset.geometryMode ?? null,
+  lensB: document.getElementById("lensBButton").textContent,
+  panel: document.getElementById("analysisPanel").innerText,
+}));
+const settled = (page) => page.waitForFunction(() => typeof lenses !== "undefined" && lenses.A.marker
+  && !/locating…|loading…/i.test(document.getElementById("analysisPanel").innerText));
+// A real pointer press at the control's centre, as a reader would make it.
+async function pointerClick(page, selector) {
+  const at = await page.evaluate((s) => {
+    const el = document.querySelector(s);
+    el.scrollIntoView({ block: "center" });
+    const r = el.getBoundingClientRect();
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+  }, selector);
+  await page.mouse.click(at.x, at.y);
+  await page.waitForTimeout(120);
+}
+async function selectSearchResult(page, text) {
+  if ((await page.locator("#geoSearchPanel").getAttribute("data-presentation")) === "inline") await page.locator("#geoSearchQuery").click();
+  else await page.locator("#geoSearchToggle").click();
+  await page.waitForFunction(() => ["ready", "unavailable"].includes(document.querySelector("#geoSearchPanel").dataset.state));
+  await page.locator("#geoSearchQuery").fill(text);
+  await page.waitForFunction(() => document.querySelectorAll("#geoSearchResults button").length > 0);
+  await page.locator("#geoSearchResults button").first().click();
+  await page.waitForFunction(() => !document.querySelector("#geoSearchCard").hasAttribute("hidden"));
+}
+
+test("search 'Analyze with Lens' cannot move a Lens during the comparison, by pointer or by script", async () => {
+  const { page, context } = await openPage();
+  await settled(page);
+  await selectSearchResult(page, "APR.02.09");
+  // Switch by script: a pointer press elsewhere would dismiss the open search, and the
+  // defect needs the selected result to still be there when the comparison starts.
+  await page.evaluate(() => document.getElementById("histToggle").click());
+  await waitHist(page, "on");
+  const before = await analytic(page);
+  await pointerClick(page, "#geoSearchAnalyze");
+  await page.evaluate(() => document.getElementById("geoSearchAnalyze").click());
+  await page.waitForTimeout(200);
+  assert.deepEqual(await analytic(page), before, "no Lens moved, no reading recomputed");
+  await context.close();
+});
+
+test("'Show HATI pilot on the map' cannot move Lens A or switch a layer during the comparison", async () => {
+  const { page, context } = await openPage();
+  await settled(page);
+  await toggleHist(page);
+  await waitHist(page, "on");
+  const before = await analytic(page);
+  await pointerClick(page, "#hatiFrameButton");
+  await page.evaluate(() => document.getElementById("hatiFrameButton").click());
+  await page.waitForTimeout(200);
+  assert.deepEqual(await analytic(page), before);
+  await context.close();
+});
+
+test("no visible analytical control changes state during the comparison; the keyboard cannot reach them", async () => {
+  const { page, context } = await openPage();
+  await settled(page);
+  const before0 = await analytic(page);
+  await toggleHist(page);
+  await waitHist(page, "on");
+  for (const selector of [
+    "#radiusSlider", "#polygonDrawButton", "#resetButton", "#lensBButton",
+    '#analysisPanel button[data-mode="COMPARE"]', '#analysisPanel button[data-mode="CITY"]',
+    '#layerRail .rail-group[data-rail-group="operational"] label.switch',
+    '#layerRail .rail-group[data-rail-group="administrative"] label.switch',
+  ]) {
+    if (await page.locator(selector).count() === 0) continue;
+    await pointerClick(page, selector);
+  }
+  await page.keyboard.press("/"); // the search shortcut
+  assert.notEqual(await page.evaluate(() => document.activeElement.id), "geoSearchQuery");
+  assert.deepEqual(await analytic(page), before0, "nothing analytical moved");
+  const inert = await page.evaluate(() => ({
+    panel: document.getElementById("analysisPanel").inert,
+    toolbar: document.getElementById("spatialToolbar").inert,
+    search: document.getElementById("geoSearchPanel").inert && document.getElementById("geoSearchToggle").inert,
+    groups: [...document.querySelectorAll(".rail-group")].map((g) => [g.dataset.railGroup, g.inert]),
+    language: document.getElementById("languageSelect").inert,
+    appearance: document.getElementById("appearanceSelect").inert,
+    histToggle: document.getElementById("histToggle").inert,
+  }));
+  assert.equal(inert.panel && inert.toolbar && inert.search, true);
+  for (const [name, isInert] of inert.groups) assert.equal(isInert, name !== "map", `rail group ${name}`);
+  assert.equal(inert.language || inert.appearance || inert.histToggle, false, "language, appearance and the comparison switch stay usable");
+  await context.close();
+});
+
+test("contemporary readings that stay visible are labelled as contemporary (EN and ES)", async () => {
+  const { page, context } = await openPage();
+  await settled(page);
+  assert.equal(await page.evaluate(() => document.getElementById("analysisPanel").hasAttribute("data-hist-notice")), false, "no label outside the comparison");
+  await toggleHist(page);
+  await waitHist(page, "on");
+  const label = () => page.evaluate(() => getComputedStyle(document.getElementById("analysisPanel"), "::before").content);
+  assert.match(await label(), /Contemporary Lens readings/);
+  assert.match(await label(), /do not describe 2006 or 2023/);
+  await page.selectOption("#languageSelect", "es");
+  await page.waitForFunction(() => /contemporáne/.test(document.getElementById("analysisPanel").dataset.histNotice || ""));
+  assert.match(await label(), /No describen 2006 ni 2023/);
+  await context.close();
+});
+
+test("leaving the comparison restores every action: search, radius, mode, layers", async () => {
+  const { page, context } = await openPage();
+  await settled(page);
+  await selectSearchResult(page, "APR.02.09");
+  const start = await analytic(page);
+  await page.evaluate(() => document.getElementById("histToggle").click());
+  await waitHist(page, "on");
+  await page.evaluate(() => document.getElementById("histExit").click());
+  const none = await page.evaluate(() => ({
+    inert: document.querySelectorAll("[inert]").length,
+    label: document.getElementById("analysisPanel").hasAttribute("data-hist-notice"),
+  }));
+  assert.deepEqual(none, { inert: 0, label: false });
+  assert.deepEqual(await analytic(page), start, "state exactly as before");
+
+  await page.locator("#geoSearchAnalyze").click(); // normal behaviour is back
+  assert.notDeepEqual((await analytic(page)).a, start.a, "Analyze with Lens moves the Lens again");
+  await page.evaluate(() => document.getElementById("radiusSlider").scrollIntoView({ block: "center" }));
+  await page.locator("#radiusSlider").fill("1500");
+  assert.equal(await page.locator("#radiusSlider").inputValue(), "1500");
+  await page.locator('#analysisPanel button[data-mode="COMPARE"]').click();
+  assert.equal((await analytic(page)).mode, "COMPARE");
+  await context.close();
+});
