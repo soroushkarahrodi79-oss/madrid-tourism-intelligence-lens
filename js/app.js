@@ -81,7 +81,7 @@ if (!/[?&]v=/.test(K11_ORIGINAL_SEARCH)) {
 // the per-surface export captures in those renderers can write to it during the
 // very first render without a temporal-dead-zone error. Its user functions live
 // in the K11 block at the end of the file (hoisted function declarations).
-const k11 = { suppress: false, scheduled: false, refused: false, restored: false };
+const k11 = { suppress: false, scheduled: false, refused: false, restored: false, geometryIssues: [] };
 let k11CopyInitialized = false;
 let k11InitialRestore = null;
 try {
@@ -9091,6 +9091,27 @@ const K11_COPY = Object.freeze({
     "reason.INVALID_LANGUAGE": "an unknown language",
     "reason.INVALID_ACTIVE_LENS": "an unknown active Lens",
     "reason.MALFORMED": "a malformed value",
+    "reason.INVALID_GEOMETRY": "a polygon that is not a valid ring in Madrid (that Lens stays a circle)",
+    "reason.GEOMETRY_NOT_IN_LINK": "the polygon(s) of this reading: the link was made without them because they were too large to encode, so the Lenses show circles",
+    "reason.SESSION_TOO_LARGE": "the file is larger than the session limit",
+    "reason.SESSION_NOT_JSON": "the file is not valid JSON",
+    "reason.SESSION_SCHEMA": "the file is not a Lens session",
+    "reason.SESSION_VERSION": "the session file version is not supported",
+    "reason.SESSION_STRUCTURE": "the session file is incomplete or inconsistent",
+    "reason.GEOMETRY_FINGERPRINT": "the geometries do not match the readings they were saved with",
+    "share.sessionBtn": "Save session",
+    "share.restoreBtn": "Restore session",
+    "session.saved": "Session saved with both geometries (A and B), the active Lens and the readings computed from them. If your browser blocked the download, use this link:",
+    "session.modeUnavailable": "A session covers Lens readings. Switch to Place, or Compare · Lens, to save one.",
+    "session.failed": "The session could not be saved.",
+    "session.notExportable": "No file was created: this session would not be accepted by the importer. Reason:",
+    "reason.READINGS_CHECKSUM": "the saved readings were changed after the file was written",
+    "session.refused": "Session not restored; your current workspace is unchanged. Reason:",
+    "session.restored": "Session restored: both geometries are identical to the file (verified by fingerprint).",
+    "session.same": "The readings recomputed now equal those saved with the file.",
+    "session.differ": "The readings recomputed now differ from those saved with the file (data or availability changed since it was saved):",
+    "session.noReadings": "The file carries no saved readings to compare.",
+    "session.incomparable": "Saved readings could not be compared.",
   }),
   es: Object.freeze({
     "share.title": "Compartir y exportar esta lectura",
@@ -9130,6 +9151,27 @@ const K11_COPY = Object.freeze({
     "reason.INVALID_LANGUAGE": "un idioma desconocido",
     "reason.INVALID_ACTIVE_LENS": "una Lente activa desconocida",
     "reason.MALFORMED": "un valor con formato incorrecto",
+    "reason.INVALID_GEOMETRY": "un polígono que no es un anillo válido en Madrid (esa Lente sigue siendo un círculo)",
+    "reason.GEOMETRY_NOT_IN_LINK": "el polígono o polígonos de esta lectura: el enlace se hizo sin ellos por ser demasiado grandes para codificarse, por lo que las Lentes muestran círculos",
+    "reason.SESSION_TOO_LARGE": "el archivo supera el límite de sesión",
+    "reason.SESSION_NOT_JSON": "el archivo no es JSON válido",
+    "reason.SESSION_SCHEMA": "el archivo no es una sesión de la Lente",
+    "reason.SESSION_VERSION": "la versión del archivo de sesión no es compatible",
+    "reason.SESSION_STRUCTURE": "el archivo de sesión está incompleto o es incoherente",
+    "reason.GEOMETRY_FINGERPRINT": "las geometrías no coinciden con las lecturas con las que se guardaron",
+    "share.sessionBtn": "Guardar sesión",
+    "share.restoreBtn": "Restaurar sesión",
+    "session.saved": "Sesión guardada con ambas geometrías (A y B), la Lente activa y las lecturas calculadas con ellas. Si su navegador bloqueó la descarga, use este enlace:",
+    "session.modeUnavailable": "Una sesión cubre lecturas de Lente. Cambie a Lugar, o a Comparar · Lente, para guardarla.",
+    "session.failed": "No se pudo guardar la sesión.",
+    "session.notExportable": "No se creó ningún archivo: el importador no aceptaría esta sesión. Motivo:",
+    "reason.READINGS_CHECKSUM": "las lecturas guardadas se modificaron después de escribir el archivo",
+    "session.refused": "Sesión no restaurada; su espacio de trabajo actual no ha cambiado. Motivo:",
+    "session.restored": "Sesión restaurada: ambas geometrías son idénticas a las del archivo (verificado por huella).",
+    "session.same": "Las lecturas recalculadas ahora coinciden con las guardadas en el archivo.",
+    "session.differ": "Las lecturas recalculadas ahora difieren de las guardadas en el archivo (los datos o su disponibilidad cambiaron desde que se guardó):",
+    "session.noReadings": "El archivo no incluye lecturas guardadas con las que comparar.",
+    "session.incomparable": "No se pudieron comparar las lecturas guardadas.",
   }),
 });
 function k11T(key) {
@@ -9151,6 +9193,8 @@ function k11ApplyCopy() {
   set("drawerShareLede", "share.lede");
   set("k11ShareBtn", "share.copyBtn");
   set("k11ExportBtn", "share.exportBtn");
+  set("k11SessionBtn", "share.sessionBtn");
+  set("k11RestoreBtn", "share.restoreBtn");
   set("k11RestoreDismiss", "notice.dismiss", "aria-label");
 }
 
@@ -9186,6 +9230,16 @@ function k11CurrentState() {
     reading: shell.reading,
     language: shellLanguage(),
   };
+  // #197: each Lens's confirmed polygon (a draft or an edit in progress is not a
+  // reading and never travels). Absence means the Lens is a circle.
+  const confirmedPolygon = (which) => {
+    const geometry = polygonIsActiveGeometry(which) ? polygonStateFor(which).geometry : null;
+    return geometry ? { kind: "POLYGON", ring: geometry.ring.map((v) => ({ lat: v.lat, lon: v.lon })) } : null;
+  };
+  const polygonOfA = confirmedPolygon("A");
+  const polygonOfB = confirmedPolygon("B");
+  if (polygonOfA) state.geometryA = polygonOfA;
+  if (polygonOfB) state.geometryB = polygonOfB;
   if (isHatiVisible()) state.timestep = timestep;
   if (stayKindFilter && stayKindFilter !== "all") state.stayKind = stayKindFilter;
   if (typeof originMonth !== "undefined" && originMonth) state.originMonth = originMonth;
@@ -9254,7 +9308,15 @@ function k11ExecCopyFallback(text) {
   }
 }
 async function k11CopyShareLink() {
-  const url = buildShareUrl(window.location.href, k11CurrentState());
+  const linkState = k11CurrentState();
+  // #197 policy: a polygon too large for the link is never silently dropped. The
+  // link is not offered; the session file is the reproducible alternative.
+  if (!polygonLinkStatus(linkState).encodable) {
+    const status = document.getElementById("k11ShareStatus");
+    if (status) { status.dataset.tone = "error"; status.textContent = shellT("compare.shape.linkTooLarge"); }
+    return false;
+  }
+  const url = buildShareUrl(window.location.href, linkState);
   try { window.history.replaceState(window.history.state, "", url); } catch (error) { /* non-fatal */ }
   let ok = false;
   try {
@@ -9267,9 +9329,7 @@ async function k11CopyShareLink() {
     // On failure the URL is shown in full so the copy never silently fails.
     const polygonReading = k11PolygonReading();
     const base = ok ? (polygonReading ? shellT("compare.shape.linkPartial") : k11T("share.copied")) : `${k11T("share.copyFailed")} ${url}`;
-    // The v=1 URL schema carries circles only. Say plainly when a copied link
-    // cannot reproduce a polygon reading; #197 owns complete round-trip support.
-    status.textContent = polygonReading ? `${base} ${shellT("polygon.share")}` : base;
+    status.textContent = polygonReading && ok ? `${base} ${shellT("polygon.share")}` : base;
   }
   return ok;
 }
@@ -9302,48 +9362,74 @@ function k11ApplyLayersRestore(layers) {
   }
 }
 
+// Apply a validated reading (from a link or a session file) through the app's own
+// controllers. Callers hold k11.suppress so the address bar is written once.
+function k11ApplyState(s) {
+  // Phase-0 may already set <html lang> while a native selector or shell
+  // remains stale. Check BOTH values before deciding whether to synchronize.
+  if (s.language) {
+    const sel = document.getElementById("languageSelect");
+    if (sel && (sel.value !== s.language || shellLanguage() !== s.language)) {
+      sel.value = s.language;
+      if (typeof sel.onchange === "function") sel.onchange({ target: sel });
+    }
+  }
+  if (s.mode && shell.modes) shell.modes.setMode(s.mode);
+  if (s.lensBEnabled === true && !bEnabled) enableLensB();
+  else if (s.lensBEnabled === false && bEnabled) disableLensB();
+  k11ApplyLensRestore("A", s.lensA);
+  k11ApplyLensRestore("B", s.lensB);
+  if (s.activeLens && s.activeLens !== active) activateLens(s.activeLens);
+  if (Array.isArray(s.layers)) k11ApplyLayersRestore(s.layers);
+  if (s.timestep) {
+    const sel = document.getElementById("timeSelect");
+    if (sel) { sel.value = s.timestep; if (typeof sel.onchange === "function") sel.onchange({ target: sel }); }
+  }
+  if (s.stayKind) {
+    const sel = document.getElementById("stayKindFilter");
+    if (sel && !sel.disabled) { sel.value = s.stayKind; if (typeof sel.onchange === "function") sel.onchange({ target: sel }); }
+  }
+  if (s.reading) {
+    shell.reading = s.reading;
+    if (document.getElementById("evidenceDrawer").open) renderDrawerBody();
+  }
+  if (s.scope !== "AMBITO" && s.metric) {
+    selectedHaloMetric = s.metric.locked ? s.metric.id : null;
+    setHaloMetricFocus(s.metric.id, null, false);
+  }
+  k11ApplyGeometryRestore(s);
+  refresh();
+}
+
+// #197: install each Lens's polygon (or reset it to a circle) from a validated
+// reading. Both sides are replaced together, so an import never leaves A from the
+// file and B from the previous workspace. Drafts and edits in progress are dropped
+// only here, after validation has already succeeded.
+function k11ApplyGeometryRestore(s) {
+  if (!s.geometryA && !s.geometryB && !s.sessionGeometry) return;
+  for (const which of ["A", "B"]) {
+    const field = which === "A" ? "geometryA" : "geometryB";
+    const geometry = s[field] ? createPolygonGeometry(s[field].ring) : null;
+    if (s[field] && !geometry) k11.geometryIssues.push({ dimension: field, code: "INVALID_GEOMETRY" });
+    polygonLensState[which] = {
+      mode: geometry ? ANALYSIS_GEOMETRY.POLYGON : ANALYSIS_GEOMETRY.CIRCLE,
+      vertices: geometry ? geometry.ring.map((v) => ({ ...v })) : [],
+      geometry, draft: [], drawing: false, editing: false, editDraft: [], selected: null,
+    };
+  }
+  loadPolygonLens(active);
+  applyGeometryState();
+}
+
 // Phase 1: interface dimensions that depend only on the map + operational layers.
 function k11ApplyRestorePhase1() {
   if (!k11HasSharedState()) return;
   const result = k11InitialRestore || parseEvidenceState(K11_ORIGINAL_SEARCH, { snapshotId: K11_SNAPSHOT_ID });
   k11InitialRestore = result;
   if (!result.ok) { k11.refused = true; k11RenderNotice(result); return; }
-  const s = result.state || {};
   k11.suppress = true;
   try {
-    // Phase-0 may already set <html lang> while a native selector or shell
-    // remains stale. Check BOTH values before deciding whether to synchronize.
-    if (s.language) {
-      const sel = document.getElementById("languageSelect");
-      if (sel && (sel.value !== s.language || shellLanguage() !== s.language)) {
-        sel.value = s.language;
-        if (typeof sel.onchange === "function") sel.onchange({ target: sel });
-      }
-    }
-    if (s.mode && shell.modes) shell.modes.setMode(s.mode);
-    if (s.lensBEnabled === true && !bEnabled) enableLensB();
-    else if (s.lensBEnabled === false && bEnabled) disableLensB();
-    k11ApplyLensRestore("A", s.lensA);
-    k11ApplyLensRestore("B", s.lensB);
-    if (s.activeLens && s.activeLens !== active) activateLens(s.activeLens);
-    if (Array.isArray(s.layers)) k11ApplyLayersRestore(s.layers);
-    if (s.timestep) {
-      const sel = document.getElementById("timeSelect");
-      if (sel) { sel.value = s.timestep; if (typeof sel.onchange === "function") sel.onchange({ target: sel }); }
-    }
-    if (s.stayKind) {
-      const sel = document.getElementById("stayKindFilter");
-      if (sel && !sel.disabled) { sel.value = s.stayKind; if (typeof sel.onchange === "function") sel.onchange({ target: sel }); }
-    }
-    if (s.reading) {
-      shell.reading = s.reading;
-      if (document.getElementById("evidenceDrawer").open) renderDrawerBody();
-    }
-    if (s.scope !== "AMBITO" && s.metric) {
-      selectedHaloMetric = s.metric.locked ? s.metric.id : null;
-      setHaloMetricFocus(s.metric.id, null, false);
-    }
-    refresh();
+    k11ApplyState(result.state || {});
   } catch (error) {
     console.warn("K11 phase-1 restore incomplete", error);
   } finally {
@@ -9578,6 +9664,7 @@ function k11RenderNotice(result) {
   if (k11.licenceWindowIssue && !interfaceIssues.some((i) => i.dimension === "licenceWindow")) interfaceIssues.push(k11.licenceWindowIssue);
   if (k11.hospitalityMetricIssue && !interfaceIssues.some((i) => i.dimension === "hospitalityMetric")) interfaceIssues.push(k11.hospitalityMetricIssue);
   if (k11.hospitalityBarrioIssue && !interfaceIssues.some((i) => i.dimension === "hospitalityBarrio")) interfaceIssues.push(k11.hospitalityBarrioIssue);
+  for (const issue of k11.geometryIssues) if (!interfaceIssues.some((i) => i.dimension === issue.dimension)) interfaceIssues.push(issue);
 
   let show = false;
   if (!result.ok) {
@@ -10372,6 +10459,146 @@ function k11ExportEvidence() {
   }
 }
 
+
+// ------------------------------------------------------------ session file (#197)
+// Save / restore a Lens reading, including each side's own geometry, as a local
+// JSON file (no backend). The pure contract lives in js/evidence-url.js; this is
+// only the adapter that reads the live workspace and applies a validated file.
+const K11_SESSION_LIMITATIONS = Object.freeze([
+  "Point-level counts use each confirmed geometry (circle or polygon). Official-area totals (population, licences, planning ámbitos) are not allocated to custom polygons.",
+  "Saved readings are limited to: tourism, stays and mobility point counts, observed pedestrian activity (mean and counters) and heat (mean and samples), each only while its layer is on. This file is NOT a capture of every figure on screen.",
+  "Explicitly excluded readings: category mix, nearest features and distances, density figures, the halo bars and decision guidance, and every official-area total (population, licences, hospitality, planning). They are recomputed from the restored geometry, not stored.",
+  "Radial halo and radius sensitivity are circle-only and are not part of a session.",
+  "Geometries are stored at full precision in exact vertex order; shared links round polygon vertices to about 0.1 m.",
+  "Not included: planning-ámbito comparison, sensitivity baseline, licence grant-date window, hospitality selection and domestic-origin month.",
+  "Saved readings are what the deployment identified by snapshot_id computed; recomputing after a restore can differ if source data or its availability changed.",
+]);
+
+function k11SessionReadings() {
+  const rows = [["tourism", "tourism", ["museums", "info"]], ["stays", "stay", ["stays"]], ["mobility", "mobility", ["bikes", "rail"]]];
+  const out = { A: {}, B: {} };
+  for (const which of bEnabled ? ["A", "B"] : ["A"]) {
+    const stats = statsFor(which);
+    for (const [id, key, layers] of rows) {
+      const status = combinedStatus(layerStatus, layers);
+      const value = stats[key];
+      out[which][id] = { value: status === "unavailable" || !Number.isFinite(value) ? null : value, status, unit: "records inside the geometry" };
+    }
+    // Observed pedestrian activity and heat are visible for both geometries when
+    // their layers are on. "off" and "no sample" stay distinct from a zero.
+    const ped = isPedestrianVisible() ? pedestrianStatsFor(which) : null;
+    const pedStatus = !ped ? "off" : pedestrianStatus === "unavailable" ? "unavailable" : ped.evidence === "NONE" ? "no-sample" : pedestrianStatus;
+    const pedHasValue = pedStatus !== "off" && pedStatus !== "unavailable" && pedStatus !== "no-sample";
+    out[which].pedestrian = { value: pedHasValue && Number.isFinite(ped.meanObserved) ? ped.meanObserved : null, status: pedStatus, unit: "observed passages/hour (mean over counters inside)" };
+    out[which].pedestrianCounters = { value: pedHasValue && Number.isFinite(ped.stationCount) ? ped.stationCount : null, status: pedStatus, unit: "counters inside the geometry" };
+    const heat = isHatiVisible() ? heatStatsFor(which) : null;
+    const heatStatus = !heat ? "off" : heat.evidence === "NONE" ? "no-sample" : "sampled";
+    out[which].heat = { value: heat && heatStatus === "sampled" && Number.isFinite(heat.mean) ? heat.mean : null, status: heatStatus, unit: "°C (mean of samples inside)" };
+    out[which].heatSamples = { value: heat && heatStatus === "sampled" && Number.isFinite(heat.count) ? heat.count : null, status: heatStatus, unit: "samples inside the geometry" };
+  }
+  return out;
+}
+
+function k11SessionGeometry(which) {
+  const g = activeAnalysisGeometry(which);
+  if (g.kind === ANALYSIS_GEOMETRY.POLYGON) {
+    return { kind: "POLYGON", ring: g.ring.map((v) => ({ lat: v.lat, lon: v.lon })), areaKm2: polygonAreaKm2(g.ring), perimeterM: polygonPerimeterM(g.ring) };
+  }
+  return { kind: "CIRCLE", center: { lat: g.center.lat, lon: g.center.lon }, radiusM: g.radiusM, areaKm2: geometryAreaKm2(g) };
+}
+
+function k11SessionStatus(tone, text) {
+  const status = document.getElementById("k11ShareStatus");
+  if (status) { status.dataset.tone = tone; status.textContent = text; }
+  return status;
+}
+
+function k11SaveSession() {
+  const mode = shell.modes ? shell.modes.currentMode() : "PLACE";
+  const lensScope = mode === "PLACE" || (mode === "COMPARE" && ambitoCompare.scope === "LENS");
+  if (!lensScope) { k11SessionStatus("error", k11T("session.modeUnavailable")); return; }
+  try {
+    let evidence = [];
+    try { evidence = (k11BuildProjection() || { evidence: [] }).evidence; } catch (error) { /* provenance is best-effort; the file still names its snapshot */ }
+    const file = buildSessionFile({
+      state: k11CurrentState(),
+      geometries: { A: k11SessionGeometry("A"), B: k11SessionGeometry("B") },
+      readings: k11SessionReadings(),
+      evidence,
+      limitations: K11_SESSION_LIMITATIONS,
+      meta: { generatedAt: new Date().toISOString(), snapshotId: K11_SNAPSHOT_ID, appVersion: AREA_ASSET_VERSION },
+    });
+    const stamp = file.generated_at.slice(0, 10);
+    const text = JSON.stringify(file, null, 2);
+    // Never hand out a file the importer would refuse (size, vertex count, ring
+    // validity): run it through the very same parser first.
+    const own = parseSessionFile(text, { snapshotId: K11_SNAPSHOT_ID, createPolygon: createPolygonGeometry });
+    if (!own.ok) {
+      const reasons = own.issues.map((i) => k11T(`reason.${i.code}`)).join("; ");
+      k11SessionStatus("error", `${k11T("session.notExportable")} ${reasons}.`);
+      return;
+    }
+    const status = k11SessionStatus("ok", `${k11T("session.saved")} `);
+    const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+    const name = `lens-session-${stamp}.json`;
+    const anchor = document.createElement("a");
+    anchor.href = url; anchor.download = name; anchor.rel = "noopener";
+    document.body.append(anchor); anchor.click(); anchor.remove();
+    if (status) {
+      const link = document.createElement("a");
+      link.href = url; link.download = name; link.textContent = name; link.className = "k11-export-link";
+      status.append(link);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 120000);
+  } catch (error) {
+    console.warn("K11 session save failed", error);
+    k11SessionStatus("error", k11T("session.failed"));
+  }
+}
+
+function k11RefuseSession(result) {
+  const reasons = result.issues.map((i) => k11T(`reason.${i.code}`)).join("; ");
+  k11SessionStatus("error", `${k11T("session.refused")} ${reasons}.`);
+}
+
+async function k11RestoreSessionFile(file) {
+  if (!file) return;
+  // Refuse before reading a file that cannot be a session: the limit is applied
+  // to the file itself, not only to its text.
+  if (file.size > SESSION_LIMITS.maxChars * 4) { k11RefuseSession({ issues: [{ code: "SESSION_TOO_LARGE" }] }); return; }
+  let text;
+  try { text = await file.text(); } catch (error) { k11RefuseSession({ issues: [{ code: "SESSION_NOT_JSON" }] }); return; }
+  const optionsOf = (id) => { const el = document.getElementById(id); return el ? [...el.options].map((o) => o.value) : undefined; };
+  const result = parseSessionFile(text, {
+    snapshotId: K11_SNAPSHOT_ID,
+    createPolygon: createPolygonGeometry,
+    knownTimesteps: optionsOf("timeSelect"),
+    knownStayKinds: optionsOf("stayKindFilter"),
+  });
+  // Validation is complete before anything is touched: a refused file leaves the
+  // previous workspace exactly as it was.
+  if (!result.ok) { k11RefuseSession(result); return; }
+  k11.suppress = true;
+  try {
+    if (typeof setCompareScope === "function" && result.state.mode === "COMPARE") setCompareScope("LENS");
+    k11ApplyState({ ...result.state, sessionGeometry: true });
+  } catch (error) {
+    console.warn("K11 session apply failed", error);
+    k11SessionStatus("error", k11T("session.failed"));
+    return;
+  } finally {
+    k11.suppress = false;
+  }
+  k11CommitUrlState();
+  k11RenderNotice(result);
+  const comparison = compareSessionReadings(result.readings, k11SessionReadings());
+  const detail = !result.readings ? k11T("session.noReadings")
+    : !comparison.comparable ? k11T("session.incomparable")
+    : comparison.equivalent ? k11T("session.same")
+    : `${k11T("session.differ")} ${comparison.differences.map((d) => `${d.side} ${d.metric}: ${d.stored ? (d.stored.value ?? d.stored.status) : "—"} → ${d.current ? (d.current.value ?? d.current.status) : "—"}`).join("; ")}.`;
+  k11SessionStatus(comparison.comparable && !comparison.equivalent ? "error" : "ok", `${k11T("session.restored")} ${detail}`);
+}
+
 // --------------------------------------------------------------- UI wiring
 (() => {
   k11ApplyCopy();
@@ -10385,6 +10612,18 @@ function k11ExportEvidence() {
     const notice = document.getElementById("k11RestoreNotice");
     if (notice) notice.hidden = true;
   });
+  const sessionBtn = document.getElementById("k11SessionBtn");
+  if (sessionBtn) sessionBtn.addEventListener("click", k11SaveSession);
+  const restoreBtn = document.getElementById("k11RestoreBtn");
+  const restoreInput = document.getElementById("k11RestoreInput");
+  if (restoreBtn && restoreInput) {
+    restoreBtn.addEventListener("click", () => restoreInput.click());
+    restoreInput.addEventListener("change", () => {
+      const file = restoreInput.files && restoreInput.files[0];
+      restoreInput.value = ""; // the same file can be chosen again after a refusal
+      k11RestoreSessionFile(file);
+    });
+  }
   const exportBtn = document.getElementById("k11ExportBtn");
   if (exportBtn) exportBtn.addEventListener("click", () => {
     if (typeof k11ExportEvidence === "function") k11ExportEvidence();
