@@ -659,6 +659,9 @@ let geometryMode = ANALYSIS_GEOMETRY.CIRCLE;
 let polygonVertices = [];       // the committed ring, as {lat, lon}
 let polygonDraft = [];          // vertices accumulated while drawing
 let polygonDrawing = false;
+let polygonEditing = false;
+let polygonEditDraft = [];
+let polygonEditSelected = null;
 // Set when a polygon request is refused because the mode cannot take one. It is
 // a separate flag precisely because the refusal resets geometryMode to CIRCLE,
 // so the reason cannot be derived from geometryMode afterwards.
@@ -6854,26 +6857,32 @@ function clearPolygonLayers() {
   polygonDraftShape = null;
 }
 
-// Draggable vertex handles. Editing a vertex rewrites the ring and re-renders;
-// `dragend` commits, so the statistics settle once on release rather than
-// recomputing on every pointer move.
+// Vertex handles change only the edit draft. Readings remain on the committed ring.
 function addVertexHandle(index) {
-  const vertex = polygonVertices[index];
+  const vertex = polygonEditDraft[index];
   const handle = L.circleMarker([vertex.lat, vertex.lon], {
-    radius: 6, weight: 2, color: "#f7fbff", fillColor: "#43d7ff", fillOpacity: 1, interactive: true,
+    radius: 7, weight: 2, color: polygonEditSelected === index ? "#132e44" : "#f7fbff", fillColor: "#43d7ff", fillOpacity: 1, interactive: true,
+  });
+  handle.on("click", (event) => {
+    L.DomEvent.stopPropagation(event);
+    polygonEditSelected = index;
+    renderPolygonOnMap();
+    renderSpatialToolbar();
   });
   handle.on("mousedown", () => {
     map.dragging.disable();
+    polygonEditSelected = index;
     const move = (event) => {
       handle.setLatLng(event.latlng);
-      polygonVertices[index] = { lat: event.latlng.lat, lon: event.latlng.lng };
-      if (polygonShape) polygonShape.setLatLngs(latLngsOf(polygonVertices));
+      polygonEditDraft[index] = { lat: event.latlng.lat, lon: event.latlng.lng };
+      if (polygonDraftShape) polygonDraftShape.setLatLngs(latLngsOf(polygonEditDraft));
     };
     const up = () => {
       map.off("mousemove", move);
       map.off("mouseup", up);
       map.dragging.enable();
-      commitPolygon(polygonVertices);
+      renderPolygonOnMap();
+      renderSpatialToolbar();
     };
     map.on("mousemove", move);
     map.on("mouseup", up);
@@ -6883,12 +6892,17 @@ function addVertexHandle(index) {
 
 function renderPolygonOnMap() {
   clearPolygonLayers();
-  // Keep the committed outline beside the dashed draft: its readings remain
-  // authoritative until Finish. Vertex handles belong to the committed edit only.
+  // Keep the committed outline beside either draft: its readings remain
+  // authoritative until Finish or Apply.
   if (polygonGeometry) {
     polygonShape = L.polygon(latLngsOf(polygonVertices), { ...POLYGON_PANE_STYLE, color: "#43d7ff", fillColor: "#43d7ff" });
     polygonLayerGroup.addLayer(polygonShape);
-    if (!polygonDrawing) polygonVertices.forEach((_, index) => addVertexHandle(index));
+  }
+  if (polygonEditing) {
+    polygonDraftShape = L.polygon(latLngsOf(polygonEditDraft), { ...POLYGON_DRAFT_STYLE, color: "#43d7ff", fillColor: "#43d7ff" });
+    polygonLayerGroup.addLayer(polygonDraftShape);
+    polygonEditDraft.forEach((_, index) => addVertexHandle(index));
+    return;
   }
   if (polygonDrawing) {
     const style = { ...POLYGON_DRAFT_STYLE, color: "#43d7ff", fillColor: "#43d7ff" };
@@ -6935,7 +6949,7 @@ function polygonToolbarState() {
   const polygonMode = geometryMode === ANALYSIS_GEOMETRY.POLYGON;
   const mode = shell.modes ? shell.modes.currentMode() : "PLACE";
   const compareRefused = polygonModeRefused || (polygonMode && mode !== "PLACE");
-  return { polygonMode, compareRefused, drawing: polygonDrawing, hasPolygon: Boolean(polygonGeometry) };
+  return { polygonMode, compareRefused, drawing: polygonDrawing, editing: polygonEditing, hasPolygon: Boolean(polygonGeometry) };
 }
 
 function renderSpatialToolbar() {
@@ -6960,15 +6974,22 @@ function renderSpatialToolbar() {
     note.hidden = !state.compareRefused;
   }
 
-  show("polygonDrawButton", !state.drawing && !state.hasPolygon);
-  show("polygonRedrawButton", !state.drawing && state.hasPolygon);
+  show("polygonDrawButton", !state.drawing && !state.editing && !state.hasPolygon);
+  show("polygonRedrawButton", !state.drawing && !state.editing && state.hasPolygon);
+  show("polygonEditButton", !state.drawing && !state.editing && state.hasPolygon);
+  show("polygonEditAddButton", state.editing);
+  show("polygonEditDeleteButton", state.editing);
+  document.getElementById("polygonEditDeleteButton").disabled = polygonEditSelected === null || polygonEditDraft.length <= POLYGON_MIN_VERTICES;
+  show("polygonEditApplyButton", state.editing);
+  document.getElementById("polygonEditApplyButton").disabled = !createPolygonGeometry(polygonEditDraft);
+  show("polygonEditCancelButton", state.editing);
   show("polygonUndoButton", state.drawing);
   document.getElementById("polygonUndoButton").disabled = polygonDraft.length === 0;
   show("polygonDraftNotice", state.drawing && state.hasPolygon);
   show("polygonAddVertexButton", state.drawing);
   show("polygonFinishButton", state.drawing);
   show("polygonCancelButton", state.drawing);
-  show("polygonDeleteButton", !state.drawing && state.hasPolygon);
+  show("polygonDeleteButton", !state.drawing && !state.editing && state.hasPolygon);
 
   const finish = document.getElementById("polygonFinishButton");
   if (finish) {
@@ -6983,12 +7004,13 @@ function renderSpatialToolbar() {
       status.textContent = polygonDraft.length < POLYGON_MIN_VERTICES
         ? `${shellT("polygon.hintDrawing")} ${shellT("polygon.hintNeedsVertices")}`
         : shellT("polygon.hintDrawing");
-    } else if (state.hasPolygon) status.textContent = shellT("polygon.hintReady");
+    } else if (state.editing) status.textContent = shellT("polygon.hintEditing");
+    else if (state.hasPolygon) status.textContent = shellT("polygon.hintReady");
     else status.textContent = shellT("polygon.hintIdle");
   }
 
   const measure = document.getElementById("polygonMeasure");
-  const vertices = state.drawing ? polygonDraft : polygonVertices;
+  const vertices = state.drawing ? polygonDraft : state.editing ? polygonEditDraft : polygonVertices;
   const ring = normalizePolygonRing(vertices);
   if (measure) {
     measure.hidden = !state.polygonMode || !ring;
@@ -7086,6 +7108,32 @@ function startPolygonDrawing() {
   applyGeometryState();
 }
 
+function startPolygonEditing() {
+  if (!polygonGeometry || polygonDrawing) return;
+  polygonEditing = true;
+  polygonEditDraft = polygonVertices.map((vertex) => ({ ...vertex }));
+  polygonEditSelected = null;
+  renderPolygonOnMap();
+  renderSpatialToolbar();
+}
+
+function cancelPolygonEditing() {
+  if (!polygonEditing) return;
+  polygonEditing = false;
+  polygonEditDraft = [];
+  polygonEditSelected = null;
+  renderPolygonOnMap();
+  renderSpatialToolbar();
+}
+
+function applyPolygonEditing() {
+  if (!polygonEditing || !createPolygonGeometry(polygonEditDraft)) return;
+  polygonEditing = false;
+  commitPolygon(polygonEditDraft);
+  polygonEditDraft = [];
+  polygonEditSelected = null;
+}
+
 function undoPolygonVertex() {
   if (!polygonDrawing || !polygonDraft.length) return;
   polygonDraft = polygonDraft.slice(0, -1);
@@ -7134,6 +7182,7 @@ function setGeometryMode(nextMode) {
   if (nextMode === ANALYSIS_GEOMETRY.CIRCLE) {
     polygonDrawing = false;
     polygonDraft = [];
+    cancelPolygonEditing();
   }
   applyGeometryState();
 }
@@ -7143,13 +7192,14 @@ for (const button of document.querySelectorAll("[data-geometry-mode]")) {
 }
 document.getElementById("spatialToolsToggle").addEventListener("click", () => {
   spatialToolsOpen = !spatialToolsOpen;
-  if (!spatialToolsOpen) cancelPolygonDrawing();
+  if (!spatialToolsOpen) { cancelPolygonDrawing(); cancelPolygonEditing(); }
   renderSpatialToolbar();
   if (spatialToolsOpen) document.querySelector('[data-geometry-mode][aria-pressed="true"]').focus();
 });
 document.getElementById("spatialToolbar").addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
   cancelPolygonDrawing();
+  cancelPolygonEditing();
   spatialToolsOpen = false;
   renderSpatialToolbar();
   document.getElementById("spatialToolsToggle").focus();
@@ -7158,6 +7208,24 @@ document.getElementById("spatialToolbar").addEventListener("keydown", (event) =>
 });
 document.getElementById("polygonDrawButton")?.addEventListener("click", startPolygonDrawing);
 document.getElementById("polygonRedrawButton").addEventListener("click", startPolygonDrawing);
+document.getElementById("polygonEditButton").addEventListener("click", startPolygonEditing);
+document.getElementById("polygonEditAddButton").addEventListener("click", () => {
+  if (!polygonEditing) return;
+  const centre = map.getCenter();
+  polygonEditDraft.push({ lat: centre.lat, lon: centre.lng });
+  polygonEditSelected = polygonEditDraft.length - 1;
+  renderPolygonOnMap();
+  renderSpatialToolbar();
+});
+document.getElementById("polygonEditDeleteButton").addEventListener("click", () => {
+  if (!polygonEditing || polygonEditSelected === null || polygonEditDraft.length <= POLYGON_MIN_VERTICES) return;
+  polygonEditDraft.splice(polygonEditSelected, 1);
+  polygonEditSelected = null;
+  renderPolygonOnMap();
+  renderSpatialToolbar();
+});
+document.getElementById("polygonEditApplyButton").addEventListener("click", applyPolygonEditing);
+document.getElementById("polygonEditCancelButton").addEventListener("click", cancelPolygonEditing);
 document.getElementById("polygonUndoButton").addEventListener("click", undoPolygonVertex);
 document.getElementById("polygonAddVertexButton")?.addEventListener("click", () => {
   // The keyboard route: Leaflet pans and zooms the focused map with the arrow
@@ -7183,8 +7251,7 @@ if (haloRegressionRequested && haloRegressionLocal) {
   window.__ring = () => (polygonGeometry ? polygonGeometry.ring.map((v) => ({ ...v })) : null);
   window.__visiblePoints = () => visiblePoiPoints().map((p) => ({ type: p.type, lat: p.lat, lon: p.lon }));
   window.__geometryKind = () => activeAnalysisGeometry(active).kind;
-  // The same commit path a vertex drag ends in, so an edit can be exercised
-  // without synthesising pointer events over a Leaflet canvas.
+  // Direct commit seam for exact-geometry regression checks.
   window.__commitRing = (ring) => commitPolygon(ring);
   window.__licenceViewIsNull = () => licenceView() === null;
   window.__latLngToPoint = (lat, lon) => {
@@ -7201,12 +7268,14 @@ if (haloRegressionRequested && haloRegressionLocal) {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && spatialToolsOpen && event.target.closest?.("#map,#spatialToolsToggle")) {
     cancelPolygonDrawing();
+    cancelPolygonEditing();
     spatialToolsOpen = false;
     renderSpatialToolbar();
     document.getElementById("spatialToolsToggle").focus();
     event.preventDefault();
     return;
   }
+  if (event.key === "Escape" && polygonEditing) { cancelPolygonEditing(); event.preventDefault(); return; }
   if (!polygonDrawing) return;
   if (event.key === "Escape") { cancelPolygonDrawing(); event.preventDefault(); return; }
   // Enter finishes, but never while the reader is on a button that has its own
@@ -7526,6 +7595,9 @@ function renderModeUi() {
   if (mode !== "PLACE" && geometryMode === ANALYSIS_GEOMETRY.POLYGON) {
     polygonDrawing = false;
     polygonDraft = [];
+    polygonEditing = false;
+    polygonEditDraft = [];
+    polygonEditSelected = null;
     geometryMode = ANALYSIS_GEOMETRY.CIRCLE;
     renderPolygonOnMap();
   }
