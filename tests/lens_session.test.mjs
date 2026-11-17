@@ -304,6 +304,28 @@ test("result equivalence is reported separately from geometry equality", () => {
   assert.equal(compareSessionReadings(stored, unavailable).equivalent, false, "unavailable is not zero");
 });
 
+test("a changed stored reading value is refused by the checksum", () => {
+  const edited = clone(sessionFor(polygon(RING_A), polygon(RING_B)));
+  edited.readings.A.tourism.value = 4; // geometry and fingerprint untouched
+  const r = parse(edited);
+  assert.equal(r.ok, false);
+  assert.equal(r.issues[0].code, REASON.READINGS_CHECKSUM);
+  const dropped = clone(sessionFor(polygon(RING_A), polygon(RING_B)));
+  delete dropped.readings.B.tourism;
+  assert.equal(parse(dropped).issues[0].code, REASON.READINGS_CHECKSUM);
+  // Property order is irrelevant: only content is covered.
+  const reordered = clone(sessionFor(polygon(RING_A), polygon(RING_B)));
+  reordered.readings.A.tourism = { status: "published", value: 3 };
+  assert.equal(parse(reordered).ok, true);
+});
+
+test("a session the importer would refuse is detectable before download", () => {
+  const ring = Array.from({ length: SESSION_LIMITS.maxVertices + 1 }, (_, i) => ({ lat: 40.4 + i * 1e-6, lon: -3.7 + (i % 7) * 1e-6 }));
+  const text = JSON.stringify(sessionFor(polygon(ring), circleGeometry(lensB)), null, 2);
+  const own = parseSessionFile(text, { snapshotId: "snap-1", createPolygon: createPolygonGeometry });
+  assert.equal(own.ok, false, "the app runs this exact check before creating a file");
+});
+
 test("the file records provenance, units and limitations", () => {
   const file = sessionFor(polygon(RING_A), circleGeometry(lensB));
   assert.equal(file.snapshot_id, "snap-1");

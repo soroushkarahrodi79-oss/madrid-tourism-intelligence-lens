@@ -9104,6 +9104,8 @@ const K11_COPY = Object.freeze({
     "session.saved": "Session saved with both geometries (A and B), the active Lens and the readings computed from them. If your browser blocked the download, use this link:",
     "session.modeUnavailable": "A session covers Lens readings. Switch to Place, or Compare · Lens, to save one.",
     "session.failed": "The session could not be saved.",
+    "session.notExportable": "No file was created: this session would not be accepted by the importer. Reason:",
+    "reason.READINGS_CHECKSUM": "the saved readings were changed after the file was written",
     "session.refused": "Session not restored; your current workspace is unchanged. Reason:",
     "session.restored": "Session restored: both geometries are identical to the file (verified by fingerprint).",
     "session.same": "The readings recomputed now equal those saved with the file.",
@@ -9162,6 +9164,8 @@ const K11_COPY = Object.freeze({
     "session.saved": "Sesión guardada con ambas geometrías (A y B), la Lente activa y las lecturas calculadas con ellas. Si su navegador bloqueó la descarga, use este enlace:",
     "session.modeUnavailable": "Una sesión cubre lecturas de Lente. Cambie a Lugar, o a Comparar · Lente, para guardarla.",
     "session.failed": "No se pudo guardar la sesión.",
+    "session.notExportable": "No se creó ningún archivo: el importador no aceptaría esta sesión. Motivo:",
+    "reason.READINGS_CHECKSUM": "las lecturas guardadas se modificaron después de escribir el archivo",
     "session.refused": "Sesión no restaurada; su espacio de trabajo actual no ha cambiado. Motivo:",
     "session.restored": "Sesión restaurada: ambas geometrías son idénticas a las del archivo (verificado por huella).",
     "session.same": "Las lecturas recalculadas ahora coinciden con las guardadas en el archivo.",
@@ -10462,6 +10466,8 @@ function k11ExportEvidence() {
 // only the adapter that reads the live workspace and applies a validated file.
 const K11_SESSION_LIMITATIONS = Object.freeze([
   "Point-level counts use each confirmed geometry (circle or polygon). Official-area totals (population, licences, planning ámbitos) are not allocated to custom polygons.",
+  "Saved readings are limited to: tourism, stays and mobility point counts, observed pedestrian activity (mean and counters) and heat (mean and samples), each only while its layer is on. This file is NOT a capture of every figure on screen.",
+  "Explicitly excluded readings: category mix, nearest features and distances, density figures, the halo bars and decision guidance, and every official-area total (population, licences, hospitality, planning). They are recomputed from the restored geometry, not stored.",
   "Radial halo and radius sensitivity are circle-only and are not part of a session.",
   "Geometries are stored at full precision in exact vertex order; shared links round polygon vertices to about 0.1 m.",
   "Not included: planning-ámbito comparison, sensitivity baseline, licence grant-date window, hospitality selection and domestic-origin month.",
@@ -10478,6 +10484,17 @@ function k11SessionReadings() {
       const value = stats[key];
       out[which][id] = { value: status === "unavailable" || !Number.isFinite(value) ? null : value, status, unit: "records inside the geometry" };
     }
+    // Observed pedestrian activity and heat are visible for both geometries when
+    // their layers are on. "off" and "no sample" stay distinct from a zero.
+    const ped = isPedestrianVisible() ? pedestrianStatsFor(which) : null;
+    const pedStatus = !ped ? "off" : pedestrianStatus === "unavailable" ? "unavailable" : ped.evidence === "NONE" ? "no-sample" : pedestrianStatus;
+    const pedHasValue = pedStatus !== "off" && pedStatus !== "unavailable" && pedStatus !== "no-sample";
+    out[which].pedestrian = { value: pedHasValue && Number.isFinite(ped.meanObserved) ? ped.meanObserved : null, status: pedStatus, unit: "observed passages/hour (mean over counters inside)" };
+    out[which].pedestrianCounters = { value: pedHasValue && Number.isFinite(ped.stationCount) ? ped.stationCount : null, status: pedStatus, unit: "counters inside the geometry" };
+    const heat = isHatiVisible() ? heatStatsFor(which) : null;
+    const heatStatus = !heat ? "off" : heat.evidence === "NONE" ? "no-sample" : "sampled";
+    out[which].heat = { value: heat && heatStatus === "sampled" && Number.isFinite(heat.mean) ? heat.mean : null, status: heatStatus, unit: "°C (mean of samples inside)" };
+    out[which].heatSamples = { value: heat && heatStatus === "sampled" && Number.isFinite(heat.count) ? heat.count : null, status: heatStatus, unit: "samples inside the geometry" };
   }
   return out;
 }
@@ -10512,8 +10529,16 @@ function k11SaveSession() {
       meta: { generatedAt: new Date().toISOString(), snapshotId: K11_SNAPSHOT_ID, appVersion: AREA_ASSET_VERSION },
     });
     const stamp = file.generated_at.slice(0, 10);
-    const status = k11SessionStatus("ok", `${k11T("session.saved")} `);
     const text = JSON.stringify(file, null, 2);
+    // Never hand out a file the importer would refuse (size, vertex count, ring
+    // validity): run it through the very same parser first.
+    const own = parseSessionFile(text, { snapshotId: K11_SNAPSHOT_ID, createPolygon: createPolygonGeometry });
+    if (!own.ok) {
+      const reasons = own.issues.map((i) => k11T(`reason.${i.code}`)).join("; ");
+      k11SessionStatus("error", `${k11T("session.notExportable")} ${reasons}.`);
+      return;
+    }
+    const status = k11SessionStatus("ok", `${k11T("session.saved")} `);
     const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
     const name = `lens-session-${stamp}.json`;
     const anchor = document.createElement("a");

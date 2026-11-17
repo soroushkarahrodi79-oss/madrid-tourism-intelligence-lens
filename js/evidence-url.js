@@ -131,6 +131,7 @@ const REASON = Object.freeze({
   SESSION_VERSION: "SESSION_VERSION",
   SESSION_STRUCTURE: "SESSION_STRUCTURE",
   GEOMETRY_FINGERPRINT: "GEOMETRY_FINGERPRINT",
+  READINGS_CHECKSUM: "READINGS_CHECKSUM",
 });
 
 const OUTCOME = Object.freeze({ EXACT: "EXACT", PARTIAL: "PARTIAL", REFUSED: "REFUSED" });
@@ -680,6 +681,20 @@ function geometryFingerprint(geometries = {}) {
   return sessionHash(`A:${side(geometries.A)}#B:${side(geometries.B)}`);
 }
 
+// Key-sorted JSON, so the checksum does not depend on property order.
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") return `{${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${canonicalJson(value[k])}`).join(",")}}`;
+  return JSON.stringify(value);
+}
+
+// Detects accidental or careless edits of the stored numbers (a changed value, a
+// missing metric). It is an unkeyed hash: anyone who edits the file and
+// recomputes it defeats it, so it proves nothing about authorship.
+function readingsChecksum(readings) {
+  return sessionHash(`R:${canonicalJson({ A: readings.A, B: readings.B })}`);
+}
+
 function buildSessionFile(input = {}) {
   const { state = {}, geometries = {}, readings = null, evidence = [], limitations = [], meta = {} } = input;
   const fingerprint = geometryFingerprint(geometries);
@@ -704,7 +719,7 @@ function buildSessionFile(input = {}) {
     units: { coordinates: "EPSG:4326 degrees (lat, lon)", radiusM: "metres", areaKm2: "square kilometres", perimeterM: "metres" },
     geometries: { A: geometries.A ?? null, B: geometries.B ?? null },
     geometry_fingerprint: fingerprint,
-    readings: readings ? { geometry_fingerprint: fingerprint, ...readings } : null,
+    readings: readings ? { geometry_fingerprint: fingerprint, checksum: readingsChecksum(readings), ...readings } : null,
     evidence,
     limitations,
   };
@@ -801,6 +816,7 @@ function parseSessionFile(text, options = {}) {
         && Object.values(r[side]).every((e) => isPlainObject(e) && (e.value === null || isFiniteNumber(e.value)) && typeof e.status === "string"));
     if (!okEntries) return fail(REASON.GEOMETRY_FINGERPRINT, "readings");
     readings = { A: r.A, B: r.B };
+    if (r.checksum !== readingsChecksum(readings)) return fail(REASON.READINGS_CHECKSUM, "readings");
   }
   if (doc.evidence != null && !Array.isArray(doc.evidence)) return fail(REASON.SESSION_STRUCTURE, "evidence");
   if (doc.limitations != null && !Array.isArray(doc.limitations)) return fail(REASON.SESSION_STRUCTURE, "limitations");

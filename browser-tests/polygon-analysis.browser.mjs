@@ -701,6 +701,8 @@ test("session round-trip: save A/B polygons, restore in a fresh page, recompute 
     assert.ok(file.limitations.length > 0);
     assert.ok(file.evidence.length > 0, "source provenance travels with the file");
     assert.ok(file.readings.A.tourism, "the readings computed from these geometries travel with them");
+    assert.equal(file.readings.A.pedestrian.status, "off", "layers that are off are recorded as off, not zero");
+    assert.ok(file.limitations.some((l) => /NOT a capture of every figure/.test(l)), "the file states it is not a full capture");
 
     const fresh = await openAt("", {});
     await fresh.page.locator("#k11RestoreInput").setInputFiles(filePath);
@@ -755,6 +757,24 @@ test("a corrupt, tampered or oversized session file is refused and leaves the wo
   } finally {
     for (const file of [good, ...written]) fs.rmSync(file, { force: true });
   }
+  await context.close();
+});
+
+test("saving never creates a file the importer would refuse", async () => {
+  const { context, page } = await openApp();
+  const n = 2001;
+  const ring = Array.from({ length: n }, (_, i) => ({ lat: 40.42 + 0.01 * Math.sin((2 * Math.PI * i) / n), lon: -3.70 + 0.01 * Math.cos((2 * Math.PI * i) / n) }));
+  await drawRing(page, ring);
+  assert.equal(await page.evaluate(() => window.__ringFor("A").length), n);
+  await openDrawer(page);
+  let downloaded = false;
+  page.on("download", () => { downloaded = true; });
+  await page.locator("#k11SessionBtn").click();
+  await page.waitForFunction(() => /No file was created/.test(document.getElementById("k11ShareStatus").textContent));
+  assert.equal(await page.locator("#k11ShareStatus").getAttribute("data-tone"), "error");
+  assert.equal(await page.locator("#k11ShareStatus .k11-export-link").count(), 0);
+  await page.waitForTimeout(300);
+  assert.equal(downloaded, false);
   await context.close();
 });
 
