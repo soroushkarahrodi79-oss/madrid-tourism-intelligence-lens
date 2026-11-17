@@ -347,9 +347,13 @@ map.createPane("pnoaPane");
 map.getPane("pnoaPane").style.zIndex = "250";
 map.getPane("pnoaPane").style.pointerEvents = "none";
 let pnoaState = "off"; // off | loading | on | partial | error
+// True only while at least one PNOA tile is actually on screen. The satellite
+// palette follows this, not the layer's existence: if every tile fails the
+// basemap is what the reader sees, so the data layers must match it.
+let pnoaShowing = false;
 
 function stylePaletteName(name) {
-  return pnoaLayer ? "satellite" : name;
+  return pnoaLayer && pnoaShowing ? "satellite" : name;
 }
 
 function renderPnoaStatus() {
@@ -372,6 +376,7 @@ function applyDataStyles() {
 
 function setPnoa(enabled) {
   if (pnoaLayer) { map.removeLayer(pnoaLayer); pnoaLayer = null; }
+  pnoaShowing = false;
   if (!enabled) { setPnoaState("off"); applyDataStyles(); return; }
   const layer = L.tileLayer.wms("https://www.ign.es/wms-inspire/pnoa-ma", {
     layers: "OI.OrthoimageCoverage",
@@ -382,18 +387,20 @@ function setPnoa(enabled) {
     attribution:
       'PNOA cedido por &copy; <a href="https://www.ign.es">Instituto Geogr&aacute;fico Nacional de Espa&ntilde;a</a> &middot; <a href="https://www.scne.es">CC BY 4.0 scne.es</a>',
   });
-  let loaded = 0;
   let failed = 0;
-  layer.on("loading", () => { loaded = 0; failed = 0; setPnoaState("loading"); });
-  layer.on("tileload", () => { loaded += 1; });
+  // "loading" keeps the current palette so pan/zoom does not flicker it.
+  layer.on("loading", () => { failed = 0; setPnoaState("loading"); });
   layer.on("tileerror", () => { failed += 1; });
   layer.on("load", () => {
     if (pnoaLayer !== layer) return;
-    setPnoaState(failed === 0 ? "on" : loaded === 0 ? "error" : "partial");
+    // Tiles on screen, not tiles fetched this cycle: after a pan the earlier ones still show.
+    const shown = layer.getContainer().querySelectorAll("img.leaflet-tile-loaded").length;
+    const showing = shown > 0;
+    setPnoaState(failed === 0 && showing ? "on" : !showing ? "error" : "partial");
+    if (showing !== pnoaShowing) { pnoaShowing = showing; applyDataStyles(); }
   });
   pnoaLayer = layer.addTo(map);
   setPnoaState("loading");
-  applyDataStyles();
 }
 
 document.getElementById("pnoaToggle").onchange = (e) => setPnoa(e.target.checked);

@@ -32,20 +32,21 @@ async function openPage({ ign = "ok", viewport = { width: 1280, height: 800 } } 
   const context = await browser.newContext({ viewport });
   const page = await context.newPage();
   const ignRequests = [];
+  const net = { ign }; // mutable so a test can break or restore the service mid-session
   await page.route("**/*", (route) => {
     const url = new URL(route.request().url());
     if (url.pathname.endsWith("/runtime-config.js")) return route.fulfill({ contentType: "text/javascript", body: 'window.RUNTIME_CONFIG={CARTO_BASEMAP_KEY:""};' });
     if (url.hostname === "127.0.0.1") return route.continue();
     if (url.hostname === "www.ign.es") {
       ignRequests.push(url);
-      return ign === "down" ? route.fulfill({ status: 503, body: "" }) : route.fulfill({ contentType: "image/png", body: PNG_1X1 });
+      return net.ign === "down" ? route.fulfill({ status: 503, body: "" }) : route.fulfill({ contentType: "image/png", body: PNG_1X1 });
     }
     if (route.request().resourceType() === "image") return route.fulfill({ contentType: "image/png", body: PNG_1X1 });
     return route.abort();
   });
   await page.goto(`http://127.0.0.1:${port}/?lang=en`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("#pnoaToggle", { state: "attached" });
-  return { page, context, ignRequests };
+  return { page, context, ignRequests, net };
 }
 const status = (page) => page.evaluate(() => {
   const el = document.getElementById("pnoaStatus");
@@ -138,5 +139,42 @@ test("Spanish, keyboard activation and mobile width", async () => {
   await waitState(page, "on");
   assert.match((await status(page)).text, /Solo referencia/);
   assert.match(await page.locator("#map .leaflet-control-attribution").innerText(), /CC BY 4\.0/);
+  await context.close();
+});
+
+// Regression (#192 review): the satellite palette belongs to imagery that is
+// actually on screen, not to the mere existence of the layer.
+test("palette follows the imagery actually shown: failure, retry by pan, zoom, off", async () => {
+  const { page, context, net } = await openPage({ ign: "down" });
+  const toggle = page.locator("label.switch:has(#pnoaToggle)");
+  const baseStroke = await lensStroke(page);
+  assert.notEqual(baseStroke, "#ffffff", "light basemap palette is not the satellite stroke");
+
+  await toggle.click();
+  await waitState(page, "error");
+  assert.equal(await lensStroke(page), baseStroke, "all tiles failed: palette matches the visible basemap");
+
+  net.ign = "ok"; // service recovers; a pan requests fresh tiles (retry)
+  await page.evaluate(() => map.panBy([1500, 0], { animate: false }));
+  await waitState(page, "on");
+  assert.equal(await lensStroke(page), "#ffffff", "imagery loaded: satellite palette");
+
+  await page.evaluate(() => map.zoomIn(1, { animate: false }));
+  await waitState(page, "on");
+  assert.equal(await lensStroke(page), "#ffffff", "still imagery after zoom");
+
+  net.ign = "down"; // new view cannot be fetched: the old imagery is gone with it
+  await page.evaluate(() => map.panBy([1500, 0], { animate: false }));
+  await waitState(page, "error");
+  assert.equal(await lensStroke(page), baseStroke, "failure after success returns to the basemap palette");
+
+  net.ign = "ok";
+  await page.evaluate(() => map.panBy([-1500, 0], { animate: false }));
+  await waitState(page, "on");
+  assert.equal(await lensStroke(page), "#ffffff");
+
+  await toggle.click();
+  assert.equal((await status(page)).state, "off");
+  assert.equal(await lensStroke(page), baseStroke, "switched off: basemap palette");
   await context.close();
 });
