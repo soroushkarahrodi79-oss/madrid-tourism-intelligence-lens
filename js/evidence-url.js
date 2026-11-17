@@ -119,6 +119,18 @@ const REASON = Object.freeze({
   INVALID_ACTIVE_LENS: "INVALID_ACTIVE_LENS",
   INVALID_BASELINE: "INVALID_BASELINE",
   SNAPSHOT_MISMATCH: "SNAPSHOT_MISMATCH",
+  // #197: custom-polygon geometry per Lens. INVALID_GEOMETRY = present but not a
+  // restorable ring; GEOMETRY_NOT_IN_LINK = the link was written without a
+  // polygon that was too large to encode (so it cannot be an exact reading).
+  INVALID_GEOMETRY: "INVALID_GEOMETRY",
+  GEOMETRY_NOT_IN_LINK: "GEOMETRY_NOT_IN_LINK",
+  // Session file (local JSON) only.
+  SESSION_TOO_LARGE: "SESSION_TOO_LARGE",
+  SESSION_NOT_JSON: "SESSION_NOT_JSON",
+  SESSION_SCHEMA: "SESSION_SCHEMA",
+  SESSION_VERSION: "SESSION_VERSION",
+  SESSION_STRUCTURE: "SESSION_STRUCTURE",
+  GEOMETRY_FINGERPRINT: "GEOMETRY_FINGERPRINT",
 });
 
 const OUTCOME = Object.freeze({ EXACT: "EXACT", PARTIAL: "PARTIAL", REFUSED: "REFUSED" });
@@ -126,12 +138,25 @@ const OUTCOME = Object.freeze({ EXACT: "EXACT", PARTIAL: "PARTIAL", REFUSED: "RE
 // Canonical key order. Serialization always emits present keys in this order so a
 // given reading maps to exactly ONE string (asserted by a determinism test).
 const KEY_ORDER = Object.freeze([
-  "v", "s", "m", "a", "b", "be", "al", "ly", "ts", "sk", "om", "lw", "hm", "hb", "sc", "aa", "ab", "fm", "fl", "rd", "lg", "bl", "bk",
+  "v", "s", "m", "a", "b", "ga", "gb", "gx", "be", "al", "ly", "ts", "sk", "om", "lw", "hm", "hb", "sc", "aa", "ab", "fm", "fl", "rd", "lg", "bl", "bk",
 ]);
 
 // An ISO calendar date, YYYY-MM-DD. Used by the licence grant-date window; the
 // app validates against the real register extent, this only guards the shape.
 const URL_ISO_DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+
+// #197 — POLYGON LINK POLICY. A polygon travels in the URL only when it fits an
+// explicit budget; otherwise the link says so (gx) and the local session file is
+// the reproducible route. Vertex coordinates are written at 6 decimals (~0.11 m),
+// so a LINK restore is geometrically equal only to that precision; the session
+// file keeps full float precision. Both limits are tested constants.
+const POLYGON_LINK_LIMITS = Object.freeze({ maxVertices: 24, maxQueryLength: 1900, decimals: 6 });
+const POLYGON_MIN_VERTICES_URL = 3;
+// Session file envelope. Bytes are approximated by string length (UTF-16 units),
+// a safe lower bound for the check; a vertex cap bounds memory and compute.
+const SESSION_SCHEMA = "madrid-lens-session";
+const SESSION_VERSION = 1;
+const SESSION_LIMITS = Object.freeze({ maxChars: 262144, maxVertices: 2000 });
 
 // ------------------------------------------------------------------ helpers
 
@@ -187,7 +212,53 @@ function decodeLens(raw) {
   return { lens: { lat, lon, radiusM } };
 }
 
+function vertexInBounds(v) {
+  return Boolean(v) && inBounds(v.lat, v.lon);
+}
+
+function encodeRing(ring) {
+  const d = POLYGON_LINK_LIMITS.decimals;
+  return ring.map((v) => `${Number(v.lat).toFixed(d)},${Number(v.lon).toFixed(d)}`).join(";");
+}
+
+// "lat,lon;lat,lon;…" -> { ring } | { issue }. Order is preserved exactly; nothing
+// is deduplicated, reordered or closed here.
+function decodeRing(raw) {
+  const parts = String(raw).split(";");
+  if (parts.length < POLYGON_MIN_VERTICES_URL || parts.length > POLYGON_LINK_LIMITS.maxVertices) return { issue: REASON.INVALID_GEOMETRY };
+  const ring = [];
+  for (const part of parts) {
+    const xy = part.split(",");
+    if (xy.length !== 2 || xy[0].trim() === "" || xy[1].trim() === "") return { issue: REASON.INVALID_GEOMETRY };
+    const lat = Number(xy[0]);
+    const lon = Number(xy[1]);
+    if (!inBounds(lat, lon)) return { issue: REASON.INVALID_GEOMETRY };
+    ring.push({ lat, lon });
+  }
+  if (new Set(ring.map((v) => `${v.lat},${v.lon}`)).size < POLYGON_MIN_VERTICES_URL) return { issue: REASON.INVALID_GEOMETRY };
+  return { ring };
+}
+
+function polygonRingOf(geometry) {
+  return geometry && geometry.kind === "POLYGON" && Array.isArray(geometry.ring) ? geometry.ring : null;
+}
+
 // ------------------------------------------------------------------ serialize
+
+// polygonLinkStatus(state) -> { polygonSides, encodable, reason }.
+// encodable is false when any polygon side exceeds the vertex cap or the exact
+// canonical query would exceed the length budget. All-or-nothing: a link never
+// carries one polygon and silently drops the other.
+function polygonLinkStatus(state = {}) {
+  const sides = [];
+  if (polygonRingOf(state.geometryA)) sides.push("A");
+  if (polygonRingOf(state.geometryB)) sides.push("B");
+  if (!sides.length) return { polygonSides: [], encodable: true, reason: null };
+  const tooMany = sides.some((side) => polygonRingOf(side === "A" ? state.geometryA : state.geometryB).length > POLYGON_LINK_LIMITS.maxVertices);
+  if (tooMany) return { polygonSides: sides, encodable: false, reason: "VERTEX_LIMIT" };
+  if (buildQuery(state, true).length > POLYGON_LINK_LIMITS.maxQueryLength) return { polygonSides: sides, encodable: false, reason: "LENGTH_LIMIT" };
+  return { polygonSides: sides, encodable: true, reason: null };
+}
 
 // serializeEvidenceState(state) -> canonical query string (no leading "?").
 // Emits only the keys that carry meaning for the given reading, in KEY_ORDER, so
@@ -195,6 +266,10 @@ function decodeLens(raw) {
 // passes its own live, already-valid state. Invalid input is still encoded
 // faithfully (so a round-trip test can then assert the parser catches it).
 function serializeEvidenceState(state = {}) {
+  return buildQuery(state, polygonLinkStatus(state).encodable);
+}
+
+function buildQuery(state, includeGeometry) {
   const out = new Map();
   out.set("v", String(URL_SCHEMA_VERSION));
   if (state.snapshotId != null && state.snapshotId !== "") out.set("s", String(state.snapshotId));
@@ -202,6 +277,17 @@ function serializeEvidenceState(state = {}) {
 
   if (state.lensA) out.set("a", encodeLens(state.lensA));
   if (state.lensB) out.set("b", encodeLens(state.lensB));
+  // #197 polygons. A side with no polygon is a circle (absence = legacy meaning,
+  // so every pre-#197 link restores unchanged). A polygon is written only inside
+  // the explicit budget; otherwise gx names the omitted side(s) so a restore says
+  // the link could not carry them instead of silently showing circles.
+  if (includeGeometry) {
+    if (polygonRingOf(state.geometryA)) out.set("ga", encodeRing(state.geometryA.ring));
+    if (polygonRingOf(state.geometryB)) out.set("gb", encodeRing(state.geometryB.ring));
+  } else {
+    const omitted = (polygonRingOf(state.geometryA) ? "A" : "") + (polygonRingOf(state.geometryB) ? "B" : "");
+    if (omitted) out.set("gx", omitted);
+  }
   out.set("be", state.lensBEnabled ? "1" : "0");
   out.set("al", state.activeLens === "B" ? "B" : "A");
 
@@ -346,6 +432,17 @@ function parseEvidenceState(input, options = {}) {
     if (res.lens) state.lensB = res.lens;
     else recordIssue(issues, "lensB", res.issue, rawB);
   }
+
+  // ---- polygon geometry per Lens (#197). Absent = circle (legacy links). ----
+  for (const [key, field] of [["ga", "geometryA"], ["gb", "geometryB"]]) {
+    const raw = params.get(key);
+    if (raw == null) continue;
+    const res = decodeRing(raw);
+    if (res.ring) state[field] = { kind: "POLYGON", ring: res.ring };
+    else recordIssue(issues, field, res.issue, raw);
+  }
+  const rawGx = params.get("gx");
+  if (rawGx != null && rawGx !== "") recordIssue(issues, "geometry", REASON.GEOMETRY_NOT_IN_LINK, rawGx);
 
   const rawBe = params.get("be");
   if (rawBe != null) state.lensBEnabled = rawBe === "1";
@@ -538,6 +635,230 @@ function refused(issues, version, snapshotId) {
   };
 }
 
+
+// ------------------------------------------------------------ session file (#197)
+//
+// The LOCAL, backend-free reproduction route for A/B geometries that do not fit a
+// link. It is a JSON transcript of the interface reading (NOT the QGIS evidence
+// bundle) and keeps three things distinct:
+//   * GEOMETRY EQUALITY — vertices and radii are stored at full float precision
+//     in their exact order, and a fingerprint binds the geometries to the
+//     readings that were computed from them. A file whose geometries do not match
+//     its fingerprint is refused, so results can never be paired with a different
+//     geometry.
+//   * RESULT EQUIVALENCE — the stored readings are what THIS deployment computed.
+//     After an import the app recomputes and compares (compareSessionReadings);
+//     "same geometry" never claims "same numbers".
+//   * SOURCE AVAILABILITY — the snapshot identity travels with the file; a
+//     different deployment build is a stated warning, not a silent pass.
+
+// 53-bit string hash (cyrb53). Integrity against accidental edits and
+// geometry/readings mix-ups — NOT a security boundary.
+function sessionHash(text) {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  const n = 4294967296 * (2097151 & h2) + (h1 >>> 0);
+  return n.toString(16).padStart(14, "0");
+}
+
+// Canonical text of the geometry pair. String(number) round-trips exactly through
+// JSON, so a faithful save/load reproduces the identical text.
+function geometryFingerprint(geometries = {}) {
+  const side = (g) => {
+    if (!g) return "none";
+    if (g.kind === "POLYGON") return `P|${(g.ring || []).map((v) => `${v.lat},${v.lon}`).join(";")}`;
+    if (g.kind === "CIRCLE") return `C|${g.center && g.center.lat},${g.center && g.center.lon},${g.radiusM}`;
+    return "invalid";
+  };
+  return sessionHash(`A:${side(geometries.A)}#B:${side(geometries.B)}`);
+}
+
+function buildSessionFile(input = {}) {
+  const { state = {}, geometries = {}, readings = null, evidence = [], limitations = [], meta = {} } = input;
+  const fingerprint = geometryFingerprint(geometries);
+  const lens = (l) => (l ? { lat: l.lat, lon: l.lon, radiusM: l.radiusM } : null);
+  const file = {
+    schema: SESSION_SCHEMA,
+    version: SESSION_VERSION,
+    generated_at: meta.generatedAt ?? null,
+    snapshot_id: meta.snapshotId ?? null,
+    app_version: meta.appVersion ?? null,
+    state: {
+      mode: state.mode ?? "PLACE",
+      scope: "LENS",
+      activeLens: state.activeLens === "B" ? "B" : "A",
+      lensBEnabled: Boolean(state.lensBEnabled),
+      lensA: lens(state.lensA),
+      lensB: lens(state.lensB),
+      layers: Array.isArray(state.layers) ? [...state.layers] : [],
+      reading: state.reading ?? "citizen",
+      language: state.language ?? "en",
+    },
+    units: { coordinates: "EPSG:4326 degrees (lat, lon)", radiusM: "metres", areaKm2: "square kilometres", perimeterM: "metres" },
+    geometries: { A: geometries.A ?? null, B: geometries.B ?? null },
+    geometry_fingerprint: fingerprint,
+    readings: readings ? { geometry_fingerprint: fingerprint, ...readings } : null,
+    evidence,
+    limitations,
+  };
+  if (state.timestep != null && state.timestep !== "") file.state.timestep = state.timestep;
+  if (state.stayKind != null && state.stayKind !== "") file.state.stayKind = state.stayKind;
+  return file;
+}
+
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function validSessionLens(l) {
+  return isPlainObject(l) && inBounds(l.lat, l.lon) && radiusInBounds(l.radiusM) && radiusOnStep(l.radiusM);
+}
+
+// Validate one stored geometry. Returns the normalised geometry or null.
+function validSessionGeometry(g, createPolygon) {
+  if (!isPlainObject(g)) return null;
+  if (g.kind === "CIRCLE") {
+    const c = g.center;
+    if (!isPlainObject(c) || !inBounds(c.lat, c.lon) || !radiusInBounds(g.radiusM) || !radiusOnStep(g.radiusM)) return null;
+    return { kind: "CIRCLE", center: { lat: c.lat, lon: c.lon }, radiusM: g.radiusM };
+  }
+  if (g.kind === "POLYGON") {
+    if (!Array.isArray(g.ring) || g.ring.length < POLYGON_MIN_VERTICES_URL || g.ring.length > SESSION_LIMITS.maxVertices) return null;
+    const ring = [];
+    for (const v of g.ring) {
+      if (!isPlainObject(v) || !vertexInBounds(v)) return null;
+      ring.push({ lat: v.lat, lon: v.lon });
+    }
+    if (new Set(ring.map((v) => `${v.lat},${v.lon}`)).size < POLYGON_MIN_VERTICES_URL) return null;
+    // Authoritative validity (the app's own ring rules) when the caller supplies
+    // it; the pure module cannot import js/lens.js.
+    if (typeof createPolygon === "function" && !createPolygon(ring)) return null;
+    return { kind: "POLYGON", ring };
+  }
+  return null;
+}
+
+// Dimensions whose failure makes the file unfit to reproduce the comparison. They
+// REFUSE the import; peripheral dimensions degrade to a stated PARTIAL.
+const SESSION_CORE_DIMENSIONS = Object.freeze(["mode", "activeLens", "scope", "lensBEnabled", "lensA", "lensB", "geometryA", "geometryB", "geometries"]);
+
+// parseSessionFile(text, { snapshotId, createPolygon }) -> {
+//   ok, outcome, issues, state, geometries, readings, evidence, limitations, snapshot }
+// Pure and side-effect free: the caller applies the result only when ok, so a
+// failed import leaves the previous workspace untouched.
+function parseSessionFile(text, options = {}) {
+  const issues = [];
+  const fail = (code, dimension = "session", raw = null) => {
+    issues.push({ dimension, code, raw });
+    return {
+      ok: false, outcome: OUTCOME.REFUSED, issues, state: null, geometries: null, readings: null,
+      evidence: [], limitations: [], snapshot: { stored: null, current: options.snapshotId ?? null, status: "UNKNOWN" },
+    };
+  };
+  if (typeof text !== "string") return fail(REASON.SESSION_NOT_JSON);
+  if (text.length > SESSION_LIMITS.maxChars) return fail(REASON.SESSION_TOO_LARGE);
+  let doc;
+  try { doc = JSON.parse(text); } catch { return fail(REASON.SESSION_NOT_JSON); }
+  if (!isPlainObject(doc) || doc.schema !== SESSION_SCHEMA) return fail(REASON.SESSION_SCHEMA);
+  if (doc.version !== SESSION_VERSION) return fail(REASON.SESSION_VERSION, "version", doc.version);
+  const st = doc.state;
+  if (!isPlainObject(st) || !isPlainObject(doc.geometries)) return fail(REASON.SESSION_STRUCTURE);
+
+  // ---- core: mode, scope, active lens, B flag, lens circles, geometries ----
+  if (st.mode !== "PLACE" && st.mode !== "COMPARE") return fail(REASON.INVALID_MODE, "mode", st.mode);
+  if (st.scope !== "LENS") return fail(REASON.INVALID_SCOPE, "scope", st.scope);
+  if (!ACTIVE_LENSES.includes(st.activeLens)) return fail(REASON.INVALID_ACTIVE_LENS, "activeLens", st.activeLens);
+  if (typeof st.lensBEnabled !== "boolean") return fail(REASON.SESSION_STRUCTURE, "lensBEnabled");
+  if (!validSessionLens(st.lensA)) return fail(REASON.INVALID_COORDINATES, "lensA");
+  if (!validSessionLens(st.lensB)) return fail(REASON.INVALID_COORDINATES, "lensB");
+  const geometries = {};
+  for (const side of ACTIVE_LENSES) {
+    const g = validSessionGeometry(doc.geometries[side], options.createPolygon);
+    if (!g) return fail(REASON.INVALID_GEOMETRY, side === "A" ? "geometryA" : "geometryB");
+    geometries[side] = g;
+  }
+  // A circle side must be the very circle in state: one source of truth.
+  for (const [side, lens] of [["A", st.lensA], ["B", st.lensB]]) {
+    const g = geometries[side];
+    if (g.kind === "CIRCLE" && (g.center.lat !== lens.lat || g.center.lon !== lens.lon || g.radiusM !== lens.radiusM)) {
+      return fail(REASON.SESSION_STRUCTURE, side === "A" ? "geometryA" : "geometryB");
+    }
+  }
+  // Results must belong to THESE geometries.
+  if (doc.geometry_fingerprint !== geometryFingerprint(geometries)) return fail(REASON.GEOMETRY_FINGERPRINT, "geometries");
+  let readings = null;
+  if (doc.readings != null) {
+    const r = doc.readings;
+    const okEntries = isPlainObject(r) && r.geometry_fingerprint === doc.geometry_fingerprint
+      && ACTIVE_LENSES.every((side) => isPlainObject(r[side])
+        && Object.values(r[side]).every((e) => isPlainObject(e) && (e.value === null || isFiniteNumber(e.value)) && typeof e.status === "string"));
+    if (!okEntries) return fail(REASON.GEOMETRY_FINGERPRINT, "readings");
+    readings = { A: r.A, B: r.B };
+  }
+  if (doc.evidence != null && !Array.isArray(doc.evidence)) return fail(REASON.SESSION_STRUCTURE, "evidence");
+  if (doc.limitations != null && !Array.isArray(doc.limitations)) return fail(REASON.SESSION_STRUCTURE, "limitations");
+
+  // ---- peripheral dimensions: reuse the URL parser's own validation ----
+  const probe = parseEvidenceState(serializeEvidenceState({
+    mode: st.mode, scope: "LENS", activeLens: st.activeLens, lensBEnabled: st.lensBEnabled,
+    layers: Array.isArray(st.layers) ? st.layers : [], reading: st.reading, language: st.language,
+    timestep: st.timestep, stayKind: st.stayKind,
+  }), { snapshotId: options.snapshotId ?? null, knownTimesteps: options.knownTimesteps, knownStayKinds: options.knownStayKinds });
+  if (!probe.ok) return fail(REASON.SESSION_STRUCTURE, "state");
+  for (const issue of probe.issues) {
+    if (issue.code === REASON.SNAPSHOT_MISMATCH) continue;
+    if (SESSION_CORE_DIMENSIONS.includes(issue.dimension)) return fail(issue.code, issue.dimension, issue.raw);
+    issues.push(issue);
+  }
+  const state = {
+    ...probe.state,
+    mode: st.mode, scope: "LENS", activeLens: st.activeLens, lensBEnabled: st.lensBEnabled,
+    lensA: { lat: st.lensA.lat, lon: st.lensA.lon, radiusM: st.lensA.radiusM },
+    lensB: { lat: st.lensB.lat, lon: st.lensB.lon, radiusM: st.lensB.radiusM },
+  };
+  delete state.snapshotId;
+  for (const [side, field] of [["A", "geometryA"], ["B", "geometryB"]]) {
+    if (geometries[side].kind === "POLYGON") state[field] = { kind: "POLYGON", ring: geometries[side].ring };
+  }
+
+  const stored = typeof doc.snapshot_id === "string" ? doc.snapshot_id : null;
+  const current = options.snapshotId ?? null;
+  const status = stored != null && current != null ? (stored === current ? "MATCH" : "MISMATCH") : "UNKNOWN";
+  if (status === "MISMATCH") issues.push({ dimension: "snapshot", code: REASON.SNAPSHOT_MISMATCH, raw: stored });
+  const peripheral = issues.filter((i) => i.code !== REASON.SNAPSHOT_MISMATCH);
+  return {
+    ok: true,
+    outcome: peripheral.length ? OUTCOME.PARTIAL : OUTCOME.EXACT,
+    issues, state, geometries, readings,
+    evidence: doc.evidence ?? [], limitations: doc.limitations ?? [],
+    snapshot: { stored, current, status },
+  };
+}
+
+// compareSessionReadings(stored, current) -> { equivalent, comparable, differences[] }.
+// Geometry equality is already established by the fingerprint; this answers the
+// separate question "do the recomputed numbers match what was exported?".
+function compareSessionReadings(stored, current) {
+  const differences = [];
+  if (!stored || !current) return { equivalent: false, comparable: false, differences };
+  for (const side of ACTIVE_LENSES) {
+    const keys = new Set([...Object.keys(stored[side] || {}), ...Object.keys(current[side] || {})]);
+    for (const key of keys) {
+      const a = (stored[side] || {})[key];
+      const b = (current[side] || {})[key];
+      if (!a || !b || a.value !== b.value || a.status !== b.status) differences.push({ side, metric: key, stored: a ?? null, current: b ?? null });
+    }
+  }
+  return { equivalent: differences.length === 0, comparable: true, differences };
+}
+
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     URL_SCHEMA_VERSION,
@@ -557,5 +878,14 @@ if (typeof module !== "undefined" && module.exports) {
     serializeEvidenceState,
     buildShareUrl,
     parseEvidenceState,
+    POLYGON_LINK_LIMITS,
+    SESSION_SCHEMA,
+    SESSION_VERSION,
+    SESSION_LIMITS,
+    polygonLinkStatus,
+    geometryFingerprint,
+    buildSessionFile,
+    parseSessionFile,
+    compareSessionReadings,
   };
 }
