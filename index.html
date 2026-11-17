@@ -277,7 +277,12 @@
      attribution / rail / panel chrome on mobile; browser-tests assert the
      non-overlap. Hidden in CITY mode by the shared [data-controls-for] gate,
      because no Lens geometry is active there. -->
-<div id="spatialToolbar" class="spatial-toolbar" role="group"
+<button id="spatialToolsToggle" type="button" class="spatial-tools-toggle"
+        aria-controls="spatialToolbar" aria-expanded="false" aria-label="Draw or adjust area"
+        title="Draw or adjust area" data-i18n-attr="aria-label:toolbar.open" data-controls-for="PLACE COMPARE">
+  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5 15 3 20 13 10 21 3 14Z"/><path d="m9 15 1-4 6-6 3 3-6 6Z"/><path d="m15 6 3 3"/></svg>
+</button>
+<div id="spatialToolbar" class="spatial-toolbar" role="group" hidden
      aria-labelledby="spatialToolbarLabel" data-controls-for="PLACE COMPARE">
   <h2 id="spatialToolbarLabel" class="sr-only" data-i18n="toolbar.geometry">Analysis geometry</h2>
 

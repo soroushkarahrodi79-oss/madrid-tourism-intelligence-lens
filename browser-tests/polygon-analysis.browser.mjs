@@ -41,7 +41,7 @@ const RING = Object.freeze([
   { lat: 40.4250, lon: -3.6800 }, { lat: 40.4250, lon: -3.7100 },
 ]);
 
-async function openApp({ locale = null, appearance = "light", viewport = { width: 1440, height: 900 } } = {}) {
+async function openApp({ locale = null, appearance = "light", viewport = { width: 1440, height: 900 }, tools = true } = {}) {
   const context = await browser.newContext({ viewport, deviceScaleFactor: 1 });
   await context.addInitScript((value) => localStorage.setItem("madrid-lens-appearance", value), appearance);
   const page = await context.newPage();
@@ -59,6 +59,7 @@ async function openApp({ locale = null, appearance = "light", viewport = { width
   await page.waitForFunction(() => document.getElementById("tourismValue").textContent.trim() !== "—");
   await page.waitForFunction(() => window.__visiblePoints().length > 0);
   if (locale) await page.locator("#languageSelect").selectOption(locale);
+  if (tools) await page.locator("#spatialToolsToggle").click();
   return { context, page, pageErrors };
 }
 
@@ -482,6 +483,22 @@ test("the shared link still carries the circular Lens, and says the polygon is n
   await context.close();
 });
 
+test("drawing disclosure opens without changing geometry and Escape returns focus", async () => {
+  const { context, page, pageErrors } = await openApp({ tools: false });
+  assert.equal(await page.locator("#spatialToolbar").isVisible(), false);
+  const before = await page.evaluate(() => window.__geometryKind());
+  await page.locator("#spatialToolsToggle").press("Enter");
+  assert.equal(await page.locator("#spatialToolsToggle").getAttribute("aria-expanded"), "true");
+  assert.equal(await page.locator("#spatialToolbar").isVisible(), true);
+  assert.equal(await page.evaluate(() => window.__geometryKind()), before);
+  await page.locator("#geometryModeCircle").press("Escape");
+  assert.equal(await page.locator("#spatialToolbar").isVisible(), false);
+  assert.equal(await page.locator("#spatialToolsToggle").getAttribute("aria-expanded"), "false");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "spatialToolsToggle");
+  assert.deepEqual(pageErrors, []);
+  await context.close();
+});
+
 test("the polygon toolbar does not overlap the map chrome on desktop or mobile", async () => {
   for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }, { width: 560, height: 400 }]) {
     const { context, page } = await openApp({ viewport });
@@ -497,6 +514,7 @@ test("the polygon toolbar does not overlap the map chrome on desktop or mobile",
       };
       return {
         toolbar: box("#spatialToolbar"),
+        toggle: box("#spatialToolsToggle"),
         zoom: box(".leaflet-control-zoom"),
         attribution: box(".leaflet-control-attribution"),
         panel: box("#analysisPanel"),
@@ -507,7 +525,8 @@ test("the polygon toolbar does not overlap the map chrome on desktop or mobile",
     // viewport cannot be overlapped, and must read as a clean `false`.
     const hits = (a, b) => Boolean(a && b && a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1);
     assert.ok(boxes.toolbar && boxes.toolbar.width > 0, `${viewport.width}x${viewport.height}: the toolbar is on screen`);
-    for (const name of ["zoom", "attribution", "panel", "rail"]) {
+    assert.ok(boxes.toggle.top >= boxes.zoom.bottom, "drawing action sits below zoom");
+    for (const name of ["zoom", "attribution", "panel", "rail", "toggle"]) {
       assert.equal(hits(boxes.toolbar, boxes[name]), false,
         `${viewport.width}x${viewport.height}: the toolbar must not overlap ${name} (${JSON.stringify(boxes.toolbar)} vs ${JSON.stringify(boxes[name])})`);
     }

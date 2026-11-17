@@ -319,6 +319,7 @@ test("Lens B keeps its own radius and its own position through an Analyze on Len
   // Enter COMPARE through the existing mode control, which owns Lens B.
   await page.locator("#modeCompareButton").click();
   await page.waitForFunction(() => document.querySelector("#analysisPanel").dataset.mode === "COMPARE");
+  await page.locator("#spatialToolsToggle").click();
   await page.locator("#radiusSlider").fill("2000");
   await page.locator("#radiusSlider").dispatchEvent("change");
   await page.locator("#lensAButton").click();

@@ -192,10 +192,19 @@ body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
    Light / Dark / System without a rule of its own.
    Desktop: directly below the zoom cluster (zoom starts at 90px and is two 36px
    buttons tall, so 90 + 72 + 10 = 172px), on the same left edge. */
+.spatial-tools-toggle{
+  position:absolute;z-index:410;top:calc(172px + var(--safe-top));
+  left:calc(var(--rail-offset,254px) + var(--safe-left));
+  display:flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;
+  border:1px solid var(--map-zoom-edge);border-radius:var(--r-small);
+  background:var(--map-zoom-surface);color:var(--map-zoom-text);box-shadow:var(--map-zoom-shadow);cursor:pointer
+}
+.spatial-tools-toggle:hover,.spatial-tools-toggle[aria-expanded="true"]{background:var(--map-zoom-hover-surface)}
+.spatial-tools-toggle:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:3px}
 .spatial-toolbar{
   position:absolute;z-index:410;
   top:calc(172px + var(--safe-top));
-  left:calc(var(--rail-offset,254px) + var(--safe-left));
+  left:calc(var(--rail-offset,254px) + var(--safe-left) + 44px);
   width:218px;max-width:calc(100vw - 32px - var(--safe-left) - var(--safe-right));
   box-sizing:border-box;padding:var(--s-2) var(--s-3) var(--s-3);
   border:1px solid var(--map-zoom-edge);border-radius:var(--r-small);
@@ -1125,7 +1134,8 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
     min-width:340px;max-width:calc(100vw - 250px - var(--safe-left) - var(--safe-right))
   }
   .leaflet-top.leaflet-left,.leaflet-bottom.leaflet-right{left:calc(232px + var(--safe-left))}
-  .spatial-toolbar{left:calc(232px + var(--safe-left));width:200px}
+  .spatial-tools-toggle{left:calc(232px + var(--safe-left))}
+  .spatial-toolbar{left:calc(276px + var(--safe-left));width:200px}
 }
 
 @media(max-width:850px){
@@ -1185,7 +1195,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
      in landscape, where the rail is visible. */
   .spatial-toolbar{
     top:calc(var(--header-chrome-top) + 140px);left:auto;
-    right:calc(10px + var(--safe-right));
+    right:calc(62px + var(--safe-right));
     width:min(208px,calc(100vw - 20px - var(--safe-left) - var(--safe-right)));
     padding:var(--s-2);
     /* The polygon tools are far taller than the radius field, and the panel is
@@ -1196,6 +1206,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
     max-height:calc(100dvh - var(--header-chrome-top) - 140px - 42dvh - 20px - var(--safe-bottom));
     overflow-y:auto;overscroll-behavior:contain
   }
+  .spatial-tools-toggle{top:calc(var(--header-chrome-top) + 140px);left:auto;right:calc(10px + var(--safe-right));width:44px;height:44px}
   /* One row of actions and a single-line measurement readout, so the whole
      polygon workflow fits the band without scrolling at phone sizes. */
   .polygon-tools{gap:var(--s-1)}
@@ -1211,6 +1222,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   @media(max-height:520px){
     /* The band between the attribution and the panel is only ~56px at 560x400,
        so the toolbar takes it exactly: one 44px slider plus 4px padding. */
+    .spatial-tools-toggle{top:calc(var(--header-chrome-top) + 92px)}
     .spatial-toolbar{top:calc(var(--header-chrome-top) + 92px);padding:var(--s-1) var(--s-2)}
     .spatial-toolbar-field{display:flex;align-items:center;gap:var(--s-2)}
     .spatial-toolbar-head{margin:0;flex:0 0 auto}
@@ -1231,11 +1243,15 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
   .switch span:after{width:20px;height:20px;left:2px;top:2px}
   .switch input:checked+span:after{left:20px}
   .leaflet-control-zoom a{width:44px!important;height:44px!important}
+  .spatial-tools-toggle{width:44px;height:44px}
   /* The cluster is two 44px buttons, not two 36px ones, so the toolbar below
      it has to start 16px lower (90 + 88 + 10). Desktop widths only: below 851px
      the controls move to the top right and the toolbar is placed from there, and
      this block would otherwise win the cascade over that rule. */
-  @media(min-width:851px){ .spatial-toolbar{top:calc(188px + var(--safe-top))} }
+  @media(min-width:851px){
+    .spatial-tools-toggle,.spatial-toolbar{top:calc(188px + var(--safe-top))}
+    .spatial-toolbar{left:calc(var(--rail-offset,254px) + var(--safe-left) + 52px)}
+  }
   /* Baseline capture/reset are touch targets wherever the pointer is coarse —
      including an iPad in landscape, which is far too wide for the width-based
      typography query above. */
