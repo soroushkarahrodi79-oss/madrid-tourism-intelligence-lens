@@ -69,6 +69,11 @@ test("bare public URL opens the landing; CTA enters the localized app; Back and 
   await appReady("en")(session);
   assert.equal(await page.locator('[data-i18n="aside.layers"]').textContent(), "Operational layers");
 
+  await page.goto(`${base}/discover/methodology.html?lang=es#evidencia`);
+  await page.getByRole("navigation", { name: "Navegación de Discover" }).getByRole("link", { name: "Explorar Lens" }).click();
+  await appReady("es")(session);
+  assert.equal(new URL(page.url()).pathname, `${projectPath}/`, "methodology opens the viewer directly");
+
   await page.goto(`${base}/index.html`, { waitUntil: "load" });
   assert.equal(page.url(), `${base}/discover/`, "explicit index.html without state also opens the landing");
   assert.deepEqual(failed, [], "no 4xx/5xx response for landing or application assets");
@@ -118,11 +123,24 @@ test("stateful URLs reach the application directly", async t => {
   assert.equal(new URL(guided.page.url()).pathname, `${projectPath}/`, "guided case opens the application");
   await appReady("es")(guided);
   assert.deepEqual(guided.errors, []);
+
+  for (const fragment of ["modos", "panel-compare", "tab-city"]) {
+    await guided.page.goto(`${base}/discover/index.html?lang=en#${fragment}`);
+    await guided.page.waitForURL(`${base}/discover/methodology.html?lang=en#${fragment}`);
+    const mode = fragment.split("-")[1] || "place";
+    assert.equal(await guided.page.locator(`#tab-${mode}`).getAttribute("aria-selected"), "true");
+    assert.equal(await guided.page.locator(`#panel-${mode}`).getAttribute("aria-hidden"), "false");
+  }
 });
 
 test("Discover keeps one instant entry in Spanish and English across viewport sizes", async t => {
   const { server, base } = await serveTree(); const browser = await chromium.launch();
   t.after(async () => { await browser.close(); await new Promise(resolve => server.close(resolve)); });
+  const labels = {
+    es: ["Fuentes y metodología", "Volver a Discover", "Metodología técnica", "Procedencia de los datos", "Limitaciones científicas"],
+    en: ["Sources and methodology", "Back to Discover", "Technical methodology", "Data provenance", "Scientific limitations"],
+  };
+  const docs = ["METHODOLOGY.md", "DATA_PROVENANCE.md", "CLAIMS_AND_LIMITATIONS.md"];
   for (const [width, height] of [[1440, 900], [820, 1180], [390, 844], [360, 640], [320, 640]]) {
     const session = await newPage(browser, { viewport: { width, height }, reducedMotion: "reduce" });
     const { page, context } = session;
@@ -144,6 +162,23 @@ test("Discover keeps one instant entry in Spanish and English across viewport si
         const box = await cta.boundingBox();
         assert.ok(box.y + box.height <= height, `${lang}: CTA fits at ${width}x${height}`);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), width);
+
+        const [methodology, back, ...documentLabels] = labels[lang];
+        await page.getByRole("link", { name: methodology }).click();
+        await page.waitForURL(`${base}/discover/methodology.html?lang=${lang}#evidencia`);
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), width);
+        const masthead = await page.locator(".masthead").boundingBox();
+        for (const [i, label] of documentLabels.entries()) {
+          const doc = page.locator("#evidencia").getByRole("link", { name: label });
+          const target = new URL(await doc.getAttribute("href"));
+          assert.equal(target.href, `https://github.com/soroushkarahrodi79-oss${projectPath}/blob/main/docs/${docs[i]}`);
+          assert.equal(await doc.getAttribute("hreflang"), "en");
+          const bounds = await doc.boundingBox();
+          assert.ok(bounds.y >= masthead.height && bounds.y + bounds.height <= height, `${label} fits at ${width}x${height}`);
+        }
+        await page.getByRole("link", { name: back }).click();
+        await page.waitForURL(`${base}/discover/index.html?lang=${lang}`);
+        assert.equal(await page.locator("html").getAttribute("lang"), lang);
       }
       assert.equal(await page.locator(".city").evaluate(img => img.complete && img.naturalWidth > 0), true);
       assert.equal(await page.locator(".flight img").count(), 0);
