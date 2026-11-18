@@ -24,8 +24,8 @@ async function startServer() {
   return { server, base: `http://127.0.0.1:${server.address().port}` };
 }
 
-async function open(browser, base, { width, reducedMotion = "no-preference", locale = "es-ES", query = "" }) {
-  const context = await browser.newContext({ viewport: { width, height: width <= 420 ? 844 : 900 }, reducedMotion, locale });
+async function open(browser, base, { width, height = width <= 420 ? 844 : 900, reducedMotion = "no-preference", locale = "es-ES", query = "" }) {
+  const context = await browser.newContext({ viewport: { width, height }, reducedMotion, locale });
   const page = await context.newPage(); page.setDefaultTimeout(8000);
   const external = []; const errors = []; const missing = [];
   await page.route("**/*", route => {
@@ -72,19 +72,21 @@ async function audit(page) {
 test("Discover methodology renders, stays accessible and works offline at every width", async t => {
   const { server, base } = await startServer(); const browser = await chromium.launch({ headless: true });
   t.after(async () => { await browser.close(); await new Promise(resolve => server.close(resolve)); });
-  for (const width of [320, 390, 768, 1024, 1440]) await t.test(`${width}px`, async () => {
-    const { context, page, external, errors, missing } = await open(browser, base, { width });
+  for (const [width, height] of [[320, 640], [360, 640], [390, 844], [768, 900], [1024, 900], [1440, 900]]) await t.test(`${width}×${height}`, async () => {
+    const { context, page, external, errors, missing } = await open(browser, base, { width, height });
     try {
       const size = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
       assert.ok(size.scroll <= size.viewport + 1, `no horizontal overflow at ${width}px`);
-      await page.evaluate(() => document.querySelectorAll(".reveal").forEach(node => node.classList.add("is-in")));
-      await page.waitForTimeout(800);
       assert.deepEqual(await audit(page), [], `automated accessibility checks at ${width}px`);
       const cta = page.locator("[data-primary-cta]");
       assert.equal(await cta.getAttribute("href"), "../?lang=es");
       const box = await cta.boundingBox();
-      assert.ok(box.y + box.height <= (width <= 420 ? 844 : 900), "primary CTA is visible in the first viewport");
+      assert.ok(box.y + box.height <= height, "primary CTA is visible in the first viewport");
       assert.equal(await page.locator(".hero-plate img").evaluate(img => img.complete && img.naturalWidth > 0), true, "authentic hero capture loads");
+      for (const selector of [".skip", ".identity", '[data-lang="es"]', '[data-lang="en"]', "[data-discover-link]", ".masthead [data-app-link]"]) {
+        await page.keyboard.press("Tab");
+        assert.equal(await page.locator(selector).evaluate(link => link.matches(":focus-visible") && getComputedStyle(link).outlineStyle === "solid"), true, `keyboard focus is visible on ${selector}`);
+      }
       assert.deepEqual(external, [], "no third-party request is attempted");
       assert.deepEqual(missing, [], "no missing asset");
       assert.deepEqual(errors, []);
@@ -97,6 +99,8 @@ test("Mode viewer is a keyboard-operable tab set over real captures", async t =>
   t.after(async () => { await browser.close(); await new Promise(resolve => server.close(resolve)); });
   const { context, page, errors } = await open(browser, base, { width: 1440 }); t.after(() => context.close());
   const visible = () => page.locator(".panel").evaluateAll(panels => panels.filter(p => getComputedStyle(p).visibility === "visible").map(p => p.dataset.panel));
+  await page.getByRole("link", { name: "Ver qué puedes hacer" }).click();
+  await page.waitForURL("**/methodology.html#modos");
   assert.deepEqual(await visible(), ["place"]);
   await page.locator("#tab-place").focus(); await page.keyboard.press("ArrowRight");
   assert.equal(await page.locator("#tab-compare").getAttribute("aria-selected"), "true");
@@ -122,7 +126,7 @@ test("Language: switch, persistence, URL parameter and localized app links", asy
   assert.equal(await page.locator("html").getAttribute("lang"), "es");
   await page.locator('[data-lang="en"]').click();
   assert.equal(await page.locator("html").getAttribute("lang"), "en");
-  assert.match(await page.locator("#heroTitle").textContent(), /beyond/);
+  assert.equal(await page.locator("#heroTitle").textContent(), "Sources and methodology");
   assert.equal(await page.locator('[data-lang="en"]').getAttribute("aria-pressed"), "true");
   assert.equal(await page.locator("[data-primary-cta]").getAttribute("href"), "../?lang=en");
   assert.match(await page.locator("[data-reading-link]").getAttribute("href"), /&lg=en$/);
@@ -131,12 +135,16 @@ test("Language: switch, persistence, URL parameter and localized app links", asy
   await page.reload({ waitUntil: "load" });
   assert.equal(await page.locator("html").getAttribute("lang"), "en", "choice persists across reloads");
   await page.locator('[data-lang="es"]').click();
-  assert.match(await page.locator("#heroTitle").textContent(), /más allá/);
+  assert.equal(await page.locator("#heroTitle").textContent(), "Fuentes y metodología");
   assert.equal(await page.locator(".hero-plate img").getAttribute("alt"), await page.locator(".hero-plate img").evaluate(img => img.dataset.esalt));
   const english = await open(browser, base, { width: 1440, locale: "en-GB" }); t.after(() => english.context.close());
   assert.equal(await english.page.locator("html").getAttribute("lang"), "en", "English browsers start in English");
-  const forced = await open(browser, base, { width: 1440, locale: "en-GB", query: "?lang=es" }); t.after(() => forced.context.close());
+  const forced = await open(browser, base, { width: 1440, locale: "en-GB", query: "?lang=es#evidencia" }); t.after(() => forced.context.close());
   assert.equal(await forced.page.locator("html").getAttribute("lang"), "es", "?lang= wins over the browser language");
+  await forced.page.locator('[data-lang="en"]').click();
+  await forced.page.reload();
+  assert.equal(await forced.page.locator("html").getAttribute("lang"), "en");
+  assert.equal(forced.page.url(), `${base}/discover/methodology.html?lang=en#evidencia`, "language change preserves the fragment");
   assert.deepEqual(errors, []);
 });
 
@@ -146,11 +154,9 @@ test("Reduced motion: content is static and immediately readable", async t => {
   const { context, page, errors } = await open(browser, base, { width: 390, reducedMotion: "reduce" }); t.after(() => context.close());
   const state = await page.evaluate(() => ({
     animated: [...document.querySelectorAll("*")].filter(node => getComputedStyle(node).animationName !== "none").length,
-    heading: getComputedStyle(document.querySelector("#heroTitle .line > span")).transform,
-    hidden: [...document.querySelectorAll(".reveal")].filter(node => getComputedStyle(node).opacity !== "1").length,
+    hidden: [...document.querySelectorAll("main > section")].filter(node => getComputedStyle(node).opacity !== "1").length,
   }));
   assert.equal(state.animated, 0, "no CSS animation runs");
-  assert.equal(state.heading, "none", "headline is in its final position");
   assert.equal(state.hidden, 0, "no section waits for a scroll reveal");
   await page.locator("#tab-compare").click();
   assert.equal(await page.locator("#panel-place").evaluate(p => getComputedStyle(p).visibility), "hidden", "mode change is instant");
