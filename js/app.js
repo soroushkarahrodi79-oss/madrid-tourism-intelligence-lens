@@ -7284,6 +7284,10 @@ function renderSpatialToolbar() {
   const mode = shell.modes ? shell.modes.currentMode() : "PLACE";
   if (mode === "CITY") spatialToolsOpen = false;
   document.getElementById("spatialToolbar").hidden = !spatialToolsOpen;
+  // Phone widths: while a polygon is being drawn or edited the bottom panel is
+  // folded away (CSS, display:none, state intact) so the tools and the map get
+  // the space. Leaving drawing/editing clears the class and the panel returns.
+  document.body.classList.toggle("polygon-drawing-active", spatialToolsOpen && (state.drawing || state.editing));
   const toggle = document.getElementById("spatialToolsToggle");
   toggle.setAttribute("aria-expanded", String(spatialToolsOpen));
   toggle.title = shellT("toolbar.open");
