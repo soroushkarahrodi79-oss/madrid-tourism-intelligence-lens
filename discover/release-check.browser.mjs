@@ -82,6 +82,8 @@ test("stateful URLs reach the application directly", async t => {
   // The landing's own "open this reading" link is a real shared COMPARE reading.
   const shared = await newPage(browser); t.after(() => shared.context.close());
   await shared.page.goto(`${base}/discover/?lang=en`, { waitUntil: "load" });
+  await shared.page.getByRole("link", { name: "Sources and methodology" }).click();
+  await shared.page.waitForURL(`${base}/discover/methodology.html?lang=en#evidencia`);
   const href = await shared.page.locator("[data-reading-link]").getAttribute("href");
   assert.match(href, /^\.\.\/\?v=1&/);
   await shared.page.locator("[data-reading-link]").click();
@@ -103,10 +105,76 @@ test("stateful URLs reach the application directly", async t => {
   await appReady("en")(hash);
 
   const guided = await newPage(browser); t.after(() => guided.context.close());
-  await guided.page.goto(`${base}/discover/`, { waitUntil: "load" });
+  await guided.page.goto(`${base}/discover/?lang=es#evidencia`, { waitUntil: "load" });
+  await guided.page.waitForURL(`${base}/discover/methodology.html?lang=es#evidencia`);
   await guided.page.locator("[data-case-link]").click();
   await guided.page.waitForURL(url => url.searchParams.get("journey") === "yeserias" || url.searchParams.get("m") === "PLACE");
   assert.equal(new URL(guided.page.url()).pathname, `${projectPath}/`, "guided case opens the application");
   await appReady("es")(guided);
   assert.deepEqual(guided.errors, []);
+});
+
+test("Discover keeps one instant entry in Spanish and English across viewport sizes", async t => {
+  const { server, base } = await serveTree(); const browser = await chromium.launch();
+  t.after(async () => { await browser.close(); await new Promise(resolve => server.close(resolve)); });
+  for (const [width, height] of [[1440, 900], [820, 1180], [390, 844], [360, 640], [320, 640]]) {
+    const session = await newPage(browser, { viewport: { width, height }, reducedMotion: "reduce" });
+    const { page, context } = session;
+    try {
+      const flightRequests = [];
+      page.on("request", request => {
+        if (/\/(earth|iberia)\.webp$/.test(request.url())) flightRequests.push(request.url());
+      });
+      await page.goto(`${base}/discover/`);
+      const cta = page.locator("[data-primary-cta]");
+      assert.equal(await cta.count(), 1);
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Tab");
+      assert.equal(await cta.evaluate(link => link.matches(":focus-visible")), true);
+      for (const lang of ["es", "en"]) {
+        await page.locator(`[data-lang="${lang}"]`).click();
+        assert.equal(await cta.getAttribute("href"), `../?lang=${lang}`);
+        const box = await cta.boundingBox();
+        assert.ok(box.y + box.height <= height, `${lang}: CTA fits at ${width}x${height}`);
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), width);
+      }
+      assert.equal(await page.locator(".city").evaluate(img => img.complete && img.naturalWidth > 0), true);
+      assert.equal(await page.locator(".flight img").count(), 0);
+      assert.deepEqual(flightRequests, []);
+      assert.deepEqual(session.errors, []);
+    } finally { await context.close(); }
+  }
+});
+
+test("Flight runs once and the static entry survives failed assets and disabled JavaScript", async t => {
+  const { server, base } = await serveTree(); const browser = await chromium.launch();
+  t.after(async () => { await browser.close(); await new Promise(resolve => server.close(resolve)); });
+  const session = await newPage(browser);
+  t.after(() => session.context.close());
+  const { page } = session;
+  await page.goto(`${base}/discover/`, { waitUntil: "domcontentloaded" });
+  const flight = page.locator(".flight.is-flying");
+  await flight.waitFor({ state: "visible" });
+  assert.equal(await flight.locator("img").count(), 2);
+  assert.equal(await page.locator("[data-primary-cta]").isVisible(), true);
+  await flight.waitFor({ state: "detached" });
+  await page.reload();
+  assert.equal(await page.locator(".flight img").count(), 0, "a reload in the same tab does not replay");
+  assert.deepEqual(session.errors, []);
+
+  const missing = await newPage(browser);
+  t.after(() => missing.context.close());
+  await missing.page.route("**/earth.webp", route => route.abort());
+  await missing.page.goto(`${base}/discover/`);
+  assert.equal(await missing.page.locator(".flight img").count(), 0);
+  assert.equal(await missing.page.locator(".city").evaluate(img => img.naturalWidth > 0), true);
+  assert.equal(await missing.page.locator("[data-primary-cta]").isVisible(), true);
+  assert.deepEqual(missing.errors, []);
+
+  const staticPage = await newPage(browser, { javaScriptEnabled: false });
+  t.after(() => staticPage.context.close());
+  await staticPage.page.goto(`${base}/discover/`);
+  assert.equal(await staticPage.page.locator("[data-primary-cta]").getAttribute("href"), "../?lang=es");
+  assert.equal(await staticPage.page.locator(".city").evaluate(img => img.naturalWidth > 0), true);
 });

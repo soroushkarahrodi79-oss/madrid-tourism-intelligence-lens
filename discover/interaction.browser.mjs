@@ -1,4 +1,4 @@
-// Discover landing V3: layout, accessibility, language and mode-viewer checks.
+// Discover methodology: layout, accessibility, language and mode-viewer checks.
 // Served from the real repository tree; every non-loopback request is blocked
 // and must not even be attempted (the landing has no third-party dependency).
 import assert from "node:assert/strict";
@@ -35,7 +35,7 @@ async function open(browser, base, { width, reducedMotion = "no-preference", loc
   });
   page.on("pageerror", error => errors.push(String(error)));
   page.on("response", response => { if (response.status() >= 400) missing.push(response.url()); });
-  await page.goto(`${base}/discover/${query}`, { waitUntil: "load" });
+  await page.goto(`${base}/discover/methodology.html${query}`, { waitUntil: "load" });
   return { context, page, external, errors, missing };
 }
 
@@ -69,7 +69,7 @@ async function audit(page) {
   });
 }
 
-test("Discover V3 renders, stays accessible and works offline at every width", async t => {
+test("Discover methodology renders, stays accessible and works offline at every width", async t => {
   const { server, base } = await startServer(); const browser = await chromium.launch({ headless: true });
   t.after(async () => { await browser.close(); await new Promise(resolve => server.close(resolve)); });
   for (const width of [320, 390, 768, 1024, 1440]) await t.test(`${width}px`, async () => {
