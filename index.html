@@ -63,6 +63,12 @@
     </div>
     <button id="histExit" type="button" class="hist-exit" data-i18n="hist.exit">Back to normal view</button>
   </div>
+  <div class="hist-actions">
+    <button id="histExample" type="button" class="hist-exit" data-i18n="hist.example">See the Madrid Río / Matadero example</button>
+    <button id="histBack" type="button" class="hist-exit" data-i18n="hist.backToView" disabled>Back to my view</button>
+    <button id="histCopy" type="button" class="hist-exit" data-i18n="hist.copyLink">Copy link to this view</button>
+  </div>
+  <p id="histNote" class="pnoa-status" role="status"></p>
   <ul class="hist-years">
     <li data-side="left" data-state="idle"><span class="hist-year-name">2006</span><span class="hist-year-state"></span><button type="button" class="hist-retry" data-hist-retry="left" hidden data-i18n="hist.retry">Retry</button></li>
     <li data-side="right" data-state="idle"><span class="hist-year-name">2023</span><span class="hist-year-state"></span><button type="button" class="hist-retry" data-hist-retry="right" hidden data-i18n="hist.retry">Retry</button></li>
@@ -70,6 +76,16 @@
   <p id="histStatus" class="pnoa-status" role="status" data-state="off"></p>
   <p id="histKeys" class="hist-keys" data-i18n="hist.keys"></p>
   <p class="hist-summary" data-i18n="hist.summary"></p>
+  <details id="histGuide" class="hist-method">
+    <summary data-i18n="hist.guideTitle">What to look for</summary>
+    <p class="hist-notice" data-i18n="hist.guideIntro"></p>
+    <ul class="hist-guide-list">
+      <li data-i18n="hist.guide.layout"></li>
+      <li data-i18n="hist.guide.open"></li>
+      <li data-i18n="hist.guide.occupation"></li>
+    </ul>
+    <p class="hist-notice" data-i18n="hist.guideLimit"></p>
+  </details>
   <details id="histMethod" class="hist-method">
     <summary data-i18n="hist.methodTitle">Method, sources and limits</summary>
     <p id="histNotice" class="hist-notice" data-i18n="hist.notice"></p>
@@ -177,6 +193,11 @@
     <div class="map-control hist-control">
       <div class="layer"><div class="layer-left"><span id="histLabel" data-i18n="aside.hist">Historical orthophotos · PNOA 2006 ⇄ 2023 (reference only)</span></div><label class="switch"><input id="histToggle" type="checkbox" aria-labelledby="histLabel" aria-describedby="histHint"><span></span></label></div>
       <p id="histHint" class="pnoa-status"></p>
+      <div class="hist-entry-actions">
+        <button id="histHere" type="button" class="hist-exit" data-i18n="hist.here">Compare here</button>
+        <button id="histExampleAside" type="button" class="hist-exit" data-i18n="hist.example">See the Madrid Río / Matadero example</button>
+      </div>
+      <p id="histEntryNote" class="pnoa-status" role="status"></p>
     </div>
     </div>
   </details>
@@ -1152,6 +1173,7 @@
 <script src="js/ambito-comparison.js?v=20261015-1"></script>
 <script src="js/modes.js?v=20261006-1"></script>
 <script src="js/evidence-url.js?v=20261015-1"></script>
+<script src="js/historical-url.js?v=20261118-1"></script>
 <script src="js/evidence-export.js?v=20261017-1"></script>
 <script src="js/scope-rail.js?v=20261103-originmap-v1"></script>
 <script src="js/shell-copy.js?v=20261103-originmap-v1"></script>

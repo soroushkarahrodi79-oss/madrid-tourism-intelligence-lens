@@ -417,7 +417,7 @@ const HIST_WMS = "https://www.ign.es/wms/pnoa-historico";
 const HIST_PILOT = { centre: [40.3925, -3.699], zoom: 17 }; // Madrid Río / Matadero
 const HIST_SIDES = Object.freeze({ left: { layer: "PNOA2006", year: 2006 }, right: { layer: "PNOA2023", year: 2023 } });
 let histDrag = null; // active divider drag, if any
-const histCompare = { active: false, fraction: 0.5, layers: {}, state: { left: "idle", right: "idle" }, saved: null };
+const histCompare = { active: false, fraction: 0.5, layers: {}, state: { left: "idle", right: "idle" }, saved: null, returnView: null };
 map.createPane("histLeftPane");
 map.createPane("histRightPane");
 for (const [name, z] of [["histLeftPane", "255"], ["histRightPane", "256"]]) {
@@ -444,6 +444,8 @@ function renderHistStatus() {
   } else {
     status.textContent = shellT(`hist.${aggregate}`);
   }
+  // A year with no imagery here is stated, and the guided example is offered; nothing is faked.
+  if (aggregate === "error") status.textContent += ` ${shellT("hist.coverage.try")}`;
   // The switch's own hint states the effective state, never a stale "Off".
   const hint = document.getElementById("histHint");
   if (hint) hint.textContent = shellT(aggregate === "off" ? "hist.hint" : `hist.hint.${aggregate}`);
@@ -567,13 +569,14 @@ function setHistInert(on) {
   }
 }
 
-function setHistCompare(enabled) {
+function setHistCompare(enabled, opts = {}) {
   if (enabled === histCompare.active) return;
   const pnoaToggle = document.getElementById("pnoaToggle");
   const bar = document.getElementById("histCompareBar");
   const toggle = document.getElementById("histToggle");
   if (enabled) {
     histCompare.saved = { pnoa: pnoaToggle.checked, centre: map.getCenter(), zoom: map.getZoom() };
+    const entryView = histCompare.saved;
     histCompare.active = true;
     // Mutually exclusive with the current-PNOA overlay: paused, restored on exit.
     setPnoa(false);
@@ -584,12 +587,24 @@ function setHistCompare(enabled) {
     document.body.classList.add("hist-compare-mode");
     setHistInert(true);
     histCompare.state = { left: "loading", right: "loading" };
-    histCompare.fraction = 0.5;
+    histCompare.fraction = opts.fraction ?? 0.5;
+    histCompare.returnView = null;
     for (const side of ["left", "right"]) histCompare.layers[side] = histSideLayer(side).addTo(map);
     map.on("move zoom resize", updateHistClip);
     map.on("resize", renderHistSlider);
     window.addEventListener("resize", positionHistBar);
-    map.setView(HIST_PILOT.centre, HIST_PILOT.zoom, { animate: false });
+    map.on("moveend", renderHistShare);
+    // The view you are looking at is kept; only the guided example (or a restored link) moves the map.
+    histNote("");
+    if (opts.example) {
+      histCompare.returnView = { centre: entryView.centre, zoom: entryView.zoom };
+      map.setView(HIST_PILOT.centre, HIST_PILOT.zoom, { animate: false });
+    } else if (opts.view) {
+      map.setView(opts.view.centre, opts.view.zoom, { animate: false });
+    } else if (map.getZoom() > HIST_URL_ZOOM.max) {
+      map.setZoom(HIST_URL_ZOOM.max, { animate: false });
+      histNote(shellT("hist.zoomClamped"));
+    }
     bar.hidden = false;
     document.getElementById("histDivider").hidden = false;
     renderHistSlider();
@@ -597,6 +612,9 @@ function setHistCompare(enabled) {
     positionHistBar();
   } else {
     window.removeEventListener("resize", positionHistBar);
+    map.off("moveend", renderHistShare);
+    histCompare.returnView = null;
+    histNote("");
     histCompare.active = false;
     map.off("move zoom resize", updateHistClip);
     map.off("resize", renderHistSlider);
@@ -620,6 +638,107 @@ function setHistCompare(enabled) {
   }
   toggle.checked = histCompare.active;
   renderHistStatus();
+  renderHistActions();
+}
+
+// ---- UX-06 (#199): compare here, guided example, return, share ---------------
+function histNote(text) {
+  const el = document.getElementById("histNote");
+  if (el) { el.textContent = text || ""; el.dataset.kind = ""; }
+}
+function histEntryNote(text) {
+  const el = document.getElementById("histEntryNote");
+  if (el) el.textContent = text || "";
+}
+function histViewState() {
+  const c = map.getCenter();
+  return { lat: c.lat, lon: c.lng, zoom: Math.round(map.getZoom()), fraction: histCompare.fraction };
+}
+// The one validator: a view must survive the same serialise -> parse round trip a shared link does.
+function histViewProblem(state) {
+  const result = parseHistoricalState(serializeHistoricalState(state));
+  return result.ok ? null : result.issues[0].dimension;
+}
+function renderHistActions() {
+  const here = document.getElementById("histHere");
+  if (here) here.disabled = histCompare.active;
+  const back = document.getElementById("histBack");
+  if (back) back.disabled = !histCompare.returnView;
+  renderHistShare();
+}
+// The link is only offered for a view that would restore exactly; the reason is stated.
+function renderHistShare() {
+  const button = document.getElementById("histCopy");
+  const note = document.getElementById("histNote");
+  if (!button) return;
+  const problem = histCompare.active ? histViewProblem(histViewState()) : null;
+  button.disabled = Boolean(problem);
+  if (!note) return;
+  if (problem) {
+    note.textContent = shellT(`hist.share.invalid.${problem === "zoom" ? "zoom" : "centre"}`);
+    note.dataset.kind = "invalid";
+  } else if (note.dataset.kind === "invalid") {
+    note.textContent = "";
+    note.dataset.kind = "";
+  }
+}
+// "Compare here": keep the chosen place. If it is outside what the comparison covers, say why
+// BEFORE anything moves, and leave the example as an explicit choice.
+function histCompareHere() {
+  const view = histViewState();
+  const problem = histViewProblem({ ...view, zoom: Math.min(view.zoom, HIST_URL_ZOOM.max) });
+  if (problem) {
+    document.getElementById("histToggle").checked = false;
+    histEntryNote(shellT(problem === "zoom" ? "hist.limit.zoom" : "hist.limit.centre"));
+    return false;
+  }
+  histEntryNote("");
+  setHistCompare(true);
+  return true;
+}
+function histShowExample() {
+  histEntryNote("");
+  if (!histCompare.active) { setHistCompare(true, { example: true }); return; }
+  const c = map.getCenter();
+  const atExample = Math.abs(c.lat - HIST_PILOT.centre[0]) < 1e-4 && Math.abs(c.lng - HIST_PILOT.centre[1]) < 1e-4 && map.getZoom() === HIST_PILOT.zoom;
+  if (!atExample) {
+    // Remember where you were once; jumping again from the example never overwrites it.
+    if (!histCompare.returnView) histCompare.returnView = { centre: c, zoom: map.getZoom() };
+    map.setView(HIST_PILOT.centre, HIST_PILOT.zoom, { animate: false });
+  }
+  renderHistActions();
+}
+function histBackToMyView() {
+  const view = histCompare.returnView;
+  if (!histCompare.active || !view) return;
+  histCompare.returnView = null;
+  map.setView(view.centre, view.zoom, { animate: false });
+  renderHistActions();
+}
+async function histCopyLink() {
+  const state = histViewState();
+  if (histViewProblem(state)) { renderHistShare(); return false; }
+  const url = buildHistoricalUrl(window.location.href, state); // the address bar is never rewritten
+  let ok = false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(url); ok = true; }
+  } catch (error) { ok = false; }
+  if (!ok) ok = k11ExecCopyFallback(url);
+  histNote(ok ? shellT("hist.share.copied") : `${shellT("hist.share.failed")} ${url}`);
+  return ok;
+}
+// A link with historical keys restores the view only when every key is valid; otherwise the
+// reader sees the normal map plus a stated reason (never a silently different view).
+function histApplyRestore() {
+  const result = parseHistoricalState(K11_ORIGINAL_SEARCH);
+  if (!result.present) return;
+  if (!result.ok) {
+    k11.histIssues = result.issues;
+    k11RenderNotice(k11InitialRestore || { ok: true, issues: [], snapshot: null });
+    return;
+  }
+  const v = result.state;
+  setHistCompare(true, { view: { centre: [v.lat, v.lon], zoom: v.zoom }, fraction: v.fraction });
 }
 
 // Contemporary layers are hidden, so a map click would silently move a Lens, place a
@@ -628,7 +747,12 @@ function setHistCompare(enabled) {
 map.getContainer().addEventListener("click", (e) => {
   if (histCompare.active && !e.target.closest(".leaflet-control")) e.stopPropagation();
 }, true);
-document.getElementById("histToggle").onchange = (e) => setHistCompare(e.target.checked);
+document.getElementById("histToggle").onchange = (e) => { if (e.target.checked) histCompareHere(); else setHistCompare(false); };
+document.getElementById("histHere").onclick = () => histCompareHere();
+document.getElementById("histExampleAside").onclick = () => histShowExample();
+document.getElementById("histExample").onclick = () => histShowExample();
+document.getElementById("histBack").onclick = () => histBackToMyView();
+document.getElementById("histCopy").onclick = () => histCopyLink();
 document.getElementById("histExit").onclick = () => { setHistCompare(false); document.getElementById("histToggle").focus(); };
 // The divider is the control: drag it on the map (mouse, touch, pen) or focus it
 // and use the keyboard. It never reaches the map's own pan/zoom/draw handlers.
@@ -8555,6 +8679,7 @@ async function boot() {
   // interface dimensions of a shared reading can be restored now. The ámbito and
   // baseline dimensions wait for the planning index (phase 2, below).
   k11ApplyRestorePhase1();
+  histApplyRestore();
 
   // Administrative context loads after the operational layers are on screen:
   // the canonical geography is ~2.5 MB and must never delay the first paint of
@@ -9159,6 +9284,14 @@ const K11_COPY = Object.freeze({
     "export.ready": "Evidence exported. If your browser blocked a download, use the links below:",
     "export.empty": "Nothing to export yet — configure a reading first.",
     "export.failed": "Export could not be prepared.",
+    "restore.histTitle": "Historical view not restored",
+    "restore.histLede": "The historical orthophoto view in this link was not restored, so you are seeing the normal map:",
+    "reason.HIST_VERSION_UNSUPPORTED": "an unsupported historical-view format",
+    "reason.HIST_MISSING": "a required part of the historical view is missing",
+    "reason.HIST_INVALID_CENTRE": "a centre outside the Madrid area or not a valid coordinate",
+    "reason.HIST_INVALID_ZOOM": "a zoom outside 10 to 19",
+    "reason.HIST_UNKNOWN_PAIR": "a mosaic pair other than 2006/2023",
+    "reason.HIST_INVALID_DIVIDER": "a divider position outside 0 to 100%",
     "restore.partialTitle": "Partial restore",
     "restore.refusedTitle": "Link not restored",
     "restore.snapshotTitle": "Different deployment build",
@@ -9219,6 +9352,14 @@ const K11_COPY = Object.freeze({
     "export.ready": "Evidencia exportada. Si su navegador bloqueó alguna descarga, use los enlaces siguientes:",
     "export.empty": "Aún no hay nada que exportar: configure primero una lectura.",
     "export.failed": "No se pudo preparar la exportación.",
+    "restore.histTitle": "Vista histórica no restaurada",
+    "restore.histLede": "La vista de ortofotos históricas de este enlace no se restauró, así que ves el mapa normal:",
+    "reason.HIST_VERSION_UNSUPPORTED": "un formato de vista histórica no admitido",
+    "reason.HIST_MISSING": "falta una parte necesaria de la vista histórica",
+    "reason.HIST_INVALID_CENTRE": "un centro fuera del área de Madrid o una coordenada no válida",
+    "reason.HIST_INVALID_ZOOM": "un zoom fuera de 10 a 19",
+    "reason.HIST_UNKNOWN_PAIR": "una pareja de mosaicos distinta de 2006/2023",
+    "reason.HIST_INVALID_DIVIDER": "una posición del divisor fuera de 0 a 100 %",
     "restore.partialTitle": "Restauración parcial",
     "restore.refusedTitle": "Enlace no restaurado",
     "restore.snapshotTitle": "Compilación de despliegue distinta",
@@ -9760,6 +9901,7 @@ function k11RenderNotice(result) {
   if (k11.hospitalityMetricIssue && !interfaceIssues.some((i) => i.dimension === "hospitalityMetric")) interfaceIssues.push(k11.hospitalityMetricIssue);
   if (k11.hospitalityBarrioIssue && !interfaceIssues.some((i) => i.dimension === "hospitalityBarrio")) interfaceIssues.push(k11.hospitalityBarrioIssue);
   for (const issue of k11.geometryIssues) if (!interfaceIssues.some((i) => i.dimension === issue.dimension)) interfaceIssues.push(issue);
+  const histIssues = k11.histIssues || [];
 
   let show = false;
   if (!result.ok) {
@@ -9777,6 +9919,12 @@ function k11RenderNotice(result) {
     title.textContent = k11T("restore.snapshotTitle");
     message.textContent = k11T("restore.snapshotLede");
     show = true;
+  }
+  // The historical view is a separate visual state: its failure is stated alongside, never merged into evidence.
+  if (histIssues.length) {
+    const histMessage = `${k11T("restore.histLede")} ${histIssues.map((issue) => k11T(`reason.${issue.code}`)).join("; ")}.`;
+    if (show) message.textContent = `${message.textContent} ${histMessage}`;
+    else { title.textContent = k11T("restore.histTitle"); message.textContent = histMessage; show = true; }
   }
   notice.hidden = !show;
 }
