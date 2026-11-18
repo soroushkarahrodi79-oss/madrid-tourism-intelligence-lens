@@ -1342,7 +1342,7 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
    never by colour alone. */
 .mode-btn[aria-pressed="true"]{background:#102a43;color:#fff;border-color:rgba(75,175,255,.55);font-weight:700;box-shadow:inset 0 -2px 0 #4bafff}
 .mode-btn[aria-pressed="true"] .mode-name:after{content:" ✓"}
-.mode-glyph{font-size:var(--t-label)}
+.mode-glyph{display:inline-flex;align-items:center;flex:0 0 auto}.mode-glyph svg{display:block}
 .mode-question{margin:var(--s-1) var(--s-1) var(--s-2);font-size:var(--t-micro);line-height:1.35;color:#9aaec4}
 /* Focus/scrollIntoView offsets cover the compact mode bar, not the rail. */
 .panel{scroll-padding-top:5rem}
@@ -2404,3 +2404,16 @@ body.hist-compare-mode #analysisPanel,body.hist-compare-mode #spatialToolbar,bod
 .hist-exit:disabled{opacity:.55;cursor:not-allowed}
 .hist-guide-list{margin:0 0 var(--s-1);padding-left:var(--s-4);font-size:var(--t-micro);line-height:1.4;color:var(--chrome-text-control-caption)}
 .hist-note:empty,#histNote:empty,#histEntryNote:empty{display:none}
+
+/* UX-07 · historical comparison: the bar is secondary to the map. The same
+   entry actions already live in the bar, so the rail copies are hidden while it
+   is open (no duplicated "example" button); the attribution, which must
+   stay visible, is set small so two long credits do not cover the divider. */
+body.hist-compare-mode .hist-entry-actions,body.hist-compare-mode #histEntryNote{display:none}
+@media(max-width:850px){
+  .hist-compare-bar{max-height:38dvh}
+  body.hist-compare-mode .leaflet-control-attribution{font-size:10px;line-height:1.3;max-width:min(72vw,360px)}
+}
+/* UX-07 · polygon workflow on a phone: let the instruction note stay readable
+   instead of being clipped (the card already scrolls as a safety net). */
+@media(max-width:850px){.spatial-toolbar{overscroll-behavior:contain}.spatial-toolbar-note{color:var(--chrome-text-control-caption)}}
