@@ -2399,3 +2399,8 @@ body.hist-compare-mode #analysisPanel,body.hist-compare-mode #spatialToolbar,bod
 .hist-compare-bar .pnoa-status{margin:0 0 var(--s-1);color:var(--chrome-text-control-value);font-size:var(--t-micro)}
 .hist-method summary{min-height:44px;display:list-item;list-style-position:inside;padding:var(--s-3) 0;box-sizing:border-box;cursor:pointer;font-size:var(--t-micro);font-weight:650;color:var(--chrome-text-control-strong)}
 .hist-exit{min-height:44px;padding:0 var(--s-3);border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-form-surface);color:var(--chrome-text-control-value);font-size:var(--t-label);cursor:pointer}
+.hist-actions,.hist-entry-actions{display:flex;flex-wrap:wrap;gap:var(--s-2);margin:0 0 var(--s-1)}
+.hist-entry-actions{margin:var(--s-2) 0 0}
+.hist-exit:disabled{opacity:.55;cursor:not-allowed}
+.hist-guide-list{margin:0 0 var(--s-1);padding-left:var(--s-4);font-size:var(--t-micro);line-height:1.4;color:var(--chrome-text-control-caption)}
+.hist-note:empty,#histNote:empty,#histEntryNote:empty{display:none}

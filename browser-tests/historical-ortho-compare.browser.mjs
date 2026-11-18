@@ -100,8 +100,9 @@ test("default: off, no historical request, bar hidden, nothing attributed", asyn
   await context.close();
 });
 
-test("on: both official layers requested, attribution and notice visible, pilot framed", async () => {
+test("on: both official layers requested, attribution and notice visible, current view kept", async () => {
   const { page, context, histRequests } = await openPage();
+  const before = await page.evaluate(() => ({ ...map.getCenter(), zoom: map.getZoom() }));
   await toggleHist(page);
   await waitHist(page, "on");
   const layers = new Set(histRequests.map((u) => u.searchParams.get("layers")));
@@ -127,7 +128,7 @@ test("on: both official layers requested, attribution and notice visible, pilot 
   assert.match(notice, /CC BY 4\.0/);
   assert.equal(await page.locator("#histCompareBar").isVisible(), true);
   const c = await page.evaluate(() => ({ ...map.getCenter(), zoom: map.getZoom() }));
-  assert.ok(Math.abs(c.lat - 40.3925) < 1e-3 && Math.abs(c.lng + 3.699) < 1e-3 && c.zoom === 17);
+  assert.deepEqual(c, before, "entering keeps the chosen centre and zoom; it never jumps to the example");
   await context.close();
 });
 
@@ -626,5 +627,225 @@ test("repeated enter/exit keeps view, selection, radius, appearance and the Lens
   await page.evaluate(() => document.getElementById("histToggle").click());
   await waitHist(page, "on");
   assert.equal(await frac(page), 50, "each entry starts at 50/50");
+  await context.close();
+});
+
+// ---- UX-06 (#199): compare here, guided example, return, share ---------------
+const evidenceFingerprint = (page) => page.evaluate(() => ({ state: JSON.parse(JSON.stringify(k11CurrentState())), panel: document.getElementById("analysisPanel").textContent.replace(/Some map Halo slots are hidden \([^)]*\)/g, "x") }));
+const EXAMPLE = { lat: 40.3925, lng: -3.699, zoom: 17 };
+const near = (v, w) => Math.abs(v.lat - w.lat) < 1e-4 && Math.abs(v.lng - w.lng) < 1e-4 && v.zoom === w.zoom;
+const CHOSEN = [40.4435, -3.7106];
+
+test("compare here: keeps the chosen view and requests tiles for it (no jump to Madrid Río)", async () => {
+  const { page, context, histRequests } = await openPage();
+  await settled(page);
+  await page.evaluate((c) => map.setView(c, 16, { animate: false }), CHOSEN);
+  const chosen = await view(page);
+  await page.locator("#histHere").click();
+  await waitHist(page, "on");
+  assert.deepEqual(await view(page), chosen);
+  assert.ok(histRequests.length > 0);
+  // The requested EPSG:3857 bbox is around lon -3.71 (x ~ -413000), not Matadero (x ~ -411800 at lat 40.39).
+  const bbox = histRequests[0].searchParams.get("bbox").split(",").map(Number);
+  assert.ok(bbox[0] < -412500 && bbox[0] > -414500, `bbox x ${bbox[0]} is at the chosen view`);
+  assert.equal(await page.locator("#histHere").isDisabled(), true, "already comparing: nothing left to do here");
+  await context.close();
+});
+
+test("compare here outside the covered area explains the limit first and moves nothing", async () => {
+  const { page, context, histRequests } = await openPage();
+  await settled(page);
+  await page.evaluate(() => map.setView([41.65, -0.88], 15, { animate: false })); // Zaragoza
+  const before = await view(page);
+  await page.locator("#histHere").click();
+  const note = await page.locator("#histEntryNote").innerText();
+  assert.match(note, /outside the Madrid area/);
+  assert.match(note, /Madrid Río \/ Matadero example/);
+  assert.deepEqual(await view(page), before);
+  assert.equal(await page.evaluate(() => document.getElementById("histToggle").checked), false);
+  assert.equal(await page.locator("#histCompareBar").isVisible(), false);
+  assert.equal(histRequests.length, 0, "no imagery request for an uncovered view");
+  // Too wide to compare: also stated, nothing moves.
+  await page.evaluate(() => map.setView([40.4168, -3.7038], 8, { animate: false }));
+  await page.locator("#histHere").click();
+  assert.match(await page.locator("#histEntryNote").innerText(), /too wide/);
+  assert.equal(histRequests.length, 0);
+  await context.close();
+});
+
+test("guided example and back to my view are explicit and reversible", async () => {
+  const { page, context } = await openPage();
+  await settled(page);
+  await page.evaluate((c) => map.setView(c, 16, { animate: false }), CHOSEN);
+  const mine = await view(page);
+  await page.locator("#histHere").click();
+  await waitHist(page, "on");
+  assert.equal(await page.locator("#histBack").isDisabled(), true, "nothing to return to before the example");
+  await page.locator("#histExample").click();
+  assert.ok(near(await view(page), EXAMPLE), "example frames Madrid Río / Matadero");
+  assert.equal(await page.locator("#histBack").isDisabled(), false);
+  await page.locator("#histExample").click(); // repeating never overwrites the remembered view
+  await page.locator("#histBack").click();
+  assert.deepEqual(await view(page), mine, "back to my view restores exactly the view before the example");
+  assert.equal(await page.locator("#histBack").isDisabled(), true);
+  assert.equal(await page.evaluate(() => document.body.classList.contains("hist-compare-mode")), true, "still comparing");
+  // Leaving lands on the original view; the example can also be the way in.
+  await page.locator("#histExit").click();
+  assert.deepEqual(await view(page), mine);
+  await page.locator("#histExampleAside").click();
+  await waitHist(page, "on");
+  assert.ok(near(await view(page), EXAMPLE));
+  await page.locator("#histBack").click();
+  assert.deepEqual(await view(page), mine);
+  await page.locator("#histExit").click();
+  assert.deepEqual(await view(page), mine);
+  await context.close();
+});
+
+test("share: link carries only centre, zoom, pair and divider; a new page restores the same view", async () => {
+  const { page, context } = await openPage();
+  await settled(page);
+  await page.evaluate((c) => map.setView(c, 16, { animate: false }), CHOSEN);
+  await page.locator("#histHere").click();
+  await waitHist(page, "on");
+  await page.locator('[data-hist-fraction="1"]').click();
+  const urlBefore = await page.evaluate(() => location.search);
+  await page.locator("#histCopy").click();
+  await page.waitForFunction(() => document.getElementById("histNote").textContent.length > 0);
+  assert.match(await page.locator("#histNote").innerText(), /Link copied|Copy this link/);
+  // The link the button builds; the address bar itself is never rewritten.
+  const link = await page.evaluate(() => buildHistoricalUrl(window.location.href, histViewState()));
+  const query = new URL(link).searchParams;
+  assert.deepEqual([...query.keys()], ["hv", "hc", "hz", "hp", "hd"]);
+  assert.equal(query.get("hp"), "2006-2023");
+  assert.equal(query.get("hz"), "16");
+  assert.equal(query.get("hd"), "100");
+  assert.equal(await page.evaluate(() => location.search), urlBefore, "address bar untouched");
+  await context.close();
+
+  const next = await openPage();
+  await next.page.goto(`http://127.0.0.1:${port}/?lang=en&${query.toString()}`, { waitUntil: "domcontentloaded" });
+  await next.page.waitForSelector("#histToggle", { state: "attached" });
+  await waitHist(next.page, "on");
+  const restored = await view(next.page);
+  assert.ok(Math.abs(restored.lat - CHOSEN[0]) < 1e-4 && Math.abs(restored.lng - CHOSEN[1]) < 1e-4 && restored.zoom === 16);
+  assert.equal(await frac(next.page), 100);
+  assert.equal(await next.page.evaluate(() => document.getElementById("histToggle").checked), true);
+  assert.equal(await next.page.locator("#k11RestoreNotice").isVisible(), false);
+  assert.deepEqual([...new Set(next.histRequests.map((u) => u.searchParams.get("layers")))].sort(), ["PNOA2006", "PNOA2023"]);
+  // Leaving the restored view returns to the page's own view and is fully reversible.
+  await next.page.locator("#histExit").click();
+  assert.equal(await next.page.evaluate(() => document.body.classList.contains("hist-compare-mode")), false);
+  await next.context.close();
+});
+
+test("old evidence links are untouched; invalid historical links say so and never restore a different view", async () => {
+  const evidence = "v=1&m=PLACE&a=40.4168,-3.7038,500&be=0&al=A&ly=museum.info.stay.bike.rail&sc=LENS&rd=citizen&lg=en";
+  const old = await openPage();
+  await old.page.goto(`http://127.0.0.1:${port}/?${evidence}`, { waitUntil: "domcontentloaded" });
+  await old.page.waitForSelector("#histToggle", { state: "attached" });
+  await settled(old.page);
+  assert.equal(await old.page.evaluate(() => histCompare.active), false, "a pre-UX-06 link opens no historical view");
+  assert.equal(old.histRequests.length, 0);
+  await old.context.close();
+
+  const cases = {
+    "hv=1&hc=48.85,2.35&hz=16&hp=2006-2023&hd=50": /centre outside the Madrid area/,
+    "hv=1&hc=40.4435,-3.7106&hz=25&hp=2006-2023&hd=50": /zoom outside 10 to 19/,
+    "hv=1&hc=40.4435,-3.7106&hz=16&hp=2006-2019&hd=50": /pair other than 2006\/2023/,
+    "hv=1&hc=40.4435,-3.7106&hz=16&hp=2006-2023&hd=250": /divider position outside 0 to 100%/,
+    "hv=2&hc=40.4435,-3.7106&hz=16&hp=2006-2023&hd=50": /unsupported historical-view format/,
+    "hv=1&hc=40.4435,-3.7106&hp=2006-2023&hd=50": /required part of the historical view is missing/,
+  };
+  for (const [query, expected] of Object.entries(cases)) {
+    const t = await openPage();
+    await t.page.goto(`http://127.0.0.1:${port}/?lang=en&${query}`, { waitUntil: "domcontentloaded" });
+    await t.page.waitForSelector("#histToggle", { state: "attached" });
+    await settled(t.page);
+    assert.equal(await t.page.evaluate(() => histCompare.active), false, `${query}: nothing restored`);
+    assert.equal(t.histRequests.length, 0);
+    assert.equal(await t.page.locator("#k11RestoreNotice").isVisible(), true, `${query}: warning shown`);
+    const text = await t.page.locator("#k11RestoreNotice").innerText();
+    assert.match(text, /Historical view not restored/);
+    assert.match(text, expected, query);
+    await t.context.close();
+  }
+});
+
+test("share is only offered for a view that would restore exactly", async () => {
+  const { page, context } = await openPage();
+  await settled(page);
+  await page.locator("#histHere").click();
+  await waitHist(page, "on");
+  assert.equal(await page.locator("#histCopy").isDisabled(), false);
+  await page.evaluate(() => map.setView([41.65, -0.88], 15, { animate: false }));
+  assert.equal(await page.locator("#histCopy").isDisabled(), true);
+  assert.match(await page.locator("#histNote").innerText(), /cannot be shared/);
+  await page.evaluate(() => map.setView([40.4168, -3.7038], 15, { animate: false }));
+  assert.equal(await page.locator("#histCopy").isDisabled(), false);
+  assert.equal(await page.locator("#histNote").innerText(), "");
+  await context.close();
+});
+
+test("repeated enter/exit with example, return and divider loses no state; A/B geometries and metrics are untouched", async () => {
+  const { page, context } = await openPage();
+  await settled(page);
+  await selectSearchResult(page, "APR.02.09");
+  await page.evaluate(() => map.setView([40.43, -3.68], 15, { animate: false })); // settle the halo layout note, as the sibling test does
+  await settled(page);
+  const evidence = await evidenceFingerprint(page);
+  const start = await analytic(page);
+  const mine = await view(page);
+  const urlBefore = await page.evaluate(() => location.search + location.hash);
+  for (let i = 0; i < 3; i += 1) {
+    await page.locator("#histHere").click();
+    await waitHist(page, "on");
+    await page.locator("#histExample").click();
+    await page.locator('[data-hist-fraction="0"]').click();
+    await page.locator("#histBack").click();
+    assert.deepEqual((await evidenceFingerprint(page)).state, evidence.state, `evidence state (lenses, A/B geometry, layers, metric) unchanged while comparing ${i + 1}`);
+    await page.locator("#histExit").click();
+    assert.deepEqual(await view(page), mine, `view restored ${i + 1}`);
+    assert.deepEqual(await analytic(page), start);
+    assert.deepEqual(await evidenceFingerprint(page), evidence);
+    assert.equal(await page.evaluate(() => location.search + location.hash), urlBefore);
+    assert.equal(await page.evaluate(() => document.querySelectorAll("[inert]").length), 0);
+    assert.equal(await page.locator("#histBack").isDisabled(), true);
+  }
+  await context.close();
+});
+
+test("observation guide is descriptive, in both languages, and claims no detection or cause", async () => {
+  const { page, context } = await openPage();
+  await page.locator("#histHere").click();
+  await waitHist(page, "on");
+  await page.locator("#histGuide summary").click();
+  const en = await page.locator("#histGuide").innerText();
+  assert.match(en, /Street layout/);
+  assert.match(en, /Open space/);
+  assert.match(en, /Visible occupation/);
+  assert.match(en, /not an automatic detection/);
+  assert.doesNotMatch(en, /built.up area|square metres|caused|because of|increase of|decrease of/i);
+  await page.selectOption("#languageSelect", "es");
+  const es = await page.locator("#histGuide").innerText();
+  assert.match(es, /Trazado/);
+  assert.match(es, /Espacios abiertos/);
+  assert.match(es, /Ocupación visible/);
+  assert.match(es, /no son una detección automática/);
+  await context.close();
+});
+
+test("phone width: the new actions fit inside the screen and are 44px targets", async () => {
+  const { page, context } = await openPage({ viewport: { width: 390, height: 780 } });
+  await settled(page);
+  await page.evaluate((c) => map.setView(c, 16, { animate: false }), CHOSEN);
+  await page.evaluate(() => document.getElementById("histHere").click());
+  await waitHist(page, "on");
+  for (const id of ["histExample", "histBack", "histCopy", "histExit"]) {
+    const box = await page.locator(`#${id}`).boundingBox();
+    assert.ok(box.x >= 0 && box.x + box.width <= 390, `${id} inside the viewport horizontally`);
+    assert.ok(box.height >= 44, `${id} is a 44px target`);
+  }
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
   await context.close();
 });
