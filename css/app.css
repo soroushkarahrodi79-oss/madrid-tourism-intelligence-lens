@@ -1213,6 +1213,12 @@ select,.smallbtn{width:100%;border:1px solid var(--line);background:#0c1826;colo
     overflow-y:auto;overscroll-behavior:contain
   }
   .spatial-tools-toggle{top:calc(var(--header-chrome-top) + 140px);left:auto;right:calc(10px + var(--safe-right));width:44px;height:44px}
+  /* Drawing/editing a polygon: the bottom panel is folded away (display:none, so
+     its scroll and state return untouched) and the toolbar may use the freed
+     height down to the bottom edge, so Finish/Cancel/edit tools need no inner
+     scroll. The mandatory attribution stays in its top-right band, untouched. */
+  body.polygon-drawing-active #analysisPanel{display:none}
+  body.polygon-drawing-active .spatial-toolbar{max-height:calc(100dvh - var(--header-chrome-top) - 140px - 12px - var(--safe-bottom))}
   /* One row of actions and a single-line measurement readout, so the whole
      polygon workflow fits the band without scrolling at phone sizes. */
   .polygon-tools{gap:var(--s-1)}
