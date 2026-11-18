@@ -796,6 +796,44 @@ test("session save and restore controls are translated and keyboard reachable", 
   await mobile.context.close();
 });
 
+const luminance = (hex) => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const contrast = (a, b) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+};
+
+test("committed A/B outlines stay legible on the light basemap and follow a basemap change in place", async () => {
+  // Pale OSM/CARTO land (#f2efe9) is the real surface in the default light theme.
+  const LIGHT_LAND = "#f2efe9";
+  const ringB = [
+    { lat: 40.420, lon: -3.695 }, { lat: 40.420, lon: -3.675 },
+    { lat: 40.435, lon: -3.675 }, { lat: 40.435, lon: -3.695 },
+  ];
+  const { context, page, pageErrors } = await openApp();
+  await drawRing(page, RING);
+  await page.locator("#modeCompareButton").click();
+  await drawRing(page, ringB);
+  const colors = () => page.evaluate(() => window.__polygonOutlines().map((shape) => shape.color));
+  const [lightA, lightB] = await colors();
+  assert.ok(contrast(lightA, LIGHT_LAND) >= 3, `A outline ${lightA} on light land: ${contrast(lightA, LIGHT_LAND).toFixed(2)}:1`);
+  assert.ok(contrast(lightB, LIGHT_LAND) >= 3, `B outline ${lightB} on light land: ${contrast(lightB, LIGHT_LAND).toFixed(2)}:1`);
+  const rings = await page.evaluate(() => [window.__ringFor("A"), window.__ringFor("B")]);
+  await page.locator("#basemapSelect").selectOption("dark");
+  const [darkA, darkB] = await colors();
+  assert.notEqual(darkA, lightA, "dark basemap restyles A in place");
+  assert.notEqual(darkB, lightB, "dark basemap restyles B in place");
+  assert.deepEqual(await page.evaluate(() => [window.__ringFor("A"), window.__ringFor("B")]), rings, "restyle never touches geometry");
+  assert.deepEqual(await page.evaluate(() => window.__polygonOutlines().map((shape) => shape.dashArray)), [null, "8 5"], "identity still carried by dash, not colour alone");
+  await page.locator("#basemapSelect").selectOption("light");
+  assert.deepEqual(await colors(), [lightA, lightB]);
+  assert.deepEqual(pageErrors, []);
+  await context.close();
+});
+
 test("drawing disclosure opens without changing geometry and Escape returns focus", async () => {
   const { context, page, pageErrors } = await openApp({ tools: false });
   assert.equal(await page.locator("#spatialToolbar").isVisible(), false);

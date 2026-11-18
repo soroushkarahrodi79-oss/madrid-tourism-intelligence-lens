@@ -191,6 +191,7 @@ let pnoaLayer = null;
 let lensStyleController = null;
 let adminStyleController = null;
 let hospitalityStyleController = null;
+let polygonStyleController = null;
 
 // [K12-R1 TEST-ONLY — issue #97] Bounded Leaflet pan optimizations, gated to a
 // loopback/private-LAN host AND an explicit ?k12opt= flag, so they are ABSENT in
@@ -322,6 +323,7 @@ function setBasemap(name) {
   if (lensStyleController) lensStyleController(requested);
   if (adminStyleController) adminStyleController(requested);
   if (hospitalityStyleController) hospitalityStyleController(requested);
+  if (polygonStyleController) polygonStyleController();
 
   let fellBack = false;
   next.on("tileerror", () => {
@@ -373,6 +375,7 @@ function applyDataStyles() {
   if (lensStyleController) lensStyleController(activeBasemapName);
   if (adminStyleController) adminStyleController(activeBasemapName);
   if (hospitalityStyleController) hospitalityStyleController(activeBasemapName);
+  if (polygonStyleController) polygonStyleController();
 }
 
 function setPnoa(enabled) {
@@ -7128,6 +7131,18 @@ document.querySelectorAll("[data-layer]").forEach((x) => (x.onchange = () => {
 // remain circle-only and are explicitly withheld for mixed/shape comparisons.
 const POLYGON_PANE_STYLE = Object.freeze({ weight: 2, dashArray: null, fillOpacity: 0.08 });
 const POLYGON_DRAFT_STYLE = Object.freeze({ weight: 2, dashArray: "6 5", fillOpacity: 0.05 });
+// Committed A/B outlines need a stroke that survives the basemap they sit on: the
+// near-white/pale-cyan pair is right on dark and imagery but is ~1:1 against the
+// light OSM/CARTO tiles, where the official-area outline then outweighs the
+// reader's own polygon. Dash (B) and the A/B label keep carrying identity.
+const POLYGON_BASEMAP_COLORS = Object.freeze({
+  light: Object.freeze({ A: "#123b5f", B: "#00768f" }),
+  dark: Object.freeze({ A: "#f7fbff", B: "#43d7ff" }),
+  satellite: Object.freeze({ A: "#f7fbff", B: "#43d7ff" }),
+});
+function polygonColorFor(which) {
+  return (POLYGON_BASEMAP_COLORS[stylePaletteName(activeBasemapName)] || POLYGON_BASEMAP_COLORS.light)[which];
+}
 
 // The single resolver every point-level statistic goes through. Each side uses
 // its own confirmed geometry in PLACE and COMPARE.
@@ -7170,7 +7185,7 @@ function clearPolygonLayers() {
 function addVertexHandle(index) {
   const vertex = polygonEditDraft[index];
   const handle = L.circleMarker([vertex.lat, vertex.lon], {
-    radius: 7, weight: 2, color: polygonEditSelected === index ? "#132e44" : "#f7fbff", fillColor: "#43d7ff", fillOpacity: 1, interactive: true,
+    radius: 7, weight: 2, color: polygonEditSelected === index ? "#132e44" : "#f7fbff", fillColor: polygonColorFor("B"), fillOpacity: 1, interactive: true,
   });
   handle.on("click", (event) => {
     L.DomEvent.stopPropagation(event);
@@ -7206,7 +7221,7 @@ function renderPolygonOnMap() {
   for (const which of bEnabled ? ["A", "B"] : ["A"]) {
     const state = polygonStateFor(which);
     if (state.mode !== ANALYSIS_GEOMETRY.POLYGON || !state.geometry) continue;
-    const color = which === "A" ? "#f7fbff" : "#43d7ff";
+    const color = polygonColorFor(which);
     const shape = L.polygon(latLngsOf(state.vertices), { ...POLYGON_PANE_STYLE,
       color, fillColor: color, dashArray: which === "B" ? "8 5" : null,
       className: `lens-polygon lens-polygon-${which.toLowerCase()}` });
@@ -7217,23 +7232,35 @@ function renderPolygonOnMap() {
     if (which === active) polygonShape = shape;
   }
   if (polygonEditing) {
-    polygonDraftShape = L.polygon(latLngsOf(polygonEditDraft), { ...POLYGON_DRAFT_STYLE, color: "#43d7ff", fillColor: "#43d7ff" });
+    polygonDraftShape = L.polygon(latLngsOf(polygonEditDraft), { ...POLYGON_DRAFT_STYLE, color: polygonColorFor("B"), fillColor: polygonColorFor("B") });
     polygonLayerGroup.addLayer(polygonDraftShape);
     polygonEditDraft.forEach((_, index) => addVertexHandle(index));
     return;
   }
   if (polygonDrawing) {
-    const style = { ...POLYGON_DRAFT_STYLE, color: "#43d7ff", fillColor: "#43d7ff" };
+    const style = { ...POLYGON_DRAFT_STYLE, color: polygonColorFor("B"), fillColor: polygonColorFor("B") };
     polygonDraftShape = polygonDraft.length >= 2
       ? L.polygon(latLngsOf(polygonDraft), style)
       : null;
     if (polygonDraftShape) polygonLayerGroup.addLayer(polygonDraftShape);
     polygonDraft.forEach((vertex) => polygonLayerGroup.addLayer(
-      L.circleMarker([vertex.lat, vertex.lon], { radius: 5, weight: 2, color: "#f7fbff", fillColor: "#43d7ff", fillOpacity: 1, interactive: false }),
+      L.circleMarker([vertex.lat, vertex.lon], { radius: 5, weight: 2, color: "#f7fbff", fillColor: polygonColorFor("B"), fillOpacity: 1, interactive: false }),
     ));
     return;
   }
 }
+
+// Basemap or imagery change: restyle the committed outlines in place (no geometry,
+// no re-render, so an open draft or edit session is untouched).
+polygonStyleController = () => {
+  polygonLayerGroup.eachLayer((layer) => {
+    const names = String((layer.options && layer.options.className) || "").split(" ");
+    const which = names.includes("lens-polygon-a") ? "A" : names.includes("lens-polygon-b") ? "B" : null;
+    if (!which || typeof layer.setStyle !== "function") return;
+    const color = polygonColorFor(which);
+    layer.setStyle({ color, fillColor: color });
+  });
+};
 
 // A confirmed polygon replaces only its own Lens circle on the map.
 function syncLensCircleVisibility() {
