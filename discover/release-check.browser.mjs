@@ -100,9 +100,15 @@ test("stateful URLs reach the application directly", async t => {
   assert.deepEqual(shared.errors, []);
 
   const hash = await newPage(browser); t.after(() => hash.context.close());
+  const navigationUrls = [];
+  hash.page.on("framenavigated", frame => {
+    if (frame === hash.page.mainFrame()) navigationUrls.push(frame.url());
+  });
   await hash.page.goto(`${base}/?lang=en#analysisPanel`, { waitUntil: "load" });
-  assert.equal(new URL(hash.page.url()).hash, "#analysisPanel", "fragment deep link is preserved");
   await appReady("en")(hash);
+  // The app may serialize its canonical query before the load event.
+  assert.equal(navigationUrls[0], `${base}/?lang=en#analysisPanel`, "the fragment reaches the app on entry");
+  assert.ok(navigationUrls.every(url => new URL(url).pathname === `${projectPath}/`), "the deep link stays in the app");
 
   const guided = await newPage(browser); t.after(() => guided.context.close());
   await guided.page.goto(`${base}/discover/?lang=es#evidencia`, { waitUntil: "load" });
