@@ -59,6 +59,10 @@ async function openPage({ viewport = { width: 1280, height: 800 }, hist = {}, pn
   await page.waitForSelector("#histToggle", { state: "attached" });
   return { page, context, histRequests, pnoaRequests, net };
 }
+// The halo placement note ("hidden: overlapped by a panel" vs "at the map edge") legitimately follows
+// panel geometry, and the collapsed panels change that geometry; it is layout, not a reading.
+const PANEL_TEXT = `(() => document.getElementById("analysisPanel").textContent.replace(/Some map Halo slots are hidden \([^)]*\)/g, "Some map Halo slots are hidden (layout)"))()`;
+const panelText = (page) => page.evaluate(PANEL_TEXT);
 const histState = (page) => page.evaluate(() => {
   const el = document.getElementById("histStatus");
   return { state: el.dataset.state, text: el.textContent };
@@ -113,12 +117,13 @@ test("on: both official layers requested, attribution and notice visible, pilot 
   assert.match(attribution, /PNOA 2023/);
   assert.match(attribution, /Instituto Geográfico Nacional/);
   assert.match(attribution, /CC BY 4\.0/);
-  const notice = await page.locator("#histNotice").innerText();
+  const notice = await page.locator("#histNotice").textContent(); // inside the expandable method detail
   assert.match(notice, /annual PNOA mosaics, not single dates/);
   assert.match(notice, /0\.50 m vs 0\.25 m/);
   assert.match(notice, /shadows and orthorectification/);
   assert.match(notice, /does not show what was built or why/);
   assert.match(notice, /hidden and do not describe these years/);
+  assert.match(notice, /not that nothing changed/);
   assert.match(notice, /CC BY 4\.0/);
   assert.equal(await page.locator("#histCompareBar").isVisible(), true);
   const c = await page.evaluate(() => ({ ...map.getCenter(), zoom: map.getZoom() }));
@@ -152,12 +157,12 @@ test("the divider really splits the two images, by keyboard", async () => {
   let s = await splits(page);
   assert.ok(Math.abs(s.leftEnd - s.width / 2) < 1 && Math.abs(s.rightStart - s.width / 2) < 1, "starts at the middle");
 
-  await page.locator("#histSlider").focus();
-  assert.equal(await page.evaluate(() => document.activeElement.id), "histSlider");
+  await page.locator("#histDivider").focus();
+  assert.equal(await page.evaluate(() => document.activeElement.id), "histDivider");
   await page.keyboard.press("Home");
   s = await splits(page);
   assert.ok(Math.abs(s.leftEnd) < 1 && Math.abs(s.rightStart) < 1, "Home: all 2023");
-  assert.match(await page.locator("#histSlider").getAttribute("aria-valuetext"), /^0% of the map shows 2006, 100% shows 2023$/);
+  assert.match(await page.locator("#histDivider").getAttribute("aria-valuetext"), /^0% of the map shows 2006, 100% shows 2023$/);
   await page.keyboard.press("End");
   s = await splits(page);
   assert.ok(Math.abs(s.leftEnd - s.width) < 1 && Math.abs(s.rightStart - s.width) < 1, "End: all 2006");
@@ -165,9 +170,9 @@ test("the divider really splits the two images, by keyboard", async () => {
   for (let i = 0; i < 25; i += 1) await page.keyboard.press("ArrowRight");
   s = await splits(page);
   assert.ok(Math.abs(s.leftEnd - s.width * 0.25) < 1, "25 arrow presses = 25%");
-  assert.equal(await page.locator("#histSlider").inputValue(), "25");
+  assert.equal(await page.locator("#histDivider").getAttribute("aria-valuenow"), "25");
   assert.equal(await page.evaluate(() => document.getElementById("histDivider").style.left), "25%");
-  assert.match(await page.locator("#histSlider").getAttribute("aria-valuetext"), /^25% of the map shows 2006, 75% shows 2023$/);
+  assert.match(await page.locator("#histDivider").getAttribute("aria-valuetext"), /^25% of the map shows 2006, 75% shows 2023$/);
 
   await page.evaluate(() => map.panBy([300, 0], { animate: false })); // the split is screen-fixed
   s = await splits(page);
@@ -179,7 +184,7 @@ test("contemporary panes are hidden, not removed; no click moves a Lens or a sel
   const { page, context } = await openPage();
   await page.waitForFunction(() => typeof lenses !== "undefined" && lenses.A.marker
     && !/locating…|loading…/i.test(document.getElementById("analysisPanel").innerText)); // data settled
-  const read = () => page.evaluate(() => ({ a: lenses.A.marker.getLatLng(), panel: document.getElementById("analysisPanel").innerText }));
+  const read = () => page.evaluate(() => ({ a: lenses.A.marker.getLatLng(), panel: document.getElementById("analysisPanel").textContent.replace(/Some map Halo slots are hidden \([^)]*\)/g, "Some map Halo slots are hidden (layout)") }));
   const before = await read();
   await toggleHist(page);
   await waitHist(page, "on");
@@ -190,9 +195,9 @@ test("contemporary panes are hidden, not removed; no click moves a Lens or a sel
   for (const k of ["lens", "halo", "admin", "licence", "planning", "hospitality", "marker", "overlay", "tooltip", "popup"]) assert.equal(vis[k], "hidden", `${k} pane is hidden`);
   for (const k of ["tile", "left", "right"]) assert.equal(vis[k], "visible", `${k} pane stays visible`);
   assert.equal(await page.evaluate(() => map.hasLayer(lenses.A.marker)), true, "layers are still on the map (hidden, not removed)");
-  assert.equal(await page.locator("#histNotice").isVisible(), true);
+  assert.equal(await page.locator(".hist-summary").isVisible(), true, "the brief method summary is always visible");
 
-  await page.mouse.click(640, 400); // would move the Lens centre outside the mode
+  await page.mouse.click(300, 300); // would move the Lens centre outside the mode
   await page.waitForTimeout(150);
   const during = await read();
   assert.deepEqual(during.a, before.a, "a map click under the comparison does not move Lens A");
@@ -266,7 +271,7 @@ test("one side down: that side is named, the other is unaffected, notice persist
   const rects = await tileRects(page);
   assert.ok(rects.right.length > 0, "2023 side still shows");
   assert.equal(rects.left.length, 0);
-  assert.equal(await page.locator("#histNotice").isVisible(), true);
+  assert.equal(await page.locator(".hist-summary").isVisible(), true);
   await context.close();
 });
 
@@ -306,12 +311,14 @@ test("Spanish and a phone-width viewport: copy, reachable controls, bar inside t
   await page.locator("label.switch:has(#histToggle)").click();
   await waitHist(page, "on");
   assert.match((await histState(page)).text, /2006 a la izquierda, 2023 a la derecha/);
-  assert.match(await page.locator("#histNotice").innerText(), /no demuestra qué se construyó ni por qué/);
+  assert.match(await page.locator("#histNotice").textContent(), /no demuestra qué se construyó ni por qué/);
   const box = await page.locator("#histCompareBar").boundingBox();
   assert.ok(box.x >= 0 && box.x + box.width <= 390 && box.y >= 0 && box.y + box.height <= 780, "bar fits the phone screen");
-  const slider = await page.locator("#histSlider").boundingBox();
-  assert.ok(slider.width >= 120 && slider.height >= 44, "slider is usable by touch");
-  assert.match(await page.locator("#histSlider").getAttribute("aria-valuetext"), /El 50% del mapa muestra 2006/);
+  const grip = await page.locator("#histDivider .hist-grip").boundingBox();
+  assert.ok(grip.width >= 36 && grip.height >= 36 && grip.x >= 0 && grip.x + grip.width <= 390, "the handle is on screen and finger-sized");
+  for (const preset of await page.locator(".hist-preset").all()) assert.ok((await preset.boundingBox()).height >= 44, "presets are touch targets");
+  assert.match(await page.locator("#histDivider").getAttribute("aria-valuetext"), /El 50% del mapa muestra 2006/);
+  assert.match(await page.locator("#histHint").textContent(), /^Activada\./, "the hint follows the effective state in Spanish");
   await context.close();
 });
 
@@ -328,7 +335,7 @@ const analytic = (page) => page.evaluate(() => ({
   layers: [...document.querySelectorAll("#layerRail input[type=checkbox]")].filter((i) => !["histToggle", "pnoaToggle"].includes(i.id)).map((i) => [i.id, i.checked]),
   geometry: document.querySelector("[data-geometry-mode][aria-pressed=true]")?.dataset.geometryMode ?? null,
   lensB: document.getElementById("lensBButton").textContent,
-  panel: document.getElementById("analysisPanel").innerText,
+  panel: document.getElementById("analysisPanel").textContent.replace(/Some map Halo slots are hidden \([^)]*\)/g, "Some map Halo slots are hidden (layout)"),
 }));
 const settled = (page) => page.waitForFunction(() => typeof lenses !== "undefined" && lenses.A.marker
   && !/locating…|loading…/i.test(document.getElementById("analysisPanel").innerText));
@@ -395,7 +402,7 @@ test("no visible analytical control changes state during the comparison; the key
     '#layerRail .rail-group[data-rail-group="administrative"] label.switch',
   ]) {
     if (await page.locator(selector).count() === 0) continue;
-    await pointerClick(page, selector);
+    assert.equal(await page.locator(selector).first().isVisible(), false, `${selector} is collapsed out of the way`);
   }
   await page.keyboard.press("/"); // the search shortcut
   assert.notEqual(await page.evaluate(() => document.activeElement.id), "geoSearchQuery");
@@ -415,18 +422,21 @@ test("no visible analytical control changes state during the comparison; the key
   await context.close();
 });
 
-test("contemporary readings that stay visible are labelled as contemporary (EN and ES)", async () => {
+test("contemporary surfaces are collapsed (not removed) while comparing, and the brief summary follows the language", async () => {
   const { page, context } = await openPage();
   await settled(page);
-  assert.equal(await page.evaluate(() => document.getElementById("analysisPanel").hasAttribute("data-hist-notice")), false, "no label outside the comparison");
+  const panelBefore = await panelText(page);
   await toggleHist(page);
   await waitHist(page, "on");
-  const label = () => page.evaluate(() => getComputedStyle(document.getElementById("analysisPanel"), "::before").content);
-  assert.match(await label(), /Contemporary Lens readings/);
-  assert.match(await label(), /do not describe 2006 or 2023/);
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("analysisPanel")).display), "none");
+  assert.match(await page.locator(".hist-summary").innerText(), /not measured change and does not say why/);
   await page.selectOption("#languageSelect", "es");
-  await page.waitForFunction(() => /contemporáne/.test(document.getElementById("analysisPanel").dataset.histNotice || ""));
-  assert.match(await label(), /No describen 2006 ni 2023/);
+  await page.waitForFunction(() => /no es un cambio medido/.test(document.querySelector(".hist-summary").textContent));
+  await page.selectOption("#languageSelect", "en");
+  await page.waitForFunction(() => /not measured change/.test(document.querySelector(".hist-summary").textContent));
+  await page.locator("#histExit").click();
+  assert.notEqual(await page.evaluate(() => getComputedStyle(document.getElementById("analysisPanel")).display), "none");
+  assert.equal(await panelText(page), panelBefore, "panel state intact after collapse");
   await context.close();
 });
 
@@ -453,5 +463,168 @@ test("leaving the comparison restores every action: search, radius, mode, layers
   assert.equal(await page.locator("#radiusSlider").inputValue(), "1500");
   await page.locator('#analysisPanel button[data-mode="COMPARE"]').click();
   assert.equal((await analytic(page)).mode, "COMPARE");
+  await context.close();
+});
+
+// ---- UX-05: direct divider, presets, per-year status, retry, repeated entry --------
+const dividerBox = (page) => page.locator("#histDivider .hist-grip").boundingBox();
+const frac = (page) => page.evaluate(() => Number(document.getElementById("histDivider").getAttribute("aria-valuenow")));
+const view = (page) => page.evaluate(() => ({ ...map.getCenter(), zoom: map.getZoom() }));
+
+test("mouse: dragging the divider on the map moves the split and never pans, draws or moves a Lens", async () => {
+  const { page, context } = await openPage();
+  await settled(page);
+  await toggleHist(page);
+  await waitHist(page, "on");
+  const before = { view: await view(page), lens: await page.evaluate(() => lenses.A.marker.getLatLng()), panel: await panelText(page) };
+  const g = await dividerBox(page);
+  await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(g.x + g.width / 2 - 180, g.y + g.height / 2 + 40, { steps: 6 });
+  assert.equal(await page.evaluate(() => document.getElementById("histDivider").dataset.dragging), "true");
+  await page.mouse.up();
+  const s = await splits(page);
+  assert.ok(Math.abs(s.leftEnd - (s.width / 2 - 180)) < 3, "the split follows the pointer without a jump");
+  assert.deepEqual(await view(page), before.view, "dragging the divider did not pan or zoom the map");
+  assert.deepEqual(await page.evaluate(() => lenses.A.marker.getLatLng()), before.lens);
+  assert.equal(await panelText(page), before.panel);
+  // dragging past the edge is clamped
+  const g2 = await dividerBox(page);
+  await page.mouse.move(g2.x + g2.width / 2, g2.y + g2.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(5000, g2.y, { steps: 3 });
+  await page.mouse.up();
+  assert.equal(await frac(page), 100);
+  // a plain map drag elsewhere still pans (the divider did not break the map)
+  await page.mouse.move(300, 300);
+  await page.mouse.down();
+  await page.mouse.move(380, 340, { steps: 4 });
+  await page.mouse.up();
+  assert.notDeepEqual(await view(page), before.view);
+  await context.close();
+});
+
+test("touch: dragging the divider with a finger moves the split and does not pan the map", async () => {
+  const touchContext = await browser.newContext({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true });
+  const page = await touchContext.newPage();
+  await page.route("**/*", (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith("/runtime-config.js")) return route.fulfill({ contentType: "text/javascript", body: 'window.RUNTIME_CONFIG={CARTO_BASEMAP_KEY:""};' });
+    if (url.hostname === "127.0.0.1") return route.continue();
+    if (route.request().resourceType() === "image" || url.hostname === "www.ign.es") return route.fulfill({ contentType: "image/png", body: PNG_1X1 });
+    return route.abort();
+  });
+  await page.goto(`http://127.0.0.1:${port}/?lang=en`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("#histToggle", { state: "attached" });
+  await page.evaluate(() => document.getElementById("histToggle").click());
+  await waitHist(page, "on");
+  const startView = await view(page);
+  const g = await dividerBox(page);
+  const cdp = await touchContext.newCDPSession(page);
+  const x0 = g.x + g.width / 2;
+  const y0 = g.y + g.height / 2;
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: x0, y: y0 }] });
+  for (let i = 1; i <= 6; i += 1) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x0 + 20 * i, y: y0 + 5 * i }] });
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  const f = await frac(page);
+  assert.ok(f >= 75 && f <= 85, `finger moved the split to the right (got ${f}%)`);
+  assert.deepEqual(await view(page), startView, "a touch drag on the divider does not pan the map");
+  await touchContext.close();
+});
+
+test("keyboard: arrows, Shift, Page, Home/End; instructions announced; presets mirror the split", async () => {
+  const { page, context } = await openPage();
+  await toggleHist(page);
+  await waitHist(page, "on");
+  const divider = page.locator("#histDivider");
+  assert.equal(await divider.getAttribute("role"), "slider");
+  assert.equal(await divider.getAttribute("tabindex"), "0");
+  assert.equal(await divider.getAttribute("aria-describedby"), "histKeys");
+  assert.match(await page.locator("#histKeys").innerText(), /arrow keys/);
+  await divider.focus();
+  await page.keyboard.press("Shift+ArrowLeft");
+  assert.equal(await frac(page), 40);
+  await page.keyboard.press("PageUp");
+  assert.equal(await frac(page), 50);
+  await page.keyboard.press("ArrowLeft");
+  assert.equal(await frac(page), 49);
+  assert.equal(await page.locator('[data-hist-fraction="0.5"]').getAttribute("aria-pressed"), "false");
+  await page.locator('[data-hist-fraction="1"]').click();
+  assert.equal(await frac(page), 100);
+  assert.equal(await page.locator('[data-hist-fraction="1"]').getAttribute("aria-pressed"), "true");
+  const full = await splits(page);
+  assert.equal(full.leftEnd, full.width, "2006 only");
+  await page.locator('[data-hist-fraction="0"]').click();
+  assert.equal(await frac(page), 0);
+  assert.equal(await page.locator("#histDivider .hist-side-left").isVisible(), false, "a label hides when its side is out of view");
+  await page.locator('[data-hist-fraction="0.5"]').click();
+  assert.equal(await frac(page), 50);
+  assert.equal(await page.locator("#histDivider .hist-side-left b").innerText(), "2006");
+  assert.equal(await page.locator("#histDivider .hist-side-right b").innerText(), "2023");
+  await context.close();
+});
+
+test("per-year status and retry: an unavailable year says so, retries on its own, and a gap is not 'no change'", async () => {
+  const { page, context, histRequests, net } = await openPage({ hist: { PNOA2006: "down" } });
+  await toggleHist(page);
+  await waitHist(page, "error");
+  const row = (side) => page.locator(`.hist-years li[data-side="${side}"]`);
+  assert.equal(await row("left").getAttribute("data-state"), "error");
+  assert.equal(await row("right").getAttribute("data-state"), "ok");
+  assert.match(await row("left").innerText(), /2006\s+Unavailable/);
+  assert.equal(await row("left").locator(".hist-retry").isVisible(), true);
+  assert.equal(await row("right").locator(".hist-retry").isVisible(), false);
+  assert.match(await page.locator('#histDivider .hist-side[data-side="left"] small').innerText(), /Unavailable/);
+  assert.match((await histState(page)).text, /not evidence of no change/);
+  assert.match(await page.locator("#histHint").innerText(), /^On, but at least one year is unavailable/);
+  const requests2023 = histRequests.filter((u) => u.searchParams.get("layers") === "PNOA2023").length;
+  net.hist.PNOA2006 = "ok"; // the service recovers
+  await row("left").locator(".hist-retry").click();
+  await waitHist(page, "on");
+  assert.equal(await row("left").getAttribute("data-state"), "ok");
+  assert.equal(await row("left").locator(".hist-retry").isVisible(), false);
+  assert.ok((await tileRects(page)).left.length > 0, "the 2006 side now shows imagery");
+  assert.equal(histRequests.filter((u) => u.searchParams.get("layers") === "PNOA2023").length, requests2023, "retry only re-requested the failed year");
+  assert.match(await page.locator("#histHint").innerText(), /^On\. Showing 2006 \(left\) and 2023 \(right\)/);
+  await context.close();
+});
+
+test("the switch hint follows the effective state (never a stale 'Off')", async () => {
+  const { page, context } = await openPage();
+  assert.match(await page.locator("#histHint").innerText(), /^Off\./);
+  await toggleHist(page);
+  await waitHist(page, "on");
+  assert.doesNotMatch(await page.locator("#histHint").innerText(), /Off\./);
+  await page.locator("#histExit").click();
+  assert.match(await page.locator("#histHint").innerText(), /^Off\./);
+  await context.close();
+});
+
+test("repeated enter/exit keeps view, selection, radius, appearance and the Lens panel intact", async () => {
+  const { page, context } = await openPage();
+  await settled(page);
+  await selectSearchResult(page, "APR.02.09");
+  await page.selectOption("#appearanceSelect", "dark");
+  await page.selectOption("#basemapSelect", "dark");
+  await page.evaluate(() => map.setView([40.43, -3.68], 15, { animate: false }));
+  const start = await analytic(page);
+  const startView = await view(page);
+  const startUrl = await page.evaluate(() => location.search + location.hash);
+  for (let i = 0; i < 3; i += 1) {
+    await page.evaluate(() => document.getElementById("histToggle").click());
+    await waitHist(page, "on");
+    await page.locator('[data-hist-fraction="1"]').click();
+    await page.evaluate(() => document.getElementById("histExit").click());
+    assert.deepEqual(await view(page), startView, `view restored on exit ${i + 1}`);
+    assert.deepEqual(await analytic(page), start, `selection, radius, layers and panel restored on exit ${i + 1}`);
+    assert.equal(await page.locator("#appearanceSelect").inputValue(), "dark");
+    assert.equal(await page.locator("#basemapSelect").inputValue(), "dark");
+    assert.equal(await page.evaluate(() => location.search + location.hash), startUrl);
+    assert.equal(await page.evaluate(() => document.querySelectorAll("[inert]").length), 0);
+    assert.equal(await page.evaluate(() => document.body.classList.contains("hist-compare-mode")), false);
+  }
+  await page.evaluate(() => document.getElementById("histToggle").click());
+  await waitHist(page, "on");
+  assert.equal(await frac(page), 50, "each entry starts at 50/50");
   await context.close();
 });
