@@ -601,6 +601,115 @@ test("PA 15 the Lens∩ámbito Detail list lists touched ámbitos and no quantit
   assert.match(note, /published quantities/i);
 });
 
+test("PA 15c touched rows navigate to the complete official polygon and return to the Lens", async (t) => {
+  for (const viewport of [{ width: 1366, height: 900 }, { width: 390, height: 844 }]) {
+    await t.test(`${viewport.width}px`, async () => {
+      const page = await newPage(viewport);
+      try {
+        if (viewport.width < 851) await page.selectOption("#languageSelect", "es");
+        await at(page, INSIDE);
+        await page.evaluate(() => window.__HALO_REGRESSION__.openPlaceDetailForTest());
+        await page.locator("#planningExplorerQuery").fill(INSIDE.code);
+        await page.locator("#planningExplorerResults button").first().click();
+        const first = page.locator("#planningTouchedList .planning-touched-choice").first();
+        const code = await first.getAttribute("data-code");
+        await first.focus();
+        const before = await page.evaluate(() => ({
+          center: map.getCenter(), zoom: map.getZoom(),
+          geometry: JSON.stringify(window.__geometryFor("A")),
+          detailOpen: document.getElementById("placeDetail").open,
+          panelScrollTop: document.getElementById("analysisPanel").scrollTop,
+          selectedCode: planningExplorer.selectedCode,
+          query: planningExplorer.query,
+        }));
+        await page.keyboard.press("Enter");
+        const selected = await page.evaluate(() => ({
+          code: planningExplorer.selectedCode,
+          cardCode: document.getElementById("planningExplorerCode").textContent,
+          layerBounds: planningExplorerLayer?.getBounds().toBBoxString(),
+          officialBounds: L.geoJSON(planningModel.index.featureFor(planningExplorer.selectedCode)).getBounds().toBBoxString(),
+          cameraMoves: planningExplorer.cameraMoves,
+          returnVisible: !document.getElementById("planningReturnToLens").hidden,
+          geometry: JSON.stringify(window.__geometryFor("A")),
+        }));
+        assert.equal(selected.code, code);
+        assert.equal(selected.cardCode, code);
+        assert.equal(selected.layerBounds, selected.officialBounds);
+        assert.ok(selected.cameraMoves > 0);
+        assert.equal(selected.returnVisible, true);
+        assert.equal(selected.geometry, before.geometry);
+        assert.equal(await page.locator("#planningExplorerCard").isVisible(), true);
+        assert.match(await page.locator("#planningReturnToLens").textContent(), viewport.width < 851 ? /Volver a la Lente/ : /Back to the Lens/);
+        assert.equal(await page.locator(`#planningTouchedList button[data-code="${code}"]`).getAttribute("aria-pressed"), "true");
+        if (process.env.LENS_CAPTURE_NAV === "1") {
+          const captureDir = path.join(ROOT, "docs", "screenshots");
+          fs.mkdirSync(captureDir, { recursive: true });
+          await page.screenshot({ path: path.join(captureDir, `intersecting-ambito-${viewport.width < 851 ? "mobile" : "desktop"}.png`) });
+        }
+        if (viewport.width < 851) {
+          const targets = await page.evaluate(() => ({
+            rowHeight: document.querySelector("#planningTouchedList .planning-touched-choice").getBoundingClientRect().height,
+            returnHeight: document.getElementById("planningReturnToLens").getBoundingClientRect().height,
+            overflow: document.documentElement.scrollWidth - window.innerWidth,
+          }));
+          assert.ok(targets.rowHeight >= 44 && targets.returnHeight >= 44, JSON.stringify(targets));
+          assert.ok(targets.overflow <= 1, JSON.stringify(targets));
+          const visible = await page.evaluate(() => {
+            const box = planningExplorerLayer.getBounds();
+            const north = map.latLngToContainerPoint(box.getNorthWest());
+            const south = map.latLngToContainerPoint(box.getSouthEast());
+            const panelTop = document.getElementById("analysisPanel").getBoundingClientRect().top - document.getElementById("map").getBoundingClientRect().top;
+            return { northY: north.y, southY: south.y, westX: north.x, eastX: south.x, panelTop, topChromeBottom: Math.max(document.querySelector("header").getBoundingClientRect().bottom, document.querySelector(".leaflet-control-attribution").getBoundingClientRect().bottom) };
+          });
+          assert.ok(visible.southY < visible.panelTop, JSON.stringify(visible));
+          assert.ok(visible.northY > visible.topChromeBottom, JSON.stringify(visible));
+          assert.ok(visible.westX >= 0 && visible.eastX <= viewport.width, JSON.stringify(visible));
+        }
+        await page.locator("#planningReturnToLens").click();
+        await page.waitForFunction((expected) => document.getElementById("analysisPanel").scrollTop === expected, before.panelScrollTop);
+        const after = await page.evaluate(() => ({
+          center: map.getCenter(), zoom: map.getZoom(),
+          geometry: JSON.stringify(window.__geometryFor("A")),
+          detailOpen: document.getElementById("placeDetail").open,
+          selectedCode: planningExplorer.selectedCode,
+          query: planningExplorer.query,
+          panelScrollTop: document.getElementById("analysisPanel").scrollTop,
+        }));
+        assert.equal(after.geometry, before.geometry);
+        assert.equal(after.zoom, before.zoom);
+        assert.ok(Math.abs(after.center.lat - before.center.lat) < 1e-7);
+        assert.ok(Math.abs(after.center.lng - before.center.lng) < 1e-7);
+        assert.equal(after.detailOpen, before.detailOpen);
+        assert.equal(after.selectedCode, before.selectedCode);
+        assert.equal(after.query, before.query);
+        assert.equal(after.panelScrollTop, before.panelScrollTop);
+        assert.equal(await page.locator("#planningReturnToLens").isVisible(), false);
+        assert.equal(await page.locator(`#planningTouchedList button[data-code="${code}"]`).evaluate((node) => document.activeElement === node), true);
+      } finally { await closePage(page); }
+    });
+  }
+});
+
+test("PA 15d missing touched geometry keeps the Lens and camera unchanged", async (t) => {
+  const page = await newPage();
+  t.after(() => closePage(page));
+  await at(page, INSIDE);
+  await page.evaluate(() => window.__HALO_REGRESSION__.openPlaceDetailForTest());
+  const code = await page.locator("#planningTouchedList .planning-touched-choice").first().getAttribute("data-code");
+  const before = await page.evaluate(() => ({ center: map.getCenter(), zoom: map.getZoom() }));
+  await page.evaluate((missing) => {
+    const original = planningModel.index.featureFor.bind(planningModel.index);
+    planningModel.index.featureFor = (candidate) => candidate === missing ? null : original(candidate);
+  }, code);
+  await page.locator("#planningTouchedList .planning-touched-choice").first().click();
+  const after = await page.evaluate(() => ({ center: map.getCenter(), zoom: map.getZoom(), selected: planningExplorer.selectedCode }));
+  assert.deepEqual(after.center, before.center);
+  assert.equal(after.zoom, before.zoom);
+  assert.equal(after.selected, null);
+  assert.match(await page.locator("#planningTouchedStatus").textContent(), /full boundary.*unavailable/i);
+  assert.equal(await page.locator("#planningReturnToLens").isVisible(), false);
+});
+
 // ---------------------------------------- 7a. touched list visual/keyboard layout
 test("PA 15b Detail planning membership uses full width with bounded scrolling at desktop and mobile", async (t) => {
   for (const viewport of [{ width: 1366, height: 900 }, { width: 390, height: 844 }]) {
