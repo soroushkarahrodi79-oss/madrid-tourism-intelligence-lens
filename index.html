@@ -539,6 +539,7 @@
         <p id="planningExplorerStatus" class="planning-explorer-status" aria-live="polite"></p>
         <ul id="planningExplorerResults" class="planning-explorer-results" aria-label="Planning ámbito search results" data-i18n-attr="aria-label:planning.explorer.resultsAria"></ul>
         <article id="planningExplorerCard" class="planning-explorer-card" hidden aria-live="polite">
+          <button id="planningReturnToLens" type="button" class="planning-explorer-close planning-return" data-i18n="planning.touchedReturn" hidden>Back to the Lens</button>
           <div class="planning-explorer-card-head"><span class="planning-kind" data-i18n="planning.kind">Planning ámbito</span><code id="planningExplorerCode" class="planning-code" data-verbatim></code></div>
           <h3 id="planningExplorerDenomination" class="planning-explorer-denomination" data-verbatim></h3>
           <p id="planningExplorerScope" class="planning-explorer-scope"></p>
@@ -759,6 +760,7 @@
     <div class="card" id="planningTouchedCard" hidden>
       <div id="planningTouchedHeading" class="card-title" data-i18n="planning.touchedTitle">Planning ámbitos touched by the Lens</div>
       <ul id="planningTouchedList" class="planning-touched" tabindex="0" aria-labelledby="planningTouchedHeading"></ul>
+      <p id="planningTouchedStatus" class="planning-touched-status" role="status" hidden></p>
       <p class="planning-block-note" data-i18n="planning.touchedNote">Which ámbitos the Lens circle touches. No share, proportion or part of their published quantities is computed or implied.</p>
     </div>
   </div>

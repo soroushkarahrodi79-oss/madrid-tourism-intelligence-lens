@@ -4331,6 +4331,7 @@ let planningRenderer = null;
 let planningExplorerRenderer = null;
 let planningExplorerLayer = null;
 const planningExplorer = { query: "", results: [], selectedCode: null, cameraMoves: 0 };
+let planningReturnView = null;
 // LENS_INTERSECT_AMBITO membership (UX-I1/P0-a, #95). Promoting the circle–ámbito
 // scan into the always-visible PLACE planning section means it would otherwise run
 // on every continuous `drag`/`oninput` event. Two guards keep that honest and cheap:
@@ -4526,6 +4527,9 @@ function renderPlanningExplorerEvidence(inspection) {
 }
 
 function clearPlanningExplorer() {
+  planningReturnView = null;
+  document.getElementById("planningReturnToLens").hidden = true;
+  document.getElementById("planningExplorerClose").hidden = false;
   planningExplorer.query = "";
   planningExplorer.results = [];
   planningExplorer.selectedCode = null;
@@ -4550,6 +4554,8 @@ function renderPlanningExplorer() {
   const results = document.getElementById("planningExplorerResults");
   const card = document.getElementById("planningExplorerCard");
   if (!host || !input || !status || !results || !card) return;
+  document.getElementById("planningReturnToLens").hidden = !planningReturnView;
+  document.getElementById("planningExplorerClose").hidden = Boolean(planningReturnView);
   // Refreshes happen after Lens movement and language changes. If a result was
   // focused, restore that exact native button after its text is rebuilt; focus
   // never falls back to the document merely because labels changed.
@@ -4611,17 +4617,85 @@ function renderPlanningExplorerPolygon() {
   const feature = planningModel.index.featureFor(planningExplorer.selectedCode);
   if (!feature) return;
   if (!planningExplorerRenderer) planningExplorerRenderer = L.canvas({ pane: "planningExplorerPane", padding: 0.3 });
-  planningExplorerLayer = L.geoJSON(feature, {
-    pane: "planningExplorerPane", renderer: planningExplorerRenderer, interactive: false,
-    style: () => ({ color: PLANNING_STROKE, weight: 3, opacity: 1, fill: true, fillColor: PLANNING_STROKE, fillOpacity: 0.14 }),
-  }).addTo(map);
+  // A light casing and dark inner stroke keep the selected official perimeter
+  // legible on both light and dark basemaps, apart from the dashed Lens circle.
+  const layerOptions = { pane: "planningExplorerPane", renderer: planningExplorerRenderer, interactive: false };
+  planningExplorerLayer = L.featureGroup([
+    L.geoJSON(feature, { ...layerOptions, style: () => ({ color: "#f8fafc", weight: 7, opacity: 1, fill: false }) }),
+    L.geoJSON(feature, { ...layerOptions, style: () => ({ color: "#243c53", weight: 3, opacity: 1, fill: true, fillColor: PLANNING_STROKE, fillOpacity: 0.18 }) }),
+  ]).addTo(map);
 }
 
-function showPlanningExplorerOnMap() {
+function showPlanningExplorerOnMap({ avoidPanel = false } = {}) {
   if (!planningExplorerLayer) return false;
-  map.fitBounds(planningExplorerLayer.getBounds(), { padding: [32, 32], maxZoom: 15, animate: false });
+  const panel = document.getElementById("analysisPanel");
+  const mobile = avoidPanel && window.matchMedia("(max-width: 850px)").matches;
+  const mobilePadding = mobile ? Math.ceil(panel.getBoundingClientRect().height) + 20 : 32;
+  const mapTop = document.getElementById("map").getBoundingClientRect().top;
+  const attributionBottom = document.querySelector(".leaflet-control-attribution")?.getBoundingClientRect().bottom || 0;
+  const topPadding = mobile ? Math.ceil(Math.max(attributionBottom, document.querySelector("header").getBoundingClientRect().bottom) - mapTop) + 16 : 32;
+  map.fitBounds(planningExplorerLayer.getBounds(), {
+    paddingTopLeft: [32, topPadding], paddingBottomRight: [32, mobilePadding], maxZoom: 15, animate: false,
+  });
   planningExplorer.cameraMoves += 1;
   return true;
+}
+
+function navigateToTouchedAmbito(code) {
+  const status = document.getElementById("planningTouchedStatus");
+  const entry = planningModel.index?.entries.find((item) => item.code === code);
+  if (planningState !== "ready" || !planningModel.index || !planningModel.explorerModule) {
+    status.textContent = shellT("planning.touchedLoadError");
+    status.hidden = false;
+    return;
+  }
+  if (!entry) {
+    status.textContent = shellT("planning.touchedUnresolved");
+    status.hidden = false;
+    return;
+  }
+  if (!planningModel.index.featureFor(code)) {
+    status.textContent = shellT("planning.touchedNoGeometry").replace("{code}", code);
+    status.hidden = false;
+    return;
+  }
+  status.hidden = true;
+  const panel = document.getElementById("analysisPanel");
+  if (!planningReturnView) {
+    planningReturnView = {
+      center: map.getCenter(), zoom: map.getZoom(), panelScrollTop: panel.scrollTop,
+      listScrollTop: document.getElementById("planningTouchedList").scrollTop,
+      query: planningExplorer.query, selectedCode: planningExplorer.selectedCode,
+      detailOpen: document.getElementById("placeDetail").open, sourceCode: code,
+    };
+  }
+  if (!selectPlanningExplorerAmbito(code)) return;
+  showPlanningExplorerOnMap({ avoidPanel: true });
+  for (const button of document.querySelectorAll("#planningTouchedList button[data-code]")) {
+    button.setAttribute("aria-pressed", String(button.dataset.code === code));
+  }
+  const card = document.getElementById("planningExplorerCard");
+  panel.scrollTop += card.getBoundingClientRect().top - panel.getBoundingClientRect().top - 8;
+  document.getElementById("planningReturnToLens").focus({ preventScroll: true });
+}
+
+function returnToTouchedLens() {
+  if (!planningReturnView) return;
+  const previous = planningReturnView;
+  planningReturnView = null;
+  planningExplorer.query = previous.query;
+  planningExplorer.selectedCode = previous.selectedCode;
+  document.getElementById("planningExplorerQuery").value = previous.query;
+  document.getElementById("placeDetail").open = previous.detailOpen;
+  renderPlanningExplorerPolygon();
+  renderPlanningExplorer();
+  map.setView(previous.center, previous.zoom, { animate: false });
+  for (const button of document.querySelectorAll("#planningTouchedList button[data-code]")) button.setAttribute("aria-pressed", "false");
+  document.querySelector(`#planningTouchedList button[data-code="${CSS.escape(previous.sourceCode)}"]`)?.focus({ preventScroll: true });
+  requestAnimationFrame(() => {
+    document.getElementById("planningTouchedList").scrollTop = previous.listScrollTop;
+    document.getElementById("analysisPanel").scrollTop = previous.panelScrollTop;
+  });
 }
 
 function renderPlanningContext() {
@@ -5379,6 +5453,7 @@ function renderPlanningTouched() {
   if (list.dataset.signature === signature) return;
   list.dataset.signature = signature;
   list.replaceChildren();
+  document.getElementById("planningTouchedStatus").hidden = true;
   if (membership.count === 0) {
     const item = document.createElement("li");
     item.textContent = shellT("planning.touchedNone");
@@ -5387,6 +5462,11 @@ function renderPlanningTouched() {
   }
   for (const entry of membership.touched) {
     const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "planning-touched-choice";
+    button.dataset.code = entry.ambitoCode;
+    button.setAttribute("aria-label", shellT("planning.touchedOpen").replace("{code}", entry.ambitoCode).replace("{name}", entry.denomination || ""));
     const code = document.createElement("span");
     code.className = "planning-touched-code";
     code.dataset.verbatim = "";
@@ -5394,13 +5474,16 @@ function renderPlanningTouched() {
     const name = document.createElement("span");
     name.dataset.verbatim = "";
     name.textContent = entry.denomination || "";
-    item.append(code, name);
+    button.append(code, name);
     if (entry.containsCentre) {
       const centreMark = document.createElement("span");
       centreMark.className = "planning-touched-centre";
       centreMark.textContent = shellT("planning.touchedCentre");
-      item.append(centreMark);
+      button.append(centreMark);
     }
+    button.setAttribute("aria-pressed", String(planningExplorer.selectedCode === entry.ambitoCode && Boolean(planningReturnView)));
+    button.addEventListener("click", () => navigateToTouchedAmbito(entry.ambitoCode));
+    item.append(button);
     list.append(item);
   }
 }
@@ -6932,8 +7015,12 @@ document.getElementById("planningExplorerResults")?.addEventListener("keydown", 
   if (event.key === "ArrowUp") { event.preventDefault(); if (current > 0) buttons[current - 1].focus(); else planningExplorerQuery?.focus(); }
   if (event.key === "Escape") { event.preventDefault(); clearPlanningExplorer(); planningExplorerQuery?.focus(); }
 });
-if (planningExplorerClose) planningExplorerClose.addEventListener("click", clearPlanningExplorer);
-if (planningExplorerMap) planningExplorerMap.addEventListener("click", showPlanningExplorerOnMap);
+if (planningExplorerClose) planningExplorerClose.addEventListener("click", () => {
+  if (planningReturnView) returnToTouchedLens();
+  else clearPlanningExplorer();
+});
+document.getElementById("planningReturnToLens")?.addEventListener("click", returnToTouchedLens);
+if (planningExplorerMap) planningExplorerMap.addEventListener("click", () => showPlanningExplorerOnMap());
 if (planningExplorerEvidenceToggle) planningExplorerEvidenceToggle.addEventListener("click", () => {
   if (planningExplorer.selectedCode) openEvidenceDrawer({ opener: planningExplorerEvidenceToggle, scope: "PLANNING_AMBITO", ambitoCode: planningExplorer.selectedCode });
 });
