@@ -106,6 +106,25 @@ establish, measure, or infer:
   figure describes the **whole official barrio** containing the lens centre,
   never the part of it the circle happens to cover, and is never scaled,
   weighted or interpolated into the circle
+- A walking-distance, walkability or accessibility statement about a Lens
+  circle. The circle is a **declared observation window** over published
+  records; its radius is a straight-line extent, and a network distance is a
+  different object (a measured property of a street network). The one
+  measurement in this repository that contrasts the two is the research-only
+  [Network Accessibility pilot](../research/network_accessibility_pilot/RESULTS.md)
+  (verdict MODIFY; not wired into the application): in barrio San Isidro, of
+  2,636 measured portals, 2,374 lie within 500 m by straight line and 1,909 by
+  modelled OpenStreetMap network distance, so **465** are inside by straight line
+  and outside by network (19.59 % of the straight-line-inside; 17.64 % of the
+  measured). That is a local result for one barrio, one facility category
+  (municipal basic sports facilities) and an unaudited volunteered network. It is
+  **not** a correction, error rate or estimate for any Lens count, it is not
+  generalisable to Madrid, and it is **not** attributed to the municipal
+  indicator `I.Gn.2.1.2`, whose effective calculation could not be verified
+  ([audit](../research/network_accessibility_pilot/MUNICIPAL_INDICATOR_AUDIT.md),
+  HOLD). The pilot supports keeping the circle free of "within X minutes' walk",
+  "nearby on foot" and "accessible" wording; it does not turn the circle into an
+  accessibility measure.
 - Any accommodation-per-resident, hotels-per-1,000-residents, tourism-density
   or tourism-pressure figure. The application holds a Madrid Destino
   accommodation layer and a resident denominator and deliberately computes **no
