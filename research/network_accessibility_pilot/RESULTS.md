@@ -375,6 +375,11 @@ recommended change is a documentation change only, citing this package — and i
 is **recommended, not made here**, because amending a claims contract is a gated
 decision that belongs to its owner, not to a research pilot.
 
+> **Update 2026-11-21.** A bounded bullet reproducing the 500 m figures
+> (465 / 2 636, scoped to this barrio) was subsequently proposed in
+> `docs/CLAIMS_AND_LIMITATIONS.md`, with its owner's review pending. The
+> measurements, criteria and verdict in this file are unchanged.
+
 ### What a positive feature would require first — five conditions
 
 1. **An OSM completeness audit per area, as a gate.** §3.5 shows that
