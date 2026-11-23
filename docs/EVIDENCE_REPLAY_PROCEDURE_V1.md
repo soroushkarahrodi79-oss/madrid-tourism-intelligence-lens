@@ -95,8 +95,11 @@ Expected result (verified 2026-11-23 on `b64d9db`):
 - S1 `STATE_TRANSITION`, exactly one difference:
   `planeamiento`: `Sin Iniciar` → `Finalizado` (both `PUBLISHED`).
 - Unchanged: `gestion` `Sin Iniciar`; `urbanizacion_proyecto` `No Necesita`; `urbanizacion_obras` `No Necesita`.
-- All four values use source-documented vocabulary. No cosmetic text differences.
+- All four values use source-documented vocabulary. S1 has no cosmetic text differences.
 - S2 `NO_CHANGE`: one matched row per edition, 0 observed differences, 0 withheld cells.
+  S2 carries one **cosmetic-only** text difference (`cosmeticOnly: true`) in `OBSERVACIONES`,
+  `DOTACIONAL; NO NECESITA URBANIZACION` → `DOTACIONAL; NO NECESITA URBANIZACIÓN` (an accent),
+  with no substantive difference. It does not change the outcome.
 - Entity identities: `S1:2025-07:e1ff3e0e0f63:APR.03.04` and `S1:2026-01:585db074c122:APR.03.04`.
 
 Reading: *the published planning-phase value of this ámbito changed between the two
@@ -106,7 +109,9 @@ editions.* It is an administrative state. It is not evidence of works.
 
 Expected result (verified 2026-11-23):
 
-- S1 `NO_CHANGE`; S2 `NO_CHANGE` (1 matched row each, 0 differences, 0 withheld).
+- S1 `NO_CHANGE`; S2 `NO_CHANGE` (1 matched row each, 0 differences, 0 withheld). As in
+  Step 2, S2 carries one cosmetic-only `OBSERVACIONES` difference (accents: `AMBITO`/`REVISION`…
+  → `ÁMBITO`/`REVISIÓN`…), with no substantive difference.
 - Phases identical in both editions: planeamiento `Finalizado`, gestión `En Ejecución`,
   urbanización-proyecto `Finalizado`, urbanización-obras `En Ejecución`.
 - `En Ejecución` in gestión and obras is `SOURCE_OBSERVED_NOT_DOCUMENTED` (present in the
@@ -174,8 +179,9 @@ not opened in the browser.
   canonical URL is built from the origin that served the page, and it restores the workspace
   state, not the question or the saved answer. The edition files' SHA-256 values in the
   dossier are the recorded retrieval values; §2 is what verifies them against a fresh download.
-  The saved HTML was not opened as an offline document in a browser; it was checked as text
-  (it contains the code, the edition identity, the full SHA-256 and the limitation).
+  The files saved to disk from those two runs were read back afterwards: each JSON parses,
+  each HTML embeds the same `value` block as its JSON (compared as parsed data), and the four
+  full SHA-256 values equal §2. The HTML was checked as text, not opened offline in a browser.
 - **Session.** Use the existing session export (`madrid-lens-session`,
   `js/evidence-url.js`) for geometries and readings.
 - **Comparator view.** Note the Step 4 link next to them, because neither the dossier nor
@@ -229,8 +235,9 @@ On an isolated copy of `origin/main` `b64d9db`, outside the repository:
   console showed only a 404 for a local file that does not exist outside a deploy and a
   cross-origin error from an unrelated third-party layer; neither affects the dossier.
 - Not run: `npm run test:browser`, the Playwright suite `browser-tests/question-explorer.browser.mjs`
-  (needs `npm install`), and the remaining Python gate L tests. A real file download to disk was
-  not observed in the pane; only the generated Blob links were read.
+  (needs `npm install`), and the remaining Python gate L tests. The act of downloading was not
+  observed in the pane; the saved files were found in the user's Downloads folder afterwards,
+  with the names the app generates, and read back as described above.
 
 ## 8. Out of scope
 
