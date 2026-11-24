@@ -1,0 +1,41 @@
+name: Discord CI green
+
+on:
+  workflow_run:
+    workflows: [Test]
+    types: [completed]
+
+permissions:
+  actions: read
+  checks: read
+  contents: read
+  issues: write
+  pull-requests: read
+  statuses: read
+
+# Reruns of the same tested commit must inspect and create the marker in order.
+concurrency:
+  group: discord-ci-green-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      # workflow_run has a secret; only code from main is executed here.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify current PR and complete Test result, then notify
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          TEST_RUN_ID: ${{ github.event.workflow_run.id }}
+          DISCORD_CI_WEBHOOK_URL: ${{ secrets.DISCORD_CI_WEBHOOK_URL }}
+        run: node .github/scripts/discord-ci-green.mjs
