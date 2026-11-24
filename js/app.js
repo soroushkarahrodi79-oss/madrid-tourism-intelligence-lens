@@ -469,6 +469,7 @@ function renderHistStatus() {
       tag.querySelector("small").textContent = state === "ok" || state === "idle" ? "" : label;
     }
   }
+  renderHistChip();
 }
 
 // The handle sits at mid-height unless another control (attribution, comparison bar,
@@ -508,6 +509,7 @@ function renderHistSlider() {
   for (const button of document.querySelectorAll("[data-hist-fraction]")) {
     button.setAttribute("aria-pressed", String(Math.abs(Number(button.dataset.histFraction) - histCompare.fraction) < 0.005));
   }
+  renderHistChip();
 }
 
 // Each pane is clipped in layer-pixel space, so the two images stay on the
@@ -529,9 +531,139 @@ function positionHistBar() {
   const attribution = map.getContainer().querySelector(".leaflet-control-attribution");
   if (!bar || !attribution) return;
   const r = attribution.getBoundingClientRect();
-  bar.style.setProperty("--hist-bar-lift", r.top > window.innerHeight / 2 ? `${Math.ceil(window.innerHeight - r.top)}px` : "0px");
+  const attributionAtBottom = r.top > window.innerHeight / 2;
+  bar.style.setProperty("--hist-bar-lift", attributionAtBottom ? `${Math.ceil(window.innerHeight - r.top)}px` : "0px");
+  // With the attribution at the top (phones) the sheet is capped so it never covers it.
+  if (attributionAtBottom || !r.height) bar.style.removeProperty("--hist-bar-cap");
+  else bar.style.setProperty("--hist-bar-cap", `${Math.max(180, Math.floor(window.innerHeight - r.bottom - 24))}px`);
   positionHistGrip();
 }
+
+// ---- #219 Floating controller: PRESENTATION ONLY ----------------------------------
+// Where the controller sits, whether it is expanded, minimised or hidden, and whether
+// its menu or info panel are open never read or write histCompare (divider, layers,
+// share state), and nothing here reaches a link, session or export. Only the
+// expanded/minimised choice and a desktop position are remembered; "hidden" is never
+// persisted, so reopening the comparison always shows the controller.
+const HIST_UI_KEY = "lens.histController.v1";
+const HIST_UI_MARGIN = 8;
+const histUi = { mode: "expanded", shown: "expanded", pos: null, drag: null };
+const HIST_PANELS = { menu: { panel: "histMenu", button: "histMenuBtn" }, info: { panel: "histInfo", button: "histInfoBtn" } };
+const histBarEl = () => document.getElementById("histCompareBar");
+const histDesktop = () => window.matchMedia("(min-width: 851px)").matches;
+
+function histUiLoad() {
+  histUi.mode = histUi.shown = "expanded";
+  histUi.pos = null;
+  try {
+    const saved = JSON.parse(localStorage.getItem(HIST_UI_KEY) || "null");
+    if (saved?.mode === "collapsed") histUi.mode = histUi.shown = "collapsed";
+    if (Number.isFinite(saved?.x) && Number.isFinite(saved?.y)) histUi.pos = { x: saved.x, y: saved.y };
+  } catch (_) {
+    // Presentation preferences are optional; the default placement applies.
+  }
+}
+
+function histUiSave() {
+  try {
+    localStorage.setItem(HIST_UI_KEY, JSON.stringify({ mode: histUi.shown, ...(histUi.pos || {}) }));
+  } catch (_) {
+    // Storage can be unavailable in privacy-restricted contexts.
+  }
+}
+
+// Keep the whole card inside the viewport, below the page header.
+function histClampPos(pos, bar) {
+  const header = document.querySelector(".map-header");
+  const top = Math.max(HIST_UI_MARGIN, header ? Math.ceil(header.getBoundingClientRect().bottom) + HIST_UI_MARGIN : 0);
+  const maxX = Math.max(HIST_UI_MARGIN, window.innerWidth - bar.offsetWidth - HIST_UI_MARGIN);
+  const x = Math.round(Math.min(maxX, Math.max(HIST_UI_MARGIN, pos.x)));
+  let maxY = Math.max(top, window.innerHeight - bar.offsetHeight - HIST_UI_MARGIN);
+  // The required map attribution stays readable: the card may sit beside it, never over it.
+  const attribution = map.getContainer().querySelector(".leaflet-control-attribution")?.getBoundingClientRect();
+  if (attribution?.height && attribution.top > window.innerHeight / 2 && x < attribution.right && x + bar.offsetWidth > attribution.left) {
+    maxY = Math.max(top, Math.min(maxY, Math.floor(attribution.top - bar.offsetHeight - HIST_UI_MARGIN)));
+  }
+  return { x, y: Math.round(Math.min(maxY, Math.max(top, pos.y))) };
+}
+
+function renderHistChip() {
+  const chip = document.getElementById("histChip");
+  const status = document.getElementById("histStatus");
+  if (!chip || !status) return;
+  const pct = Math.round(histCompare.fraction * 100);
+  const aggregate = status.dataset.state;
+  chip.textContent = aggregate === "loading" ? shellT("hist.year.loading")
+    : aggregate === "error" || aggregate === "partial" ? shellT(`hist.year.${aggregate}`)
+    : pct >= 100 ? shellT("hist.preset2006")
+    : pct <= 0 ? shellT("hist.preset2023")
+    : `2006 ${pct}/${100 - pct} 2023`;
+}
+
+function histUiApply() {
+  const bar = histBarEl();
+  if (!bar) return;
+  const expanded = histUi.mode === "expanded";
+  bar.dataset.mode = histUi.mode;
+  const collapse = document.getElementById("histCollapse");
+  collapse.setAttribute("aria-expanded", String(expanded));
+  collapse.title = shellT(expanded ? "hist.ctl.minimise" : "hist.ctl.expand");
+  for (const el of bar.querySelectorAll("[data-hist-tip]")) el.title = shellT(el.dataset.histTip);
+  bar.querySelector(".hist-handle").title = shellT("hist.ctl.drag");
+  if (!histCompare.active) return;
+  // A remembered position is only honoured with the desktop layout; it is clamped for display
+  // but kept as the preference, so it comes back if the window grows again.
+  if (histDesktop() && histUi.pos) {
+    bar.style.left = `${histUi.pos.x}px`;
+    bar.style.top = `${histUi.pos.y}px`;
+    bar.dataset.placed = "true";
+    const fit = histClampPos(histUi.pos, bar);
+    bar.style.left = `${fit.x}px`;
+    bar.style.top = `${fit.y}px`;
+  } else {
+    bar.style.removeProperty("left");
+    bar.style.removeProperty("top");
+    delete bar.dataset.placed;
+  }
+}
+
+function histUiReflow() {
+  histUiApply();
+  positionHistBar();
+}
+
+// One panel (menu or info) is open at a time, so the card stays small.
+function histUiPanel(name, open) {
+  for (const [key, ids] of Object.entries(HIST_PANELS)) {
+    const show = key === name && open;
+    document.getElementById(ids.panel).hidden = !show;
+    document.getElementById(ids.button).setAttribute("aria-expanded", String(show));
+  }
+  histUiReflow();
+}
+
+function setHistMode(mode) {
+  histUi.mode = mode;
+  if (mode !== "hidden") {
+    histUi.shown = mode;
+    histUiSave();
+  }
+  histUiPanel(null, false);
+  document.getElementById(mode === "hidden" ? "histShow" : "histCollapse").focus({ preventScroll: true });
+}
+
+function histUiEnter() {
+  histUiLoad();
+  histUiPanel(null, false);
+}
+
+function histUiLeave() {
+  histUi.drag = null;
+  const bar = histBarEl();
+  delete bar.dataset.dragging;
+  histUiPanel(null, false);
+}
+window.addEventListener("resize", () => { if (histCompare.active) histUiApply(); });
 
 function histSideLayer(side) {
   const cfg = HIST_SIDES[side];
@@ -608,11 +740,12 @@ function setHistCompare(enabled, opts = {}) {
       map.setZoom(HIST_URL_ZOOM.max, { animate: false });
       histNote(shellT("hist.zoomClamped"));
     }
+    histUiEnter();
     bar.hidden = false;
     document.getElementById("histDivider").hidden = false;
     renderHistSlider();
     updateHistClip();
-    positionHistBar();
+    histUiReflow();
   } else {
     window.removeEventListener("resize", positionHistBar);
     map.off("moveend", renderHistShare);
@@ -630,6 +763,7 @@ function setHistCompare(enabled, opts = {}) {
     map.getContainer().classList.remove("hist-compare-active");
     document.body.classList.remove("hist-compare-mode");
     setHistInert(false);
+    histUiLeave();
     bar.hidden = true;
     document.getElementById("histDivider").hidden = true;
     const saved = histCompare.saved;
@@ -728,6 +862,8 @@ async function histCopyLink() {
   } catch (error) { ok = false; }
   if (!ok) ok = k11ExecCopyFallback(url);
   histNote(ok ? shellT("hist.share.copied") : `${shellT("hist.share.failed")} ${url}`);
+  // The fallback copy briefly focuses a temporary field; keep keyboard focus on the menu button.
+  if (document.activeElement === document.body && histCompare.active) document.getElementById("histMenuBtn").focus({ preventScroll: true });
   return ok;
 }
 // A link with historical keys restores the view only when every key is valid; otherwise the
@@ -756,7 +892,68 @@ document.getElementById("histExampleAside").onclick = () => histShowExample();
 document.getElementById("histExample").onclick = () => histShowExample();
 document.getElementById("histBack").onclick = () => histBackToMyView();
 document.getElementById("histCopy").onclick = () => histCopyLink();
-document.getElementById("histExit").onclick = () => { setHistCompare(false); document.getElementById("histToggle").focus(); };
+// Exiting (menu, or the restore pill while hidden) is the only control that ends the comparison.
+const histExitComparison = () => { setHistCompare(false); document.getElementById("histToggle").focus(); };
+document.getElementById("histExit").onclick = histExitComparison;
+document.getElementById("histExitHidden").onclick = histExitComparison;
+// #219 controller wiring: minimise/expand, hide/show, info, menu, drag. None of it changes the comparison.
+document.getElementById("histCollapse").onclick = () => setHistMode(histUi.mode === "expanded" ? "collapsed" : "expanded");
+document.getElementById("histHide").onclick = () => setHistMode("hidden");
+document.getElementById("histShow").onclick = () => setHistMode(histUi.shown);
+document.getElementById("histInfoBtn").onclick = () => histUiPanel("info", document.getElementById("histInfo").hidden);
+document.getElementById("histMenuBtn").onclick = () => {
+  const open = document.getElementById("histMenu").hidden;
+  histUiPanel("menu", open);
+  if (open) document.querySelector("#histMenu button:not(:disabled)").focus({ preventScroll: true });
+};
+document.getElementById("histMenu").addEventListener("click", (e) => {
+  const item = e.target.closest("button");
+  if (!item || item.id === "histExit") return;
+  histUiPanel(null, false);
+  document.getElementById("histMenuBtn").focus({ preventScroll: true });
+});
+document.getElementById("histResetPos").onclick = () => { histUi.pos = null; histUiSave(); histUiReflow(); };
+histBarEl().addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  for (const ids of Object.values(HIST_PANELS)) {
+    if (document.getElementById(ids.panel).hidden) continue;
+    e.preventDefault();
+    e.stopPropagation();
+    histUiPanel(null, false);
+    document.getElementById(ids.button).focus({ preventScroll: true });
+    return;
+  }
+});
+document.addEventListener("pointerdown", (e) => {
+  if (histCompare.active && !document.getElementById("histMenu").hidden && !histBarEl().contains(e.target)) histUiPanel(null, false);
+}, true);
+// Desktop only: drag the card by its header. The card lives outside the Leaflet container, and the
+// pointer is captured, so the map never pans; every end path (up, cancel, lost capture) releases it.
+const histHeadEl = document.getElementById("histHead");
+histHeadEl.addEventListener("pointerdown", (e) => {
+  if (!histCompare.active || !histDesktop() || (e.pointerType === "mouse" && e.button !== 0) || e.target.closest("button")) return;
+  const rect = histBarEl().getBoundingClientRect();
+  histUi.drag = { id: e.pointerId, dx: e.clientX - rect.left, dy: e.clientY - rect.top, from: histUi.pos };
+  histHeadEl.setPointerCapture(e.pointerId);
+  histBarEl().dataset.dragging = "true";
+  e.preventDefault();
+});
+histHeadEl.addEventListener("pointermove", (e) => {
+  const drag = histUi.drag;
+  if (!drag || e.pointerId !== drag.id) return;
+  histUi.pos = histClampPos({ x: e.clientX - drag.dx, y: e.clientY - drag.dy }, histBarEl());
+  histUiApply();
+});
+for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+  histHeadEl.addEventListener(type, (e) => {
+    const drag = histUi.drag;
+    if (!drag || e.pointerId !== drag.id) return;
+    histUi.drag = null;
+    delete histBarEl().dataset.dragging;
+    if (e.type === "pointercancel") histUi.pos = drag.from; else histUiSave();
+    histUiReflow();
+  });
+}
 // The divider is the control: drag it on the map (mouse, touch, pen) or focus it
 // and use the keyboard. It never reaches the map's own pan/zoom/draw handlers.
 const histDividerEl = document.getElementById("histDivider");
@@ -7905,6 +8102,7 @@ function applyShellCopy() {
   renderPnoaStatus();
   renderHistStatus();
   renderHistSlider();
+  histUiApply();
   const grip = document.getElementById("panelResizeHandle");
   if (grip) grip.title = shellT("a11y.resizePanelHint");
   if (document.getElementById("railToggle") && typeof syncEdgeToggleLabels === "function") syncEdgeToggleLabels();
