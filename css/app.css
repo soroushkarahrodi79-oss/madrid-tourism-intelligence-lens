@@ -2408,8 +2408,8 @@ body.hist-compare-mode #analysisPanel,body.hist-compare-mode #spatialToolbar,bod
 .hist-years li{display:flex;align-items:center;gap:var(--s-1)}
 .hist-year-name{font-weight:700;color:var(--chrome-text-control-strong)}
 .hist-years li[data-state="error"] .hist-year-state,.hist-years li[data-state="partial"] .hist-year-state{font-weight:700;text-decoration:underline dotted}
-.hist-chip{display:none;flex:none;padding:2px var(--s-2);border-radius:var(--r-small);background:var(--chrome-form-surface);border:1px solid var(--chrome-border);color:var(--chrome-text-control-strong);font-size:var(--t-micro);font-weight:650;white-space:nowrap}
-.hist-head-actions{display:flex;flex:none;gap:2px}
+.hist-chip{display:none;flex:none;padding:var(--s-1) var(--s-2);border-radius:var(--r-small);background:var(--chrome-form-surface);border:1px solid var(--chrome-border);color:var(--chrome-text-control-strong);font-size:var(--t-micro);font-weight:650;white-space:nowrap}
+.hist-head-actions{display:flex;flex:none;gap:var(--s-1)}
 .hist-icon-btn{display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid transparent;border-radius:var(--r-small);background:transparent;color:var(--chrome-text-control-value);cursor:pointer}
 .hist-icon-btn:hover,.hist-icon-btn[aria-expanded="true"]:not(#histCollapse){background:var(--chrome-form-surface);border-color:var(--chrome-border)}
 .hist-icon-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
