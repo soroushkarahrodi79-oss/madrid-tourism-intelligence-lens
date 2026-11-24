@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { currentJobsAreGreen, matchingPrs, notify } from '../.github/scripts/discord-ci-green.mjs';
+import { currentJobsAreGreen, githubApi, matchingPrs, notify } from '../.github/scripts/discord-ci-green.mjs';
 
 const sha = 'a'.repeat(40);
 const names = [
@@ -14,7 +14,7 @@ const jobs = (attempt = 1) => names.map(name => ({
   name, run_attempt: attempt, status: 'completed', conclusion: 'success',
 }));
 
-function fixture({ allJobs = jobs(), changeHead = false, discordFails = false } = {}) {
+function fixture({ allJobs = jobs(), changeHead = false, discordFails = false, claimDenied = false } = {}) {
   const pr = {
     number: 42, state: 'open', title: '@everyone a PR\nspoofed line', html_url: 'https://github.com/o/r/pull/42',
     base: { ref: 'main' }, head: { ref: 'feat/@everyone', sha, repo: { id: 7 } },
@@ -42,6 +42,7 @@ function fixture({ allJobs = jobs(), changeHead = false, discordFails = false } 
     }
     if (method === 'GET' && path.includes('/issues/42/comments?')) return comments;
     if (method === 'POST' && path.endsWith('/issues/42/comments')) {
+      if (claimDenied) throw new Error('GitHub API POST: HTTP 403');
       const comment = { id: 1, ...body }; comments.push(comment); return comment;
     }
     if (method === 'PATCH' && path.endsWith('/issues/comments/1')) {
@@ -111,7 +112,35 @@ test('synthetic merge SHA is accepted only for the matching PR', () => {
 
 test('Discord failure retains claim and suppresses a duplicate retry', async () => {
   const f = fixture({ discordFails: true });
-  assert.equal(await f.call(), 'Delivery uncertain; persistent claim retained');
+  await assert.rejects(f.call(), /Discord delivery or marker update failed; persistent claim retained: HTTP 503/);
   assert.equal(await f.call(), 'Notification already claimed for PR/SHA');
   assert.match(f.comments[0].body, /status=attempted/);
+});
+
+test('403 while claiming fails visibly before contacting Discord', async () => {
+  const f = fixture({ claimDenied: true });
+  await assert.rejects(f.call(), /HTTP 403/);
+  assert.equal(f.sent.length, 0);
+  assert.equal(f.comments.length, 0);
+});
+
+test('GitHub API error includes safe reason and accepted permission hint', async () => {
+  const fetchImpl = async () => ({
+    ok: false, status: 403,
+    headers: new Headers({
+      'x-accepted-github-permissions': 'pull_requests=write',
+      'x-github-request-id': 'ABCD:1234',
+    }),
+    json: async () => ({ message: 'Resource not accessible by integration' }),
+  });
+  await assert.rejects(
+    githubApi('test-token', 'POST', '/repos/o/r/issues/42/comments', { body: '<!-- marker -->' }, fetchImpl),
+    error => {
+      assert.match(error.message, /Resource not accessible by integration/);
+      assert.match(error.message, /accepted permissions: pull_requests=write/);
+      assert.match(error.message, /request ID: ABCD:1234/);
+      assert.doesNotMatch(error.message, /test-token/);
+      return true;
+    },
+  );
 });

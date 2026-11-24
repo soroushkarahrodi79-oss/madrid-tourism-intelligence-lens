@@ -88,7 +88,7 @@ async function pages(api, path, field) {
 }
 
 export async function notify({ api, sendDiscord, repo, runId, webhook, now = new Date() }) {
-  if (!webhook) return 'Discord webhook is absent';
+  if (!webhook) throw new Error('Discord webhook is absent');
   const root = `/repos/${repo}`;
   const run = await api('GET', `${root}/actions/runs/${runId}`);
   if (run.id !== Number(runId) || run.name !== 'Test' ||
@@ -135,13 +135,12 @@ export async function notify({ api, sendDiscord, repo, runId, webhook, now = new
     return 'Discord notification sent';
   } catch (error) {
     // Keep the claim even on failure. Manual deletion and a Test rerun allow a retry.
-    console.warn(`Discord delivery or marker update failed: ${error.message}`);
-    return 'Delivery uncertain; persistent claim retained';
+    throw new Error(`Discord delivery or marker update failed; persistent claim retained: ${error.message}`);
   }
 }
 
-async function githubApi(token, method, path, body) {
-  const response = await fetch(`https://api.github.com${path}`, {
+export async function githubApi(token, method, path, body, fetchImpl = fetch) {
+  const response = await fetchImpl(`https://api.github.com${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${token}`,
@@ -151,7 +150,16 @@ async function githubApi(token, method, path, body) {
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
-  if (!response.ok) throw new Error(`GitHub API ${method} ${path}: HTTP ${response.status}`);
+  if (!response.ok) {
+    const details = await response.json().catch(() => ({}));
+    const message = oneLine(details.message, 200);
+    const accepted = oneLine(response.headers.get('x-accepted-github-permissions'), 200);
+    const requestId = oneLine(response.headers.get('x-github-request-id'), 100);
+    throw new Error(`GitHub API ${method} ${path}: HTTP ${response.status}` +
+      (message ? `; ${message}` : '') +
+      (accepted ? `; accepted permissions: ${accepted}` : '') +
+      (requestId ? `; request ID: ${requestId}` : ''));
+  }
   return response.json();
 }
 
@@ -176,6 +184,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     runId: TEST_RUN_ID,
     webhook: DISCORD_CI_WEBHOOK_URL,
   }).then(result => console.log(result)).catch(error => {
-    console.warn(`Discord notifier skipped: ${error.message}`);
+    console.error(`Discord notifier failed: ${error.message}`);
+    process.exitCode = 1;
   });
 }
