@@ -11961,6 +11961,14 @@ function nlCommandExecute() {
   if (!result || result.status !== NL_COMMAND_STATUS.READY) return;
   // Revalidate the COMPLETE command against the state NOW. The interpretation the
   // person confirmed is executed only if it still means the same thing.
+  // The geography is part of what was confirmed: a universe that loaded since the preview
+  // could make a name ambiguous that was unique when it was shown.
+  if (!revalidateNaturalCommandResult(result, nlCommandSearch)) {
+    nlCommand.result = null;
+    nlCommand.fingerprint = null;
+    nlCommandSetView({ type: "error", code: "GEOGRAPHY_CHANGED" });
+    return;
+  }
   const view = nlCommandPrepareView(result);
   if (view.type === "error") { nlCommandSetView(view); return; }
   if (nlCommand.shownFingerprint !== nlCommand.fingerprint) { nlCommandSetView({ ...view, stale: true }); return; }
@@ -12111,7 +12119,14 @@ function nlCommandSetOpen(open, { restoreFocus = true } = {}) {
   panel.hidden = !open;
   toggle.setAttribute("aria-expanded", String(Boolean(open)));
   if (open) nlCommandNode("nlCommandInput").focus();
-  else if (restoreFocus) toggle.focus();
+  else if (restoreFocus) {
+    // Return focus to the opener that is actually on screen: on phones and narrow headers the
+    // header button does not exist (display:none) and the path started at the finder activator.
+    const shown = (node) => node && node.getClientRects().length > 0;
+    const finder = nlCommandNode("geoSearchToggle");
+    const target = shown(toggle) ? toggle : shown(finder) ? finder : null;
+    if (target) target.focus();
+  }
 }
 
 function nlCommandInit() {

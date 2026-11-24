@@ -191,12 +191,16 @@ function nlResolvePlace(phrase, contracted, search) {
   const { typeHint, variants } = nlPlaceVariants(phrase, contracted);
   if (typeof search !== "function") return { state: "unready", candidates: [] };
   const limit = 50;
-  let sawUnavailable = false;
-  let coverageIncomplete = false;
+  // Which official universes can decide this phrase. An UNTYPED name may be carried by
+  // an entity of any type (Carabanchel is a DISTRICT and an AMBITO), so uniqueness can be
+  // asserted only when BOTH universes are loaded; a typed name needs only its own.
+  const relevant = !typeHint ? ["administrative", "ambito"] : [typeHint === "AMBITO" ? "ambito" : "administrative"];
   for (const variant of variants) {
     const reading = search(variant, limit);
-    if (!reading || reading.state === "unavailable") { sawUnavailable = true; continue; }
-    if (reading.coverage && (!reading.coverage.administrative || !reading.coverage.ambito)) coverageIncomplete = true;
+    // Not ready is never "unknown", and never "unique": absence of a source is not
+    // absence of the entity that could make the name ambiguous.
+    if (!reading || reading.state === "unavailable") return { state: "unready", candidates: [] };
+    if (reading.coverage && !relevant.every((key) => reading.coverage[key])) return { state: "unready", candidates: [] };
     const exact = (reading.results || []).filter((r) => {
       if (typeHint && r.type !== typeHint) return false;
       if (r.match === "EXACT_NAME") return true;
@@ -205,10 +209,6 @@ function nlResolvePlace(phrase, contracted, search) {
     if (exact.length === 1) return { state: "resolved", candidates: [nlCandidate(exact[0])], id: exact[0].id };
     if (exact.length > 1) return { state: "ambiguous", candidates: exact.slice(0, NL_COMMAND_LIMITS.maxCandidates).map(nlCandidate), id: null };
   }
-  if (sawUnavailable) return { state: "unready", candidates: [] };
-  // Not found. An incompletely loaded universe means ABSENCE OF THE SOURCE, not
-  // absence of the entity, so the answer is "not ready", never "unknown".
-  if (coverageIncomplete) return { state: "unready", candidates: [] };
   const suggestions = [];
   const probe = variants[variants.length - 1];
   if (probe && probe.length >= 3) {
@@ -244,7 +244,7 @@ const NL_BOUNDARY_WORDS = /\b(?:distritos|barrios|ambitos|districts|neighbou?rho
 
 function nlPlace(role, phrase, contracted, search) {
   const resolution = nlResolvePlace(phrase, contracted, search);
-  return { role, phrase, state: resolution.state, candidates: resolution.candidates, id: resolution.id || null, suggestions: resolution.suggestions || [] };
+  return { role, phrase, contracted, state: resolution.state, candidates: resolution.candidates, id: resolution.id || null, suggestions: resolution.suggestions || [] };
 }
 
 function nlReject(reason, extra) {
@@ -488,6 +488,23 @@ function chooseNaturalCommandCandidate(result, role, id) {
   return nlFinalize({ ...draft, places });
 }
 
+// Re-resolve every place of an interpretation against the index as it is NOW. True only
+// if each place still means exactly what the person was shown: a unique name is still
+// unique with the same id, and a name they chose between still offers the same candidates.
+// A universe that loaded in between and made a name ambiguous (or removed it) fails here.
+function revalidateNaturalCommandResult(result, search) {
+  const draft = result && result.draft;
+  if (!draft || !Array.isArray(draft.places)) return false;
+  for (const place of draft.places) {
+    const now = nlResolvePlace(place.phrase, place.contracted, search);
+    if (now.state === "resolved") { if (now.id !== place.id) return false; continue; }
+    if (now.state !== "ambiguous" || !place.id) return false;
+    const same = now.candidates.length === place.candidates.length && now.candidates.every((c) => place.candidates.some((o) => o.id === c.id));
+    if (!same) return false;
+  }
+  return true;
+}
+
 // The person explicitly adopted the supported reading offered for an incomplete
 // comparison ("Compara A y B" -> two Lens CIRCLES). Nothing else can turn a
 // clarification into a command.
@@ -531,6 +548,7 @@ if (typeof module !== "undefined" && module.exports) {
     parseNaturalCommand,
     chooseNaturalCommandCandidate,
     adoptNaturalCommandProposal,
+    revalidateNaturalCommandResult,
     describeNaturalCommandPlan,
     naturalCommandFingerprint,
   };

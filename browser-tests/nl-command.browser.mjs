@@ -446,3 +446,23 @@ test("opening the place finder closes the command panel and vice versa; neither 
   assert.deepEqual(await world(page), before);
   assert.deepEqual(errors, []);
 });
+
+test("on a phone, closing the panel (Escape or Close) returns focus to a control that is actually visible", async (t) => {
+  const { page, errors } = await openApp(t, { viewport: { width: 375, height: 812 } });
+  for (const how of ["Escape", "Close"]) {
+    await page.click("#geoSearchToggle");
+    await page.click("#nlCommandFromFinder");
+    await page.waitForSelector("#nlCommandPanel:not([hidden])");
+    if (how === "Escape") await page.keyboard.press("Escape");
+    else await page.click("#nlCommandClose");
+    await page.waitForSelector("#nlCommandPanel", { state: "hidden" });
+    const focus = await page.evaluate(() => {
+      const el = document.activeElement;
+      return { id: el.id, visible: el.getClientRects().length > 0, isBody: el === document.body };
+    });
+    assert.equal(focus.isBody, false, `${how}: focus is not lost to <body>`);
+    assert.equal(focus.visible, true, `${how}: focus is on a visible control (${focus.id})`);
+    assert.equal(focus.id, "geoSearchToggle", `${how}: the visible opener of the path (the finder activator)`);
+  }
+  assert.deepEqual(errors, []);
+});

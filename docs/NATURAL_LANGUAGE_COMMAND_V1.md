@@ -92,8 +92,13 @@ exactly three digits (`1.500`, `1,250`) is `AMBIGUOUS_NUMBER` — it could be 15
   (`UNKNOWN_ENTITY`) because no official denomination equals them. Official
   denominations that merely *contain* the text are listed as read-only
   suggestions; they are never selected, and no equivalence is stated.
-- A universe that is not loaded is `GEOGRAPHY_NOT_READY`, never "unknown": absence
-  of a source is not absence of the entity.
+- A universe that is not loaded is `GEOGRAPHY_NOT_READY`, never "unknown" and never
+  "unique". An **untyped** name needs BOTH official universes (administrative and
+  ámbito) loaded, because it may be carried by an entity of either (Carabanchel is a
+  district and an ámbito); a name with an explicit type needs only its own universe.
+  At Execute every place is re-resolved against the index as it is then: if a name is no
+  longer unique with the same identifier (or a chosen name no longer offers the same
+  candidates), nothing is executed and the person must interpret again.
 
 ## 5. Scientific semantics
 

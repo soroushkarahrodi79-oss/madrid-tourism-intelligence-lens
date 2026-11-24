@@ -203,12 +203,64 @@ test("C. entity resolution — a name shared by several official entities is a C
   assert.deepEqual(done.command.b, { location: D21, radiusM: 500 });
 });
 
-test("C. entity resolution — an unloaded universe is NOT a missing entity", () => {
+// Genuinely partial indices: built from ONE universe only, so their coverage is what the
+// application's ensureGeoSearchIndex() reports while the other artifact is still loading.
+const adminOnly = createGeoSearchIndex({ geography });
+const ambitoOnly = createGeoSearchIndex({ planning });
+const partial = (idx) => (query, limit) => searchGeoEntities(idx, query, limit);
+
+test("C. partial coverage — an untyped name is never asserted unique while a relevant universe is missing", () => {
+  assert.deepEqual([adminOnly.coverage.administrative, adminOnly.coverage.ambito], [true, false]);
+  assert.deepEqual([ambitoOnly.coverage.administrative, ambitoOnly.coverage.ambito], [false, true]);
+  const run = (text, idx) => N.parseNaturalCommand(text, { search: partial(idx) });
+  // Carabanchel is a DISTRICT and an AMBITO: with either universe missing the clash cannot be excluded.
+  for (const [text, idx] of [["Ve a Carabanchel", adminOnly], ["Ve a Carabanchel", ambitoOnly], ["Go to Barajas", adminOnly], ["Ve a Lavapiés", adminOnly], ["Coloca Lens A en Carabanchel", adminOnly]]) {
+    const r = run(text, idx);
+    assert.equal(r.status, ST.REJECTED, text);
+    assert.equal(r.reason, R.GEOGRAPHY_NOT_READY, text);
+    assert.equal(r.command, undefined);
+  }
+  // Compare: one untyped side is enough to withhold the whole command.
+  assert.equal(run("Compara dos círculos de 500 metros en Barajas y Hortaleza", adminOnly).reason, R.GEOGRAPHY_NOT_READY);
+});
+
+test("C. partial coverage — an explicit type resolves from its own universe alone", () => {
+  const run = (text, idx) => N.parseNaturalCommand(text, { search: partial(idx) });
+  assert.deepEqual(run("Ve al distrito de Carabanchel", adminOnly).command.location, { type: "official_area", id: "DISTRICT:11" });
+  assert.deepEqual(run("Go to Carabanchel district", adminOnly).command.location, { type: "official_area", id: "DISTRICT:11" });
+  assert.deepEqual(run("Ve al ámbito Carabanchel", ambitoOnly).command.location, { type: "official_area", id: "AMBITO:UZI.0.10" });
+  // The OTHER type needs the universe that is not loaded.
+  assert.equal(run("Ve al ámbito Carabanchel", adminOnly).reason, R.GEOGRAPHY_NOT_READY);
+  assert.equal(run("Ve al distrito de Carabanchel", ambitoOnly).reason, R.GEOGRAPHY_NOT_READY);
+  // A typed name absent from its (loaded) universe is genuinely unknown, not "not ready".
+  assert.equal(run("Ve al distrito de Lavapiés", adminOnly).reason, R.UNKNOWN_ENTITY);
+});
+
+test("C. partial coverage — with both universes loaded the same instructions behave as specified", () => {
+  assert.equal(parse("Ve a Carabanchel").status, ST.NEEDS_CHOICE);
+  assert.equal(parse("Ve al distrito de Carabanchel").status, ST.READY);
+  assert.equal(parse("Ve al ámbito Carabanchel").status, ST.READY);
+  assert.equal(parse("Ve a Barajas").status, ST.READY);
   assert.equal(N.parseNaturalCommand("Ve a Barajas", { search: () => ({ state: "unavailable", results: [] }) }).reason, R.GEOGRAPHY_NOT_READY);
   assert.equal(N.parseNaturalCommand("Ve a Barajas", {}).reason, R.GEOGRAPHY_NOT_READY);
-  const half = (query, limit) => ({ ...searchGeoEntities(index, query, limit), coverage: { administrative: true, ambito: false } });
-  assert.equal(N.parseNaturalCommand("Ve a Lavapiés", { search: half }).reason, R.GEOGRAPHY_NOT_READY, "absence of a source is not absence of the entity");
-  assert.equal(N.parseNaturalCommand("Ve a Barajas", { search: half }).status, ST.READY, "a found entity is still found");
+});
+
+test("C. a preview cannot silently become ambiguous between interpretation and execution", () => {
+  // Typed on a partial index: ready. Then the other universe loads and the UNTYPED sentence is re-read.
+  const typed = N.parseNaturalCommand("Ve al distrito de Carabanchel", { search: partial(adminOnly) });
+  assert.equal(typed.status, ST.READY);
+  assert.equal(N.revalidateNaturalCommandResult(typed, search), true, "an explicit type stays what it was shown to be");
+  // A unique-looking name that later turns out to be shared: simulate by revalidating a result
+  // produced under a search that hid the second entity, against the complete index.
+  const hidden = (q, l) => { const r = searchGeoEntities(index, q, l); return { ...r, results: r.results.filter((x) => x.type === "DISTRICT") }; };
+  const shown = N.parseNaturalCommand("Ve a Carabanchel", { search: hidden });
+  assert.equal(shown.status, ST.READY, "premise: it looked unique");
+  assert.equal(N.revalidateNaturalCommandResult(shown, search), false, "the complete index makes it ambiguous: not executable");
+  // A choice the person made stays valid only while the candidates are the ones they chose from.
+  const choice = N.chooseNaturalCommandCandidate(parse("Ve a Carabanchel"), "location", "DISTRICT:11");
+  assert.equal(N.revalidateNaturalCommandResult(choice, search), true);
+  assert.equal(N.revalidateNaturalCommandResult(choice, partial(adminOnly)), false, "a universe that went away withdraws the confirmation");
+  assert.equal(N.revalidateNaturalCommandResult(null, search), false);
 });
 
 // ------------------------------------------------------------------ D. structured commands
