@@ -1,6 +1,8 @@
 # Pilot results — Embajadores (Lavapiés), PNOA-LiDAR 3rd coverage v1
 
-Run 2026-11-24 on sheet `0559-4-5` (MDS and MDT), one barrio, one sheet.
+Run 2026-11-24 on sheet `0559-4-5` (MDS and MDT), one barrio, one sheet. Regenerated
+after adding input gating (REJECTED reports) and the licence attribution to the
+figures; the numbers did not change.
 Machine-readable record: [`results/pilot_report.json`](results/pilot_report.json)
 (input SHA-256, raster metadata, library versions, every number below).
 Figure: [`results/figure_mds_minus_mdt.png`](results/figure_mds_minus_mdt.png).
@@ -104,13 +106,16 @@ to repeat the CNIG download (reCAPTCHA); the SHA-256 above identifies the files.
 
 Only **303 cells (0.007 % of AOI cells) in 2 compact clusters**: 60.75 m², max
 56.5 m, mean 49.5 m at lon −3.70686 / lat 40.41290; and 15.0 m², max 47.9 m at
-lon −3.70559 / lat 40.40958. In the PNOA orthophoto crops
-(`figure_cells_ge_45m.png`) each coincides with the centre of a circular domed
-roof, and MDS − MDT shows a compact circular peak at the same place. That is
-**consistent with an identifiable structure and not with an isolated artefact**;
-no building is named, the heights were not compared with any reference, and the
-orthophoto is a dynamic service of a different date. Cells ≥ 45 m elsewhere on the
-sheet (outside the AOI) were not examined.
+lon −3.70559 / lat 40.40958. In `figure_cells_ge_45m.png` each shows as a compact,
+roughly circular peak inside a larger block. A one-off visual comparison with the
+IGN PNOA orthophoto (WMS) suggested each sits at the centre of a circular domed
+roof, **but those images are not in this repository** (their IGN attribution could
+not be established, see `results/ATTRIBUTION.md`), so that observation is **not
+reproducible from the repository and should be treated as unverified**. What is
+committed is the numerical evidence only: two small compact clusters, not a
+scattered artefact pattern. No building is named and the heights were not compared
+with any reference. Cells ≥ 45 m elsewhere on the sheet (outside the AOI) were not
+examined.
 
 ### 3. Spatial pattern of the < 0.5 m cells (7.99 % of AOI cells)
 
@@ -124,7 +129,8 @@ of exactly 0.
 In `figure_cells_lt_0_5m.png` the low cells trace the street network and a wide
 avenue; in the Plaza de Lavapiés crop they cover much of the open surface but are
 interleaved with cells ≥ 0.5 m (what those are — trees, furniture, kiosks — was not
-established); in the narrow-street crops the band of low cells **looks narrower
-than the street visible in the orthophoto** (not measured; cause not established).
+established). In the same one-off, uncommitted orthophoto comparison the band of low
+cells in narrow streets **looked narrower than the street** (not measured; cause not
+established; unverified for the same reason as above).
 **The 8 % must therefore not be read as the share of street or open space.** It is
 the share of cells where MDS and MDT agree within 0.5 m in this v1 product.

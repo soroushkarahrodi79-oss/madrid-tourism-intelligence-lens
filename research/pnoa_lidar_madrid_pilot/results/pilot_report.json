@@ -1,5 +1,6 @@
 {
   "pilot": "pnoa_lidar_madrid_pilot",
+  "status": "COMPLETED",
   "aoi": {
     "barrio": "Embajadores",
     "official_id": "012",
@@ -106,6 +107,7 @@
     },
     "retrieved_on": "2026-11-24"
   },
+  "attribution": "Obra derivada de MDS50cm-cob3 2022-2025 CC-BY 4.0 scne.es y de MDT50cm-cob3 2022-2025 CC-BY 4.0 scne.es",
   "environment": {
     "python": "3.13.17",
     "numpy": "2.5.5",

@@ -10,19 +10,21 @@ cause to anything it cannot show:
    the GeoTIFF georeferencing; a one-cell-shift test is also run and reported, but
    it turned out NOT to discriminate (see shift_sensitivity).
 2. Where are the cells with MDS - MDT >= 45 m, and do they look like identifiable
-   structures or artefacts (side-by-side crops with the PNOA orthophoto).
+   structures or artefacts (crops of MDS - MDT; their shape and size are the
+   committed evidence).
 3. Where are the cells < 0.5 m (the "ground-like" cells), by connected component
    size and equivalent width, with crops.
 
-Orthophoto crops come from the IGN PNOA WMS (CC BY 4.0 scne.es). That service is
-dynamic and shows a different date from the 2024 LiDAR, so the crops are a visual
-aid, never a measurement; pass --no-orthophoto to skip them.
+No orthophoto is fetched or reproduced: the IGN attribution for an orthophoto needs
+the product identifier and year, and the dynamic WMS mosaic does not give one.
+Inputs that are not a compatible pair are rejected (see run_pilot.load_pair): a
+rejection writes ``diagnostics.json`` with ``status: REJECTED`` and produces no
+figure; outputs of an earlier run are deleted first.
 """
 
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import pathlib
 import sys
@@ -34,7 +36,6 @@ core.isolate_proj_environment()  # before rasterio/pyproj are imported
 import run_pilot as rp  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
-WMS = "https://www.ign.es/wms-inspire/pnoa-ma"
 HIGH_M, LOW_M = 45.0, 0.5
 CROP_HALF_M = 45.0
 
@@ -170,19 +171,7 @@ def low_cells(ndsm, inside, tf):
                                     "centroid_EN": [round(r[2].centroid.x, 1), round(r[2].centroid.y, 1)]} for r in big]}, mask, big
 
 
-def fetch_ortho(minx, miny, maxx, maxy, px=360):
-    import requests
-    from PIL import Image  # installed with matplotlib; no new dependency
-
-    r = requests.get(WMS, params={"service": "WMS", "version": "1.3.0", "request": "GetMap", "layers": "OI.OrthoimageCoverage",
-                                  "styles": "", "crs": "EPSG:25830", "bbox": f"{minx},{miny},{maxx},{maxy}",
-                                  "width": px, "height": px, "format": "image/png"}, timeout=60,
-                     headers={"User-Agent": "research-client"})
-    r.raise_for_status()
-    return Image.open(io.BytesIO(r.content)).convert("RGB")
-
-
-def crop_figure(centres, ndsm, tf, low_mask, out, with_ortho, title):
+def crop_figure(centres, ndsm, tf, low_mask, out, title):
     import matplotlib
 
     matplotlib.use("Agg")
@@ -190,7 +179,7 @@ def crop_figure(centres, ndsm, tf, low_mask, out, with_ortho, title):
     import numpy as np
 
     n = len(centres)
-    fig, axes = plt.subplots(2 if with_ortho else 1, n, figsize=(2.6 * n, 5.3 if with_ortho else 2.8), dpi=90, squeeze=False)
+    fig, axes = plt.subplots(1, n, figsize=(2.6 * n, 2.9), dpi=90, squeeze=False)
     half = CROP_HALF_M
     for i, (e, nn, label) in enumerate(centres):
         c0, r0 = int((e - half - tf.c) / tf.a), int((tf.f - (nn + half)) / -tf.e)
@@ -202,15 +191,13 @@ def crop_figure(centres, ndsm, tf, low_mask, out, with_ortho, title):
             ax.imshow(np.where(low_mask[sl], 1.0, np.nan), cmap="autumn", alpha=0.45, interpolation="nearest")
         ax.set_title(label, fontsize=7)
         ax.axis("off")
-        if with_ortho:
-            try:
-                axes[1][i].imshow(fetch_ortho(e - half, nn - half, e + half, nn + half))
-            except Exception as exc:  # network is optional
-                axes[1][i].text(0.5, 0.5, f"ortho unavailable\n{type(exc).__name__}", ha="center", fontsize=6)
-            axes[1][i].axis("off")
     fig.suptitle(title, fontsize=7)
+    fig.text(0.5, 0.0, core.ATTRIBUTION, ha="center", va="top", fontsize=5.5)
     fig.savefig(out, bbox_inches="tight")
     plt.close(fig)
+
+
+OWNED_OUTPUTS = ("diagnostics.json", "figure_cells_ge_45m.png", "figure_cells_lt_0_5m.png")
 
 
 def main(argv=None):
@@ -218,38 +205,39 @@ def main(argv=None):
     p.add_argument("--mds", required=True, type=pathlib.Path)
     p.add_argument("--mdt", required=True, type=pathlib.Path)
     p.add_argument("--out", type=pathlib.Path, default=HERE / "results")
-    p.add_argument("--no-orthophoto", action="store_true")
     args = p.parse_args(argv)
     rp._require()
     from rasterio.features import geometry_mask
 
-    _, poly = rp.aoi_polygon_25830()
-    mds, tf, nd1 = rp.read_window(args.mds, poly)
-    mdt, _, nd2 = rp.read_window(args.mdt, poly)
+    rp.clear_outputs(args.out, OWNED_OUTPUTS)
+    try:
+        pair = rp.load_pair(args.mds, args.mdt)
+    except rp.Rejected as exc:
+        rp.write_rejection(args.out, "diagnostics.json", exc.reasons, exc.inputs, None)
+        print("REJECTED: " + "; ".join(exc.reasons), file=sys.stderr)
+        return 1
+    poly, tf = pair["poly"], pair["t_mds"]
+    mds, nd1, mdt, nd2 = pair["mds"], pair["nd_mds"], pair["mdt"], pair["nd_mdt"]
     inside = geometry_mask([poly], out_shape=mds.shape, transform=tf, invert=True)
     ndsm = core.normalised_surface(mds, mdt, nd1, nd2)
     args.out.mkdir(parents=True, exist_ok=True)
 
-    rep = {"crs_and_alignment": crs_report(args.mds, args.mdt)}
+    rep = {"status": "COMPLETED", "attribution": core.ATTRIBUTION, "crs_and_alignment": crs_report(args.mds, args.mdt)}
     rep["crs_and_alignment"]["one_cell_shift_sensitivity"] = shift_sensitivity(mds, mdt, inside, nd1, nd2)
     hi = high_cells(ndsm, inside, mds, mdt, tf)
     lo, lomask, big = low_cells(ndsm, inside, tf)
     rep["high_cells"], rep["low_cells"] = hi, lo
-    ortho = not args.no_orthophoto
-    rep["orthophoto"] = {"used": ortho, "service": WMS, "layer": "OI.OrthoimageCoverage",
-                         "licence": "CC BY 4.0 scne.es (service-declared)",
-                         "caveat": "dynamic service; date differs from the 2024 LiDAR; visual aid only"}
     crop_figure([(r["easting"], r["northing"], f"max {r['max_mds_minus_mdt_m']:.0f} m, {r['area_m2']:.0f} m2")
-                 for r in hi["top_components"][:4]], ndsm, tf, None, args.out / "figure_cells_ge_45m.png", ortho,
-                "MDS-MDT (0-40 m) above, PNOA orthophoto below; 90 m crops on the four tallest >=45 m clusters")
+                 for r in hi["top_components"][:4]], ndsm, tf, None, args.out / "figure_cells_ge_45m.png",
+                "MDS-MDT (0-40 m); 90 m crops on the tallest >=45 m clusters")
     centres = [(c.centroid.x, c.centroid.y, f"low comp. {a:.0f} m2, w={w:.0f} m") for a, w, c in big[:2]]
     from pyproj import Transformer
 
     plaza = Transformer.from_crs(rp.CRS_WGS84, rp.CRS_ETRS89_UTM30, always_xy=True).transform(*rp.DEMO_CIRCLE_LONLAT)
     cx, cy = poly.centroid.x, poly.centroid.y
     centres += [(plaza[0], plaza[1], "Plaza de Lavapies (approx.)"), (cx, cy, "barrio centre"), (cx - 250, cy + 150, "NW of centre")]
-    crop_figure(centres, ndsm, tf, lomask, args.out / "figure_cells_lt_0_5m.png", ortho,
-                "cells < 0.5 m in orange over MDS-MDT; PNOA orthophoto below; 90 m crops: two largest low components, plaza, centre, NW")
+    crop_figure(centres, ndsm, tf, lomask, args.out / "figure_cells_lt_0_5m.png",
+                "cells < 0.5 m in orange over MDS-MDT; 90 m crops: two largest low components, plaza, centre, NW")
     (args.out / "diagnostics.json").write_text(json.dumps(rep, indent=2, ensure_ascii=False), encoding="utf-8")
     print("diagnostics written:", args.out / "diagnostics.json")
     return 0

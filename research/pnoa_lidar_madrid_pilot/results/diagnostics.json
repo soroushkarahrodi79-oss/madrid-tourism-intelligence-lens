@@ -1,4 +1,6 @@
 {
+  "status": "COMPLETED",
+  "attribution": "Obra derivada de MDS50cm-cob3 2022-2025 CC-BY 4.0 scne.es y de MDT50cm-cob3 2022-2025 CC-BY 4.0 scne.es",
   "crs_and_alignment": {
     "epsg_3042": {
       "name": "ETRS89 / UTM zone 30N (N-E)",
@@ -454,12 +456,5 @@
         ]
       }
     ]
-  },
-  "orthophoto": {
-    "used": true,
-    "service": "https://www.ign.es/wms-inspire/pnoa-ma",
-    "layer": "OI.OrthoimageCoverage",
-    "licence": "CC BY 4.0 scne.es (service-declared)",
-    "caveat": "dynamic service; date differs from the 2024 LiDAR; visual aid only"
   }
 }

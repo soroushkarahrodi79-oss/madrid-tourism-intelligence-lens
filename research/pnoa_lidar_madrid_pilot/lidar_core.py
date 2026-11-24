@@ -24,6 +24,43 @@ NOISE_FLOOR_M = round(math.sqrt(2.0) * DECLARED_RMSE_Z_MDE_M, 3)
 NEGATIVE_TOLERANCE_M = -0.5
 
 
+# Attribution required by the IGN licence for a work derived from these products.
+# Strings copied 2026-11-24 from the official product table
+# (http://www.scne.es/tablaProductos.php): identifier, date, "CC-BY 4.0", producer.
+ATTRIBUTION = (
+    "Obra derivada de MDS50cm-cob3 2022-2025 CC-BY 4.0 scne.es "
+    "y de MDT50cm-cob3 2022-2025 CC-BY 4.0 scne.es"
+)
+
+
+def metadata_problems(mds, mdt, cell_m=0.5):
+    """Reasons the two rasters' file-level metadata cannot be combined (empty = compatible).
+
+    Checked BEFORE any pixel is read, because AOI coordinates are EPSG:25830 and
+    reading a raster in another CRS with them would be meaningless.
+    """
+    out = []
+    for name, m in (("MDS", mds), ("MDT", mdt)):
+        if not m.get("crs_equivalent_to_25830"):
+            out.append(f"{name}: CRS missing or not equivalent to EPSG:25830 (declared EPSG code: {m.get('epsg')})")
+        if any(abs(r - cell_m) > 1e-9 for r in m["res"]):
+            out.append(f"{name}: cell size {m['res']} is not {cell_m} m")
+        t = m["transform"]
+        if abs(t[1]) > 0 or abs(t[3]) > 0:
+            out.append(f"{name}: rotated or sheared geotransform")
+    return out
+
+
+def grid_problems(t_mds, t_mdt, shape_mds, shape_mdt, tol=1e-6):
+    """Reasons the two AOI windows are not the same cell lattice (empty = identical)."""
+    out = []
+    if tuple(shape_mds) != tuple(shape_mdt):
+        out.append(f"AOI window shapes differ: MDS {tuple(shape_mds)} vs MDT {tuple(shape_mdt)}")
+    if any(abs(a - b) > tol for a, b in zip(list(t_mds)[:6], list(t_mdt)[:6])):
+        out.append("AOI window geotransforms differ: the grids are not cell-for-cell aligned")
+    return out
+
+
 def isolate_proj_environment():
     """Drop PROJ/GDAL data-path variables inherited from another installation.
 

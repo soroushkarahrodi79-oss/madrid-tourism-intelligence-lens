@@ -64,11 +64,15 @@ the IGN WCS/WMS; it is **not** the 50 cm model.
   ([IDEE blog](https://blog.idee.es/archivo/-/blogs/nuevos-productos-lidar-de-la-3-cobertura-del-pnoa));
   product pages link the IGN licence conditions and BOE-A-2015-14129. The IGN licence conditions
   (Orden FOM/2807/2015, art. 4; `Condiciones_licenciaUso_IGN.pdf`, read
-  2026-11-24) require a visible mention of origin; for a derived work the form is
-  «Obra derivada de <producto> <fecha> CC-BY 4.0 <atribución de productores>», with
-  the three fields taken from the product table at scne.es/productos.html (an
-  interactive search form that could not be read non-interactively). The exact
-  field values for these products are therefore **UNVERIFIED**; see
+  2026-11-24) require a mention of origin shown visibly next to the data; for a
+  derived work the form is «Obra derivada de <identificador> <fecha> CC-BY 4.0
+  <atribución de productores>». **Verified 2026-11-24** against the official product
+  table (`http://www.scne.es/tablaProductos.php`, the data behind scne.es/productos.html):
+  MDS 50 cm → `MDS50cm-cob3 2022-2025 CC-BY 4.0 scne.es`; MDT 50 cm →
+  `MDT50cm-cob3 2022-2025 CC-BY 4.0 scne.es`; classified cloud →
+  `LiDAR-PNOA-cob3 2022-2025 CC-BY 4.0 scne.es`. The table has no row for the
+  dynamic `OI.OrthoimageCoverage` WMS mosaic (only annual "PNOA <año>" rows), so an
+  attribution for orthophoto crops could not be composed: see
   `results/ATTRIBUTION.md`.
 - **Local processing, no paid services.** Yes: GDAL/rasterio read COG directly;
   nothing in the pilot needs a cloud service.

@@ -50,6 +50,42 @@ class IsolationTests(unittest.TestCase):
         self.assertAlmostEqual(core.NOISE_FLOOR_M, math.sqrt(2) * 0.15, places=3)
 
 
+class CompatibilityRulesTests(unittest.TestCase):
+    """Pure-Python rules (run in CI without numpy): when may two rasters be combined?"""
+
+    GOOD = {"crs_equivalent_to_25830": True, "epsg": 3042, "res": [0.5, 0.5], "transform": [0.5, 0.0, 438060.0, 0.0, -0.5, 4474320.0]}
+
+    def test_compatible_metadata_has_no_problems(self):
+        self.assertEqual(core.metadata_problems(self.GOOD, dict(self.GOOD, epsg=25830)), [])
+
+    def test_each_metadata_defect_is_reported_against_the_right_raster(self):
+        bad_crs = dict(self.GOOD, crs_equivalent_to_25830=False, epsg=None)
+        self.assertEqual(len(core.metadata_problems(self.GOOD, bad_crs)), 1)
+        self.assertIn("MDT: CRS missing", core.metadata_problems(self.GOOD, bad_crs)[0])
+        self.assertIn("MDS: cell size", core.metadata_problems(dict(self.GOOD, res=[1.0, 1.0]), self.GOOD)[0])
+        rotated = dict(self.GOOD, transform=[0.5, 0.1, 0.0, 0.0, -0.5, 0.0])
+        self.assertIn("rotated", core.metadata_problems(self.GOOD, rotated)[0])
+
+    def test_grid_rules(self):
+        t = (0.5, 0.0, 100.0, 0.0, -0.5, 200.0)
+        self.assertEqual(core.grid_problems(t, t, (4, 5), (4, 5)), [])
+        self.assertIn("shapes differ", core.grid_problems(t, t, (4, 5), (4, 6))[0])
+        shifted = (0.5, 0.0, 100.25, 0.0, -0.5, 200.0)
+        self.assertIn("geotransforms differ", core.grid_problems(t, shifted, (4, 5), (4, 5))[0])
+
+    def test_attribution_uses_the_verified_official_strings(self):
+        self.assertIn("MDS50cm-cob3 2022-2025 CC-BY 4.0 scne.es", core.ATTRIBUTION)
+        self.assertIn("MDT50cm-cob3 2022-2025 CC-BY 4.0 scne.es", core.ATTRIBUTION)
+        self.assertTrue(core.ATTRIBUTION.startswith("Obra derivada de"))
+
+    def test_no_third_party_imagery_is_fetched_or_committed(self):
+        for f in PILOT.glob("*.py"):
+            src = f.read_text(encoding="utf-8")
+            self.assertNotIn("wms-inspire", src, f.name)
+            self.assertNotIn("import requests", src, f.name)
+        self.assertEqual([p.name for p in (PILOT / "results").glob("*ortho*")], [])
+
+
 @unittest.skipIf(np is None, "numpy not installed")
 class CoreTests(unittest.TestCase):
     def test_difference_and_nodata_propagation(self):
@@ -123,6 +159,8 @@ class EndToEndSyntheticTests(unittest.TestCase):
             import json
             rep = json.loads((td / "out" / "pilot_report.json").read_text(encoding="utf-8"))
         self.assertEqual(code, 0, rep["acceptance"])
+        self.assertEqual(rep["status"], "COMPLETED")
+        self.assertEqual(rep["attribution"], core.ATTRIBUTION)
         self.assertEqual(rep["acceptance"]["verdict"], "PASS")
         self.assertEqual(rep["aoi_summary"]["valid_fraction"], 1.0)
         self.assertAlmostEqual(rep["aoi_summary"]["max"], 12.0, places=3)
@@ -156,21 +194,107 @@ class EndToEndSyntheticTests(unittest.TestCase):
                     dst.write(np.full((200, 200), 650.0, "float32"), 1)
             code = run_pilot.main(["--mds", str(td / "mds.tif"), "--mdt", str(td / "mdt.tif"), "--out", str(td / "o")])
             self.assertEqual(code, 1)
+            rep = self._read(td / "o" / "pilot_report.json")
+        self.assertEqual(rep["status"], "REJECTED")
+        self.assertIn("does not fully cover the AOI window", rep["reasons"][0])
 
-    def test_misaligned_pair_fails_the_grid_criterion(self):
-        import run_pilot
+    # ---- regression: incompatible inputs must produce a rejection, never statistics ----
+
+    def _read(self, path):
+        import json
+
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    def _assert_rejected(self, td, code, reason_fragment):
+        out = td / "out"
+        self.assertEqual(code, 1)
+        rep = self._read(out / "pilot_report.json")
+        self.assertEqual(rep["status"], "REJECTED")
+        self.assertTrue(any(reason_fragment in r for r in rep["reasons"]), rep["reasons"])
+        for key in ("aoi_summary", "acceptance", "demo_circle", "mdt_in_aoi", "mds_in_aoi"):
+            self.assertNotIn(key, rep)
+        self.assertFalse((out / "figure_mds_minus_mdt.png").exists())
+        return rep
+
+    def _pair(self, td, mdt_origin=(439500.0, 4474100.0), mdt_crs="EPSG:25830", mds_crs="EPSG:25830", mdt_cell=0.5):
         from rasterio.transform import from_origin
 
         w, h = 4000, 2400
+        data = np.full((h, w), 650.0, "float32")
+        for name, origin, crs, cell in (("mds", (439500.0, 4474100.0), mds_crs, 0.5), ("mdt", mdt_origin, mdt_crs, mdt_cell)):
+            with rasterio.open(td / f"{name}.tif", "w", driver="GTiff", height=h, width=w, count=1, dtype="float32",
+                               crs=crs, transform=from_origin(origin[0], origin[1], cell, cell), nodata=-9999.0) as dst:
+                dst.write(data, 1)
+
+    def _run(self, td):
+        import run_pilot
+
+        return run_pilot.main(["--mds", str(td / "mds.tif"), "--mdt", str(td / "mdt.tif"), "--out", str(td / "out")])
+
+    def test_misaligned_grid_is_rejected_with_no_statistics_or_figure(self):
         with tempfile.TemporaryDirectory() as td:
             td = pathlib.Path(td)
-            self._write(td / "mds.tif", np.full((h, w), 650.0, "float32"), from_origin(439500.0, 4474100.0, 0.5, 0.5), -9999.0)
-            self._write(td / "mdt.tif", np.full((h, w), 650.0, "float32"), from_origin(439500.25, 4474100.0, 0.5, 0.5), -9999.0)
-            code = run_pilot.main(["--mds", str(td / "mds.tif"), "--mdt", str(td / "mdt.tif"), "--out", str(td / "out")])
-            import json
-            rep = json.loads((td / "out" / "pilot_report.json").read_text(encoding="utf-8"))
-        self.assertEqual(code, 2)
-        self.assertIn("grids_identical_in_aoi", rep["acceptance"]["failed"])
+            self._pair(td, mdt_origin=(439500.25, 4474100.0))
+            self._assert_rejected(td, self._run(td), "geotransforms differ")
+
+    def test_missing_crs_is_rejected(self):
+        with tempfile.TemporaryDirectory() as td:
+            td = pathlib.Path(td)
+            self._pair(td, mdt_crs=None)
+            rep = self._assert_rejected(td, self._run(td), "MDT: CRS missing or not equivalent")
+        self.assertEqual(len(rep["reasons"]), 1)  # the MDS is fine and is not blamed
+
+    def test_wrong_utm_zone_is_rejected(self):
+        with tempfile.TemporaryDirectory() as td:
+            td = pathlib.Path(td)
+            self._pair(td, mds_crs="EPSG:25829")
+            self._assert_rejected(td, self._run(td), "MDS: CRS missing or not equivalent")
+
+    def test_wrong_cell_size_is_rejected(self):
+        with tempfile.TemporaryDirectory() as td:
+            td = pathlib.Path(td)
+            self._pair(td, mdt_cell=1.0)
+            self._assert_rejected(td, self._run(td), "MDT: cell size")
+
+    def test_missing_input_file_is_rejected_with_a_report(self):
+        import run_pilot
+
+        with tempfile.TemporaryDirectory() as td:
+            td = pathlib.Path(td)
+            code = run_pilot.main(["--mds", str(td / "nope_mds.tif"), "--mdt", str(td / "nope_mdt.tif"), "--out", str(td / "out")])
+            rep = self._assert_rejected(td, code, "input file not found")
+        self.assertEqual(rep["inputs"]["mds"]["found"], False)
+
+    def test_failed_run_deletes_the_previous_runs_results(self):
+        """A rejected run must not leave an earlier PASS report or figure beside it."""
+        with tempfile.TemporaryDirectory() as td:
+            td = pathlib.Path(td)
+            out = td / "out"
+            out.mkdir()
+            (out / "pilot_report.json").write_text('{"status": "COMPLETED", "acceptance": {"verdict": "PASS"}, "aoi_summary": {}}')
+            (out / "figure_mds_minus_mdt.png").write_bytes(b"stale")
+            (out / "unrelated.txt").write_text("keep")
+            self._pair(td, mdt_crs=None)
+            self._assert_rejected(td, self._run(td), "CRS missing")
+            self.assertTrue((out / "unrelated.txt").exists())  # only this tool's own outputs are cleared
+
+    def test_diagnostics_also_rejects_and_clears_stale_outputs(self):
+        import diagnostics
+
+        with tempfile.TemporaryDirectory() as td:
+            td = pathlib.Path(td)
+            out = td / "out"
+            out.mkdir()
+            for n in diagnostics.OWNED_OUTPUTS:
+                (out / n).write_bytes(b"stale")
+            self._pair(td, mdt_origin=(439500.25, 4474100.0))
+            code = diagnostics.main(["--mds", str(td / "mds.tif"), "--mdt", str(td / "mdt.tif"), "--out", str(out)])
+            rep = self._read(out / "diagnostics.json")
+        self.assertEqual(code, 1)
+        self.assertEqual(rep["status"], "REJECTED")
+        self.assertNotIn("high_cells", rep)
+        self.assertFalse((out / "figure_cells_ge_45m.png").exists())
+        self.assertFalse((out / "figure_cells_lt_0_5m.png").exists())
 
 
 @unittest.skipIf(np is None or rasterio is None, "numpy/rasterio not installed")

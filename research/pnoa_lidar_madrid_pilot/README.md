@@ -16,7 +16,7 @@ repository's official barrio polygon (`data/geography/madrid_admin.geojson`).
 | Item | State |
 |---|---|
 | Official source audit | **Done** (live IGN/CNIG pages) |
-| Pipeline `run_pilot.py`, `lidar_core.py`, `diagnostics.py` | **Implemented; 18 unit/synthetic tests pass** (15 need numpy+rasterio and skip without them; CI installs neither) |
+| Pipeline `run_pilot.py`, `lidar_core.py`, `diagnostics.py` | **Implemented; 29 unit/synthetic tests pass** (21 need numpy+rasterio and skip without them; CI installs neither, so it runs the 8 pure-Python ones) |
 | Real MDS/MDT sample | **Obtained** (sheet 0559-4-5, downloaded by a person; the CNIG download is behind reCAPTCHA v3 and is not automated) |
 | Pilot result on real data | **Run; all 5 acceptance criteria PASS**; byte-identical on rerun. See [RESULTS.md](RESULTS.md). Feasibility demonstration, not validation |
 | Integration verdict | **NO-GO for the production viewer**; research line kept (MODIFY). Not validated: see [RESULTS.md](RESULTS.md) and [INTEGRATION_ASSESSMENT.md](INTEGRATION_ASSESSMENT.md) |
@@ -46,18 +46,27 @@ python -m unittest tests.test_pnoa_lidar_pilot
 ```
 
 `python research/pnoa_lidar_madrid_pilot/diagnostics.py --mds <MDS.tif> --mdt <MDT.tif>`
-(optional; `--no-orthophoto` skips the IGN WMS crops) produces
-`results/diagnostics.json` and two crop figures: CRS/alignment, cells ≥ 45 m and the
-spatial pattern of cells < 0.5 m. The orthophoto crops come from a dynamic IGN
-service, so they are a dated visual aid and the one part not reproducible from
-this repository; every number is.
+(optional) produces `results/diagnostics.json` and two MDS − MDT crop figures:
+CRS/alignment, cells ≥ 45 m and the spatial pattern of cells < 0.5 m. It fetches
+and reproduces **no** third-party imagery (see `results/ATTRIBUTION.md`).
 
 `run_pilot.py` writes `results/pilot_report.json` and
 `results/figure_mds_minus_mdt.png`. The report records input file names, sizes
 and **SHA-256**, raster metadata (CRS, resolution, NoData, dtype, tags), library
-versions, the statistics, and the acceptance verdict. Exit codes: `0` all
-criteria pass, `2` at least one fails (the report is still written), `1`
-unusable input.
+versions, the statistics, the acceptance verdict and the licence attribution
+(`status: COMPLETED`). Exit codes: `0` all criteria pass, `2` at least one
+criterion fails (report and figure are still written: a FAIL is a result), `1` the
+inputs are **rejected**.
+
+**Rejection.** A pair is rejected, before any pixel is subtracted, when a file is
+missing or unreadable, a CRS is missing or not numerically EPSG:25830, a cell size
+is not 0.5 m, a geotransform is rotated, the AOI is not covered, or the two AOI
+windows are not the same cell lattice (shape and geotransform). A rejection writes
+`pilot_report.json` with `status: REJECTED` and the reasons, produces **no
+statistic and no figure**, and first deletes `pilot_report.json` and
+`figure_mds_minus_mdt.png` from the output folder (and `diagnostics.py` its own
+three outputs), so a failed run can never sit beside, or be mistaken for, an
+earlier result. Check `status` before reading any number.
 
 Axis order: EPSG:3042 is defined N, E and EPSG:25830 E, N; the files store E, N in
 both (see RESULTS § diagnostics). Use `always_xy=True` with pyproj.
