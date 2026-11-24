@@ -11603,6 +11603,228 @@ function analyzeGeoSearchWithLens() {
   return true;
 }
 
+// ------------------------------------------------ spatial command adapter (Gate 1)
+// Executes a structured command from js/spatial-command.js through the SAME Lens
+// controls a person uses by hand (docs/SPATIAL_COMMAND_V1.md). It is not an input
+// surface: nothing here reads text, audio or a model, and no product UI calls it.
+// It is reachable only through the gated test seam below.
+//
+//   * Prepare first, mutate after. The pure contract validates the command and
+//     builds the complete target from a READ-ONLY snapshot; nothing changes unless
+//     every field and every side resolved.
+//   * Execute with the app's own primitives — marker/circle placement, the
+//     standard radius rule, the mode controller, activateLens() and refresh() —
+//     the same path as a map click, the radius slider, "Analyze with Lens" and
+//     "View on map". No reading is computed here; refresh() recomputes them all.
+//   * Verify, and roll back. The resulting Lens state is read back and compared
+//     with the target; an exception or a mismatch restores the snapshot taken
+//     before execution, so a command never leaves a half-applied map.
+//   * Leave everything else alone: layers, language, basemap, metric focus,
+//     polygons, drafts, ámbito selection and the geographic-search surface.
+
+// The official geometry + verified interior point behind an area id, from the
+// SAME indices the analytical surfaces and the geographic search read.
+const spatialCommandResolveArea = (id) => {
+  if (!geoSearch.module) return { status: "NOT_READY" };
+  const type = id.slice(0, id.indexOf(":"));
+  const universeReady = type === "AMBITO"
+    ? planningState === "ready" && Boolean(planningModel.index)
+    : geographyState === "ready" && Boolean(geographyIndex);
+  if (!universeReady) return { status: "NOT_READY" };
+  const index = ensureGeoSearchIndex();
+  const entry = index ? index.byId(id) : null;
+  const feature = entry ? geoSearchFeatureFor(id) : null;
+  if (!entry || !feature || !feature.geometry) return { status: "NOT_FOUND" };
+  const box = L.geoJSON(feature).getBounds();
+  return {
+    status: "OK",
+    type: entry.type,
+    name: entry.name,
+    point: entry.type === "MUNICIPALITY" ? null : geoSearch.module.interiorPointOf(feature.geometry),
+    bounds: { south: box.getSouth(), west: box.getWest(), north: box.getNorth(), east: box.getEast() },
+  };
+};
+
+// Read-only. The active Lens's polygon workspace lives in the scalar mirrors, the
+// other Lens's in polygonLensState, so both are read without savePolygonLens().
+const spatialCommandLensGeometry = (which) => {
+  const live = which === active;
+  const mode = live ? geometryMode : polygonLensState[which].mode;
+  const geometry = live ? polygonGeometry : polygonLensState[which].geometry;
+  const editing = live ? polygonDrawing || polygonEditing : polygonLensState[which].drawing || polygonLensState[which].editing;
+  return { geometry: mode === ANALYSIS_GEOMETRY.POLYGON && geometry ? "POLYGON" : "CIRCLE", editing: Boolean(editing) };
+};
+
+const spatialCommandContext = () => {
+  const lens = (which) => {
+    const c = centerOf(which);
+    return { lat: c.lat, lon: c.lon, radiusM: radiusFor(which), ...spatialCommandLensGeometry(which) };
+  };
+  const view = map.getCenter();
+  return {
+    mode: shell.modes ? shell.modes.currentMode() : "PLACE",
+    compareScope: ambitoCompare.scope || "LENS",
+    lensBEnabled: bEnabled,
+    lensBInitialized: lensBHasBeenInitialized,
+    activeLens: active,
+    historicalComparisonActive: Boolean(histCompare.active),
+    lenses: { A: lens("A"), B: lens("B") },
+    camera: { lat: view.lat, lon: view.lng, zoom: map.getZoom() },
+    zoomRange: { min: map.getMinZoom(), max: map.getMaxZoom() },
+    resolveArea: spatialCommandResolveArea,
+  };
+};
+
+// The resulting Lens and camera state, read back from the application. Positions,
+// radii and identities only — never a reading.
+const spatialCommandLiveState = () => {
+  const lens = (which) => {
+    const c = centerOf(which);
+    return { lat: c.lat, lon: c.lon, radiusM: radiusFor(which), geometry: spatialCommandLensGeometry(which).geometry };
+  };
+  const view = map.getCenter();
+  return {
+    mode: shell.modes ? shell.modes.currentMode() : "PLACE",
+    activeLens: active,
+    lensBEnabled: bEnabled,
+    lensA: lens("A"),
+    lensB: bEnabled ? lens("B") : null,
+    camera: { lat: view.lat, lon: view.lng, zoom: map.getZoom() },
+  };
+};
+
+const spatialCommandPlaceLens = (which, lat, lon, radiusM) => {
+  const latlng = L.latLng(lat, lon);
+  lenses[which].marker.setLatLng(latlng);
+  lenses[which].circle.setLatLng(latlng);
+  setLensRadius(which, radiusM); // the app's standard rule; validated values pass unchanged
+  lenses[which].circle.setRadius(radiusFor(which));
+};
+
+const spatialCommandApplyLens = (target) => {
+  if (shell.modes.currentMode() !== target.mode) shell.modes.setMode(target.mode);
+  for (const which of ["A", "B"]) {
+    const t = target.lenses[which];
+    spatialCommandPlaceLens(which, t.lat, t.lon, t.radiusM);
+  }
+  // Syncs the slider, labels and polygon workspace, then runs refresh() once more
+  // with every Lens already in place.
+  activateLens(target.activeLens);
+};
+
+const spatialCommandApplyCamera = (camera) => {
+  if (camera.fit) {
+    const f = camera.fit;
+    map.fitBounds(L.latLngBounds([f.south, f.west], [f.north, f.east]), { padding: [camera.paddingPx, camera.paddingPx], maxZoom: camera.maxZoom, animate: false });
+  } else {
+    map.setView([camera.view.lat, camera.view.lon], camera.view.zoom, { animate: false });
+  }
+};
+
+const spatialCommandSnapshot = () => ({
+  mode: shell.modes.currentMode(),
+  active,
+  bEnabled,
+  bInitialized: lensBHasBeenInitialized,
+  lenses: {
+    A: { ...centerOf("A"), radiusM: radiusFor("A") },
+    B: { ...centerOf("B"), radiusM: radiusFor("B") },
+  },
+  view: { center: map.getCenter(), zoom: map.getZoom() },
+  // A captured Spatial Sensitivity baseline is an immutable snapshot that the app
+  // drops on any centre change, so a failed command that moved a centre would
+  // otherwise lose it for good. Kept by reference; restored with the centres.
+  baseline: spatialBaseline,
+  baselineNotice: spatialBaselineNotice,
+});
+
+// The dimensions where the live state differs from `target` (empty when equal).
+const spatialCommandMismatch = (target) => {
+  const differences = [];
+  if (shell.modes.currentMode() !== target.mode) differences.push("mode");
+  if (active !== target.activeLens) differences.push("activeLens");
+  if (bEnabled !== target.lensBEnabled) differences.push("lensBEnabled");
+  for (const which of ["A", "B"]) {
+    const c = centerOf(which);
+    const t = target.lenses[which];
+    if (c.lat !== t.lat || c.lon !== t.lon) differences.push(`lens${which}.centre`);
+    if (radiusFor(which) !== t.radiusM) differences.push(`lens${which}.radiusM`);
+  }
+  return differences;
+};
+
+const spatialCommandRestore = (snapshot, kind) => {
+  if (kind === "camera") {
+    map.setView(snapshot.view.center, snapshot.view.zoom, { animate: false });
+    return true;
+  }
+  if (shell.modes.currentMode() !== snapshot.mode) shell.modes.setMode(snapshot.mode);
+  if (bEnabled !== snapshot.bEnabled) {
+    if (snapshot.bEnabled) enableLensB();
+    else disableLensB();
+  }
+  lensBHasBeenInitialized = snapshot.bInitialized;
+  for (const which of ["A", "B"]) {
+    const s = snapshot.lenses[which];
+    spatialCommandPlaceLens(which, s.lat, s.lon, s.radiusM);
+  }
+  // After the centres are back (so the validity guard sees the original places)
+  // and before the final refresh renders the baseline panel.
+  spatialBaseline = snapshot.baseline;
+  spatialBaselineNotice = snapshot.baselineNotice;
+  activateLens(snapshot.active);
+  return spatialCommandMismatch({ mode: snapshot.mode, activeLens: snapshot.active, lensBEnabled: snapshot.bEnabled, lenses: snapshot.lenses }).length === 0
+    && spatialBaseline === snapshot.baseline
+    && lensBHasBeenInitialized === snapshot.bInitialized;
+};
+
+// prepare(input) -> the pure contract's result. Reads only.
+const prepareSpatialCommandNow = (input) => prepareSpatialCommand(input, spatialCommandContext());
+
+// execute(input) -> receipt. Always re-prepares against the CURRENT state, so a
+// plan can never be applied to a map that has changed since it was made.
+const executeSpatialCommand = (input) => {
+  const prepared = prepareSpatialCommandNow(input);
+  if (!prepared.ok) {
+    return buildSpatialCommandReceipt({ input, prepared, status: SPATIAL_COMMAND_STATUS.REJECTED, state: spatialCommandLiveState() });
+  }
+  const plan = prepared.plan;
+  if (!plan.changed) {
+    return buildSpatialCommandReceipt({ input, prepared, status: SPATIAL_COMMAND_STATUS.NO_CHANGE, state: spatialCommandLiveState() });
+  }
+  const snapshot = spatialCommandSnapshot();
+  let fault = null;
+  try {
+    if (plan.kind === "camera") spatialCommandApplyCamera(plan.target.camera);
+    else {
+      spatialCommandApplyLens(plan.target);
+      const differences = spatialCommandMismatch(plan.target);
+      if (differences.length) fault = { code: SPATIAL_COMMAND_ERROR.EXECUTION_STATE_MISMATCH, field: null, detail: { differences } };
+    }
+  } catch (error) {
+    fault = { code: SPATIAL_COMMAND_ERROR.EXECUTION_FAILED, field: null, detail: { message: String((error && error.message) || error) } };
+  }
+  if (!fault) {
+    return buildSpatialCommandReceipt({ input, prepared, status: SPATIAL_COMMAND_STATUS.APPLIED, state: spatialCommandLiveState() });
+  }
+  let rolledBack = false;
+  try { rolledBack = spatialCommandRestore(snapshot, plan.kind); } catch (error) { rolledBack = false; }
+  return buildSpatialCommandReceipt({ input, prepared, status: SPATIAL_COMMAND_STATUS.FAILED, error: fault, state: spatialCommandLiveState(), rolledBack });
+};
+
+// Test seam only — the same double gate as every other seam in this file
+// (?haloRegressionTest=1 AND a loopback / private-LAN host). Not a product API.
+if (haloRegressionRequested && haloRegressionLocal) {
+  window.__SPATIAL_COMMAND_TEST__ = Object.freeze({
+    prepare: (input) => prepareSpatialCommandNow(input),
+    execute: (input) => executeSpatialCommand(input),
+    state: () => spatialCommandLiveState(),
+    // The app's OWN per-Lens readings (the session-export reader), so a test can
+    // compare command and manual results on evidence, not on the receipt.
+    readings: () => k11SessionReadings(),
+  });
+}
+
 function geoSearchResultRow(result) {
   const item = document.createElement("li");
   const button = document.createElement("button");
