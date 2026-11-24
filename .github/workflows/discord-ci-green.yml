@@ -9,8 +9,7 @@ permissions:
   actions: read
   checks: read
   contents: read
-  issues: write
-  pull-requests: read
+  pull-requests: write
   statuses: read
 
 # Reruns of the same tested commit must inspect and create the marker in order.
@@ -32,7 +31,6 @@ jobs:
         with:
           node-version: '20'
       - name: Verify current PR and complete Test result, then notify
-        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
