@@ -53,43 +53,63 @@
   <span class="hist-grip" aria-hidden="true"></span>
   <span class="hist-side hist-side-right" data-side="right" aria-hidden="true"><b>2023</b><small></small></span>
 </div></div>
-<section id="histCompareBar" class="hist-compare-bar" hidden aria-labelledby="histBarTitle">
-  <div class="hist-bar-row">
-    <h2 id="histBarTitle" class="hist-bar-title" data-i18n="hist.title">Historical orthophotos · reference only</h2>
-    <div class="hist-presets" role="group" aria-label="Divider position" data-i18n-attr="aria-label:hist.presetsAria">
-      <button type="button" class="hist-preset" data-hist-fraction="1" aria-pressed="false" data-i18n="hist.preset2006">2006 only</button>
-      <button type="button" class="hist-preset" data-hist-fraction="0.5" aria-pressed="true" data-i18n="hist.preset50">50/50</button>
-      <button type="button" class="hist-preset" data-hist-fraction="0" aria-pressed="false" data-i18n="hist.preset2023">2023 only</button>
+<section id="histCompareBar" class="hist-compare-bar" hidden aria-labelledby="histBarTitle" data-mode="expanded">
+  <div class="hist-head" id="histHead">
+    <span class="hist-handle" aria-hidden="true"></span>
+    <div class="hist-head-text">
+      <h2 id="histBarTitle" class="hist-bar-title" data-i18n="hist.ctl.title">PNOA comparison</h2>
+      <ul class="hist-years">
+        <li data-side="left" data-state="idle"><span class="hist-year-name">2006</span><span class="hist-year-state"></span><button type="button" class="hist-retry" data-hist-retry="left" hidden data-i18n="hist.retry">Retry</button></li>
+        <li data-side="right" data-state="idle"><span class="hist-year-name">2023</span><span class="hist-year-state"></span><button type="button" class="hist-retry" data-hist-retry="right" hidden data-i18n="hist.retry">Retry</button></li>
+      </ul>
     </div>
-    <button id="histExit" type="button" class="hist-exit" data-i18n="hist.exit">Back to normal view</button>
+    <span id="histChip" class="hist-chip"></span>
+    <div class="hist-head-actions">
+      <button id="histInfoBtn" type="button" class="hist-icon-btn hist-info-btn" aria-expanded="false" aria-controls="histInfo" data-i18n-attr="aria-label:hist.ctl.info" data-hist-tip="hist.ctl.info"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="7.25"/><path d="M10 9v5.2M10 6.1v.1"/></svg></button>
+      <button id="histMenuBtn" type="button" class="hist-icon-btn" aria-expanded="false" aria-controls="histMenu" data-i18n-attr="aria-label:hist.ctl.menu" data-hist-tip="hist.ctl.menu"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M4.5 10h.1M10 10h.1M15.5 10h.1"/></svg></button>
+      <button id="histCollapse" type="button" class="hist-icon-btn" aria-expanded="true" aria-controls="histBody" data-i18n-attr="aria-label:hist.ctl.toggle"><svg class="hist-ico-min" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M5 10h10"/></svg><svg class="hist-ico-max" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M5 10h10M10 5v10"/></svg></button>
+      <button id="histHide" type="button" class="hist-icon-btn" data-i18n-attr="aria-label:hist.ctl.hide" data-hist-tip="hist.ctl.hide"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M2.5 10s2.7-5 7.5-5 7.5 5 7.5 5-2.7 5-7.5 5-7.5-5-7.5-5Z"/><circle cx="10" cy="10" r="2.2"/><path d="m3.5 16.5 13-13"/></svg></button>
+    </div>
   </div>
-  <div class="hist-actions">
-    <button id="histExample" type="button" class="hist-exit" data-i18n="hist.example">See the Madrid Río / Matadero example</button>
-    <button id="histBack" type="button" class="hist-exit" data-i18n="hist.backToView" disabled>Back to my view</button>
-    <button id="histCopy" type="button" class="hist-exit" data-i18n="hist.copyLink">Copy link to this view</button>
+  <div id="histMenu" class="hist-menu" role="group" hidden data-i18n-attr="aria-label:hist.ctl.menu">
+    <button id="histExample" type="button" class="hist-menu-item" data-i18n="hist.example">See the Madrid Río / Matadero example</button>
+    <button id="histBack" type="button" class="hist-menu-item" data-i18n="hist.backToView" disabled>Back to my view</button>
+    <button id="histCopy" type="button" class="hist-menu-item" data-i18n="hist.copyLink">Copy link to this view</button>
+    <button id="histResetPos" type="button" class="hist-menu-item" data-i18n="hist.ctl.reset">Reset controller position</button>
+    <button id="histExit" type="button" class="hist-menu-item hist-menu-exit" data-i18n="hist.exit">Exit comparison</button>
+  </div>
+  <div id="histBody" class="hist-body">
+    <div class="hist-presets" role="group" aria-label="Divider position" data-i18n-attr="aria-label:hist.presetsAria">
+      <button type="button" class="hist-preset" data-hist-fraction="1" aria-pressed="false" data-i18n-attr="aria-label:hist.preset2006">2006</button>
+      <button type="button" class="hist-preset" data-hist-fraction="0.5" aria-pressed="true" data-i18n-attr="aria-label:hist.preset50">50/50</button>
+      <button type="button" class="hist-preset" data-hist-fraction="0" aria-pressed="false" data-i18n-attr="aria-label:hist.preset2023">2023</button>
+    </div>
+    <p class="hist-refonly" data-i18n="hist.ctl.refOnly">Visual reference only</p>
   </div>
   <p id="histNote" class="pnoa-status" role="status"></p>
-  <ul class="hist-years">
-    <li data-side="left" data-state="idle"><span class="hist-year-name">2006</span><span class="hist-year-state"></span><button type="button" class="hist-retry" data-hist-retry="left" hidden data-i18n="hist.retry">Retry</button></li>
-    <li data-side="right" data-state="idle"><span class="hist-year-name">2023</span><span class="hist-year-state"></span><button type="button" class="hist-retry" data-hist-retry="right" hidden data-i18n="hist.retry">Retry</button></li>
-  </ul>
   <p id="histStatus" class="pnoa-status" role="status" data-state="off"></p>
-  <p id="histKeys" class="hist-keys" data-i18n="hist.keys"></p>
-  <p class="hist-summary" data-i18n="hist.summary"></p>
-  <details id="histGuide" class="hist-method">
-    <summary data-i18n="hist.guideTitle">What to look for</summary>
-    <p class="hist-notice" data-i18n="hist.guideIntro"></p>
-    <ul class="hist-guide-list">
-      <li data-i18n="hist.guide.layout"></li>
-      <li data-i18n="hist.guide.open"></li>
-      <li data-i18n="hist.guide.occupation"></li>
-    </ul>
-    <p class="hist-notice" data-i18n="hist.guideLimit"></p>
-  </details>
-  <details id="histMethod" class="hist-method">
-    <summary data-i18n="hist.methodTitle">Method, sources and limits</summary>
-    <p id="histNotice" class="hist-notice" data-i18n="hist.notice"></p>
-  </details>
+  <div id="histInfo" class="hist-info" role="region" hidden data-i18n-attr="aria-label:hist.ctl.info">
+    <p id="histKeys" class="hist-keys" data-i18n="hist.keys"></p>
+    <p class="hist-summary" data-i18n="hist.summary"></p>
+    <details id="histGuide" class="hist-method">
+      <summary data-i18n="hist.guideTitle">What to look for</summary>
+      <p class="hist-notice" data-i18n="hist.guideIntro"></p>
+      <ul class="hist-guide-list">
+        <li data-i18n="hist.guide.layout"></li>
+        <li data-i18n="hist.guide.open"></li>
+        <li data-i18n="hist.guide.occupation"></li>
+      </ul>
+      <p class="hist-notice" data-i18n="hist.guideLimit"></p>
+    </details>
+    <details id="histMethod" class="hist-method">
+      <summary data-i18n="hist.methodTitle">Method, sources and limits</summary>
+      <p id="histNotice" class="hist-notice" data-i18n="hist.notice"></p>
+    </details>
+  </div>
+  <div class="hist-restore">
+    <button id="histShow" type="button" class="hist-restore-btn"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M2.5 10s2.7-5 7.5-5 7.5 5 7.5 5-2.7 5-7.5 5-7.5-5-7.5-5Z"/><circle cx="10" cy="10" r="2.2"/></svg><span data-i18n="hist.ctl.show">Show PNOA controls</span></button>
+    <button id="histExitHidden" type="button" class="hist-restore-exit" data-i18n="hist.ctl.exitShort" data-i18n-attr="aria-label:hist.exit">Exit</button>
+  </div>
 </section>
 
 <header class="map-header">

@@ -70,6 +70,10 @@ const histState = (page) => page.evaluate(() => {
 const waitHist = (page, state) => page.waitForFunction((s) => document.getElementById("histStatus").dataset.state === s, state);
 const waitPnoa = (page, state) => page.waitForFunction((s) => document.getElementById("pnoaStatus").dataset.state === s, state);
 const toggleHist = (page) => page.locator("label.switch:has(#histToggle)").click();
+// The controller keeps its secondary actions in a menu and the long method text behind an info button.
+const openHistMenu = async (page) => { if (await page.locator("#histMenu").isHidden()) await page.locator("#histMenuBtn").click(); };
+const histAction = async (page, id) => { await openHistMenu(page); await page.locator(`#${id}`).click(); };
+const openHistInfo = async (page) => { if (await page.locator("#histInfo").isHidden()) await page.locator("#histInfoBtn").click(); };
 const lensStroke = (page) => page.evaluate(() => lenses.A.circle.options.color);
 // Left and right tile rectangles, sorted, so alignment is a plain deep-equal.
 const tileRects = (page) => page.evaluate(() => {
@@ -196,14 +200,15 @@ test("contemporary panes are hidden, not removed; no click moves a Lens or a sel
   for (const k of ["lens", "halo", "admin", "licence", "planning", "hospitality", "marker", "overlay", "tooltip", "popup"]) assert.equal(vis[k], "hidden", `${k} pane is hidden`);
   for (const k of ["tile", "left", "right"]) assert.equal(vis[k], "visible", `${k} pane stays visible`);
   assert.equal(await page.evaluate(() => map.hasLayer(lenses.A.marker)), true, "layers are still on the map (hidden, not removed)");
-  assert.equal(await page.locator(".hist-summary").isVisible(), true, "the brief method summary is always visible");
+  await openHistInfo(page);
+  assert.equal(await page.locator(".hist-summary").isVisible(), true, "the method summary is one click away and states the limit");
 
   await page.mouse.click(300, 300); // would move the Lens centre outside the mode
   await page.waitForTimeout(150);
   const during = await read();
   assert.deepEqual(during.a, before.a, "a map click under the comparison does not move Lens A");
   assert.equal(during.panel, before.panel, "no reading is recomputed or re-worded");
-  await page.locator("#histExit").click();
+  await histAction(page, "histExit");
   const after = await read();
   assert.deepEqual(after.a, before.a);
   assert.equal(after.panel, before.panel);
@@ -229,7 +234,7 @@ test("exit restores view, palette, URL and the previous PNOA state exactly (PNOA
   assert.match(await page.locator("#pnoaStatus").innerText(), /Paused while the historical comparison is active/);
   assert.equal(await page.evaluate(() => location.search + location.hash), urlBefore, "the shareable URL does not encode the comparison");
 
-  await page.locator("#histExit").click();
+  await histAction(page, "histExit");
   await waitPnoa(page, "on");
   assert.equal(await page.locator("#pnoaToggle").isChecked(), true);
   assert.equal(await page.locator("#pnoaToggle").isDisabled(), false);
@@ -252,7 +257,7 @@ test("exit leaves the current PNOA off when it was off", async () => {
   const strokeBefore = await lensStroke(page);
   await toggleHist(page);
   await waitHist(page, "on");
-  await page.locator("#histExit").click();
+  await histAction(page, "histExit");
   assert.equal(await page.evaluate(() => document.getElementById("pnoaStatus").dataset.state), "off");
   assert.equal(await page.locator("#pnoaToggle").isChecked(), false);
   assert.equal(await page.locator("#pnoaToggle").isDisabled(), false);
@@ -272,6 +277,7 @@ test("one side down: that side is named, the other is unaffected, notice persist
   const rects = await tileRects(page);
   assert.ok(rects.right.length > 0, "2023 side still shows");
   assert.equal(rects.left.length, 0);
+  await openHistInfo(page);
   assert.equal(await page.locator(".hist-summary").isVisible(), true);
   await context.close();
 });
@@ -430,12 +436,13 @@ test("contemporary surfaces are collapsed (not removed) while comparing, and the
   await toggleHist(page);
   await waitHist(page, "on");
   assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("analysisPanel")).display), "none");
+  await openHistInfo(page);
   assert.match(await page.locator(".hist-summary").innerText(), /not measured change and does not say why/);
   await page.selectOption("#languageSelect", "es");
   await page.waitForFunction(() => /no es un cambio medido/.test(document.querySelector(".hist-summary").textContent));
   await page.selectOption("#languageSelect", "en");
   await page.waitForFunction(() => /not measured change/.test(document.querySelector(".hist-summary").textContent));
-  await page.locator("#histExit").click();
+  await histAction(page, "histExit");
   assert.notEqual(await page.evaluate(() => getComputedStyle(document.getElementById("analysisPanel")).display), "none");
   assert.equal(await panelText(page), panelBefore, "panel state intact after collapse");
   await context.close();
@@ -596,7 +603,7 @@ test("the switch hint follows the effective state (never a stale 'Off')", async 
   await toggleHist(page);
   await waitHist(page, "on");
   assert.doesNotMatch(await page.locator("#histHint").innerText(), /Off\./);
-  await page.locator("#histExit").click();
+  await histAction(page, "histExit");
   assert.match(await page.locator("#histHint").innerText(), /^Off\./);
   await context.close();
 });
@@ -681,23 +688,23 @@ test("guided example and back to my view are explicit and reversible", async () 
   await page.locator("#histHere").click();
   await waitHist(page, "on");
   assert.equal(await page.locator("#histBack").isDisabled(), true, "nothing to return to before the example");
-  await page.locator("#histExample").click();
+  await histAction(page, "histExample");
   assert.ok(near(await view(page), EXAMPLE), "example frames Madrid Río / Matadero");
   assert.equal(await page.locator("#histBack").isDisabled(), false);
-  await page.locator("#histExample").click(); // repeating never overwrites the remembered view
-  await page.locator("#histBack").click();
+  await histAction(page, "histExample"); // repeating never overwrites the remembered view
+  await histAction(page, "histBack");
   assert.deepEqual(await view(page), mine, "back to my view restores exactly the view before the example");
   assert.equal(await page.locator("#histBack").isDisabled(), true);
   assert.equal(await page.evaluate(() => document.body.classList.contains("hist-compare-mode")), true, "still comparing");
   // Leaving lands on the original view; the example can also be the way in.
-  await page.locator("#histExit").click();
+  await histAction(page, "histExit");
   assert.deepEqual(await view(page), mine);
   await page.locator("#histExampleAside").click();
   await waitHist(page, "on");
   assert.ok(near(await view(page), EXAMPLE));
-  await page.locator("#histBack").click();
+  await histAction(page, "histBack");
   assert.deepEqual(await view(page), mine);
-  await page.locator("#histExit").click();
+  await histAction(page, "histExit");
   assert.deepEqual(await view(page), mine);
   await context.close();
 });
@@ -710,7 +717,7 @@ test("share: link carries only centre, zoom, pair and divider; a new page restor
   await waitHist(page, "on");
   await page.locator('[data-hist-fraction="1"]').click();
   const urlBefore = await page.evaluate(() => location.search);
-  await page.locator("#histCopy").click();
+  await histAction(page, "histCopy");
   await page.waitForFunction(() => document.getElementById("histNote").textContent.length > 0);
   assert.match(await page.locator("#histNote").innerText(), /Link copied|Copy this link/);
   // The link the button builds; the address bar itself is never rewritten.
@@ -734,7 +741,7 @@ test("share: link carries only centre, zoom, pair and divider; a new page restor
   assert.equal(await next.page.locator("#k11RestoreNotice").isVisible(), false);
   assert.deepEqual([...new Set(next.histRequests.map((u) => u.searchParams.get("layers")))].sort(), ["PNOA2006", "PNOA2023"]);
   // Leaving the restored view returns to the page's own view and is fully reversible.
-  await next.page.locator("#histExit").click();
+  await histAction(next.page, "histExit");
   assert.equal(await next.page.evaluate(() => document.body.classList.contains("hist-compare-mode")), false);
   await next.context.close();
 });
@@ -800,11 +807,11 @@ test("repeated enter/exit with example, return and divider loses no state; A/B g
   for (let i = 0; i < 3; i += 1) {
     await page.locator("#histHere").click();
     await waitHist(page, "on");
-    await page.locator("#histExample").click();
+    await histAction(page, "histExample");
     await page.locator('[data-hist-fraction="0"]').click();
-    await page.locator("#histBack").click();
+    await histAction(page, "histBack");
     assert.deepEqual((await evidenceFingerprint(page)).state, evidence.state, `evidence state (lenses, A/B geometry, layers, metric) unchanged while comparing ${i + 1}`);
-    await page.locator("#histExit").click();
+    await histAction(page, "histExit");
     assert.deepEqual(await view(page), mine, `view restored ${i + 1}`);
     assert.deepEqual(await analytic(page), start);
     assert.deepEqual(await evidenceFingerprint(page), evidence);
@@ -819,6 +826,7 @@ test("observation guide is descriptive, in both languages, and claims no detecti
   const { page, context } = await openPage();
   await page.locator("#histHere").click();
   await waitHist(page, "on");
+  await openHistInfo(page);
   await page.locator("#histGuide summary").click();
   const en = await page.locator("#histGuide").innerText();
   assert.match(en, /Street layout/);
@@ -838,14 +846,321 @@ test("observation guide is descriptive, in both languages, and claims no detecti
 test("phone width: the new actions fit inside the screen and are 44px targets", async () => {
   const { page, context } = await openPage({ viewport: { width: 390, height: 780 } });
   await settled(page);
+  await dismissInvite(page);
   await page.evaluate((c) => map.setView(c, 16, { animate: false }), CHOSEN);
   await page.evaluate(() => document.getElementById("histHere").click());
   await waitHist(page, "on");
+  await openHistMenu(page);
   for (const id of ["histExample", "histBack", "histCopy", "histExit"]) {
     const box = await page.locator(`#${id}`).boundingBox();
     assert.ok(box.x >= 0 && box.x + box.width <= 390, `${id} inside the viewport horizontally`);
     assert.ok(box.height >= 44, `${id} is a 44px target`);
   }
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+  await context.close();
+});
+
+// ---- #219 compact floating controller ------------------------------------------------
+// The controller is PRESENTATION: moving, minimising, hiding or opening its menu/info must
+// never change the comparison (divider, layers, share link) or pan the map.
+const histBox = (page) => page.locator("#histCompareBar").boundingBox();
+const mapView = (page) => page.evaluate(() => { const c = map.getCenter(); return [c.lat, c.lng, map.getZoom()]; });
+const histFraction = (page) => page.evaluate(() => histCompare.fraction);
+const histMode = (page) => page.locator("#histCompareBar").getAttribute("data-mode");
+const dragHead = async (page, dx, dy) => {
+  const b = await page.locator(".hist-handle").boundingBox();
+  const x = b.x + b.width / 2;
+  const y = b.y + b.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + dx, y + dy, { steps: 6 });
+  await page.mouse.up();
+};
+// The first-visit tutorial invite is a separate, dismissible card that can sit over a phone sheet.
+const dismissInvite = (page) => page.evaluate(() => document.getElementById("tutorialInvite")?.remove());
+const openCompare = async (page) => { await toggleHist(page); await waitHist(page, "on"); };
+const inside = (box, vp) => box.x >= 0 && box.y >= 0 && box.x + box.width <= vp.width && box.y + box.height <= vp.height;
+const overlapsAttribution = (page) => page.evaluate(() => {
+  const a = document.querySelector(".leaflet-control-attribution").getBoundingClientRect();
+  const b = document.getElementById("histCompareBar").getBoundingClientRect();
+  return !(b.right <= a.left || b.left >= a.right || b.bottom <= a.top || b.top >= a.bottom);
+});
+
+test("#219 the card is compact, has no inner scroll and keeps a permanent reference-only notice", async () => {
+  const { page, context } = await openPage({ viewport: { width: 1440, height: 900 } });
+  await openCompare(page);
+  const box = await histBox(page);
+  assert.ok(box.width >= 280 && box.width <= 340, `desktop width is compact (${box.width}px)`);
+  assert.ok(box.height <= 140, `expanded card is short (${box.height}px)`);
+  assert.equal(await page.evaluate(() => { const el = document.getElementById("histCompareBar"); return el.scrollHeight <= el.clientHeight + 1; }), true, "no inner scroll in the normal state");
+  assert.deepEqual(await page.locator(".hist-preset").allInnerTexts(), ["2006", "50/50", "2023"]);
+  assert.equal(await page.locator(".hist-refonly").isVisible(), true, "the brief reference-only notice is permanent");
+  await context.close();
+});
+
+test("#219 dragging the header moves the card, never the map, and stays inside the viewport", async () => {
+  const { page, context } = await openPage();
+  await openCompare(page);
+  const view = await mapView(page);
+  const start = await histBox(page);
+  await dragHead(page, -120, -200);
+  const moved = await histBox(page);
+  assert.ok(Math.abs(moved.x - (start.x - 120)) <= 2 && Math.abs(moved.y - (start.y - 200)) <= 2, "the card follows the pointer");
+  assert.deepEqual(await mapView(page), view, "the map did not pan while the card was dragged");
+  assert.equal(await page.evaluate(() => document.getElementById("histCompareBar").hasAttribute("data-dragging")), false, "the gesture is released");
+  await dragHead(page, -5000, -5000);
+  const topLeft = await histBox(page);
+  assert.ok(topLeft.x >= 0 && topLeft.y >= 60, "cannot leave through the top-left or cover the header");
+  await dragHead(page, 5000, 5000);
+  assert.ok(inside(await histBox(page), { width: 1280, height: 800 }), "cannot leave through the bottom-right");
+  assert.deepEqual(await mapView(page), view);
+  // The map still pans normally after the card gesture (pointer capture was released).
+  await page.mouse.move(700, 300);
+  await page.mouse.down();
+  await page.mouse.move(640, 300, { steps: 4 });
+  await page.mouse.up();
+  assert.notDeepEqual(await mapView(page), view, "map interactions are restored");
+  await context.close();
+});
+
+test("#219 pressing a header button never starts a drag", async () => {
+  const { page, context } = await openPage();
+  await openCompare(page);
+  const start = await histBox(page);
+  const info = await page.locator("#histInfoBtn").boundingBox();
+  await page.mouse.move(info.x + info.width / 2, info.y + info.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(info.x - 150, info.y - 150, { steps: 4 });
+  await page.mouse.up();
+  const after = await histBox(page);
+  assert.equal(after.x, start.x);
+  assert.equal(after.y + after.height, start.y + start.height, "the card did not move");
+  await context.close();
+});
+
+test("#219 the card is re-fitted after a viewport resize and never leaves the screen", async () => {
+  const { page, context } = await openPage();
+  await openCompare(page);
+  await dragHead(page, 5000, 5000);
+  await page.setViewportSize({ width: 960, height: 560 });
+  await page.waitForTimeout(200);
+  assert.ok(inside(await histBox(page), { width: 960, height: 560 }), "re-fitted inside the smaller window");
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.waitForTimeout(200);
+  assert.ok(inside(await histBox(page), { width: 1280, height: 800 }));
+  await context.close();
+});
+
+test("#219 a dragged card never covers the required map attribution", async () => {
+  const { page, context } = await openPage();
+  await openCompare(page);
+  await dragHead(page, -2000, 5000); // toward the attribution corner
+  assert.equal(await overlapsAttribution(page), false);
+  await context.close();
+});
+
+test("#219 minimise/expand and hide/show change presentation only: divider, layers and mode stay", async () => {
+  const { page, context } = await openPage();
+  await openCompare(page);
+  await page.locator("#histDivider").focus();
+  await page.keyboard.press("Shift+ArrowLeft");
+  await page.keyboard.press("ArrowRight");
+  const split = await histFraction(page);
+  assert.ok(Math.abs(split - 0.41) < 1e-9, `a custom split (${split})`);
+  const rects = await tileRects(page);
+
+  await page.locator("#histCollapse").click();
+  assert.equal(await histMode(page), "collapsed");
+  assert.equal(await page.locator("#histCollapse").getAttribute("aria-expanded"), "false");
+  assert.equal(await page.locator(".hist-presets").isVisible(), false);
+  assert.match(await page.locator("#histChip").innerText(), /2006 41\/59 2023/);
+  assert.equal(await histFraction(page), split, "minimising does not move the divider");
+  assert.equal((await histState(page)).state, "on");
+
+  await page.locator("#histHide").click();
+  assert.equal(await histMode(page), "hidden");
+  assert.equal(await page.locator("#histShow").isVisible(), true, "a visible control brings the controller back");
+  assert.equal(await page.locator("#histExitHidden").isVisible(), true, "leaving the comparison stays one click away");
+  assert.equal(await page.evaluate(() => histCompare.active && document.getElementById("histToggle").checked), true, "hiding is not leaving the comparison");
+  assert.equal(await histFraction(page), split);
+  assert.deepEqual(await tileRects(page), rects, "both mosaics keep showing");
+  assert.equal(await page.locator("#histDivider").isVisible(), true);
+
+  await page.locator("#histShow").click();
+  assert.equal(await histMode(page), "collapsed", "coming back restores the previous presentation");
+  await page.locator("#histCollapse").click();
+  assert.equal(await histMode(page), "expanded");
+  assert.equal(await histFraction(page), split);
+  assert.equal(await page.locator('.hist-preset[aria-pressed="true"]').count(), 0, "no preset is claimed for a custom split");
+  await context.close();
+});
+
+test("#219 2006 | 50/50 | 2023 drives the same divider state and the labels follow", async () => {
+  const { page, context } = await openPage();
+  await openCompare(page);
+  for (const [fraction, text] of [["1", "2006"], ["0", "2023"], ["0.5", "50/50"]]) {
+    await page.locator(`[data-hist-fraction="${fraction}"]`).click();
+    assert.equal(await histFraction(page), Number(fraction));
+    assert.equal(await page.locator(`[data-hist-fraction="${fraction}"]`).getAttribute("aria-pressed"), "true");
+    assert.equal(await page.locator(`[data-hist-fraction="${fraction}"]`).innerText(), text);
+  }
+  assert.match(await page.locator("#histDivider").getAttribute("aria-valuetext"), /50% of the map shows 2006, 50% shows 2023/);
+  await context.close();
+});
+
+test("#219 minimised controller keeps its menu: copy link, example and return work; exit is reachable", async () => {
+  const { page, context } = await openPage();
+  await openCompare(page);
+  await page.locator("#histCollapse").click();
+  await histAction(page, "histCopy");
+  await page.waitForFunction(() => document.getElementById("histNote").textContent.length > 0);
+  assert.equal(await page.locator("#histNote").isVisible(), true, "the copy result is visible while minimised");
+  assert.equal(await page.locator("#histMenu").isHidden(), true, "the menu closes after an action");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "histMenuBtn", "focus returns to the menu button");
+  await histAction(page, "histExample");
+  assert.equal(await page.evaluate(() => histCompare.returnView !== null), true, "the example keeps its return view");
+  await histAction(page, "histBack");
+  assert.equal(await page.evaluate(() => histCompare.returnView), null);
+  await histAction(page, "histExit");
+  assert.equal(await page.locator("#histCompareBar").isHidden(), true);
+  assert.equal(await page.evaluate(() => histCompare.active), false);
+  await context.close();
+});
+
+test("#219 expanded/minimised and the desktop position are remembered; hidden never is", async () => {
+  const { page, context } = await openPage();
+  await openCompare(page);
+  await dragHead(page, -100, -150);
+  const placed = await histBox(page);
+  await page.locator("#histCollapse").click();
+  await histAction(page, "histExit");
+  await openCompare(page);
+  assert.equal(await histMode(page), "collapsed", "minimised state is remembered");
+  const back = await histBox(page);
+  assert.ok(Math.abs(back.x - placed.x) <= 2 && Math.abs(back.y + back.height - (placed.y + placed.height)) <= 60, "position is remembered");
+  await page.locator("#histHide").click();
+  await page.locator("#histExitHidden").click();
+  await openCompare(page);
+  assert.notEqual(await histMode(page), "hidden", "a hidden controller is never restored hidden");
+  assert.equal(await page.locator("#histCompareBar").isVisible(), true);
+  await histAction(page, "histResetPos");
+  assert.equal(await page.evaluate(() => document.getElementById("histCompareBar").hasAttribute("data-placed")), false, "reset returns to the default place");
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("lens.histController.v1")).x), undefined, "the reset is persisted");
+  await context.close();
+});
+
+test("#219 stored presentation preferences are validated, never trusted", async () => {
+  const { page, context } = await openPage();
+  await page.evaluate(() => localStorage.setItem("lens.histController.v1", JSON.stringify({ mode: "hidden", x: 99999, y: -99999 })));
+  await openCompare(page);
+  assert.equal(await histMode(page), "expanded", "a stored hidden/unknown mode is ignored");
+  assert.ok(inside(await histBox(page), { width: 1280, height: 800 }), "an absurd stored position is clamped");
+  await page.evaluate(() => localStorage.setItem("lens.histController.v1", "{not json"));
+  await histAction(page, "histExit");
+  await openCompare(page);
+  assert.equal(await histMode(page), "expanded");
+  await context.close();
+});
+
+test("#219 keyboard: info and menu are disclosure buttons, Escape closes them, the divider still works", async () => {
+  const { page, context } = await openPage();
+  await openCompare(page);
+  await page.locator("#histInfoBtn").focus();
+  assert.equal(await page.locator("#histInfoBtn").getAttribute("aria-expanded"), "false");
+  await page.keyboard.press("Enter");
+  assert.equal(await page.locator("#histInfoBtn").getAttribute("aria-expanded"), "true");
+  assert.equal(await page.locator("#histInfo").isVisible(), true);
+  await page.keyboard.press("Escape");
+  assert.equal(await page.locator("#histInfo").isHidden(), true);
+  assert.equal(await page.evaluate(() => document.activeElement.id), "histInfoBtn");
+
+  await page.locator("#histMenuBtn").focus();
+  await page.keyboard.press("Enter");
+  assert.equal(await page.locator("#histMenuBtn").getAttribute("aria-expanded"), "true");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "histExample", "focus moves into the opened menu");
+  await page.keyboard.press("Escape");
+  assert.equal(await page.locator("#histMenu").isHidden(), true);
+  assert.equal(await page.evaluate(() => document.activeElement.id), "histMenuBtn");
+
+  for (const id of ["histInfoBtn", "histMenuBtn", "histCollapse", "histHide"]) {
+    const name = await page.locator(`#${id}`).getAttribute("aria-label");
+    assert.ok(name && name.length > 3, `${id} has an accessible name`);
+  }
+  await page.locator("#histCollapse").focus();
+  await page.keyboard.press("Space");
+  assert.equal(await page.locator("#histCollapse").getAttribute("aria-expanded"), "false");
+  await page.keyboard.press("Space");
+  assert.equal(await histMode(page), "expanded");
+
+  await page.locator("#histDivider").focus();
+  await page.keyboard.press("ArrowRight");
+  assert.equal(await histFraction(page), 0.51, "the divider keeps its keyboard behaviour");
+  await context.close();
+});
+
+test("#219 method, limits and attribution stay explicit behind the info button, in both languages", async () => {
+  const { page, context } = await openPage();
+  await openCompare(page);
+  await openHistInfo(page);
+  await page.locator("#histMethod summary").click();
+  const en = await page.locator("#histInfo").innerText();
+  for (const needle of [/not measured change/, /annual PNOA mosaics/, /0\.50 m vs 0\.25 m/, /shadows/, /orthorectification/, /arrow keys/, /IGN PNOA/, /CC BY 4\.0/]) assert.match(en, needle);
+  assert.match(await page.locator(".leaflet-control-attribution").first().innerText(), /PNOA 2006[\s\S]*PNOA 2023/, "map attribution stays on the map");
+  await page.selectOption("#languageSelect", "es");
+  assert.equal(await page.locator("#histBarTitle").innerText(), "Comparador PNOA");
+  assert.equal(await page.locator(".hist-refonly").innerText(), "Solo referencia visual");
+  const es = await page.locator("#histInfo").innerText();
+  for (const needle of [/no es un cambio medido/, /mosaicos anuales/, /ortorrectificación/, /IGN PNOA/, /CC BY 4\.0/]) assert.match(es, needle);
+  assert.equal(await page.locator("#histExit").innerText(), "Salir de la comparación");
+  await context.close();
+});
+
+test("#219 phone: compact bottom sheet, no free drag, 44px targets, exit reachable, no horizontal scroll", async () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 640 }]) {
+    const { page, context } = await openPage({ viewport });
+    await settled(page);
+    await dismissInvite(page);
+    await page.evaluate((c) => map.setView(c, 16, { animate: false }), CHOSEN);
+    await page.evaluate(() => document.getElementById("histHere").click());
+    await waitHist(page, "on");
+    const box = await histBox(page);
+    assert.ok(inside(box, viewport), `${viewport.width}x${viewport.height}: sheet fits the screen`);
+    assert.ok(box.y + box.height >= viewport.height - 40, "anchored to the bottom");
+    assert.ok(box.height <= viewport.height * 0.3, `compact (${box.height}px)`);
+    for (const sel of ["#histInfoBtn", "#histMenuBtn", "#histCollapse", "#histHide", ".hist-preset"]) {
+      const b = await page.locator(sel).first().boundingBox();
+      assert.ok(b.width >= 44 && b.height >= 44, `${sel} is a 44px target`);
+    }
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "no horizontal scroll");
+    // Free dragging is a desktop gesture: a header drag on a phone layout does nothing.
+    const handle = await page.locator(".hist-head-text").boundingBox();
+    await page.mouse.move(handle.x + 10, handle.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(handle.x + 10, handle.y - 150, { steps: 4 });
+    await page.mouse.up();
+    const same = await histBox(page);
+    assert.equal(same.x, box.x);
+    assert.equal(same.y, box.y, "no free dragging on a phone");
+    await page.locator("#histCollapse").click();
+    assert.ok(inside(await histBox(page), viewport));
+    await page.locator("#histHide").click();
+    assert.ok(inside(await histBox(page), viewport), "the restore pill fits");
+    for (const sel of ["#histShow", "#histExitHidden"]) assert.ok((await page.locator(sel).boundingBox()).height >= 44, `${sel} is a 44px target`);
+    await page.locator("#histShow").click();
+    await histAction(page, "histExit");
+    assert.equal(await page.evaluate(() => histCompare.active), false);
+    await context.close();
+  }
+});
+
+test("#219 phone sheet never covers the map attribution, even with the info panel open", async () => {
+  const { page, context } = await openPage({ viewport: { width: 360, height: 640 } });
+  await settled(page);
+  await dismissInvite(page);
+  await page.evaluate((c) => map.setView(c, 16, { animate: false }), CHOSEN);
+  await page.evaluate(() => document.getElementById("histHere").click());
+  await waitHist(page, "on");
+  await openHistInfo(page);
+  assert.equal(await overlapsAttribution(page), false);
   await context.close();
 });
