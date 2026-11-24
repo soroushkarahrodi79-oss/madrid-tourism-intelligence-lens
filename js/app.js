@@ -9836,6 +9836,11 @@ function k11CommitUrlState() {
   if (k11.suppress) return;
   try {
     const url = buildShareUrl(window.location.href, k11CurrentState());
+    // An unchanged URL is not written. Chromium treats every replaceState as a
+    // same-document navigation, and one landing while a Back traversal is still
+    // pending cancels it — so a redundant write after load (e.g. on a refreshed
+    // canonical URL) could swallow the user's Back press.
+    if (url === window.location.href) return;
     window.history.replaceState(window.history.state, "", url);
   } catch (error) {
     /* a blocked history write is non-fatal: the Share button reads live state */

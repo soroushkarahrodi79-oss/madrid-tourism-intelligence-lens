@@ -244,6 +244,35 @@ test("moving a Lens does not create browser-history entries", async () => {
   }
 });
 
+// Every replaceState is a same-document navigation in Chromium; one that lands
+// while a Back traversal is pending cancels that Back (the flaky release-check
+// "Back returns to the landing"). A refresh that leaves the reading unchanged
+// must therefore not write the address bar at all.
+test("an unchanged reading does not rewrite the address bar", async () => {
+  const page = await newPage();
+  try {
+    await seam(page, () => window.__HALO_REGRESSION__.moveLens("A", 480, 340));
+    await page.waitForFunction(() => /[?&]v=1/.test(location.search));
+    await page.waitForTimeout(100);
+    const canonical = await page.evaluate(() => {
+      window.__urlWrites = [];
+      const original = history.replaceState.bind(history);
+      history.replaceState = (...args) => { window.__urlWrites.push(String(args[2])); return original(...args); };
+      return location.href;
+    });
+    await seam(page, () => { window.__HALO_REGRESSION__.recompute(); window.__HALO_REGRESSION__.recompute(); });
+    await page.waitForTimeout(100);
+    assert.deepEqual(await page.evaluate(() => window.__urlWrites), [], "no history write for an unchanged reading");
+    assert.equal(await page.evaluate(() => location.href), canonical, "address bar still carries the reading");
+
+    await seam(page, () => window.__HALO_REGRESSION__.moveLens("A", 640, 420));
+    await page.waitForFunction(() => window.__urlWrites.length > 0);
+    assert.notEqual(await page.evaluate(() => location.href), canonical, "a changed reading is still committed");
+  } finally {
+    await close(page);
+  }
+});
+
 test("copy-link reports success and writes the canonical URL to the clipboard", async () => {
   const page = await newPage({ permissions: ["clipboard-read", "clipboard-write"] });
   try {
