@@ -1,0 +1,9 @@
+# Research-only. Nothing in index.html, js/, css/ or package.json uses these.
+# Versions are the ones the pilot was developed and tested with (Windows, CPython 3.13).
+# requests/pyproj/shapely are already pinned in scripts/requirements-build.txt;
+# numpy, rasterio and matplotlib are NEW and exist only for this research package.
+numpy==2.5.5
+rasterio==1.5.2
+pyproj==3.7.2
+shapely==2.1.2
+matplotlib==3.11.2

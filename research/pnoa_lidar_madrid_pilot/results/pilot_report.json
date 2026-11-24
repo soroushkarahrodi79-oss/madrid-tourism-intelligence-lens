@@ -1,0 +1,208 @@
+{
+  "pilot": "pnoa_lidar_madrid_pilot",
+  "status": "COMPLETED",
+  "aoi": {
+    "barrio": "Embajadores",
+    "official_id": "012",
+    "parent": "Centro",
+    "area_km2": 1.0337274337595377,
+    "epsg": 25830
+  },
+  "inputs": {
+    "mds": {
+      "file": "MDS50CM-ETRS89-H30_0559-4-5-COB3-V1.tif",
+      "bytes": 97514523,
+      "sha256": "1ea16edde94dc4a86a2ad510592b30d0dde9c9515579f3a844faa52202413cf1",
+      "driver": "GTiff",
+      "epsg": 3042,
+      "crs_equivalent_to_25830": true,
+      "crs_wkt_name": "utm",
+      "width": 7340,
+      "height": 4920,
+      "bands": 1,
+      "dtype": "float32",
+      "nodata": -32767.0,
+      "res": [
+        0.5,
+        0.5
+      ],
+      "bounds": [
+        438060.0,
+        4471860.0,
+        441730.0,
+        4474320.0
+      ],
+      "transform": [
+        0.5,
+        0.0,
+        438060.0,
+        0.0,
+        -0.5,
+        4474320.0
+      ],
+      "tiled": true,
+      "compression": "DEFLATE",
+      "overviews": [
+        2,
+        4,
+        8,
+        16
+      ],
+      "tags": {
+        "AREA_OR_POINT": "Point"
+      },
+      "band_tags": {},
+      "units": "metre",
+      "descriptions": [
+        null
+      ]
+    },
+    "mdt": {
+      "file": "MDT50CM-ETRS89-H30-0559-4-5-COB3-V1.tif",
+      "bytes": 73006987,
+      "sha256": "d7424e33bd6423cf1ea80f25219d04554a1a87ad353657f9ae76b780f1946475",
+      "driver": "GTiff",
+      "epsg": 25830,
+      "crs_equivalent_to_25830": true,
+      "crs_wkt_name": "utm",
+      "width": 7340,
+      "height": 4920,
+      "bands": 1,
+      "dtype": "float32",
+      "nodata": -32767.0,
+      "res": [
+        0.5,
+        0.5
+      ],
+      "bounds": [
+        438060.0,
+        4471860.0,
+        441730.0,
+        4474320.0
+      ],
+      "transform": [
+        0.5,
+        0.0,
+        438060.0,
+        0.0,
+        -0.5,
+        4474320.0
+      ],
+      "tiled": true,
+      "compression": "DEFLATE",
+      "overviews": [
+        2,
+        4,
+        8,
+        16
+      ],
+      "tags": {
+        "AREA_OR_POINT": "Point"
+      },
+      "band_tags": {},
+      "units": "metre",
+      "descriptions": [
+        null
+      ]
+    },
+    "retrieved_on": "2026-11-24"
+  },
+  "attribution": "Obra derivada de MDS50cm-cob3 2022-2025 CC-BY 4.0 scne.es y de MDT50cm-cob3 2022-2025 CC-BY 4.0 scne.es",
+  "environment": {
+    "python": "3.13.17",
+    "numpy": "2.5.5",
+    "rasterio": "1.5.2",
+    "gdal": "3.12.2"
+  },
+  "noise_floor_m_if_independent": 0.212,
+  "interpretation_limit": "MDS - MDT is the height of the first-return surface above the interpolated ground surface. It is not building height: vegetation, vehicles, awnings, scaffolding and NPC01 misclassification are all included. Provisional v1 models (NPC01).",
+  "aoi_summary": {
+    "cells_total": 4134897,
+    "cells_valid": 4134897,
+    "valid_fraction": 1.0,
+    "area_total_m2": 1033724.25,
+    "area_valid_m2": 1033724.25,
+    "min": -0.25994873046875,
+    "max": 56.482421875,
+    "mean": 13.651895523071289,
+    "std": 8.140060424804688,
+    "p01": 0.0357666015625,
+    "p05": 0.11627197265625,
+    "p25": 6.75653076171875,
+    "p50": 15.55621337890625,
+    "p75": 19.19232177734375,
+    "p90": 22.79827880859375,
+    "p95": 25.34735107421875,
+    "p99": 32.45380371093751,
+    "share_below_negative_tolerance": 0.0,
+    "share_at_or_above": {
+      "0.5m": 0.9200942611146058,
+      "2m": 0.8546053263237271,
+      "3m": 0.8273163757162512,
+      "6m": 0.765705167504777,
+      "12m": 0.6368015938486496,
+      "20m": 0.2045772845127702
+    }
+  },
+  "mdt_in_aoi": {
+    "median": 635.469970703125,
+    "min": 608.0,
+    "max": 659.0399780273438,
+    "cells_nodata": 0
+  },
+  "mds_in_aoi": {
+    "median": 649.6002807617188,
+    "min": 610.3743286132812,
+    "max": 702.5924072265625,
+    "cells_nodata": 0
+  },
+  "demo_circle": {
+    "note": "illustrative geometry chosen by the pilot author; not a Lens object",
+    "centre_lonlat": [
+      -3.701,
+      40.4086
+    ],
+    "radius_m": 250.0,
+    "clipped_by_window": false,
+    "summary": {
+      "cells_total": 785372,
+      "cells_valid": 785372,
+      "valid_fraction": 1.0,
+      "area_total_m2": 196343.0,
+      "area_valid_m2": 196343.0,
+      "min": -0.06024169921875,
+      "max": 37.4342041015625,
+      "mean": 14.163102149963379,
+      "std": 6.684906005859375,
+      "p01": 0.06097412109375,
+      "p05": 0.71502685546875,
+      "p25": 10.2718505859375,
+      "p50": 16.236419677734375,
+      "p75": 18.702880859375,
+      "p90": 20.998284912109376,
+      "p95": 22.57110595703125,
+      "p99": 25.93716918945313,
+      "share_below_negative_tolerance": 0.0,
+      "share_at_or_above": {
+        "0.5m": 0.9586552614557178,
+        "2m": 0.907177745068579,
+        "3m": 0.8855510509669303,
+        "6m": 0.8302269497766663,
+        "12m": 0.7082618173298768,
+        "20m": 0.15304721838822877
+      }
+    }
+  },
+  "acceptance": {
+    "verdict": "PASS",
+    "failed": [],
+    "checks": {
+      "both_crs_equivalent_to_epsg_25830": true,
+      "both_cell_0_5m": true,
+      "grids_identical_in_aoi": true,
+      "aoi_valid_fraction_ge_0_95": true,
+      "mdt_median_plausible_for_madrid": true,
+      "negative_share_le_1pct": true
+    }
+  }
+}
