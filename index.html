@@ -131,6 +131,7 @@
       <kbd class="geo-search-hint" aria-hidden="true">/</kbd>
     </div>
     <div class="geo-search-surface" id="geoSearchSurface">
+      <button type="button" id="nlCommandFromFinder" class="geo-search-action nl-command-entry" aria-haspopup="dialog" aria-controls="nlCommandPanel" data-i18n="cmd.entry">Type a map command</button>
       <p id="geoSearchStatus" class="geo-search-status" aria-live="polite"></p>
       <ul id="geoSearchResults" class="geo-search-results" aria-label="Official place search results" data-i18n-attr="aria-label:search.resultsAria"></ul>
       <article id="geoSearchCard" class="geo-search-card" hidden>
@@ -150,8 +151,35 @@
       </details>
     </div>
   </section>
+  <!-- Gate 2: typed map command. A small dismissible panel, closed by default, that
+       reads a closed set of sentence shapes (docs/NATURAL_LANGUAGE_COMMAND_V1.md).
+       It is not an assistant and has no microphone. The panel body is rendered by
+       js/app.js as text nodes only. -->
+  <section id="nlCommandPanel" class="nl-command" role="dialog" aria-modal="false" aria-labelledby="nlCommandTitle" data-state="idle" hidden>
+    <div class="geo-search-head">
+      <h2 id="nlCommandTitle" class="nl-command-title" data-i18n="cmd.title">Map command</h2>
+      <button type="button" id="nlCommandClose" class="geo-search-close" aria-label="Close the map command panel" data-i18n-attr="aria-label:cmd.closeAria"><span aria-hidden="true">✕</span></button>
+    </div>
+    <p class="geo-search-note nl-command-scope" data-i18n="cmd.scope">A fixed-grammar command reader, not an assistant. It recognises only the sentence shapes below, answers no questions and states no findings. You review the interpretation before anything on the map changes.</p>
+    <form id="nlCommandForm" class="nl-command-form" novalidate>
+      <label for="nlCommandInput" class="nl-command-label" data-i18n="cmd.label">Type a short instruction for the map</label>
+      <input id="nlCommandInput" class="geo-search-query" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" maxlength="200" aria-describedby="nlCommandStatus" placeholder="Go to Barajas" data-i18n-attr="placeholder:cmd.placeholder">
+      <div class="geo-search-actions"><button type="submit" id="nlCommandInterpret" class="geo-search-action" data-i18n="cmd.interpret">Interpret</button></div>
+    </form>
+    <p id="nlCommandStatus" class="nl-command-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    <div id="nlCommandOutput" class="nl-command-output" aria-live="polite" hidden></div>
+    <div id="nlCommandActions" class="geo-search-actions nl-command-actions" hidden>
+      <button type="button" id="nlCommandExecute" class="geo-search-action geo-search-action-primary" data-i18n="cmd.execute" disabled>Execute</button>
+      <button type="button" id="nlCommandCancel" class="geo-search-action" data-i18n="cmd.cancel">Cancel</button>
+    </div>
+    <details id="nlCommandExamples" class="nl-command-examples">
+      <summary data-i18n="cmd.examplesTitle">Supported examples (select one to fill the field)</summary>
+      <ul id="nlCommandExampleList" class="nl-command-example-list"></ul>
+    </details>
+  </section>
   <div class="header-tools" role="group" aria-label="Workspace preferences and help" data-i18n-attr="aria-label:header.preferencesAria">
     <button type="button" id="geoSearchToggle" class="geo-search-toggle" aria-expanded="false" aria-controls="geoSearchPanel" aria-label="Find a place" data-i18n-attr="aria-label:search.openAria"><span class="geo-search-toggle-glyph" aria-hidden="true">⌕</span><span class="geo-search-toggle-label" data-i18n="search.open">Find a place</span></button>
+    <button type="button" id="nlCommandToggle" class="geo-search-toggle nl-command-toggle" aria-expanded="false" aria-controls="nlCommandPanel" aria-haspopup="dialog" aria-label="Open the map command panel" data-i18n-attr="aria-label:cmd.openAria"><span class="geo-search-toggle-glyph" aria-hidden="true">›_</span><span class="geo-search-toggle-label" data-i18n="cmd.open">Command</span></button>
     <label class="appearance-control" for="appearanceSelect">
       <span data-i18n="appearance.label">Appearance</span>
       <select id="appearanceSelect" aria-label="Appearance" data-i18n-attr="aria-label:appearance.label">
@@ -1208,6 +1236,7 @@
 <script src="js/accommodation.js?v=20260928-15"></script>
 <script src="js/runtime-config.js?v=20260928-3"></script>
 <script src="js/spatial-command.js?v=20261124-1"></script>
+<script src="js/nl-command.js?v=20261124-1"></script>
 <script src="js/app.js?v=20261103-originmap-v1"></script>
 <script src="js/tutorial.js?v=20261030-guided-tour-v2"></script>
 <script>

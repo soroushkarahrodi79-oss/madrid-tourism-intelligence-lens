@@ -388,7 +388,9 @@ These run as integration tests against the committed artifacts.
 ## 9. What this layer does not do (non-goals)
 
 No LLM, no model call, no API key, no network request, no prompt, no token. No
-assistant UI — no chat, no input box, no conversational surface, no "Ask Madrid". No
+assistant UI — no chat, no conversational surface, no "Ask Madrid". (The typed map-command
+panel of Gate 2, `docs/NATURAL_LANGUAGE_COMMAND_V1.md`, is a deterministic application control:
+it does not read this layer and answers no question.) No
 natural-language generation. No question shape not already backed by a shipped
 artifact. No vector store, no embeddings, no retrieval index. No telemetry, no
 question logging. No new dependency. No change to any analytical semantics.

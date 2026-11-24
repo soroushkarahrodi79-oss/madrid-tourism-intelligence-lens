@@ -8128,6 +8128,7 @@ function applyShellCopy() {
   if (typeof renderSpatialToolbar === "function") renderSpatialToolbar();
   if (typeof renderPolygonScope === "function") renderPolygonScope();
   document.getElementById("hospitalityLanguageLabel").textContent = "Idioma / Language";
+  document.dispatchEvent(new Event("nl-command:refresh"));
 }
 
 // ------------------------------------------------------------------- modes
@@ -11526,6 +11527,8 @@ function applyGeoSearchPlacement() {
 // The single entry for opening or closing the surface on a reader's behalf.
 // `focus:false` is for activations that already carry focus (the field itself).
 function setGeoSearchOpen(open, { focus = true } = {}) {
+  // The finder and the command panel share the same overlay corner; opening one closes the other.
+  if (open) document.dispatchEvent(new Event("nl-command:close"));
   const panel = document.getElementById("geoSearchPanel");
   if (!panel || !document.getElementById("geoSearchToggle")) return;
   const inline = geoSearchCanInline();
@@ -11829,6 +11832,329 @@ if (haloRegressionRequested && haloRegressionLocal) {
     readings: () => k11SessionReadings(),
   });
 }
+
+// ------------------------------------------------ typed map command (Gate 2)
+// A visible, bounded input over the Gate 1 adapter above (docs/NATURAL_LANGUAGE_COMMAND_V1.md).
+//
+//   text -> parseNaturalCommand (js/nl-command.js, pure, fixed grammar)
+//        -> official entity resolution through the SAME geographic search index
+//        -> structured command v1 -> prepareSpatialCommandNow (read-only plan)
+//        -> interpretation preview -> explicit Execute -> executeSpatialCommand.
+//
+// This is NOT an assistant: no model, no network, no microphone, no generated
+// prose about evidence. Every sentence shown is a localized template filled from
+// the plan the Spatial Command Core itself produced. Nothing is exposed on
+// `window`; the only caller of the adapter from the product is this block, and
+// only from the Execute button after the person has seen the interpretation.
+// Rejected, ambiguous or stale interpretations never reach the adapter. All text
+// is written with textContent, so no typed input can reach an HTML sink.
+//
+// The whole block is one closure: no function or variable of it becomes a property of
+// `window` (a classic script's top-level declarations would). The two existing call
+// sites reach it only through the DOM events `nl-command:refresh` and `nl-command:close`.
+(() => {
+let nlCommand = null;
+
+function nlCommandSearch(query, limit) {
+  const none = { state: "unavailable", query, results: [], coverage: { administrative: false, ambito: false }, total: 0 };
+  if (!geoSearch.module) return none;
+  const index = ensureGeoSearchIndex();
+  return index ? geoSearch.module.searchGeoEntities(index, query, limit) : none;
+}
+
+function nlCommandNode(id) { return document.getElementById(id); }
+
+function nlCommandEl(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function nlCommandLens(which) { return shellTemplate("cmd.lensName", { lens: which }); }
+
+function nlCommandAreaArgs(area) {
+  const code = area.id.slice(area.id.indexOf(":") + 1);
+  return { type: shellT("search.type." + area.type), name: area.name || code, code };
+}
+
+// Localized sentences for a plan description (js/nl-command.js describeNaturalCommandPlan).
+function nlCommandLines(description) {
+  if (description.action === "navigate_to_location") return [shellTemplate("cmd.preview.navigate", nlCommandAreaArgs(description.location))];
+  if (description.action === "set_lens_location") {
+    const row = description.rows[0];
+    return [shellTemplate("cmd.preview.setLens", { lens: nlCommandLens(row.lens), radius: row.radiusM, ...nlCommandAreaArgs(row.area) })];
+  }
+  if (description.action === "set_lens_radius") {
+    const row = description.rows[0];
+    return [shellTemplate("cmd.preview.setRadius", { lens: nlCommandLens(row.lens), radius: row.radiusM })];
+  }
+  return [shellT("cmd.preview.compare"), ...description.rows.map((row) => shellTemplate("cmd.preview.compareRow", { lens: nlCommandLens(row.lens), radius: row.radiusM, ...nlCommandAreaArgs(row.area) }))];
+}
+
+function nlCommandSummary(description) {
+  if (description.action === "navigate_to_location") return shellTemplate("cmd.summary.navigate", { name: nlCommandAreaArgs(description.location).name });
+  if (description.action === "set_lens_location") return shellTemplate("cmd.summary.setLens", { lens: nlCommandLens(description.rows[0].lens), name: nlCommandAreaArgs(description.rows[0].area).name });
+  if (description.action === "set_lens_radius") return shellTemplate("cmd.summary.setRadius", { lens: nlCommandLens(description.rows[0].lens), radius: description.rows[0].radiusM });
+  return shellTemplate("cmd.summary.compare", { a: nlCommandLens("A"), b: nlCommandLens("B") });
+}
+
+// Message for a refusal: a parser reason, or an error code of the Spatial Command Core.
+function nlCommandErrorText(code, extra = {}) {
+  const key = "cmd.err." + code;
+  const known = shellT(key) !== key;
+  const params = { min: LENS_RADIUS.minM, max: LENS_RADIUS.maxM, step: LENS_RADIUS.stepM, code, ...extra };
+  if (code === "INPUT_TOO_LONG") params.max = NL_COMMAND_LIMITS.maxInputLength;
+  return shellTemplate(known ? key : "cmd.err.OTHER", params);
+}
+
+function nlCommandSetView(view) {
+  nlCommand.view = view;
+  nlCommandRender();
+}
+
+function nlCommandPrepareView(result) {
+  const prepared = prepareSpatialCommandNow(result.command);
+  if (!prepared.ok) {
+    nlCommand.fingerprint = null;
+    return { type: "error", code: prepared.error.code };
+  }
+  nlCommand.fingerprint = naturalCommandFingerprint(prepared);
+  return { type: "preview", description: describeNaturalCommandPlan(prepared.plan) };
+}
+
+function nlCommandApply(result, { focusExecute = false } = {}) {
+  nlCommand.result = result;
+  nlCommand.focusExecute = focusExecute;
+  if (result.status === NL_COMMAND_STATUS.READY) nlCommandSetView(nlCommandPrepareView(result));
+  else if (result.status === NL_COMMAND_STATUS.NEEDS_CHOICE) nlCommandSetView({ type: "choice" });
+  else if (result.status === NL_COMMAND_STATUS.NEEDS_CLARIFICATION) {
+    const prepared = prepareSpatialCommandNow(result.proposal);
+    nlCommandSetView({ type: "clarify", description: prepared.ok ? describeNaturalCommandPlan(prepared.plan) : null, code: prepared.ok ? null : prepared.error.code });
+  } else {
+    nlCommandSetView({ type: "error", code: result.reason, phrase: result.phrase || "", suggestions: result.suggestions || [] });
+  }
+}
+
+function nlCommandInterpret() {
+  const input = nlCommandNode("nlCommandInput");
+  loadGeoSearchModule(); // a no-op once loaded; a first interpretation may still find it loading
+  nlCommandApply(parseNaturalCommand(input.value, { search: nlCommandSearch }));
+}
+
+function nlCommandChoose(role, id) {
+  nlCommandApply(chooseNaturalCommandCandidate(nlCommand.result, role, id), { focusExecute: true });
+}
+
+function nlCommandAdopt() {
+  nlCommandApply(adoptNaturalCommandProposal(nlCommand.result), { focusExecute: true });
+}
+
+function nlCommandReset() {
+  nlCommand.result = null;
+  nlCommand.fingerprint = null;
+  nlCommandSetView({ type: "idle" });
+}
+
+function nlCommandExecute() {
+  const result = nlCommand.result;
+  if (!result || result.status !== NL_COMMAND_STATUS.READY) return;
+  // Revalidate the COMPLETE command against the state NOW. The interpretation the
+  // person confirmed is executed only if it still means the same thing.
+  // The geography is part of what was confirmed: a universe that loaded since the preview
+  // could make a name ambiguous that was unique when it was shown.
+  if (!revalidateNaturalCommandResult(result, nlCommandSearch)) {
+    nlCommand.result = null;
+    nlCommand.fingerprint = null;
+    nlCommandSetView({ type: "error", code: "GEOGRAPHY_CHANGED" });
+    return;
+  }
+  const view = nlCommandPrepareView(result);
+  if (view.type === "error") { nlCommandSetView(view); return; }
+  if (nlCommand.shownFingerprint !== nlCommand.fingerprint) { nlCommandSetView({ ...view, stale: true }); return; }
+  const receipt = executeSpatialCommand(result.command);
+  if (receipt.status === SPATIAL_COMMAND_STATUS.APPLIED || receipt.status === SPATIAL_COMMAND_STATUS.NO_CHANGE) {
+    nlCommand.result = null;
+    nlCommandSetView({ type: "done", status: receipt.status, description: view.description, notes: receipt.notes || [] });
+  } else if (receipt.status === SPATIAL_COMMAND_STATUS.REJECTED) {
+    nlCommandSetView({ type: "error", code: receipt.error.code });
+  } else {
+    nlCommandSetView({ type: "failed", code: receipt.error ? receipt.error.code : "EXECUTION_FAILED", rolledBack: receipt.rolledBack === true });
+  }
+}
+
+function nlCommandChoiceButton(candidate, role) {
+  const item = nlCommandEl("li");
+  const button = nlCommandEl("button", "geo-search-result");
+  button.type = "button";
+  button.dataset.id = candidate.id;
+  button.dataset.role = role;
+  button.dataset.type = candidate.type;
+  const name = candidate.name || candidate.code;
+  button.setAttribute("aria-label", shellTemplate("cmd.choice.aria", { type: shellT("search.type." + candidate.type), name, code: candidate.code }));
+  const head = nlCommandEl("span", "geo-search-result-head");
+  head.append(nlCommandEl("span", "geo-search-result-type", shellT("search.type." + candidate.type)), nlCommandEl("code", "geo-search-result-code", candidate.code));
+  button.append(head, nlCommandEl("span", "geo-search-result-name", name));
+  if (candidate.parentName) button.append(nlCommandEl("span", "geo-search-result-parent", shellTemplate("cmd.choice.parent", { parent: candidate.parentName })));
+  item.append(button);
+  return item;
+}
+
+// Rebuilds the status line, the interpretation block and the action row from
+// `nlCommand.view`, so a language change re-renders the same state in the new language.
+function nlCommandRender() {
+  if (!nlCommand) return;
+  const panel = nlCommandNode("nlCommandPanel");
+  const output = nlCommandNode("nlCommandOutput");
+  const actions = nlCommandNode("nlCommandActions");
+  const executeButton = nlCommandNode("nlCommandExecute");
+  const status = nlCommandNode("nlCommandStatus");
+  if (!panel || !output || !actions || !executeButton || !status) return;
+  const view = nlCommand.view || { type: "idle" };
+  output.replaceChildren();
+  let statusText = "";
+  let state = view.type;
+  let canExecute = false;
+  let showActions = false;
+
+  if (view.type === "error") {
+    statusText = nlCommandErrorText(view.code, { phrase: view.phrase || "" });
+    state = "rejected";
+    if (view.suggestions && view.suggestions.length) {
+      output.append(nlCommandEl("p", "nl-command-warning", shellT("cmd.suggestions")));
+      const list = nlCommandEl("ul", "nl-command-choices");
+      for (const s of view.suggestions) list.append(nlCommandEl("li", "nl-command-warning", `${shellT("search.type." + s.type)} · ${s.name || s.code} (${s.code})`));
+      output.append(list);
+    }
+  } else if (view.type === "choice" && nlCommand.result) {
+    statusText = shellT("cmd.choice.title");
+    state = "choice";
+    for (const slot of nlCommand.result.slots) {
+      output.append(nlCommandEl("p", "nl-command-warning", `“${slot.phrase}”`));
+      const list = nlCommandEl("ul", "nl-command-choices");
+      for (const candidate of slot.candidates) list.append(nlCommandChoiceButton(candidate, slot.role));
+      output.append(list);
+    }
+  } else if (view.type === "clarify") {
+    statusText = shellT("cmd.clarify.compare");
+    state = "clarify";
+    if (view.description) {
+      const block = nlCommandEl("div", "nl-command-interp");
+      for (const line of nlCommandLines(view.description)) block.append(nlCommandEl("p", "", line));
+      output.append(block);
+      const adopt = nlCommandEl("button", "geo-search-action geo-search-action-primary", shellT("cmd.clarify.adopt"));
+      adopt.type = "button";
+      adopt.id = "nlCommandAdopt";
+      adopt.style.marginTop = "var(--s-2)";
+      output.append(adopt);
+    } else {
+      statusText = nlCommandErrorText(view.code);
+    }
+  } else if (view.type === "preview") {
+    state = view.stale ? "stale" : "preview";
+    statusText = view.stale ? shellT("cmd.stale") : shellT("cmd.previewTitle");
+    nlCommand.shownFingerprint = nlCommand.fingerprint;
+    const block = nlCommandEl("div", "nl-command-interp");
+    block.append(nlCommandEl("p", "nl-command-interp-title", shellT("cmd.previewTitle")));
+    for (const line of nlCommandLines(view.description)) block.append(nlCommandEl("p", "", line));
+    output.append(block);
+    for (const note of view.description.notes) {
+      if (shellT("cmd.note." + note) !== "cmd.note." + note) output.append(nlCommandEl("p", "nl-command-warning", shellT("cmd.note." + note)));
+    }
+    if (!view.description.changed) output.append(nlCommandEl("p", "nl-command-warning", shellT("cmd.noChange")));
+    canExecute = true;
+    showActions = true;
+  } else if (view.type === "done") {
+    state = view.status === SPATIAL_COMMAND_STATUS.NO_CHANGE ? "no_change" : "applied";
+    statusText = view.status === SPATIAL_COMMAND_STATUS.NO_CHANGE ? shellT("cmd.result.no_change") : shellTemplate("cmd.result.applied", { summary: nlCommandSummary(view.description) });
+    // The scope warning outlives execution: the circles are not the areas.
+    if (view.notes.includes("LENS_CIRCLE_NOT_AREA")) output.append(nlCommandEl("p", "nl-command-warning", shellT("cmd.note.LENS_CIRCLE_NOT_AREA")));
+  } else if (view.type === "failed") {
+    state = "failed";
+    statusText = shellTemplate("cmd.result.failed", { code: view.code }) + " " + shellT(view.rolledBack ? "cmd.result.restored" : "cmd.result.notRestored");
+  }
+
+  panel.dataset.state = state;
+  status.textContent = statusText;
+  output.hidden = !output.childElementCount;
+  actions.hidden = !showActions;
+  executeButton.disabled = !canExecute;
+  const adopt = nlCommandNode("nlCommandAdopt");
+  if (adopt) adopt.addEventListener("click", nlCommandAdopt);
+  for (const button of output.querySelectorAll(".nl-command-choices button")) {
+    button.addEventListener("click", () => nlCommandChoose(button.dataset.role, button.dataset.id));
+  }
+  const examples = nlCommandNode("nlCommandExampleList");
+  if (examples) {
+    examples.replaceChildren();
+    for (let i = 1; i <= 4; i += 1) {
+      const item = nlCommandEl("li");
+      const button = nlCommandEl("button", "", shellT("cmd.example." + i));
+      button.type = "button";
+      button.addEventListener("click", () => {
+        const input = nlCommandNode("nlCommandInput");
+        input.value = shellT("cmd.example." + i);
+        nlCommandReset();
+        input.focus();
+      });
+      item.append(button);
+      examples.append(item);
+    }
+  }
+  if (nlCommand.focusExecute && canExecute) { nlCommand.focusExecute = false; executeButton.focus(); }
+}
+
+function nlCommandSetOpen(open, { restoreFocus = true } = {}) {
+  const panel = nlCommandNode("nlCommandPanel");
+  const toggle = nlCommandNode("nlCommandToggle");
+  if (!panel || !toggle || !nlCommand) return;
+  if (Boolean(open) === !panel.hidden) return;
+  if (open) {
+    if (geoSearch.surfaceOpen) dismissGeoSearch();
+    loadGeoSearchModule();
+  } else {
+    // A closed panel holds no interpretation, so nothing stale can be executed.
+    nlCommandReset();
+  }
+  panel.hidden = !open;
+  toggle.setAttribute("aria-expanded", String(Boolean(open)));
+  if (open) nlCommandNode("nlCommandInput").focus();
+  else if (restoreFocus) {
+    // Return focus to the opener that is actually on screen: on phones and narrow headers the
+    // header button does not exist (display:none) and the path started at the finder activator.
+    const shown = (node) => node && node.getClientRects().length > 0;
+    const finder = nlCommandNode("geoSearchToggle");
+    const target = shown(toggle) ? toggle : shown(finder) ? finder : null;
+    if (target) target.focus();
+  }
+}
+
+function nlCommandInit() {
+  if (!nlCommandNode("nlCommandPanel") || !nlCommandNode("nlCommandToggle")) return;
+  nlCommand = { view: { type: "idle" }, result: null, fingerprint: null, shownFingerprint: null, focusExecute: false };
+  const input = nlCommandNode("nlCommandInput");
+  nlCommandNode("nlCommandToggle").addEventListener("click", () => nlCommandSetOpen(nlCommandNode("nlCommandPanel").hidden));
+  nlCommandNode("nlCommandClose").addEventListener("click", () => nlCommandSetOpen(false));
+  // Where the header has no room, the same entry lives inside the place finder.
+  const finderEntry = nlCommandNode("nlCommandFromFinder");
+  if (finderEntry) finderEntry.addEventListener("click", () => nlCommandSetOpen(true));
+  nlCommandNode("nlCommandCancel").addEventListener("click", () => { input.value = ""; nlCommandReset(); input.focus(); });
+  nlCommandNode("nlCommandExecute").addEventListener("click", nlCommandExecute);
+  // Enter submits the FORM: it interprets, and can never execute. Execution is the
+  // Execute button alone, which exists only while a validated interpretation is shown.
+  nlCommandNode("nlCommandForm").addEventListener("submit", (event) => { event.preventDefault(); nlCommandInterpret(); });
+  // Editing the text discards the interpretation, so what is executed is always
+  // what was interpreted from the text currently in the field.
+  input.addEventListener("input", () => { if (nlCommand.view.type !== "idle") nlCommandReset(); });
+  nlCommandNode("nlCommandPanel").addEventListener("keydown", (event) => {
+    if (event.key === "Escape") { event.preventDefault(); nlCommandSetOpen(false); }
+  });
+  nlCommandRender();
+}
+document.addEventListener("nl-command:refresh", nlCommandRender);
+document.addEventListener("nl-command:close", () => nlCommandSetOpen(false, { restoreFocus: false }));
+nlCommandInit();
+})();
 
 function geoSearchResultRow(result) {
   const item = document.createElement("li");

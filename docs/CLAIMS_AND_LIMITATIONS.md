@@ -463,10 +463,20 @@ breach them.
 ### No AI assistant; the contract that would constrain one
 
 - **This product contains no AI assistant and no language model.** There is no
-  chat, no input box, no conversational surface and no "Ask Madrid". There is no
+  chat, no conversational surface and no "Ask Madrid". There is no
   LLM, no model call, no API key, no network request, no prompt, no embedding and
   no vector store anywhere in it, and it generates no natural-language text about
   the evidence.
+- **One deterministic control is not an assistant (Gate 2).** The typed map-command
+  panel (`docs/NATURAL_LANGUAGE_COMMAND_V1.md`) reads a closed grammar of Spanish and
+  English instructions and turns each into one of four Lens operations the application
+  already performs by hand (go to a place, place a Lens, set a Lens radius, compare
+  two Lens circles). It shows the interpreted operation and executes only after an
+  explicit confirmation. It is a control, like a menu: no model, no network, no
+  microphone, no generated sentence about evidence, no answer to a question, and every
+  refusal is a correct outcome. **Natural-language application controls are
+  permitted; AI-generated scientific answers, conversational assistants, external
+  model calls and unsupported analytical claims remain prohibited.**
 - What the product does have is a pure, deterministic **Evidence Registry query
   contract** (`js/evidence-registry.js`, documented in
   `docs/EVIDENCE_REGISTRY_QUERY_CONTRACT.md`): a closed set of registered question

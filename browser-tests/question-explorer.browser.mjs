@@ -154,7 +154,10 @@ test("the explorer stays discoverable in the inline finder before a query, adds 
   const { page, context, errors } = await pageFor();
   t.after(() => context.close());
   const headerBefore = await page.evaluate(() => [...document.querySelectorAll(".header-tools > *")].map((n) => n.id || n.className));
-  assert.equal(headerBefore.length, 5, "the header gains no control");
+  // The explorer adds nothing to the header. The only control beyond the original five is
+  // the Gate 2 typed-command button, named here so any other addition still fails.
+  assert.equal(headerBefore.length, 6, "the header gains no control beyond the Gate 2 command button");
+  assert.ok(headerBefore.includes("nlCommandToggle"), "the sixth header control is the Gate 2 command button");
   assert.equal(await page.locator("#geoSearchPanel").getAttribute("data-presentation"), "inline");
   await page.waitForFunction(() => !document.querySelector("#questionExplorer").hasAttribute("hidden"));
   assert.equal(await page.locator("#geoSearchQuery").inputValue(), "", "questions do not require a place query");

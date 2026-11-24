@@ -2,6 +2,11 @@
 
 Status: **implemented, internal only.** Lens command initiative, Gate 1.
 
+> **Update (Gate 2).** A visible typed command panel now sits on this core
+> (`docs/NATURAL_LANGUAGE_COMMAND_V1.md`). The text below describes Gate 1 as delivered:
+> where it says "no input surface" read "no input surface in Gate 1". The command
+> contract (§2), the adapter and its failure semantics are unchanged.
+
 ## 1. Purpose and scope
 
 A closed, versioned, strictly validated protocol for four Lens operations the
@@ -214,4 +219,6 @@ produce a `version: 1` command object and call the adapter; it must not reach
 around it. It may never supply coordinates it did not receive from a person or
 an official index, nor an area id it did not obtain from the official index.
 Any such layer requires an explicit owner decision and an update of the
-no-assistant contract first.
+no-assistant contract first. Gate 2 is that layer for typed Spanish / English text only
+(a deterministic grammar, not a model); speech, a language model and any external
+service remain unauthorized.

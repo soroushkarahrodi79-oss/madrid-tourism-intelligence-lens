@@ -21,6 +21,7 @@ const SHARDS = Object.freeze({
     "browser-tests/ta4-map-chrome.browser.mjs",
     "browser-tests/tutorial.browser.mjs",
     "browser-tests/spatial-command.browser.mjs",
+    "browser-tests/nl-command.browser.mjs",
   ],
   "2": [
     "browser-tests/visual-language.browser.mjs",
