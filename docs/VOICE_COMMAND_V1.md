@@ -36,24 +36,27 @@ cannot inspect where the browser actually processed audio, and `available()` rep
 
 ## 3. Interaction
 
-- **Keyboard (desktop):** hold **V**, speak, release. Active only while the command panel is
-  open; ignored inside inputs/textareas/selects/contenteditable, during IME composition and
-  with any modifier; key-repeat is swallowed; one held key starts at most one recognizer.
-  V was unused (existing shortcuts: `/`, `[`, `]`, Escape). Because opening the panel focuses
-  its text field, V works once focus is outside the field (for example on the Speak button or the map).
+- **Keyboard (desktop):** hold **V**, speak, release. Active when the command panel is open, or from the bare
+  map (focus on the page body or the map, no dialog open, place finder closed, no polygon being drawn or edited),
+  where it opens the panel and starts recording. Ignored inside inputs/textareas/selects/contenteditable, on buttons
+  and links, during IME composition and with any modifier; key-repeat is swallowed; one held key starts at most one
+  recognizer. V was unused (existing shortcuts: `/`, `[`, `]`, Escape). The hint under the field states the shortcut.
 - **Speak button (mouse, touch, switch/keyboard):** click to start, click again (now "Stop") to
   finish. This is the accessible alternative to holding a key. `aria-pressed` and a live status line track the real state.
 - **Cancellation** (no result, no field change): Escape (cancels only the recording first), closing the panel,
-  window blur, tab hidden, interface-language change, release before listening began.
+  window blur, tab hidden, interface-language change, release before listening began, and typing in the field while recording.
 - **Field policy:** a transcript replaces the field contents and is interpreted exactly like typed text
   (preview only). Un-interpreted typed text is never overwritten: voice declines to start and says so. Execution
   is never triggered by key release, by interim text or by the transcript; only the Execute button executes.
+
+A transcript longer than the Gate 2 limit (200 characters, `NL_COMMAND_LIMITS.maxInputLength`) is refused whole with a
+localized message; it is never truncated, and the field and current interpretation are left untouched (Gate 5).
 
 ## 4. Lifecycle
 
 `idle -> checking -> requesting -> listening -> finalizing -> idle` (errors/cancel return to `idle` with a
 message). Every callback carries a session id; a cancelled, expired or superseded session cannot deliver a late
-transcript. Interim results are disabled and ignored.
+transcript. Interim results are disabled and ignored. Every exit (final, error, end, cancel, timeout) aborts and drops the recognition handle.
 
 ## 5. Languages
 
@@ -70,9 +73,17 @@ Typed input is never affected.
 
 ## 7. Validation status
 
-Automated tests use a **mock** `SpeechRecognition`; they prove wiring, lifecycle and equivalence with typing, not
-recognition accuracy. Real-microphone validation is recorded in the Gate 3 PR and is **not** claimed here.
+- **Gate 3** merged (PR #226, `6140b1c`). **Owner-reported:** the real microphone was tested and its function confirmed.
+  Transcripts and quantitative recognition accuracy were **not** supplied and are **not measured**. Owner observation: Spanish
+  place names are recognized less reliably than ordinary words when speaking English; the transcript is always editable and reviewed.
+- **Languages (owner decision):** Spanish is the primary language, English support is retained. Persian and the Gate 4
+  multilingual expansion are cancelled; no further languages or automatic detection.
+- **Gate 5 (tested, mock engine):** over-long transcript refusal, V from the bare map, typing cancels recording, handle
+  release on every exit, spoken Spanish measures. Mock tests prove application behavior, not recognition accuracy.
+- **Browser limits:** requires `SpeechRecognition.available()` with `processLocally` (on-device); where absent the button is disabled and typing works.
+  Whether audio stays on the device is enforced by requesting `processLocally = true` and refusing otherwise; the application cannot independently verify the engine.
+- **Known issue:** no timeout while waiting for the browser's microphone permission prompt; Stop/Escape cancels it.
+- **Scientific boundary:** the microphone produces text only; preview and an explicit Execute remain mandatory.
 
-Manual owner check: in Chrome open the app, open **Command**, press **Speak** (grant the microphone, install the
-pack if offered), say "Go to Barajas"; confirm the field shows the transcript, the preview appears, nothing changed
-until **Execute**. Repeat in Spanish ("Ve a Barajas"). Try Escape mid-recording, and DevTools > Network to confirm no audio request.
+Manual owner check: in Chrome open the app, hold **V** on the map or press **Speak**, say "Go to Barajas" / "Ve a Barajas";
+confirm the preview appears and nothing changed until **Execute**.

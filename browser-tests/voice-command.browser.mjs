@@ -220,9 +220,9 @@ test("hold V: key-repeat starts one recognizer, release stops it, and the transc
 
 test("V is ignored while typing, with a modifier, with the panel closed and during IME composition", async (t) => {
   const { page } = await openApp(t);
-  await page.focus("#geoSearchToggle");
+  await page.focus("#nlCommandToggle");
   await page.keyboard.press("v");
-  assert.equal(await instanceCount(page), 0, "panel closed: V does nothing");
+  assert.equal(await instanceCount(page), 0, "panel closed and focus on a control: V does nothing");
   await openPanel(page);
   await page.focus("#nlCommandInput");
   await page.keyboard.type("vv");
@@ -386,4 +386,46 @@ test("phone: the mic is reachable through the finder entry, meets the touch targ
   await frames(page);
   assert.equal(await executeVisible(page), true);
   assert.deepEqual(errors, []);
+});
+
+test("Gate 5: holding V from the bare map opens the panel and records once; from a control or a dialog it does nothing", async (t) => {
+  const { page, errors } = await openApp(t);
+  await page.evaluate(() => document.activeElement && document.activeElement.blur());
+  await page.keyboard.down("v");
+  await page.waitForSelector("#nlCommandPanel:not([hidden])");
+  await page.waitForFunction(() => window.__rec.instances.length === 1);
+  await page.keyboard.down("v"); // key-repeat
+  assert.equal(await instanceCount(page), 1, "repeat starts no second recognizer");
+  await fire(page, "audiostart");
+  await page.keyboard.up("v");
+  assert.deepEqual(await calls(page), ["start", "stop"]);
+  await fire(page, "final", "Ve a Barajas");
+  await frames(page);
+  assert.equal(await executeVisible(page), true, "release interprets only; Execute stays explicit");
+  assert.deepEqual(errors, []);
+});
+
+test("Gate 5: an over-long transcript is refused whole, never truncated; field and state are kept", async (t) => {
+  const { page } = await openApp(t);
+  await openPanel(page);
+  const before = await world(page);
+  await startViaButton(page);
+  await page.click("#nlCommandMic"); // release
+  await fire(page, "final", "Ve a Barajas " + "y luego ".repeat(40));
+  await frames(page);
+  assert.equal(await page.inputValue("#nlCommandInput"), "", "nothing was written to the field");
+  assert.match(await voiceText(page), /too long/);
+  assert.equal(await executeVisible(page), false);
+  assert.deepEqual(await world(page), before);
+});
+
+test("Gate 5: typing while the microphone is open ends the session; a late transcript cannot overwrite it", async (t) => {
+  const { page } = await openApp(t);
+  await openPanel(page);
+  await startViaButton(page);
+  await page.fill("#nlCommandInput", "Ve a Hortaleza");
+  assert.deepEqual((await calls(page)).slice(-1), ["abort"]);
+  await fire(page, "final", "Ve a Barajas");
+  await frames(page);
+  assert.equal(await page.inputValue("#nlCommandInput"), "Ve a Hortaleza");
 });

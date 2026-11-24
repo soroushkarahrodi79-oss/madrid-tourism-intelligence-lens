@@ -483,3 +483,26 @@ test("every supported example shown in the interface and the documentation parse
   }
   for (const note of Object.values(S.SPATIAL_COMMAND_NOTE)) assert.ok(en[`cmd.note.${note}`] && es[`cmd.note.${note}`], `no note copy for ${note}`);
 });
+
+test("Gate 5: spoken Spanish measures — closed unambiguous forms only, exact conversion, English unchanged", () => {
+  const radius = (text) => { const r = parse(text); return r.status === ST.READY ? r.command.radiusM : r.reason; };
+  assert.equal(radius("Cambia el radio de la lente B a un kilómetro"), 1000);
+  assert.equal(radius("Pon el radio de la lente A a medio kilómetro"), 500);
+  assert.equal(radius("Pon el radio de la lente A a un kilómetro y medio"), 1500);
+  assert.equal(radius("Pon el radio de la lente A a dos kilómetros"), 2000);
+  assert.equal(radius("Pon el radio de la lente A a mil metros"), 1000);
+  assert.equal(radius("Pon el radio de la lente A a quinientos metros"), 500);
+  assert.equal(radius("Pon el radio de la lente A a 800 metros"), 800);
+  assert.equal(radius("Set the radius of lens A to 800 meters"), 800);
+  // Not in the closed set: refused, never guessed.
+  assert.equal(radius("Pon el radio de la lente A a mil quinientos metros"), R.UNSUPPORTED_INSTRUCTION);
+  assert.equal(radius("Pon el radio de la lente A a un kilómetro y pico"), R.UNSUPPORTED_INSTRUCTION);
+  const c = parse("Compara dos círculos de medio kilómetro en Barajas y Hortaleza");
+  assert.equal(c.status, ST.READY);
+  assert.deepEqual([c.command.a.radiusM, c.command.b.radiusM], [500, 500]);
+  assert.equal(parse("Compara dos círculos de 500 metros en Barajas y Hortaleza").status, ST.READY);
+  assert.equal(parse("Llévame a Barajas").status, ST.READY);
+  assert.equal(parse("Quiero ir a Hortaleza").status, ST.READY);
+  assert.equal(parse("Enséñame Chamartín").status, ST.READY);
+  assert.equal(parse("Mueve la lente B a Hortaleza").status, ST.READY);
+});

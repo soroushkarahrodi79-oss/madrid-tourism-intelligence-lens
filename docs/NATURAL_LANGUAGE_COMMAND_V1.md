@@ -75,6 +75,12 @@ only `[100, 5000]` m on the 50 m grid, and its refusal (`RADIUS_OFF_STEP`,
 exactly three digits (`1.500`, `1,250`) is `AMBIGUOUS_NUMBER` — it could be 1500 or
 1.5 — and is refused. A number without a unit is `MISSING_UNIT`; no unit is assumed.
 
+**Spoken Spanish measures (Gate 5).** A closed set of spoken forms is rewritten to digits
+*before* the same exact conversion and validation: `un|una|dos…diez kilómetro(s)`,
+`medio kilómetro`, `N kilómetro(s) y medio`, `mil metros`, and the single hundreds
+`cien … novecientos metros`. Nothing else is interpreted (`mil quinientos metros`,
+`un kilómetro y pico` stay `UNSUPPORTED_INSTRUCTION`). English is unchanged.
+
 ## 4. Entity resolution
 
 - A place resolves only when its folded text **equals** an official
