@@ -11841,7 +11841,7 @@ if (haloRegressionRequested && haloRegressionLocal) {
 //        -> structured command v1 -> prepareSpatialCommandNow (read-only plan)
 //        -> interpretation preview -> explicit Execute -> executeSpatialCommand.
 //
-// This is NOT an assistant: no model, no network, no microphone, no generated
+// This is NOT an assistant: no model, no network, no remote audio processing, no generated
 // prose about evidence. Every sentence shown is a localized template filled from
 // the plan the Spatial Command Core itself produced. Nothing is exposed on
 // `window`; the only caller of the adapter from the product is this block, and
@@ -12113,7 +12113,9 @@ function nlCommandSetOpen(open, { restoreFocus = true } = {}) {
     if (geoSearch.surfaceOpen) dismissGeoSearch();
     loadGeoSearchModule();
   } else {
-    // A closed panel holds no interpretation, so nothing stale can be executed.
+    // A closed panel holds no interpretation, so nothing stale can be executed,
+    // and no microphone session survives it.
+    if (nlCommand.voice) nlCommand.voice.cancel();
     nlCommandReset();
   }
   panel.hidden = !open;
@@ -12147,9 +12149,110 @@ function nlCommandInit() {
   // what was interpreted from the text currently in the field.
   input.addEventListener("input", () => { if (nlCommand.view.type !== "idle") nlCommandReset(); });
   nlCommandNode("nlCommandPanel").addEventListener("keydown", (event) => {
-    if (event.key === "Escape") { event.preventDefault(); nlCommandSetOpen(false); }
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    // While a microphone session is active, Escape cancels only that session.
+    if (nlCommand.voice && nlCommand.voice.state !== "idle") nlCommand.voice.cancel();
+    else nlCommandSetOpen(false);
   });
+  nlVoiceInit();
   nlCommandRender();
+}
+
+// ---- Gate 3: push-to-talk voice input (js/voice-input.js, docs/VOICE_COMMAND_V1.md).
+// Speech becomes TEXT in the Gate 2 field and goes through the same nlCommandInterpret()
+// as typing. Nothing here parses, resolves or executes; execution stays the Execute button.
+function nlVoiceLang() { return shellLanguage() === "es" ? "es-ES" : "en-US"; }
+
+function nlVoiceInit() {
+  const mic = nlCommandNode("nlCommandMic");
+  const VI = window.VoiceInput;
+  if (!mic) return;
+  const provider = VI ? VI.createSpeechProvider(window) : { supported: false };
+  const status = nlCommandNode("nlCommandVoiceStatus");
+  const installRow = nlCommandNode("nlCommandVoiceInstallRow");
+  const input = nlCommandNode("nlCommandInput");
+  let last = { key: "", args: {} };
+  const say = (key, args = {}) => { last = { key, args }; status.textContent = key ? shellTemplate(key, { lang: nlVoiceLang(), ...args }) : ""; };
+
+  const supported = Boolean(VI) && provider.supported;
+  if (!supported) {
+    mic.disabled = true;
+    mic.setAttribute("aria-disabled", "true");
+    say("cmd.voice.err.UNSUPPORTED");
+  }
+
+  const ptt = supported ? VI.createPushToTalk({
+    provider,
+    getLang: nlVoiceLang,
+    onChange(detail) {
+      const active = detail.state !== "idle";
+      mic.dataset.state = detail.state;
+      mic.setAttribute("aria-pressed", String(detail.state === "listening" || detail.state === "finalizing"));
+      nlCommandNode("nlCommandMicLabel").textContent = shellT(active ? "cmd.voice.stop" : "cmd.voice.speak");
+      installRow.hidden = true;
+      if (detail.state === "checking") say("cmd.voice.checking");
+      else if (detail.state === "requesting") say("cmd.voice.requesting");
+      else if (detail.state === "listening") say("cmd.voice.listening");
+      else if (detail.state === "finalizing") say("cmd.voice.finalizing");
+      else if (detail.transcript) {
+        // The transcript replaces the field, then takes exactly the typed path.
+        input.value = detail.transcript.slice(0, input.maxLength);
+        nlCommandReset();
+        say("cmd.voice.heard", { text: input.value });
+        nlCommandInterpret();
+        input.focus();
+      } else if (detail.cancelled) say("cmd.voice.cancelled");
+      else if (detail.code) {
+        say("cmd.voice.err." + detail.code);
+        installRow.hidden = detail.code !== "PACK_MISSING";
+      }
+    },
+  }) : null;
+  nlCommand.voice = ptt;
+
+  function start() {
+    if (!ptt || ptt.state !== "idle") return false;
+    // Text typed by hand and never interpreted is not silently overwritten.
+    if (input.value.trim() && nlCommand.view.type === "idle") { say("cmd.voice.busyField"); return false; }
+    ptt.begin();
+    return true;
+  }
+  mic.addEventListener("click", () => { if (ptt && ptt.state !== "idle") ptt.release(); else start(); });
+  nlCommandNode("nlCommandVoiceInstall").addEventListener("click", async () => {
+    say("cmd.voice.installing");
+    const ok = await provider.install(nlVoiceLang());
+    installRow.hidden = ok;
+    say(ok ? "cmd.voice.installed" : "cmd.voice.installFailed");
+  });
+
+  // Push-to-talk key. Only while the command panel is open, never inside a text field,
+  // never during IME composition, never with a modifier, and key-repeat is swallowed.
+  let held = false;
+  const isV = (event) => event.code === "KeyV" && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
+  document.addEventListener("keydown", (event) => {
+    if (!ptt || !isV(event) || event.isComposing || nlCommandNode("nlCommandPanel").hidden) return;
+    const node = event.target;
+    if (node instanceof HTMLElement && node.closest("input,textarea,select,[contenteditable]")) return;
+    event.preventDefault();
+    if (event.repeat || held) return;
+    held = start();
+  });
+  document.addEventListener("keyup", (event) => {
+    if (!held || event.code !== "KeyV") return;
+    held = false;
+    event.preventDefault();
+    if (ptt) ptt.release();
+  });
+  // Losing the page (focus, tab, window) ends the session without a result.
+  const lose = () => { held = false; if (ptt) ptt.cancel(); };
+  window.addEventListener("blur", lose);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) lose(); });
+  // A language change mid-recognition would mis-transcribe; cancel and relabel.
+  document.addEventListener("nl-command:refresh", () => {
+    if (ptt && ptt.state !== "idle") ptt.cancel();
+    if (last.key) say(last.key, last.args);
+  });
 }
 document.addEventListener("nl-command:refresh", nlCommandRender);
 document.addEventListener("nl-command:close", () => nlCommandSetOpen(false, { restoreFocus: false }));

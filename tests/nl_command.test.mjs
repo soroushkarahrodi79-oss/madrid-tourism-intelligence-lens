@@ -443,7 +443,7 @@ test("the product contract separates permitted deterministic controls from prohi
   const claims = doc("CLAIMS_AND_LIMITATIONS.md");
   // The new contract names both sides of the distinction.
   assert.match(nl, /Deterministic natural-language application controls/);
-  for (const prohibited of [/AI-generated scientific answers/, /conversational assistant/, /external model calls/i, /Microphone, speech recognition/, /Unsupported analytical claims/]) assert.match(nl, prohibited);
+  for (const prohibited of [/AI-generated scientific answers/, /conversational assistant/, /external model calls/i, /Remote or server-side speech recognition/, /Unsupported analytical claims/]) assert.match(nl, prohibited);
   assert.match(nl, /It is not a\s+measurement of accuracy on natural language in general/);
   // The standing prohibitions are NOT weakened in the claims contract.
   assert.match(claims, /This product contains no AI assistant and no language model/);

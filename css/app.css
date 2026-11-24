@@ -2518,8 +2518,15 @@ body.hist-compare-mode .hist-entry-actions,body.hist-compare-mode #histEntryNote
 .nl-command-status{margin:var(--s-2) 0 0;font-size:var(--t-meta);line-height:1.45;color:var(--chrome-text-control-caption);overflow-wrap:anywhere}
 .nl-command-status:empty{display:none}
 .nl-command[data-state="rejected"] .nl-command-status,.nl-command[data-state="failed"] .nl-command-status,.nl-command[data-state="stale"] .nl-command-status{color:var(--chrome-text-primary);font-weight:650}
+.nl-command-mic{display:inline-flex;align-items:center;gap:var(--s-2)}
+.nl-command-mic[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+/* The listening look is bound to the real recognition state: no animation, no idle pulse. */
+.nl-command-mic[data-state="listening"],.nl-command-mic[data-state="finalizing"]{border-color:var(--chrome-mobile-control-open-border);box-shadow:0 0 0 2px var(--chrome-mobile-control-open-border);font-weight:650}
+.nl-command-voice-hint{margin:var(--s-2) 0 0;font-size:var(--t-meta);line-height:1.45;color:var(--chrome-text-control-caption)}
+.nl-command-voice-status{margin-top:var(--s-1)}
+.nl-command-voice-status:empty{display:none}
 .nl-command-output{margin-top:var(--s-2);min-width:0}
-.nl-command-output[hidden],.nl-command-actions[hidden]{display:none!important}
+.nl-command-output[hidden],.nl-command-actions[hidden],#nlCommandVoiceInstallRow[hidden]{display:none!important}
 .nl-command-interp{margin:0;padding:var(--s-2) var(--s-3);border:1px solid var(--chrome-divider);border-left:3px solid var(--chrome-mobile-control-open-border);border-radius:var(--r-small);background:var(--chrome-form-surface)}
 .nl-command-interp-title{margin:0 0 var(--s-1);font-size:var(--t-micro);font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--chrome-text-section)}
 .nl-command-interp p{margin:var(--s-1) 0 0;font-size:var(--t-label);line-height:1.45;overflow-wrap:anywhere}

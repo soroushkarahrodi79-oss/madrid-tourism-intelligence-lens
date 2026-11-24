@@ -22,6 +22,7 @@ const SHARDS = Object.freeze({
     "browser-tests/tutorial.browser.mjs",
     "browser-tests/spatial-command.browser.mjs",
     "browser-tests/nl-command.browser.mjs",
+    "browser-tests/voice-command.browser.mjs",
   ],
   "2": [
     "browser-tests/visual-language.browser.mjs",

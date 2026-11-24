@@ -220,5 +220,6 @@ around it. It may never supply coordinates it did not receive from a person or
 an official index, nor an area id it did not obtain from the official index.
 Any such layer requires an explicit owner decision and an update of the
 no-assistant contract first. Gate 2 is that layer for typed Spanish / English text only
-(a deterministic grammar, not a model); speech, a language model and any external
-service remain unauthorized.
+(a deterministic grammar, not a model). Gate 3 adds on-device push-to-talk as a source of that
+same text (`docs/VOICE_COMMAND_V1.md`); a language model and any external service remain
+unauthorized.

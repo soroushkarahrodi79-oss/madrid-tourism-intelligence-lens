@@ -472,8 +472,10 @@ breach them.
   English instructions and turns each into one of four Lens operations the application
   already performs by hand (go to a place, place a Lens, set a Lens radius, compare
   two Lens circles). It shows the interpreted operation and executes only after an
-  explicit confirmation. It is a control, like a menu: no model, no network, no
-  microphone, no generated sentence about evidence, no answer to a question, and every
+  explicit confirmation. Its optional push-to-talk microphone (Gate 3,
+  `docs/VOICE_COMMAND_V1.md`) only transcribes on this device into the same text field; it
+  adds no assistant and no remote processing. It is a control, like a menu: no model, no network, no
+  generated sentence about evidence, no answer to a question, and every
   refusal is a correct outcome. **Natural-language application controls are
   permitted; AI-generated scientific answers, conversational assistants, external
   model calls and unsupported analytical claims remain prohibited.**
