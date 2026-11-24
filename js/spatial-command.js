@@ -8,7 +8,8 @@
 // WHAT THIS IS NOT. There is no voice control, no natural-language parsing, no
 // language model, no assistant and no input surface here or anywhere in Gate 1.
 // A command is a plain object built by code; nothing in this file reads text a
-// person typed or said. The no-assistant contract in docs/CLAIMS_AND_LIMITATIONS.md
+// person typed or said. (Gate 2 adds js/nl-command.js and a typed panel ON TOP of
+// this contract; this file is unchanged and still reads no text.) The no-assistant contract in docs/CLAIMS_AND_LIMITATIONS.md
 // is unchanged.
 //
 // THIS MODULE IS PURE: no DOM, no Leaflet, no fetch, no clock, no `window`. It has

@@ -5,8 +5,9 @@
 // operation performed by hand through the existing Lens controls (map click,
 // radius slider, mode buttons, Lens buttons, "Analyze with Lens", "View on map")
 // produce the same application state and the same readings; that a rejected or
-// failed command leaves the map exactly as it was; and that no visible input,
-// assistant or microphone surface exists.
+// failed command leaves the map exactly as it was; and that no microphone, voice,
+// chat or assistant surface exists (the typed command panel of Gate 2 is the only
+// command field; its own behaviour is in nl-command.browser.mjs).
 //
 // Every expected value is established on a SEPARATE page by the manual path, so
 // no expectation is derived from the executor under test.
@@ -47,7 +48,10 @@ async function openApp(t, { seam = true } = {}) {
   const errors = [];
   page.on("pageerror", (error) => errors.push(String(error.message)));
   await page.route("**/*", (route) => (new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort()));
-  await page.goto(`http://127.0.0.1:${port}/${seam ? "?haloRegressionTest=1" : ""}`, { waitUntil: "networkidle" });
+  // Without the seam the page still needs a state-carrying URL: the bare public URL
+  // redirects to the Discover landing (index.html bootstrap), which this server does not
+  // serve, so "?lang=en" is what loads the real application with the seam absent.
+  await page.goto(`http://127.0.0.1:${port}/${seam ? "?haloRegressionTest=1" : "?lang=en"}`, { waitUntil: "networkidle" });
   if (!seam) return { page, errors };
   await page.evaluate(() => window.__GEO_SEARCH_TEST__.whenModuleReady());
   await page.waitForFunction(() => {
@@ -429,22 +433,45 @@ test("rollback after a centre move restores a captured Spatial Sensitivity basel
   assertEquivalent(await world(page), before, { ignore: ["url"] });
 });
 
-test("no visible command, assistant or microphone surface exists, and the seam is gated", async (t) => {
+// Gate 2 authorizes ONE visible command surface: the typed map-command panel
+// (#nlCommandPanel, docs/NATURAL_LANGUAGE_COMMAND_V1.md). Everything else stays
+// prohibited: no microphone, voice, chat or assistant element, no other command
+// field, no adapter on `window`, and the test seam stays gated.
+test("no microphone, voice, chat or assistant surface exists; the typed command panel is the only command field; the seam is gated", async (t) => {
   const { page } = await openApp(t, { seam: false });
   const exposed = await page.evaluate(() => ({
     seam: typeof window.__SPATIAL_COMMAND_TEST__,
     adapterOnWindow: typeof window.executeSpatialCommand,
+    // The pure parser may be a global function (like validateSpatialCommand); nothing of the
+    // panel's state or execution path may be a property of window.
+    leaked: Object.getOwnPropertyNames(window).filter((name) => /^(nlCommand|executeNaturalCommand|runNaturalCommand|executeNl)/.test(name)),
     // Every free-text field, described by its id, label and placeholder.
     textInputs: [...document.querySelectorAll("input[type=text], input[type=search], input:not([type]), textarea")]
       .map((el) => `${el.id} ${el.getAttribute("aria-label") || ""} ${el.getAttribute("placeholder") || ""}`),
-    mic: document.querySelectorAll("[id*=mic i], [class*=mic i], [aria-label*=micr i], [id*=voice i], [id*=command i], [class*=command i]").length,
+    // Whole-token match over id / class / aria-label (camelCase and dashes split), so
+    // "dynamic" or "economic" cannot trip it but "nlMic", "voice-btn" or "chat-box" do.
+    prohibited: [...document.querySelectorAll("[id],[class],[aria-label]")].filter((el) => {
+      const text = `${el.id} ${typeof el.className === "string" ? el.className : ""} ${el.getAttribute("aria-label") || ""}`;
+      return text.split(/[^A-Za-z0-9]+|(?<=[a-z])(?=[A-Z])/).some((token) => /^(mic|microphone|voice|voz|speech|dictate|dictation|assistant|asistente|chat|chatbot)$/i.test(token));
+    }).map((el) => el.id || el.className),
+    commandFields: [...document.querySelectorAll("[id*=command i], [class*=command i]")].map((el) => el.id).filter(Boolean).sort(),
+    panelPresent: Boolean(document.getElementById("nlCommandPanel")),
+    panelHiddenByDefault: Boolean(document.getElementById("nlCommandPanel") && document.getElementById("nlCommandPanel").hidden),
+    // The page under test must be the real application, not a redirect or an error page.
+    realApp: Boolean(document.getElementById("geoSearchQuery") && document.getElementById("map")),
   }));
+  assert.equal(exposed.realApp, true, "the guard inspects the real application (not a blank redirect target)");
+  assert.equal(exposed.panelPresent, true);
   assert.equal(exposed.seam, "undefined", "the command seam needs ?haloRegressionTest=1 on a local host");
   assert.equal(exposed.adapterOnWindow, "undefined", "the adapter is not a window API");
+  assert.deepEqual(exposed.leaked, [], "no panel state or executor is reachable as a window property");
+  assert.equal(exposed.panelHiddenByDefault, true, "the command panel is closed until the person opens it");
   // The existing official finders (place search, ámbito explorer, ámbito code
-  // fields) stay; no field invites a command, a question or speech.
+  // fields) stay, and the one authorized command field is the labelled panel input.
   for (const field of exposed.textInputs) {
+    if (field.startsWith("nlCommandInput ")) continue;
     assert.doesNotMatch(field, /command|voice|assistant|chat|ask|speak|micro|dictat/i, `unexpected free-text field: ${field}`);
   }
-  assert.equal(exposed.mic, 0, "no microphone, voice or command element");
+  assert.deepEqual(exposed.prohibited, [], "no microphone, voice, chat, speech or assistant element");
+  for (const id of exposed.commandFields) assert.match(id, /^nlCommand/, `unexpected command element: ${id}`);
 });

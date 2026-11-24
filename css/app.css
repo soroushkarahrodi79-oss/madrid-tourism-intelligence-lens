@@ -2482,3 +2482,64 @@ body.hist-compare-mode .hist-entry-actions,body.hist-compare-mode #histEntryNote
 /* UX-07 · polygon workflow on a phone: let the instruction note stay readable
    instead of being clipped (the card already scrolls as a safety net). */
 @media(max-width:850px){.spatial-toolbar{overscroll-behavior:contain}.spatial-toolbar-note{color:var(--chrome-text-control-caption)}}
+
+/* ------------------------------------------------- Gate 2 typed map command
+   A compact, dismissible panel opened from the header. It reuses the place
+   finder's chrome tokens and its field / action / result classes, so Light, Dark
+   and System are inherited, and it is an OVERLAY outside the header flow: opening
+   it cannot reflow the header or the map. The wide-header rule that hides the
+   finder's activator (the inline field replaces it) must not hide this one. */
+/* The header has no room for a sixth control below ~1021px (the appearance select and the one-row
+   header at Large text are pinned by tests), so the header button exists only where the finder is
+   inline on a wide header. Everywhere else the same entry is the first button inside the place
+   finder (.nl-command-entry), opened with the finder's own activator. */
+.nl-command-toggle,.geo-search[data-presentation="inline"]~.header-tools .geo-search-toggle.nl-command-toggle{display:none}
+@media(min-width:1021px){.geo-search[data-presentation="inline"]~.header-tools .geo-search-toggle.nl-command-toggle{display:flex}}
+.nl-command-entry{display:none;align-items:center;justify-content:center;width:100%;margin:0 0 var(--s-2)}
+.geo-search[data-presentation="overlay"] .nl-command-entry{display:flex}
+@media(max-width:1020px){.geo-search .nl-command-entry{display:flex}}
+.nl-command{
+  position:absolute;z-index:1103;
+  top:calc(var(--header-chrome-top) + 10px);
+  right:calc(18px + var(--safe-right));
+  width:min(440px,calc(100vw - 36px - var(--safe-left) - var(--safe-right)));
+  box-sizing:border-box;padding:var(--s-3);
+  max-height:calc(100vh - var(--header-chrome-top) - 76px - var(--safe-bottom));
+  max-height:calc(100dvh - var(--header-chrome-top) - 76px - var(--safe-bottom));
+  overflow:auto;overscroll-behavior:contain;
+  border:1px solid var(--chrome-border);border-radius:var(--r-large);
+  background:var(--chrome-panel-surface);backdrop-filter:blur(18px);
+  box-shadow:0 14px 40px rgba(0,0,0,.28);color:var(--chrome-text-primary)
+}
+.nl-command[hidden]{display:none!important}
+.nl-command-title{margin:0;min-width:0;font-size:var(--t-micro);font-weight:650;letter-spacing:.1em;text-transform:uppercase;color:var(--chrome-text-section);line-height:1.3}
+.nl-command-scope{margin-top:var(--s-1)}
+.nl-command-label{display:block;margin-top:var(--s-3);font-size:var(--t-meta);font-weight:650;color:var(--chrome-text-control-strong)}
+.nl-command-status{margin:var(--s-2) 0 0;font-size:var(--t-meta);line-height:1.45;color:var(--chrome-text-control-caption);overflow-wrap:anywhere}
+.nl-command-status:empty{display:none}
+.nl-command[data-state="rejected"] .nl-command-status,.nl-command[data-state="failed"] .nl-command-status,.nl-command[data-state="stale"] .nl-command-status{color:var(--chrome-text-primary);font-weight:650}
+.nl-command-output{margin-top:var(--s-2);min-width:0}
+.nl-command-output[hidden],.nl-command-actions[hidden]{display:none!important}
+.nl-command-interp{margin:0;padding:var(--s-2) var(--s-3);border:1px solid var(--chrome-divider);border-left:3px solid var(--chrome-mobile-control-open-border);border-radius:var(--r-small);background:var(--chrome-form-surface)}
+.nl-command-interp-title{margin:0 0 var(--s-1);font-size:var(--t-micro);font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--chrome-text-section)}
+.nl-command-interp p{margin:var(--s-1) 0 0;font-size:var(--t-label);line-height:1.45;overflow-wrap:anywhere}
+.nl-command-warning{margin:var(--s-2) 0 0;padding:var(--s-2) var(--s-3);border:1px solid var(--chrome-border);border-radius:var(--r-small);font-size:var(--t-meta);line-height:1.45;color:var(--chrome-text-control-strong);overflow-wrap:anywhere}
+.nl-command-choices{list-style:none;margin:var(--s-2) 0 0;padding:0;display:grid;gap:var(--s-2)}
+.nl-command-choices button{width:100%;text-align:left}
+.nl-command-actions{margin-top:var(--s-2)}
+.nl-command-examples{margin-top:var(--s-3);font-size:var(--t-meta)}
+.nl-command-examples>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--chrome-text-control-caption)}
+.nl-command-examples>summary:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
+.nl-command-example-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--s-1)}
+.nl-command-example-list button{width:100%;min-height:44px;box-sizing:border-box;padding:var(--s-2) var(--s-3);text-align:left;border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-control-group-surface);color:var(--chrome-text-control-value);font:inherit;font-size:var(--t-label);cursor:pointer;overflow-wrap:anywhere}
+.nl-command-example-list button:hover{border-color:var(--chrome-mobile-control-open-border)}
+.nl-command-example-list button:focus-visible{outline:2px solid var(--chrome-focus-ring-color);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.nl-command,.nl-command *{transition:none!important;animation:none!important}}
+/* On phones the 44px Layers button occupies the corner this panel anchors to; start below it. */
+@media(max-width:560px){
+  .nl-command{
+    top:calc(var(--header-chrome-top) + 64px);
+    max-height:calc(100vh - var(--header-chrome-top) - 140px - var(--safe-bottom));
+    max-height:calc(100dvh - var(--header-chrome-top) - 140px - var(--safe-bottom))
+  }
+}
