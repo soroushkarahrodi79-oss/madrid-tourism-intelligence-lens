@@ -153,7 +153,7 @@
   </section>
   <!-- Gate 2: typed map command. A small dismissible panel, closed by default, that
        reads a closed set of sentence shapes (docs/NATURAL_LANGUAGE_COMMAND_V1.md).
-       It is not an assistant and has no microphone. The panel body is rendered by
+       It is not an assistant. Its optional microphone only fills the field with on-device transcribed text (docs/VOICE_COMMAND_V1.md). The panel body is rendered by
        js/app.js as text nodes only. -->
   <section id="nlCommandPanel" class="nl-command" role="dialog" aria-modal="false" aria-labelledby="nlCommandTitle" data-state="idle" hidden>
     <div class="geo-search-head">
@@ -164,8 +164,11 @@
     <form id="nlCommandForm" class="nl-command-form" novalidate>
       <label for="nlCommandInput" class="nl-command-label" data-i18n="cmd.label">Type a short instruction for the map</label>
       <input id="nlCommandInput" class="geo-search-query" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" maxlength="200" aria-describedby="nlCommandStatus" placeholder="Go to Barajas" data-i18n-attr="placeholder:cmd.placeholder">
-      <div class="geo-search-actions"><button type="submit" id="nlCommandInterpret" class="geo-search-action" data-i18n="cmd.interpret">Interpret</button></div>
+      <div class="geo-search-actions"><button type="submit" id="nlCommandInterpret" class="geo-search-action" data-i18n="cmd.interpret">Interpret</button><button type="button" id="nlCommandMic" class="geo-search-action nl-command-mic" aria-pressed="false" aria-describedby="nlCommandVoiceHint" data-state="idle"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V22h2v-3.08A7 7 0 0 0 19 12h-2z"/></svg><span id="nlCommandMicLabel" data-i18n="cmd.voice.speak">Speak</span></button></div>
     </form>
+    <p id="nlCommandVoiceHint" class="nl-command-voice-hint" data-i18n="cmd.voice.hint">Voice: press Speak, or hold V while focus is outside the text field. Audio stays on this device.</p>
+    <p id="nlCommandVoiceStatus" class="nl-command-status nl-command-voice-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    <div id="nlCommandVoiceInstallRow" class="geo-search-actions" hidden><button type="button" id="nlCommandVoiceInstall" class="geo-search-action" data-i18n="cmd.voice.install">Install the speech pack</button></div>
     <p id="nlCommandStatus" class="nl-command-status" role="status" aria-live="polite" aria-atomic="true"></p>
     <div id="nlCommandOutput" class="nl-command-output" aria-live="polite" hidden></div>
     <div id="nlCommandActions" class="geo-search-actions nl-command-actions" hidden>
@@ -1237,6 +1240,7 @@
 <script src="js/runtime-config.js?v=20260928-3"></script>
 <script src="js/spatial-command.js?v=20261124-1"></script>
 <script src="js/nl-command.js?v=20261124-1"></script>
+<script src="js/voice-input.js?v=20261124-1"></script>
 <script src="js/app.js?v=20261103-originmap-v1"></script>
 <script src="js/tutorial.js?v=20261030-guided-tour-v2"></script>
 <script>

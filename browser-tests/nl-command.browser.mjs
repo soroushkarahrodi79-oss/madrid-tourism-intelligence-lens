@@ -123,7 +123,8 @@ test("the panel is discoverable, labelled, keyboard-operable and closed by defau
       outputLive: document.getElementById("nlCommandOutput").getAttribute("aria-live"),
       scope: panel.querySelector(".nl-command-scope").textContent,
       examples: [...document.querySelectorAll("#nlCommandExampleList button")].map((b) => b.textContent),
-      mic: document.querySelectorAll("#nlCommandPanel [id*=mic i], #nlCommandPanel [class*=mic i], #nlCommandPanel [aria-label*=micr i]").length,
+      // Gate 3 authorizes exactly one microphone control (the push-to-talk Speak button and its label).
+      mic: [...document.querySelectorAll("#nlCommandPanel [id*=mic i], #nlCommandPanel [class*=mic i], #nlCommandPanel [aria-label*=micr i]")].map((el) => el.id).sort(),
     };
   });
   assert.equal(open.expanded, "true");
@@ -135,7 +136,7 @@ test("the panel is discoverable, labelled, keyboard-operable and closed by defau
   assert.equal(open.outputLive, "polite");
   assert.match(open.scope, /not an assistant/);
   assert.equal(open.examples.length, 4);
-  assert.equal(open.mic, 0);
+  assert.deepEqual(open.mic, ["nlCommandMic", "nlCommandMicLabel"], "the only microphone surface is the Gate 3 push-to-talk control");
 
   // Escape closes, returns focus to the opener, and leaves the map as it was.
   const before = await world(page);

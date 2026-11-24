@@ -450,7 +450,9 @@ test("no microphone, voice, chat or assistant surface exists; the typed command 
       .map((el) => `${el.id} ${el.getAttribute("aria-label") || ""} ${el.getAttribute("placeholder") || ""}`),
     // Whole-token match over id / class / aria-label (camelCase and dashes split), so
     // "dynamic" or "economic" cannot trip it but "nlMic", "voice-btn" or "chat-box" do.
-    prohibited: [...document.querySelectorAll("[id],[class],[aria-label]")].filter((el) => {
+    // Gate 3 authorizes ONE microphone: the optional push-to-talk input inside the command panel
+    // (nlCommand* ids, nl-command-* classes, docs/VOICE_COMMAND_V1.md). Anything else still fails.
+    prohibited: [...document.querySelectorAll("[id],[class],[aria-label]")].filter((el) => !el.closest("#nlCommandPanel")).filter((el) => {
       const text = `${el.id} ${typeof el.className === "string" ? el.className : ""} ${el.getAttribute("aria-label") || ""}`;
       return text.split(/[^A-Za-z0-9]+|(?<=[a-z])(?=[A-Z])/).some((token) => /^(mic|microphone|voice|voz|speech|dictate|dictation|assistant|asistente|chat|chatbot)$/i.test(token));
     }).map((el) => el.id || el.className),

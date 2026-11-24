@@ -19,7 +19,7 @@ prohibition of `docs/CLAIMS_AND_LIMITATIONS.md` ("No AI assistant") in force:
 | A visible, dismissible command panel with an interpretation preview, explicit candidate choice and an explicit Execute | A **conversational assistant**: chat, memory of a conversation, follow-up questions, "Ask Madrid" |
 | Localized, template-filled feedback taken from the plan the core produced | Any **language model, embedding, prompt, vector store or API key** |
 | Official-index entity resolution by exact folded name | **External model calls**, any network request, any backend or telemetry |
-| | **Microphone, speech recognition, push-to-talk, voice placeholder** |
+| **Gate 3 voice input** (`docs/VOICE_COMMAND_V1.md`): a push-to-talk microphone that only fills this panel's field with an on-device transcript, interpreted by the same parser and confirmed by the same Execute | **Remote or server-side speech recognition**, an always-listening microphone, executing spoken text without confirmation, a voice assistant or spoken answers |
 | | **Unsupported analytical claims**: answering "which district is better", "how many…", ranking, scoring, recommending, causal or legal statements |
 | | Arbitrary JavaScript, a global command API, or any second GIS engine |
 
@@ -128,7 +128,7 @@ semantics changed; every reading is recomputed by the app after execution.
 A header button (`Command` / `Comando`, icon-only below 681 px, 44 px target) opens
 a small dismissible overlay panel that shares the place finder's corner, chrome
 tokens, field, action and result classes. Opening one closes the other. It is
-closed by default and has **no microphone, no chat history and no permanent sidebar**.
+closed by default and has **no chat history and no permanent sidebar**. Its only microphone is the optional Gate 3 push-to-talk input (`docs/VOICE_COMMAND_V1.md`).
 
 - Labelled field (`<label for>`), supported examples that fill the field, and an
   **Interpret** submit. **Enter interprets; it never executes.**
@@ -180,8 +180,9 @@ Core: every code of `docs/SPATIAL_COMMAND_V1.md` §6.
   without change, ambiguity, clarification, stale preview, Spanish; G keyboard,
   labels, live regions, focus, phone layout (375 px, 44 px targets, no horizontal
   scroll).
-- `browser-tests/spatial-command.browser.mjs` — updated guard: no microphone,
-  voice, chat or assistant element, the typed panel is the only command field, and
+- `browser-tests/spatial-command.browser.mjs` — updated guard (Gate 3: the one authorized
+  push-to-talk microphone lives inside the panel): no other microphone, voice, chat or
+  assistant element, the typed panel is the only command field, and
   no parser or executor exists on `window`.
 
 **The corpus is hand-designed. It shows that the declared shapes parse to the
@@ -209,5 +210,6 @@ Read-only and reversible first: (1) an **undo of the last executed command**
 (the Gate 1 snapshot already exists); (2) a separately designed, explicitly
 scoped **ámbito-comparison command**, after a product-semantics review of what the
 preview must state; (3) a corpus review by people who did not write the grammar.
-Voice, a language model or any external service require their own owner decision
-and an update of the no-assistant contract first.
+Voice input was authorized separately as Gate 3 (`docs/VOICE_COMMAND_V1.md`). A language
+model or any external service still requires its own owner decision and an update of the
+no-assistant contract first.
