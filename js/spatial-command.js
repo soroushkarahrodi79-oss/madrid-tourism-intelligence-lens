@@ -419,7 +419,10 @@ function planSpatialCommand(command, context) {
     command,
     kind: "lens",
     changed,
-    notes: Object.freeze(changed ? notes : []),
+    // Operation notes (what the command changed) are meaningless when nothing
+    // changed; the scope warning is not — a Lens placed from an area is still a
+    // circle on an interior point, never the area, however often it is asked for.
+    notes: Object.freeze(changed ? notes : notes.filter((code) => code === SPATIAL_COMMAND_NOTE.LENS_CIRCLE_NOT_AREA)),
     resolved: Object.freeze(resolved),
     target: Object.freeze({
       mode: after.mode,
@@ -452,7 +455,7 @@ function buildSpatialCommandReceipt({ input, prepared, status, error = null, sta
     command: plan ? plan.command : null,
     resolved: plan ? plan.resolved : null,
     error: error || (prepared && !prepared.ok ? prepared.error : null),
-    notes: plan && status === SPATIAL_COMMAND_STATUS.APPLIED ? plan.notes : Object.freeze([]),
+    notes: plan && (status === SPATIAL_COMMAND_STATUS.APPLIED || status === SPATIAL_COMMAND_STATUS.NO_CHANGE) ? plan.notes : Object.freeze([]),
     state,
   };
   if (rolledBack !== undefined) receipt.rolledBack = rolledBack;

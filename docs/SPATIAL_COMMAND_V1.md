@@ -119,7 +119,10 @@ surface) is never touched.
 4. **Always re-prepared.** `execute` re-validates against the current state; a
    plan is never applied to a map that changed after it was made.
 5. **Idempotent.** A command whose target equals the current state returns
-   `no_change` and does nothing.
+   `no_change` and does nothing. Operation notes (`MODE_CHANGED`,
+   `CENTRE_MOVED`, …) are dropped because nothing changed, but the scope
+   warning `LENS_CIRCLE_NOT_AREA` is kept: a Lens placed from an official area
+   is still a circle, not the area.
 
 Camera commands are not verified against a target (the framed view depends on
 the viewport); on an exception the previous view is restored.
@@ -194,9 +197,13 @@ Execution: `EXECUTION_FAILED`, `EXECUTION_STATE_MISMATCH`.
 - No command switches comparison scope, layers, language, PNOA or export.
 - Area commands need the geographic-search module and indices loaded
   (`GEOGRAPHY_NOT_READY` otherwise; nothing is queued).
-- Rollback restores mode, Lens B state, centres, radii and active Lens. It does
-  not restore a radius-sensitivity baseline invalidated by the attempted move
-  (the app invalidates it on any centre change, as it does by hand).
+- Rollback restores mode, Lens B state, centres, radii, active Lens and a
+  captured radius-sensitivity baseline (with its invalidation notice). The app
+  drops that baseline on any centre change, as it does by hand; the immutable
+  snapshot taken before execution is put back with the centres. `rolledBack:
+  true` is reported only if mode, active Lens, Lens B state and initialization,
+  centres, radii **and** the baseline all match the pre-command state. Metric
+  focus is not snapshotted: no command sets or clears it (no demonstrated loss).
 - Execution runs several `refresh()` passes (as the manual sequence does); they
   are synchronous, so no intermediate state is painted.
 

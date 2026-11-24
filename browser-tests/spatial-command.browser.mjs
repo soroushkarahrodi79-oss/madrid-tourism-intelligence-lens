@@ -356,7 +356,9 @@ test("repeating a command is idempotent: the second run reports no_change and ch
   const once = await world(page);
   const second = await run(page, command);
   assert.equal(second.status, "no_change");
-  assert.deepEqual(second.notes, []);
+  // No operation notes (nothing changed), but the scope warning stays: these Lenses
+  // were placed from areas and are still circles, not the areas.
+  assert.deepEqual(second.notes, ["LENS_CIRCLE_NOT_AREA"]);
   assert.deepEqual(await world(page), once);
   assert.equal((await run(page, { version: 1, action: "set_lens_radius", lens: "B", radiusM: 500 })).status, "no_change");
 });
@@ -390,6 +392,41 @@ test("an exception during execution is rolled back to the exact prior state", as
   assertEquivalent(after, before, { ignore: ["url"] });
   assert.equal(after.canonicalUrl, before.canonicalUrl);
   assert.deepEqual(after.view, before.view);
+});
+
+test("rollback after a centre move restores a captured Spatial Sensitivity baseline", async (t) => {
+  const { page } = await openApp(t);
+  const setup = await run(page, {
+    version: 1, action: "compare_locations",
+    a: { location: { type: "official_area", id: "BARRIO:012" }, radiusM: 500 },
+    b: { location: { type: "official_area", id: "BARRIO:015" }, radiusM: 500 },
+  });
+  assert.equal(setup.status, "applied");
+  await frames(page);
+  // Capture through the product control; the Reset button is visible iff a baseline exists.
+  await page.evaluate(() => document.getElementById("spatialSensitivityCapture").click());
+  await frames(page);
+  const baselineShown = () => page.evaluate(() => !document.getElementById("spatialSensitivityReset").hidden);
+  assert.equal(await baselineShown(), true, "precondition: a baseline is captured");
+  const before = await world(page);
+  await page.evaluate(() => {
+    const original = window.activateLens;
+    let armed = true;
+    // Throw AFTER the app's own activateLens()/refresh() ran with the moved centre,
+    // i.e. after the render that invalidates the baseline has already happened.
+    window.activateLens = function (...args) {
+      const result = original.apply(this, args);
+      if (armed) { armed = false; throw new Error("injected failure"); }
+      return result;
+    };
+  });
+  const receipt = await run(page, { version: 1, action: "set_lens_location", lens: "B", location: { type: "coordinates", lat: 40.41, lon: -3.69 } });
+  assert.equal(receipt.status, "failed");
+  assert.equal(receipt.error.code, "EXECUTION_FAILED");
+  assert.equal(receipt.rolledBack, true);
+  await frames(page);
+  assert.equal(await baselineShown(), true, "the baseline captured before the failed command is restored");
+  assertEquivalent(await world(page), before, { ignore: ["url"] });
 });
 
 test("no visible command, assistant or microphone surface exists, and the seam is gated", async (t) => {

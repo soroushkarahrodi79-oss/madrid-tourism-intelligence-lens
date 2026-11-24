@@ -326,6 +326,20 @@ test("a command equal to the current state plans no change", () => {
   assert.equal(sameView.plan.changed, false);
 });
 
+test("no_change drops operation notes but keeps the LENS_CIRCLE_NOT_AREA scope warning", () => {
+  const area = { type: "official_area", id: "DISTRICT:16" };
+  const point = AREAS["DISTRICT:16"].point;
+  const ctx = context({ lenses: { A: { lat: point.lat, lon: point.lon } } });
+  const again = C.prepareSpatialCommand({ version: 1, action: "set_lens_location", lens: "A", location: area }, ctx);
+  assert.equal(again.plan.changed, false);
+  assert.deepEqual([...again.plan.notes], [C.SPATIAL_COMMAND_NOTE.LENS_CIRCLE_NOT_AREA]);
+  const receipt = C.buildSpatialCommandReceipt({ input: {}, prepared: again, status: C.SPATIAL_COMMAND_STATUS.NO_CHANGE, state: {} });
+  assert.deepEqual([...receipt.notes], [C.SPATIAL_COMMAND_NOTE.LENS_CIRCLE_NOT_AREA]);
+  // Coordinates carry no area claim, so nothing to warn about.
+  const coordsAgain = C.prepareSpatialCommand(radius("A", 900), context());
+  assert.deepEqual([...coordsAgain.plan.notes], []);
+});
+
 test("navigate_to_location moves only the camera, framing an area like 'View on map'", () => {
   const framed = C.prepareSpatialCommand({ version: 1, action: "navigate_to_location", location: area("MUNICIPALITY:28079") }, context());
   assert.equal(framed.ok, true);

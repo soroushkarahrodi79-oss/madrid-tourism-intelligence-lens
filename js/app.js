@@ -11731,6 +11731,11 @@ const spatialCommandSnapshot = () => ({
     B: { ...centerOf("B"), radiusM: radiusFor("B") },
   },
   view: { center: map.getCenter(), zoom: map.getZoom() },
+  // A captured Spatial Sensitivity baseline is an immutable snapshot that the app
+  // drops on any centre change, so a failed command that moved a centre would
+  // otherwise lose it for good. Kept by reference; restored with the centres.
+  baseline: spatialBaseline,
+  baselineNotice: spatialBaselineNotice,
 });
 
 // The dimensions where the live state differs from `target` (empty when equal).
@@ -11763,8 +11768,14 @@ const spatialCommandRestore = (snapshot, kind) => {
     const s = snapshot.lenses[which];
     spatialCommandPlaceLens(which, s.lat, s.lon, s.radiusM);
   }
+  // After the centres are back (so the validity guard sees the original places)
+  // and before the final refresh renders the baseline panel.
+  spatialBaseline = snapshot.baseline;
+  spatialBaselineNotice = snapshot.baselineNotice;
   activateLens(snapshot.active);
-  return spatialCommandMismatch({ mode: snapshot.mode, activeLens: snapshot.active, lensBEnabled: snapshot.bEnabled, lenses: snapshot.lenses }).length === 0;
+  return spatialCommandMismatch({ mode: snapshot.mode, activeLens: snapshot.active, lensBEnabled: snapshot.bEnabled, lenses: snapshot.lenses }).length === 0
+    && spatialBaseline === snapshot.baseline
+    && lensBHasBeenInitialized === snapshot.bInitialized;
 };
 
 // prepare(input) -> the pure contract's result. Reads only.
