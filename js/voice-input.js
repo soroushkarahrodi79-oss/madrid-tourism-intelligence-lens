@@ -106,7 +106,8 @@ function createPushToTalk({ provider, getLang, onChange, maxListenMs = VOICE_LIM
 
   const emit = (detail) => onChange({ state, ...detail });
   const clearTimers = () => { if (timer !== null) { clearTimer(timer); timer = null; } };
-  const settle = (detail) => { clearTimers(); handle = null; state = VOICE_STATE.IDLE; emit(detail); };
+  // Every exit releases the recognition handle: abort() on an ended recognition is a no-op.
+  const settle = (detail) => { clearTimers(); const old = handle; handle = null; state = VOICE_STATE.IDLE; if (old) old.abort(); emit(detail); };
   const live = (id) => id === session && state !== VOICE_STATE.IDLE;
 
   function release() {

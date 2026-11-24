@@ -12197,7 +12197,10 @@ function nlVoiceInit() {
       else if (detail.state === "finalizing") say("cmd.voice.finalizing");
       else if (detail.transcript) {
         // The transcript replaces the field, then takes exactly the typed path.
-        input.value = detail.transcript.slice(0, input.maxLength);
+        // A transcript longer than the Gate 2 limit is refused whole: cutting it could drop
+        // an instruction or restriction. The field and the current interpretation stay as they were.
+        if (detail.transcript.length > NL_COMMAND_LIMITS.maxInputLength) { say("cmd.err.INPUT_TOO_LONG", { max: NL_COMMAND_LIMITS.maxInputLength }); return; }
+        input.value = detail.transcript;
         nlCommandReset();
         say("cmd.voice.heard", { text: input.value });
         nlCommandInterpret();
@@ -12218,6 +12221,8 @@ function nlVoiceInit() {
     ptt.begin();
     return true;
   }
+  // Typing while the microphone is open ends the session: a late transcript must never overwrite it.
+  input.addEventListener("input", () => { if (ptt && ptt.state !== "idle") ptt.cancel(); });
   mic.addEventListener("click", () => { if (ptt && ptt.state !== "idle") ptt.release(); else start(); });
   nlCommandNode("nlCommandVoiceInstall").addEventListener("click", async () => {
     say("cmd.voice.installing");
@@ -12231,9 +12236,22 @@ function nlVoiceInit() {
   let held = false;
   const isV = (event) => event.code === "KeyV" && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
   document.addEventListener("keydown", (event) => {
-    if (!ptt || !isV(event) || event.isComposing || nlCommandNode("nlCommandPanel").hidden) return;
+    if (!ptt || !isV(event) || event.isComposing) return;
     const node = event.target;
     if (node instanceof HTMLElement && node.closest("input,textarea,select,[contenteditable]")) return;
+    const panel = nlCommandNode("nlCommandPanel");
+    if (panel.hidden) {
+      // From the bare map the key may open the command panel itself; never from a
+      // control, a dialog, the place finder, or while a polygon is drawn or edited.
+      const onMap = node === document.body || node === document.documentElement || (node instanceof HTMLElement && node.closest("#map") && !node.closest("button,a,summary,[role=button]"));
+      if (!onMap || event.repeat || document.querySelector("dialog[open]") || geoSearch.surfaceOpen || polygonDrawing || polygonEditing) return;
+      event.preventDefault();
+      nlCommandSetOpen(true);
+      // Focus the mic button, not the field: key-repeat of the held V must not type into it.
+      mic.focus();
+      held = start();
+      return;
+    }
     event.preventDefault();
     if (event.repeat || held) return;
     held = start();

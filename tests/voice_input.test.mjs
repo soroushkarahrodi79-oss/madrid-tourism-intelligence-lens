@@ -176,3 +176,14 @@ test("the module has no network, storage or capture surface of its own", () => {
     assert.doesNotMatch(src, forbidden);
   }
 });
+
+test("Gate 5: every exit (final, error, end) releases the recognition handle", async () => {
+  for (const finish of [(r) => r.onresult(finalEvent("ve a barajas")), (r) => r.onerror({ error: "audio-capture" }), (r) => r.onend()]) {
+    const s = setup();
+    await s.ptt.begin();
+    s.instances[0].onaudiostart();
+    finish(s.instances[0]);
+    assert.equal(s.ptt.state, VOICE_STATE.IDLE);
+    assert.ok(s.instances[0].calls.includes("abort"), "handle aborted on the terminal path");
+  }
+});

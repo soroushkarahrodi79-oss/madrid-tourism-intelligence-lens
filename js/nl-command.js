@@ -100,6 +100,28 @@ function nlStripCourtesy(t) {
   return out;
 }
 
+// ------------------------------------------------------------------ spoken measures
+
+// Ordinary spoken Spanish writes some radii as words ("un kilómetro", "medio kilómetro",
+// "mil metros"). Only these closed, unambiguous forms are rewritten to digits; the rewritten
+// text then goes through the same exact conversion and validation as typed digits. Anything
+// else ("mil quinientos metros", "tres y pico") is left as words and refused as unsupported.
+const NL_SMALL = { un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10 };
+const NL_HUNDREDS = { cien: 100, doscientos: 200, trescientos: 300, cuatrocientos: 400, quinientos: 500, seiscientos: 600, setecientos: 700, ochocientos: 800, novecientos: 900 };
+const NL_SPOKEN_KM_HALF = /\b(un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez) (kilometros?|kms?) y medio\b/g;
+const NL_SPOKEN_HALF_KM = /\bmedio (kilometros?|kms?)\b/g;
+const NL_SPOKEN_N_KM = /\b(un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez) (kilometros?|kms?)\b/g;
+const NL_SPOKEN_THOUSAND = /\bmil (metros?)\b/g;
+const NL_SPOKEN_HUNDREDS = /\b(cien|doscientos|trescientos|cuatrocientos|quinientos|seiscientos|setecientos|ochocientos|novecientos) (metros?)\b/g;
+function nlSpokenMeasures(t) {
+  return t
+    .replace(NL_SPOKEN_KM_HALF, (m, n, u) => NL_SMALL[n] + ",5 " + u)
+    .replace(NL_SPOKEN_HALF_KM, (m, u) => "0,5 " + u)
+    .replace(NL_SPOKEN_N_KM, (m, n, u) => NL_SMALL[n] + " " + u)
+    .replace(NL_SPOKEN_THOUSAND, "1000 $1")
+    .replace(NL_SPOKEN_HUNDREDS, (m, n, u) => NL_HUNDREDS[n] + " " + u);
+}
+
 // ------------------------------------------------------------------ radius
 
 const NL_RADIUS_SOURCE = "(\\d+(?:[.,]\\d+)?)\\s*-?\\s*(kilometros?|kilometres?|kilometers?|kms?|metros?|metres?|meters?|mts?|m)(?![a-z])";
@@ -440,7 +462,7 @@ function parseNaturalCommand(text, options) {
   const search = options && options.search;
   if (typeof text !== "string") return nlReject(NL_COMMAND_REASON.EMPTY_INPUT);
   if (text.length > NL_COMMAND_LIMITS.maxInputLength) return nlReject(NL_COMMAND_REASON.INPUT_TOO_LONG);
-  const t = nlStripCourtesy(nlNormalize(text));
+  const t = nlSpokenMeasures(nlStripCourtesy(nlNormalize(text)));
   if (!t) return nlReject(NL_COMMAND_REASON.EMPTY_INPUT);
 
   const compare = NL_COMPARE_VERB.exec(t);
