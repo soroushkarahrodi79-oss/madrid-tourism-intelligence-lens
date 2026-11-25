@@ -44,9 +44,9 @@ const AREA_ASSET_VERSION = "20261029-m3-dossier-v1";
 // release version, so a browser can never combine a new app.js with an old registry,
 // dictionary or Area Profile module. tests/domestic_origin_dynamics_ui.test.mjs pins
 // that they stay equal.
-const ORIGIN_CONTEXT_MODULE_VERSION = "20261125-tmregional-v1";
-const AREA_PROFILE_MODULE_VERSION = "20261125-tmregional-v1";
-const REGISTRY_ASSET_VERSION = "20261125-tmregional-v1";
+const ORIGIN_CONTEXT_MODULE_VERSION = "20261125-tmplayback-v1";
+const AREA_PROFILE_MODULE_VERSION = "20261125-tmplayback-v1";
+const REGISTRY_ASSET_VERSION = "20261125-tmplayback-v1";
 const moduleUrl = (name, version = AREA_ASSET_VERSION) => new URL(`${name}?v=${version}`, MODULE_BASE).href;
 
 // K11 (#73): the evidence-snapshot identity carried in a shared link, so a reader
@@ -426,6 +426,10 @@ const HIST_SWAP_DELAY = 180;
 let histDrag = null; // active divider drag, if any
 // `pair` is the reader's choice and outlives one comparison session (never persisted).
 const histCompare = { active: false, fraction: 0.5, layers: {}, state: { left: "idle", right: "idle" }, saved: null, returnView: null, pair: { ...HIST_DEFAULT_PAIR }, swapTimers: {} };
+// Gate 3 playback (see "load-aware temporal playback" below). `side` moves through the dates,
+// the other side is the fixed reference. Never persisted and never part of a link.
+const HIST_PLAY_DWELLS = [1000, 2000, 4000, 8000];
+const histPlay = { playing: false, side: "right", dwell: 2000, includeCity: false, phase: "stopped", target: null, staged: null, timer: null, dwellAt: 0, remaining: 0, waitAt: 0, waitTimer: null, halted: null };
 const histCov = (side) => histCoverage(histCompare.pair[side]);
 const histOther = (side) => (side === "left" ? "right" : "left");
 function histResText(cov) {
@@ -578,7 +582,7 @@ const HIST_UI_MARGIN = 8;
 const histUi = { mode: "expanded", shown: "expanded", pos: null, drag: null };
 // The dates panel opens from either year label in the header; histUi.datesSide records
 // which one, so Escape returns focus there.
-const HIST_PANELS = { menu: { panel: "histMenu", button: "histMenuBtn" }, info: { panel: "histInfo", button: "histInfoBtn" }, dates: { panel: "histDates" } };
+const HIST_PANELS = { menu: { panel: "histMenu", button: "histMenuBtn" }, info: { panel: "histInfo", button: "histInfoBtn" }, dates: { panel: "histDates" }, play: { panel: "histPlay", button: "histPlayBtn" } };
 const histPanelButtons = (key) => (key === "dates" ? [...document.querySelectorAll("[data-hist-dates]")] : [document.getElementById(HIST_PANELS[key].button)]);
 const histBarEl = () => document.getElementById("histCompareBar");
 const histDesktop = () => window.matchMedia("(min-width: 851px)").matches;
@@ -624,7 +628,8 @@ function renderHistChip() {
   if (!chip || !status) return;
   const pct = Math.round(histCompare.fraction * 100);
   const aggregate = status.dataset.state;
-  chip.textContent = aggregate === "loading" ? shellT("hist.year.loading")
+  chip.textContent = histPlay.playing ? `▶ ${histCov(histPlay.side).label}`
+    : aggregate === "loading" ? shellT("hist.year.loading")
     : aggregate === "error" || aggregate === "partial" ? shellT(`hist.year.${aggregate}`)
     : pct >= 100 ? histT("hist.presetLeft")
     : pct <= 0 ? histT("hist.presetRight")
@@ -673,6 +678,9 @@ function histUiPanel(name, open) {
     panel.hidden = !show;
     for (const button of histPanelButtons(key)) button.setAttribute("aria-expanded", String(show));
   }
+  // Playback runs only while its controls are on screen, so it can always be stopped at once:
+  // closing the playback panel (another panel, minimise, hide, exit) pauses it.
+  if (histPlay.playing && document.getElementById("histPlay")?.hidden !== false) histPlayStop();
   histUiReflow();
 }
 
@@ -730,8 +738,11 @@ function histAttribution(cov) {
   return `${escapeHtml(cov.product)} (${when}) cedido por &copy; <a href="https://www.ign.es">Instituto Geogr&aacute;fico Nacional de Espa&ntilde;a</a> &middot; <a href="https://www.scne.es">CC BY 4.0 scne.es</a>`;
 }
 
-function histSideLayer(side) {
-  const cfg = histCov(side);
+// `staged` (Gate 3 playback only): the next date is requested invisibly (opacity 0, no
+// attribution) in the same pane and is named nowhere until it has fully loaded; only then
+// does histPlayCommit make it that side's image, label and attribution in one step.
+function histSideLayer(side, id = histCompare.pair[side], { staged = false } = {}) {
+  const cfg = histCoverage(id);
   const layer = L.tileLayer.wms(HIST_WMS, {
     layers: cfg.layer,
     format: "image/jpeg",
@@ -739,25 +750,33 @@ function histSideLayer(side) {
     pane: side === "left" ? "histLeftPane" : "histRightPane",
     maxZoom: 19,
     crossOrigin: "anonymous",
-    attribution: histAttribution(cfg),
+    opacity: staged ? 0 : 1,
+    attribution: staged ? "" : histAttribution(cfg),
   });
-  let failed = 0;
+  layer.histId = id;
+  layer.histFailed = 0;
+  layer.histReady = false;
   layer.on("loading", () => {
-    if (histCompare.layers[side] !== layer) return;
-    failed = 0;
+    layer.histFailed = 0;
+    layer.histReady = false;
+    if (histCompare.layers[side] !== layer) { histPlaySync(); return; }
     histCompare.state[side] = "loading";
     renderHistStatus();
+    histPlaySync();
   });
-  layer.on("tileerror", () => { failed += 1; });
+  layer.on("tileerror", () => { layer.histFailed += 1; });
   layer.on("tileload", (e) => { e.tile.dataset.histBlank = histTileBlank(e.tile) ? "1" : "0"; });
   layer.on("load", () => {
-    if (histCompare.layers[side] !== layer) return;
     const tiles = [...layer.getContainer().querySelectorAll("img.leaflet-tile-loaded")];
     const shown = tiles.length;
     const blank = tiles.filter((img) => img.dataset.histBlank === "1").length;
-    histCompare.state[side] = shown === 0 ? "error" : failed ? "partial" : blank === shown ? "nocover" : blank ? "edge" : "ok";
+    layer.histState = shown === 0 ? "error" : layer.histFailed ? "partial" : blank === shown ? "nocover" : blank ? "edge" : "ok";
+    layer.histReady = true;
+    if (histCompare.layers[side] !== layer) { histPlaySync(); return; }
+    histCompare.state[side] = layer.histState;
     renderHistStatus();
     positionHistBar();
+    histPlaySync();
   });
   return layer;
 }
@@ -822,6 +841,9 @@ function setHistCompare(enabled, opts = {}) {
     updateHistClip();
     histUiReflow();
   } else {
+    // Closing the comparison ends playback first, so no staged request or timer outlives it.
+    histPlayStop();
+    histPlay.phase = "stopped";
     window.removeEventListener("resize", positionHistBar);
     map.off("moveend", renderHistShare);
     histCompare.returnView = null;
@@ -980,6 +1002,9 @@ function histApplyRestore() {
 // other side are untouched. Only the dates in HIST_COVERAGES exist here: no year is
 // interpolated and nothing is offered that Gate 0 did not see return imagery in Madrid.
 function setHistSide(side, id) {
+  // A date the reader chooses by hand always wins: playback stops first (and drops its staged frame).
+  histPlayStop();
+  if (["halted", "ended"].includes(histPlay.phase)) histPlay.phase = "paused";
   if (!histCoverage(id) || id === histCompare.pair[histOther(side)] || id === histCompare.pair[side]) {
     renderHistPair();
     return false;
@@ -1127,6 +1152,7 @@ function renderHistPair() {
   renderHistProvenance();
   renderHistStatus();
   renderHistSlider();
+  renderHistPlay();
 }
 
 for (const side of ["left", "right"]) {
@@ -1141,6 +1167,289 @@ for (const button of document.querySelectorAll("[data-hist-step]")) {
     if (button.disabled) document.getElementById(side === "left" ? "histPickLeft" : "histPickRight").focus({ preventScroll: true });
   });
 }
+
+// ---- Gate 3: load-aware temporal playback --------------------------------------
+// One side steps through the verified dates (histSeries, js/historical-url.js) while the other
+// stays fixed as the reference. It is a sequence of discrete official observations: no frame
+// is interpolated, morphed or faded into the next, and no date is ever shown over another
+// date's image. The loop is driven by tile-load events, not by a clock:
+//   1. a frame's display time (histPlay.dwell) runs ONLY while both sides show fully
+//      available imagery (histFrameAction "show"); while either side loads it is suspended,
+//      however long the service takes, and resumes with the time that was left;
+//   2. during that display time the next date (one, for this viewport only) is requested
+//      invisibly in the same pane; when the time is up the label still names the visible
+//      image until the next one has fully loaded, and then image, label, attribution and
+//      provenance change together (histPlayCommit);
+//   3. tiles that fail (histFrameAction "halt") stop playback on that frame, saying so;
+//      a date with no imagery here is shown and named as missing imagery, never as no change.
+// A manual date choice, closing the playback panel, minimising, hiding or leaving the
+// comparison, and a hidden browser tab all stop playback and drop the staged request.
+function histPlaySeq() {
+  return histPlaySequence(histSeries({ includeCity: histPlay.includeCity }), histCompare.pair[histOther(histPlay.side)]);
+}
+function histPlayTarget() {
+  return histPlay.target ?? histPlayNextId(histPlaySeq(), histCompare.pair[histPlay.side]);
+}
+function histPlayPrevId(seq, id) {
+  const order = HIST_COVERAGES.map((c) => c.id);
+  const here = order.indexOf(id);
+  return [...seq].reverse().find((x) => order.indexOf(x) < here) ?? null;
+}
+
+function histPlayCancelStaged() {
+  if (histPlay.staged) map.removeLayer(histPlay.staged); // removing a tile layer aborts its pending requests
+  histPlay.staged = null;
+}
+function histPlayClearTimers() {
+  clearTimeout(histPlay.timer);
+  clearTimeout(histPlay.waitTimer);
+  histPlay.timer = histPlay.waitTimer = null;
+}
+// Pause (or halt) at once: no timer, no staged request survives; the visible frame stays as it is.
+function histPlayStop(phase = "paused", halted = null) {
+  const wasRunning = histPlay.playing || histPlay.staged;
+  histPlay.playing = false;
+  histPlayClearTimers();
+  histPlayCancelStaged();
+  histPlay.target = null;
+  histPlay.remaining = 0;
+  histPlay.waitAt = 0;
+  if (wasRunning || phase === "halted") {
+    histPlay.phase = phase;
+    histPlay.halted = halted;
+  }
+  renderHistPlay();
+}
+function histPlayStart() {
+  if (!histCompare.active || histPlay.playing) return;
+  const seq = histPlaySeq();
+  if (!seq.length) return;
+  const side = histPlay.side;
+  histPlay.playing = true;
+  histPlay.halted = null;
+  histPlay.remaining = histPlay.dwell;
+  if (!histPlayNextId(seq, histCompare.pair[side])) {
+    // At the last date: start again from the first (shown once it has loaded).
+    histPlay.target = seq[0];
+    histPlay.phase = "advancing";
+  } else if (histFrameAction(histCompare.state[side]) === "halt") {
+    // The frame on screen did not load fully: Play continues with the next date.
+    histPlay.phase = "advancing";
+  } else {
+    histPlay.phase = "waiting";
+  }
+  histPlaySync();
+}
+function histPlayStaged() {
+  const next = histPlayTarget();
+  if (!next) { histPlayCancelStaged(); return; }
+  if (histPlay.staged?.histId === next) return;
+  histPlayCancelStaged();
+  // Assigned BEFORE addTo: Leaflet fires "loading" synchronously while adding, which re-enters
+  // histPlaySync; it must already see this layer, or it would stage another one (and so on).
+  histPlay.staged = histSideLayer(histPlay.side, next, { staged: true });
+  histPlay.staged.addTo(map);
+}
+function histPlayWaitTick() {
+  if (!histPlay.waitAt) histPlay.waitAt = Date.now();
+  if (histPlay.waitTimer) return;
+  const tick = () => {
+    histPlay.waitTimer = null;
+    if (!histPlay.playing || !["waiting", "advancing"].includes(histPlay.phase)) return;
+    renderHistPlayWait();
+    histPlay.waitTimer = setTimeout(tick, 1000);
+  };
+  histPlay.waitTimer = setTimeout(tick, 1000);
+}
+function histPlayDwellDone() {
+  histPlay.timer = null;
+  histPlay.remaining = 0;
+  if (!histPlayTarget()) {
+    histPlayStop("ended");
+    return;
+  }
+  histPlay.phase = "advancing";
+  histPlay.waitAt = 0;
+  histPlaySync();
+}
+// The staged frame becomes the side's image, label, attribution and provenance together.
+function histPlayCommit() {
+  const side = histPlay.side;
+  const layer = histPlay.staged;
+  histPlay.staged = null;
+  histPlay.target = null;
+  const old = histCompare.layers[side];
+  clearTimeout(histCompare.swapTimers[side]);
+  histCompare.pair[side] = layer.histId;
+  histCompare.layers[side] = layer;
+  if (old) map.removeLayer(old);
+  layer.setOpacity(1);
+  layer.options.attribution = histAttribution(histCoverage(layer.histId));
+  map.attributionControl?.addAttribution(layer.options.attribution);
+  histCompare.state[side] = layer.histState;
+  histPlay.remaining = histPlay.dwell;
+  histPlay.phase = "waiting";
+  histPlay.waitAt = 0;
+  renderHistPair();
+  renderHistShare();
+  positionHistBar();
+  histPlaySync();
+}
+// The one reconciler, called on every tile-load state change and every playback action.
+function histPlaySync() {
+  if (!histPlay.playing) return;
+  const side = histPlay.side;
+  if (histPlay.phase === "advancing") {
+    histPlayStaged();
+    if (histPlay.staged?.histReady) { histPlayCommit(); return; }
+    if (!histPlay.staged) { histPlayStop("ended"); return; }
+    histPlayWaitTick();
+    renderHistPlay();
+    return;
+  }
+  const actions = [histFrameAction(histCompare.state[side]), histFrameAction(histCompare.state[histOther(side)])];
+  if (!histCompare.layers[side]) actions[0] = "wait";
+  if (actions.includes("halt")) {
+    histPlayStop("halted", actions[0] === "halt" ? side : histOther(side));
+    return;
+  }
+  if (actions.includes("wait")) {
+    if (histPlay.timer) {
+      clearTimeout(histPlay.timer);
+      histPlay.timer = null;
+      histPlay.remaining = Math.max(0, histPlay.remaining - (Date.now() - histPlay.dwellAt));
+    }
+    histPlay.phase = "waiting";
+    histPlayWaitTick();
+  } else {
+    if (!histPlay.timer) {
+      histPlay.dwellAt = Date.now();
+      histPlay.timer = setTimeout(histPlayDwellDone, histPlay.remaining || histPlay.dwell);
+    }
+    histPlay.phase = "showing";
+    histPlay.waitAt = 0;
+    histPlayStaged(); // bounded preload: only the next date, only this viewport
+  }
+  renderHistPlay();
+}
+
+function renderHistPlayWait() {
+  const el = document.getElementById("histPlayWait");
+  if (!el) return;
+  const waiting = histPlay.playing && ["waiting", "advancing"].includes(histPlay.phase) && histPlay.waitAt;
+  el.textContent = waiting ? `${Math.floor((Date.now() - histPlay.waitAt) / 1000)} s` : "";
+}
+function renderHistPlay() {
+  const box = document.getElementById("histPlay");
+  if (!box) return; // an index.html cached from before Gate 3 has no playback panel
+  const side = histPlay.side;
+  const other = histOther(side);
+  const seq = histPlaySeq();
+  const curId = histCompare.pair[side];
+  const cov = histCoverage(curId);
+  const pos = seq.indexOf(curId);
+  box.dataset.phase = histPlay.phase;
+  const toggle = document.getElementById("histPlayToggle");
+  toggle.dataset.playing = String(histPlay.playing);
+  toggle.setAttribute("aria-label", shellT(histPlay.playing ? "hist.play.pause" : "hist.play.play"));
+  toggle.title = toggle.getAttribute("aria-label");
+  toggle.disabled = !histCompare.active || !seq.length;
+  for (const [id, key, off] of [["histPlayRestart", "hist.play.restart", !seq.length], ["histPlayPrev", "hist.play.prev", !histPlayPrevId(seq, curId)], ["histPlayNext", "hist.play.next", !histPlayNextId(seq, curId)]]) {
+    const b = document.getElementById(id);
+    b.disabled = !histCompare.active || off;
+    b.setAttribute("aria-label", shellTemplate(key, { side: shellT(`hist.play.sideName.${side}`) }));
+    b.title = b.getAttribute("aria-label");
+  }
+  const range = document.getElementById("histPlayRange");
+  range.max = String(Math.max(0, seq.length - 1));
+  // A date outside the series (a 10 cm date picked by hand) sits at the nearest earlier series date.
+  const order = HIST_COVERAGES.map((c) => c.id);
+  const at = pos >= 0 ? pos : Math.max(0, seq.filter((id) => order.indexOf(id) < order.indexOf(curId)).length - 1);
+  range.value = String(at);
+  range.disabled = !histCompare.active;
+  range.setAttribute("aria-valuetext", `${cov.label} · ${cov.product}`);
+  document.getElementById("histPlayFirst").textContent = seq.length ? histCoverage(seq[0]).label : "";
+  document.getElementById("histPlayLast").textContent = seq.length ? histCoverage(seq[seq.length - 1]).label : "";
+  document.getElementById("histPlayLabel").textContent = cov.label;
+  document.getElementById("histPlayMeta").textContent = [
+    histResText(cov),
+    shellT(cov.when === "annual" ? "hist.play.kind.annual" : "hist.play.kind.interval"),
+    pos >= 0 ? shellTemplate("hist.play.pos", { i: pos + 1, n: seq.length }) : shellT("hist.play.offSeries"),
+  ].join(" · ");
+  for (const b of box.querySelectorAll("[data-hist-play-side]")) b.setAttribute("aria-pressed", String(b.dataset.histPlaySide === side));
+  for (const b of box.querySelectorAll("[data-hist-play-dwell]")) b.setAttribute("aria-pressed", String(Number(b.dataset.histPlayDwell) === histPlay.dwell));
+  document.getElementById("histPlayCity").checked = histPlay.includeCity;
+  const ref = histCov(other).label;
+  const next = histPlayTarget();
+  const nextLabel = next ? histCoverage(next).label : "";
+  const vars = { x: cov.label, ref, next: nextLabel, side: shellT(`hist.play.sideName.${side}`), n: seq.length, s: histPlay.dwell / 1000 };
+  let text = shellTemplate(`hist.play.status.${histPlay.phase}`, vars);
+  if (histPlay.phase === "halted") text = shellTemplate("hist.play.status.halted", { ...vars, y: histCov(histPlay.halted || side).label });
+  const state = histCompare.state[side];
+  if (histPlay.phase !== "stopped" && (state === "nocover" || state === "edge")) text += ` ${shellTemplate(`hist.play.cover.${state}`, vars)}`;
+  const status = document.getElementById("histPlayStatus");
+  if (status.textContent !== text) status.textContent = text;
+  document.getElementById("histPlayCityNote").hidden = !histPlay.includeCity;
+  renderHistPlayWait();
+  renderHistChip();
+}
+
+// Wiring. Every element is optional: a page served from an index.html cached before Gate 3
+// (GitHub Pages max-age 600 s) has no playback panel and must still run.
+document.getElementById("histPlayToggle")?.addEventListener("click", () => { if (histPlay.playing) histPlayStop(); else histPlayStart(); });
+document.getElementById("histPlayRestart")?.addEventListener("click", () => {
+  const seq = histPlaySeq();
+  if (!seq.length) return;
+  if (histPlay.playing) {
+    // Keep playing from the first date; the current image stays labelled until that one has loaded.
+    histPlayCancelStaged();
+    clearTimeout(histPlay.timer);
+    histPlay.timer = null;
+    histPlay.target = seq[0];
+    histPlay.phase = "advancing";
+    histPlay.waitAt = 0;
+    histPlaySync();
+  } else {
+    histPlay.phase = "stopped";
+    setHistSide(histPlay.side, seq[0]);
+  }
+});
+for (const [id, dir] of [["histPlayPrev", -1], ["histPlayNext", 1]]) {
+  document.getElementById(id)?.addEventListener("click", () => {
+    const seq = histPlaySeq();
+    const cur = histCompare.pair[histPlay.side];
+    const target = dir < 0 ? histPlayPrevId(seq, cur) : histPlayNextId(seq, cur);
+    if (target) setHistSide(histPlay.side, target);
+  });
+}
+document.getElementById("histPlayRange")?.addEventListener("input", (e) => {
+  const id = histPlaySeq()[Number(e.target.value)];
+  if (id) setHistSide(histPlay.side, id);
+});
+for (const button of document.querySelectorAll("[data-hist-play-side]")) {
+  button.addEventListener("click", () => {
+    histPlayStop();
+    histPlay.side = button.dataset.histPlaySide;
+    renderHistPlay();
+  });
+}
+for (const button of document.querySelectorAll("[data-hist-play-dwell]")) {
+  // Applies from the next frame on; the frame on screen keeps the time it was given.
+  button.addEventListener("click", () => { histPlay.dwell = Number(button.dataset.histPlayDwell); renderHistPlay(); });
+}
+document.getElementById("histPlayCity")?.addEventListener("change", (e) => {
+  histPlay.includeCity = e.target.checked;
+  if (histPlay.playing && histPlay.staged && histPlay.staged.histId !== histPlayTarget()) histPlayCancelStaged();
+  histPlaySync();
+  renderHistPlay();
+});
+document.getElementById("histPlayBtn")?.addEventListener("click", () => {
+  const open = document.getElementById("histPlay").hidden;
+  histUiPanel("play", open);
+  if (open) document.getElementById("histPlayToggle").focus({ preventScroll: true });
+});
+// Navigating away (another tab, a minimised window) pauses playback; nothing runs unseen.
+document.addEventListener("visibilitychange", () => { if (document.hidden && histPlay.playing) histPlayStop(); });
 
 // Contemporary layers are hidden, so a map click would silently move a Lens, place a
 // polygon vertex or select an ámbito under imagery that describes none of them.
@@ -9881,7 +10190,7 @@ const K11_COPY = Object.freeze({
     "reason.HIST_VERSION_UNSUPPORTED": "an unsupported historical-view format",
     "reason.HIST_MISSING": "a required part of the historical view is missing",
     "reason.HIST_INVALID_CENTRE": "a centre outside the Comunidad de Madrid frame or not a valid coordinate",
-    "reason.HIST_INVALID_ZOOM": "a zoom outside 10 to 19",
+    "reason.HIST_INVALID_ZOOM": "a zoom outside 9 to 19",
     "reason.HIST_UNKNOWN_PAIR": "a date pair that is not two different verified orthophoto dates",
     "reason.HIST_INVALID_DIVIDER": "a divider position outside 0 to 100%",
     "restore.partialTitle": "Partial restore",
@@ -9949,7 +10258,7 @@ const K11_COPY = Object.freeze({
     "reason.HIST_VERSION_UNSUPPORTED": "un formato de vista histórica no admitido",
     "reason.HIST_MISSING": "falta una parte necesaria de la vista histórica",
     "reason.HIST_INVALID_CENTRE": "un centro fuera del marco de la Comunidad de Madrid o una coordenada no válida",
-    "reason.HIST_INVALID_ZOOM": "un zoom fuera de 10 a 19",
+    "reason.HIST_INVALID_ZOOM": "un zoom fuera de 9 a 19",
     "reason.HIST_UNKNOWN_PAIR": "una pareja de fechas que no son dos fechas de ortofoto verificadas y distintas",
     "reason.HIST_INVALID_DIVIDER": "una posición del divisor fuera de 0 a 100 %",
     "restore.partialTitle": "Restauración parcial",

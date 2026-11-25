@@ -43,7 +43,7 @@
 })();
 </script>
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261125-tmregional-v1">
+<link rel="stylesheet" href="css/app.css?v=20261125-tmplayback-v1">
 </head>
 <body>
 <a class="sr-only skip-link" href="#analysisPanel" data-i18n="a11y.skipToPanel">Skip to the analysis panel</a>
@@ -101,11 +101,42 @@
     <div id="histTimeline" class="hist-timeline" aria-hidden="true"></div>
     <p id="histPairNote" class="hist-pair-note"></p>
   </div>
+  <!-- Gate 3: date playback. One side steps through the verified dates; the other stays fixed.
+       Driven by tile loading, not a clock: see "load-aware temporal playback" in js/app.js. -->
+  <div id="histPlay" class="hist-play" role="region" hidden data-phase="stopped" data-i18n-attr="aria-label:hist.play.panel">
+    <div class="hist-play-row">
+      <div class="hist-play-transport">
+        <button type="button" id="histPlayRestart" class="hist-step"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M5.5 5v10M15 5.5 8.5 10l6.5 4.5Z"/></svg></button>
+        <button type="button" id="histPlayPrev" class="hist-step"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m12 5-5 5 5 5"/></svg></button>
+        <button type="button" id="histPlayToggle" class="hist-step hist-play-toggle" data-playing="false"><svg class="hist-ico-play" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M7 4.8v10.4l8.2-5.2Z"/></svg><svg class="hist-ico-pause" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M7 5v10M13 5v10"/></svg></button>
+        <button type="button" id="histPlayNext" class="hist-step"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m8 5 5 5-5 5"/></svg></button>
+      </div>
+      <p class="hist-play-frame"><b id="histPlayLabel"></b> <span id="histPlayMeta"></span></p>
+    </div>
+    <input id="histPlayRange" class="hist-play-range" type="range" min="0" max="0" step="1" value="0" aria-label="Date on the side that changes" data-i18n-attr="aria-label:hist.play.range">
+    <div class="hist-play-ends" aria-hidden="true"><span id="histPlayFirst"></span><span id="histPlayLast"></span></div>
+    <div class="hist-play-opts">
+      <div class="hist-play-opt" role="group" aria-label="Side that changes" data-i18n-attr="aria-label:hist.play.sideGroup">
+        <span class="hist-play-opt-name" aria-hidden="true" data-i18n="hist.play.moves">Changes</span>
+        <div class="hist-play-choices"><button type="button" class="hist-play-choice" data-hist-play-side="left" aria-pressed="false" data-i18n="hist.pick.left">Left</button><button type="button" class="hist-play-choice" data-hist-play-side="right" aria-pressed="true" data-i18n="hist.pick.right">Right</button></div>
+      </div>
+      <div class="hist-play-opt" role="group" aria-label="Display time for each date, once loaded" data-i18n-attr="aria-label:hist.play.speedGroup">
+        <span class="hist-play-opt-name" aria-hidden="true" data-i18n="hist.play.speed">Each date</span>
+        <div class="hist-play-choices"><button type="button" class="hist-play-choice" data-hist-play-dwell="1000" aria-pressed="false">1 s</button><button type="button" class="hist-play-choice" data-hist-play-dwell="2000" aria-pressed="true">2 s</button><button type="button" class="hist-play-choice" data-hist-play-dwell="4000" aria-pressed="false">4 s</button><button type="button" class="hist-play-choice" data-hist-play-dwell="8000" aria-pressed="false">8 s</button></div>
+      </div>
+      <label class="hist-play-city"><input type="checkbox" id="histPlayCity"> <span data-i18n="hist.play.city">Include the 10 cm city dates</span></label>
+    </div>
+    <p id="histPlayCityNote" class="hist-pair-note" hidden data-i18n="hist.play.cityNote">The 10 cm dates cover the Madrid city area only and are finer than the others (0.10 m against 0.25–1 m): a sharper frame is a change of resolution, not a change on the ground.</p>
+    <p class="hist-play-status-row"><span id="histPlayStatus" class="hist-play-status" role="status"></span> <span id="histPlayWait" class="hist-play-wait" aria-hidden="true"></span></p>
+  </div>
   <div id="histBody" class="hist-body">
-    <div class="hist-presets" role="group" aria-label="Divider position" data-i18n-attr="aria-label:hist.presetsAria">
-      <button type="button" class="hist-preset" data-hist-fraction="1" aria-pressed="false">2006</button>
-      <button type="button" class="hist-preset" data-hist-fraction="0.5" aria-pressed="true" data-i18n-attr="aria-label:hist.preset50">50/50</button>
-      <button type="button" class="hist-preset" data-hist-fraction="0" aria-pressed="false">2023</button>
+    <div class="hist-body-row">
+      <div class="hist-presets" role="group" aria-label="Divider position" data-i18n-attr="aria-label:hist.presetsAria">
+        <button type="button" class="hist-preset" data-hist-fraction="1" aria-pressed="false">2006</button>
+        <button type="button" class="hist-preset" data-hist-fraction="0.5" aria-pressed="true" data-i18n-attr="aria-label:hist.preset50">50/50</button>
+        <button type="button" class="hist-preset" data-hist-fraction="0" aria-pressed="false">2023</button>
+      </div>
+      <button id="histPlayBtn" type="button" class="hist-icon-btn" aria-expanded="false" aria-controls="histPlay" data-i18n-attr="aria-label:hist.play.panel" data-hist-tip="hist.play.panel"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="7.25"/><path d="m8.4 6.9 4.6 3.1-4.6 3.1Z"/></svg></button>
     </div>
     <p class="hist-refonly" data-i18n="hist.ctl.refOnly">Visual reference only</p>
   </div>
@@ -1253,13 +1284,13 @@
 <script src="js/ambito-comparison.js?v=20261015-1"></script>
 <script src="js/modes.js?v=20261006-1"></script>
 <script src="js/evidence-url.js?v=20261015-1"></script>
-<script src="js/historical-url.js?v=20261125-tmregional-v1"></script>
+<script src="js/historical-url.js?v=20261125-tmplayback-v1"></script>
 <script src="js/evidence-export.js?v=20261017-1"></script>
-<script src="js/scope-rail.js?v=20261125-tmregional-v1"></script>
-<script src="js/shell-copy.js?v=20261125-tmregional-v1"></script>
+<script src="js/scope-rail.js?v=20261125-tmplayback-v1"></script>
+<script src="js/shell-copy.js?v=20261125-tmplayback-v1"></script>
 <script src="js/appearance.js?v=20261020-1"></script>
-<script src="js/text-size.js?v=20261125-tmregional-v1"></script>
-<script src="js/legacy-copy.js?v=20261125-tmregional-v1"></script>
+<script src="js/text-size.js?v=20261125-tmplayback-v1"></script>
+<script src="js/legacy-copy.js?v=20261125-tmplayback-v1"></script>
 <script src="js/data.js?v=20261023-1"></script>
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/marker-shapes.js?v=20261102-1"></script>
@@ -1268,7 +1299,7 @@
 <script src="js/spatial-command.js?v=20261124-1"></script>
 <script src="js/nl-command.js?v=20261124-1"></script>
 <script src="js/voice-input.js?v=20261124-1"></script>
-<script src="js/app.js?v=20261125-tmregional-v1"></script>
+<script src="js/app.js?v=20261125-tmplayback-v1"></script>
 <script src="js/tutorial.js?v=20261030-guided-tour-v2"></script>
 <script>
 /* The case is opt-in. Keep its DOM, styles and controller off the ordinary app

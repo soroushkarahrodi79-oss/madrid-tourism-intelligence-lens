@@ -68,6 +68,47 @@ function joinHistoricalPair(left, right) {
   return `${left}-${right}`;
 }
 
+// ---- Gate 3: playback order (a sequence of discrete observations, never interpolated) ----
+// The documented order of the catalogue: first year, then last year (so an interval that
+// starts in the same year as another but ends earlier comes first: OLISTAT 1997–98 before
+// SIGPAC 1997–2003), then the region-wide product before the city-only 10 cm one of the same
+// year (PNOA 2009 before PNOA10 2009). No acquisition day is assumed for an interval flight,
+// and labels are never rewritten. `includeCity: false` (the default) keeps the series at one
+// family of resolutions (0.25–1 m), so a sharper 10 cm frame is never read as change.
+function histSeries({ includeCity = false } = {}) {
+  return HIST_COVERAGES
+    .filter((c) => includeCity || c.extent !== "city")
+    .slice()
+    .sort((a, b) => a.from - b.from || a.to - b.to || (a.extent === "city") - (b.extent === "city"))
+    .map((c) => c.id);
+}
+
+// The dates one side steps through while the other side holds `referenceId` fixed: the
+// series without the reference (both sides never show the same coverage).
+function histPlaySequence(series, referenceId) {
+  return series.filter((id) => id !== referenceId);
+}
+
+// The frame after `currentId` in `sequence`, by catalogue order, so a current date that is not
+// in the sequence (e.g. a 10 cm date picked by hand) still has a well-defined successor.
+// null at the end: playback stops there rather than looping.
+function histPlayNextId(sequence, currentId) {
+  const order = HIST_COVERAGES.map((c) => c.id);
+  const here = order.indexOf(currentId);
+  return sequence.find((id) => order.indexOf(id) > here) ?? null;
+}
+
+// Pure classification of one frame state for the playback loop (js/app.js):
+//   "show": imagery is fully available (whole, partly outside the coverage, or no coverage
+//           here, each labelled as such): the display time may run;
+//   "wait": still loading: the display time does not run, however long the service takes;
+//   "halt": tiles failed to load: playback stops on this frame and says so.
+function histFrameAction(state) {
+  if (state === "ok" || state === "edge" || state === "nocover") return "show";
+  if (state === "error" || state === "partial") return "halt";
+  return "wait";
+}
+
 // The pair the comparator opened with before the catalogue existed.
 const HIST_URL_PAIR = joinHistoricalPair(HIST_DEFAULT_PAIR.left, HIST_DEFAULT_PAIR.right);
 // Gate 2 (regional explorer): the rectangle that encloses the official Comunidad de Madrid
@@ -79,7 +120,11 @@ const HIST_URL_PAIR = joinHistoricalPair(HIST_DEFAULT_PAIR.left, HIST_DEFAULT_PA
 // still restores exactly. The evidence contract's own envelope is NOT widened by this.
 const HIST_URL_BOUNDS = Object.freeze({ minLat: 39.88, maxLat: 41.17, minLon: -4.58, maxLon: -3.05 });
 // The historical WMS layers are requested up to zoom 19 (see histSideLayer in js/app.js).
-const HIST_URL_ZOOM = Object.freeze({ min: 10, max: 19 });
+// Gate 3: the minimum is 9, the zoom at which "View the whole Comunidad de Madrid" frames
+// HIST_URL_BOUNDS on a desktop, so that view can be shared. Every earlier link (zoom 10–19)
+// keeps its exact meaning. This is the historical-view contract only: the evidence link
+// (js/evidence-url.js) and every Lens tool keep their own limits.
+const HIST_URL_ZOOM = Object.freeze({ min: 9, max: 19 });
 const HIST_URL_KEYS = Object.freeze(["hv", "hc", "hz", "hp", "hd"]);
 
 const HIST_URL_REASON = Object.freeze({
@@ -184,6 +229,10 @@ if (typeof module !== "undefined" && module.exports) {
     histCoverage,
     splitHistoricalPair,
     joinHistoricalPair,
+    histSeries,
+    histPlaySequence,
+    histPlayNextId,
+    histFrameAction,
     HIST_URL_BOUNDS,
     HIST_URL_ZOOM,
     HIST_URL_KEYS,

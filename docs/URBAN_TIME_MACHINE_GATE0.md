@@ -189,9 +189,118 @@ imagery here". Two scopes stay separate:
 
 A compact menu action, *View the whole Comunidad de Madrid*, frames the region (about zoom 9 on a
 desktop, about 18 s for two uncached layers in a live check) and is undone by *Back to my view*.
-At that zoom the link is withheld with the stated zoom reason (links keep zoom 10–19), and annual
-layers show blank areas over neighbouring provinces not flown that year, reported as "partly
-outside" the coverage.
+At that zoom the link was withheld with the stated zoom reason (links kept zoom 10–19; Gate 3
+lifts this, see below), and annual layers show blank areas over neighbouring provinces not flown
+that year, reported as "partly outside" the coverage.
+
+## Gate 3: temporal playback engine (2026-11-25)
+
+**Integration.** Playback lives inside the existing A/B comparator, not in a new viewer. A
+*Date playback* button at the end of the divider row (the header keeps its Gate 2 size) opens a compact panel, one of the controller's
+mutually exclusive panels, like the menu, info and dates panels. One side (right by default; the
+reader can choose left) steps through the dates while the other side stays fixed as the
+reference. Map centre, zoom, divider, pane clipping and the Lens state are untouched. The panel
+has: restart, previous, play/pause and next; the date on screen with its resolution, kind and
+position; a scoped range input as the timeline (keyboard: arrows, Home, End); the side that
+changes; the display time per date (1, 2, 4 or 8 s, default 2 s); and an opt-in for the 10 cm
+city dates. The range input is not a `<select>` and drives only this one side of this visual
+comparator, so the "no global time control" policy holds.
+
+**Order (documented, `histSeries` in js/historical-url.js).** Coverages are ordered by first
+year, then by last year, then the region-wide product before the 10 cm city one of the same year.
+That gives 1956–57, 1997–98 (OLISTAT), 1997–2003 (SIGPAC), 2006, 2009, (2009 · 10 cm), 2011,
+(2013 · 10 cm), 2014, (2016 · 10 cm), 2017, 2020, 2023, which is the catalogue's own order. OLISTAT
+and SIGPAC overlap. OLISTAT comes first because its interval ends earlier; no acquisition day is
+assumed, and both keep their original labels. The reference date is never a frame. Playback
+stops at the last date (no loop); Play then restarts from the first.
+
+**Resolution families.** By default the sequence holds only the region-wide coverages
+(0.25–1 m). The three 10 cm city mosaics are opt-in, with a stated note that a sharper frame is a
+change of resolution, not a change on the ground. Outside the city those frames show "no imagery
+here" (missing imagery, not unchanged ground).
+
+**Load-aware loop (not a clock).** There is no `setInterval`. The display time is a `setTimeout`
+that runs only while both sides are in a fully available state (`histFrameAction` = "show": ok,
+partly outside, or no coverage here, each named). While either side loads, the timer is
+suspended, for example after a pan, however long the service takes, and it resumes with the time
+left. During a frame's display time the next date is requested in the same pane at opacity 0,
+with no attribution. When the display time is up, the label keeps naming the image on screen,
+with "Still showing X; loading the next date, Y" and an elapsed-seconds counter, until the next
+image has fully loaded. Then image, label, divider tag, attribution and provenance change
+together (`histPlayCommit`), with no fade and no blend. Tiles that fail stop playback on that
+frame, named as failed, with the existing per-side Retry. Play then moves on to the next date. At
+most one staged layer exists, and only for the current view, so requests stay bounded: the
+visible pair plus one next date.
+
+**Stopping and stale work.** Pause stops at once: it clears the timers and removes the staged
+layer, and removing a Leaflet tile layer aborts its pending images. A manual date choice (select,
+step, range, previous/next), switching the moving side, closing the playback panel (or opening
+another), minimising, hiding the controller, exiting the comparison and a hidden browser tab all
+stop playback the same way. A late answer for a cancelled date changes nothing. A bug found by
+the first live run is fixed: Leaflet fires `loading` synchronously inside `addTo()`, which
+re-entered the loop before the staged layer was recorded and staged another layer without end.
+The staged layer is now recorded before it is added.
+
+**Regional link contract.** `HIST_URL_ZOOM.min` goes from 10 to 9, in the historical-view
+contract only, so the *whole Comunidad* framing (zoom 9 on a desktop) can be shared. Every
+earlier link (zoom 10–19) parses exactly as before. Zoom 8 is refused with its reason. A narrow
+phone that frames the region at zoom 8 still gets the stated zoom reason instead of a link. The
+evidence link (`LENS_SPATIAL_BOUNDS`) and every Lens tool keep their limits. There is no new URL
+key, and playback state is never put in a link. A zoom-9 link opened by a page still running a
+cached pre-Gate-3 script (GitHub Pages `max-age` 600 s) is refused with the stated zoom reason,
+fail-safe as before.
+
+**Live validation (real headless Chromium, live IGN service, browser cache disabled, 2 s per
+date, right side changing, 2006 fixed, 1280 × 800).** The whole 9-date sequence (1956–57 →
+2023) ran at Sol (z16), Alcalá de Henares (z15) and Rascafría (z15). A 50 ms sampler checked that
+the label, divider tag and attribution always named the image on screen. It found **0
+violations** at every place, never more than 2 layers on the changing side (visible plus one
+staged), no failed requests and no page errors.
+
+| Place | With bounded preload | Without preload (staged only after the display time) |
+|---|---|---|
+| Sol | 18.3 s (every date ready before its predecessor's 2 s were up) | 20.1 s |
+| Alcalá de Henares | 18.4 s | 19.9 s |
+| Rascafría | 119.1 s: the service took about 8–25 s per date; playback waited in "loading the next date" with the previous label kept | not run |
+
+The preload gain is real but small where the service is fast (about 0.2 s per date). Where the
+service is slow, it saves up to one display time per date. It is kept because it is bounded:
+one date, the current view only, dropped on pause. One run of the harness (not the page) ended
+in a native Node.js crash. It was rerun unchanged and completed; the cause was not found.
+
+**Cache compatibility.** Release id `20261125-tmplayback-v1`. app.js treats every playback
+element as optional, so a page served from an `index.html` cached before Gate 3 runs without the
+panel (browser test).
+
+### Export: viability (not implemented in this PR)
+
+- **Georeferenced image via WMS GetMap: viable.** The service is WMS 1.3.0 with CORS `*` and
+  serves `image/jpeg` and `image/png` in EPSG:3857 (no GeoTIFF format in the capabilities). A
+  frame is fully defined by `LAYERS`, `CRS=EPSG:3857`, `BBOX` (the map bounds projected to 3857),
+  `WIDTH` and `HEIGHT`. A georeferenced export can be a PNG plus a world file (`.pgw`: pixel size
+  and upper-left centre derived from the bbox) and a `.prj` (EPSG:3857 WKT), all generated
+  client-side. To check before building it: the service's maximum GetMap size (not checked), and
+  that the export carries the CC BY 4.0 attribution text with the product and date.
+- **Sequence manifest: viable and the minimum useful step.** A JSON document such as
+  `{ "manifest": "urban-time-machine/sequence/1", "service":
+  "https://www.ign.es/wms/pnoa-historico", "version": "1.3.0", "crs": "EPSG:3857", "bbox":
+  [minx,miny,maxx,maxy], "size_px": [w,h], "centre": [lat,lon], "zoom": z, "reference":
+  "<id>", "order": "first year, last year, regional before 10 cm", "frames": [ { "id", "layer",
+  "label", "product", "when", "from", "to", "res_m", "extent", "licence": "CC BY 4.0 scne.es",
+  "attribution", "getmap": "<full GetMap URL>" } ], "generated": "<ISO time>", "caveats": [...] }`
+  records everything needed to fetch the same frames again. It holds no imagery, so it carries
+  no licence burden beyond attribution.
+- **Use by a future cinematic tool: viable, outside the Lens.** A separate tool could read the
+  manifest, fetch each GetMap frame at a fixed bbox and size, and compose a video. It must keep
+  each frame's label and attribution burned in, must not interpolate or morph between frames,
+  and must mark frames with no or partial coverage.
+- **Minimum viable next phase:** a "Download sequence manifest (JSON)" action in the controller
+  menu, from the current view and sequence, with a unit-tested pure builder in
+  js/historical-url.js. No video, 3D or animation tooling inside the Lens.
+
+**Decision: GO** for load-aware temporal playback in the existing comparator and for zoom 9 in
+the historical-view link. Not in scope and unchanged: the 13-date catalogue, IDEM (licence HOLD),
+3D, change detection and exports.
 
 ## Limits
 

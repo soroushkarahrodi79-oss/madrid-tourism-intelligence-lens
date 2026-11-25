@@ -41,7 +41,7 @@ test("every invalid part is refused with its own reason; nothing is clamped or d
     [base.replace("hv=1&", ""), "HIST_MISSING"],
     [base.replace("hc=40.4435,-3.7106", "hc=48.85,2.35"), "HIST_INVALID_CENTRE"],
     [base.replace("hc=40.4435,-3.7106", "hc=abc"), "HIST_INVALID_CENTRE"],
-    [base.replace("hz=16", "hz=9"), "HIST_INVALID_ZOOM"],
+    [base.replace("hz=16", "hz=8"), "HIST_INVALID_ZOOM"],
     [base.replace("hz=16", "hz=20"), "HIST_INVALID_ZOOM"],
     [base.replace("hz=16", "hz=16.5"), "HIST_INVALID_ZOOM"],
     [base.replace("&hz=16", ""), "HIST_MISSING"],
@@ -60,8 +60,8 @@ test("every invalid part is refused with its own reason; nothing is clamped or d
   }
 });
 
-test("boundary values are valid (divider 0 and 100, zoom 10 and 19)", () => {
-  for (const [zoom, pct] of [[10, 0], [19, 100]]) {
+test("boundary values are valid (divider 0 and 100, zoom 9 and 19)", () => {
+  for (const [zoom, pct] of [[9, 0], [10, 0], [19, 100]]) {
     const r = H.parseHistoricalState(`?hv=1&hc=40.4,-3.7&hz=${zoom}&hp=2006-2023&hd=${pct}`);
     assert.equal(r.ok, true);
     assert.equal(r.state.zoom, zoom);
@@ -162,4 +162,60 @@ test("pair: unknown, repeated or malformed dates are refused, never substituted"
     assert.equal(parsed.ok, false, pair);
     assert.deepEqual(parsed.issues.map((i) => i.code), ["HIST_UNKNOWN_PAIR"], pair);
   }
+});
+
+// ---- Gate 3: zoom 9 for the whole-Comunidad view; playback order -----------------------------
+test("Gate 3: zoom 9 (the whole-Comunidad framing) is shareable; 8 is refused; every 10–19 link is unchanged", () => {
+  assert.deepEqual({ ...H.HIST_URL_ZOOM }, { min: 9, max: 19 });
+  const region = "hv=1&hc=40.52500,-3.81500&hz=9&hp=2006-2023&hd=50";
+  const r = H.parseHistoricalState(`?${region}`);
+  assert.equal(r.ok, true);
+  assert.equal(r.state.zoom, 9);
+  assert.equal(H.parseHistoricalState(`?${H.serializeHistoricalState(r.state)}`).state.zoom, 9, "a zoom-9 view round-trips exactly");
+  assert.deepEqual(H.parseHistoricalState("?hv=1&hc=40.525,-3.815&hz=8&hp=2006-2023&hd=50").issues.map((i) => i.code), ["HIST_INVALID_ZOOM"]);
+  for (let zoom = 10; zoom <= 19; zoom += 1) {
+    const old = H.parseHistoricalState(`?hv=1&hc=40.4435,-3.7106&hz=${zoom}&hp=2006-2023&hd=50`);
+    assert.equal(old.ok, true, `hz=${zoom}`);
+    assert.equal(old.state.zoom, zoom);
+  }
+});
+
+test("Gate 3: the evidence contract's own limits are untouched by the historical zoom change", () => {
+  assert.deepEqual({ ...E.LENS_SPATIAL_BOUNDS }, { minLat: 40.0, maxLat: 40.9, minLon: -4.2, maxLon: -3.2 });
+});
+
+test("Gate 3: the playback series follows the documented order (first year, last year, regional before 10 cm)", () => {
+  const all = H.histSeries({ includeCity: true });
+  assert.deepEqual(all, ["ams1956", "olistat", "sigpac", "2006", "2009", "pnoa10_2009", "2011", "pnoa10_2013", "2014", "pnoa10_2016", "2017", "2020", "2023"]);
+  assert.deepEqual(all, H.HIST_COVERAGES.map((c) => c.id), "the catalogue is already in playback order");
+  for (let i = 1; i < all.length; i += 1) {
+    const a = H.histCoverage(all[i - 1]);
+    const b = H.histCoverage(all[i]);
+    assert.ok(a.from < b.from || (a.from === b.from && (a.to < b.to || (a.to === b.to && a.extent !== "city"))), `${a.id} before ${b.id}`);
+  }
+  // Overlapping intervals keep their original names; no acquisition day is invented.
+  assert.equal(H.histCoverage("olistat").label, "1997–98");
+  assert.equal(H.histCoverage("sigpac").label, "1997–2003");
+});
+
+test("Gate 3: by default the series keeps one family of resolutions (no 10 cm city frames)", () => {
+  const regional = H.histSeries();
+  assert.deepEqual(regional, ["ams1956", "olistat", "sigpac", "2006", "2009", "2011", "2014", "2017", "2020", "2023"]);
+  assert.ok(regional.every((id) => H.histCoverage(id).extent !== "city" && H.histCoverage(id).res_m >= 0.25));
+});
+
+test("Gate 3: the reference date is never a frame; the successor is defined by catalogue order; the end is null", () => {
+  const seq = H.histPlaySequence(H.histSeries(), "2006");
+  assert.ok(!seq.includes("2006"));
+  assert.equal(seq.length, 9);
+  assert.equal(H.histPlayNextId(seq, "sigpac"), "2009", "the reference is skipped");
+  assert.equal(H.histPlayNextId(seq, "pnoa10_2013"), "2014", "a 10 cm date picked by hand has a defined successor");
+  assert.equal(H.histPlayNextId(seq, "2023"), null, "no loop: playback stops at the last date");
+  assert.equal(H.histPlayNextId(seq, "ams1956"), "olistat");
+});
+
+test("Gate 3: frame actions — only fully available imagery lets the display time run", () => {
+  for (const s of ["ok", "edge", "nocover"]) assert.equal(H.histFrameAction(s), "show", s);
+  for (const s of ["loading", "idle", undefined]) assert.equal(H.histFrameAction(s), "wait", String(s));
+  for (const s of ["error", "partial"]) assert.equal(H.histFrameAction(s), "halt", s);
 });
