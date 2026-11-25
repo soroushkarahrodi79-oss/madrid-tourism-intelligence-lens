@@ -69,8 +69,48 @@ test("boundary values are valid (divider 0 and 100, zoom 10 and 19)", () => {
   }
 });
 
-test("bounds equal the evidence contract's Madrid envelope", () => {
-  assert.deepEqual({ ...H.HIST_URL_BOUNDS }, { ...E.LENS_SPATIAL_BOUNDS });
+// Gate 2: the link frame is the official Comunidad de Madrid extent (IGN INSPIRE
+// 34130000000: lat 39.884719–41.165845, lon −4.579076 to −3.052983) rounded outward.
+const REGION_EXTENT = { minLat: 39.884719, maxLat: 41.165845, minLon: -4.579076, maxLon: -3.052983 };
+
+test("Gate 2: bounds are the official Comunidad de Madrid extent rounded outward to 0.01°", () => {
+  assert.deepEqual({ ...H.HIST_URL_BOUNDS }, { minLat: 39.88, maxLat: 41.17, minLon: -4.58, maxLon: -3.05 });
+  const b = H.HIST_URL_BOUNDS;
+  assert.ok(b.minLat <= REGION_EXTENT.minLat && b.maxLat >= REGION_EXTENT.maxLat, "the whole region's latitude span is inside");
+  assert.ok(b.minLon <= REGION_EXTENT.minLon && b.maxLon >= REGION_EXTENT.maxLon, "the whole region's longitude span is inside");
+  for (const k of ["minLat", "minLon"]) assert.ok(REGION_EXTENT[k] - b[k] < 0.01, `${k}: rounded by less than 0.01°`);
+  for (const k of ["maxLat", "maxLon"]) assert.ok(b[k] - REGION_EXTENT[k] < 0.01, `${k}: rounded by less than 0.01°`);
+});
+
+test("Gate 2: the frame contains the earlier Madrid envelope, and the evidence contract's envelope is unchanged", () => {
+  assert.deepEqual({ ...E.LENS_SPATIAL_BOUNDS }, { minLat: 40.0, maxLat: 40.9, minLon: -4.2, maxLon: -3.2 }, "analytical scope is not widened");
+  const L = E.LENS_SPATIAL_BOUNDS;
+  const b = H.HIST_URL_BOUNDS;
+  assert.ok(b.minLat <= L.minLat && b.maxLat >= L.maxLat && b.minLon <= L.minLon && b.maxLon >= L.maxLon);
+  // Every corner of the old envelope (the extreme links that could exist before Gate 2) still restores.
+  for (const lat of [L.minLat, L.maxLat]) for (const lon of [L.minLon, L.maxLon]) {
+    assert.equal(H.parseHistoricalState(`?hv=1&hc=${lat},${lon}&hz=15&hp=2006-2023&hd=50`).ok, true, `${lat},${lon}`);
+  }
+});
+
+test("Gate 2: regional places round-trip exactly; centres beyond the frame are still refused, never clamped", () => {
+  const places = {
+    aranjuez: [40.03226, -3.60225], navalcarnero: [40.29501, -4.00356], smvaldeiglesias: [40.36546, -4.40161],
+    chinchon: [40.13988, -3.42072], buitrago: [40.98502, -3.63816], rascafria: [40.90433, -3.87844],
+    south: [39.895, -3.8], north: [41.155, -3.55], west: [40.217, -4.56], east: [40.1, -3.065],
+  };
+  for (const [name, [lat, lon]] of Object.entries(places)) {
+    const url = H.buildHistoricalUrl("https://example.test/", { lat, lon, zoom: 16, fraction: 0.3, pair: "ams1956-2023" });
+    const r = H.parseHistoricalState(url);
+    assert.equal(r.ok, true, name);
+    assert.deepEqual(r.state, { lat, lon, zoom: 16, pair: "ams1956-2023", fraction: 0.3 }, name);
+  }
+  for (const hc of ["39.86,-4.02", "41.18,-3.6", "40.4,-4.59", "40.4,-3.04", "41.65,-0.88"]) {
+    const r = H.parseHistoricalState(`?hv=1&hc=${hc}&hz=15&hp=2006-2023&hd=50`);
+    assert.equal(r.ok, false, hc);
+    assert.equal(r.state, null, hc);
+    assert.deepEqual(r.issues.map((i) => i.code), ["HIST_INVALID_CENTRE"], hc);
+  }
 });
 
 // ---- Urban Time Machine: verified coverage catalogue and the A/B pair contract ----

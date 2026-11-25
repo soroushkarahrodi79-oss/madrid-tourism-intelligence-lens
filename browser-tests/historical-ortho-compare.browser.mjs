@@ -670,7 +670,7 @@ test("compare here outside the covered area explains the limit first and moves n
   const before = await view(page);
   await page.locator("#histHere").click();
   const note = await page.locator("#histEntryNote").innerText();
-  assert.match(note, /outside the Madrid area/);
+  assert.match(note, /outside the Comunidad de Madrid frame/);
   assert.match(note, /Madrid Río \/ Matadero example/);
   assert.deepEqual(await view(page), before);
   assert.equal(await page.evaluate(() => document.getElementById("histToggle").checked), false);
@@ -761,7 +761,7 @@ test("old evidence links are untouched; invalid historical links say so and neve
   await old.context.close();
 
   const cases = {
-    "hv=1&hc=48.85,2.35&hz=16&hp=2006-2023&hd=50": /centre outside the Madrid area/,
+    "hv=1&hc=48.85,2.35&hz=16&hp=2006-2023&hd=50": /centre outside the Comunidad de Madrid frame/,
     "hv=1&hc=40.4435,-3.7106&hz=25&hp=2006-2023&hd=50": /zoom outside 10 to 19/,
     // 2019 is not a verified Madrid coverage (the IGN layer returns no imagery here), so it stays refused.
     "hv=1&hc=40.4435,-3.7106&hz=16&hp=2006-2019&hd=50": /date pair that is not two different verified orthophoto dates/,
@@ -1355,5 +1355,153 @@ test("time machine: a footprint edge (some blank tiles) is reported as partly ou
   assert.match((await histState(page)).text, /Part of this view is outside the 2006 \(left\) coverage/);
   assert.match(await page.locator('.hist-years li[data-side="left"]').innerText(), /Partly outside/);
   assert.doesNotMatch(await page.locator("#histHint").innerText(), /did not load|retry/, "a coverage edge is not reported as a load failure");
+  await context.close();
+});
+
+// ---- Gate 2: regional temporal explorer (Comunidad de Madrid) --------------------------
+// Orthophoto EXPLORATION reaches the whole Comunidad de Madrid frame (HIST_URL_BOUNDS, the
+// official IGN boundary's extent); Lens EVIDENCE keeps its own coverage and envelope.
+const NAVALCARNERO = [40.29501, -4.00356]; // IGN CartoCiudad municipality point
+const RASCAFRIA = [40.90433, -3.87844];
+const lensSnapshot = (page) => page.evaluate(() => ({ a: lenses.A.marker.getLatLng(), b: lenses.B.marker.getLatLng(), search: location.search }));
+
+test("Gate 2: compare here works outside the city (Navalcarnero) and the link is offered", async () => {
+  const { page, context, histRequests } = await openPage();
+  await settled(page);
+  await page.evaluate((c) => map.setView(c, 16, { animate: false }), NAVALCARNERO);
+  const chosen = await view(page);
+  await page.locator("#histHere").click();
+  await waitHist(page, "on");
+  assert.deepEqual(await view(page), chosen, "the regional view is kept, not moved to Madrid");
+  assert.equal(await page.locator("#histEntryNote").innerText(), "", "no limit note inside the frame");
+  const bbox = histRequests[0].searchParams.get("bbox").split(",").map(Number);
+  assert.ok(bbox[0] < -444000 && bbox[0] > -447000, `bbox x ${bbox[0]} is at Navalcarnero (lon −4.00)`);
+  assert.equal(await page.locator("#histCopy").isDisabled(), false, "a regional view can be shared");
+  assert.equal(await page.locator("#histNote").innerText(), "");
+  await context.close();
+});
+
+test("Gate 2: free regional navigation keeps zoom, divider and dates; a date with no coverage there says so", async () => {
+  const { page, context } = await openPage({ hist: { pnoa10_2016: "blank" } });
+  await settled(page);
+  await openCompare(page);
+  await page.locator('[data-hist-fraction="1"]').click();
+  await openDates(page);
+  await page.locator("#histPickLeft").selectOption("pnoa10_2016");
+  await page.evaluate((c) => map.setView(c, 15, { animate: false }), RASCAFRIA);
+  await waitHist(page, "error");
+  assert.match((await histState(page)).text, /2016 · 10 cm \(left\) has no imagery in this view/);
+  assert.match((await histState(page)).text, /missing imagery, not evidence of no change/);
+  assert.equal(await frac(page), 100, "divider kept across the move");
+  assert.equal(await page.evaluate(() => joinHistoricalPair(histCompare.pair.left, histCompare.pair.right)), "pnoa10_2016-2023");
+  assert.equal((await view(page)).zoom, 15);
+  assert.equal(await page.locator("#histCopy").isDisabled(), false);
+  // Beyond the frame the view is still explorable, but the link is withheld with a stated reason.
+  await page.evaluate(() => map.setView([41.65, -0.88], 15, { animate: false }));
+  assert.equal(await page.locator("#histCopy").isDisabled(), true);
+  assert.match(await page.locator("#histNote").innerText(), /outside the Comunidad de Madrid frame/);
+  await context.close();
+});
+
+test("Gate 2: a regional link restores exactly; an old Madrid link still restores unchanged", async () => {
+  for (const [hc, lat, lng] of [["40.90433,-3.87844", 40.90433, -3.87844], ["40.39250,-3.69900", 40.3925, -3.699]]) {
+    const t = await openPage();
+    await t.page.goto(`http://127.0.0.1:${port}/?lang=en&hv=1&hc=${hc}&hz=16&hp=ams1956-2023&hd=30`, { waitUntil: "domcontentloaded" });
+    await t.page.waitForSelector("#histToggle", { state: "attached" });
+    await waitHist(t.page, "on");
+    const v = await view(t.page);
+    assert.ok(Math.abs(v.lat - lat) < 1e-4 && Math.abs(v.lng - lng) < 1e-4 && v.zoom === 16, hc);
+    assert.equal(await frac(t.page), 30);
+    assert.equal(await t.page.locator("#k11RestoreNotice").isVisible(), false, `${hc}: no warning`);
+    assert.deepEqual([...new Set(t.histRequests.map((u) => u.searchParams.get("layers")))].sort(), ["AMS_1956-1957", "PNOA2023"]);
+    await t.context.close();
+  }
+});
+
+test("Gate 2: 'whole Comunidad' frames the region, is reversible, and moves no Lens", async () => {
+  const { page, context } = await openPage();
+  await settled(page);
+  await page.evaluate((c) => map.setView(c, 16, { animate: false }), CHOSEN);
+  const mine = await view(page);
+  const lensBefore = await lensSnapshot(page);
+  await page.locator("#histHere").click();
+  await waitHist(page, "on");
+  await histAction(page, "histRegion");
+  const framed = await page.evaluate(() => {
+    const b = map.getBounds();
+    const f = HIST_URL_BOUNDS;
+    return { contains: b.contains([[f.minLat, f.minLon], [f.maxLat, f.maxLon]]), zoom: map.getZoom() };
+  });
+  assert.equal(framed.contains, true, "the whole frame is visible");
+  assert.ok(framed.zoom <= 10, `zoom ${framed.zoom} is a regional overview`);
+  assert.equal(await page.locator("#histBack").isDisabled(), false);
+  await histAction(page, "histBack");
+  assert.deepEqual(await view(page), mine, "back to my view restores the exact view");
+  assert.deepEqual(await lensSnapshot(page), lensBefore, "no Lens, selection or address moved");
+  await context.close();
+});
+
+test("Gate 2: exiting from outside the Lens envelope returns to the Lens view and says why; Lens state intact", async () => {
+  const { page, context } = await openPage();
+  await settled(page);
+  const mine = await view(page);
+  const lensBefore = await lensSnapshot(page);
+  const panelBefore = await panelText(page);
+  await openCompare(page);
+  await page.evaluate((c) => map.setView(c, 15, { animate: false }), RASCAFRIA); // north of lat 40.9
+  await page.mouse.click(400, 400); // a click under regional imagery never reaches a Lens
+  await histAction(page, "histExit");
+  assert.equal(await page.evaluate(() => histCompare.active), false);
+  assert.deepEqual(await view(page), mine, "back at the Lens view");
+  const note = await page.locator("#histEntryNote").innerText();
+  assert.match(note, /Comparison closed: the map is back at the view you had before comparing/);
+  assert.match(note, /do not extend to the regional view/);
+  assert.deepEqual(await lensSnapshot(page), lensBefore);
+  assert.equal(await panelText(page), panelBefore, "no Lens reading changed");
+  // Exiting from inside the Lens envelope adds no note (the earlier behaviour).
+  await openCompare(page);
+  await histAction(page, "histExit");
+  assert.equal(await page.locator("#histEntryNote").innerText(), "");
+  await context.close();
+});
+
+test("Gate 2: Spanish copy for the regional action, link limit and exit note on a phone", async () => {
+  const { page, context } = await openPage({ viewport: { width: 390, height: 844 } });
+  await page.goto(`http://127.0.0.1:${port}/?lang=es`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("#histToggle", { state: "attached" });
+  await settled(page);
+  await dismissInvite(page);
+  await page.evaluate(() => document.getElementById("histHere").click()); // the rail is collapsed on a phone
+  await waitHist(page, "on");
+  await openHistMenu(page);
+  const item = page.locator("#histRegion");
+  assert.equal((await item.innerText()).trim(), "Ver toda la Comunidad de Madrid");
+  const box = await item.boundingBox();
+  assert.ok(box.height >= 44 && box.x >= 0 && box.x + box.width <= 390, `44px target inside the screen: ${JSON.stringify(box)}`);
+  await page.locator("#histMenuBtn").click();
+  await page.evaluate(() => map.setView([41.65, -0.88], 15, { animate: false }));
+  assert.match(await page.locator("#histNote").innerText(), /fuera del marco de la Comunidad de Madrid/);
+  await page.evaluate((c) => map.setView(c, 15, { animate: false }), RASCAFRIA);
+  await histAction(page, "histExit");
+  assert.match(await page.locator("#histEntryNote").innerText(), /Comparación cerrada/);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "no horizontal scroll");
+  await context.close();
+});
+
+test("Gate 2: a page served from a cached pre-Gate-2 index.html (no regional item) still runs", async () => {
+  const { page, context } = await openPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  await page.route(/127\.0\.0\.1:\d+\/(\?.*)?$/, async (route) => {
+    const res = await route.fetch();
+    const html = (await res.text()).replace(/\s*<button id="histRegion"[^>]*>[^<]*<\/button>/, "");
+    await route.fulfill({ response: res, body: html });
+  });
+  await page.goto(`http://127.0.0.1:${port}/?lang=en&hv=1&hc=40.90433,-3.87844&hz=16&hp=2006-2023&hd=50`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("#histToggle", { state: "attached" });
+  await waitHist(page, "on");
+  assert.equal(await page.locator("#histRegion").count(), 0, "the old HTML really lacks the item");
+  await histAction(page, "histExit");
+  assert.deepEqual(errors, []);
   await context.close();
 });
