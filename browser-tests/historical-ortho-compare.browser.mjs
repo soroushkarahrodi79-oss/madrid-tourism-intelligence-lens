@@ -1824,7 +1824,7 @@ test("Gate 3: a page served from a cached pre-Gate-3 index.html (no playback pan
     const res = await route.fetch();
     const html = (await res.text())
       .replace(/\s*<button id="histPlayBtn"[\s\S]*?<\/button>/, "")
-      .replace(/\s*<!-- Gate 3: date playback[\s\S]*?<span id="histPlayWait"[^>]*><\/span><\/p>\s*<\/div>/, "");
+      .replace(/\s*<!-- Gate 3: date playback[\s\S]*?<p id="histManifestNote"[^>]*><\/p><\/div>\s*<\/div>/, "");
     await route.fulfill({ response: res, body: html });
   });
   await page.goto(`http://127.0.0.1:${port}/?lang=en&hv=1&hc=40.39250,-3.69900&hz=16&hp=2006-2023&hd=50`, { waitUntil: "domcontentloaded" });
@@ -1835,5 +1835,107 @@ test("Gate 3: a page served from a cached pre-Gate-3 index.html (no playback pan
   await page.waitForFunction(() => histCompare.pair.right === "2020" && histCompare.state.right === "ok");
   await histAction(page, "histExit");
   assert.deepEqual(errors, []);
+  await context.close();
+});
+
+// ---- Gate 4A: temporal manifest export ---------------------------------------------------
+const downloadManifest = async (page) => {
+  const [download] = await Promise.all([page.waitForEvent("download"), page.locator("#histManifest").click()]);
+  return { name: download.suggestedFilename(), manifest: JSON.parse(fs.readFileSync(await download.path(), "utf8")) };
+};
+// Everything an export must leave exactly as it was.
+const comparatorSnapshot = (page) => page.evaluate(() => ({
+  url: location.href, centre: map.getCenter(), zoom: map.getZoom(), fraction: histCompare.fraction,
+  pair: { ...histCompare.pair }, state: { ...histCompare.state }, phase: histPlay.phase, playing: histPlay.playing,
+  staged: histPlay.staged?.histId ?? null, side: histPlay.side, dwell: histPlay.dwell, includeCity: histPlay.includeCity,
+}));
+
+test("Gate 4A: export while a frame is pending names the visible image, not the requested one, and changes nothing", async () => {
+  const { page, context, net } = await openPage();
+  await settled(page);
+  const lensBefore = await lensSnapshot(page);
+  const panelBefore = await panelText(page);
+  await openPlay(page);
+  net.held.PNOA2009 = true;
+  await toFirstDate(page);
+  await page.locator('[data-hist-play-side="right"]').click();
+  await page.locator("#histPlayToggle").click();
+  await page.waitForFunction(() => histPlay.phase === "advancing" && histPlay.staged?.histId === "2009");
+  const before = await comparatorSnapshot(page);
+  const { name, manifest } = await downloadManifest(page);
+  assert.deepEqual(await comparatorSnapshot(page), before, "exporting does not stop or alter playback, the map or the pair");
+  assert.match(name, /^madrid-temporal-manifest_2006-ref_z\d+_.*\.json$/);
+  assert.deepEqual(manifest.observed.visible.right, { coverage_id: "sigpac", tile_state: "ok" });
+  assert.deepEqual(manifest.observed.pending_next, { coverage_id: "2009", loaded: false });
+  assert.equal(manifest.observed.playback_phase, "advancing");
+  assert.equal(manifest.reference.coverage_id, "2006");
+  assert.equal(manifest.display.varying_side, "right");
+  assert.equal(manifest.display.include_10cm_city_coverages, false);
+  assert.deepEqual(manifest.sequence.frames.map((f) => f.coverage_id), ["ams1956", "olistat", "sigpac", "2009", "2011", "2014", "2017", "2020", "2023"]);
+  assert.equal(manifest.generator.deployment_commit, null, "a local checkout has no build identity, and none is invented");
+  const size = await page.evaluate(() => map.getSize());
+  assert.deepEqual([manifest.image.width, manifest.image.height], [size.x, size.y]);
+  // The extent is what Leaflet is showing (Leaflet rounds its pixel origin, hence under one pixel).
+  const off = await page.evaluate((bbox) => {
+    const b = map.getBounds();
+    const sw = L.CRS.EPSG3857.project(b.getSouthWest());
+    const ne = L.CRS.EPSG3857.project(b.getNorthEast());
+    const px = (bbox[2] - bbox[0]) / map.getSize().x;
+    return Math.max(...[sw.x - bbox[0], sw.y - bbox[1], ne.x - bbox[2], ne.y - bbox[3]].map((v) => Math.abs(v / px)));
+  }, manifest.view.bbox);
+  assert.ok(off < 1, `extent differs from the map by ${off} px`);
+  assert.match(await page.locator("#histManifestNote").innerText(), /not the images/);
+  assert.equal(await page.locator("#histManifest").getAttribute("aria-describedby"), "histManifestNote");
+
+  // Paused: same sequence and view, nothing pending; the 10 cm choice and the fixed side follow.
+  await page.locator("#histPlayToggle").click();
+  const paused = (await downloadManifest(page)).manifest;
+  assert.equal(paused.observed.playback_phase, "paused");
+  assert.equal(paused.observed.pending_next, null);
+  for (const key of ["view", "image", "service", "reference", "sequence"]) assert.deepEqual(paused[key], manifest[key], key);
+  await page.locator("#histPlayCity").check();
+  await page.locator('[data-hist-play-side="left"]').click();
+  const city = (await downloadManifest(page)).manifest;
+  assert.equal(city.display.reference_side, "right");
+  assert.equal(city.reference.coverage_id, "sigpac");
+  assert.equal(city.sequence.frames.filter((f) => f.documented_extent === "madrid_city").length, 3);
+
+  net.release("PNOA2009");
+  await histAction(page, "histExit");
+  assert.equal(await page.locator("#histManifestNote").textContent(), "");
+  assert.deepEqual(await lensSnapshot(page), lensBefore);
+  assert.equal(await panelText(page), panelBefore);
+  await context.close();
+});
+
+test("Gate 4A: the whole-Comunidad view exports at zoom 9; Spanish phone layout with a 44px action", async () => {
+  const region = await openPage();
+  await openCompare(region.page);
+  await histAction(region.page, "histRegion");
+  await region.page.locator("#histPlayBtn").click();
+  const { manifest } = await downloadManifest(region.page);
+  assert.equal(manifest.view.zoom, 9);
+  assert.equal(manifest.view.verified_frame.contains_centre, true);
+  assert.equal(manifest.view.verified_frame.contains_bbox, false);
+  await region.context.close();
+
+  const { page, context } = await openPage({ viewport: { width: 390, height: 844 } });
+  await page.goto(`http://127.0.0.1:${port}/?lang=es`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("#histToggle", { state: "attached" });
+  await settled(page);
+  await dismissInvite(page);
+  await page.evaluate(() => document.getElementById("histHere").click());
+  await waitHist(page, "on");
+  await page.locator("#histPlayBtn").click();
+  const button = page.locator("#histManifest");
+  assert.equal(await button.innerText(), "Descargar manifiesto temporal");
+  await button.scrollIntoViewIfNeeded();
+  const box = await button.boundingBox();
+  assert.ok(box.height >= 44 && box.x >= 0 && box.x + box.width <= 390, JSON.stringify(box));
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+  const phone = (await downloadManifest(page)).manifest;
+  const size = await page.evaluate(() => map.getSize());
+  assert.deepEqual([phone.image.width, phone.image.height], [size.x, size.y]);
+  assert.match(await page.locator("#histManifestNote").innerText(), /no las imágenes/);
   await context.close();
 });
