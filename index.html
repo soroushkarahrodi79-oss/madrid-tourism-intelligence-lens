@@ -43,7 +43,7 @@
 })();
 </script>
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261125-tmplayback-v1">
+<link rel="stylesheet" href="css/app.css?v=20261125-tmmanifest-v1">
 </head>
 <body>
 <a class="sr-only skip-link" href="#analysisPanel" data-i18n="a11y.skipToPanel">Skip to the analysis panel</a>
@@ -128,6 +128,7 @@
     </div>
     <p id="histPlayCityNote" class="hist-pair-note" hidden data-i18n="hist.play.cityNote">The 10 cm dates cover the Madrid city area only and are finer than the others (0.10 m against 0.25–1 m): a sharper frame is a change of resolution, not a change on the ground.</p>
     <p class="hist-play-status-row"><span id="histPlayStatus" class="hist-play-status" role="status"></span> <span id="histPlayWait" class="hist-play-wait" aria-hidden="true"></span></p>
+    <div class="hist-manifest"><button type="button" id="histManifest" class="hist-manifest-btn" aria-describedby="histManifestNote" data-i18n="hist.manifest.download">Download temporal manifest</button><p id="histManifestNote" class="hist-play-status-row" role="status"></p></div>
   </div>
   <div id="histBody" class="hist-body">
     <div class="hist-body-row">
@@ -1284,13 +1285,14 @@
 <script src="js/ambito-comparison.js?v=20261015-1"></script>
 <script src="js/modes.js?v=20261006-1"></script>
 <script src="js/evidence-url.js?v=20261015-1"></script>
-<script src="js/historical-url.js?v=20261125-tmplayback-v1"></script>
+<script src="js/historical-url.js?v=20261125-tmmanifest-v1"></script>
+<script src="js/temporal-manifest.js?v=20261125-tmmanifest-v1"></script>
 <script src="js/evidence-export.js?v=20261017-1"></script>
-<script src="js/scope-rail.js?v=20261125-tmplayback-v1"></script>
-<script src="js/shell-copy.js?v=20261125-tmplayback-v1"></script>
+<script src="js/scope-rail.js?v=20261125-tmmanifest-v1"></script>
+<script src="js/shell-copy.js?v=20261125-tmmanifest-v1"></script>
 <script src="js/appearance.js?v=20261020-1"></script>
-<script src="js/text-size.js?v=20261125-tmplayback-v1"></script>
-<script src="js/legacy-copy.js?v=20261125-tmplayback-v1"></script>
+<script src="js/text-size.js?v=20261125-tmmanifest-v1"></script>
+<script src="js/legacy-copy.js?v=20261125-tmmanifest-v1"></script>
 <script src="js/data.js?v=20261023-1"></script>
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/marker-shapes.js?v=20261102-1"></script>
@@ -1299,7 +1301,7 @@
 <script src="js/spatial-command.js?v=20261124-1"></script>
 <script src="js/nl-command.js?v=20261124-1"></script>
 <script src="js/voice-input.js?v=20261124-1"></script>
-<script src="js/app.js?v=20261125-tmplayback-v1"></script>
+<script src="js/app.js?v=20261125-tmmanifest-v1"></script>
 <script src="js/tutorial.js?v=20261030-guided-tour-v2"></script>
 <script>
 /* The case is opt-in. Keep its DOM, styles and controller off the ordinary app

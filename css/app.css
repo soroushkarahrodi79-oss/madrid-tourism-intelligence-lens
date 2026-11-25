@@ -2477,6 +2477,8 @@ body.hist-compare-mode #analysisPanel,body.hist-compare-mode #spatialToolbar,bod
 .hist-play-opt-name{font-size:var(--t-micro);font-weight:650;color:var(--chrome-text-control-strong)}
 .hist-play-choices .hist-play-choice{flex:none;min-height:28px;padding:0 var(--s-2);font-size:var(--t-micro)}
 .hist-play-city{display:flex;align-items:center;gap:var(--s-1);font-size:var(--t-micro);color:var(--chrome-text-control-value);cursor:pointer}
+.hist-manifest{margin-top:var(--s-1)}
+.hist-manifest-btn{min-height:28px;padding:0 var(--s-2);border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-form-surface);color:var(--chrome-text-control-value);font-size:var(--t-micro);cursor:pointer}
 .hist-play-status-row{margin:0;font-size:var(--t-micro);line-height:1.4;color:var(--chrome-text-control-value)}
 .hist-play-wait{font-variant-numeric:tabular-nums;color:var(--chrome-text-control-caption)}
 .hist-play[data-phase="halted"] .hist-play-status{color:var(--chrome-text-control-strong);font-weight:650}
@@ -2531,7 +2533,7 @@ body.hist-compare-mode #analysisPanel,body.hist-compare-mode #spatialToolbar,bod
   .hist-icon-btn{width:44px;height:44px}
   .hist-preset,.hist-menu-item,.hist-restore-btn,.hist-restore-exit,.hist-pick-select{min-height:44px}
   .hist-step{width:44px;min-height:44px}
-  .hist-play-choices .hist-play-choice,.hist-play-city{min-height:44px}
+  .hist-play-choices .hist-play-choice,.hist-play-city,.hist-manifest-btn{min-height:44px}
   .hist-play-choice{min-width:44px}
   .hist-body-row .hist-icon-btn{width:44px;min-height:44px}
   .hist-play-range{min-height:44px;margin-top:0}

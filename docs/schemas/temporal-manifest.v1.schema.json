@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:madrid-urban-evidence-lens:temporal-manifest:schema:1",
+  "title": "Madrid Urban Time Machine temporal manifest, schema 1.x",
+  "description": "A list of WMS GetMap requests for one comparator configuration. Not imagery and not evidence. See docs/TEMPORAL_MANIFEST.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "generated_at", "generator", "volatile_fields", "view", "image", "display", "service", "reference", "sequence", "observed", "limitations"],
+  "properties": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "const": "urn:madrid-urban-evidence-lens:temporal-manifest" },
+        "version": { "type": "string", "pattern": "^1\\.\\d+\\.\\d+$" }
+      }
+    },
+    "generated_at": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$" },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["application", "asset_version", "deployment_commit"],
+      "properties": {
+        "application": { "type": "string" },
+        "asset_version": { "type": "string" },
+        "deployment_commit": { "type": ["string", "null"], "pattern": "^[0-9a-f]{40}$" }
+      }
+    },
+    "volatile_fields": { "type": "array", "items": { "type": "string" } },
+    "view": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["crs", "axis_order", "units", "bbox", "bbox_geographic", "centre", "zoom", "verified_frame"],
+      "properties": {
+        "crs": { "const": "EPSG:3857" },
+        "axis_order": { "const": ["easting", "northing"] },
+        "units": { "type": "string" },
+        "bbox": { "$ref": "#/$defs/bbox" },
+        "bbox_geographic": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["crs", "axis_order", "bbox"],
+          "properties": {
+            "crs": { "const": "CRS:84" },
+            "axis_order": { "const": ["longitude", "latitude"] },
+            "bbox": { "$ref": "#/$defs/bbox" }
+          }
+        },
+        "centre": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["crs", "longitude", "latitude"],
+          "properties": { "crs": { "const": "CRS:84" }, "longitude": { "type": "number" }, "latitude": { "type": "number" } }
+        },
+        "zoom": { "type": "number", "minimum": 0 },
+        "verified_frame": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["crs", "bbox", "contains_centre", "contains_bbox"],
+          "properties": {
+            "crs": { "const": "CRS:84" },
+            "bbox": { "$ref": "#/$defs/bbox" },
+            "contains_centre": { "type": "boolean" },
+            "contains_bbox": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height", "format", "mercator_units_per_pixel", "requested_ground_m_per_pixel"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "format": { "type": "string" },
+        "mercator_units_per_pixel": { "type": "number" },
+        "requested_ground_m_per_pixel": { "type": "number" }
+      }
+    },
+    "display": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["divider_fraction", "reference_side", "varying_side", "dwell_ms", "include_10cm_city_coverages"],
+      "properties": {
+        "divider_fraction": { "type": "number", "minimum": 0 },
+        "reference_side": { "enum": ["left", "right"] },
+        "varying_side": { "enum": ["left", "right"] },
+        "dwell_ms": { "type": "integer", "minimum": 1 },
+        "include_10cm_city_coverages": { "type": "boolean" }
+      }
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "version", "url", "operation", "crs", "format", "max_width", "max_height", "capabilities_checked", "provider", "licence"],
+      "properties": {
+        "type": { "type": "string" },
+        "version": { "const": "1.3.0" },
+        "url": { "type": "string", "pattern": "^https://" },
+        "operation": { "const": "GetMap" },
+        "crs": { "const": "EPSG:3857" },
+        "format": { "type": "string" },
+        "max_width": { "type": "integer" },
+        "max_height": { "type": "integer" },
+        "capabilities_checked": { "type": "string" },
+        "provider": { "type": "string" },
+        "licence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "scope", "url"],
+          "properties": { "name": { "type": "string" }, "scope": { "type": "string" }, "url": { "type": "string" } }
+        }
+      }
+    },
+    "reference": { "$ref": "#/$defs/coverage" },
+    "sequence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["order", "frames"],
+      "properties": {
+        "order": { "type": "string" },
+        "frames": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/coverage" } }
+      }
+    },
+    "observed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "visible", "playback_phase", "pending_next"],
+      "properties": {
+        "scope": { "type": "string" },
+        "visible": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["left", "right"],
+          "properties": { "left": { "$ref": "#/$defs/side" }, "right": { "$ref": "#/$defs/side" } }
+        },
+        "playback_phase": { "enum": ["stopped", "waiting", "showing", "advancing", "paused", "halted", "ended"] },
+        "pending_next": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["coverage_id", "loaded"],
+          "properties": { "coverage_id": { "type": "string" }, "loaded": { "type": "boolean" } }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "text"],
+        "properties": { "code": { "type": "string" }, "text": { "type": "string" } }
+      }
+    }
+  },
+  "$defs": {
+    "bbox": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "type": "number" } },
+    "side": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coverage_id", "tile_state"],
+      "properties": {
+        "coverage_id": { "type": "string" },
+        "tile_state": { "enum": ["idle", "loading", "ok", "edge", "nocover", "partial", "error"] }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coverage_id", "layer", "service_layer_title", "product", "date", "nominal_resolution_m", "documented_extent", "attribution", "limitations", "getmap_url"],
+      "properties": {
+        "coverage_id": { "type": "string" },
+        "layer": { "type": "string" },
+        "service_layer_title": { "type": "string" },
+        "product": { "type": "string" },
+        "date": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "start_year", "end_year", "label"],
+          "properties": {
+            "kind": { "enum": ["annual_mosaic", "multi_year_flight"] },
+            "start_year": { "type": "integer" },
+            "end_year": { "type": "integer" },
+            "label": { "type": "string" }
+          }
+        },
+        "nominal_resolution_m": { "type": "number" },
+        "documented_extent": { "enum": ["madrid_city", "comunidad_de_madrid_test_points"] },
+        "attribution": { "type": "string" },
+        "limitations": { "type": "array", "items": { "type": "string" } },
+        "getmap_url": { "type": "string", "pattern": "^https://" }
+      }
+    }
+  }
+}

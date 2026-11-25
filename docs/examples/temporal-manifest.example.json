@@ -1,0 +1,334 @@
+{
+  "schema": {
+    "id": "urn:madrid-urban-evidence-lens:temporal-manifest",
+    "version": "1.0.0"
+  },
+  "generated_at": "2026-11-25T19:07:06.404Z",
+  "generator": {
+    "application": "Madrid Urban Evidence Lens",
+    "asset_version": "20261125-tmmanifest-v1",
+    "deployment_commit": null
+  },
+  "volatile_fields": [
+    "generated_at",
+    "generator",
+    "observed"
+  ],
+  "view": {
+    "crs": "EPSG:3857",
+    "axis_order": [
+      "easting",
+      "northing"
+    ],
+    "units": "Web Mercator metres (not ground metres)",
+    "bbox": [
+      -412535.167,
+      4922666.588,
+      -411006.426,
+      4923622.051
+    ],
+    "bbox_geographic": {
+      "crs": "CRS:84",
+      "axis_order": [
+        "longitude",
+        "latitude"
+      ],
+      "bbox": [
+        -3.7058665,
+        40.3892314,
+        -3.6921335,
+        40.3957685
+      ]
+    },
+    "centre": {
+      "crs": "CRS:84",
+      "longitude": -3.699,
+      "latitude": 40.3925
+    },
+    "zoom": 17,
+    "verified_frame": {
+      "crs": "CRS:84",
+      "bbox": [
+        -4.58,
+        39.88,
+        -3.05,
+        41.17
+      ],
+      "contains_centre": true,
+      "contains_bbox": true
+    }
+  },
+  "image": {
+    "width": 1280,
+    "height": 800,
+    "format": "image/jpeg",
+    "mercator_units_per_pixel": 1.194329,
+    "requested_ground_m_per_pixel": 0.9096
+  },
+  "display": {
+    "divider_fraction": 0.5,
+    "reference_side": "left",
+    "varying_side": "right",
+    "dwell_ms": 2000,
+    "include_10cm_city_coverages": false
+  },
+  "service": {
+    "type": "OGC WMS",
+    "version": "1.3.0",
+    "url": "https://www.ign.es/wms/pnoa-historico",
+    "operation": "GetMap",
+    "crs": "EPSG:3857",
+    "format": "image/jpeg",
+    "max_width": 4096,
+    "max_height": 4096,
+    "capabilities_checked": "2026-11-25",
+    "provider": "Instituto Geográfico Nacional de España",
+    "licence": {
+      "name": "CC BY 4.0 scne.es",
+      "scope": "declared service-wide (AccessConstraints); not verified layer by layer",
+      "url": "https://www.scne.es"
+    }
+  },
+  "reference": {
+    "coverage_id": "2006",
+    "layer": "PNOA2006",
+    "service_layer_title": "PNOA 2006",
+    "product": "PNOA 2006",
+    "date": {
+      "kind": "annual_mosaic",
+      "start_year": 2006,
+      "end_year": 2006,
+      "label": "2006"
+    },
+    "nominal_resolution_m": 0.5,
+    "documented_extent": "comunidad_de_madrid_test_points",
+    "attribution": "PNOA 2006 (mosaico anual) cedido por © Instituto Geográfico Nacional de España · CC BY 4.0 scne.es",
+    "limitations": [
+      "ANNUAL_YEAR_ONLY_NO_ACQUISITION_DAY"
+    ],
+    "getmap_url": "https://www.ign.es/wms/pnoa-historico?service=WMS&version=1.3.0&request=GetMap&layers=PNOA2006&styles=&format=image%2Fjpeg&transparent=false&crs=EPSG%3A3857&bbox=-412535.167%2C4922666.588%2C-411006.426%2C4923622.051&width=1280&height=800"
+  },
+  "sequence": {
+    "order": "ascending first year, then last year, then region-wide before the 10 cm city product; the reference coverage is excluded; no looping",
+    "frames": [
+      {
+        "coverage_id": "ams1956",
+        "layer": "AMS_1956-1957",
+        "service_layer_title": "Americano (Serie B, 1956-1957)",
+        "product": "Vuelo Americano, serie B (US Army Map Service)",
+        "date": {
+          "kind": "multi_year_flight",
+          "start_year": 1956,
+          "end_year": 1957,
+          "label": "1956–57"
+        },
+        "nominal_resolution_m": 0.5,
+        "documented_extent": "comunidad_de_madrid_test_points",
+        "attribution": "Vuelo Americano, serie B (US Army Map Service) (vuelo 1956–1957) cedido por © Instituto Geográfico Nacional de España · CC BY 4.0 scne.es",
+        "limitations": [
+          "MULTI_YEAR_FLIGHT_DATE_VARIES_BY_AREA",
+          "RESOLUTION_UNCERTAIN_LAYER_ABSTRACT_IMPLIES_1_M"
+        ],
+        "getmap_url": "https://www.ign.es/wms/pnoa-historico?service=WMS&version=1.3.0&request=GetMap&layers=AMS_1956-1957&styles=&format=image%2Fjpeg&transparent=false&crs=EPSG%3A3857&bbox=-412535.167%2C4922666.588%2C-411006.426%2C4923622.051&width=1280&height=800"
+      },
+      {
+        "coverage_id": "olistat",
+        "layer": "OLISTAT",
+        "service_layer_title": "OLISTAT (1997-1998)",
+        "product": "Vuelo OLISTAT (Ministerio de Agricultura)",
+        "date": {
+          "kind": "multi_year_flight",
+          "start_year": 1997,
+          "end_year": 1998,
+          "label": "1997–98"
+        },
+        "nominal_resolution_m": 1,
+        "documented_extent": "comunidad_de_madrid_test_points",
+        "attribution": "Vuelo OLISTAT (Ministerio de Agricultura) (vuelo 1997–1998) cedido por © Instituto Geográfico Nacional de España · CC BY 4.0 scne.es",
+        "limitations": [
+          "MULTI_YEAR_FLIGHT_DATE_VARIES_BY_AREA",
+          "REQUEST_FINER_THAN_NOMINAL_RESOLUTION"
+        ],
+        "getmap_url": "https://www.ign.es/wms/pnoa-historico?service=WMS&version=1.3.0&request=GetMap&layers=OLISTAT&styles=&format=image%2Fjpeg&transparent=false&crs=EPSG%3A3857&bbox=-412535.167%2C4922666.588%2C-411006.426%2C4923622.051&width=1280&height=800"
+      },
+      {
+        "coverage_id": "sigpac",
+        "layer": "SIGPAC",
+        "service_layer_title": "SIGPAC (1997-2003)",
+        "product": "Vuelo SIGPAC (FEGA, Ministerio de Agricultura)",
+        "date": {
+          "kind": "multi_year_flight",
+          "start_year": 1997,
+          "end_year": 2003,
+          "label": "1997–2003"
+        },
+        "nominal_resolution_m": 0.5,
+        "documented_extent": "comunidad_de_madrid_test_points",
+        "attribution": "Vuelo SIGPAC (FEGA, Ministerio de Agricultura) (vuelo 1997–2003) cedido por © Instituto Geográfico Nacional de España · CC BY 4.0 scne.es",
+        "limitations": [
+          "MULTI_YEAR_FLIGHT_DATE_VARIES_BY_AREA"
+        ],
+        "getmap_url": "https://www.ign.es/wms/pnoa-historico?service=WMS&version=1.3.0&request=GetMap&layers=SIGPAC&styles=&format=image%2Fjpeg&transparent=false&crs=EPSG%3A3857&bbox=-412535.167%2C4922666.588%2C-411006.426%2C4923622.051&width=1280&height=800"
+      },
+      {
+        "coverage_id": "2009",
+        "layer": "PNOA2009",
+        "service_layer_title": "PNOA 2009",
+        "product": "PNOA 2009",
+        "date": {
+          "kind": "annual_mosaic",
+          "start_year": 2009,
+          "end_year": 2009,
+          "label": "2009"
+        },
+        "nominal_resolution_m": 0.5,
+        "documented_extent": "comunidad_de_madrid_test_points",
+        "attribution": "PNOA 2009 (mosaico anual) cedido por © Instituto Geográfico Nacional de España · CC BY 4.0 scne.es",
+        "limitations": [
+          "ANNUAL_YEAR_ONLY_NO_ACQUISITION_DAY"
+        ],
+        "getmap_url": "https://www.ign.es/wms/pnoa-historico?service=WMS&version=1.3.0&request=GetMap&layers=PNOA2009&styles=&format=image%2Fjpeg&transparent=false&crs=EPSG%3A3857&bbox=-412535.167%2C4922666.588%2C-411006.426%2C4923622.051&width=1280&height=800"
+      },
+      {
+        "coverage_id": "2011",
+        "layer": "PNOA2011",
+        "service_layer_title": "PNOA 2011",
+        "product": "PNOA 2011",
+        "date": {
+          "kind": "annual_mosaic",
+          "start_year": 2011,
+          "end_year": 2011,
+          "label": "2011"
+        },
+        "nominal_resolution_m": 0.25,
+        "documented_extent": "comunidad_de_madrid_test_points",
+        "attribution": "PNOA 2011 (mosaico anual) cedido por © Instituto Geográfico Nacional de España · CC BY 4.0 scne.es",
+        "limitations": [
+          "ANNUAL_YEAR_ONLY_NO_ACQUISITION_DAY"
+        ],
+        "getmap_url": "https://www.ign.es/wms/pnoa-historico?service=WMS&version=1.3.0&request=GetMap&layers=PNOA2011&styles=&format=image%2Fjpeg&transparent=false&crs=EPSG%3A3857&bbox=-412535.167%2C4922666.588%2C-411006.426%2C4923622.051&width=1280&height=800"
+      },
+      {
+        "coverage_id": "2014",
+        "layer": "PNOA2014",
+        "service_layer_title": "PNOA 2014",
+        "product": "PNOA 2014",
+        "date": {
+          "kind": "annual_mosaic",
+          "start_year": 2014,
+          "end_year": 2014,
+          "label": "2014"
+        },
+        "nominal_resolution_m": 0.25,
+        "documented_extent": "comunidad_de_madrid_test_points",
+        "attribution": "PNOA 2014 (mosaico anual) cedido por © Instituto Geográfico Nacional de España · CC BY 4.0 scne.es",
+        "limitations": [
+          "ANNUAL_YEAR_ONLY_NO_ACQUISITION_DAY"
+        ],
+        "getmap_url": "https://www.ign.es/wms/pnoa-historico?service=WMS&version=1.3.0&request=GetMap&layers=PNOA2014&styles=&format=image%2Fjpeg&transparent=false&crs=EPSG%3A3857&bbox=-412535.167%2C4922666.588%2C-411006.426%2C4923622.051&width=1280&height=800"
+      },
+      {
+        "coverage_id": "2017",
+        "layer": "PNOA2017",
+        "service_layer_title": "PNOA 2017",
+        "product": "PNOA 2017",
+        "date": {
+          "kind": "annual_mosaic",
+          "start_year": 2017,
+          "end_year": 2017,
+          "label": "2017"
+        },
+        "nominal_resolution_m": 0.25,
+        "documented_extent": "comunidad_de_madrid_test_points",
+        "attribution": "PNOA 2017 (mosaico anual) cedido por © Instituto Geográfico Nacional de España · CC BY 4.0 scne.es",
+        "limitations": [
+          "ANNUAL_YEAR_ONLY_NO_ACQUISITION_DAY"
+        ],
+        "getmap_url": "https://www.ign.es/wms/pnoa-historico?service=WMS&version=1.3.0&request=GetMap&layers=PNOA2017&styles=&format=image%2Fjpeg&transparent=false&crs=EPSG%3A3857&bbox=-412535.167%2C4922666.588%2C-411006.426%2C4923622.051&width=1280&height=800"
+      },
+      {
+        "coverage_id": "2020",
+        "layer": "PNOA2020",
+        "service_layer_title": "PNOA 2020",
+        "product": "PNOA 2020",
+        "date": {
+          "kind": "annual_mosaic",
+          "start_year": 2020,
+          "end_year": 2020,
+          "label": "2020"
+        },
+        "nominal_resolution_m": 0.25,
+        "documented_extent": "comunidad_de_madrid_test_points",
+        "attribution": "PNOA 2020 (mosaico anual) cedido por © Instituto Geográfico Nacional de España · CC BY 4.0 scne.es",
+        "limitations": [
+          "ANNUAL_YEAR_ONLY_NO_ACQUISITION_DAY"
+        ],
+        "getmap_url": "https://www.ign.es/wms/pnoa-historico?service=WMS&version=1.3.0&request=GetMap&layers=PNOA2020&styles=&format=image%2Fjpeg&transparent=false&crs=EPSG%3A3857&bbox=-412535.167%2C4922666.588%2C-411006.426%2C4923622.051&width=1280&height=800"
+      },
+      {
+        "coverage_id": "2023",
+        "layer": "PNOA2023",
+        "service_layer_title": "PNOA 2023",
+        "product": "PNOA 2023",
+        "date": {
+          "kind": "annual_mosaic",
+          "start_year": 2023,
+          "end_year": 2023,
+          "label": "2023"
+        },
+        "nominal_resolution_m": 0.25,
+        "documented_extent": "comunidad_de_madrid_test_points",
+        "attribution": "PNOA 2023 (mosaico anual) cedido por © Instituto Geográfico Nacional de España · CC BY 4.0 scne.es",
+        "limitations": [
+          "ANNUAL_YEAR_ONLY_NO_ACQUISITION_DAY"
+        ],
+        "getmap_url": "https://www.ign.es/wms/pnoa-historico?service=WMS&version=1.3.0&request=GetMap&layers=PNOA2023&styles=&format=image%2Fjpeg&transparent=false&crs=EPSG%3A3857&bbox=-412535.167%2C4922666.588%2C-411006.426%2C4923622.051&width=1280&height=800"
+      }
+    ]
+  },
+  "observed": {
+    "scope": "on-screen map tiles at export time",
+    "visible": {
+      "left": {
+        "coverage_id": "2006",
+        "tile_state": "ok"
+      },
+      "right": {
+        "coverage_id": "2023",
+        "tile_state": "ok"
+      }
+    },
+    "playback_phase": "stopped",
+    "pending_next": null
+  },
+  "limitations": [
+    {
+      "code": "REQUESTS_ONLY",
+      "text": "This file lists requests. It holds no imagery and no image hashes, and is not materialised cartographic evidence."
+    },
+    {
+      "code": "NOT_PIXEL_REPRODUCIBLE",
+      "text": "The same request can be repeated, but the remote service may return different pixels later (reprocessing, republication, withdrawal)."
+    },
+    {
+      "code": "AVAILABILITY_NOT_GUARANTEED",
+      "text": "A URL does not mean imagery exists for this extent. The service answers HTTP 200 with a blank white JPEG outside a coverage: decode every image and treat blank areas as missing imagery, never as unchanged ground."
+    },
+    {
+      "code": "DISCRETE_OBSERVATIONS",
+      "text": "Frames are discrete official observations. Nothing between them is observed or may be interpolated."
+    },
+    {
+      "code": "NO_CHANGE_MEASUREMENT",
+      "text": "Visual differences are not measured change: resolution, season, shadows and orthorectification differ between coverages."
+    },
+    {
+      "code": "NO_3D",
+      "text": "2D orthophotos only. They are not 3D reconstructions and are not equivalent to, or co-registered by Lens with, contemporary LiDAR geometry."
+    },
+    {
+      "code": "REFERENCE_ONLY",
+      "text": "Visual reference. No Lens indicator, count or evidence record reads these images or this file."
+    }
+  ]
+}

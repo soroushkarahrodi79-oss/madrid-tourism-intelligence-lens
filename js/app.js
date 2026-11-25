@@ -44,9 +44,9 @@ const AREA_ASSET_VERSION = "20261029-m3-dossier-v1";
 // release version, so a browser can never combine a new app.js with an old registry,
 // dictionary or Area Profile module. tests/domestic_origin_dynamics_ui.test.mjs pins
 // that they stay equal.
-const ORIGIN_CONTEXT_MODULE_VERSION = "20261125-tmplayback-v1";
-const AREA_PROFILE_MODULE_VERSION = "20261125-tmplayback-v1";
-const REGISTRY_ASSET_VERSION = "20261125-tmplayback-v1";
+const ORIGIN_CONTEXT_MODULE_VERSION = "20261125-tmmanifest-v1";
+const AREA_PROFILE_MODULE_VERSION = "20261125-tmmanifest-v1";
+const REGISTRY_ASSET_VERSION = "20261125-tmmanifest-v1";
 const moduleUrl = (name, version = AREA_ASSET_VERSION) => new URL(`${name}?v=${version}`, MODULE_BASE).href;
 
 // K11 (#73): the evidence-snapshot identity carried in a shared link, so a reader
@@ -848,6 +848,7 @@ function setHistCompare(enabled, opts = {}) {
     map.off("moveend", renderHistShare);
     histCompare.returnView = null;
     histNote("");
+    histManifestNote("");
     histCompare.active = false;
     for (const side of ["left", "right"]) clearTimeout(histCompare.swapTimers[side]);
     map.off("move zoom resize", updateHistClip);
@@ -1443,6 +1444,67 @@ document.getElementById("histPlayCity")?.addEventListener("change", (e) => {
   histPlaySync();
   renderHistPlay();
 });
+// ---- Gate 4A: temporal manifest (js/temporal-manifest.js) -------------------------------
+// READ-ONLY export of the comparator's current configuration: it never touches the map, the
+// pair, playback or any Lens state. Everything is read in one synchronous pass at the click,
+// so a frame that commits while the build identity is being fetched cannot mix into it.
+function histManifestInput() {
+  const centre = map.getCenter();
+  const size = map.getSize();
+  return {
+    generatedAt: new Date().toISOString(),
+    wmsUrl: HIST_WMS,
+    centre: { lat: centre.lat, lon: centre.lng },
+    zoom: map.getZoom(),
+    size: { width: size.x, height: size.y },
+    dividerFraction: histCompare.fraction,
+    pair: { ...histCompare.pair },
+    varyingSide: histPlay.side,
+    includeCity: histPlay.includeCity,
+    dwellMs: histPlay.dwell,
+    observed: {
+      sides: { ...histCompare.state },
+      playbackPhase: histPlay.phase,
+      pending: histPlay.staged ? { coverage_id: histPlay.staged.histId, loaded: histPlay.staged.histReady } : null,
+    },
+  };
+}
+// Only the Pages deploy writes build-identity.json; elsewhere the commit is unknown (null).
+async function histDeploymentCommit() {
+  try {
+    const response = await fetch("build-identity.json", { cache: "no-store" });
+    const commit = response.ok ? (await response.json()).commit : null;
+    return /^[0-9a-f]{40}$/.test(commit) ? commit : null;
+  } catch (_) {
+    return null;
+  }
+}
+function histManifestNote(key) {
+  const note = document.getElementById("histManifestNote");
+  if (note) note.textContent = key ? shellT(key) : "";
+}
+async function histDownloadManifest() {
+  if (!histCompare.active) return;
+  histManifestNote("");
+  try {
+    const input = histManifestInput();
+    input.generator = { asset_version: REGISTRY_ASSET_VERSION, deployment_commit: await histDeploymentCommit() };
+    const manifest = buildTemporalManifest(input);
+    const url = URL.createObjectURL(new Blob([`${JSON.stringify(manifest, null, 2)}\n`], { type: "application/json" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = temporalManifestFileName(manifest);
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    histManifestNote("hist.manifest.done");
+  } catch (error) {
+    console.error(error);
+    histManifestNote("hist.manifest.failed");
+  }
+}
+document.getElementById("histManifest")?.addEventListener("click", () => histDownloadManifest());
 document.getElementById("histPlayBtn")?.addEventListener("click", () => {
   const open = document.getElementById("histPlay").hidden;
   histUiPanel("play", open);
