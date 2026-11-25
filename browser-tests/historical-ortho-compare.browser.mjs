@@ -40,18 +40,33 @@ async function openPage({ viewport = { width: 1280, height: 800 }, hist = {}, pn
   const page = await context.newPage();
   const histRequests = [];
   const pnoaRequests = [];
-  const net = { hist: { PNOA2006: "ok", PNOA2023: "ok", ...hist }, pnoa, flip: 0 };
-  await page.route("**/*", (route) => {
+  // Gate 3: net.delay[LAYER] = ms before that layer's tiles are answered (artificial latency);
+  // net.held[LAYER] = true parks its requests in net.parked until net.release(LAYER).
+  const net = { hist: { PNOA2006: "ok", PNOA2023: "ok", ...hist }, pnoa, flip: 0, delay: {}, held: {}, parked: [], inflight: 0, maxInflight: 0 };
+  net.release = (layer) => {
+    const go = net.parked.filter((p) => p.layer === layer);
+    net.parked = net.parked.filter((p) => p.layer !== layer);
+    for (const p of go) p.answer();
+  };
+  await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname.endsWith("/runtime-config.js")) return route.fulfill({ contentType: "text/javascript", body: 'window.RUNTIME_CONFIG={CARTO_BASEMAP_KEY:""};' });
     if (url.hostname === "127.0.0.1") return route.continue();
     if (url.hostname === "www.ign.es") {
       if (url.pathname === "/wms/pnoa-historico") {
         histRequests.push(url);
-        const mode = net.hist[url.searchParams.get("layers")];
+        const layer = url.searchParams.get("layers");
+        const mode = net.hist[layer];
         const fail = mode === "down" || (mode === "flaky" && (net.flip++ % 2 === 0));
         const headers = { "access-control-allow-origin": "*" };
-        return fail ? route.fulfill({ status: 503, headers, body: "" }) : route.fulfill({ contentType: "image/png", headers, body: mode === "blank" || (mode === "halfblank" && net.flip++ % 2 === 0) ? PNG_WHITE : PNG_1X1 });
+        const answer = () => (fail ? route.fulfill({ status: 503, headers, body: "" }) : route.fulfill({ contentType: "image/png", headers, body: mode === "blank" || (mode === "halfblank" && net.flip++ % 2 === 0) ? PNG_WHITE : PNG_1X1 })).catch(() => {});
+        if (!net.delay[layer] && !net.held[layer]) return answer();
+        net.inflight += 1;
+        net.maxInflight = Math.max(net.maxInflight, net.inflight);
+        const done = () => { net.inflight -= 1; return answer(); };
+        if (net.held[layer]) { net.parked.push({ layer, answer: done }); return undefined; }
+        await new Promise((r) => setTimeout(r, net.delay[layer]));
+        return done();
       }
       pnoaRequests.push(url);
       return net.pnoa === "down" ? route.fulfill({ status: 503, body: "" }) : route.fulfill({ contentType: "image/png", body: PNG_1X1 });
@@ -762,7 +777,7 @@ test("old evidence links are untouched; invalid historical links say so and neve
 
   const cases = {
     "hv=1&hc=48.85,2.35&hz=16&hp=2006-2023&hd=50": /centre outside the Comunidad de Madrid frame/,
-    "hv=1&hc=40.4435,-3.7106&hz=25&hp=2006-2023&hd=50": /zoom outside 10 to 19/,
+    "hv=1&hc=40.4435,-3.7106&hz=25&hp=2006-2023&hd=50": /zoom outside 9 to 19/,
     // 2019 is not a verified Madrid coverage (the IGN layer returns no imagery here), so it stays refused.
     "hv=1&hc=40.4435,-3.7106&hz=16&hp=2006-2019&hd=50": /date pair that is not two different verified orthophoto dates/,
     "hv=1&hc=40.4435,-3.7106&hz=16&hp=2006-2023&hd=250": /divider position outside 0 to 100%/,
@@ -1501,6 +1516,323 @@ test("Gate 2: a page served from a cached pre-Gate-2 index.html (no regional ite
   await page.waitForSelector("#histToggle", { state: "attached" });
   await waitHist(page, "on");
   assert.equal(await page.locator("#histRegion").count(), 0, "the old HTML really lacks the item");
+  await histAction(page, "histExit");
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+// ---- Gate 3: load-aware temporal playback -------------------------------------------------
+// Stubbed IGN (delays, holds, failures, blank tiles). The display time is shortened through
+// histPlay.dwell so the tests run fast; the user-facing options stay 1/2/4/8 s.
+const openPlay = async (page, { dwell = 150 } = {}) => {
+  await openCompare(page);
+  await page.locator("#histPlayBtn").click();
+  await page.evaluate((d) => { histPlay.dwell = d; }, dwell);
+};
+// Samples (every 30 ms) what the right side shows and records any moment at which a label names a
+// date that is not the image on screen, a staged frame is visible, or attribution names a staged date.
+const startWatch = (page) => page.evaluate(() => {
+  window.__watch = { frames: [], bad: [], maxLayers: 0 };
+  window.__watchTimer = setInterval(() => {
+    const w = window.__watch;
+    const vis = histCompare.layers.right;
+    w.maxLayers = Math.max(w.maxLayers, document.querySelectorAll(".leaflet-histRight-pane .leaflet-layer").length);
+    if (vis) {
+      const want = histCoverage(vis.histId).label;
+      const tag = document.querySelector('#histDivider .hist-side[data-side="right"] b').textContent;
+      if (tag !== want || document.getElementById("histPlayLabel").textContent !== want || histCompare.pair.right !== vis.histId) w.bad.push(`label ${tag} over ${vis.histId}`);
+      if (String(vis.options.opacity) !== "1") w.bad.push(`visible layer at opacity ${vis.options.opacity}`);
+      const st = histPlay.staged;
+      if (st && String(st.options.opacity) !== "0") w.bad.push(`staged ${st.histId} visible`);
+      if (st && document.querySelector(".leaflet-control-attribution").textContent.includes(`${histCoverage(st.histId).product} (`)) w.bad.push(`staged ${st.histId} attributed`);
+      if (w.frames[w.frames.length - 1] !== vis.histId) w.frames.push(vis.histId);
+    }
+  }, 30);
+});
+const stopWatch = (page) => page.evaluate(() => { clearInterval(window.__watchTimer); return window.__watch; });
+const playing = (page) => page.evaluate(() => histPlay.playing);
+const waitPhase = (page, phase, timeout = 15000) => page.waitForFunction((p) => histPlay.phase === p, phase, { timeout });
+const toFirstDate = async (page) => {
+  await page.locator("#histPlayRestart").click(); // paused: a manual jump to the first date
+  await page.waitForFunction(() => histCompare.pair.right === "ams1956" && histCompare.state.right === "ok");
+};
+
+test("Gate 3: the playback panel opens from the controller; Play runs the whole sequence in order, once, and ends", async () => {
+  const { page, context } = await openPage();
+  await openPlay(page);
+  assert.equal(await page.locator("#histPlay").isVisible(), true);
+  assert.equal(await page.locator("#histPlayBtn").getAttribute("aria-expanded"), "true");
+  assert.match(await page.locator("#histPlayStatus").innerText(), /Steps through 9 official dates on the right side while 2006 stays fixed/);
+  await startWatch(page);
+  await page.locator("#histPlayToggle").click(); // at 2023 (the last date): starts again from the first
+  await waitPhase(page, "ended", 30000);
+  const w = await stopWatch(page);
+  assert.deepEqual(w.frames, ["2023", "ams1956", "olistat", "sigpac", "2009", "2011", "2014", "2017", "2020", "2023"], "documented order, reference 2006 skipped, no 10 cm frame");
+  assert.deepEqual(w.bad, [], "a label never named an image that was not on screen");
+  assert.ok(w.maxLayers <= 2, `at most the visible and one staged layer: ${w.maxLayers}`);
+  assert.equal(await page.evaluate(() => histCompare.pair.left), "2006", "the reference never moved");
+  assert.match(await page.locator("#histPlayStatus").innerText(), /Sequence complete: 2023 is the last date/);
+  assert.equal(await page.locator("#histPlayToggle").getAttribute("aria-label"), "Play the dates in order");
+  await context.close();
+});
+
+test("Gate 3: Pause stops at once (no timer, no staged request); Restart goes back to the first date", async () => {
+  const { page, context } = await openPage();
+  await openPlay(page, { dwell: 400 });
+  await toFirstDate(page);
+  await page.locator("#histPlayToggle").click();
+  assert.equal(await page.locator("#histPlayToggle").getAttribute("aria-label"), "Pause");
+  await page.waitForFunction(() => histCompare.pair.right === "olistat");
+  await page.locator("#histPlayToggle").click();
+  const after = await page.evaluate(() => ({ playing: histPlay.playing, staged: histPlay.staged, timer: histPlay.timer, layers: document.querySelectorAll(".leaflet-histRight-pane .leaflet-layer").length, id: histCompare.pair.right }));
+  assert.deepEqual(after, { playing: false, staged: null, timer: null, layers: 1, id: "olistat" });
+  assert.match(await page.locator("#histPlayStatus").innerText(), /Paused on 1997–98/);
+  await page.waitForTimeout(900);
+  assert.equal(await page.evaluate(() => histCompare.pair.right), "olistat", "nothing advances after Pause");
+  // Restart while playing keeps playing from the first date.
+  await page.locator("#histPlayToggle").click();
+  await page.waitForFunction(() => histCompare.pair.right === "sigpac");
+  await page.locator("#histPlayRestart").click();
+  await page.waitForFunction(() => histCompare.pair.right === "ams1956");
+  assert.equal(await playing(page), true);
+  await page.locator("#histPlayToggle").click();
+  await context.close();
+});
+
+test("Gate 3: high latency — the display time waits for the image, and the old label stays until the new image has loaded", async () => {
+  const { page, context, net } = await openPage();
+  await openPlay(page, { dwell: 200 });
+  await toFirstDate(page);
+  net.delay.OLISTAT = 2500;
+  await startWatch(page);
+  const t0 = Date.now();
+  await page.locator("#histPlayToggle").click();
+  await waitPhase(page, "advancing");
+  await page.waitForTimeout(1200); // well past the 200 ms display time
+  const mid = await page.evaluate(() => ({ id: histCompare.pair.right, label: document.getElementById("histPlayLabel").textContent, status: document.getElementById("histPlayStatus").textContent, wait: document.getElementById("histPlayWait").textContent }));
+  assert.equal(mid.id, "ams1956", "still on the previous image");
+  assert.equal(mid.label, "1956–57", "labelled as what is on screen");
+  assert.match(mid.status, /Still showing 1956–57; loading the next date, 1997–98/);
+  assert.match(mid.wait, /^\d+ s$/);
+  await page.waitForFunction(() => histCompare.pair.right === "olistat", null, { timeout: 10000 });
+  assert.ok(Date.now() - t0 >= 2500, "the next date appeared only after its tiles arrived");
+  assert.equal(await page.evaluate(() => histCompare.state.right), "ok");
+  await page.locator("#histPlayToggle").click();
+  const w = await stopWatch(page);
+  assert.deepEqual(w.bad, []);
+  await context.close();
+});
+
+test("Gate 3: a frame reloading after a pan suspends the display time until it has loaded again", async () => {
+  const { page, context, net } = await openPage();
+  await openPlay(page, { dwell: 600 });
+  await toFirstDate(page);
+  await page.locator("#histPlayToggle").click();
+  await waitPhase(page, "showing");
+  net.held["AMS_1956-1957"] = true;
+  await page.evaluate(() => map.panBy([900, 0], { animate: false }));
+  await waitPhase(page, "waiting");
+  await page.waitForTimeout(1200); // twice the display time
+  assert.equal(await page.evaluate(() => histCompare.pair.right), "ams1956", "no advance while the frame on screen is reloading");
+  net.held["AMS_1956-1957"] = false;
+  net.release("AMS_1956-1957");
+  await page.waitForFunction(() => histCompare.pair.right === "olistat", null, { timeout: 10000 });
+  await page.locator("#histPlayToggle").click();
+  await context.close();
+});
+
+test("Gate 3: a network error halts on that frame and says so; Play goes on with the next date", async () => {
+  const { page, context } = await openPage({ hist: { PNOA2011: "down" } });
+  await openPlay(page);
+  await toFirstDate(page);
+  await page.locator("#histPlayToggle").click();
+  await waitPhase(page, "halted", 20000);
+  const halted = await page.evaluate(() => ({ id: histCompare.pair.right, state: histCompare.state.right, playing: histPlay.playing, staged: histPlay.staged }));
+  assert.deepEqual(halted, { id: "2011", state: "error", playing: false, staged: null }, "labelled 2011, with its failure stated");
+  assert.match(await page.locator("#histPlayStatus").innerText(), /Stopped on 2011: some 2011 tiles did not load, so playback did not go on over an incomplete image/);
+  assert.equal(await page.locator('.hist-years li[data-side="right"] .hist-retry').isHidden(), false, "the existing retry is offered");
+  await page.locator("#histPlayToggle").click();
+  await page.waitForFunction(() => histCompare.pair.right === "2014");
+  await page.locator("#histPlayToggle").click();
+  await context.close();
+});
+
+test("Gate 3: a date with no imagery here is shown and named as missing imagery, never as unchanged", async () => {
+  const { page, context } = await openPage({ hist: { PNOA2009: "blank" } });
+  await openPlay(page, { dwell: 600 });
+  await page.evaluate(() => setHistSide("right", "sigpac"));
+  await page.waitForFunction(() => histCompare.pair.right === "sigpac" && histCompare.state.right === "ok");
+  await page.locator("#histPlayToggle").click();
+  await page.waitForFunction(() => histCompare.pair.right === "2009" && histPlay.phase === "showing");
+  assert.equal(await page.evaluate(() => histCompare.state.right), "nocover");
+  assert.match(await page.locator("#histPlayStatus").innerText(), /2009 has no imagery in this view: that is missing imagery, not unchanged ground/);
+  await page.waitForFunction(() => histCompare.pair.right === "2011", null, { timeout: 10000 });
+  await page.locator("#histPlayToggle").click();
+  await context.close();
+});
+
+test("Gate 3: a manual date choice stops playback and cancels the staged request; a late answer changes nothing", async () => {
+  const { page, context, net } = await openPage();
+  await openPlay(page, { dwell: 100 });
+  await toFirstDate(page);
+  net.held.OLISTAT = true;
+  await page.locator("#histPlayToggle").click();
+  await waitPhase(page, "advancing");
+  assert.equal(await page.evaluate(() => histPlay.staged && histPlay.staged.histId), "olistat");
+  await page.evaluate(() => { const s = document.getElementById("histPickRight"); s.value = "2017"; s.dispatchEvent(new Event("change")); });
+  assert.equal(await playing(page), false);
+  assert.equal(await page.evaluate(() => histPlay.staged), null, "the staged layer is gone");
+  await page.waitForFunction(() => histCompare.pair.right === "2017" && histCompare.state.right === "ok");
+  net.held.OLISTAT = false;
+  net.release("OLISTAT"); // the obsolete answers arrive late
+  await page.waitForTimeout(400);
+  assert.equal(await page.evaluate(() => histCompare.pair.right), "2017");
+  assert.equal(await page.evaluate(() => document.querySelectorAll(".leaflet-histRight-pane .leaflet-layer").length), 1);
+  assert.doesNotMatch(await page.locator("#map .leaflet-control-attribution").innerText(), /OLISTAT/);
+  await context.close();
+});
+
+test("Gate 3: the left side can be the one that changes while the right stays fixed; the range picks a date", async () => {
+  const { page, context } = await openPage();
+  await openPlay(page);
+  await page.locator('[data-hist-play-side="left"]').click();
+  assert.equal(await page.locator('[data-hist-play-side="left"]').getAttribute("aria-pressed"), "true");
+  assert.match(await page.locator("#histPlayStatus").innerText(), /on the left side while 2023 stays fixed/);
+  const range = page.locator("#histPlayRange");
+  assert.equal(await range.getAttribute("max"), "8");
+  await range.focus();
+  await page.keyboard.press("Home");
+  await page.waitForFunction(() => histCompare.pair.left === "ams1956" && histCompare.state.left === "ok");
+  assert.match(await range.getAttribute("aria-valuetext"), /^1956–57 · Vuelo Americano/);
+  await page.evaluate(() => { window.__rightLayer = histCompare.layers.right; });
+  await page.locator("#histPlayToggle").click();
+  await page.waitForFunction(() => histCompare.pair.left === "sigpac");
+  await page.locator("#histPlayToggle").click();
+  assert.equal(await page.evaluate(() => histCompare.pair.right), "2023");
+  assert.equal(await page.evaluate(() => histCompare.layers.right === window.__rightLayer), true, "the fixed side's image was never reloaded");
+  await context.close();
+});
+
+test("Gate 3: closing the panel, minimising, a hidden tab or exiting stops playback; reopening is clean", async () => {
+  const { page, context } = await openPage();
+  await openPlay(page, { dwell: 300 });
+  const stops = [
+    () => page.locator("#histPlayBtn").click(),
+    () => page.locator("#histCollapse").click(),
+    () => page.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, get: () => true }); document.dispatchEvent(new Event("visibilitychange")); delete document.hidden; }),
+  ];
+  for (const stop of stops) {
+    if (await page.locator("#histCompareBar").getAttribute("data-mode") === "collapsed") await page.locator("#histCollapse").click();
+    if (await page.locator("#histPlay").isHidden()) await page.locator("#histPlayBtn").click();
+    await page.locator("#histPlayToggle").click();
+    assert.equal(await playing(page), true);
+    await stop();
+    assert.deepEqual(await page.evaluate(() => ({ playing: histPlay.playing, staged: histPlay.staged, timer: histPlay.timer })), { playing: false, staged: null, timer: null });
+  }
+  await page.locator("#histPlayToggle").click();
+  assert.equal(await playing(page), true);
+  await histAction(page, "histExit");
+  assert.deepEqual(await page.evaluate(() => ({ playing: histPlay.playing, staged: histPlay.staged, timer: histPlay.timer, phase: histPlay.phase, layers: document.querySelectorAll(".leaflet-histRight-pane .leaflet-layer, .leaflet-histLeft-pane .leaflet-layer").length })), { playing: false, staged: null, timer: null, phase: "stopped", layers: 0 });
+  await openCompare(page);
+  assert.equal(await page.locator("#histPlay").isHidden(), true, "the panel starts closed");
+  assert.equal(await playing(page), false);
+  await context.close();
+});
+
+test("Gate 3: playback moves no Lens, selection, panel reading or address", async () => {
+  const { page, context } = await openPage();
+  await settled(page);
+  const lensBefore = await lensSnapshot(page);
+  const panelBefore = await panelText(page);
+  await openPlay(page);
+  await page.locator("#histPlayToggle").click();
+  await waitPhase(page, "ended", 30000);
+  await histAction(page, "histExit");
+  assert.deepEqual(await lensSnapshot(page), lensBefore);
+  assert.equal(await panelText(page), panelBefore);
+  await context.close();
+});
+
+test("Gate 3: the whole-Comunidad view (zoom 9) can be shared and restores exactly; zoom 8 is refused", async () => {
+  const { page, context } = await openPage();
+  await settled(page);
+  await openCompare(page);
+  await histAction(page, "histRegion");
+  assert.equal(await page.evaluate(() => map.getZoom()), 9, "the region frames at zoom 9 on this desktop viewport");
+  assert.equal(await page.locator("#histCopy").isDisabled(), false, "the link is now offered");
+  const state = await page.evaluate(() => histViewState());
+  const query = await page.evaluate((s) => serializeHistoricalState(s), state);
+  assert.match(query, /hz=9/);
+  const second = await openPage();
+  await second.page.goto(`http://127.0.0.1:${port}/?lang=en&${query}`, { waitUntil: "domcontentloaded" });
+  await second.page.waitForFunction(() => typeof histCompare !== "undefined" && histCompare.active);
+  const restored = await second.page.evaluate(() => ({ zoom: map.getZoom(), lat: map.getCenter().lat.toFixed(5), lon: map.getCenter().lng.toFixed(5) }));
+  assert.deepEqual(restored, { zoom: 9, lat: state.lat.toFixed(5), lon: state.lon.toFixed(5) });
+  await second.context.close();
+  await page.evaluate(() => map.setZoom(8, { animate: false }));
+  assert.equal(await page.locator("#histCopy").isDisabled(), true);
+  assert.match(await page.locator("#histNote").innerText(), /zoom must be between 9 and 19/);
+  await context.close();
+});
+
+test("Gate 3: Spanish copy and a phone-width playback panel with 44px targets and no horizontal scroll", async () => {
+  const { page, context } = await openPage({ viewport: { width: 390, height: 844 } });
+  await page.goto(`http://127.0.0.1:${port}/?lang=es`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("#histToggle", { state: "attached" });
+  await settled(page);
+  await dismissInvite(page);
+  await page.evaluate(() => document.getElementById("histHere").click());
+  await waitHist(page, "on");
+  await page.locator("#histPlayBtn").click();
+  assert.match(await page.locator("#histPlayStatus").innerText(), /Recorre 9 fechas oficiales en el lado derecho mientras 2006 queda fija/);
+  assert.equal(await page.locator("#histPlayToggle").getAttribute("aria-label"), "Reproducir las fechas en orden");
+  assert.equal(await page.locator("#histPlayPrev").getAttribute("aria-label"), "Fecha anterior (lado derecho)");
+  for (const sel of ["#histPlayRestart", "#histPlayPrev", "#histPlayToggle", "#histPlayNext", '[data-hist-play-dwell="2000"]', '[data-hist-play-side="left"]', "#histPlayBtn"]) {
+    await page.locator(sel).scrollIntoViewIfNeeded();
+    const box = await page.locator(sel).boundingBox();
+    assert.ok(box && box.height >= 44 && box.width >= 44 && box.x >= 0 && box.x + box.width <= 390, `${sel}: ${JSON.stringify(box)}`);
+  }
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "no horizontal scroll");
+  await context.close();
+});
+
+test("Gate 3: keyboard — open the panel, Space plays and pauses, Escape closes it, pauses and returns focus", async () => {
+  const { page, context } = await openPage();
+  await openCompare(page);
+  await page.locator("#histPlayBtn").focus();
+  await page.keyboard.press("Enter");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "histPlayToggle");
+  await page.evaluate(() => { histPlay.dwell = 5000; });
+  await page.keyboard.press("Space");
+  assert.equal(await playing(page), true);
+  await page.keyboard.press("Space");
+  assert.equal(await playing(page), false);
+  await page.keyboard.press("Space");
+  assert.equal(await playing(page), true);
+  await page.keyboard.press("Escape");
+  assert.equal(await page.locator("#histPlay").isHidden(), true);
+  assert.equal(await playing(page), false);
+  assert.equal(await page.evaluate(() => document.activeElement.id), "histPlayBtn");
+  await context.close();
+});
+
+test("Gate 3: a page served from a cached pre-Gate-3 index.html (no playback panel) still runs", async () => {
+  const { page, context } = await openPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  await page.route(/127\.0\.0\.1:\d+\/(\?.*)?$/, async (route) => {
+    const res = await route.fetch();
+    const html = (await res.text())
+      .replace(/\s*<button id="histPlayBtn"[\s\S]*?<\/button>/, "")
+      .replace(/\s*<!-- Gate 3: date playback[\s\S]*?<span id="histPlayWait"[^>]*><\/span><\/p>\s*<\/div>/, "");
+    await route.fulfill({ response: res, body: html });
+  });
+  await page.goto(`http://127.0.0.1:${port}/?lang=en&hv=1&hc=40.39250,-3.69900&hz=16&hp=2006-2023&hd=50`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("#histToggle", { state: "attached" });
+  await waitHist(page, "on");
+  assert.equal(await page.locator("#histPlay, #histPlayBtn").count(), 0, "the old HTML really lacks the panel");
+  await page.evaluate(() => setHistSide("right", "2020"));
+  await page.waitForFunction(() => histCompare.pair.right === "2020" && histCompare.state.right === "ok");
   await histAction(page, "histExit");
   assert.deepEqual(errors, []);
   await context.close();

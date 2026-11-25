@@ -2425,6 +2425,10 @@ body.hist-compare-mode #analysisPanel,body.hist-compare-mode #spatialToolbar,bod
 .hist-menu-item:disabled{opacity:.55;cursor:not-allowed}
 .hist-menu-exit{margin-top:var(--s-1);font-weight:650;color:var(--chrome-text-control-strong)}
 .hist-body{margin-top:var(--s-2)}
+/* Gate 3: the playback entry sits at the end of the divider row, so the header keeps its Gate 2 size. */
+.hist-body-row{display:flex;align-items:stretch;gap:var(--s-1)}
+.hist-body-row .hist-presets{flex:1 1 auto;min-width:0}
+.hist-body-row .hist-icon-btn{flex:none;width:32px;height:auto;min-height:32px;border-color:var(--chrome-border);background:var(--chrome-form-surface)}
 /* Urban Time Machine: one row per side (label, earlier, date, later). The swatch (filled =
    left, outlined = right) matches the timeline marks, so the two never rely on colour alone. */
 .hist-dates{margin-top:var(--s-1);padding-top:var(--s-2);border-top:1px solid var(--chrome-border)}
@@ -2451,17 +2455,42 @@ body.hist-compare-mode #analysisPanel,body.hist-compare-mode #spatialToolbar,bod
 .hist-tl-year{position:absolute;top:0;transform:translateX(-50%);font-size:var(--t-micro);line-height:1;color:var(--chrome-text-control-caption)}
 .hist-pair-note{margin:0 0 var(--s-2);font-size:var(--t-micro);line-height:1.4;color:var(--chrome-text-control-value)}
 .hist-pair-note:empty{display:none}
+/* Gate 3 · date playback: transport, the frame on screen, a scoped timeline (range), options.
+   Frames change in one step; nothing here animates the imagery. */
+.hist-play{margin-top:var(--s-1);padding-top:var(--s-2);border-top:1px solid var(--chrome-border)}
+.hist-play[hidden]{display:none}
+.hist-play-row{display:flex;align-items:center;gap:var(--s-2);min-width:0}
+.hist-play-transport{display:flex;flex:none}
+.hist-play-transport .hist-step+.hist-step{border-left-width:0}
+.hist-play-transport .hist-step:not(:first-child):not(:last-child){border-radius:0}
+.hist-play-toggle{width:38px}
+.hist-play-toggle svg{fill:currentColor;stroke-width:1.4}
+.hist-play-toggle .hist-ico-pause{fill:none;stroke-width:2.6}
+.hist-play-toggle[data-playing="true"] .hist-ico-play,.hist-play-toggle:not([data-playing="true"]) .hist-ico-pause{display:none}
+.hist-play-frame{flex:1 1 auto;min-width:0;margin:0;font-size:var(--t-micro);line-height:1.35;color:var(--chrome-text-control-caption)}
+.hist-play-frame b{font-size:var(--t-label);color:var(--chrome-text-control-strong)}
+.hist-play-range{display:block;width:100%;margin:var(--s-2) 0 0;accent-color:var(--chrome-text-section)}
+.hist-play-range:focus-visible{outline:2px solid var(--chrome-text-section);outline-offset:2px}
+.hist-play-ends{display:flex;justify-content:space-between;font-size:var(--t-micro);line-height:1.2;color:var(--chrome-text-control-caption)}
+.hist-play-opts{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-1) var(--s-3);margin:var(--s-2) 0 var(--s-1)}
+.hist-play-opt{display:flex;align-items:center;gap:var(--s-1)}
+.hist-play-opt-name{font-size:var(--t-micro);font-weight:650;color:var(--chrome-text-control-strong)}
+.hist-play-choices .hist-play-choice{flex:none;min-height:28px;padding:0 var(--s-2);font-size:var(--t-micro)}
+.hist-play-city{display:flex;align-items:center;gap:var(--s-1);font-size:var(--t-micro);color:var(--chrome-text-control-value);cursor:pointer}
+.hist-play-status-row{margin:0;font-size:var(--t-micro);line-height:1.4;color:var(--chrome-text-control-value)}
+.hist-play-wait{font-variant-numeric:tabular-nums;color:var(--chrome-text-control-caption)}
+.hist-play[data-phase="halted"] .hist-play-status{color:var(--chrome-text-control-strong);font-weight:650}
 .hist-prov{margin:0 0 var(--s-1);font-size:var(--t-micro);line-height:1.4;color:var(--chrome-text-control-caption)}
 .hist-prov dt{margin-top:var(--s-1);font-weight:700;color:var(--chrome-text-control-strong)}
 .hist-prov dd{margin:0}
 .hist-prov dd span{display:block}
 .hist-prov b{font-weight:650;color:var(--chrome-text-control-value)}
-.hist-presets{display:flex;gap:0}
-.hist-preset{flex:1 1 0;min-height:32px;padding:0 var(--s-2);border:1px solid var(--chrome-border);background:var(--chrome-form-surface);color:var(--chrome-text-control-value);font-size:var(--t-label);cursor:pointer}
-.hist-preset:first-child{border-radius:var(--r-small) 0 0 var(--r-small)}
-.hist-preset:last-child{border-radius:0 var(--r-small) var(--r-small) 0}
-.hist-preset+.hist-preset{border-left-width:0}
-.hist-preset[aria-pressed="true"]{background:var(--chrome-text-section);border-color:var(--chrome-text-section);color:var(--chrome-panel-surface);font-weight:700}
+.hist-presets,.hist-play-choices{display:flex;gap:0}
+.hist-preset,.hist-play-choice{flex:1 1 0;min-height:32px;padding:0 var(--s-2);border:1px solid var(--chrome-border);background:var(--chrome-form-surface);color:var(--chrome-text-control-value);font-size:var(--t-label);cursor:pointer}
+.hist-preset:first-child,.hist-play-choice:first-child{border-radius:var(--r-small) 0 0 var(--r-small)}
+.hist-preset:last-child,.hist-play-choice:last-child{border-radius:0 var(--r-small) var(--r-small) 0}
+.hist-preset+.hist-preset,.hist-play-choice+.hist-play-choice{border-left-width:0}
+.hist-preset[aria-pressed="true"],.hist-play-choice[aria-pressed="true"]{background:var(--chrome-text-section);border-color:var(--chrome-text-section);color:var(--chrome-panel-surface);font-weight:700}
 .hist-refonly{margin:var(--s-1) 0 0;font-size:var(--t-micro);color:var(--chrome-text-control-caption)}
 .hist-info{margin-top:var(--s-2);padding-top:var(--s-2);max-height:min(46dvh,300px);overflow:auto;overscroll-behavior:contain;border-top:1px solid var(--chrome-border)}
 .hist-retry{min-height:24px;padding:0 var(--s-2);border:1px solid var(--chrome-border);border-radius:var(--r-small);background:var(--chrome-form-surface);color:var(--chrome-text-control-value);font-size:var(--t-micro);cursor:pointer}
@@ -2479,7 +2508,7 @@ body.hist-compare-mode #analysisPanel,body.hist-compare-mode #spatialToolbar,bod
 /* COLLAPSED: one row (identity, comparison state, controls). HIDDEN: only a restore pill. */
 .hist-compare-bar[data-mode="collapsed"]{width:auto;max-width:min(360px,calc(100vw - 16px))}
 .hist-compare-bar[data-mode="collapsed"] .hist-chip{display:inline-block}
-.hist-compare-bar[data-mode="collapsed"] :is(.hist-body,.hist-info,.hist-dates,.hist-years,.hist-info-btn,#histStatus){display:none}
+.hist-compare-bar[data-mode="collapsed"] :is(.hist-body,.hist-info,.hist-dates,.hist-play,.hist-years,.hist-info-btn,#histPlayBtn,#histStatus){display:none}
 .hist-restore{display:none}
 .hist-compare-bar[data-mode="hidden"]{width:auto;padding:var(--s-1)}
 .hist-compare-bar[data-mode="hidden"]>:not(.hist-restore){display:none}
@@ -2494,7 +2523,7 @@ body.hist-compare-mode #analysisPanel,body.hist-compare-mode #spatialToolbar,bod
 @media(max-width:850px){
   .hist-compare-bar{left:calc(var(--s-2) + var(--safe-left));right:calc(var(--s-2) + var(--safe-right));width:auto;max-height:var(--hist-bar-cap,46dvh);display:flex;flex-direction:column;overflow:hidden}
   .hist-compare-bar>*{flex:none}
-  .hist-compare-bar>.hist-info,.hist-compare-bar>.hist-menu,.hist-compare-bar>.hist-dates{flex:0 1 auto;min-height:0;max-height:none;overflow:auto;overscroll-behavior:contain}
+  .hist-compare-bar>.hist-info,.hist-compare-bar>.hist-menu,.hist-compare-bar>.hist-dates,.hist-compare-bar>.hist-play{flex:0 1 auto;min-height:0;max-height:none;overflow:auto;overscroll-behavior:contain}
   .hist-compare-bar[data-mode="collapsed"],.hist-compare-bar[data-mode="hidden"]{right:auto}
   .hist-handle{display:none}
 }
@@ -2502,6 +2531,10 @@ body.hist-compare-mode #analysisPanel,body.hist-compare-mode #spatialToolbar,bod
   .hist-icon-btn{width:44px;height:44px}
   .hist-preset,.hist-menu-item,.hist-restore-btn,.hist-restore-exit,.hist-pick-select{min-height:44px}
   .hist-step{width:44px;min-height:44px}
+  .hist-play-choices .hist-play-choice,.hist-play-city{min-height:44px}
+  .hist-play-choice{min-width:44px}
+  .hist-body-row .hist-icon-btn{width:44px;min-height:44px}
+  .hist-play-range{min-height:44px;margin-top:0}
   .hist-retry,.hist-method summary{min-height:44px}
   .hist-head{min-height:44px}
 }
