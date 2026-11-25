@@ -21,7 +21,10 @@ const HIST_URL_VERSION = 1;
 // service AccessConstraints "CC BY 4.0 scne.es"). An entry is admitted only if real GetMap
 // images (not just HTTP 200) came back at all eight test points inside Madrid municipality
 // (Sol, Madrid Río, Valdecarros, Los Berrocales, El Cañaveral, Chamartín, Barajas, Casa de
-// Campo) and at Getafe; see docs/URBAN_TIME_MACHINE_GATE0.md. Layers that returned empty
+// Campo) and at Getafe; see docs/URBAN_TIME_MACHINE_GATE0.md. Gate 2 re-checked the same 13 at
+// 12 regional points (Aranjuez, Navalcarnero, San Martín de Valdeiglesias, Chinchón, Alcalá,
+// Buitrago, Rascafría and the region's four extremes): every non-"city" entry returned imagery
+// at all of them; the catalogue itself is unchanged. Layers that returned empty
 // images in Madrid (PNOA 2004/05/07/08/10/12/13/15/16/18/19/21/22/24, Nacional 1981-86,
 // Interministerial 1973-86, PNOA10 outside Madrid) are NOT offered.
 //   when:   "annual" = PNOA annual mosaic, year only, no acquisition day;
@@ -67,8 +70,14 @@ function joinHistoricalPair(left, right) {
 
 // The pair the comparator opened with before the catalogue existed.
 const HIST_URL_PAIR = joinHistoricalPair(HIST_DEFAULT_PAIR.left, HIST_DEFAULT_PAIR.right);
-// Same Madrid envelope as LENS_SPATIAL_BOUNDS in js/evidence-url.js (a test asserts equality).
-const HIST_URL_BOUNDS = Object.freeze({ minLat: 40.0, maxLat: 40.9, minLon: -4.2, maxLon: -3.2 });
+// Gate 2 (regional explorer): the rectangle that encloses the official Comunidad de Madrid
+// boundary, IGN INSPIRE administrative units (nationalCode 34130000000, CC BY 4.0 ign.es,
+// read 2026-11-25): lat 39.884719–41.165845, lon −4.579076 to −3.052983, rounded OUTWARD to
+// 0.01°. It is a frame, not the boundary: its corners also take in bordering provinces, and
+// the imagery itself is national. It contains the earlier Madrid envelope (LENS_SPATIAL_BOUNDS
+// in js/evidence-url.js, lat 40.0–40.9, lon −4.2 to −3.2), so every link made before Gate 2
+// still restores exactly. The evidence contract's own envelope is NOT widened by this.
+const HIST_URL_BOUNDS = Object.freeze({ minLat: 39.88, maxLat: 41.17, minLon: -4.58, maxLon: -3.05 });
 // The historical WMS layers are requested up to zoom 19 (see histSideLayer in js/app.js).
 const HIST_URL_ZOOM = Object.freeze({ min: 10, max: 19 });
 const HIST_URL_KEYS = Object.freeze(["hv", "hc", "hz", "hp", "hd"]);

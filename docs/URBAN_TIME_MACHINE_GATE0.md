@@ -1,4 +1,4 @@
-# Madrid Urban Time Machine: Gate 0 source audit and Gate 1 decision
+# Madrid Urban Time Machine: Gate 0 source audit, Gate 1 and Gate 2 decisions
 
 Checked 2026-11-25. Scope: which official orthophoto coverages can be compared over Madrid in
 the existing historical comparator, and whether they work technically. The comparator stays a
@@ -107,16 +107,91 @@ Inconsistencies found and kept explicit:
   pair, and Spanish copy on a phone width with 44 px targets.
 - A real browser against the live IGN service: see the PR description for the observations.
 
-## Territorial scope (Gate 2)
+## Territorial scope (Gate 2: regional temporal explorer, 2026-11-25)
 
-The orthophotos reach beyond the municipality (every annual PNOA layer above returned imagery
-at Getafe, Alcalá and the Sierra). The comparator's view envelope is unchanged: the
-historical-view contract's Madrid envelope, lat 40.0–40.9, lon −4.2 to −3.2, which already
-includes the metropolitan ring and the Madrid side of the Sierra. Every Lens indicator, ámbito
-and municipal evidence layer keeps its own coverage and is hidden while comparing. Imagery
-outside the municipality therefore never implies Lens evidence there. A wider envelope
-(Comunidad de Madrid, Level C) is a one-line change to the contract, but it changes a shared-link
-contract, so it is left for a separate decision.
+**Before Gate 2.** The comparator, "Compare here" and the shared link accepted a centre only
+inside the historical-view contract's Madrid envelope, lat 40.0–40.9, lon −4.2 to −3.2 (equal to
+the evidence contract's `LENS_SPATIAL_BOUNDS`). The map itself has no `maxBounds`, so panning
+out while comparing already worked, but the link was then withheld. That envelope left out
+Rascafría (40.904 N), Buitrago del Lozoya (40.985 N), San Martín de Valdeiglesias (4.402 W), the
+strip south of 40.0 N, the east beyond 3.2 W and all four extremes of the region. Aranjuez,
+Navalcarnero, Chinchón and Alcalá de Henares were already inside it.
+
+**Official boundary.** IGN INSPIRE administrative-units WFS
+(`https://www.ign.es/wfs-inspire/unidades-administrativas`, `AccessConstraints` "CC BY 4.0
+ign.es"), `au:AdministrativeUnit` nationalCode `34130000000` "Comunidad de Madrid" (2nd order).
+The geometry has one main polygon (20,888 vertices), one interior ring (a hole near 40.63 N,
+3.38 W) and one separate exclave polygon (near 40.65 N, 4.32 W). Its extent, read from the
+vertices: **lat 39.884719–41.165845, lon −4.579076 to −3.052983** (south 39.8847,−3.8044;
+north 41.1658,−3.5439; west 40.2172,−4.5791; east 40.0994,−3.0530).
+
+**Frame adopted.** The historical-view link accepts any centre in that extent rounded outward to
+0.01°: lat 39.88–41.17, lon −4.58 to −3.05 (`HIST_URL_BOUNDS`). This is a rectangle, not the
+administrative boundary: its corners take in parts of bordering provinces, and no boundary
+geometry is shipped or drawn. It contains the old envelope, so every earlier link restores
+unchanged. `LENS_SPATIAL_BOUNDS` is not changed.
+
+**Imagery re-check.** Same method as Gate 0 (decoded 128 × 128 `GetMap` PNG over about 305 m,
+EPSG:3857; 35 layers × 12 points). Municipality points from IGN CartoCiudad
+(`geocoder/api/geocoder/find`, `type=Municipio`): Aranjuez 40.0323,−3.6022 · Navalcarnero
+40.2950,−4.0036 · San Martín de Valdeiglesias 40.3655,−4.4016 · Chinchón 40.1399,−3.4207 ·
+Alcalá de Henares 40.4926,−3.3754 · Buitrago del Lozoya 40.9850,−3.6382 · Rascafría
+40.9043,−3.8784; plus one point about 1 km inside each extreme, each checked to fall inside the
+official polygon: S 39.895,−3.800 · N 41.155,−3.550 · W 40.217,−4.560 · E 40.100,−3.065. Sol
+was re-checked; Getafe and the Sierra (Navacerrada, Peñalara) are reused from Gate 0.
+
+| Layer | Aranj. | Navalc. | S. Martín V. | Chinchón | Alcalá | Buitrago | Rascafría | S | N | W | E |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `AMS_1956-1957` | img | img | img | img¹ | img¹ | img | img | img | img | img | img |
+| `OLISTAT`, `SIGPAC`, `PNOA2006/2009/2011/2014/2017/2020/2023` | img | img | img | img | img | img | img | img | img | img | img |
+| `pnoa10_2009/2013/2016` | — | — | — | — | — | — | — | — | — | — | — |
+| `Interministerial_1973-1986` | — | — | img | — | — | img | img | — | img | img | — |
+| `PNOA2004` | — | — | img | — | — | — | — | — | img | img | — |
+| `PNOA2008`, `PNOA2010` | — | — | — | — | — | — | — | — | img | img | — |
+| `PNOA2012`, `PNOA2015` | img | — | — | — | — | — | — | img | img | img | img |
+| `PNOA2018`, `PNOA2021`, `PNOA2024` | partial | — | — | — | — | — | — | img | img | — | img |
+| `OrtoExpeditaLIDAR2024` | img | img | img | img | img | img | img | img | img | img | img |
+| `OrtoExpeditaLIDAR2025` | — | — | img | — | — | — | — | — | img | img | — |
+| `Nacional_1981-1986`, `PNOA2005/07/13/16/19/22`, `pnoa10_2007/2008/2018`, `OrtoExpeditaLIDAR2023` | — | — | — | — | — | — | — | — | — | — | — |
+
+¹ The exact 305 m test window at the Chinchón and Alcalá town points returned HTTP 502 on three
+attempts; windows 1–2 km away (and the Gate 0 Alcalá point) returned imagery, and the live
+comparator showed 1956–57 imagery at Chinchón on its 256 px tile grid. A server error on a tile
+is reported by the comparator as a failed tile with retry, never as no change.
+
+**Previously excluded coverages at regional scale (viability only; the catalogue is not
+extended in this PR).**
+
+- `Interministerial_1973-1986`: imagery in the west and north (San Martín de Valdeiglesias,
+  Buitrago, Rascafría, Sierra) but none in the city, south or east. **MODIFY**: could be offered
+  later as an explicitly partial coverage, which the blank-tile detection already reports
+  honestly; that needs its own gate (footprint, dates, labelling).
+- `PNOA2004/2008/2010`: north-west edge only (likely Castilla y León flights). **NO-GO** as a
+  regional date: they do not describe the Comunidad.
+- `PNOA2012/2015` and `PNOA2018/2021/2024`: imagery only at the south and east edges and partly
+  at Aranjuez, consistent with neighbouring-region flights reaching across the border. **NO-GO**
+  as Madrid dates: a reader would see another region's year in a corner of the Comunidad.
+- `OrtoExpeditaLIDAR2024`: imagery at every point; still **HOLD** for the Gate 0 reason
+  (direct-orientation georeferencing can look like change).
+- Nacional 1981–86 and the remaining PNOA and PNOA10 years: no imagery anywhere tested.
+
+**Decision: GO** for regional orthophoto exploration. Every region-wide catalogue date (AMS,
+OLISTAT, SIGPAC and the seven annual PNOA mosaics) returned imagery at all 12 regional points,
+including the four extremes. PNOA10 stays city-only and outside Madrid city is reported as "no
+imagery here". Two scopes stay separate:
+
+- **A. Regional orthophoto exploration** (this comparator): the frame above.
+- **B. Lens evidence and indicators**: unchanged coverage (municipal sources, ámbitos, the
+  evidence link's Madrid envelope). They stay hidden and inert while comparing, and no Lens
+  result is computed from the map viewport, so moving the comparison anywhere in the region
+  creates no reading. Leaving returns to the Lens view the reader came from; if the comparison
+  ended outside the Lens envelope, a note says Lens readings do not extend to that view.
+
+A compact menu action, *View the whole Comunidad de Madrid*, frames the region (about zoom 9 on a
+desktop, about 18 s for two uncached layers in a live check) and is undone by *Back to my view*.
+At that zoom the link is withheld with the stated zoom reason (links keep zoom 10–19), and annual
+layers show blank areas over neighbouring provinces not flown that year, reported as "partly
+outside" the coverage.
 
 ## Limits
 

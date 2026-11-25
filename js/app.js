@@ -44,9 +44,9 @@ const AREA_ASSET_VERSION = "20261029-m3-dossier-v1";
 // release version, so a browser can never combine a new app.js with an old registry,
 // dictionary or Area Profile module. tests/domestic_origin_dynamics_ui.test.mjs pins
 // that they stay equal.
-const ORIGIN_CONTEXT_MODULE_VERSION = "20261125-timemachine-v1";
-const AREA_PROFILE_MODULE_VERSION = "20261125-timemachine-v1";
-const REGISTRY_ASSET_VERSION = "20261125-timemachine-v1";
+const ORIGIN_CONTEXT_MODULE_VERSION = "20261125-tmregional-v1";
+const AREA_PROFILE_MODULE_VERSION = "20261125-tmregional-v1";
+const REGISTRY_ASSET_VERSION = "20261125-tmregional-v1";
 const moduleUrl = (name, version = AREA_ASSET_VERSION) => new URL(`${name}?v=${version}`, MODULE_BASE).href;
 
 // K11 (#73): the evidence-snapshot identity carried in a shared link, so a reader
@@ -847,6 +847,13 @@ function setHistCompare(enabled, opts = {}) {
     pnoaToggle.disabled = false;
     pnoaToggle.checked = saved.pnoa;
     if (saved.pnoa) setPnoa(true); else setPnoaState("off");
+    // Gate 2: leaving always returns to the Lens view you came from, wherever the comparison
+    // was. When it ended outside the Lens analysis envelope (LENS_SPATIAL_BOUNDS), say so, so
+    // the jump back is expected and nobody reads Lens results as following the regional view.
+    const left = map.getCenter();
+    const B = LENS_SPATIAL_BOUNDS;
+    const leftOutsideLens = !(left.lat >= B.minLat && left.lat <= B.maxLat && left.lng >= B.minLon && left.lng <= B.maxLon);
+    histEntryNote(leftOutsideLens ? shellT("hist.exit.regional") : "");
     map.setView(saved.centre, saved.zoom, { animate: false });
   }
   toggle.checked = histCompare.active;
@@ -919,6 +926,16 @@ function histShowExample() {
     if (!histCompare.returnView) histCompare.returnView = { centre: c, zoom: map.getZoom() };
     map.setView(HIST_PILOT.centre, HIST_PILOT.zoom, { animate: false });
   }
+  renderHistActions();
+}
+// Gate 2: frame the whole Comunidad de Madrid (the link's frame, HIST_URL_BOUNDS) in one step,
+// remembering the view once so "Back to my view" returns to it, exactly like the example.
+// Only the map moves: no Lens, layer or reading follows, and analytical panes stay hidden.
+function histShowRegion() {
+  if (!histCompare.active) return;
+  const b = HIST_URL_BOUNDS;
+  if (!histCompare.returnView) histCompare.returnView = { centre: map.getCenter(), zoom: map.getZoom() };
+  map.fitBounds([[b.minLat, b.minLon], [b.maxLat, b.maxLon]], { animate: false });
   renderHistActions();
 }
 function histBackToMyView() {
@@ -1135,6 +1152,9 @@ document.getElementById("histToggle").onchange = (e) => { if (e.target.checked) 
 document.getElementById("histHere").onclick = () => histCompareHere();
 document.getElementById("histExampleAside").onclick = () => histShowExample();
 document.getElementById("histExample").onclick = () => histShowExample();
+// Absent from an index.html cached from before Gate 2 (Pages max-age 600 s): skip it, never throw.
+const histRegionBtn = document.getElementById("histRegion");
+if (histRegionBtn) histRegionBtn.onclick = () => histShowRegion();
 document.getElementById("histBack").onclick = () => histBackToMyView();
 document.getElementById("histCopy").onclick = () => histCopyLink();
 // Exiting (menu, or the restore pill while hidden) is the only control that ends the comparison.
@@ -9860,7 +9880,7 @@ const K11_COPY = Object.freeze({
     "restore.histLede": "The historical orthophoto view in this link was not restored, so you are seeing the normal map:",
     "reason.HIST_VERSION_UNSUPPORTED": "an unsupported historical-view format",
     "reason.HIST_MISSING": "a required part of the historical view is missing",
-    "reason.HIST_INVALID_CENTRE": "a centre outside the Madrid area or not a valid coordinate",
+    "reason.HIST_INVALID_CENTRE": "a centre outside the Comunidad de Madrid frame or not a valid coordinate",
     "reason.HIST_INVALID_ZOOM": "a zoom outside 10 to 19",
     "reason.HIST_UNKNOWN_PAIR": "a date pair that is not two different verified orthophoto dates",
     "reason.HIST_INVALID_DIVIDER": "a divider position outside 0 to 100%",
@@ -9928,7 +9948,7 @@ const K11_COPY = Object.freeze({
     "restore.histLede": "La vista de ortofotos históricas de este enlace no se restauró, así que ves el mapa normal:",
     "reason.HIST_VERSION_UNSUPPORTED": "un formato de vista histórica no admitido",
     "reason.HIST_MISSING": "falta una parte necesaria de la vista histórica",
-    "reason.HIST_INVALID_CENTRE": "un centro fuera del área de Madrid o una coordenada no válida",
+    "reason.HIST_INVALID_CENTRE": "un centro fuera del marco de la Comunidad de Madrid o una coordenada no válida",
     "reason.HIST_INVALID_ZOOM": "un zoom fuera de 10 a 19",
     "reason.HIST_UNKNOWN_PAIR": "una pareja de fechas que no son dos fechas de ortofoto verificadas y distintas",
     "reason.HIST_INVALID_DIVIDER": "una posición del divisor fuera de 0 a 100 %",
