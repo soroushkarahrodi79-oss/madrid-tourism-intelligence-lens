@@ -44,9 +44,9 @@ const AREA_ASSET_VERSION = "20261029-m3-dossier-v1";
 // release version, so a browser can never combine a new app.js with an old registry,
 // dictionary or Area Profile module. tests/domestic_origin_dynamics_ui.test.mjs pins
 // that they stay equal.
-const ORIGIN_CONTEXT_MODULE_VERSION = "20261103-originmap-v1";
-const AREA_PROFILE_MODULE_VERSION = "20261103-originmap-v1";
-const REGISTRY_ASSET_VERSION = "20261103-originmap-v1";
+const ORIGIN_CONTEXT_MODULE_VERSION = "20261125-timemachine-v1";
+const AREA_PROFILE_MODULE_VERSION = "20261125-timemachine-v1";
+const REGISTRY_ASSET_VERSION = "20261125-timemachine-v1";
 const moduleUrl = (name, version = AREA_ASSET_VERSION) => new URL(`${name}?v=${version}`, MODULE_BASE).href;
 
 // K11 (#73): the evidence-snapshot identity carried in a shared link, so a reader
@@ -667,7 +667,10 @@ function histUiReflow() {
 function histUiPanel(name, open) {
   for (const [key, ids] of Object.entries(HIST_PANELS)) {
     const show = key === name && open;
-    document.getElementById(ids.panel).hidden = !show;
+    // A page served from an older cached index.html has no dates panel; skip what is absent.
+    const panel = document.getElementById(ids.panel);
+    if (!panel) continue;
+    panel.hidden = !show;
     for (const button of histPanelButtons(key)) button.setAttribute("aria-expanded", String(show));
   }
   histUiReflow();
@@ -1110,7 +1113,7 @@ function renderHistPair() {
 }
 
 for (const side of ["left", "right"]) {
-  document.getElementById(side === "left" ? "histPickLeft" : "histPickRight").addEventListener("change", (e) => setHistSide(side, e.target.value));
+  document.getElementById(side === "left" ? "histPickLeft" : "histPickRight")?.addEventListener("change", (e) => setHistSide(side, e.target.value));
 }
 for (const button of document.querySelectorAll("[data-hist-step]")) {
   button.addEventListener("click", () => {
@@ -1168,7 +1171,7 @@ document.getElementById("histResetPos").onclick = () => { histUi.pos = null; his
 histBarEl().addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   for (const [key, ids] of Object.entries(HIST_PANELS)) {
-    if (document.getElementById(ids.panel).hidden) continue;
+    if (document.getElementById(ids.panel)?.hidden !== false) continue;
     e.preventDefault();
     e.stopPropagation();
     histUiPanel(null, false);
