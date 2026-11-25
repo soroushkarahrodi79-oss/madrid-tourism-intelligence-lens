@@ -38,8 +38,12 @@ async function open() {
   page.on("pageerror", (e) => errors.push(String(e)));
   await page.route("**/*", (route) => (new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort()));
   // The bare root URL now opens the Discover landing; ?lang=en enters the application directly (the app default language).
-  await page.goto(`http://127.0.0.1:${port}/?lang=en`, { waitUntil: "load" });
-  await page.waitForFunction(() => typeof map !== "undefined" && typeof groups !== "undefined" && typeof createOperationalMarker === "function");
+  // boot() loads data after `load`, then clears and refills the operational layer
+  // groups. Synthetic markers planted before that get replaced by real off-screen
+  // ones (and `bike`, absent from the snapshot, is left empty). So wait for the
+  // POI render, and for the later context loads, which refresh() and restyle markers.
+  await page.goto(`http://127.0.0.1:${port}/?lang=en`, { waitUntil: "networkidle" });
+  await page.waitForFunction(() => typeof createOperationalMarker === "function" && deploymentPoiRecordsReady);
   return { page, ctx, errors };
 }
 
