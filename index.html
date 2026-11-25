@@ -43,12 +43,12 @@
 })();
 </script>
 <link rel="stylesheet" href="assets/leaflet/leaflet.css">
-<link rel="stylesheet" href="css/app.css?v=20261103-originmap-v1">
+<link rel="stylesheet" href="css/app.css?v=20261125-timemachine-v1">
 </head>
 <body>
 <a class="sr-only skip-link" href="#analysisPanel" data-i18n="a11y.skipToPanel">Skip to the analysis panel</a>
 <a class="sr-only skip-link" href="#layerRail" data-i18n="a11y.skipToLayers">Skip to the map layers</a>
-<div id="map"><div id="histDivider" class="hist-divider" hidden role="slider" tabindex="0" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" aria-label="Divider: left 2006, right 2023" data-i18n-attr="aria-label:hist.sliderLabel" aria-describedby="histKeys">
+<div id="map"><div id="histDivider" class="hist-divider" hidden role="slider" tabindex="0" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" aria-describedby="histKeys">
   <span class="hist-side hist-side-left" data-side="left" aria-hidden="true"><b>2006</b><small></small></span>
   <span class="hist-grip" aria-hidden="true"></span>
   <span class="hist-side hist-side-right" data-side="right" aria-hidden="true"><b>2023</b><small></small></span>
@@ -59,8 +59,8 @@
     <div class="hist-head-text">
       <h2 id="histBarTitle" class="hist-bar-title" data-i18n="hist.ctl.title">PNOA comparison</h2>
       <ul class="hist-years">
-        <li data-side="left" data-state="idle"><span class="hist-year-name">2006</span><span class="hist-year-state"></span><button type="button" class="hist-retry" data-hist-retry="left" hidden data-i18n="hist.retry">Retry</button></li>
-        <li data-side="right" data-state="idle"><span class="hist-year-name">2023</span><span class="hist-year-state"></span><button type="button" class="hist-retry" data-hist-retry="right" hidden data-i18n="hist.retry">Retry</button></li>
+        <li data-side="left" data-state="idle"><button type="button" class="hist-year-name" data-hist-dates="left" aria-expanded="false" aria-controls="histDates">2006</button><span class="hist-year-state"></span><button type="button" class="hist-retry" data-hist-retry="left" hidden data-i18n="hist.retry">Retry</button></li>
+        <li data-side="right" data-state="idle"><button type="button" class="hist-year-name" data-hist-dates="right" aria-expanded="false" aria-controls="histDates">2023</button><span class="hist-year-state"></span><button type="button" class="hist-retry" data-hist-retry="right" hidden data-i18n="hist.retry">Retry</button></li>
       </ul>
     </div>
     <span id="histChip" class="hist-chip"></span>
@@ -78,18 +78,40 @@
     <button id="histResetPos" type="button" class="hist-menu-item" data-i18n="hist.ctl.reset">Reset controller position</button>
     <button id="histExit" type="button" class="hist-menu-item hist-menu-exit" data-i18n="hist.exit">Exit comparison</button>
   </div>
+  <div id="histDates" class="hist-dates" role="region" hidden data-i18n-attr="aria-label:hist.pick.group">
+    <div class="hist-pair">
+      <div class="hist-pick" data-side="left">
+        <label for="histPickLeft" data-i18n="hist.pick.left">Left</label>
+        <div class="hist-pick-row">
+          <button type="button" class="hist-step" data-hist-step="-1" data-side="left"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m12 5-5 5 5 5"/></svg></button>
+          <select id="histPickLeft" class="hist-pick-select"></select>
+          <button type="button" class="hist-step" data-hist-step="1" data-side="left"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m8 5 5 5-5 5"/></svg></button>
+        </div>
+      </div>
+      <div class="hist-pick" data-side="right">
+        <label for="histPickRight" data-i18n="hist.pick.right">Right</label>
+        <div class="hist-pick-row">
+          <button type="button" class="hist-step" data-hist-step="-1" data-side="right"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m12 5-5 5 5 5"/></svg></button>
+          <select id="histPickRight" class="hist-pick-select"></select>
+          <button type="button" class="hist-step" data-hist-step="1" data-side="right"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m8 5 5 5-5 5"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div id="histTimeline" class="hist-timeline" aria-hidden="true"></div>
+    <p id="histPairNote" class="hist-pair-note"></p>
+  </div>
   <div id="histBody" class="hist-body">
     <div class="hist-presets" role="group" aria-label="Divider position" data-i18n-attr="aria-label:hist.presetsAria">
-      <button type="button" class="hist-preset" data-hist-fraction="1" aria-pressed="false" data-i18n-attr="aria-label:hist.preset2006">2006</button>
+      <button type="button" class="hist-preset" data-hist-fraction="1" aria-pressed="false">2006</button>
       <button type="button" class="hist-preset" data-hist-fraction="0.5" aria-pressed="true" data-i18n-attr="aria-label:hist.preset50">50/50</button>
-      <button type="button" class="hist-preset" data-hist-fraction="0" aria-pressed="false" data-i18n-attr="aria-label:hist.preset2023">2023</button>
+      <button type="button" class="hist-preset" data-hist-fraction="0" aria-pressed="false">2023</button>
     </div>
     <p class="hist-refonly" data-i18n="hist.ctl.refOnly">Visual reference only</p>
   </div>
   <p id="histNote" class="pnoa-status" role="status"></p>
   <p id="histStatus" class="pnoa-status" role="status" data-state="off"></p>
   <div id="histInfo" class="hist-info" role="region" hidden data-i18n-attr="aria-label:hist.ctl.info">
-    <p id="histKeys" class="hist-keys" data-i18n="hist.keys"></p>
+    <p id="histKeys" class="hist-keys"></p>
     <p class="hist-summary" data-i18n="hist.summary"></p>
     <details id="histGuide" class="hist-method">
       <summary data-i18n="hist.guideTitle">What to look for</summary>
@@ -101,9 +123,13 @@
       </ul>
       <p class="hist-notice" data-i18n="hist.guideLimit"></p>
     </details>
+    <details id="histProvenance" class="hist-method">
+      <summary data-i18n="hist.prov.title">Image provenance</summary>
+      <dl id="histProvList" class="hist-prov"></dl>
+    </details>
     <details id="histMethod" class="hist-method">
       <summary data-i18n="hist.methodTitle">Method, sources and limits</summary>
-      <p id="histNotice" class="hist-notice" data-i18n="hist.notice"></p>
+      <p id="histNotice" class="hist-notice"></p>
     </details>
   </div>
   <div class="hist-restore">
@@ -242,7 +268,7 @@
       <p id="pnoaStatus" class="pnoa-status" role="status" data-state="off"></p>
     </div>
     <div class="map-control hist-control">
-      <div class="layer"><div class="layer-left"><span id="histLabel" data-i18n="aside.hist">Historical orthophotos · PNOA 2006 ⇄ 2023 (reference only)</span></div><label class="switch"><input id="histToggle" type="checkbox" aria-labelledby="histLabel" aria-describedby="histHint"><span></span></label></div>
+      <div class="layer"><div class="layer-left"><span id="histLabel" data-i18n="aside.hist">Historical orthophotos · official dates, 1956–2023 (reference only)</span></div><label class="switch"><input id="histToggle" type="checkbox" aria-labelledby="histLabel" aria-describedby="histHint"><span></span></label></div>
       <p id="histHint" class="pnoa-status"></p>
       <div class="hist-entry-actions">
         <button id="histHere" type="button" class="hist-exit" data-i18n="hist.here">Compare here</button>
@@ -1226,13 +1252,13 @@
 <script src="js/ambito-comparison.js?v=20261015-1"></script>
 <script src="js/modes.js?v=20261006-1"></script>
 <script src="js/evidence-url.js?v=20261015-1"></script>
-<script src="js/historical-url.js?v=20261118-1"></script>
+<script src="js/historical-url.js?v=20261125-timemachine-v1"></script>
 <script src="js/evidence-export.js?v=20261017-1"></script>
-<script src="js/scope-rail.js?v=20261103-originmap-v1"></script>
-<script src="js/shell-copy.js?v=20261103-originmap-v1"></script>
+<script src="js/scope-rail.js?v=20261125-timemachine-v1"></script>
+<script src="js/shell-copy.js?v=20261125-timemachine-v1"></script>
 <script src="js/appearance.js?v=20261020-1"></script>
-<script src="js/text-size.js?v=20261103-originmap-v1"></script>
-<script src="js/legacy-copy.js?v=20261103-originmap-v1"></script>
+<script src="js/text-size.js?v=20261125-timemachine-v1"></script>
+<script src="js/legacy-copy.js?v=20261125-timemachine-v1"></script>
 <script src="js/data.js?v=20261023-1"></script>
 <script src="js/clustering.js?v=20260928-9"></script>
 <script src="js/marker-shapes.js?v=20261102-1"></script>
@@ -1241,7 +1267,7 @@
 <script src="js/spatial-command.js?v=20261124-1"></script>
 <script src="js/nl-command.js?v=20261124-1"></script>
 <script src="js/voice-input.js?v=20261124-1"></script>
-<script src="js/app.js?v=20261103-originmap-v1"></script>
+<script src="js/app.js?v=20261125-timemachine-v1"></script>
 <script src="js/tutorial.js?v=20261030-guided-tour-v2"></script>
 <script>
 /* The case is opt-in. Keep its DOM, styles and controller off the ordinary app

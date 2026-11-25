@@ -2406,8 +2406,10 @@ body.hist-compare-mode #analysisPanel,body.hist-compare-mode #spatialToolbar,bod
 .hist-bar-title{margin:0;font-size:var(--t-label);font-weight:700;line-height:1.25;color:var(--chrome-text-primary)}
 .hist-years{display:flex;flex-wrap:wrap;gap:0 var(--s-2);margin:0;padding:0;list-style:none;font-size:var(--t-micro);line-height:1.3;color:var(--chrome-text-control-caption)}
 .hist-years li{display:flex;align-items:center;gap:var(--s-1)}
-.hist-year-name{font-weight:700;color:var(--chrome-text-control-strong)}
-.hist-years li[data-state="error"] .hist-year-state,.hist-years li[data-state="partial"] .hist-year-state{font-weight:700;text-decoration:underline dotted}
+.hist-year-name{display:inline;margin:0;padding:0;line-height:inherit;border:0;border-radius:0;background:none;font:inherit;font-weight:700;color:var(--chrome-text-control-strong);text-decoration:underline dashed;text-underline-offset:3px;cursor:pointer}
+.hist-year-name[aria-expanded="true"]{text-decoration-style:solid}
+.hist-year-name:hover{color:var(--chrome-text-section)}
+.hist-years li:is([data-state="error"],[data-state="partial"],[data-state="nocover"],[data-state="edge"]) .hist-year-state{font-weight:700;text-decoration:underline dotted}
 .hist-chip{display:none;flex:none;padding:var(--s-1) var(--s-2);border-radius:var(--r-small);background:var(--chrome-form-surface);border:1px solid var(--chrome-border);color:var(--chrome-text-control-strong);font-size:var(--t-micro);font-weight:650;white-space:nowrap}
 .hist-head-actions{display:flex;flex:none;gap:var(--s-1)}
 .hist-icon-btn{display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid transparent;border-radius:var(--r-small);background:transparent;color:var(--chrome-text-control-value);cursor:pointer}
@@ -2423,6 +2425,37 @@ body.hist-compare-mode #analysisPanel,body.hist-compare-mode #spatialToolbar,bod
 .hist-menu-item:disabled{opacity:.55;cursor:not-allowed}
 .hist-menu-exit{margin-top:var(--s-1);font-weight:650;color:var(--chrome-text-control-strong)}
 .hist-body{margin-top:var(--s-2)}
+/* Urban Time Machine: one row per side (label, earlier, date, later). The swatch (filled =
+   left, outlined = right) matches the timeline marks, so the two never rely on colour alone. */
+.hist-dates{margin-top:var(--s-1);padding-top:var(--s-2);border-top:1px solid var(--chrome-border)}
+.hist-dates[hidden]{display:none}
+.hist-pair{display:grid;gap:var(--s-1);margin:0 0 var(--s-2)}
+.hist-pick{display:grid;grid-template-columns:5.2em minmax(0,1fr);align-items:center;gap:var(--s-1)}
+.hist-pick label{display:flex;align-items:center;gap:var(--s-1);font-size:var(--t-micro);font-weight:650;color:var(--chrome-text-control-strong)}
+.hist-pick label::before{content:"";flex:none;width:9px;height:9px;border:2px solid var(--chrome-text-section);box-sizing:border-box}
+.hist-pick[data-side="left"] label::before{background:var(--chrome-text-section)}
+.hist-pick-row{display:flex;align-items:stretch;min-width:0}
+.hist-pick-select{flex:1 1 auto;min-width:0;min-height:32px;padding:0 var(--s-1);border:1px solid var(--chrome-border);border-radius:0;background:var(--chrome-form-surface);color:var(--chrome-text-control-value);font:inherit;font-size:var(--t-label);text-overflow:ellipsis}
+.hist-step{flex:none;display:grid;place-items:center;width:30px;min-height:32px;padding:0;border:1px solid var(--chrome-border);background:var(--chrome-form-surface);color:var(--chrome-text-control-value);cursor:pointer}
+.hist-step:first-child{border-radius:var(--r-small) 0 0 var(--r-small);border-right-width:0}
+.hist-step:last-child{border-radius:0 var(--r-small) var(--r-small) 0;border-left-width:0}
+.hist-step:disabled{opacity:.4;cursor:not-allowed}
+.hist-step svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.hist-compare-bar select:focus-visible{outline:2px solid var(--chrome-text-section);outline-offset:1px}
+.hist-timeline{position:relative;height:34px;margin:0 var(--s-1) var(--s-1);border-bottom:1px solid var(--chrome-border)}
+.hist-tl-mark{position:absolute;bottom:calc(4px + var(--row,0) * 8px);min-width:4px;height:5px;background:var(--chrome-text-control-caption);opacity:.5;box-sizing:border-box}
+.hist-tl-mark[data-row="1"]{--row:1}
+.hist-tl-mark[data-row="2"]{--row:2}
+.hist-tl-mark[data-side="left"],.hist-tl-mark[data-side="right"]{height:9px;opacity:1;min-width:6px;background:var(--chrome-text-section);border:2px solid var(--chrome-text-section);z-index:1}
+.hist-tl-mark[data-side="right"]{background:var(--chrome-panel-surface)}
+.hist-tl-year{position:absolute;top:0;transform:translateX(-50%);font-size:var(--t-micro);line-height:1;color:var(--chrome-text-control-caption)}
+.hist-pair-note{margin:0 0 var(--s-2);font-size:var(--t-micro);line-height:1.4;color:var(--chrome-text-control-value)}
+.hist-pair-note:empty{display:none}
+.hist-prov{margin:0 0 var(--s-1);font-size:var(--t-micro);line-height:1.4;color:var(--chrome-text-control-caption)}
+.hist-prov dt{margin-top:var(--s-1);font-weight:700;color:var(--chrome-text-control-strong)}
+.hist-prov dd{margin:0}
+.hist-prov dd span{display:block}
+.hist-prov b{font-weight:650;color:var(--chrome-text-control-value)}
 .hist-presets{display:flex;gap:0}
 .hist-preset{flex:1 1 0;min-height:32px;padding:0 var(--s-2);border:1px solid var(--chrome-border);background:var(--chrome-form-surface);color:var(--chrome-text-control-value);font-size:var(--t-label);cursor:pointer}
 .hist-preset:first-child{border-radius:var(--r-small) 0 0 var(--r-small)}
@@ -2446,7 +2479,7 @@ body.hist-compare-mode #analysisPanel,body.hist-compare-mode #spatialToolbar,bod
 /* COLLAPSED: one row (identity, comparison state, controls). HIDDEN: only a restore pill. */
 .hist-compare-bar[data-mode="collapsed"]{width:auto;max-width:min(360px,calc(100vw - 16px))}
 .hist-compare-bar[data-mode="collapsed"] .hist-chip{display:inline-block}
-.hist-compare-bar[data-mode="collapsed"] :is(.hist-body,.hist-info,.hist-years,.hist-info-btn,#histStatus){display:none}
+.hist-compare-bar[data-mode="collapsed"] :is(.hist-body,.hist-info,.hist-dates,.hist-years,.hist-info-btn,#histStatus){display:none}
 .hist-restore{display:none}
 .hist-compare-bar[data-mode="hidden"]{width:auto;padding:var(--s-1)}
 .hist-compare-bar[data-mode="hidden"]>:not(.hist-restore){display:none}
@@ -2461,13 +2494,14 @@ body.hist-compare-mode #analysisPanel,body.hist-compare-mode #spatialToolbar,bod
 @media(max-width:850px){
   .hist-compare-bar{left:calc(var(--s-2) + var(--safe-left));right:calc(var(--s-2) + var(--safe-right));width:auto;max-height:var(--hist-bar-cap,46dvh);display:flex;flex-direction:column;overflow:hidden}
   .hist-compare-bar>*{flex:none}
-  .hist-compare-bar>.hist-info,.hist-compare-bar>.hist-menu{flex:0 1 auto;min-height:0;max-height:none;overflow:auto;overscroll-behavior:contain}
+  .hist-compare-bar>.hist-info,.hist-compare-bar>.hist-menu,.hist-compare-bar>.hist-dates{flex:0 1 auto;min-height:0;max-height:none;overflow:auto;overscroll-behavior:contain}
   .hist-compare-bar[data-mode="collapsed"],.hist-compare-bar[data-mode="hidden"]{right:auto}
   .hist-handle{display:none}
 }
 @media(pointer:coarse),(max-width:850px){
   .hist-icon-btn{width:44px;height:44px}
-  .hist-preset,.hist-menu-item,.hist-restore-btn,.hist-restore-exit{min-height:44px}
+  .hist-preset,.hist-menu-item,.hist-restore-btn,.hist-restore-exit,.hist-pick-select{min-height:44px}
+  .hist-step{width:44px;min-height:44px}
   .hist-retry,.hist-method summary{min-height:44px}
   .hist-head{min-height:44px}
 }

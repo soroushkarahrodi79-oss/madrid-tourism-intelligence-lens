@@ -31,7 +31,10 @@ const port = server.address().port;
 const browser = await chromium.launch({ headless: true });
 test.after(async () => { await browser.close(); server.close(); });
 
-// net.hist[LAYER] = "ok" | "down" | "flaky" (every other tile fails)
+// net.hist[LAYER] = "ok" | "down" | "flaky" (every other tile fails) | "blank" (a white tile, as
+// the real service answers outside a coverage) | "halfblank" (every other tile white: a footprint
+// edge). Historical tiles carry CORS *, as the service does.
+const PNG_WHITE = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg==", "base64");
 async function openPage({ viewport = { width: 1280, height: 800 }, hist = {}, pnoa = "ok" } = {}) {
   const context = await browser.newContext({ viewport });
   const page = await context.newPage();
@@ -47,7 +50,8 @@ async function openPage({ viewport = { width: 1280, height: 800 }, hist = {}, pn
         histRequests.push(url);
         const mode = net.hist[url.searchParams.get("layers")];
         const fail = mode === "down" || (mode === "flaky" && (net.flip++ % 2 === 0));
-        return fail ? route.fulfill({ status: 503, body: "" }) : route.fulfill({ contentType: "image/png", body: PNG_1X1 });
+        const headers = { "access-control-allow-origin": "*" };
+        return fail ? route.fulfill({ status: 503, headers, body: "" }) : route.fulfill({ contentType: "image/png", headers, body: mode === "blank" || (mode === "halfblank" && net.flip++ % 2 === 0) ? PNG_WHITE : PNG_1X1 });
       }
       pnoaRequests.push(url);
       return net.pnoa === "down" ? route.fulfill({ status: 503, body: "" }) : route.fulfill({ contentType: "image/png", body: PNG_1X1 });
@@ -759,7 +763,8 @@ test("old evidence links are untouched; invalid historical links say so and neve
   const cases = {
     "hv=1&hc=48.85,2.35&hz=16&hp=2006-2023&hd=50": /centre outside the Madrid area/,
     "hv=1&hc=40.4435,-3.7106&hz=25&hp=2006-2023&hd=50": /zoom outside 10 to 19/,
-    "hv=1&hc=40.4435,-3.7106&hz=16&hp=2006-2019&hd=50": /pair other than 2006\/2023/,
+    // 2019 is not a verified Madrid coverage (the IGN layer returns no imagery here), so it stays refused.
+    "hv=1&hc=40.4435,-3.7106&hz=16&hp=2006-2019&hd=50": /date pair that is not two different verified orthophoto dates/,
     "hv=1&hc=40.4435,-3.7106&hz=16&hp=2006-2023&hd=250": /divider position outside 0 to 100%/,
     "hv=2&hc=40.4435,-3.7106&hz=16&hp=2006-2023&hd=50": /unsupported historical-view format/,
     "hv=1&hc=40.4435,-3.7106&hp=2006-2023&hd=50": /required part of the historical view is missing/,
@@ -1162,5 +1167,193 @@ test("#219 phone sheet never covers the map attribution, even with the info pane
   await waitHist(page, "on");
   await openHistInfo(page);
   assert.equal(await overlapsAttribution(page), false);
+  await context.close();
+});
+
+// ---- Urban Time Machine: independent, verified dates per side -------------------------
+// Only dates in HIST_COVERAGES (Gate 0, verified to return imagery in Madrid) exist; each side
+// chooses one independently; the pair travels in the share link; changing a date drops that
+// side's tiles at once and requests only the date the reader stops on.
+const layersOf = (requests) => [...new Set(requests.map((u) => u.searchParams.get("layers")))].sort();
+const openDates = async (page, side = "left") => {
+  if (await page.locator("#histDates").isHidden()) await page.locator(`[data-hist-dates="${side}"]`).click();
+};
+const labels = (page) => page.evaluate(() => ({
+  years: [...document.querySelectorAll(".hist-years .hist-year-name")].map((el) => el.textContent),
+  divider: [...document.querySelectorAll("#histDivider .hist-side b")].map((el) => el.textContent),
+  presets: [...document.querySelectorAll(".hist-preset")].map((el) => el.textContent),
+  aria: document.getElementById("histDivider").getAttribute("aria-label"),
+  picks: [document.getElementById("histPickLeft").value, document.getElementById("histPickRight").value],
+}));
+
+test("time machine: the year labels open the date pickers, which list only the verified dates", async () => {
+  const { page, context } = await openPage();
+  await openCompare(page);
+  assert.equal(await page.locator("#histDates").isHidden(), true, "the compact card stays compact until asked");
+  await page.locator('[data-hist-dates="left"]').click();
+  assert.equal(await page.locator("#histDates").isVisible(), true);
+  assert.equal(await page.locator('[data-hist-dates="left"]').getAttribute("aria-expanded"), "true");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "histPickLeft", "the chosen side's picker takes focus");
+  const options = await page.locator("#histPickLeft option").evaluateAll((els) => els.map((o) => o.value));
+  assert.deepEqual(options, ["ams1956", "olistat", "sigpac", "2006", "2009", "pnoa10_2009", "2011", "pnoa10_2013", "2014", "pnoa10_2016", "2017", "2020", "2023"]);
+  assert.equal(await page.locator('#histPickLeft option[value="2023"]').isDisabled(), true, "the right side's date cannot also be the left");
+  assert.equal(await page.locator('#histPickRight option[value="2006"]').isDisabled(), true);
+  assert.deepEqual((await labels(page)).picks, ["2006", "2023"]);
+  // Escape closes the panel and returns focus to the year label that opened it.
+  await page.keyboard.press("Escape");
+  assert.equal(await page.locator("#histDates").isHidden(), true);
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.histDates), "left");
+  await context.close();
+});
+
+test("time machine: choosing a date requests only that layer and every label, notice and attribution follows", async () => {
+  const { page, context, histRequests } = await openPage();
+  await openCompare(page);
+  const view = await page.evaluate(() => ({ ...map.getCenter(), zoom: map.getZoom() }));
+  const before = histRequests.length;
+  await openDates(page);
+  await page.locator("#histPickLeft").selectOption("ams1956");
+  await waitHist(page, "on");
+  const fresh = histRequests.slice(before);
+  assert.deepEqual(layersOf(fresh), ["AMS_1956-1957"], "only the changed side is requested; the right side is untouched");
+  const l = await labels(page);
+  assert.deepEqual(l.years, ["1956–57", "2023"]);
+  assert.deepEqual(l.divider, ["1956–57", "2023"]);
+  assert.deepEqual(l.presets, ["1956–57", "50/50", "2023"]);
+  assert.match(l.aria, /1956–57 \(left\) and 2023 \(right\)/);
+  assert.match((await histState(page)).text, /1956–57 on the left, 2023 on the right/);
+  const attribution = await page.locator("#map .leaflet-control-attribution").innerText();
+  assert.match(attribution, /Vuelo Americano, serie B/);
+  assert.match(attribution, /vuelo 1956–1957/);
+  assert.doesNotMatch(attribution, /PNOA 2006/, "the replaced date is no longer attributed");
+  assert.match(await page.locator("#histPairNote").innerText(), /Ground resolution differs \(0\.50 m vs 0\.25 m\)/);
+  assert.match(await page.locator("#histPairNote").innerText(), /1956–57 is a flight carried out over 1956–1957/);
+  assert.match(await page.locator("#histPairNote").innerText(), /resolution as uncertain/);
+  await openHistInfo(page);
+  const notice = await page.locator("#histNotice").textContent();
+  assert.match(notice, /1956–57 \(left\) and 2023 \(right\) are official orthoimages, not single dates/);
+  assert.match(notice, /CC BY 4\.0/);
+  const prov = await page.locator("#histProvList").textContent();
+  assert.match(prov, /AMS_1956-1957/);
+  assert.match(prov, /flight over 1956–1957/);
+  assert.match(prov, /PNOA2023/);
+  assert.match(prov, /annual mosaic 2023 \(year only; no acquisition day is published\)/);
+  assert.deepEqual(await page.evaluate(() => ({ ...map.getCenter(), zoom: map.getZoom() })), view, "a date change never moves the map");
+  await context.close();
+});
+
+test("time machine: rapid stepping drops each intermediate date and requests only the final one", async () => {
+  const { page, context, histRequests } = await openPage();
+  await openCompare(page);
+  await openDates(page, "right");
+  const before = histRequests.length;
+  for (let i = 0; i < 5; i += 1) await page.locator('[data-hist-step="-1"][data-side="right"]').click();
+  // 2023 -> 2020 -> 2017 -> pnoa10_2016 -> 2014 -> pnoa10_2013
+  assert.equal(await page.locator("#histPickRight").inputValue(), "pnoa10_2013");
+  await waitHist(page, "on");
+  assert.deepEqual(layersOf(histRequests.slice(before)), ["pnoa10_2013"], "intermediate dates are never requested");
+  assert.equal(await page.locator(".leaflet-histRight-pane .leaflet-layer").count(), 1, "one layer per side, never a stack");
+  assert.deepEqual((await labels(page)).divider, ["2006", "2013 · 10 cm"]);
+  assert.match(await page.locator("#histPairNote").innerText(), /covers the Madrid city area only/);
+  await context.close();
+});
+
+test("time machine: step buttons stop at the ends and skip the other side's date", async () => {
+  const { page, context } = await openPage();
+  await openCompare(page);
+  await openDates(page);
+  await page.locator("#histPickLeft").selectOption("olistat");
+  await page.locator('[data-hist-step="-1"][data-side="left"]').click();
+  assert.equal(await page.locator("#histPickLeft").inputValue(), "ams1956");
+  assert.equal(await page.locator('[data-hist-step="-1"][data-side="left"]').isDisabled(), true, "nothing is earlier than the first verified date");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "histPickLeft", "focus is not lost when the button disables");
+  await page.locator("#histPickRight").selectOption("sigpac");
+  await page.locator('[data-hist-step="1"][data-side="left"]').click();
+  assert.equal(await page.locator("#histPickLeft").inputValue(), "olistat");
+  await page.locator('[data-hist-step="1"][data-side="left"]').click();
+  assert.equal(await page.locator("#histPickLeft").inputValue(), "2006", "the right side's date (SIGPAC) is skipped");
+  await page.locator("#histPickRight").selectOption("2023");
+  await page.locator("#histPickLeft").selectOption("2020");
+  assert.equal(await page.locator('[data-hist-step="1"][data-side="left"]').isDisabled(), true, "2023 is taken by the other side, so nothing is later");
+  await context.close();
+});
+
+test("time machine: a date with no imagery here is named as unavailable, not as no change", async () => {
+  const { page, context } = await openPage({ hist: { SIGPAC: "down" } });
+  await openCompare(page);
+  await openDates(page);
+  await page.locator("#histPickLeft").selectOption("sigpac");
+  await waitHist(page, "error");
+  const text = (await histState(page)).text;
+  assert.match(text, /The 1997–2003 \(left\) imagery is unavailable/);
+  assert.match(text, /not evidence of no change/);
+  assert.match(await page.locator('.hist-years li[data-side="left"]').innerText(), /1997–2003\s+Unavailable/);
+  await context.close();
+});
+
+test("time machine: the shared link carries the chosen pair and a new page restores exactly that pair", async () => {
+  const { page, context } = await openPage();
+  await page.evaluate((c) => map.setView(c, 16, { animate: false }), CHOSEN);
+  await openCompare(page);
+  await openDates(page);
+  await page.locator("#histPickLeft").selectOption("ams1956");
+  await page.locator("#histPickRight").selectOption("2017");
+  await waitHist(page, "on");
+  const url = await page.evaluate(() => buildHistoricalUrl(window.location.href, histViewState()));
+  assert.equal(new URL(url).searchParams.get("hp"), "ams1956-2017");
+  await context.close();
+  const next = await openPage();
+  await next.page.goto(url.replace(/^http:\/\/127\.0\.0\.1:\d+/, `http://127.0.0.1:${port}`), { waitUntil: "domcontentloaded" });
+  await waitHist(next.page, "on");
+  assert.deepEqual((await labels(next.page)).picks, ["ams1956", "2017"]);
+  assert.deepEqual(layersOf(next.histRequests), ["AMS_1956-1957", "PNOA2017"]);
+  await next.context.close();
+});
+
+test("time machine: Spanish copy, local number format and a phone-width date panel with 44px targets", async () => {
+  const { page, context } = await openPage({ viewport: { width: 390, height: 844 } });
+  await dismissInvite(page);
+  await page.selectOption("#languageSelect", "es");
+  await page.evaluate((c) => map.setView(c, 16, { animate: false }), CHOSEN);
+  await page.evaluate(() => document.getElementById("histHere").click());
+  await waitHist(page, "on");
+  await openDates(page);
+  await page.locator("#histPickLeft").selectOption("2009");
+  assert.match(await page.locator("#histPairNote").innerText(), /La resolución difiere \(0,50 m frente a 0,25 m\)/);
+  assert.match(await page.locator("#histPickLeft option[value='2009']").textContent(), /0,50 m/);
+  const panel = await page.locator("#histCompareBar").boundingBox();
+  assert.ok(inside(panel, { width: 390, height: 844 }), "the sheet with the date panel open fits the screen");
+  for (const sel of ["#histPickLeft", "#histPickRight", '[data-hist-step="-1"][data-side="left"]', '[data-hist-step="1"][data-side="right"]']) {
+    const b = await page.locator(sel).boundingBox();
+    assert.ok(b && b.height >= 44, `${sel} is a 44px target`);
+  }
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "no horizontal scroll");
+  await context.close();
+});
+
+test("time machine: a date outside its coverage here (only blank tiles) says 'no imagery here', not 'Showing'", async () => {
+  const { page, context } = await openPage({ hist: { pnoa10_2016: "blank" } });
+  await openCompare(page);
+  await openDates(page);
+  await page.locator("#histPickLeft").selectOption("pnoa10_2016");
+  await waitHist(page, "error");
+  const text = (await histState(page)).text;
+  assert.match(text, /2016 · 10 cm \(left\) has no imagery in this view/);
+  assert.match(text, /missing imagery, not evidence of no change/);
+  const row = page.locator('.hist-years li[data-side="left"]');
+  assert.match(await row.innerText(), /No imagery here/);
+  assert.equal(await row.locator(".hist-retry").isHidden(), true, "retrying cannot create imagery outside a coverage");
+  assert.match(await page.locator("#histHint").innerText(), /has no imagery in this view \(outside its coverage\)/, "the rail hint names a coverage gap, not a load failure");
+  assert.match(await page.locator('.hist-years li[data-side="right"]').innerText(), /2023\s+Showing/, "the other side is unaffected");
+  await context.close();
+});
+
+test("time machine: a footprint edge (some blank tiles) is reported as partly outside the coverage", async () => {
+  const { page, context } = await openPage({ hist: { PNOA2006: "halfblank" } });
+  await toggleHist(page);
+  await waitHist(page, "partial");
+  assert.match((await histState(page)).text, /Part of this view is outside the 2006 \(left\) coverage/);
+  assert.match(await page.locator('.hist-years li[data-side="left"]').innerText(), /Partly outside/);
+  assert.doesNotMatch(await page.locator("#histHint").innerText(), /did not load|retry/, "a coverage edge is not reported as a load failure");
   await context.close();
 });

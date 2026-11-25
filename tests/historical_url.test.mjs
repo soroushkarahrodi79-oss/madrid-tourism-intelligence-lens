@@ -72,3 +72,54 @@ test("boundary values are valid (divider 0 and 100, zoom 10 and 19)", () => {
 test("bounds equal the evidence contract's Madrid envelope", () => {
   assert.deepEqual({ ...H.HIST_URL_BOUNDS }, { ...E.LENS_SPATIAL_BOUNDS });
 });
+
+// ---- Urban Time Machine: verified coverage catalogue and the A/B pair contract ----
+test("catalogue: only Gate-0-verified IGN layers, unique ids, chronological, no interpolated years", () => {
+  const ids = H.HIST_COVERAGES.map((c) => c.id);
+  assert.equal(new Set(ids).size, ids.length, "ids are unique");
+  assert.equal(new Set(H.HIST_COVERAGES.map((c) => c.label)).size, ids.length, "labels are unique");
+  assert.deepEqual(H.HIST_COVERAGES.map((c) => c.layer), [
+    "AMS_1956-1957", "OLISTAT", "SIGPAC", "PNOA2006", "PNOA2009", "pnoa10_2009", "PNOA2011",
+    "pnoa10_2013", "PNOA2014", "pnoa10_2016", "PNOA2017", "PNOA2020", "PNOA2023",
+  ]);
+  for (let i = 1; i < H.HIST_COVERAGES.length; i += 1) {
+    const [a, b] = [H.HIST_COVERAGES[i - 1], H.HIST_COVERAGES[i]];
+    assert.ok(a.from < b.from || (a.from === b.from && a.to <= b.to), `${a.id} sorts before ${b.id}`);
+  }
+  for (const c of H.HIST_COVERAGES) {
+    assert.ok(Object.isFrozen(c));
+    assert.ok(c.from <= c.to && c.res_m > 0);
+    assert.equal(c.when === "annual", c.from === c.to, `${c.id}: an annual mosaic has one year, an interval has two`);
+    assert.match(c.id, /^[a-z0-9_]+$/, "an id never contains the pair separator");
+  }
+  // Layers that returned no imagery over Madrid in Gate 0 are never offered.
+  for (const absent of ["PNOA2004", "PNOA2010", "PNOA2019", "PNOA2022", "PNOA2024", "Nacional_1981-1986", "Interministerial_1973-1986", "OrtoExpeditaLIDAR2024"]) {
+    assert.ok(!H.HIST_COVERAGES.some((c) => c.layer === absent), `${absent} is not offered`);
+  }
+});
+
+test("pair: the default is 2006-2023, so every link made before the catalogue keeps its meaning", () => {
+  assert.equal(H.HIST_URL_PAIR, "2006-2023");
+  assert.deepEqual(H.splitHistoricalPair("2006-2023"), { left: "2006", right: "2023" });
+  assert.equal(H.parseHistoricalState("?hv=1&hc=40.4435,-3.7106&hz=16&hp=2006-2023&hd=50").ok, true);
+});
+
+test("pair: any two different verified dates round-trip, in either order", () => {
+  for (const pair of ["ams1956-2023", "2023-ams1956", "sigpac-pnoa10_2016", "olistat-sigpac", "2009-pnoa10_2009"]) {
+    const url = H.buildHistoricalUrl("https://example.test/", { ...GOOD, pair });
+    const parsed = H.parseHistoricalState(url);
+    assert.equal(parsed.ok, true, pair);
+    assert.equal(parsed.state.pair, pair);
+    const [left, right] = pair.split("-");
+    assert.deepEqual(H.splitHistoricalPair(pair), { left, right });
+  }
+});
+
+test("pair: unknown, repeated or malformed dates are refused, never substituted", () => {
+  for (const pair of ["2006-2019", "2006-2006", "ams1956", "2006-2023-2020", "AMS1956-2023", "1956-2023", "2006_2023", ""]) {
+    assert.equal(H.splitHistoricalPair(pair), null, pair);
+    const parsed = H.parseHistoricalState(`?hv=1&hc=40.4435,-3.7106&hz=16&hp=${encodeURIComponent(pair)}&hd=50`);
+    assert.equal(parsed.ok, false, pair);
+    assert.deepEqual(parsed.issues.map((i) => i.code), ["HIST_UNKNOWN_PAIR"], pair);
+  }
+});
