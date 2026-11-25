@@ -409,18 +409,32 @@ function setPnoa(enabled) {
 
 document.getElementById("pnoaToggle").onchange = (e) => setPnoa(e.target.checked);
 
-// ---- Historical PNOA comparison: OPT-IN, reference only ---------------------
-// Two ANNUAL PNOA mosaics (2006 left, 2023 right) from the national mapping institute's historical WMS,
-// revealed by one divider over this same Leaflet map. It is a visual aid, not
+// ---- Historical orthophoto comparison: OPT-IN, reference only ----------------
+// Two official orthoimages from the national mapping institute's historical WMS, chosen
+// independently for each side from the verified coverages in js/historical-url.js
+// (HIST_COVERAGES: 1956-57 to 2023; 2006 left and 2023 right by default), revealed by one
+// divider over this same Leaflet map. It is a visual aid, not
 // evidence: no count, indicator, export or canonical URL reads it, and it is not
 // a Lens A/B comparison. While active, every contemporary pane is hidden by CSS
 // (nothing is removed or recomputed, so selections survive) and the PNOA
 // overlay above is paused; leaving restores both and the previous map view.
 const HIST_WMS = "https://www.ign.es/wms/pnoa-historico";
 const HIST_PILOT = { centre: [40.3925, -3.699], zoom: 17 }; // Madrid Río / Matadero
-const HIST_SIDES = Object.freeze({ left: { layer: "PNOA2006", year: 2006 }, right: { layer: "PNOA2023", year: 2023 } });
+// A date change waits this long before requesting tiles, so stepping quickly through dates
+// requests only the date the reader stops on (the previous side's tiles are dropped at once).
+const HIST_SWAP_DELAY = 180;
 let histDrag = null; // active divider drag, if any
-const histCompare = { active: false, fraction: 0.5, layers: {}, state: { left: "idle", right: "idle" }, saved: null, returnView: null };
+// `pair` is the reader's choice and outlives one comparison session (never persisted).
+const histCompare = { active: false, fraction: 0.5, layers: {}, state: { left: "idle", right: "idle" }, saved: null, returnView: null, pair: { ...HIST_DEFAULT_PAIR }, swapTimers: {} };
+const histCov = (side) => histCoverage(histCompare.pair[side]);
+const histOther = (side) => (side === "left" ? "right" : "left");
+function histResText(cov) {
+  return `${cov.res_m.toLocaleString(shellLanguage() === "es" ? "es-ES" : "en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m`;
+}
+// Copy that names the pair: {a} = left label, {b} = right label (each token used once).
+function histT(key, extra = {}) {
+  return shellTemplate(key, { a: histCov("left").label, b: histCov("right").label, ...extra });
+}
 map.createPane("histLeftPane");
 map.createPane("histRightPane");
 for (const [name, z] of [["histLeftPane", "255"], ["histRightPane", "256"]]) {
@@ -436,22 +450,25 @@ function renderHistStatus() {
   let aggregate = "on";
   if (!histCompare.active) aggregate = "off";
   else if (states.some((v) => v === "idle" || v === "loading")) aggregate = "loading";
-  else if (states.includes("error")) aggregate = "error";
-  else if (states.includes("partial")) aggregate = "partial";
+  else if (states.includes("error") || states.includes("nocover")) aggregate = "error";
+  else if (states.includes("partial") || states.includes("edge")) aggregate = "partial";
   status.dataset.state = aggregate;
   if (aggregate === "error" || aggregate === "partial") {
     status.textContent = ["left", "right"]
-      .filter((side) => histCompare.state[side] === "error" || histCompare.state[side] === "partial")
-      .map((side) => shellT(`hist.${side}.${histCompare.state[side]}`))
+      .filter((side) => HIST_PROBLEM_STATES.includes(histCompare.state[side]))
+      .map((side) => histT(`hist.${side}.${histCompare.state[side]}`))
       .join(" ");
   } else {
-    status.textContent = shellT(`hist.${aggregate}`);
+    status.textContent = histT(`hist.${aggregate}`);
   }
   // A year with no imagery here is stated, and the guided example is offered; nothing is faked.
   if (aggregate === "error") status.textContent += ` ${shellT("hist.coverage.try")}`;
   // The switch's own hint states the effective state, never a stale "Off".
   const hint = document.getElementById("histHint");
-  if (hint) hint.textContent = shellT(aggregate === "off" ? "hist.hint" : `hist.hint.${aggregate}`);
+  // A coverage gap (blank tiles) is not a load failure: it gets its own hint, without a retry.
+  const coverageOnly = (aggregate === "error" && !states.includes("error")) || (aggregate === "partial" && !states.includes("partial"));
+  const hintKey = aggregate === "off" ? "hist.hint" : coverageOnly ? `hist.hint.${aggregate === "error" ? "nocover" : "edge"}` : `hist.hint.${aggregate}`;
+  if (hint) hint.textContent = histT(hintKey);
   // Per-year indicators: one row in the bar, one tag beside each year label.
   for (const side of ["left", "right"]) {
     const state = histCompare.active ? histCompare.state[side] : "idle";
@@ -460,12 +477,17 @@ function renderHistStatus() {
     const row = document.querySelector(`.hist-years li[data-side="${side}"]`);
     if (row) {
       row.dataset.state = state;
+      const name = row.querySelector(".hist-year-name");
+      name.textContent = histCov(side).label;
+      name.setAttribute("aria-label", shellTemplate(`hist.pick.open.${side}`, { x: histCov(side).label }));
       row.querySelector(".hist-year-state").textContent = label;
+      // Retrying cannot create imagery outside a coverage, so it is offered for load failures only.
       row.querySelector(".hist-retry").hidden = !(state === "error" || state === "partial");
     }
     const tag = document.querySelector(`#histDivider .hist-side[data-side="${side}"]`);
     if (tag) {
       tag.dataset.state = state;
+      tag.querySelector("b").textContent = histCov(side).label;
       tag.querySelector("small").textContent = state === "ok" || state === "idle" ? "" : label;
     }
   }
@@ -499,7 +521,8 @@ function renderHistSlider() {
   if (divider) {
     divider.style.left = `${pct}%`;
     divider.setAttribute("aria-valuenow", String(pct));
-    divider.setAttribute("aria-valuetext", shellTemplate("hist.sliderValue", { left: pct, right: 100 - pct }));
+    divider.setAttribute("aria-label", histT("hist.sliderLabel"));
+    divider.setAttribute("aria-valuetext", histT("hist.sliderValue", { left: pct, right: 100 - pct }));
     // A label only shows while its side of the map is wide enough to hold it.
     const width = map.getSize().x;
     divider.dataset.leftHidden = String(width * histCompare.fraction < 84);
@@ -508,6 +531,11 @@ function renderHistSlider() {
   }
   for (const button of document.querySelectorAll("[data-hist-fraction]")) {
     button.setAttribute("aria-pressed", String(Math.abs(Number(button.dataset.histFraction) - histCompare.fraction) < 0.005));
+    const side = { 1: "left", 0: "right" }[button.dataset.histFraction];
+    if (side) {
+      button.textContent = histCov(side).label;
+      button.setAttribute("aria-label", histT(side === "left" ? "hist.presetLeft" : "hist.presetRight"));
+    }
   }
   renderHistChip();
 }
@@ -548,7 +576,10 @@ function positionHistBar() {
 const HIST_UI_KEY = "lens.histController.v1";
 const HIST_UI_MARGIN = 8;
 const histUi = { mode: "expanded", shown: "expanded", pos: null, drag: null };
-const HIST_PANELS = { menu: { panel: "histMenu", button: "histMenuBtn" }, info: { panel: "histInfo", button: "histInfoBtn" } };
+// The dates panel opens from either year label in the header; histUi.datesSide records
+// which one, so Escape returns focus there.
+const HIST_PANELS = { menu: { panel: "histMenu", button: "histMenuBtn" }, info: { panel: "histInfo", button: "histInfoBtn" }, dates: { panel: "histDates" } };
+const histPanelButtons = (key) => (key === "dates" ? [...document.querySelectorAll("[data-hist-dates]")] : [document.getElementById(HIST_PANELS[key].button)]);
 const histBarEl = () => document.getElementById("histCompareBar");
 const histDesktop = () => window.matchMedia("(min-width: 851px)").matches;
 
@@ -595,9 +626,9 @@ function renderHistChip() {
   const aggregate = status.dataset.state;
   chip.textContent = aggregate === "loading" ? shellT("hist.year.loading")
     : aggregate === "error" || aggregate === "partial" ? shellT(`hist.year.${aggregate}`)
-    : pct >= 100 ? shellT("hist.preset2006")
-    : pct <= 0 ? shellT("hist.preset2023")
-    : `2006 ${pct}/${100 - pct} 2023`;
+    : pct >= 100 ? histT("hist.presetLeft")
+    : pct <= 0 ? histT("hist.presetRight")
+    : `${histCov("left").label} ${pct}/${100 - pct} ${histCov("right").label}`;
 }
 
 function histUiApply() {
@@ -637,7 +668,7 @@ function histUiPanel(name, open) {
   for (const [key, ids] of Object.entries(HIST_PANELS)) {
     const show = key === name && open;
     document.getElementById(ids.panel).hidden = !show;
-    document.getElementById(ids.button).setAttribute("aria-expanded", String(show));
+    for (const button of histPanelButtons(key)) button.setAttribute("aria-expanded", String(show));
   }
   histUiReflow();
 }
@@ -665,24 +696,63 @@ function histUiLeave() {
 }
 window.addEventListener("resize", () => { if (histCompare.active) histUiApply(); });
 
+// Outside a coverage's footprint the historical WMS still answers 200 with a solid white JPEG,
+// so "the tiles loaded" does not mean "there is imagery here". Each received tile is shrunk
+// to 8x8 and read back (the service sends CORS *, hence crossOrigin): a tile whose every
+// cell is white or fully transparent is BLANK. A side is "nocover" when every tile on it is
+// blank and "edge" when some are. Neither is ever read as "no change". A tile that cannot be
+// read is never called blank.
+const HIST_PROBLEM_STATES = ["error", "partial", "nocover", "edge"];
+const histProbe = document.createElement("canvas");
+histProbe.width = 8;
+histProbe.height = 8;
+function histTileBlank(img) {
+  try {
+    const ctx = histProbe.getContext("2d", { willReadFrequently: true });
+    ctx.clearRect(0, 0, 8, 8);
+    ctx.drawImage(img, 0, 0, 8, 8);
+    const d = ctx.getImageData(0, 0, 8, 8).data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] !== 0 && (d[i] < 250 || d[i + 1] < 250 || d[i + 2] < 250)) return false;
+    }
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+// The attribution names the product actually on screen; it changes with each date.
+function histAttribution(cov) {
+  const when = cov.when === "annual" ? "mosaico anual" : `vuelo ${cov.from}&ndash;${cov.to}`;
+  return `${escapeHtml(cov.product)} (${when}) cedido por &copy; <a href="https://www.ign.es">Instituto Geogr&aacute;fico Nacional de Espa&ntilde;a</a> &middot; <a href="https://www.scne.es">CC BY 4.0 scne.es</a>`;
+}
+
 function histSideLayer(side) {
-  const cfg = HIST_SIDES[side];
+  const cfg = histCov(side);
   const layer = L.tileLayer.wms(HIST_WMS, {
     layers: cfg.layer,
     format: "image/jpeg",
     version: "1.3.0",
     pane: side === "left" ? "histLeftPane" : "histRightPane",
     maxZoom: 19,
-    attribution:
-      `PNOA ${cfg.year} (mosaico anual) cedido por &copy; <a href="https://www.ign.es">Instituto Geogr&aacute;fico Nacional de Espa&ntilde;a</a> &middot; <a href="https://www.scne.es">CC BY 4.0 scne.es</a>`,
+    crossOrigin: "anonymous",
+    attribution: histAttribution(cfg),
   });
   let failed = 0;
-  layer.on("loading", () => { failed = 0; histCompare.state[side] = "loading"; renderHistStatus(); });
+  layer.on("loading", () => {
+    if (histCompare.layers[side] !== layer) return;
+    failed = 0;
+    histCompare.state[side] = "loading";
+    renderHistStatus();
+  });
   layer.on("tileerror", () => { failed += 1; });
+  layer.on("tileload", (e) => { e.tile.dataset.histBlank = histTileBlank(e.tile) ? "1" : "0"; });
   layer.on("load", () => {
     if (histCompare.layers[side] !== layer) return;
-    const shown = layer.getContainer().querySelectorAll("img.leaflet-tile-loaded").length;
-    histCompare.state[side] = shown === 0 ? "error" : failed ? "partial" : "ok";
+    const tiles = [...layer.getContainer().querySelectorAll("img.leaflet-tile-loaded")];
+    const shown = tiles.length;
+    const blank = tiles.filter((img) => img.dataset.histBlank === "1").length;
+    histCompare.state[side] = shown === 0 ? "error" : failed ? "partial" : blank === shown ? "nocover" : blank ? "edge" : "ok";
     renderHistStatus();
     positionHistBar();
   });
@@ -723,6 +793,8 @@ function setHistCompare(enabled, opts = {}) {
     setHistInert(true);
     histCompare.state = { left: "loading", right: "loading" };
     histCompare.fraction = opts.fraction ?? 0.5;
+    if (opts.pair) histCompare.pair = { ...opts.pair };
+    renderHistPair();
     histCompare.returnView = null;
     for (const side of ["left", "right"]) histCompare.layers[side] = histSideLayer(side).addTo(map);
     map.on("move zoom resize", updateHistClip);
@@ -752,6 +824,7 @@ function setHistCompare(enabled, opts = {}) {
     histCompare.returnView = null;
     histNote("");
     histCompare.active = false;
+    for (const side of ["left", "right"]) clearTimeout(histCompare.swapTimers[side]);
     map.off("move zoom resize", updateHistClip);
     map.off("resize", renderHistSlider);
     for (const side of ["left", "right"]) {
@@ -789,7 +862,7 @@ function histEntryNote(text) {
 }
 function histViewState() {
   const c = map.getCenter();
-  return { lat: c.lat, lon: c.lng, zoom: Math.round(map.getZoom()), fraction: histCompare.fraction };
+  return { lat: c.lat, lon: c.lng, zoom: Math.round(map.getZoom()), fraction: histCompare.fraction, pair: joinHistoricalPair(histCompare.pair.left, histCompare.pair.right) };
 }
 // The one validator: a view must survive the same serialise -> parse round trip a shared link does.
 function histViewProblem(state) {
@@ -861,7 +934,7 @@ async function histCopyLink() {
     if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(url); ok = true; }
   } catch (error) { ok = false; }
   if (!ok) ok = k11ExecCopyFallback(url);
-  histNote(ok ? shellT("hist.share.copied") : `${shellT("hist.share.failed")} ${url}`);
+  histNote(ok ? histT("hist.share.copied") : `${shellT("hist.share.failed")} ${url}`);
   // The fallback copy briefly focuses a temporary field; keep keyboard focus on the menu button.
   if (document.activeElement === document.body && histCompare.active) document.getElementById("histMenuBtn").focus({ preventScroll: true });
   return ok;
@@ -877,7 +950,176 @@ function histApplyRestore() {
     return;
   }
   const v = result.state;
-  setHistCompare(true, { view: { centre: [v.lat, v.lon], zoom: v.zoom }, fraction: v.fraction });
+  setHistCompare(true, { view: { centre: [v.lat, v.lon], zoom: v.zoom }, fraction: v.fraction, pair: splitHistoricalPair(v.pair) });
+}
+
+// ---- Urban Time Machine: independent date per side ---------------------------
+// Each side picks any verified coverage (never the one the other side shows). Changing a
+// date drops that side's tiles at once, so a label never sits over an image from another
+// date, and requests the new date after a short pause; the view, the divider and the
+// other side are untouched. Only the dates in HIST_COVERAGES exist here: no year is
+// interpolated and nothing is offered that Gate 0 did not see return imagery in Madrid.
+function setHistSide(side, id) {
+  if (!histCoverage(id) || id === histCompare.pair[histOther(side)] || id === histCompare.pair[side]) {
+    renderHistPair();
+    return false;
+  }
+  histCompare.pair[side] = id;
+  if (histCompare.active) {
+    if (histCompare.layers[side]) map.removeLayer(histCompare.layers[side]);
+    histCompare.layers[side] = null;
+    histCompare.state[side] = "loading";
+    clearTimeout(histCompare.swapTimers[side]);
+    histCompare.swapTimers[side] = setTimeout(() => {
+      if (!histCompare.active || histCompare.layers[side]) return;
+      histCompare.layers[side] = histSideLayer(side).addTo(map);
+    }, HIST_SWAP_DELAY);
+  }
+  renderHistPair();
+  renderHistShare();
+  return true;
+}
+
+// The next verified date in chronological order (dir -1 earlier, +1 later), skipping the
+// other side's date; null at either end.
+function histStepTarget(side, dir) {
+  const order = HIST_COVERAGES.map((c) => c.id);
+  const here = order.indexOf(histCompare.pair[side]);
+  const other = histCompare.pair[histOther(side)];
+  const candidates = order.filter((id, i) => id !== other && (dir < 0 ? i < here : i > here));
+  return (dir < 0 ? candidates[candidates.length - 1] : candidates[0]) ?? null;
+}
+
+const HIST_TL = { from: 1950, to: 2026 };
+// A visual axis of the verified dates only (intervals drawn as their full span). It is
+// aria-hidden: the two selects and the step buttons are the accessible controls.
+function renderHistTimeline() {
+  const box = document.getElementById("histTimeline");
+  if (!box) return;
+  const span = HIST_TL.to - HIST_TL.from;
+  if (!box.childElementCount) {
+    // Greedy rows so overlapping coverages (e.g. OLISTAT and SIGPAC) never hide each other.
+    const rowEnds = [];
+    for (const cov of HIST_COVERAGES) {
+      let row = rowEnds.findIndex((end) => end < cov.from);
+      if (row < 0) { row = rowEnds.length; rowEnds.push(0); }
+      rowEnds[row] = cov.to;
+      const mark = document.createElement("span");
+      mark.className = "hist-tl-mark";
+      mark.dataset.id = cov.id;
+      mark.dataset.row = String(row);
+      mark.style.left = `${((cov.from - HIST_TL.from) / span) * 100}%`;
+      mark.style.width = `${((cov.to - cov.from + 1) / span) * 100}%`;
+      box.append(mark);
+    }
+    for (const year of [1960, 1980, 2000, 2020]) {
+      const tick = document.createElement("span");
+      tick.className = "hist-tl-year";
+      tick.style.left = `${((year - HIST_TL.from) / span) * 100}%`;
+      tick.textContent = String(year);
+      box.append(tick);
+    }
+  }
+  for (const mark of box.querySelectorAll(".hist-tl-mark")) {
+    mark.dataset.side = mark.dataset.id === histCompare.pair.left ? "left" : mark.dataset.id === histCompare.pair.right ? "right" : "";
+  }
+}
+
+// Plain statements of what differs between the two images besides time.
+function histPairNotes() {
+  const notes = [];
+  const a = histCov("left");
+  const b = histCov("right");
+  if (a.res_m !== b.res_m) notes.push(shellTemplate("hist.pair.res", { ra: histResText(a), rb: histResText(b) }));
+  for (const cov of [a, b]) {
+    if (cov.when === "interval") notes.push(shellTemplate("hist.pair.interval", { x: cov.label, from: cov.from, to: cov.to }));
+    if (cov.extent === "city") notes.push(shellTemplate("hist.pair.city", { x: cov.label }));
+    if (cov.resConflict) notes.push(shellTemplate("hist.pair.resConflict", { x: cov.label, r: histResText(cov) }));
+  }
+  return notes;
+}
+
+// Provenance of exactly the two images on screen (product, date semantics, resolution,
+// extent, service layer, licence), from the catalogue, never from the tiles.
+function renderHistProvenance() {
+  const list = document.getElementById("histProvList");
+  if (!list) return;
+  list.replaceChildren();
+  for (const side of ["left", "right"]) {
+    const cov = histCov(side);
+    const head = document.createElement("dt");
+    head.textContent = `${shellT(`hist.pick.${side}`)}: ${cov.label}`;
+    const rows = [
+      ["hist.prov.product", cov.product],
+      ["hist.prov.date", cov.when === "annual" ? shellTemplate("hist.prov.annual", { y: cov.from }) : shellTemplate("hist.prov.interval", { from: cov.from, to: cov.to })],
+      ["hist.prov.res", `${histResText(cov)}${cov.resConflict ? ` ${shellT("hist.prov.resUncertain")}` : ""}`],
+      ["hist.prov.extent", shellT(cov.extent === "city" ? "hist.prov.extentCity" : "hist.prov.extentRegion")],
+      ["hist.prov.service", `Instituto Geográfico Nacional · WMS pnoa-historico · ${cov.layer}`],
+      ["hist.prov.licence", shellT("hist.prov.licenceText")],
+    ];
+    const body = document.createElement("dd");
+    for (const [key, value] of rows) {
+      const line = document.createElement("span");
+      const name = document.createElement("b");
+      name.textContent = `${shellT(key)}: `;
+      line.append(name, document.createTextNode(value));
+      body.append(line);
+    }
+    list.append(head, body);
+  }
+}
+
+// Everything that names the pair follows the current choice (and the current language).
+function renderHistPair() {
+  for (const side of ["left", "right"]) {
+    const select = document.getElementById(side === "left" ? "histPickLeft" : "histPickRight");
+    if (!select) continue;
+    if (!select.options.length) {
+      for (const cov of HIST_COVERAGES) select.add(new Option("", cov.id));
+    }
+    for (const option of select.options) {
+      const cov = histCoverage(option.value);
+      option.textContent = `${cov.label} · ${cov.product} · ${histResText(cov)}`;
+      option.disabled = option.value === histCompare.pair[histOther(side)];
+    }
+    select.value = histCompare.pair[side];
+    for (const button of document.querySelectorAll(`[data-hist-step][data-side="${side}"]`)) {
+      const dir = Number(button.dataset.histStep);
+      button.disabled = !histStepTarget(side, dir);
+      button.setAttribute("aria-label", shellT(`hist.step.${side}.${dir < 0 ? "earlier" : "later"}`));
+      button.title = button.getAttribute("aria-label");
+    }
+  }
+  const note = document.getElementById("histPairNote");
+  if (note) note.textContent = histPairNotes().join(" ");
+  const keys = document.getElementById("histKeys");
+  if (keys) keys.textContent = histT("hist.keys");
+  const notice = document.getElementById("histNotice");
+  if (notice) {
+    const a = histCov("left");
+    const b = histCov("right");
+    notice.textContent = histT("hist.notice", {
+      kind: shellT(a.when === "annual" && b.when === "annual" && !a.extent && !b.extent ? "hist.kind.annual" : "hist.kind.mixed"),
+      res: a.res_m === b.res_m ? shellTemplate("hist.res.same", { r: histResText(a) }) : shellTemplate("hist.res.diff", { ra: histResText(a), rb: histResText(b) }),
+    });
+  }
+  renderHistTimeline();
+  renderHistProvenance();
+  renderHistStatus();
+  renderHistSlider();
+}
+
+for (const side of ["left", "right"]) {
+  document.getElementById(side === "left" ? "histPickLeft" : "histPickRight").addEventListener("change", (e) => setHistSide(side, e.target.value));
+}
+for (const button of document.querySelectorAll("[data-hist-step]")) {
+  button.addEventListener("click", () => {
+    const side = button.dataset.side;
+    const target = histStepTarget(side, Number(button.dataset.histStep));
+    if (target) setHistSide(side, target);
+    // A step button that just became disabled at the end of the range must not drop focus.
+    if (button.disabled) document.getElementById(side === "left" ? "histPickLeft" : "histPickRight").focus({ preventScroll: true });
+  });
 }
 
 // Contemporary layers are hidden, so a map click would silently move a Lens, place a
@@ -901,6 +1143,16 @@ document.getElementById("histCollapse").onclick = () => setHistMode(histUi.mode 
 document.getElementById("histHide").onclick = () => setHistMode("hidden");
 document.getElementById("histShow").onclick = () => setHistMode(histUi.shown);
 document.getElementById("histInfoBtn").onclick = () => histUiPanel("info", document.getElementById("histInfo").hidden);
+// A year label opens (or closes) the dates panel with that side's date picker focused.
+for (const button of document.querySelectorAll("[data-hist-dates]")) {
+  button.addEventListener("click", () => {
+    const side = button.dataset.histDates;
+    const open = document.getElementById("histDates").hidden || histUi.datesSide !== side;
+    histUi.datesSide = side;
+    histUiPanel("dates", open);
+    if (open) document.getElementById(side === "left" ? "histPickLeft" : "histPickRight").focus({ preventScroll: true });
+  });
+}
 document.getElementById("histMenuBtn").onclick = () => {
   const open = document.getElementById("histMenu").hidden;
   histUiPanel("menu", open);
@@ -915,12 +1167,13 @@ document.getElementById("histMenu").addEventListener("click", (e) => {
 document.getElementById("histResetPos").onclick = () => { histUi.pos = null; histUiSave(); histUiReflow(); };
 histBarEl().addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
-  for (const ids of Object.values(HIST_PANELS)) {
+  for (const [key, ids] of Object.entries(HIST_PANELS)) {
     if (document.getElementById(ids.panel).hidden) continue;
     e.preventDefault();
     e.stopPropagation();
     histUiPanel(null, false);
-    document.getElementById(ids.button).focus({ preventScroll: true });
+    const opener = key === "dates" ? document.querySelector(`[data-hist-dates="${histUi.datesSide || "left"}"]`) : document.getElementById(ids.button);
+    opener.focus({ preventScroll: true });
     return;
   }
 });
@@ -8100,8 +8353,7 @@ const SHELL_BINDINGS = [
 function applyShellCopy() {
   for (const el of document.querySelectorAll("[data-i18n]")) el.textContent = shellT(el.dataset.i18n);
   renderPnoaStatus();
-  renderHistStatus();
-  renderHistSlider();
+  renderHistPair();
   histUiApply();
   const grip = document.getElementById("panelResizeHandle");
   if (grip) grip.title = shellT("a11y.resizePanelHint");
@@ -9607,7 +9859,7 @@ const K11_COPY = Object.freeze({
     "reason.HIST_MISSING": "a required part of the historical view is missing",
     "reason.HIST_INVALID_CENTRE": "a centre outside the Madrid area or not a valid coordinate",
     "reason.HIST_INVALID_ZOOM": "a zoom outside 10 to 19",
-    "reason.HIST_UNKNOWN_PAIR": "a mosaic pair other than 2006/2023",
+    "reason.HIST_UNKNOWN_PAIR": "a date pair that is not two different verified orthophoto dates",
     "reason.HIST_INVALID_DIVIDER": "a divider position outside 0 to 100%",
     "restore.partialTitle": "Partial restore",
     "restore.refusedTitle": "Link not restored",
@@ -9675,7 +9927,7 @@ const K11_COPY = Object.freeze({
     "reason.HIST_MISSING": "falta una parte necesaria de la vista histórica",
     "reason.HIST_INVALID_CENTRE": "un centro fuera del área de Madrid o una coordenada no válida",
     "reason.HIST_INVALID_ZOOM": "un zoom fuera de 10 a 19",
-    "reason.HIST_UNKNOWN_PAIR": "una pareja de mosaicos distinta de 2006/2023",
+    "reason.HIST_UNKNOWN_PAIR": "una pareja de fechas que no son dos fechas de ortofoto verificadas y distintas",
     "reason.HIST_INVALID_DIVIDER": "una posición del divisor fuera de 0 a 100 %",
     "restore.partialTitle": "Restauración parcial",
     "restore.refusedTitle": "Enlace no restaurado",

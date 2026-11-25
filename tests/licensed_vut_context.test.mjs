@@ -864,9 +864,12 @@ test("licensed VUT introduces no choropleth or map layer", () => {
 
 test("no global time control is introduced: each source keeps its own state", () => {
   assert.doesNotMatch(html, /id="yearSelect"|id="periodSelect"|id="dateSelect"/);
-  // The only time selector remains HATI's own model-time control. Non-temporal
+  // The only GLOBAL time selector remains HATI's own model-time control. Non-temporal
   // selectors for language, appearance and the separately governed hospitality
-  // metric are permitted.
+  // metric are permitted. The two Urban Time Machine date pickers (histPickLeft/Right) are
+  // scoped, not global: each chooses only which official orthophoto one side of the
+  // visual-only historical comparator shows, and no other source's time or state changes
+  // (docs/URBAN_TIME_MACHINE_GATE0.md).
   const selects = html.match(/<select id="(\w+)"/g) || [];
   assert.deepEqual(selects.sort(), [
     '<select id="appearanceSelect"',
@@ -874,6 +877,8 @@ test("no global time control is introduced: each source keeps its own state", ()
     '<select id="boundarySelect"',
     '<select id="domesticOriginsMapLimit"',
     '<select id="domesticOriginsMonth"',
+    '<select id="histPickLeft"',
+    '<select id="histPickRight"',
     '<select id="hospitalityMetricSelect"',
     '<select id="languageSelect"',
     '<select id="stayKindFilter"',
