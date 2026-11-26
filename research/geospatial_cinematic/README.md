@@ -202,6 +202,30 @@ uses. Same local server, request blocking and sandbox; it writes nothing.
 node render.mjs --package C:\workspace\temporal-packages\madrid-rio-z16-final --storyboard storyboards/madrid-rio-dissolve.json --out C:\renders\interactive --width 1280 --height 720 --interactive
 ```
 
+### Pilot results (2026-11-26)
+
+Same Gate 4B package, not downloaded again; the hard-cut original
+(`C:\workspace\temporal-renders\madrid-rio-gate4c\final\video.mp4`, SHA-256 `7049c700…`) is left as is.
+
+- **Hard cut unchanged:** the hard-cut storyboard renders byte-identical with the Gate 4C code
+  and with this code (960 × 540, SHA-256 `7279a93f…`, both runs PASS).
+- **Short preview** (`smoke-dissolve.json`, 960 × 540, 4 s): PASS. Its first run flagged a flaw in the
+  test, not the render: at α ≈ 0.5 the reversed-pair rival is the same picture, so the page probe
+  moved to α ≈ 0.3 and 0.7.
+- **Second film**, `C:\workspace\temporal-renders\madrid-rio-gate4c1\final-dissolve-2\` (`video.mp4`
+  35.0 MB, `render-manifest.json` PASS, commit `00f5f69`, `screenshots\`): 1920 × 1080, 30/1, 1038
+  decoded frames, 34.6 s; 846 original and 192 transition frames, 8 dissolves of 0.8 s.
+  - Opacity in the MP4: 8/8 dissolves, largest \|α̂ − α\| 0.009, largest residual 4.2 % of the
+    A–B difference, every transition frame ≥ 0.031 from either original, holds 0.000.
+  - Page probes 37/37 (16 blend probes: declared blend ≥ 1.8 × better than the closest rival,
+    1 px shifts worse by ≥ 5.3); label ↔ image sync 0 mismatches; 4 real cuts on the exact frame;
+    seek PSNR ≥ 38.1 dB; 16 local requests, 0 to the IGN; package unchanged.
+- A first 1080p render (`final-dissolve`) passed every check but showed the two ruler labels of
+  the 1997–98 → 1997–2003 dissolve overlapping (both start in 1997); they are now stacked, and that
+  render is superseded.
+- Interactive preview: checked with `--interactive-screenshot` (slider at 52 % of the
+  1956–57 → 1997–98 dissolve, frame 270).
+
 ## 3D Animator skill: audit (verdict MODIFY)
 
 The `3d-animator` skill (in `.claude/skills/3d-animator`, untracked) was read in full before any
