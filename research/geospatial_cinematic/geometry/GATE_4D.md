@@ -278,3 +278,6 @@ Earlier outputs, kept for the record: `...\preview-960` and `...\stills-1/2` (re
 Observed in the film and added to the limitations: bridges, including Puente de Toledo, are part of the
 v1 MDT ground surface (the nDSM over them is ≈ 0), so they appear as raised strips of terrain with
 stretched sides; the Manzanares channel walls likewise. Neither is modelled as a structure.
+
+**Verdict: GO** — the owner gave visual approval of the final LoD1 film on 2026-11-26. Gate 4E (narrative and
+publication) is not started.
