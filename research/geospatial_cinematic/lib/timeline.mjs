@@ -17,6 +17,13 @@ export const seg = (t, a, b) => (b <= a ? (t >= b ? 1 : 0) : clamp01((t - a) / (
 const lerp = (a, b, k) => a + (b - a) * k;
 
 const KINDS = new Set(['intro', 'context', 'sequence', 'compare', 'closing']);
+const TRANSITIONS = new Set(['cut', 'dissolve']);
+
+// Opacity of the incoming coverage on transition frame j of n (0-based): a linear cross-fade,
+// strictly between 0 and 1. With n = 24 it runs 0.04 ... 0.96, so every transition frame is a
+// measurable blend in the encoded video and every hold frame is an original image. (An eased curve
+// would put the first and last frames below what the MP4 check can tell from an original.)
+export const dissolveAlpha = (j, n) => (j + 1) / (n + 1);
 
 export class StoryboardError extends Error {}
 
@@ -85,10 +92,27 @@ export function resolveTimeline(storyboard, pkg, { fps, width, height }) {
         last = at;
       }
       if (!ids.length) throw new StoryboardError(`${where}: no usable frame to show`);
-      ids.forEach((id, i) => push({
-        id: `${spec.id}:${id}`, kind: 'sequence', group: spec.id, frames: frameCount(spec.per_frame_s, fps, where),
-        coverage: id, layers: [id], camera: spec.camera, sequence_index: i, sequence_count: ids.length, spec,
-      }));
+      const transition = spec.transition || { type: 'cut' };
+      if (!TRANSITIONS.has(transition.type)) throw new StoryboardError(`${where}: transition.type must be "cut" or "dissolve"`);
+      if (transition.type === 'dissolve' && !(transition.duration_s >= 0.2 && transition.duration_s <= 2)) {
+        throw new StoryboardError(`${where}: a dissolve lasts 0.2-2 s`);
+      }
+      ids.forEach((id, i) => {
+        push({
+          id: `${spec.id}:${id}`, kind: 'sequence', group: spec.id, frames: frameCount(spec.per_frame_s, fps, where),
+          coverage: id, layers: [id], camera: spec.camera, sequence_index: i, sequence_count: ids.length, spec,
+        });
+        // A dissolve is its own shot between two original holds: only the two original textures,
+        // mixed by opacity, on the same plane and camera. No image in between is generated.
+        if (transition.type === 'dissolve' && i < ids.length - 1) {
+          push({
+            id: `${spec.id}:${id}>${ids[i + 1]}`, kind: 'transition', group: spec.id, frames: frameCount(transition.duration_s, fps, where),
+            coverage: null, layers: [id, ids[i + 1]], a: id, b: ids[i + 1], camera: spec.camera,
+            transition: { type: 'dissolve', duration_s: transition.duration_s, curve: 'linear (j + 1) / (n + 1)' },
+            sequence_index: i, sequence_count: ids.length, spec,
+          });
+        }
+      });
       return;
     }
     const frames = frameCount(spec.duration_s, fps, where);
@@ -148,13 +172,18 @@ export function frameState(timeline, i, sub = 0) {
     const w = shot.wipe || { from: 0.5, to: 0.5 };
     wipe = lerp(w.from, w.to, EASE[w.ease || 'easeInOut'](seg(localS, w.start_s ?? 0, w.end_s ?? 0)));
   }
+  const mix = shot.kind === 'transition'
+    ? { a: shot.a, b: shot.b, alpha: dissolveAlpha(i - shot.start_frame, shot.frames) }
+    : null;
   // What the picture shows. The page must label exactly these coverages on this frame.
   const visible = shot.kind === 'compare'
     ? [wipe > 0 ? shot.a : null, wipe < 1 ? shot.b : null].filter(Boolean)
     : shot.layers.slice();
   return {
     frame: i, t: (i + sub) / timeline.fps, local_s: localS, duration_s: durationS,
-    shot, camera, wipe, layers: shot.layers.slice(), visible,
+    shot, camera, wipe, mix, layers: shot.layers.slice(), visible,
+    // An original frame shows source images as they are; a transition frame is an opacity blend.
+    frame_type: mix ? 'transition' : 'original',
   };
 }
 

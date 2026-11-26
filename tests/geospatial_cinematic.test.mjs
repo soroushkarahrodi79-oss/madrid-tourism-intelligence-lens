@@ -13,9 +13,10 @@ import {
   sceneFrame, toScene, groundScale, orthoView, projectOrtho, extentPixelRect, perspectivePose,
   projectPerspective, extentCorners, ndcToPixel, mercatorToLonLat,
 } from '../research/geospatial_cinematic/lib/geo.mjs';
-import { resolveTimeline, frameState, timeMapping, StoryboardError } from '../research/geospatial_cinematic/lib/timeline.mjs';
+import { resolveTimeline, frameState, timeMapping, StoryboardError, dissolveAlpha } from '../research/geospatial_cinematic/lib/timeline.mjs';
 
 const STORYBOARD = JSON.parse(fs.readFileSync(new URL('../research/geospatial_cinematic/storyboards/madrid-rio.json', import.meta.url), 'utf8'));
+const DISSOLVE = JSON.parse(fs.readFileSync(new URL('../research/geospatial_cinematic/storyboards/madrid-rio-dissolve.json', import.meta.url), 'utf8'));
 const BBOX = [-414969.329, 4922846.603, -411911.848, 4924757.528];
 const W = 1280;
 const H = 800;
@@ -296,6 +297,73 @@ test('the time mapping keeps playback time and historical dates apart', () => {
   const first = rows.find((r) => r.kind === 'sequence');
   assert.deepEqual(first.coverages[0], { coverage_id: 'ams1956', role: 'frame', date_label: '1956–57', date_kind: 'multi_year_flight', start_year: 1956, end_year: 1957 });
   assert.equal(first.video_frames[1] - first.video_frames[0], 39, '1.3 s of video at 30 fps');
+});
+
+// ---------- Gate 4C.1: cross-dissolve mode ----------
+
+test('hard cut stays the default: no transition shot without a transition setting', () => {
+  const tl = resolveTimeline(STORYBOARD, pkgView(), OPTS);
+  assert.equal(tl.shots.filter((s) => s.kind === 'transition').length, 0);
+  assert.ok(Array.from({ length: tl.total_frames }, (_, i) => frameState(tl, i)).every((st) => st.frame_type === 'original' && st.mix === null));
+  const explicitCut = structuredClone(STORYBOARD);
+  explicitCut.shots.find((s) => s.kind === 'sequence').transition = { type: 'cut' };
+  assert.deepEqual(resolveTimeline(explicitCut, pkgView(), OPTS).shots.map((s) => [s.id, s.start_frame, s.end_frame]), tl.shots.map((s) => [s.id, s.start_frame, s.end_frame]));
+});
+
+test('a dissolve sits between two original holds and mixes only those two coverages', () => {
+  const tl = resolveTimeline(DISSOLVE, pkgView(), OPTS);
+  const seq = tl.shots.filter((s) => s.group === 'sequence');
+  assert.deepEqual(seq.map((s) => s.kind), Array.from({ length: 17 }, (_, i) => (i % 2 ? 'transition' : 'sequence')));
+  const ids = pkgView().sequence.map((f) => f.coverage_id);
+  seq.filter((s) => s.kind === 'transition').forEach((s, k) => {
+    assert.deepEqual([s.a, s.b], [ids[k], ids[k + 1]], 'consecutive dates in package order');
+    assert.equal(s.frames, 24, '0.8 s at 30 fps');
+    assert.equal(tl.shots[tl.shots.indexOf(s) - 1].coverage, s.a);
+    assert.equal(tl.shots[tl.shots.indexOf(s) + 1].coverage, s.b);
+  });
+  assert.equal(tl.total_frames, 120 + 105 + 9 * 33 + 8 * 24 + 150 + 174);
+});
+
+test('every transition frame is a blend (0 < alpha < 1, increasing); every hold frame is an original', () => {
+  const tl = resolveTimeline(DISSOLVE, pkgView(), OPTS);
+  for (const s of tl.shots) {
+    const states = Array.from({ length: s.frames }, (_, j) => frameState(tl, s.start_frame + j));
+    if (s.kind === 'transition') {
+      const alphas = states.map((st) => st.mix.alpha);
+      assert.ok(alphas.every((a) => a > 0.03 && a < 0.97), 'measurably different from both originals');
+      assert.ok(alphas.every((a, j) => j === 0 || a > alphas[j - 1]), 'monotonic');
+      assert.ok(states.every((st) => st.frame_type === 'transition' && st.visible.join() === `${s.a},${s.b}`), 'both dates shown and labelled');
+    } else {
+      assert.ok(states.every((st) => st.frame_type === 'original' && st.mix === null));
+    }
+  }
+  assert.equal(dissolveAlpha(0, 24), 1 / 25);
+  assert.equal(dissolveAlpha(23, 24), 24 / 25);
+});
+
+test('framing, camera and extent do not change through holds and dissolves', () => {
+  const tl = resolveTimeline(DISSOLVE, pkgView(), OPTS);
+  const cams = tl.shots.filter((s) => ['context', 'sequence', 'transition', 'compare'].includes(s.kind))
+    .flatMap((s) => [s.start_frame, s.end_frame - 1]).map((i) => JSON.stringify(frameState(tl, i).camera));
+  assert.equal(new Set(cams).size, 1);
+});
+
+test('dissolve settings that are not a plain opacity cross-fade are refused', () => {
+  const bad = (transition) => {
+    const sb = structuredClone(DISSOLVE);
+    sb.shots.find((s) => s.kind === 'sequence').transition = transition;
+    return () => resolveTimeline(sb, pkgView(), OPTS);
+  };
+  assert.throws(bad({ type: 'morph', duration_s: 0.8 }), /cut" or "dissolve/);
+  assert.throws(bad({ type: 'dissolve', duration_s: 5 }), /0.2-2 s/);
+  assert.throws(bad({ type: 'dissolve' }), /0.2-2 s/);
+});
+
+test('the time mapping lists both coverages of a dissolve with their published dates', () => {
+  const tl = resolveTimeline(DISSOLVE, pkgView(), OPTS);
+  const row = timeMapping(tl, pkgView().byId).find((r) => r.kind === 'transition');
+  assert.deepEqual(row.coverages.map((c) => c.date_label), ['1956–57', 'Lolistat']);
+  assert.equal(row.video_frames[1] - row.video_frames[0], 24);
 });
 
 test('integration: the real Gate 4B pilot package (set CINEMATIC_PACKAGE)', { skip: !process.env.CINEMATIC_PACKAGE }, () => {
