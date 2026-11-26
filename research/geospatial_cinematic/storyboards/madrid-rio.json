@@ -1,0 +1,88 @@
+{
+  "storyboard_version": "0.1.0",
+  "id": "madrid-rio-pilot",
+  "note": "Built from what the ten frames show: riverside road corridor in 1997-98, bare works ground 2006-2011, a linear park from 2014. That is a visual reading, not a measured change, and the film says so.",
+  "locale": "es-ES",
+  "shots": [
+    {
+      "id": "intro",
+      "kind": "intro",
+      "duration_s": 4.0,
+      "coverage": "reference",
+      "camera": {
+        "type": "perspective",
+        "fov_deg": 30,
+        "ease": "easeInOut",
+        "start_s": 0,
+        "end_s": 4.0,
+        "from": { "target": [0.05, -0.12], "distance": 0.6, "tilt_deg": 22, "heading_deg": -6 },
+        "to": { "target": [0, 0], "distance": 1, "tilt_deg": 0, "heading_deg": 0 }
+      }
+    },
+    {
+      "id": "context",
+      "kind": "context",
+      "duration_s": 3.5,
+      "coverage": "reference",
+      "camera": { "type": "orthographic", "zoom": 1 }
+    },
+    {
+      "id": "sequence",
+      "kind": "sequence",
+      "per_frame_s": 1.3,
+      "coverages": "all",
+      "camera": { "type": "orthographic", "zoom": 1 }
+    },
+    {
+      "id": "compare",
+      "kind": "compare",
+      "duration_s": 5.0,
+      "a": "olistat",
+      "b": "latest",
+      "wipe": { "from": 1.0, "to": 0.5, "start_s": 0.7, "end_s": 2.6, "ease": "easeInOut" },
+      "camera": { "type": "orthographic", "zoom": 1 }
+    },
+    {
+      "id": "closing",
+      "kind": "closing",
+      "duration_s": 5.8,
+      "coverage": "latest",
+      "camera": { "type": "orthographic", "zoom_from": 1, "zoom_to": 1.05, "ease": "easeInOut", "start_s": 0, "end_s": 5.8 }
+    }
+  ],
+  "copy": {
+    "title": "MADRID URBAN TIME MACHINE",
+    "subtitle": "Madrid Río — evolución territorial observada",
+    "eyebrow": "MADRID URBAN TIME MACHINE · MADRID RÍO",
+    "place": "Madrid Río · entorno del Puente de Toledo",
+    "intro_source": "Ortofotografías oficiales · IGN / PNOA · {period}",
+    "context_lines": [
+      "Centro {lat}° N · {lon}° O",
+      "Extensión {wm} × {hm} km en unidades Web Mercator ≈ {wg} × {hg} km sobre el terreno (aprox.)",
+      "EPSG:3857 · norte arriba · misma extensión y geometría para todas las fechas"
+    ],
+    "sequence_heading": "SECUENCIA HISTÓRICA",
+    "ruler_caption": "Años publicados de cada cobertura · cada imagen ocupa {per} s de vídeo",
+    "reference": "referencia",
+    "reference_tick": "ref.",
+    "kind": {
+      "annual_mosaic": "Mosaico anual",
+      "multi_year_flight": "Vuelo plurianual · intervalo publicado, sin fecha exacta"
+    },
+    "coverage_flag": {
+      "SUSPECTED_PARTIAL": "Cobertura posiblemente parcial"
+    },
+    "compare_heading": "COMPARACIÓN ALINEADA",
+    "compare_note": "Barrido visual sobre la misma extensión y geometría. No es una medición de cambio.",
+    "scale_bar": "{m} m · aprox.",
+    "closing_heading": "Madrid Río, {period}",
+    "closing_lines": [
+      "Fuente: {provider} — servicio WMS pnoa-historico. Licencia {licence}.",
+      "{images} ortofotografías 2D sobre una misma extensión EPSG:3857, sin interpolación entre fechas.",
+      "Las diferencias visibles son una lectura visual: no son mediciones ni prueban causas.",
+      "Fechas: año del mosaico o intervalo de vuelo publicado. Cobertura no verificada por la herramienta.",
+      "Visualización 2.5D de imágenes planas: sin relieve, edificios ni geometría reconstruida."
+    ],
+    "credit": "Madrid Urban Evidence Lens · Urban Time Machine · motor cinematográfico V0.1"
+  }
+}

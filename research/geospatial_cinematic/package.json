@@ -1,0 +1,18 @@
+{
+  "name": "geospatial-cinematic-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gate 4C: renders a verified Gate 4B temporal frame package as an MP4 with a render manifest. Research tool, not part of the Lens runtime.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "smoke": "node render.mjs --storyboard storyboards/smoke.json --width 640 --height 360 --n 1",
+    "preview": "node render.mjs --storyboard storyboards/madrid-rio.json --width 960 --height 540 --n 1",
+    "final": "node render.mjs --storyboard storyboards/madrid-rio.json --width 1920 --height 1080 --n 4"
+  },
+  "dependencies": {
+    "playwright": "1.63.0",
+    "three": "0.186.1"
+  }
+}
