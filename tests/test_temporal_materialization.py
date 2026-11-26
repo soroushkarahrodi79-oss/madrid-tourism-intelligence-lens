@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import contextlib
 import copy
+import functools
 import hashlib
 import http.server
 import io
 import json
+import os
 import pathlib
 import sys
 import tempfile
@@ -20,6 +22,7 @@ import threading
 import unittest
 import urllib.error
 import urllib.parse
+from unittest import mock
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "research" / "temporal_materialization"))
@@ -173,6 +176,11 @@ def ok(body, content_type="image/jpeg", status=200, **headers):
     return status, {"content-type": content_type, "content-length": str(len(body)), **headers}, body
 
 
+@functools.lru_cache(maxsize=None)
+def layer_image(layer):
+    return encode(textured(sum(layer.encode()) * 7 + len(layer)))
+
+
 class FakeService:
     """Answers by layer name. `special` maps a layer to a list of replies used in order."""
 
@@ -189,7 +197,7 @@ class FakeService:
             if isinstance(reply, BaseException):
                 raise reply
             return reply
-        self.bodies[layer] = encode(textured(sum(layer.encode()) * 7 + len(layer)))
+        self.bodies[layer] = layer_image(layer)
         return ok(self.bodies[layer])
 
 
@@ -292,20 +300,90 @@ class PipelineTests(unittest.TestCase):
         self.run_tool(offline)
         self.assertIsNotNone(self.by_id()["2023"]["superseded"], "the history survives later runs")
 
+    def snapshot(self):
+        return {p.relative_to(self.out).as_posix(): p.read_bytes() for p in self.out.rglob("*") if p.is_file()}
+
+    def assert_resume_refuses(self):
+        """Exit 4, and not one byte of the package is rewritten, so nothing is legitimised."""
+        before = self.snapshot()
+        for _ in range(2):
+            with self.assertRaises(m.Altered):
+                self.run_tool(offline)
+            self.assertEqual(self.snapshot(), before)
+        self.assertEqual(self.verify(), 4)
+
     def test_altered_image_is_detected_and_never_overwritten(self):
         self.run_tool(FakeService())
-        record = self.by_id()["2023"]
-        target = self.out / record["file"]
+        target = self.out / self.by_id()["2023"]["file"]
         target.write_bytes(target.read_bytes() + b"x")
-        altered = target.read_bytes()
-        self.assertEqual(self.verify(), 4)
-        for _ in range(2):  # the mismatch must survive a rerun, not be forgotten by it
-            code, _report = self.run_tool(offline)
-            self.assertEqual(code, 4)
-            self.assertEqual(target.read_bytes(), altered)
-            self.assertEqual(self.by_id()["2023"]["sha256"], record["sha256"])
-            self.assertFalse(self.package()["complete"])
-            self.assertEqual(self.verify(), 4)
+        self.assert_resume_refuses()
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(m.main(["--manifest", str(self.manifest), "--output", str(self.out)]), 4)
+
+    def test_resume_never_legitimises_altered_metadata(self):
+        self.run_tool(FakeService())
+        pristine = self.snapshot()
+
+        def edit(name, old, new):
+            path = self.out / name
+            data = path.read_bytes()
+            self.assertIn(old, data)
+            path.write_bytes(data.replace(old, new, 1))
+
+        def rehash_listed_aux_only():
+            name = "frames/ref_2006.jpg.aux.xml"
+            old = hashlib.sha256((self.out / name).read_bytes()).hexdigest()
+            edit(name, b"central_meridian&quot;,0", b"central_meridian&quot;,10")
+            edit("checksums.sha256", old.encode(), hashlib.sha256((self.out / name).read_bytes()).hexdigest().encode())
+
+        def sidecar_altered_and_image_deleted():
+            edit("frames/ref_2006.jgw", b"-", b"")
+            (self.out / "frames" / "ref_2006.jpg").unlink()
+
+        cases = {
+            "CRS changed, still says 3857": lambda: edit("frames/ref_2006.jpg.aux.xml", b"central_meridian&quot;,0", b"central_meridian&quot;,10"),
+            "GIS statistics added": lambda: edit("frames/ref_2006.jpg.aux.xml", b"</PAMDataset>", b"<Metadata/></PAMDataset>"),
+            "world file": lambda: edit("frames/ref_2006.jgw", b"-", b""),
+            "prj": lambda: edit("frames/ref_2006.prj", b"Auxiliary", b"Other"),
+            "record: coverage state": lambda: edit("materialized-manifest.json", b"COVERAGE_UNVERIFIED", b"SUSPECTED_PARTIAL"),
+            "record: retrieval date": lambda: edit("materialized-manifest.json", b'"retrieved_at": "2', b'"retrieved_at": "1'),
+            "validation report": lambda: edit("validation-report.json", b'"valid": 10', b'"valid": 11'),
+            "checksum list rewritten for an altered sidecar": rehash_listed_aux_only,
+            "checksum list deleted": lambda: (self.out / "checksums.sha256").unlink(),
+            "materialized manifest deleted": lambda: (self.out / "materialized-manifest.json").unlink(),
+            "altered sidecar of a deleted image": sidecar_altered_and_image_deleted,
+        }
+        for name, alter in cases.items():
+            with self.subTest(name):
+                for relative, data in pristine.items():
+                    (self.out / relative).write_bytes(data)
+                self.assertEqual(self.verify(), 0)
+                alter()
+                self.assert_resume_refuses()
+
+    def test_a_run_killed_while_saving_can_still_resume(self):
+        real_replace = os.replace
+
+        def dies_at(n):
+            calls = []
+
+            def replace(source, target):
+                calls.append(target)
+                if len(calls) == n:
+                    raise KeyboardInterrupt
+                real_replace(source, target)
+
+            return mock.patch.object(m.os, "replace", replace)
+
+        for n in range(1, 27):  # every rename of the first two frames
+            with self.subTest(n=n):
+                self.out = self.tmp / f"killed{n}"
+                with dies_at(n), self.assertRaises(KeyboardInterrupt):
+                    self.run_tool(FakeService())
+                with dies_at(2), self.assertRaises(KeyboardInterrupt):  # and again while resuming
+                    self.run_tool(FakeService())
+                self.assertEqual(self.run_tool(FakeService())[0], 0)
+                self.assertEqual(self.verify(), 0)
 
     def test_missing_or_altered_sidecar(self):
         self.run_tool(FakeService())
@@ -317,15 +395,6 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(self.verify(), 4)
         world.write_bytes(original)
         self.assertEqual(self.verify(), 0)
-
-    def test_gis_statistics_in_aux_xml_are_tolerated_but_a_new_crs_is_not(self):
-        self.run_tool(FakeService())
-        aux = self.out / "frames" / "ref_2006.jpg.aux.xml"
-        original = aux.read_bytes()
-        aux.write_bytes(original.replace(b"</PAMDataset>", b'<Metadata><MDI key="STATISTICS_MEAN">1</MDI></Metadata></PAMDataset>'))
-        self.assertEqual(self.verify(), 0)
-        aux.write_bytes(original.replace(b"3857", b"4326"))
-        self.assertEqual(self.verify(), 4)
 
     def test_existing_content_is_never_overwritten(self):
         self.out.mkdir()
@@ -355,7 +424,12 @@ class PipelineTests(unittest.TestCase):
         self.run_tool(FakeService())
         package = self.package()
         package["frames"][0]["file"] = "../manifest.json"
-        (self.out / "materialized-manifest.json").write_text(json.dumps(package), encoding="utf-8")
+        data = json.dumps(package).encode()
+        (self.out / "materialized-manifest.json").write_bytes(data)
+        sums = self.out / "checksums.sha256"  # refused even with the list rewritten to match
+        lines = [line for line in sums.read_text(encoding="utf-8").splitlines() if not line.endswith("  materialized-manifest.json")]
+        lines.append(f"{hashlib.sha256(data).hexdigest()}  materialized-manifest.json")
+        sums.write_bytes("".join(f"{line}{chr(10)}" for line in lines).encode("utf-8"))
         with self.assertRaises(m.Refused):
             self.run_tool(offline)
 

@@ -26,9 +26,13 @@ again resumes: verified files are reused without any request, failed frames are 
 | 0 | Every frame is a valid image (read the coverage warnings) / package intact |
 | 2 | Manifest or output directory refused; nothing downloaded |
 | 3 | Incomplete: at least one frame has no valid image |
-| 4 | Integrity failure: a file differs from its record. Nothing is overwritten |
+| 4 | Integrity failure: a file differs from its record. No existing image, sidecar or recorded hash is replaced |
 
-To recover from exit 4, move the named file out of the package (or choose a new `--output`).
+Before a resume writes anything, every existing listed file and the two JSON records are checked
+against `checksums.sha256` and the materialized manifest. One altered byte ends the run with exit
+4 and the package untouched. To recover, restore the file or choose a new `--output`. An altered
+image or sidecar, or the validation report, can also be moved out of the package so that it is
+fetched or regenerated; `materialized-manifest.json` and `checksums.sha256` cannot.
 A recorded image that is missing is downloaded again; its record keeps the earlier hash and date
 under `superseded`, and the report says whether the bytes differ.
 
@@ -111,8 +115,12 @@ Limits, all unquantified against ground truth:
 | The provider will return the same pixels | **No guarantee** |
 
 Hashes detect later change or corruption. They are not signatures: whoever edits a file can
-also rewrite `checksums.sha256`. `--verify` tolerates statistics that GDAL or QGIS add to
-`.aux.xml`, as long as the CRS is unchanged and no geotransform was added.
+also rewrite the manifest and `checksums.sha256` so that they agree.
+
+**Keep packages unaltered.** Every listed file is compared byte for byte, with no exceptions.
+GDAL and QGIS can write statistics into `.aux.xml` when a raster is opened, which `--verify`
+then reports as altered: open a copy. A run killed while saving can also fail `--verify` until it
+is resumed.
 
 ## Pilot (2026-11-26)
 

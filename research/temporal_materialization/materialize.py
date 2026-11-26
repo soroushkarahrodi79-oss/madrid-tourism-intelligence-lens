@@ -90,6 +90,10 @@ class Refused(Exception):
         super().__init__("; ".join(self.problems))
 
 
+class Altered(Refused):
+    """An existing package no longer matches its records. Nothing is written."""
+
+
 class FrameError(Exception):
     def __init__(self, code, message, retryable=False, retry_after=None, response=None):
         super().__init__(message)
@@ -486,6 +490,71 @@ _DOWNLOADED = ("status", "file", "sidecars", "sha256", "bytes", "retrieved_at", 
 _FRAME_FILE = re.compile(r"frames/[A-Za-z0-9_][A-Za-z0-9_.-]*")
 
 
+def read_checksums(path: pathlib.Path):
+    """-> ({relative path: sha256}, [problems]). A listed path cannot leave the package."""
+    listed, problems = {}, []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        match = re.fullmatch(r"([0-9a-f]{64})  ((?:frames/)?[A-Za-z0-9_][A-Za-z0-9_.-]*)", line)
+        if match:
+            listed[match[2]] = match[1]
+        else:
+            problems.append(f"unreadable checksum line: {line!r}")
+    return listed, problems
+
+
+def write_checksums(path: pathlib.Path, sums):
+    write_atomic(path, "".join(f"{h}  {p}\n" for p, h in sorted(sums.items())).encode("utf-8"))
+
+
+def recorded_hashes(package):
+    """Every hash the materialized manifest itself records."""
+    required = {"source-manifest.json": package["source_manifest"]["sha256"]}
+    for frame in package["frames"]:
+        if frame["status"] == "VALID_IMAGE":
+            required[frame["file"]] = frame["sha256"]
+            required.update(frame["sidecars"])
+    return required
+
+
+def check_before_resume(out: pathlib.Path):
+    """A resume rewrites the records and checksums, so everything it would build on must
+    first still be what a run wrote. A missing frame file is allowed (it is fetched or
+    regenerated); an altered one is not.
+
+    save() writes checksums.sha256.next, then the two JSON files, then renames the list
+    into place, so a run killed in between matches one of the two lists.
+    """
+    committed, pending = out / "checksums.sha256", out / "checksums.sha256.next"
+    manifest, report = out / "materialized-manifest.json", out / "validation-report.json"
+    if not manifest.is_file():
+        if committed.is_file():
+            raise Altered(f"{manifest.name} is missing")
+        return
+    lists = [read_checksums(p) for p in (committed, pending) if p.is_file()]
+    digest = sha256(manifest.read_bytes())
+    match = next((found for found in lists if found[0].get(manifest.name) == digest), None)
+    if match is None:
+        raise Altered(f"{manifest.name} does not match checksums.sha256")
+    listed, problems = dict(match[0]), list(match[1])
+    if report.is_file():
+        actual = sha256(report.read_bytes())
+        if actual not in [found[0].get(report.name) for found in lists]:
+            problems.append(f"altered: {report.name}")
+        listed[report.name] = actual
+    problems += [f"altered: {relative}" for relative, expected in listed.items()
+                 if (out / relative).is_file() and sha256((out / relative).read_bytes()) != expected]
+    try:
+        required = recorded_hashes(json.loads(manifest.read_text(encoding="utf-8")))
+        problems += [f"checksum list disagrees with the manifest: {p}" for p, h in required.items() if listed.get(p) != h]
+    except (ValueError, KeyError, TypeError, AttributeError) as exc:
+        problems.append(f"{manifest.name} unreadable: {exc}")
+    if problems:
+        raise Altered(problems)
+    if pending.is_file():  # finish the interrupted save
+        write_checksums(committed, listed)
+        pending.unlink()
+
+
 def prepare_output(out: pathlib.Path, source: bytes):
     """A new or empty directory, or a package of this same manifest. Returns prior records."""
     copy = out / "source-manifest.json"
@@ -494,9 +563,12 @@ def prepare_output(out: pathlib.Path, source: bytes):
             raise Refused(f"{out} holds a package of a different manifest; choose another --output")
     elif out.exists() and (not out.is_dir() or any(p.suffix != ".part" for p in out.iterdir())):
         raise Refused(f"{out} is not empty and is not a materialized package; nothing was overwritten")
-    (out / "frames").mkdir(parents=True, exist_ok=True)
-    if not copy.exists():
+    if copy.exists():
+        check_before_resume(out)  # before anything is written
+    else:
+        out.mkdir(parents=True, exist_ok=True)
         write_atomic(copy, source)
+    (out / "frames").mkdir(exist_ok=True)
     previous = out / "materialized-manifest.json"
     if not previous.exists():
         return {}
@@ -568,14 +640,6 @@ def reuse(out, record, old):
     return True
 
 
-def sidecar_ok(relative, data, expected):
-    if sha256(data) == expected:
-        return True
-    # GDAL and QGIS add statistics to .aux.xml when a raster is opened. Accept that
-    # only while the CRS is intact and no geotransform has been introduced.
-    return relative.endswith(".aux.xml") and b'"3857"' in data.replace(b"&quot;", b'"') and b"<GeoTransform" not in data
-
-
 def write_sidecars(out, record, spatial, image_format):
     written = {}
     for name, text in sidecars(pathlib.PurePosixPath(record["file"]).name, spatial, image_format).items():
@@ -583,7 +647,7 @@ def write_sidecars(out, record, spatial, image_format):
         path = out / relative
         if not path.exists():
             write_atomic(path, data)
-        elif not sidecar_ok(relative, path.read_bytes(), sha256(data)):
+        elif path.read_bytes() != data:
             raise FrameError("INTEGRITY_CONFLICT", f"{relative} was altered; it was left untouched")
         written[relative] = sha256(data)
     record["sidecars"] = written
@@ -639,15 +703,17 @@ def save(out, source, manifest, spatial, records, run):
         "warnings": warnings,
     }
     package_bytes, report_bytes = json_bytes(package), json_bytes(report)
-    write_atomic(out / "materialized-manifest.json", package_bytes)
-    write_atomic(out / "validation-report.json", report_bytes)
     sums = {"source-manifest.json": sha256(source),
             "materialized-manifest.json": sha256(package_bytes),
             "validation-report.json": sha256(report_bytes)}
     for r in valid:
         sums[r["file"]] = r["sha256"]
         sums.update(r["sidecars"])
-    write_atomic(out / "checksums.sha256", "".join(f"{h}  {p}\n" for p, h in sorted(sums.items())).encode("utf-8"))
+    pending = out / "checksums.sha256.next"  # see check_before_resume
+    write_checksums(pending, sums)
+    write_atomic(out / "materialized-manifest.json", package_bytes)
+    write_atomic(out / "validation-report.json", report_bytes)
+    os.replace(pending, out / "checksums.sha256")
     return report
 
 
@@ -730,29 +796,19 @@ def verify(out, log=print):
     if not sums_path.is_file():
         log(f"FAIL: {sums_path} is missing; not a materialized package")
         return 4
-    problems, listed = [], {}
-    for line in sums_path.read_text(encoding="utf-8").splitlines():
-        match = re.fullmatch(r"([0-9a-f]{64})  ((?:frames/)?[A-Za-z0-9_][A-Za-z0-9_.-]*)", line)
-        if not match:
-            problems.append(f"unreadable checksum line: {line!r}")
-            continue
-        listed[match[2]] = match[1]
+    listed, problems = read_checksums(sums_path)
     for relative, expected in listed.items():
         path = out / relative
         if not path.is_file():
             problems.append(f"missing: {relative}")
-        elif not sidecar_ok(relative, path.read_bytes(), expected):
+        elif sha256(path.read_bytes()) != expected:
             problems.append(f"altered: {relative}")
     complete = False
     try:
         package = json.loads((out / "materialized-manifest.json").read_text(encoding="utf-8"))
         complete = package["complete"]
-        required = {"source-manifest.json": package["source_manifest"]["sha256"]}
-        for frame in package["frames"]:
-            if frame["status"] == "VALID_IMAGE":
-                required[frame["file"]] = frame["sha256"]
-                required.update(frame["sidecars"])
-        problems += [f"checksum list disagrees with the manifest: {p}" for p, h in required.items() if listed.get(p) != h]
+        problems += [f"checksum list disagrees with the manifest: {p}"
+                     for p, h in recorded_hashes(package).items() if listed.get(p) != h]
         problems += [f"not covered by checksums: {n}" for n in ("materialized-manifest.json", "validation-report.json") if n not in listed]
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
         problems.append(f"materialized-manifest.json unreadable: {exc}")
@@ -782,6 +838,9 @@ def main(argv=None):
         parser.error("--manifest and --output are required")
     try:
         code, report = materialize(args.manifest, args.output)
+    except Altered as error:
+        print("INTEGRITY FAILURE, nothing was written:", *error.problems, sep="\n  ", file=sys.stderr)
+        return 4
     except Refused as error:
         print("REFUSED:", *error.problems, sep="\n  ", file=sys.stderr)
         return 2
