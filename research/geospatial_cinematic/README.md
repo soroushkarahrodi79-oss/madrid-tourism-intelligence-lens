@@ -307,7 +307,7 @@ visible `temporal_warning`.
 
 ```powershell
 node render.mjs --package C:\workspace\temporal-packages\madrid-rio-z16-final `
-  --geometry C:\workspace\temporal-geometry\madrid-rio-lidar2024-v1 `
+  --geometry C:\workspace\temporal-geometry\madrid-rio-lidar2024-lod1-v2 `
   --storyboard storyboards/madrid-rio-3d.json --out C:\workspace\temporal-renders\madrid-rio-gate4d\final --width 1920 --height 1080 --n 4
 ```
 
