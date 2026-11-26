@@ -10,6 +10,9 @@ that Python, GIS tools or a future rendering pipeline can repeat them.
   1280 × 800): [`examples/temporal-manifest.example.json`](examples/temporal-manifest.example.json)
 - Builder: [`../js/temporal-manifest.js`](../js/temporal-manifest.js) (pure; no DOM or network)
 
+To download the images of a manifest as a verified, georeferenced package, use the standalone
+tool in [`research/temporal_materialization`](../research/temporal_materialization/README.md).
+
 ## What it is not
 
 It holds no imagery and no image hashes. It is not an archive and not materialised cartographic
