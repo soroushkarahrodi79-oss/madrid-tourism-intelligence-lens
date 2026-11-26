@@ -184,6 +184,48 @@ code was written; none of its scripts was run.
   scientific imagery here; it does not detect a lost WebGL context, which happened in this pilot
   (see below).
 
+## Pilot (2026-11-26): Madrid Río
+
+Package `C:\workspace\temporal-packages\madrid-rio-z16-final` (Gate 4B, reused as is, not
+downloaded again; Gate 4B `--verify`: 43 files match). Reference 2006 + nine dates, 1956–57 to 2023,
+all `COVERAGE_UNVERIFIED`. Storyboard built from what the frames show: riverside road corridor in
+1997–98, bare works ground 2006–2011, a linear park from 2014 (a visual reading, not a measurement).
+
+| Shot | Video | Content |
+|---|---|---|
+| Intro | 0–4 s | title over the 2006 reference; perspective, tilt 22° → 0°, heading −6° → 0° |
+| Context | 4–7.5 s | north-up extent, centre, Mercator vs ground size, scale bar |
+| Sequence | 7.5–19.2 s | nine dates × 1.3 s, hard cuts, published-year ruler |
+| Comparison | 19.2–24.2 s | 1997–98 \| 2023 wipe on the same plane |
+| Closing | 24.2–30 s | 2023, sources, licence, method caveats |
+
+Stages: A smoke (2 dates, 640 × 360, 4.7 s) PASS; B preview (960 × 540) PASS on its third run
+(see below); C final, one storyboard, 1920 × 1080, 30 fps, 4 sub-frames on camera moves, 341 s on an
+Intel UHD 620 (ANGLE D3D11). Results, outside the repository:
+
+```
+C:\workspace\temporal-renders\madrid-rio-gate4c\final\video.mp4             (20.1 MB)
+C:\workspace\temporal-renders\madrid-rio-gate4c\final\render-manifest.json  (status PASS, commit 1d28d79)
+C:\workspace\temporal-renders\madrid-rio-gate4c\final\screenshots\
+```
+
+- ffprobe: H.264 High, yuv420p BT.709, 1920 × 1080, 30/1, 900 decoded frames, 30.000 s; full decode clean.
+- Alignment, 21 probes: right image MAD 1.3–5.0 against ≥ 27.6 for any other date, ≥ 41.3 mirrored;
+  every 1 px shift worse by ≥ 7.1; outside the extent 0.
+- Encoded file: seek PSNR 39.5–44.5 dB on 39 key frames; all 12 cuts on the exact frame (≥ 40.1 dB
+  against the right frame, ≤ 18.8 dB against its neighbour). Label ↔ image sync: 0 mismatches in 900 frames.
+- Network: 16 requests, all to the local server; 0 blocked, 0 to the IGN. Console: no errors or warnings.
+- Package: 44 files byte-identical, same modification times, after all runs.
+- Two final renders of the same code on this machine produced byte-identical MP4s
+  (SHA-256 `7049c700…eb9d89`). One observation on one system, not a cross-system guarantee.
+
+What went wrong on the way, kept for the record: the first preview lost its WebGL context (the
+alignment probes allocated a canvas each) and encoded frames without imagery while passing the
+checks of that version; probe canvases are now reused, a lost context stops the render, and the
+imagery-presence check was added. A later preview failed in FFmpeg with an allocation error when
+free memory dropped to ~1.5 GB; the same frames encoded cleanly in isolation and on the next run.
+One final render was interrupted by the session ending and is not used.
+
 ## Limitations
 
 - Frames are 1280 × 800 requests (~1.8 m ground spacing at the centre); 1080p output resamples
