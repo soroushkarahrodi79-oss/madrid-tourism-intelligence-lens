@@ -1,0 +1,2 @@
+# Needed only to materialize (decoding the received images). --verify is stdlib only.
+Pillow>=11,<14

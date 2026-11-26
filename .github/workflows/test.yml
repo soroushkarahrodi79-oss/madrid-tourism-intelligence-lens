@@ -25,6 +25,9 @@ jobs:
         with:
           python-version: "3.12"
       - run: node --test
+      # Without Pillow the image-decoding tests of the temporal materializer
+      # (research/temporal_materialization) would skip silently.
+      - run: python -m pip install -r research/temporal_materialization/requirements.txt
       # "python" (not "python3") is the interpreter name actions/setup-python
       # puts on PATH on both runners; "python3" does not exist on Windows.
       - run: python -m unittest discover -s tests -p "test_*.py"
