@@ -1,0 +1,37 @@
+{
+  "storyboard_version": "0.1.0",
+  "id": "smoke-two-images",
+  "note": "Stage A smoke test: two images, under 5 s, low resolution. Checks geometry and label/texture sync only.",
+  "locale": "es-ES",
+  "copy_from": "madrid-rio.json",
+  "shots": [
+    {
+      "id": "intro",
+      "kind": "intro",
+      "duration_s": 1.2,
+      "coverage": "earliest",
+      "camera": {
+        "type": "perspective",
+        "fov_deg": 30,
+        "from": { "target": [0.05, -0.12], "distance": 0.6, "tilt_deg": 22, "heading_deg": -6 },
+        "to": { "target": [0, 0], "distance": 1, "tilt_deg": 0, "heading_deg": 0 }
+      }
+    },
+    {
+      "id": "sequence",
+      "kind": "sequence",
+      "per_frame_s": 1.0,
+      "coverages": ["earliest", "latest"],
+      "camera": { "type": "orthographic", "zoom": 1 }
+    },
+    {
+      "id": "compare",
+      "kind": "compare",
+      "duration_s": 1.5,
+      "a": "earliest",
+      "b": "latest",
+      "wipe": { "from": 1.0, "to": 0.5, "start_s": 0.2, "end_s": 0.9 },
+      "camera": { "type": "orthographic", "zoom": 1 }
+    }
+  ]
+}
