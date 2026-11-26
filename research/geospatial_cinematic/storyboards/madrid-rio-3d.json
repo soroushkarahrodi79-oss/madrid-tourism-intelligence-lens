@@ -1,0 +1,248 @@
+{
+  "storyboard_version": "0.2.0",
+  "id": "madrid-rio-3d-pilot",
+  "note": "Gate 4D pilot (after the visual review, alternative C): from the flat orthophoto (mode A) to LoD1 buildings — official Catastro footprints (observed) extruded to LiDAR heights (derived) — on the MDT terrain textured with PNOA 2023; comparison flat → MDT terrain → LoD1 under one camera. The MDS surface is kept as an experimental mode and is not in this film. Texture Jul-Aug 2023, LiDAR Mar-May 2024, footprints retrieved 2026-11-26. Requires --geometry with buildings.",
+  "locale": "es-ES",
+  "copy_from": "madrid-rio.json",
+  "shots": [
+    {
+      "id": "flat_ortho",
+      "kind": "context",
+      "duration_s": 2,
+      "coverage": "2023",
+      "show_surface_window": true,
+      "camera": {
+        "type": "orthographic",
+        "zoom": 1
+      }
+    },
+    {
+      "id": "rise",
+      "kind": "surface",
+      "duration_s": 2.8,
+      "coverage": "2023",
+      "surface": "lod1",
+      "shading": "illustrative",
+      "camera": {
+        "type": "perspective",
+        "fov_deg": 30,
+        "ease": "easeInOut",
+        "from": {
+          "target": [
+            0,
+            0
+          ],
+          "distance": 1,
+          "tilt_deg": 0,
+          "heading_deg": 0
+        },
+        "to": {
+          "target": [
+            0.05,
+            0.05
+          ],
+          "distance": 0.62,
+          "tilt_deg": 56,
+          "heading_deg": -24
+        }
+      }
+    },
+    {
+      "id": "orbit",
+      "kind": "surface",
+      "duration_s": 3.4,
+      "coverage": "2023",
+      "surface": "lod1",
+      "shading": "illustrative",
+      "camera": {
+        "type": "perspective",
+        "fov_deg": 30,
+        "ease": "easeInOut",
+        "from": {
+          "target": [
+            0.05,
+            0.05
+          ],
+          "distance": 0.62,
+          "tilt_deg": 56,
+          "heading_deg": -24
+        },
+        "to": {
+          "target": [
+            0.02,
+            0
+          ],
+          "distance": 0.5,
+          "tilt_deg": 58,
+          "heading_deg": 26
+        }
+      }
+    },
+    {
+      "id": "compare_flat",
+      "kind": "surface",
+      "duration_s": 1.2,
+      "coverage": "2023",
+      "surface": "flat",
+      "shading": "illustrative",
+      "camera": {
+        "type": "perspective",
+        "fov_deg": 30,
+        "from": {
+          "target": [
+            0.02,
+            0
+          ],
+          "distance": 0.5,
+          "tilt_deg": 58,
+          "heading_deg": 26
+        },
+        "to": {
+          "target": [
+            0.02,
+            0
+          ],
+          "distance": 0.5,
+          "tilt_deg": 58,
+          "heading_deg": 26
+        }
+      }
+    },
+    {
+      "id": "compare_mdt",
+      "kind": "surface",
+      "duration_s": 1.2,
+      "coverage": "2023",
+      "surface": "mdt",
+      "shading": "illustrative",
+      "camera": {
+        "type": "perspective",
+        "fov_deg": 30,
+        "from": {
+          "target": [
+            0.02,
+            0
+          ],
+          "distance": 0.5,
+          "tilt_deg": 58,
+          "heading_deg": 26
+        },
+        "to": {
+          "target": [
+            0.02,
+            0
+          ],
+          "distance": 0.5,
+          "tilt_deg": 58,
+          "heading_deg": 26
+        }
+      }
+    },
+    {
+      "id": "compare_lod1",
+      "kind": "surface",
+      "duration_s": 1.4,
+      "coverage": "2023",
+      "surface": "lod1",
+      "shading": "illustrative",
+      "camera": {
+        "type": "perspective",
+        "fov_deg": 30,
+        "from": {
+          "target": [
+            0.02,
+            0
+          ],
+          "distance": 0.5,
+          "tilt_deg": 58,
+          "heading_deg": 26
+        },
+        "to": {
+          "target": [
+            0.02,
+            0
+          ],
+          "distance": 0.5,
+          "tilt_deg": 58,
+          "heading_deg": 26
+        }
+      }
+    },
+    {
+      "id": "closing",
+      "kind": "surface_closing",
+      "duration_s": 3.4,
+      "coverage": "2023",
+      "surface": "lod1",
+      "shading": "illustrative",
+      "camera": {
+        "type": "perspective",
+        "fov_deg": 30,
+        "ease": "easeInOut",
+        "from": {
+          "target": [
+            0.02,
+            0
+          ],
+          "distance": 0.5,
+          "tilt_deg": 58,
+          "heading_deg": 26
+        },
+        "to": {
+          "target": [
+            0.1,
+            0
+          ],
+          "distance": 0.56,
+          "tilt_deg": 56,
+          "heading_deg": 30
+        }
+      }
+    }
+  ],
+  "copy": {
+    "eyebrow": "MADRID URBAN TIME MACHINE · MADRID RÍO · 3D",
+    "place": "Madrid Río · entorno del Puente de Toledo",
+    "context_lines": [
+      "Modo A · ortofotografía PNOA 2023 sobre un plano, vista cenital",
+      "Recuadro: parte con elevación LiDAR (hoja 0559-4-5) y edificios del Catastro, {window_share} % de la imagen",
+      "EPSG:3857 · norte arriba · misma textura en todos los planos"
+    ],
+    "surface_window_label": "Elevación PNOA-LiDAR mar–may 2024 · edificios Catastro · hoja 0559-4-5",
+    "surface_window_gap": "Al sur del recuadro no hay elevación: la hoja contigua no se ha descargado",
+    "surface_heading": {
+      "mds": "Superficie LiDAR (MDS) · modo experimental",
+      "mdt": "Terreno (MDT) · contexto topográfico",
+      "flat": "Superficie plana · referencia 0×",
+      "lod1": "Edificios LoD1 · huella Catastro × altura LiDAR"
+    },
+    "texture_label": "TEXTURA",
+    "geometry_label": "GEOMETRÍA",
+    "gap_label": "DESFASE",
+    "vertical_label": "ESCALA VERTICAL",
+    "flat_geometry": "ninguna · la misma textura y extensión sobre un plano",
+    "gap_text": "≈ 7–10 meses entre el vuelo fotográfico y el vuelo LiDAR",
+    "gap_value": "{gap}",
+    "vertical_value": "{ex}× · 1× = proporción real",
+    "vertical_flat": "0× · sin relieve",
+    "shading_note": "Sombreado sintético e ilustrativo: luz artificial desde el noroeste, no es una observación",
+    "oblique_note": "vista oblicua · norte aprox.",
+    "texture_flights": {
+      "2023": "vuelo 28/07–04/08/2023"
+    },
+    "surface_label": {
+      "mds": "MDS 50 cm PNOA-LiDAR 3.ª cob. v1, media por píxel ≈ 1,8 m",
+      "mdt": "MDT 50 cm PNOA-LiDAR 3.ª cob. v1, media por píxel ≈ 1,8 m",
+      "lod1": "huellas Catastro (observadas) × altura MDS − MDT (derivada) sobre terreno MDT"
+    },
+    "surface_closing_heading": "Edificios LoD1 derivados, no reconstrucción histórica",
+    "surface_closing_lines": [
+      "Fuentes: PNOA 2023 (IGN, WMS pnoa-historico) · MDS/MDT 50 cm 3.ª cobertura PNOA-LiDAR v1 (IGN/CNIG, hoja 0559-4-5) · edificios INSPIRE de la DG del Catastro (consulta 26/11/2026). Todas CC BY 4.0.",
+      "Huella: observada (Catastro). Altura: derivada, mediana del MDS en la huella menos el MDT. Bloque: representación simplificada de cubierta plana.",
+      "Fachadas neutras: ninguna fachada fue observada. La cubierta muestra la ortofoto vista desde arriba; los edificios altos se inclinan en ella.",
+      "Vegetación, puentes y mobiliario no se modelan: aparecen solo como imagen sobre el terreno.",
+      "Tres fechas: foto 2023, LiDAR 2024, huellas vigentes en 2026. Un cambio entre ellas puede no coincidir localmente."
+    ],
+    "lod1_note": "Bloques simplificados: fachadas neutras, no fotografiadas · vegetación y puentes no modelados"
+  }
+}

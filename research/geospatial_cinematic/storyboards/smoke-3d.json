@@ -1,0 +1,140 @@
+{
+  "storyboard_version": "0.1.0",
+  "id": "smoke-3d",
+  "note": "Gate 4D smoke test: a few seconds, low resolution, every surface state once (flat, MDT, LoD1) plus the flat orthophoto. Checks texture-on-mesh alignment, the elevation round trip, label sync and the MP4. Requires --geometry.",
+  "locale": "es-ES",
+  "copy_from": "madrid-rio-3d.json",
+  "shots": [
+    {
+      "id": "flat_ortho",
+      "kind": "context",
+      "duration_s": 0.6,
+      "coverage": "2023",
+      "show_surface_window": true,
+      "camera": {
+        "type": "orthographic",
+        "zoom": 1
+      }
+    },
+    {
+      "id": "rise",
+      "kind": "surface",
+      "duration_s": 1,
+      "coverage": "2023",
+      "surface": "lod1",
+      "shading": "illustrative",
+      "camera": {
+        "type": "perspective",
+        "fov_deg": 30,
+        "from": {
+          "target": [
+            0,
+            0
+          ],
+          "distance": 1,
+          "tilt_deg": 0,
+          "heading_deg": 0
+        },
+        "to": {
+          "target": [
+            0.02,
+            0
+          ],
+          "distance": 0.5,
+          "tilt_deg": 58,
+          "heading_deg": 26
+        }
+      }
+    },
+    {
+      "id": "compare_flat",
+      "kind": "surface",
+      "duration_s": 0.4,
+      "coverage": "2023",
+      "surface": "flat",
+      "shading": "illustrative",
+      "camera": {
+        "type": "perspective",
+        "fov_deg": 30,
+        "from": {
+          "target": [
+            0.02,
+            0
+          ],
+          "distance": 0.5,
+          "tilt_deg": 58,
+          "heading_deg": 26
+        },
+        "to": {
+          "target": [
+            0.02,
+            0
+          ],
+          "distance": 0.5,
+          "tilt_deg": 58,
+          "heading_deg": 26
+        }
+      }
+    },
+    {
+      "id": "compare_mdt",
+      "kind": "surface",
+      "duration_s": 0.4,
+      "coverage": "2023",
+      "surface": "mdt",
+      "shading": "illustrative",
+      "camera": {
+        "type": "perspective",
+        "fov_deg": 30,
+        "from": {
+          "target": [
+            0.02,
+            0
+          ],
+          "distance": 0.5,
+          "tilt_deg": 58,
+          "heading_deg": 26
+        },
+        "to": {
+          "target": [
+            0.02,
+            0
+          ],
+          "distance": 0.5,
+          "tilt_deg": 58,
+          "heading_deg": 26
+        }
+      }
+    },
+    {
+      "id": "closing",
+      "kind": "surface_closing",
+      "duration_s": 0.6,
+      "coverage": "2023",
+      "surface": "lod1",
+      "shading": "illustrative",
+      "camera": {
+        "type": "perspective",
+        "fov_deg": 30,
+        "from": {
+          "target": [
+            0.02,
+            0
+          ],
+          "distance": 0.5,
+          "tilt_deg": 58,
+          "heading_deg": 26
+        },
+        "to": {
+          "target": [
+            0.02,
+            0
+          ],
+          "distance": 0.5,
+          "tilt_deg": 58,
+          "heading_deg": 26
+        }
+      }
+    }
+  ]
+}

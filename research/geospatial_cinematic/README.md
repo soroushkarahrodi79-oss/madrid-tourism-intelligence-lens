@@ -8,8 +8,10 @@ research tool: no backend, nothing in the Lens web app imports it, and it never 
 Temporal manifest (4A) → materialize.py (4B) → verified package → render.mjs (4C) → video.mp4 + render-manifest.json
 ```
 
-It is a **2.5D presentation of flat 2D orthophotos**: one georeferenced plane, a camera above it.
-No terrain, no buildings, no reconstructed or generated geometry, and no interpolation between dates.
+By default it is a **2.5D presentation of flat 2D orthophotos**: one georeferenced plane, a camera
+above it. No terrain, no buildings, no reconstructed or generated geometry, and no interpolation
+between dates. Gate 4D adds an **optional** surface derived from official PNOA-LiDAR elevation
+(`--geometry`, see [Elevation surface](#elevation-surface-gate-4d)); without it nothing changes.
 
 ## Install (isolated)
 
@@ -291,6 +293,25 @@ checks of that version; probe canvases are now reused, a lost context stops the 
 imagery-presence check was added. A later preview failed in FFmpeg with an allocation error when
 free memory dropped to ~1.5 GB; the same frames encoded cleanly in isolation and on the next run.
 One final render was interrupted by the session ending and is not used.
+
+## Elevation surface (Gate 4D)
+
+Optional. A geometry package made by [`geometry/materialize_geometry.py`](geometry/materialize_geometry.py)
+from PNOA-LiDAR MDS/MDT 50 cm sheets puts one elevation value on every texture pixel of the window the
+sheet covers. `--geometry <dir>` loads it (refused unless it was materialized for this very package);
+storyboard shots of kind `surface` / `surface_closing` then show the texture on the MDT terrain with LoD1
+buildings (`lod1`: Catastro footprints × LiDAR heights, neutral facades), the MDT alone, a flat copy, or the
+experimental MDS surface, at 1× vertical scale unless stated, with texture date, geometry date, their gap and the
+vertical scale on screen. A historical texture on recent geometry is refused unless the shot carries a
+visible `temporal_warning`.
+
+```powershell
+node render.mjs --package C:\workspace\temporal-packages\madrid-rio-z16-final `
+  --geometry C:\workspace\temporal-geometry\madrid-rio-lidar2024-lod1-v2 `
+  --storyboard storyboards/madrid-rio-3d.json --out C:\workspace\temporal-renders\madrid-rio-gate4d\final --width 1920 --height 1080 --n 4
+```
+
+Sources, decisions, coordinates, measured results and limitations: [geometry/GATE_4D.md](geometry/GATE_4D.md).
 
 ## Limitations
 

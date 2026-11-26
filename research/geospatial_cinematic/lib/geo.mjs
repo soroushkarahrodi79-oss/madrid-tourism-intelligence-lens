@@ -80,10 +80,12 @@ export function projectOrtho(view, [x, y]) {
 //   distance     multiple of the nadir distance that exactly fits the extent (1 = fitted)
 //   tilt_deg     angle from straight down (0 = nadir)
 //   heading_deg  direction the camera faces, clockwise from grid north (0 = north up)
+// A frame with a `centre` (Gate 4D surface window) is posed around that centre instead of the origin.
 export function perspectivePose(frame, aspect, fovDeg, p) {
   const tanHalf = Math.tan((fovDeg * DEG) / 2);
   const nadirDistance = fitHalfHeight(frame, aspect) / tanHalf;
-  const target = [(p.target[0] * frame.width) / 2, (p.target[1] * frame.height) / 2, 0];
+  const [cx, cy] = frame.centre || [0, 0];
+  const target = [cx + (p.target[0] * frame.width) / 2, cy + (p.target[1] * frame.height) / 2, 0];
   const dist = p.distance * nadirDistance;
   const tilt = p.tilt_deg * DEG;
   const heading = p.heading_deg * DEG;

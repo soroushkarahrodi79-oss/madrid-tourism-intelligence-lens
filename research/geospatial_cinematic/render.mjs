@@ -4,6 +4,7 @@
 //   node render.mjs --package <dir> --storyboard storyboards/madrid-rio.json --out <dir>
 //                   [--width 1920] [--height 1080] [--fps 30] [--n 4] [--crf 18] [--force]
 //   node render.mjs ... --stills 2.0,9.1     PNG stills at those playback seconds, no video
+//   node render.mjs ... --geometry <dir>     Gate 4D: optional elevation surfaces (geometry package)
 //
 // The package is only read. Nothing is fetched from the network: the page may load files from
 // this process's own local server only, every other request is blocked and logged.
@@ -19,6 +20,8 @@ import { chromium } from 'playwright';
 import { loadPackage, PackageError, sha256 } from './lib/package.mjs';
 import { resolveTimeline, frameState, timeMapping, StoryboardError } from './lib/timeline.mjs';
 import { groundScale, orthoView, extentPixelRect } from './lib/geo.mjs';
+import { loadGeometry, GeometryError, SURFACES } from './lib/geometry.mjs';
+import { surfaceFrame, verticalUnitsPerMetre, zToMetres } from './lib/surface.mjs';
 
 const RENDERER = { id: 'madrid-urban-evidence-lens/geospatial-cinematic-engine', version: '0.1.0' };
 const ENGINE = path.dirname(fileURLToPath(import.meta.url));
@@ -43,6 +46,13 @@ const MIN_IMAGERY_SHARE = 0.75;
 const MAX_ALPHA_ERROR = 0.02;
 const MAX_RESIDUAL_RATIO = 0.1;
 const MIN_SEEK_PSNR_DB = 30;
+// Gate 4D: vertex heights read back from the GPU buffers must equal the grid to float32 precision
+// at these magnitudes (z is relative to the base height, so ~1e-5 m); 1 mm leaves margin.
+const MAX_Z_ROUNDTRIP_M = 0.001;
+// Illustrative light: azimuth/elevation are a cartographic convention (north-west, 45 degrees),
+// chosen, not observed; ambient + directional * sin(elevation) = 1 keeps flat ground at photo tone.
+const LIGHT = { azimuth_deg: 315, elevation_deg: 30, directional: 0.8 };
+LIGHT.ambient = 1 - LIGHT.directional * Math.sin((LIGHT.elevation_deg * Math.PI) / 180);
 
 function args(argv) {
   const out = {};
@@ -86,6 +96,15 @@ if (fs.existsSync(verifier)) {
   materializerVerify = { available: !r.error, command: 'python -I research/temporal_materialization/materialize.py --verify <package>', exit_code: r.status, output: (r.stdout || '').trim() || String(r.error || r.stderr || '').trim() };
   if (!r.error && r.status !== 0) refuse(`Gate 4B --verify failed (exit ${r.status}): ${materializerVerify.output} ${(r.stderr || '').trim()}`);
 }
+// --- 1b. geometry (Gate 4D, optional) -----------------------------------------------------
+let geom = null;
+if (A.geometry) {
+  try { geom = loadGeometry(A.geometry, pkg); } catch (e) {
+    if (e instanceof GeometryError) refuse(`geometry: ${e.message}`);
+    throw e;
+  }
+  console.log(`geometry: ${geom.dir}\n  ${geom.manifest.id}, ${geom.grid.rows} x ${geom.grid.cols} on the texture lattice, acquisition ${geom.acquisition.label}`);
+}
 console.log(`package: ${pkg.dir}\n  ${pkg.sequence.length} usable sequence frames, reference ${pkg.reference.coverage_id}, excluded ${pkg.excluded.length}; Gate 4B verify: ${materializerVerify.output || 'not available'}`);
 
 // --- 2. storyboard + timeline ---------------------------------------------------------------
@@ -107,7 +126,7 @@ storyboard.copy = { ...inheritedCopy(path.dirname(storyboardPath), storyboard.co
 for (const c of copyFrom) delete c.path;
 let timeline;
 try {
-  timeline = resolveTimeline(storyboard, pkg, { fps, width, height });
+  timeline = resolveTimeline(storyboard, pkg, { fps, width, height }, geom ? { acquisition: geom.acquisition, surfaces: geom.surfaceIds } : null);
 } catch (e) {
   if (e instanceof StoryboardError) refuse(`storyboard: ${e.message}`);
   throw e;
@@ -117,21 +136,27 @@ console.log(`timeline: ${timeline.shots.length} shots, ${timeline.total_frames} 
 // --- 3. output directory --------------------------------------------------------------------
 const outDir = path.resolve(A.out);
 if (inside(outDir, pkg.dir) || inside(pkg.dir, outDir)) refuse('the output directory must be outside the package');
+if (geom && (inside(outDir, geom.dir) || inside(geom.dir, outDir))) refuse('the output directory must be outside the geometry package');
 if (inside(outDir, REPO)) refuse('keep renders outside the repository (no video or frames in git history)');
 if (fs.existsSync(outDir) && fs.readdirSync(outDir).length && !A.force) refuse(`${outDir} is not empty (use a new directory, or --force to overwrite)`);
 fs.mkdirSync(outDir, { recursive: true });
 
 // --- 4. read-only local server --------------------------------------------------------------
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.jpg': 'image/jpeg', '.png': 'image/png' };
-const servedFrames = new Set(timeline.shots.flatMap((s) => s.layers).map((id) => pkg.byId[id].file));
+// With a geometry, every usable image is loaded so that the surface alignment probe can show the
+// right texture beats all the others; only the storyboard's images appear in the film.
+const probeIds = geom ? [...new Set([...timeline.shots.flatMap((s) => s.layers), ...pkg.usable])] : [...new Set(timeline.shots.flatMap((s) => s.layers))];
+const servedFrames = new Set(probeIds.map((id) => pkg.byId[id].file));
+const servedGeometry = new Set(geom ? [...SURFACES.map((k) => geom.surfaces[k].file), ...(geom.buildings ? [geom.buildings.file] : [])] : []);
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent((req.url || '').split('?')[0]);
   let file = null;
   if (req.method === 'GET' || req.method === 'HEAD') {
     if (url.startsWith('/package/') && servedFrames.has(url.slice(9))) file = path.join(pkg.dir, url.slice(9));
+    else if (url.startsWith('/geometry/') && servedGeometry.has(url.slice(10))) file = path.join(geom.dir, url.slice(10));
     else if (url.startsWith('/engine/')) {
       const rel = url.slice(8);
-      const allowed = /^(scene\/(index\.html|scene\.js)|lib\/(geo|timeline)\.mjs|node_modules\/three\/build\/three\.(module|core)\.js)$/.test(rel);
+      const allowed = /^(scene\/(index\.html|scene\.js)|lib\/(geo|timeline|surface)\.mjs|node_modules\/three\/build\/three\.(module|core)\.js)$/.test(rel);
       if (allowed) file = path.join(ENGINE, rel);
     }
   }
@@ -197,10 +222,31 @@ const tokens = {
   provider: pkg.service.provider,
   licence: pkg.service.licence.name,
   images: String(usedIds.length),
+  ...(geom ? {
+    geom_date: geom.acquisition.label,
+    geom_attribution: geom.manifest.licence.attribution,
+    vertices: new Intl.NumberFormat(storyboard.locale).format(geom.grid.rows * geom.grid.cols),
+    window_share: new Intl.NumberFormat(storyboard.locale, { maximumFractionDigits: 0 }).format(geom.manifest.grid.window_share_of_texture_pixels * 100),
+  } : {}),
 };
+const sf = geom ? surfaceFrame(pkg.frame, geom.grid) : null;
+const zPerM = verticalUnitsPerMetre(ground);
 const sceneConfig = {
   width, height, locale: storyboard.locale, timeline, frame: pkg.frame, copy: storyboard.copy, tokens, ground, scale_bar_m: SCALE_BAR_M,
-  images: usedIds.map((id) => ({ coverage_id: id, url: `${origin}/package/${pkg.byId[id].file}`, sha256: pkg.byId[id].sha256, width: pkg.byId[id].width, height: pkg.byId[id].height, format: 'image/jpeg' })),
+  surface: geom ? {
+    frame: sf, base_m: geom.base_m, z_per_m: zPerM, light: LIGHT,
+    grids: SURFACES.map((k) => ({ id: k, url: `${origin}/geometry/${geom.surfaces[k].file}`, sha256: geom.surfaces[k].sha256 })),
+    buildings: geom.buildings ? { url: `${origin}/geometry/${geom.buildings.file}`, sha256: geom.buildings.sha256, origin: pkg.frame.origin, frame: { width: pkg.frame.width, height: pkg.frame.height } } : null,
+    meta: {
+      acquisition: geom.acquisition,
+      attribution: geom.manifest.licence.attribution,
+      gap_text: storyboard.copy.gap_text || '',
+      texture_flights: storyboard.copy.texture_flights || {},
+      surfaces: Object.fromEntries(geom.surfaceIds.map((k) => [k, { label: storyboard.copy.surface_label?.[k] || geom.manifest.sources[k]?.identifier || k }])),
+      buildings_attribution: geom.manifest.buildings?.attribution || null,
+    },
+  } : null,
+  images: probeIds.map((id) => ({ coverage_id: id, url: `${origin}/package/${pkg.byId[id].file}`, sha256: pkg.byId[id].sha256, width: pkg.byId[id].width, height: pkg.byId[id].height, format: 'image/jpeg' })),
   meta: {
     reference_id: pkg.reference.coverage_id,
     sequence_ids: pkg.sequence.map((f) => f.coverage_id),
@@ -212,6 +258,7 @@ try { env = await page.evaluate((cfg) => window.setupScene(cfg), sceneConfig); }
   console.error(`scene setup failed: ${e.message}`); await browser.close(); server.close(); process.exit(3);
 }
 console.log(`GPU: ${env.gpu} | three r${env.three} | font: ${env.font_available}`);
+if (env.surface) console.log(`surface: ${env.surface.vertices_per_surface} vertices, ${env.surface.triangles_per_surface} triangles per surface, built in ${env.surface.setup_ms} ms, JS heap ${env.surface.js_heap_mb} MB`);
 if (/swiftshader|llvmpipe|software/i.test(env.gpu)) console.log('  software rendering: slower, same pictures');
 
 const framePng = async (i, opts) => page.evaluate(([f, o]) => window.renderFrame(f, o), [i, opts]);
@@ -314,6 +361,66 @@ const fixedRects = orthoShots.filter((s) => s.camera.zoom_to === undefined).map(
 const framingIdentical = new Set(fixedRects).size <= 1;
 console.log(`alignment: ${checks.filter((c) => c.pass).length}/${checks.length} probes pass; fixed framing identical: ${framingIdentical}`);
 
+// --- 6b. Gate 4D surface checks ---------------------------------------------------------------
+let surfaceChecks = null;
+if (geom) {
+  // (a) Texture on the mesh: for every surface/texture/shading combination the film uses (the flat
+  // state included), an orthographic nadir render must reproduce the texture window in place.
+  // Texture placement is tested unlit: the illustrative shading changes tones on slopes by design
+  // and is not part of the texture. The lit picture is probed too and recorded for information.
+  const combos = new Map();
+  for (const s of timeline.shots.filter((x) => x.surface)) {
+    combos.set(`${s.surface}|${s.coverage}|${s.exaggeration}`, { surface: s.surface, coverage: s.coverage, shading: 'none', relief: s.exaggeration, film_shading: s.shading });
+  }
+  const alignment = [];
+  for (const c of combos.values()) {
+    const g = await page.evaluate((x) => window.checkSurface(x), c);
+    const others = Math.min(...Object.entries(g.mad_all).filter(([id]) => id !== c.coverage).map(([, v]) => v), Infinity);
+    const criteria = {
+      right_image_is_best_match: g.best_match === c.coverage,
+      margin_vs_other_images: g.mad_expected <= MARGIN * others,
+      not_mirrored: g.mad_expected < Math.min(...Object.values(g.mad_mirrors)),
+      zero_offset_is_optimum: g.mad_expected <= Math.min(...Object.values(g.mad_shifts)),
+      nothing_outside_the_window: g.outside_mad <= MAX_OUTSIDE_MAD,
+    };
+    const lit = c.film_shading === 'none' ? null : await page.evaluate((x) => window.checkSurface(x), { ...c, shading: c.film_shading });
+    alignment.push({ ...g, criteria, pass: Object.values(criteria).every(Boolean),
+      film_shading: c.film_shading, lit_probe_information_only: lit && { shading: lit.shading, best_match: lit.best_match, mad_expected: lit.mad_expected, mad_shifts: lit.mad_shifts, mad_mirrors: lit.mad_mirrors } });
+  }
+  // (b) Elevation round trip at the validation points of the geometry manifest: GPU buffer z ->
+  // metres must equal the grid file value read here, which must equal the manifest's grid value
+  // (itself checked against the source raster by the materializer).
+  const pts = geom.manifest.validation.points;
+  const elevation = [];
+  for (const k of SURFACES) {
+    const idx = pts.map((p) => p.grid_rc[0] * geom.grid.cols + p.grid_rc[1]);
+    const zs = await page.evaluate(([s, i]) => window.probeSurfaceZ(s, i), [k, idx]);
+    pts.forEach((p, j) => {
+      const fileM = geom.surfaces[k].heights[idx[j]];
+      const gpuM = zToMetres(zs[j], geom.base_m, zPerM);
+      const manifestM = p.surfaces[k].grid_value_m;
+      const pass = Math.abs(gpuM - fileM) <= MAX_Z_ROUNDTRIP_M && Math.abs(fileM - manifestM) <= 0.0015;
+      elevation.push({ point: p.id, category: p.category, surface: k, gpu_m: gpuM, grid_file_m: fileM, manifest_grid_m: manifestM,
+        source_independent_mean_m: p.surfaces[k].independent_footprint_mean_m, gpu_minus_file_m: gpuM - fileM, pass });
+    });
+  }
+  // (c) LoD1 roofs: the highest vertex of each probed building on the GPU must be its roof_m.
+  // Probed: the 10 tallest parts and every 500th part, by their order in buildings.json.
+  const roofs = [];
+  if (geom.buildings && timeline.shots.some((s) => s.surface === 'lod1')) {
+    const P = geom.buildings.parts;
+    const order = P.map((p, i) => [p.roof_m - p.ground_median_m, i]).sort((x, y) => y[0] - x[0]).slice(0, 10).map(([, i]) => i);
+    for (let i = 0; i < P.length; i += 500) order.push(i);
+    const zs = await page.evaluate((ix) => window.probeBuildingRoofs(ix), order);
+    order.forEach((i, j) => {
+      const gpuM = zToMetres(zs[j], geom.base_m, zPerM);
+      roofs.push({ part: P[i].id, roof_m: P[i].roof_m, gpu_m: gpuM, diff_m: gpuM - P[i].roof_m, pass: Math.abs(gpuM - P[i].roof_m) <= MAX_Z_ROUNDTRIP_M });
+    });
+  }
+  surfaceChecks = { alignment, elevation, roofs };
+  console.log(`surface: ${alignment.filter((a) => a.pass).length}/${alignment.length} texture-on-mesh probes pass; elevation round trip ${elevation.filter((e) => e.pass).length}/${elevation.length}`);
+}
+
 // --- 7. render + encode ---------------------------------------------------------------------
 const videoFile = path.join(outDir, 'video.mp4');
 const keyDir = path.join(outDir, 'keyframes');
@@ -390,7 +497,16 @@ const seek = keys.map((k) => ({ frame: k, psnr_db: psnr(mp4Key[k], renderedKey(k
 // than rendered frame c-1, and MP4 frame c-1 the reverse.
 // Boundaries next to a dissolve are not cuts (neighbouring frames differ by a few % opacity);
 // they are checked by the opacity estimate below instead.
-const cutShots = timeline.shots.slice(1).filter((s) => s.kind !== 'transition' && timeline.shots.find((x) => x.end_frame === s.start_frame).kind !== 'transition');
+// A boundary is continuous, not a cut, when the timeline guarantees the same picture on both
+// sides: same kind, coverage and surface, and a perspective move that ends on the exact pose the
+// next one starts from (Gate 4D rise -> orbit). It has no cut to land; its frames are checked by
+// the seek PSNR like every key frame, and it is listed in the manifest.
+const prevOf = (s) => timeline.shots.find((x) => x.end_frame === s.start_frame);
+const continuous = (a, b) => a.kind === b.kind && a.coverage === b.coverage && (a.surface ?? null) === (b.surface ?? null)
+  && a.camera.type === 'perspective' && b.camera.type === 'perspective' && JSON.stringify(a.camera.to) === JSON.stringify(b.camera.from);
+const continuousBoundaries = timeline.shots.slice(1).filter((s) => s.kind !== 'transition' && continuous(prevOf(s), s))
+  .map((s) => ({ frame: s.start_frame, from: prevOf(s).id, to: s.id, mp4_seek_psnr_db: psnr(mp4Key[s.start_frame], renderedKey(s.start_frame)) }));
+const cutShots = timeline.shots.slice(1).filter((s) => s.kind !== 'transition' && prevOf(s).kind !== 'transition' && !continuous(prevOf(s), s));
 const cuts = cutShots.map((s) => {
   const c = s.start_frame;
   const r = {
@@ -468,7 +584,7 @@ const validation = {
   mp4_duration_s: { expected: timeline.duration_s, actual: mp4Duration, pass: Math.abs(mp4Duration - timeline.duration_s) <= 1 / fps + 1e-6 },
   mp4_full_decode: { errors: decodeErrors, pass: decode.status === 0 && !decodeErrors },
   mp4_seek_psnr: { min_db: MIN_SEEK_PSNR_DB, frames: seek, pass: seek.every((s) => s.psnr_db >= MIN_SEEK_PSNR_DB) },
-  mp4_cut_sync: { cuts, boundaries_next_to_dissolves: transitionShots.length * 2, pass: cuts.every((c) => c.pass) },
+  mp4_cut_sync: { cuts, boundaries_next_to_dissolves: transitionShots.length * 2, continuous_boundaries: continuousBoundaries, pass: cuts.every((c) => c.pass) && continuousBoundaries.every((c) => c.mp4_seek_psnr_db >= MIN_SEEK_PSNR_DB) },
   mp4_dissolve_opacity: dissolveCheck,
   label_texture_sync: { frames_checked: timeline.total_frames, mismatches: syncMismatches, pass: syncMismatches.length === 0 },
   imagery_present_every_frame: { min_share_required: MIN_IMAGERY_SHARE, min_share_observed: minImagery, frames_without_imagery: noImagery, pass: noImagery.length === 0 },
@@ -477,6 +593,19 @@ const validation = {
   chronological_order: { sequence: seqIds.map((id) => pkg.byId[id].date.label), pass: true, note: 'enforced by loadPackage and resolveTimeline; a violation refuses the run' },
   network: { external_requests: network.blocked.length, ign_requests: network.blocked.filter((u) => /ign\.es/i.test(u)).length, pass: network.blocked.length === 0 && Object.keys(network.by_origin).every((o) => o === origin) },
   console: { errors: consoleLog.errors, warnings: consoleLog.warnings, pass: consoleLog.errors.length === 0 && !consoleLog.warnings.some((w) => /webgl|context_lost|shader|three\./i.test(w)) },
+  ...(geom ? {
+    surface_texture_alignment: { method: 'orthographic nadir render of the mesh vs the texture window crop (pixel centres); same criteria as image_alignment', probes: surfaceChecks.alignment, pass: surfaceChecks.alignment.length > 0 && surfaceChecks.alignment.every((a) => a.pass) },
+    surface_elevation_roundtrip: { max_error_m: MAX_Z_ROUNDTRIP_M, points: surfaceChecks.elevation, lod1_roofs: surfaceChecks.roofs, pass: surfaceChecks.elevation.every((e) => e.pass) && surfaceChecks.roofs.every((e) => e.pass) },
+    geometry_unchanged_after_render: (() => {
+      const changed = Object.entries(geom.fileHashes).filter(([rel, h]) => sha256(fs.readFileSync(path.join(geom.dir, rel))) !== h).map(([rel]) => rel);
+      return { changed, pass: changed.length === 0 };
+    })(),
+    temporal_compatibility: {
+      rule: 'published-year gap <= 2, or an explicit temporal_warning drawn on screen (enforced by resolveTimeline before rendering)',
+      shots: timeline.shots.filter((s) => s.surface && s.surface !== 'flat').map((s) => ({ shot: s.id, texture: pkg.byId[s.coverage].date.label, geometry: geom.acquisition.label, gap_years: s.temporal_gap_years, warning: s.temporal_warning })),
+      pass: true,
+    },
+  } : {}),
   package_unchanged_after_render: (() => {
     const changed = Object.entries(pkg.fileHashes).filter(([rel, h]) => sha256(fs.readFileSync(path.join(pkg.dir, rel))) !== h).map(([rel]) => rel);
     return { changed, pass: changed.length === 0 };
@@ -556,8 +685,38 @@ const manifest = {
     note: 'Playback seconds are video time. Historical time is each coverage\'s published date (a mosaic year or a flight interval). Equal playback durations do not mean equal steps in history.',
     shots: timeMapping(timeline, pkg.byId),
   },
+  geometry: geom ? {
+    path: geom.dir, id: geom.manifest.id, version: geom.manifest.version, manifest_sha256: geom.manifestSha256, file_sha256: geom.fileHashes,
+    sources: Object.fromEntries(SURFACES.map((k) => [k, { product: geom.manifest.sources[k].product, file: geom.manifest.sources[k].file, sha256: geom.manifest.sources[k].sha256 }])),
+    acquisition: geom.acquisition, licence: geom.manifest.licence, vertical: geom.manifest.vertical,
+    grid: { rows: geom.grid.rows, cols: geom.grid.cols, bbox_epsg3857: geom.grid.bbox_epsg3857, window_texture_pixels: geom.grid.window_texture_pixels },
+    mesh: {
+      vertices_per_surface: geom.grid.rows * geom.grid.cols, triangles_per_surface: 2 * (geom.grid.rows - 1) * (geom.grid.cols - 1),
+      surfaces: [...SURFACES, 'flat'], extent: 'pixel centres of the window, first to last column and row; UV = texture coordinate of each pixel centre',
+      setup: env.surface,
+    },
+    scene_transform: {
+      x_y: 'as the flat plane: EPSG:3857 metres minus origin_epsg3857',
+      z: `z = (H - ${geom.base_m}) * ${zPerM.toFixed(6)} * vertical_exaggeration; H = orthometric metres (EGM08); ${zPerM.toFixed(6)} = 1 / sqrt(eastWest * northSouth) at the centre`,
+      base_m: geom.base_m, z_units_per_metre: zPerM,
+      residual_anisotropy: `${(Math.abs(Math.sqrt(ground.eastWest / ground.northSouth) - 1) * 100).toFixed(2)} % between the east-west and north-south ground factors at the centre`,
+    },
+    vertical_exaggeration_by_shot: Object.fromEntries(timeline.shots.filter((s) => s.surface).map((s) => [s.id, s.exaggeration])),
+    lighting: { model: 'Lambert, one directional + one ambient light', ...LIGHT, nature: 'synthetic and illustrative: not an observation, no cast shadows; horizontal surfaces get factor 1', used_in_shots: timeline.shots.filter((s) => s.shading === 'illustrative').map((s) => s.id) },
+    temporal_compatibility: geom.manifest.temporal_compatibility,
+    buildings: geom.manifest.buildings ? {
+      file: geom.buildings.file, sha256: geom.buildings.sha256, parts: geom.buildings.parts.length,
+      representation: geom.manifest.buildings.representation, status_of_elements: geom.manifest.buildings.status_of_elements,
+      rules: geom.manifest.buildings.rules, summary: geom.manifest.buildings.summary, source: geom.manifest.buildings.source,
+      attribution: geom.manifest.buildings.attribution, limitations: geom.manifest.buildings.limitations,
+      used_in_shots: timeline.shots.filter((s) => s.surface === 'lod1').map((s) => s.id),
+    } : null,
+    limitations: geom.manifest.limitations,
+  } : null,
   images: imagesUsed,
-  attributions: [...new Set(imagesUsed.map((i) => i.attribution))],
+  attributions: [...new Set([...imagesUsed.map((i) => i.attribution),
+    ...(geom && timeline.shots.some((s) => s.surface && s.surface !== 'flat') ? [geom.manifest.licence.attribution] : []),
+    ...(geom?.manifest.buildings && timeline.shots.some((s) => s.surface === 'lod1') ? [geom.manifest.buildings.attribution] : [])])],
   licences: [...new Set(imagesUsed.map((i) => `${i.licence.name} (${i.licence.scope})`))],
   environment: {
     node: process.version, platform: `${process.platform} ${os.release()} ${process.arch}`,
@@ -568,7 +727,9 @@ const manifest = {
   network,
   validation,
   limitations: [
-    'Flat 2.5D presentation of 2D orthophotos: no terrain, no buildings, no reconstructed geometry.',
+    geom
+      ? 'Surface shots drape one orthophoto on a surface derived from elevation (PNOA-LiDAR MDS/MDT v1): not an architectural model, not a historical reconstruction; facades carry stretched roof/ground pixels. Flat shots are 2D orthophotos on a plane.'
+      : 'Flat 2.5D presentation of 2D orthophotos: no terrain, no buildings, no reconstructed geometry.',
     transitionShots.length
       ? 'Each date is shown as published; nothing is interpolated geographically between dates. Dissolve frames blend two original images by opacity: a blended frame is not an image of any intermediate date, and its look depends only on the mix ratio.'
       : 'Each date is shown as published; nothing is interpolated between dates. Camera and text are animated, imagery is not.',

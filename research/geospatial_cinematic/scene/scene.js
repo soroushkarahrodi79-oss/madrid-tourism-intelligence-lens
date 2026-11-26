@@ -3,8 +3,9 @@
 // Every frame is drawn from its index alone (lib/timeline.mjs frameState): no clock, no random,
 // no state carried from the previous frame, so any frame can be rendered alone.
 import * as THREE from 'three';
-import { perspectivePose, orthoView, extentPixelRect, projectPerspective, ndcToPixel, extentCorners } from '../lib/geo.mjs';
+import { perspectivePose, orthoView, extentPixelRect, projectPerspective, projectOrtho, ndcToPixel, extentCorners } from '../lib/geo.mjs';
 import { frameState, seg, EASE } from '../lib/timeline.mjs';
+import { buildLayout, buildPositions } from '../lib/surface.mjs';
 
 const BG = '#0e1012';
 const INK = '#f3efe6';
@@ -73,6 +74,113 @@ window.setupScene = async (cfg) => {
   // Warm the GPU upload of every texture so the first frame of a shot is not special.
   for (const id of Object.keys(meshes)) { meshes[id].visible = true; renderer.render(scene, ortho); meshes[id].visible = false; }
 
+  // Gate 4D (optional): elevation surfaces on the texture lattice. Absent cfg.surface, nothing below
+  // runs and the flat plane above is the whole scene, exactly as in Gate 4C.
+  let surf = null;
+  if (cfg.surface) {
+    const t0 = performance.now();
+    const sf = cfg.surface.frame;
+    const { uv, index } = buildLayout(sf);
+    const uvAttr = new THREE.BufferAttribute(uv, 2);
+    const indexAttr = new THREE.BufferAttribute(index, 1);
+    const make = (positions) => {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      g.setAttribute('uv', uvAttr);
+      g.setIndex(indexAttr);
+      g.computeVertexNormals();
+      return g;
+    };
+    const geos = {};
+    for (const grid of cfg.surface.grids) {
+      const bytes = await (await fetch(grid.url)).arrayBuffer();
+      const digest = await hex(bytes);
+      if (digest !== grid.sha256) throw new Error(`surface ${grid.id}: bytes hash ${digest}, geometry package records ${grid.sha256}`);
+      geos[grid.id] = make(buildPositions(sf, new Float32Array(bytes), cfg.surface.base_m, cfg.surface.z_per_m));
+    }
+    // "flat": the same lattice, extent and UVs at z = 0 (the base height), for the 0x comparison.
+    geos.flat = make(buildPositions(sf, new Float32Array(sf.rows * sf.cols).fill(cfg.surface.base_m), cfg.surface.base_m, cfg.surface.z_per_m));
+    // Illustrative shading: one synthetic directional light plus ambient, scaled so that a horizontal
+    // surface gets a factor of exactly 1 (ambient + directional * sin(elevation) = 1): flat ground
+    // keeps the photo's own tones; only slopes and walls are lightened or darkened. three.js Lambert
+    // divides both terms by pi, hence the pi factors. Not an observation, and labelled on screen.
+    const L = cfg.surface.light;
+    const az = (L.azimuth_deg * Math.PI) / 180;
+    const el = (L.elevation_deg * Math.PI) / 180;
+    const ambient = new THREE.AmbientLight(0xffffff, L.ambient * Math.PI);
+    const sun = new THREE.DirectionalLight(0xffffff, L.directional * Math.PI);
+    sun.position.set(Math.sin(az) * Math.cos(el), Math.cos(az) * Math.cos(el), Math.sin(el)).multiplyScalar(1e4);
+    sun.target.position.set(0, 0, 0);
+    scene.add(ambient, sun, sun.target);
+    const mesh = new THREE.Mesh(geos.flat, new THREE.MeshBasicMaterial());
+    mesh.visible = false;
+    scene.add(mesh);
+    const materials = {};
+    const material = (texId, shading) => {
+      const key = `${texId}|${shading}`;
+      if (!materials[key]) {
+        materials[key] = shading === 'illustrative' || shading === 'illustrative_flat'
+          ? new THREE.MeshLambertMaterial({ map: textures[texId], flatShading: shading === 'illustrative_flat' })
+          : new THREE.MeshBasicMaterial({ map: textures[texId], toneMapped: false });
+      }
+      return materials[key];
+    };
+    surf = { sf, geos, mesh, material, setup_ms: Math.round(performance.now() - t0) };
+
+    // LoD1 buildings (optional): one flat-roofed prism per Catastro building part, from its lowest
+    // ground (MDT, sunk 1 m so no gap shows on slopes) up to its LiDAR roof. Two merged meshes: roof
+    // caps (texture seen from above, UV = position, exactly as the terrain) and walls (neutral
+    // colour: no facade is observed). Bottom caps are dropped (inside the terrain).
+    if (cfg.surface.buildings) {
+      const tb = performance.now();
+      const B = cfg.surface.buildings;
+      const bytes = await (await fetch(B.url)).arrayBuffer();
+      const digest = await hex(bytes);
+      if (digest !== B.sha256) throw new Error(`buildings: bytes hash ${digest}, geometry package records ${B.sha256}`);
+      const parts = JSON.parse(new TextDecoder().decode(bytes));
+      const [ox, oy] = B.origin;
+      const zOf = (h) => (h - cfg.surface.base_m) * cfg.surface.z_per_m;
+      const roofPos = []; const wallPos = []; const roofTop = new Float32Array(parts.length);
+      for (let k = 0; k < parts.length; k++) {
+        const p = parts[k];
+        const shape = new THREE.Shape(p.outer_epsg3857.map(([x, y]) => new THREE.Vector2(x - ox, y - oy)));
+        for (const h of p.holes_epsg3857) shape.holes.push(new THREE.Path(h.map(([x, y]) => new THREE.Vector2(x - ox, y - oy))));
+        const zb = zOf(p.base_m - 1); const zt = zOf(p.roof_m);
+        const g = new THREE.ExtrudeGeometry(shape, { depth: zt - zb, bevelEnabled: false });
+        const a = g.attributes.position.array;
+        for (const grp of g.groups) {
+          for (let v = grp.start; v < grp.start + grp.count; v += 3) {
+            const tri = [a[v * 3], a[v * 3 + 1], a[v * 3 + 2] + zb, a[v * 3 + 3], a[v * 3 + 4], a[v * 3 + 5] + zb, a[v * 3 + 6], a[v * 3 + 7], a[v * 3 + 8] + zb];
+            if (grp.materialIndex === 0) {
+              if (tri[2] - zb < 1e-6 && tri[5] - zb < 1e-6 && tri[8] - zb < 1e-6) continue; // bottom cap
+              roofPos.push(...tri);
+            } else wallPos.push(...tri);
+          }
+        }
+        roofTop[k] = zt;
+        g.dispose();
+      }
+      const roofG = new THREE.BufferGeometry();
+      roofG.setAttribute('position', new THREE.Float32BufferAttribute(roofPos, 3));
+      const ruv = new Float32Array((roofPos.length / 3) * 2);
+      for (let v = 0; v < roofPos.length / 3; v++) {
+        ruv[v * 2] = (roofPos[v * 3] + B.frame.width / 2) / B.frame.width;
+        ruv[v * 2 + 1] = (roofPos[v * 3 + 1] + B.frame.height / 2) / B.frame.height;
+      }
+      roofG.setAttribute('uv', new THREE.BufferAttribute(ruv, 2));
+      roofG.computeVertexNormals();
+      const wallG = new THREE.BufferGeometry();
+      wallG.setAttribute('position', new THREE.Float32BufferAttribute(wallPos, 3));
+      wallG.computeVertexNormals();
+      const WALL = 0xb9b3a8;
+      const wallMats = { illustrative: new THREE.MeshLambertMaterial({ color: WALL, flatShading: true }), none: new THREE.MeshBasicMaterial({ color: WALL }) };
+      const roofMesh = new THREE.Mesh(roofG, new THREE.MeshBasicMaterial());
+      const wallMesh = new THREE.Mesh(wallG, wallMats.none);
+      const group = new THREE.Group(); group.add(roofMesh, wallMesh); group.visible = false; scene.add(group);
+      surf.lod1 = { group, roofMesh, wallMesh, wallMats, roofTop, parts: parts.length, roof_triangles: roofPos.length / 9, wall_triangles: wallPos.length / 9, setup_ms: Math.round(performance.now() - tb) };
+    }
+  }
+
   const ctx = out.getContext('2d', { willReadFrequently: true });
   // One probe canvas, reused by every alignment probe (allocating one per probe exhausted GPU memory).
   const probe = document.createElement('canvas');
@@ -82,8 +190,16 @@ window.setupScene = async (cfg) => {
   await document.fonts.ready;
   const info = renderer.getContext();
   const dbg = info.getExtension('WEBGL_debug_renderer_info');
-  S = { cfg, W, H, renderer, scene, meshes, clip, persp, ortho, ctx, gl, out, images, probeCtx, lost: false, sc: H / 1080, nf: new Intl.NumberFormat(cfg.locale, { maximumFractionDigits: 2 }) };
+  S = { cfg, W, H, renderer, scene, meshes, clip, persp, ortho, ctx, gl, out, images, probeCtx, surf, lost: false, sc: H / 1080, nf: new Intl.NumberFormat(cfg.locale, { maximumFractionDigits: 2 }) };
   return {
+    surface: surf ? {
+      vertices_per_surface: surf.sf.rows * surf.sf.cols,
+      triangles_per_surface: (surf.sf.rows - 1) * (surf.sf.cols - 1) * 2,
+      surfaces_built: [...Object.keys(surf.geos), ...(surf.lod1 ? ['lod1'] : [])],
+      setup_ms: surf.setup_ms,
+      lod1: surf.lod1 ? { parts: surf.lod1.parts, roof_triangles: surf.lod1.roof_triangles, wall_triangles: surf.lod1.wall_triangles, setup_ms: surf.lod1.setup_ms } : null,
+      js_heap_mb: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 2 ** 20) : null,
+    } : null,
     three: THREE.REVISION,
     gpu: dbg ? info.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : 'unknown',
     webgl: info.getParameter(info.VERSION),
@@ -99,9 +215,13 @@ function cameraFor(state) {
   const { cfg, W, H } = S;
   const aspect = W / H;
   if (state.camera.type === 'perspective') {
-    const pose = perspectivePose(cfg.frame, aspect, state.camera.fov_deg, state.camera.pose);
+    // Surface shots are posed on the elevation window, flat shots on the whole package extent.
+    const pose = perspectivePose(state.surface ? cfg.surface.frame : cfg.frame, aspect, state.camera.fov_deg, state.camera.pose);
     const c = S.persp;
     c.fov = pose.fovDeg; c.aspect = aspect;
+    // Depth range around the subject keeps depth precision for a 3D surface; flat shots keep 1..1e6.
+    const dist = Math.hypot(pose.eye[0] - pose.target[0], pose.eye[1] - pose.target[1], pose.eye[2] - pose.target[2]);
+    c.near = state.surface ? dist * 0.05 : 1; c.far = state.surface ? dist * 10 : 1e6;
     c.position.set(...pose.eye); c.up.set(...pose.up); c.lookAt(...pose.target);
     c.updateProjectionMatrix(); c.updateMatrixWorld();
     return { camera: c, pose };
@@ -120,7 +240,38 @@ function setOpacity(mesh, alpha) {
   mesh.material.opacity = alpha;
 }
 
+// Shows one surface: a textured elevation mesh, or for "lod1" the MDT terrain plus the LoD1 blocks.
+function showSurface(id, texId, shading, relief) {
+  for (const m of Object.values(S.meshes)) m.visible = false;
+  const { mesh, geos, material, lod1 } = S.surf;
+  mesh.geometry = geos[id === 'lod1' ? 'mdt' : id];
+  mesh.material = material(texId, shading);
+  mesh.scale.set(1, 1, id === 'flat' ? 1 : relief);
+  mesh.visible = true;
+  if (lod1) {
+    lod1.group.visible = id === 'lod1';
+    lod1.group.scale.set(1, 1, relief || 1);
+    lod1.roofMesh.material = material(texId, shading === 'illustrative' ? 'illustrative_flat' : 'none');
+    lod1.wallMesh.material = lod1.wallMats[shading] || lod1.wallMats.none;
+  }
+}
+function hideSurface() {
+  S.surf.mesh.visible = false;
+  if (S.surf.lod1) S.surf.lod1.group.visible = false;
+}
+
+// Surface shot: the surface only, nothing else in the scene.
+function drawSurface(state) {
+  const s = state.surface;
+  showSurface(s.id, state.layers[0], s.shading, s.relief);
+  const cam = cameraFor(state);
+  S.renderer.render(S.scene, cam.camera);
+  hideSurface();
+  return cam;
+}
+
 function drawImageLayer(state) {
+  if (state.surface) return drawSurface(state);
   for (const m of Object.values(S.meshes)) { m.visible = false; m.material.clippingPlanes = null; m.renderOrder = 0; setOpacity(m, 1); }
   state.layers.forEach((id, k) => { S.meshes[id].visible = true; S.meshes[id].renderOrder = k; });
   if (state.mix) {
@@ -283,11 +434,113 @@ function overlayContext(state, cam) {
   text(copy().place, x, px(128), { size: 40, weight: 400, alpha: a1 });
   copy().context_lines.forEach((l, i) => text(fill(l, S.cfg.tokens), x, px(168) + px(28) * i, { size: 18, color: MUTED, alpha: seg(t, 0.5 + 0.2 * i, 1.1 + 0.2 * i) }));
   const m = meta(id);
-  text(`${m.date.label} · ${copy().reference}`, x, S.H - px(56), { size: 26, weight: 300, alpha: seg(t, 0.4, 1.0) });
+  // Only the package reference is called "referencia"; any other coverage is named by its date kind.
+  text(`${m.date.label} · ${m.role === 'reference' ? copy().reference : copy().kind[m.date.kind]}`, x, S.H - px(56), { size: 26, weight: 300, alpha: seg(t, 0.4, 1.0) });
   northArrow(rect.x + rect.width - px(64), px(84), seg(t, 0.6, 1.2));
   scaleBar(cam.view, rect.x + rect.width - px(64), px(150), seg(t, 0.8, 1.4));
+  if (state.shot.spec.show_surface_window && S.surf) surfaceWindowOutline(cam.view, rect, seg(t, 0.4, 1.0));
   attribution([id], 0.9);
   return [id];
+}
+
+// Gate 4D: outline of the part of the extent that has elevation, on the flat orthographic image.
+// The part of the image without elevation is dimmed (the imagery stays visible); the window edge
+// is a dashed line. Drawn on the overlay canvas: the texture itself is untouched.
+function surfaceWindowOutline(view, rect, alpha) {
+  const e = S.surf.sf.edges;
+  const [x0, y0] = ndcToPixel(projectOrtho(view, [e.west, e.north]), S.W, S.H);
+  const [x1, y1] = ndcToPixel(projectOrtho(view, [e.east, e.south]), S.W, S.H);
+  const c = S.ctx;
+  c.save(); c.globalAlpha *= alpha;
+  c.fillStyle = 'rgba(8, 9, 10, 0.55)';
+  if (rect.y + rect.height > y1) c.fillRect(rect.x, y1, rect.width, rect.y + rect.height - y1);
+  if (y0 > rect.y) c.fillRect(rect.x, rect.y, rect.width, y0 - rect.y);
+  c.strokeStyle = ACCENT; c.lineWidth = px(2.5); c.setLineDash([px(12), px(7)]);
+  c.strokeRect(x0 + px(1.5), y0 + px(1.5), x1 - x0 - px(3), y1 - y0 - px(3));
+  c.restore();
+  text(fill(copy().surface_window_label, S.cfg.tokens), x0 + px(64), y1 + px(40), { size: 18, weight: 600, color: ACCENT, alpha });
+  text(fill(copy().surface_window_gap, S.cfg.tokens), x0 + px(64), y1 + px(68), { size: 16, color: INK, alpha });
+}
+
+// Gate 4D: texture and geometry are named separately, each with its own date; their gap,
+// the vertical scale and the synthetic shading are always on screen.
+function surfaceLines(state) {
+  const id = state.layers[0];
+  const s = state.surface;
+  const G = S.cfg.surface.meta;
+  const m = meta(id);
+  const nfx = new Intl.NumberFormat(S.cfg.locale, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+  const lines = [{ k: copy().texture_label, v: `${m.date.label} · ${m.product}${G.texture_flights[id] ? ` · ${G.texture_flights[id]}` : ''}` }];
+  if (s.id === 'flat') {
+    lines.push({ k: copy().geometry_label, v: copy().flat_geometry });
+  } else {
+    lines.push({ k: copy().geometry_label, v: `${G.surfaces[s.id].label} · ${G.acquisition.label}` });
+    lines.push({ k: copy().gap_label, v: fill(copy().gap_value, { gap: G.gap_text }) });
+  }
+  lines.push({ k: copy().vertical_label, v: s.id === 'flat' ? copy().vertical_flat : fill(copy().vertical_value, { ex: nfx.format(s.relief) }) });
+  return lines;
+}
+
+function overlaySurface(state) {
+  const id = state.layers[0];
+  const s = state.surface;
+  const G = S.cfg.surface.meta;
+  scrim(0, px(420), 0.94, 0);
+  scrim(S.H, S.H - px(150), 0.8, 0);
+  const x = px(64);
+  text(copy().eyebrow, x, px(70), { size: 15, weight: 600, color: ACCENT, spacing: 4 });
+  text(copy().surface_heading[s.id], x, px(118), { size: 38, weight: 300 });
+  let y = px(162);
+  for (const l of surfaceLines(state)) {
+    const w = text(`${l.k}  `, x, y, { size: 17, weight: 600, color: ACCENT });
+    text(l.v, x + w, y, { size: 17, color: INK });
+    y += px(27);
+  }
+  if (state.shot.temporal_warning) { text(`⚠ ${state.shot.temporal_warning}`, x, y + px(6), { size: 17, weight: 600, color: ACCENT }); y += px(33); }
+  if (s.shading === 'illustrative') { text(copy().shading_note, x, y + px(4), { size: 15, color: MUTED }); y += px(24); }
+  if (s.id === 'lod1' && copy().lod1_note) text(copy().lod1_note, x, y + px(4), { size: 15, color: MUTED });
+  // Heading h turns the view clockwise from north, so north on screen is rotated by -h. Approximate
+  // in an oblique view (perspective), as the label says.
+  northArrow(S.W - px(84), px(84), 1, -state.camera.pose.heading_deg);
+  text(copy().oblique_note, S.W - px(84), px(150), { size: 13, color: MUTED, align: 'right' });
+  const lines = [meta(id).attribution, ...(s.id === 'flat' ? [] : [G.attribution]), ...(s.id === 'lod1' && G.buildings_attribution ? [G.buildings_attribution] : [])];
+  lines.forEach((a, k) => text(a, S.W - px(40), S.H - px(22) - px(20) * (lines.length - 1 - k), { size: 13, color: MUTED, align: 'right' }));
+  return [id, `surface:${s.id}`];
+}
+
+function overlaySurfaceClosing(state) {
+  const t = state.local_s;
+  const d = state.duration_s;
+  const id = state.layers[0];
+  const s = state.surface;
+  const G = S.cfg.surface.meta;
+  const g = S.ctx.createLinearGradient(0, 0, S.W * 0.7, 0);
+  g.addColorStop(0, 'rgba(8, 9, 10, 0.92)');
+  g.addColorStop(0.75, 'rgba(8, 9, 10, 0.74)');
+  g.addColorStop(1, 'rgba(8, 9, 10, 0)');
+  S.ctx.fillStyle = g; S.ctx.fillRect(0, 0, S.W, S.H);
+  const x = px(120);
+  text(copy().eyebrow, x, px(170), { size: 15, weight: 600, color: ACCENT, spacing: 4, alpha: seg(t, 0.1, 0.6) });
+  text(copy().surface_closing_heading, x, px(230), { size: 44, weight: 300, alpha: seg(t, 0.2, 0.8) });
+  let y = px(282);
+  for (const l of surfaceLines(state)) {
+    const w = text(`${l.k}  `, x, y, { size: 18, weight: 600, color: ACCENT, alpha: seg(t, 0.4, 1.0) });
+    text(l.v, x + w, y, { size: 18, color: INK, alpha: seg(t, 0.4, 1.0) });
+    y += px(28);
+  }
+  y += px(12);
+  copy().surface_closing_lines.forEach((l, i) => {
+    for (const w of wrap(fill(l, S.cfg.tokens), S.W * 0.55, 17)) {
+      text(w, x, y, { size: 17, color: MUTED, alpha: seg(t, 0.8 + 0.2 * i, 1.4 + 0.2 * i) });
+      y += px(25);
+    }
+    y += px(6);
+  });
+  const lines = [meta(id).attribution, ...(s.id === 'flat' ? [] : [G.attribution]), ...(s.id === 'lod1' && G.buildings_attribution ? [G.buildings_attribution] : [])];
+  lines.forEach((a, k) => text(a, S.W - px(40), S.H - px(22) - px(20) * (lines.length - 1 - k), { size: 13, color: MUTED, align: 'right' }));
+  const fade = seg(t, d - 0.6, d);
+  if (fade > 0) { S.ctx.fillStyle = `rgba(8, 9, 10, ${fade})`; S.ctx.fillRect(0, 0, S.W, S.H); }
+  return [id, `surface:${s.id}`];
 }
 
 function ruler(state) {
@@ -433,7 +686,7 @@ function overlayClosing(state, cam) {
   return [id];
 }
 
-const OVERLAYS = { intro: overlayIntro, context: overlayContext, sequence: overlaySequence, transition: overlayTransition, compare: overlayCompare, closing: overlayClosing };
+const OVERLAYS = { intro: overlayIntro, context: overlayContext, sequence: overlaySequence, transition: overlayTransition, compare: overlayCompare, closing: overlayClosing, surface: overlaySurface, surface_closing: overlaySurfaceClosing };
 
 const isMoving = (st) => st.camera.type === 'perspective' || st.shot.camera.zoom_to !== undefined;
 
@@ -493,7 +746,11 @@ function sampleRegion(img, data, rect, transform) {
     p.globalAlpha = a;
     p.translate(rect.x + rect.width / 2, rect.y + rect.height / 2);
     p.scale(transform.flipX ? -1 : 1, transform.flipY ? -1 : 1);
-    p.drawImage(im, -rect.width / 2 + (transform.dxPx || 0), -rect.height / 2 - (transform.dyPx || 0), rect.width, rect.height);
+    const dx = -rect.width / 2 + (transform.dxPx || 0);
+    const dy = -rect.height / 2 - (transform.dyPx || 0);
+    // `transform.src` = source rectangle of the image (Gate 4D surface window); default: whole image.
+    if (transform.src) p.drawImage(im, ...transform.src, dx, dy, rect.width, rect.height);
+    else p.drawImage(im, dx, dy, rect.width, rect.height);
     p.restore();
   }
   const ref = p.getImageData(0, 0, S.W, S.H).data;
@@ -562,3 +819,49 @@ window.checkFrame = (i) => {
   });
   return { frame: i, shot: base.shot.id, rect, outside_mad: outside / n, regions: result };
 };
+
+// --- Gate 4D surface probes (overlays off) ----------------------------------------------------
+
+// Renders one surface straight down with an orthographic camera fitted to the elevation window and
+// compares the picture with the texture's own window crop (pixel centres of the first and last
+// columns/rows, which is where the mesh's edge vertices sit). With real elevation an orthographic
+// nadir view must still reproduce the texture in place: no shift, flip or horizontal distortion.
+window.checkSurface = ({ surface, coverage, shading, relief }) => {
+  if (S.lost || S.renderer.getContext().isContextLost()) throw new Error('WebGL context lost');
+  const sf = S.surf.sf;
+  showSurface(surface, coverage, shading, relief);
+  const view = orthoView({ width: sf.width, height: sf.height }, S.W / S.H, 1, sf.centre);
+  const c = S.ortho;
+  c.left = -view.halfWidth; c.right = view.halfWidth; c.top = view.halfHeight; c.bottom = -view.halfHeight;
+  c.position.set(view.centre[0], view.centre[1], 1000); c.up.set(0, 1, 0); c.lookAt(view.centre[0], view.centre[1], 0);
+  c.updateProjectionMatrix(); c.updateMatrixWorld();
+  S.renderer.render(S.scene, c);
+  hideSurface();
+  S.ctx.globalAlpha = 1; S.ctx.fillStyle = BG; S.ctx.fillRect(0, 0, S.W, S.H); S.ctx.drawImage(S.gl, 0, 0);
+  const [x0, y0] = ndcToPixel(projectOrtho(view, [sf.west, sf.north]), S.W, S.H);
+  const [x1, y1] = ndcToPixel(projectOrtho(view, [sf.east, sf.south]), S.W, S.H);
+  const rect = { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+  const data = S.ctx.getImageData(0, 0, S.W, S.H).data;
+  let outside = 0; let n = 0;
+  for (let y = 0; y < S.H; y += 3) for (let x = 0; x < S.W; x += 3) {
+    if (x >= rect.x - 1 && x <= rect.x + rect.width + 1 && y >= rect.y - 1 && y <= rect.y + rect.height + 1) continue;
+    const o = (y * S.W + x) * 4; outside += Math.abs(data[o] - 14) + Math.abs(data[o + 1] - 16) + Math.abs(data[o + 2] - 18); n += 3;
+  }
+  const src = [sf.texturePixels.col0 + 0.5, sf.texturePixels.row0 + 0.5, sf.cols - 1, sf.rows - 1];
+  const fit = (img, t) => sampleRegion(img, data, rect, { src, ...t })(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height);
+  const scores = Object.fromEntries(Object.entries(S.images).map(([id, img]) => [id, fit(img, {})]));
+  const own = S.images[coverage];
+  const mirrors = { flip_horizontal: fit(own, { flipX: true }), flip_vertical: fit(own, { flipY: true }) };
+  const shifts = { east_1px: fit(own, { dxPx: 1 }), west_1px: fit(own, { dxPx: -1 }), north_1px: fit(own, { dyPx: 1 }), south_1px: fit(own, { dyPx: -1 }) };
+  const best = Object.entries(scores).sort((p, q) => p[1] - q[1])[0][0];
+  return { surface, coverage, shading, relief, rect, outside_mad: n ? outside / n : 0, best_match: best, mad_expected: scores[coverage], mad_all: scores, mad_mirrors: mirrors, mad_shifts: shifts };
+};
+
+// Vertex heights as uploaded to the GPU buffers (scene units), for the elevation round trip.
+window.probeSurfaceZ = (surface, indices) => {
+  const a = S.surf.geos[surface].attributes.position.array;
+  return indices.map((i) => a[i * 3 + 2]);
+};
+
+// LoD1 roof heights as uploaded to the GPU (scene units), for the roof round trip.
+window.probeBuildingRoofs = (indices) => indices.map((i) => S.surf.lod1.roofTop[i]);

@@ -16,7 +16,15 @@ export const clamp01 = (x) => Math.min(1, Math.max(0, x));
 export const seg = (t, a, b) => (b <= a ? (t >= b ? 1 : 0) : clamp01((t - a) / (b - a)));
 const lerp = (a, b, k) => a + (b - a) * k;
 
-const KINDS = new Set(['intro', 'context', 'sequence', 'compare', 'closing']);
+const KINDS = new Set(['intro', 'context', 'sequence', 'compare', 'closing', 'surface', 'surface_closing']);
+const SURFACE_KINDS = new Set(['surface', 'surface_closing']);
+export const isSurfaceKind = (kind) => SURFACE_KINDS.has(kind);
+// Gate 4D temporal rule: a texture may be draped on an elevation surface only when its published
+// years are within this many years of the geometry's acquisition years. Anything further apart
+// (e.g. a 1956 photo on 2024 buildings) is refused unless the shot carries an explicit warning.
+export const MAX_TEXTURE_GEOMETRY_GAP_YEARS = 2;
+export const MAX_VERTICAL_EXAGGERATION = 3;
+const SHADINGS = new Set(['none', 'illustrative']);
 const TRANSITIONS = new Set(['cut', 'dissolve']);
 
 // Opacity of the incoming coverage on transition frame j of n (0-based): a linear cross-fade,
@@ -44,7 +52,7 @@ function frameCount(seconds, fps, where) {
   return Math.max(1, Math.round(seconds * fps));
 }
 
-function checkCamera(cam, where) {
+function checkCamera(cam, where, maxTilt = 45) {
   if (!cam || !['perspective', 'orthographic'].includes(cam.type)) {
     throw new StoryboardError(`${where}: camera.type must be "perspective" or "orthographic"`);
   }
@@ -54,14 +62,22 @@ function checkCamera(cam, where) {
     for (const key of ['from', 'to']) {
       const p = cam[key];
       if (!p || !Array.isArray(p.target) || !(p.distance > 0)) throw new StoryboardError(`${where}: camera.${key} needs target and distance`);
-      if (Math.abs(p.tilt_deg) > 45) throw new StoryboardError(`${where}: tilt above 45 degrees is not a moderate tilt`);
+      if (Math.abs(p.tilt_deg) > maxTilt) throw new StoryboardError(`${where}: tilt above ${maxTilt} degrees is not a moderate tilt`);
       if (Math.abs(p.heading_deg) > 30) throw new StoryboardError(`${where}: heading above 30 degrees is not a moderate rotation`);
     }
   }
 }
 
+// Published-year distance between two date intervals (0 when they overlap).
+export function yearGap(a, b) {
+  if (a.end_year < b.start_year) return b.start_year - a.end_year;
+  if (a.start_year > b.end_year) return a.start_year - b.end_year;
+  return 0;
+}
+
 // pkg: { reference, sequence: [usable frame records in package order], usable: Set(ids), byId }
-export function resolveTimeline(storyboard, pkg, { fps, width, height }) {
+// geometry (optional, Gate 4D): { acquisition: { start_year, end_year, label }, surfaces: ['mds', 'mdt'] }
+export function resolveTimeline(storyboard, pkg, { fps, width, height }, geometry = null) {
   if (!Array.isArray(storyboard.shots) || !storyboard.shots.length) throw new StoryboardError('storyboard has no shots');
   const shots = [];
   let cursor = 0;
@@ -76,7 +92,30 @@ export function resolveTimeline(storyboard, pkg, { fps, width, height }) {
   storyboard.shots.forEach((spec, index) => {
     const where = `shots[${index}] (${spec.id})`;
     if (!KINDS.has(spec.kind)) throw new StoryboardError(`${where}: unknown kind "${spec.kind}"`);
-    checkCamera(spec.camera, where);
+    // Surface shots may tilt further (60 degrees) so that relief is visible; flat shots keep 45.
+    checkCamera(spec.camera, where, SURFACE_KINDS.has(spec.kind) ? 60 : 45);
+    if (SURFACE_KINDS.has(spec.kind)) {
+      if (!geometry) throw new StoryboardError(`${where}: a surface shot needs a geometry package (--geometry)`);
+      if (spec.camera.type !== 'perspective') throw new StoryboardError(`${where}: a surface shot uses the perspective camera`);
+      const surface = spec.surface;
+      if (surface !== 'flat' && !geometry.surfaces.includes(surface)) throw new StoryboardError(`${where}: surface must be "flat" or one of ${geometry.surfaces.join(', ')}`);
+      const exaggeration = spec.vertical_exaggeration ?? 1;
+      if (!(exaggeration >= 1 && exaggeration <= MAX_VERTICAL_EXAGGERATION)) throw new StoryboardError(`${where}: vertical_exaggeration must be between 1 and ${MAX_VERTICAL_EXAGGERATION}`);
+      const shading = spec.shading ?? 'none';
+      if (!SHADINGS.has(shading)) throw new StoryboardError(`${where}: shading must be "none" or "illustrative"`);
+      const coverage = resolveCoverage(spec.coverage, pkg, where);
+      const gap = yearGap(pkg.byId[coverage].date, geometry.acquisition);
+      const warning = typeof spec.temporal_warning === 'string' && spec.temporal_warning.trim() ? spec.temporal_warning.trim() : null;
+      if (surface !== 'flat' && gap > MAX_TEXTURE_GEOMETRY_GAP_YEARS && !warning) {
+        throw new StoryboardError(`${where}: texture ${pkg.byId[coverage].date.label} is ${gap} years from the geometry (${geometry.acquisition.label}); `
+          + `more than ${MAX_TEXTURE_GEOMETRY_GAP_YEARS} needs an explicit temporal_warning shown on screen`);
+      }
+      push({
+        id: spec.id, kind: spec.kind, group: spec.id, frames: frameCount(spec.duration_s, fps, where), coverage, layers: [coverage],
+        camera: spec.camera, surface, exaggeration: surface === 'flat' ? 0 : exaggeration, shading, temporal_gap_years: gap, temporal_warning: warning, spec,
+      });
+      return;
+    }
     if (spec.kind === 'sequence') {
       if (spec.camera.type !== 'orthographic' || spec.camera.zoom_to !== undefined) {
         throw new StoryboardError(`${where}: the historical sequence must use one fixed orthographic camera`);
@@ -176,12 +215,14 @@ export function frameState(timeline, i, sub = 0) {
     ? { a: shot.a, b: shot.b, alpha: dissolveAlpha(i - shot.start_frame, shot.frames) }
     : null;
   // What the picture shows. The page must label exactly these coverages on this frame.
+  // A surface shot also shows a geometry: its label ("surface:<id>") must be drawn on the same frame.
   const visible = shot.kind === 'compare'
     ? [wipe > 0 ? shot.a : null, wipe < 1 ? shot.b : null].filter(Boolean)
-    : shot.layers.slice();
+    : SURFACE_KINDS.has(shot.kind) ? [...shot.layers, `surface:${shot.surface}`] : shot.layers.slice();
+  const surface = SURFACE_KINDS.has(shot.kind) ? { id: shot.surface, relief: shot.exaggeration, shading: shot.shading } : null;
   return {
     frame: i, t: (i + sub) / timeline.fps, local_s: localS, duration_s: durationS,
-    shot, camera, wipe, mix, layers: shot.layers.slice(), visible,
+    shot, camera, wipe, mix, surface, layers: shot.layers.slice(), visible,
     // An original frame shows source images as they are; a transition frame is an opacity blend.
     frame_type: mix ? 'transition' : 'original',
   };
@@ -194,6 +235,7 @@ export function timeMapping(timeline, byId) {
     kind: s.kind,
     video_frames: [s.start_frame, s.end_frame],
     video_seconds: [round(s.start_s), round(s.end_s)],
+    ...(SURFACE_KINDS.has(s.kind) ? { surface: s.surface, vertical_exaggeration: s.exaggeration, texture_geometry_gap_years: s.temporal_gap_years } : {}),
     coverages: s.layers.map((id) => ({
       coverage_id: id,
       role: byId[id].role,
