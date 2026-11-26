@@ -1,0 +1,14 @@
+{
+  "note": "Validation probes for the Madrid Río geometry (Gate 4D). texture_px = [column, row] of the Gate 4B texture lattice (1280 x 800, row 0 = north). Categories are a visual reading of the PNOA 2023 texture together with MDS - MDT, chosen as homogeneous patches near a visually picked spot; they are not surveyed land-cover labels. These points test fidelity of the grid to the source raster, not real-world accuracy.",
+  "points": [
+    { "id": "street_w", "category": "street", "reading": "asphalt carriageway, west edge of the extent", "texture_px": [58, 259] },
+    { "id": "roof_curved_block", "category": "building_roof", "reading": "roof of the curved residential block on the west bank", "texture_px": [218, 67] },
+    { "id": "roof_large_se", "category": "building_roof", "reading": "large flat roof, south-east of the window (MDS - MDT about 42 m)", "texture_px": [1220, 413] },
+    { "id": "sports_field", "category": "open_space", "reading": "artificial-turf football pitch beside the park", "texture_px": [1064, 452] },
+    { "id": "sandy_ground_w", "category": "open_space", "reading": "unpaved sandy ground in the western park", "texture_px": [85, 419] },
+    { "id": "trees_park", "category": "vegetation", "reading": "tree canopy, grove north of the river park", "texture_px": [868, 225] },
+    { "id": "trees_west", "category": "vegetation", "reading": "tree canopy, wooded slope west of the river", "texture_px": [162, 240] },
+    { "id": "river_e", "category": "river", "reading": "Manzanares water surface, eastern reach (interpolated: sparse LiDAR returns on water)", "texture_px": [946, 462] },
+    { "id": "river_w", "category": "river", "reading": "Manzanares water surface, western reach (interpolated: sparse LiDAR returns on water)", "texture_px": [468, 228] }
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "storyboard_version": "0.1.0",
+  "id": "madrid-rio-3d-pilot",
+  "note": "Gate 4D pilot: from the flat orthophoto (mode A) to the same texture on a surface derived from PNOA-LiDAR elevation (mode C, MDS), with the terrain model (mode B, MDT) and the flat plane shown as hard cuts under one camera. Texture PNOA 2023 (flight Jul-Aug 2023), geometry LiDAR Mar-May 2024: no historical texture is draped on 2024 geometry. Requires --geometry.",
+  "locale": "es-ES",
+  "copy_from": "madrid-rio.json",
+  "shots": [
+    {
+      "id": "flat_ortho",
+      "kind": "context",
+      "duration_s": 2.0,
+      "coverage": "2023",
+      "show_surface_window": true,
+      "camera": { "type": "orthographic", "zoom": 1 }
+    },
+    {
+      "id": "rise",
+      "kind": "surface",
+      "duration_s": 2.8,
+      "coverage": "2023",
+      "surface": "mds",
+      "shading": "illustrative",
+      "camera": {
+        "type": "perspective",
+        "fov_deg": 30,
+        "ease": "easeInOut",
+        "from": { "target": [0, 0], "distance": 1, "tilt_deg": 0, "heading_deg": 0 },
+        "to": { "target": [0.05, 0.05], "distance": 0.62, "tilt_deg": 56, "heading_deg": -24 }
+      }
+    },
+    {
+      "id": "orbit",
+      "kind": "surface",
+      "duration_s": 3.4,
+      "coverage": "2023",
+      "surface": "mds",
+      "shading": "illustrative",
+      "camera": {
+        "type": "perspective",
+        "fov_deg": 30,
+        "ease": "easeInOut",
+        "from": { "target": [0.05, 0.05], "distance": 0.62, "tilt_deg": 56, "heading_deg": -24 },
+        "to": { "target": [0.02, 0.0], "distance": 0.5, "tilt_deg": 58, "heading_deg": 26 }
+      }
+    },
+    {
+      "id": "compare_flat",
+      "kind": "surface",
+      "duration_s": 1.2,
+      "coverage": "2023",
+      "surface": "flat",
+      "shading": "illustrative",
+      "camera": {
+        "type": "perspective", "fov_deg": 30,
+        "from": { "target": [0.02, 0.0], "distance": 0.5, "tilt_deg": 58, "heading_deg": 26 },
+        "to": { "target": [0.02, 0.0], "distance": 0.5, "tilt_deg": 58, "heading_deg": 26 }
+      }
+    },
+    {
+      "id": "compare_mdt",
+      "kind": "surface",
+      "duration_s": 1.2,
+      "coverage": "2023",
+      "surface": "mdt",
+      "shading": "illustrative",
+      "camera": {
+        "type": "perspective", "fov_deg": 30,
+        "from": { "target": [0.02, 0.0], "distance": 0.5, "tilt_deg": 58, "heading_deg": 26 },
+        "to": { "target": [0.02, 0.0], "distance": 0.5, "tilt_deg": 58, "heading_deg": 26 }
+      }
+    },
+    {
+      "id": "compare_mds",
+      "kind": "surface",
+      "duration_s": 1.4,
+      "coverage": "2023",
+      "surface": "mds",
+      "shading": "illustrative",
+      "camera": {
+        "type": "perspective", "fov_deg": 30,
+        "from": { "target": [0.02, 0.0], "distance": 0.5, "tilt_deg": 58, "heading_deg": 26 },
+        "to": { "target": [0.02, 0.0], "distance": 0.5, "tilt_deg": 58, "heading_deg": 26 }
+      }
+    },
+    {
+      "id": "closing",
+      "kind": "surface_closing",
+      "duration_s": 3.4,
+      "coverage": "2023",
+      "surface": "mds",
+      "shading": "illustrative",
+      "camera": {
+        "type": "perspective", "fov_deg": 30, "ease": "easeInOut",
+        "from": { "target": [0.02, 0.0], "distance": 0.5, "tilt_deg": 58, "heading_deg": 26 },
+        "to": { "target": [0.1, 0.0], "distance": 0.56, "tilt_deg": 56, "heading_deg": 30 }
+      }
+    }
+  ],
+  "copy": {
+    "eyebrow": "MADRID URBAN TIME MACHINE · MADRID RÍO · SUPERFICIE 3D",
+    "place": "Madrid Río · entorno del Puente de Toledo",
+    "context_lines": [
+      "Modo A · ortofotografía PNOA 2023 sobre un plano, vista cenital",
+      "Recuadro: parte con elevación LiDAR (hoja 0559-4-5), {window_share} % de la imagen",
+      "EPSG:3857 · norte arriba · misma textura en todos los planos"
+    ],
+    "surface_window_label": "Elevación PNOA-LiDAR mar–may 2024 · hoja 0559-4-5",
+    "surface_window_gap": "Al sur del recuadro no hay elevación: la hoja contigua no se ha descargado",
+    "surface_heading": {
+      "mds": "Superficie 3D derivada del MDS",
+      "mdt": "Terreno (MDT) · contexto topográfico",
+      "flat": "Superficie plana · referencia 0×"
+    },
+    "texture_label": "TEXTURA",
+    "geometry_label": "GEOMETRÍA",
+    "gap_label": "DESFASE",
+    "vertical_label": "ESCALA VERTICAL",
+    "flat_geometry": "ninguna · la misma textura y extensión sobre un plano",
+    "gap_text": "≈ 7–10 meses entre el vuelo fotográfico y el vuelo LiDAR",
+    "gap_value": "{gap}",
+    "vertical_value": "{ex}× · 1× = proporción real",
+    "vertical_flat": "0× · sin relieve",
+    "shading_note": "Sombreado sintético e ilustrativo: luz artificial desde el noroeste, no es una observación",
+    "oblique_note": "vista oblicua · norte aprox.",
+    "texture_flights": { "2023": "vuelo 28/07–04/08/2023" },
+    "surface_label": {
+      "mds": "MDS 50 cm PNOA-LiDAR 3.ª cob. v1, media por píxel ≈ 1,8 m",
+      "mdt": "MDT 50 cm PNOA-LiDAR 3.ª cob. v1, media por píxel ≈ 1,8 m"
+    },
+    "surface_closing_heading": "Superficie derivada de elevación, no reconstrucción histórica",
+    "surface_closing_lines": [
+      "Fuentes: PNOA 2023 (IGN, WMS pnoa-historico) y MDS/MDT 50 cm de la 3.ª cobertura PNOA-LiDAR v1 (IGN/CNIG, hoja 0559-4-5). CC BY 4.0.",
+      "Malla de {vertices} vértices sobre la retícula de la propia textura: cada altura es la media del modelo de 0,5 m dentro de un píxel (≈ 1,8 m).",
+      "El MDS no distingue suelo, edificios, árboles, puentes ni artefactos. No es un modelo arquitectónico: las fachadas no son reales.",
+      "Ortofoto convencional: los edificios altos se inclinan en la imagen, y parte de la textura de cubierta cae sobre muros o calles.",
+      "Modelos v1 provisionales. Alturas comprobadas contra el ráster de origen, no contra mediciones de campo."
+    ]
+  }
+}

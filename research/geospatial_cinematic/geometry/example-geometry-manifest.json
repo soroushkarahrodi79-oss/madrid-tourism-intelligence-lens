@@ -1,0 +1,826 @@
+{
+  "schema": {
+    "id": "urn:madrid-urban-evidence-lens:geometry-package",
+    "version": "0.1.0"
+  },
+  "id": "madrid-rio-lidar2024-on-2023-v1",
+  "version": "1.0.0",
+  "status": "PASS",
+  "generated_at": "2026-11-26T20:22:10+00:00",
+  "tool": {
+    "name": "madrid-geometry-materializer",
+    "version": "0.1.0",
+    "script": "research/geospatial_cinematic/geometry/materialize_geometry.py",
+    "python": "3.13.17",
+    "numpy": "2.5.5",
+    "rasterio": "1.5.2",
+    "gdal": "3.12.2"
+  },
+  "sources": {
+    "mds": {
+      "product": "MDS 50 cm, 3.ª cobertura PNOA-LiDAR, versión 1 (provisional, interpolado de NPC01)",
+      "identifier": "MDS50cm-cob3",
+      "producer": "Instituto Geográfico Nacional (IGN) / CNIG",
+      "catalogue_url": "https://centrodedescargas.cnig.es/CentroDescargas/modelo-digital-superficies-mds50cm-tercera-cobertura",
+      "semantics": "interpolation of all point classes: terrain, vegetation, buildings and other elements",
+      "file": "MDS50CM-ETRS89-H30_0559-4-5-COB3-V1.tif",
+      "sha256": "1ea16edde94dc4a86a2ad510592b30d0dde9c9515579f3a844faa52202413cf1",
+      "bytes": 97514523,
+      "declared_epsg": 3042,
+      "crs_equivalent_to_epsg_25830": true,
+      "grid": {
+        "width": 7340,
+        "height": 4920,
+        "cell_m": [
+          0.5,
+          0.5
+        ],
+        "bounds_epsg25830": [
+          438060.0,
+          4471860.0,
+          441730.0,
+          4474320.0
+        ],
+        "nodata": -32767.0,
+        "dtype": "float32",
+        "area_or_point": "Point"
+      },
+      "sheet": "0559-4-5 (MTN50 0559, 1:5 000 sheet)",
+      "retrieved_on": "2026-11-24",
+      "retrieved_by": "a person, CNIG Centro de Descargas (reCAPTCHA; never automated)"
+    },
+    "mdt": {
+      "product": "MDT 50 cm, 3.ª cobertura PNOA-LiDAR, versión 1 (provisional, clase suelo de NPC01)",
+      "identifier": "MDT50cm-cob3",
+      "producer": "Instituto Geográfico Nacional (IGN) / CNIG",
+      "catalogue_url": "https://centrodedescargas.cnig.es/CentroDescargas/modelo-digital-terreno-mdt50cm",
+      "semantics": "interpolation of the ground class",
+      "file": "MDT50CM-ETRS89-H30-0559-4-5-COB3-V1.tif",
+      "sha256": "d7424e33bd6423cf1ea80f25219d04554a1a87ad353657f9ae76b780f1946475",
+      "bytes": 73006987,
+      "declared_epsg": 25830,
+      "crs_equivalent_to_epsg_25830": true,
+      "grid": {
+        "width": 7340,
+        "height": 4920,
+        "cell_m": [
+          0.5,
+          0.5
+        ],
+        "bounds_epsg25830": [
+          438060.0,
+          4471860.0,
+          441730.0,
+          4474320.0
+        ],
+        "nodata": -32767.0,
+        "dtype": "float32",
+        "area_or_point": "Point"
+      },
+      "sheet": "0559-4-5 (MTN50 0559, 1:5 000 sheet)",
+      "retrieved_on": "2026-11-24",
+      "retrieved_by": "a person, CNIG Centro de Descargas (reCAPTCHA; never automated)"
+    }
+  },
+  "acquisition": {
+    "kind": "flight_interval_month_level",
+    "start": "2024-03",
+    "end": "2024-05",
+    "start_year": 2024,
+    "end_year": 2024,
+    "label": "mar–may 2024",
+    "source": "https://pnoa.ign.es/pnoa-lidar/tercera-cobertura (table 'Estado actual (septiembre 2026)', row Comunidad de Madrid)",
+    "conflicting_statement": "CNIG novedades 2026-08-26 (MDS v1 Madrid) says the Madrid flight took place 'entre los años 2023 y 2024'; the per-region table gives mar-24 to may-24. The table is used; the conflict is recorded.",
+    "acquisition_day": null
+  },
+  "publication": {
+    "mdt_v1": "2026-04-14",
+    "mds_v1": "2026-08-25",
+    "v2_madrid": "not published (forecast 2nd half 2026; not in the 2026-11-16 MDT v2 release)"
+  },
+  "licence": {
+    "name": "CC BY 4.0 (IGN licence conditions, Orden FOM/2807/2015)",
+    "attribution": "Obra derivada de MDS50cm-cob3 2022-2025 CC-BY 4.0 scne.es y de MDT50cm-cob3 2022-2025 CC-BY 4.0 scne.es",
+    "url": "http://www.scne.es/tablaProductos.php"
+  },
+  "vertical": {
+    "reference": "orthometric heights, geoid EGM08 (PNOA-LiDAR technical specification)",
+    "units": "metre"
+  },
+  "declared_accuracy": {
+    "rmse_z_model_m": 0.15,
+    "planimetric_model_m": 0.5,
+    "point_density_per_m2": 5,
+    "note": "contractual specifications, not values measured for this sheet"
+  },
+  "texture_package": {
+    "path": "C:\\workspace\\temporal-packages\\madrid-rio-z16-final",
+    "materialized_manifest_sha256": "5cbe4122609332cc7180ff48a2463e458eae920137bbb3eda3ad186488b6449c",
+    "crs": "EPSG:3857",
+    "bbox": [
+      -414969.329,
+      4922846.603,
+      -411911.848,
+      4924757.528
+    ],
+    "pixels": [
+      1280,
+      800
+    ],
+    "prepared_for_coverage": {
+      "coverage_id": "2023",
+      "product": "PNOA 2023",
+      "date": {
+        "kind": "annual_mosaic",
+        "start_year": 2023,
+        "end_year": 2023,
+        "label": "2023"
+      },
+      "sha256": "93b0ac6cf56824c0f685821211c3302926bc4a1b7627e7c5b4924953b3b0b012"
+    }
+  },
+  "grid": {
+    "crs": "EPSG:3857",
+    "lattice": "the texture package's own pixel lattice: one elevation value per texture pixel",
+    "window_texture_pixels": {
+      "col0": 0,
+      "col1": 1280,
+      "row0": 0,
+      "row1": 507
+    },
+    "rows": 507,
+    "cols": 1280,
+    "bbox_epsg3857": [
+      -414969.329,
+      4923546.47928125,
+      -411911.848,
+      4924757.528
+    ],
+    "pixel_size_mercator_units": [
+      2.3886570312500224,
+      2.3886562499997672
+    ],
+    "gdal_geotransform": [
+      2.3886570312500224,
+      0.0,
+      -414969.329,
+      0.0,
+      -2.3886562499997672,
+      4924757.528
+    ],
+    "value_location": "pixel-area mean: each value is the mean source elevation over one texture pixel footprint",
+    "covered_share_of_texture_pixels": 0.6403,
+    "window_share_of_texture_pixels": 0.6338,
+    "uncovered": "texture pixels outside sheet 0559-4-5 (its south edge is 4 471 860 m N, EPSG:25830) have no elevation in this package"
+  },
+  "transformations": [
+    "EPSG:25830 (the MDS declares EPSG:3042; equivalence verified numerically by the pilot code) -> EPSG:3857 with PROJ via GDAL warp; the UTM grid is rotated about 0.47 degrees from the Web Mercator grid here (meridian convergence) and the warp accounts for it",
+    "no vertical transformation: heights stay orthometric (EGM08) metres"
+  ],
+  "resampling": {
+    "algorithm": "GDAL warp 'average' (rasterio.warp.reproject, Resampling.average)",
+    "source_resolution_m": 0.5,
+    "output_resolution": "2.3887 x 2.3887 EPSG:3857 units (about 1.82 m on the ground at the centre)",
+    "consequences": "about 13 source cells per output cell; edges of roofs, trees and walls become ramps about one output cell wide; narrow features (< ~2 m: poles, thin walls, single small trees) are smoothed or lost; area means are kept"
+  },
+  "files": {
+    "mds": {
+      "file": "surface_mds.f32",
+      "sha256": "fe6a9aaff1f35582cf2e3f4e4cf21532d43c82afa9bddafb44e4de5e9706988d",
+      "bytes": 2595840,
+      "dtype": "float32 little-endian",
+      "shape_rows_cols": [
+        507,
+        1280
+      ],
+      "order": "row-major, row 0 = north, column 0 = west",
+      "stats_m": {
+        "min": 566.772,
+        "p01": 570.73,
+        "p05": 575.497,
+        "p25": 582.61,
+        "p50": 594.988,
+        "p75": 608.234,
+        "p95": 622.983,
+        "p99": 630.619,
+        "max": 651.664,
+        "mean": 596.34,
+        "std": 15.411,
+        "count": 648960
+      },
+      "nodata_cells": 0,
+      "anomalous_cells_outside_plausible_range": 0
+    },
+    "mdt": {
+      "file": "surface_mdt.f32",
+      "sha256": "e9516349d8433eb239b3f46e4973846d79c758293bed3f28e0aca69a4a83bcae",
+      "bytes": 2595840,
+      "dtype": "float32 little-endian",
+      "shape_rows_cols": [
+        507,
+        1280
+      ],
+      "order": "row-major, row 0 = north, column 0 = west",
+      "stats_m": {
+        "min": 562.605,
+        "p01": 569.933,
+        "p05": 573.46,
+        "p25": 577.988,
+        "p50": 584.149,
+        "p75": 596.362,
+        "p95": 612.657,
+        "p99": 617.903,
+        "max": 621.142,
+        "mean": 587.567,
+        "std": 12.164,
+        "count": 648960
+      },
+      "nodata_cells": 0,
+      "anomalous_cells_outside_plausible_range": 0
+    }
+  },
+  "vertical_base_m": 584.1,
+  "vertical_base_rule": "median MDT of the window rounded to 0.1 m; the renderer puts z = 0 at this orthometric height",
+  "mesh_counts_at_full_lattice": {
+    "vertices": 648960,
+    "triangles": 1294348
+  },
+  "ndsm": {
+    "definition": "MDS - MDT on the output lattice (both resampled identically)",
+    "stats_m": {
+      "min": -2.435,
+      "p01": 0.033,
+      "p05": 0.055,
+      "p25": 0.705,
+      "p50": 5.32,
+      "p75": 15.037,
+      "p95": 27.293,
+      "p99": 33.361,
+      "max": 61.512,
+      "mean": 8.773,
+      "std": 9.412,
+      "count": 648960
+    },
+    "share_at_or_above": {
+      ">=0.5m": 0.7815,
+      ">=2.0m": 0.6385,
+      ">=5.0m": 0.5119,
+      ">=10.0m": 0.3515,
+      ">=20.0m": 0.1574,
+      ">=40.0m": 0.0035
+    },
+    "cells_below_negative_tolerance": 13,
+    "interpretation_limit": "height of the interpolated surface above interpolated ground: buildings, trees, bridges, vehicles, other structures and classification artefacts alike; NOT building height; v1 classification is provisional"
+  },
+  "validation": {
+    "checks": {
+      "pair_crs_cell_lattice": {
+        "pass": true,
+        "note": "metadata_problems / grid_problems (pilot code) found no problem"
+      },
+      "window_inside_sheet_with_margin": {
+        "pass": true,
+        "margin_m": 2.0
+      },
+      "no_nodata_in_window": {
+        "pass": true,
+        "cells": {
+          "mds": 0,
+          "mdt": 0
+        }
+      },
+      "elevation_plausible": {
+        "range_m": [
+          520.0,
+          760.0
+        ],
+        "anomalous_cells": {
+          "mds": 0,
+          "mdt": 0
+        },
+        "pass": true
+      },
+      "ndsm_negative_share": {
+        "tolerance_m": -0.5,
+        "cells_below": 13,
+        "share": 2e-05,
+        "pass": true
+      },
+      "point_fidelity_to_source": {
+        "points": 9,
+        "pass": true
+      },
+      "texture_elevation_correspondence": {
+        "pass": true
+      }
+    },
+    "points": [
+      {
+        "id": "street_w",
+        "category": "street",
+        "reading": "asphalt carriageway, west edge of the extent",
+        "texture_px": [
+          58,
+          259
+        ],
+        "grid_rc": [
+          259,
+          58
+        ],
+        "centre_epsg3857": [
+          -414829.593,
+          4924137.672
+        ],
+        "centre_epsg25830": [
+          438350.528,
+          4472330.011
+        ],
+        "surfaces": {
+          "mds": {
+            "grid_value_m": 611.077,
+            "independent_footprint_mean_m": 611.079,
+            "source_cells_in_footprint": 16,
+            "source_min_m": 611.031,
+            "source_max_m": 611.125,
+            "source_std_m": 0.034,
+            "nearest_source_cell_at_centre_m": 611.063,
+            "diff_grid_minus_independent_m": -0.001,
+            "tolerance_m": 0.064,
+            "diff_grid_minus_nearest_m": 0.014,
+            "pass": true
+          },
+          "mdt": {
+            "grid_value_m": 611.0,
+            "independent_footprint_mean_m": 611.001,
+            "source_cells_in_footprint": 16,
+            "source_min_m": 610.95,
+            "source_max_m": 611.08,
+            "source_std_m": 0.036,
+            "nearest_source_cell_at_centre_m": 610.99,
+            "diff_grid_minus_independent_m": -0.001,
+            "tolerance_m": 0.07,
+            "diff_grid_minus_nearest_m": 0.01,
+            "pass": true
+          }
+        },
+        "ndsm_grid_m": 0.077,
+        "pass": true
+      },
+      {
+        "id": "roof_curved_block",
+        "category": "building_roof",
+        "reading": "roof of the curved residential block on the west bank",
+        "texture_px": [
+          218,
+          67
+        ],
+        "grid_rc": [
+          67,
+          218
+        ],
+        "centre_epsg3857": [
+          -414447.407,
+          4924596.294
+        ],
+        "centre_epsg25830": [
+          438644.726,
+          4472675.872
+        ],
+        "surfaces": {
+          "mds": {
+            "grid_value_m": 602.103,
+            "independent_footprint_mean_m": 602.078,
+            "source_cells_in_footprint": 12,
+            "source_min_m": 601.973,
+            "source_max_m": 602.317,
+            "source_std_m": 0.112,
+            "nearest_source_cell_at_centre_m": 602.019,
+            "diff_grid_minus_independent_m": 0.025,
+            "tolerance_m": 0.102,
+            "diff_grid_minus_nearest_m": 0.085,
+            "pass": true
+          },
+          "mdt": {
+            "grid_value_m": 576.649,
+            "independent_footprint_mean_m": 576.647,
+            "source_cells_in_footprint": 12,
+            "source_min_m": 576.61,
+            "source_max_m": 576.68,
+            "source_std_m": 0.023,
+            "nearest_source_cell_at_centre_m": 576.65,
+            "diff_grid_minus_independent_m": 0.002,
+            "tolerance_m": 0.061,
+            "diff_grid_minus_nearest_m": -0.001,
+            "pass": true
+          }
+        },
+        "ndsm_grid_m": 25.454,
+        "pass": true
+      },
+      {
+        "id": "roof_large_se",
+        "category": "building_roof",
+        "reading": "large flat roof, south-east of the window (MDS - MDT about 42 m)",
+        "texture_px": [
+          1220,
+          413
+        ],
+        "grid_rc": [
+          413,
+          1220
+        ],
+        "centre_epsg3857": [
+          -412053.973,
+          4923769.819
+        ],
+        "centre_epsg25830": [
+          440464.233,
+          4472033.584
+        ],
+        "surfaces": {
+          "mds": {
+            "grid_value_m": 616.039,
+            "independent_footprint_mean_m": 616.078,
+            "source_cells_in_footprint": 12,
+            "source_min_m": 615.513,
+            "source_max_m": 616.469,
+            "source_std_m": 0.353,
+            "nearest_source_cell_at_centre_m": 615.974,
+            "diff_grid_minus_independent_m": -0.039,
+            "tolerance_m": 0.193,
+            "diff_grid_minus_nearest_m": 0.066,
+            "pass": true
+          },
+          "mdt": {
+            "grid_value_m": 574.03,
+            "independent_footprint_mean_m": 574.007,
+            "source_cells_in_footprint": 12,
+            "source_min_m": 573.74,
+            "source_max_m": 574.32,
+            "source_std_m": 0.163,
+            "nearest_source_cell_at_centre_m": 574.06,
+            "diff_grid_minus_independent_m": 0.023,
+            "tolerance_m": 0.137,
+            "diff_grid_minus_nearest_m": -0.03,
+            "pass": true
+          }
+        },
+        "ndsm_grid_m": 42.009,
+        "pass": true
+      },
+      {
+        "id": "sports_field",
+        "category": "open_space",
+        "reading": "artificial-turf football pitch beside the park",
+        "texture_px": [
+          1064,
+          452
+        ],
+        "grid_rc": [
+          452,
+          1064
+        ],
+        "centre_epsg3857": [
+          -412426.604,
+          4923676.661
+        ],
+        "centre_epsg25830": [
+          440179.593,
+          4471965.101
+        ],
+        "surfaces": {
+          "mds": {
+            "grid_value_m": 575.821,
+            "independent_footprint_mean_m": 575.821,
+            "source_cells_in_footprint": 16,
+            "source_min_m": 575.818,
+            "source_max_m": 575.826,
+            "source_std_m": 0.002,
+            "nearest_source_cell_at_centre_m": 575.82,
+            "diff_grid_minus_independent_m": 0.0,
+            "tolerance_m": 0.051,
+            "diff_grid_minus_nearest_m": 0.001,
+            "pass": true
+          },
+          "mdt": {
+            "grid_value_m": 575.761,
+            "independent_footprint_mean_m": 575.761,
+            "source_cells_in_footprint": 16,
+            "source_min_m": 575.73,
+            "source_max_m": 575.82,
+            "source_std_m": 0.023,
+            "nearest_source_cell_at_centre_m": 575.75,
+            "diff_grid_minus_independent_m": -0.001,
+            "tolerance_m": 0.064,
+            "diff_grid_minus_nearest_m": 0.011,
+            "pass": true
+          }
+        },
+        "ndsm_grid_m": 0.06,
+        "pass": true
+      },
+      {
+        "id": "sandy_ground_w",
+        "category": "open_space",
+        "reading": "unpaved sandy ground in the western park",
+        "texture_px": [
+          85,
+          419
+        ],
+        "grid_rc": [
+          419,
+          85
+        ],
+        "centre_epsg3857": [
+          -414765.099,
+          4923755.487
+        ],
+        "centre_epsg25830": [
+          438397.311,
+          4472039.387
+        ],
+        "surfaces": {
+          "mds": {
+            "grid_value_m": 613.884,
+            "independent_footprint_mean_m": 613.884,
+            "source_cells_in_footprint": 12,
+            "source_min_m": 613.876,
+            "source_max_m": 613.895,
+            "source_std_m": 0.006,
+            "nearest_source_cell_at_centre_m": 613.885,
+            "diff_grid_minus_independent_m": 0.0,
+            "tolerance_m": 0.053,
+            "diff_grid_minus_nearest_m": -0.001,
+            "pass": true
+          },
+          "mdt": {
+            "grid_value_m": 613.849,
+            "independent_footprint_mean_m": 613.849,
+            "source_cells_in_footprint": 12,
+            "source_min_m": 613.82,
+            "source_max_m": 613.88,
+            "source_std_m": 0.015,
+            "nearest_source_cell_at_centre_m": 613.85,
+            "diff_grid_minus_independent_m": -0.001,
+            "tolerance_m": 0.059,
+            "diff_grid_minus_nearest_m": -0.001,
+            "pass": true
+          }
+        },
+        "ndsm_grid_m": 0.035,
+        "pass": true
+      },
+      {
+        "id": "trees_park",
+        "category": "vegetation",
+        "reading": "tree canopy, grove north of the river park",
+        "texture_px": [
+          868,
+          225
+        ],
+        "grid_rc": [
+          225,
+          868
+        ],
+        "centre_epsg3857": [
+          -412894.78,
+          4924218.886
+        ],
+        "centre_epsg25830": [
+          439825.977,
+          4472379.705
+        ],
+        "surfaces": {
+          "mds": {
+            "grid_value_m": 604.438,
+            "independent_footprint_mean_m": 604.451,
+            "source_cells_in_footprint": 12,
+            "source_min_m": 603.611,
+            "source_max_m": 604.97,
+            "source_std_m": 0.414,
+            "nearest_source_cell_at_centre_m": 604.281,
+            "diff_grid_minus_independent_m": -0.013,
+            "tolerance_m": 0.254,
+            "diff_grid_minus_nearest_m": 0.157,
+            "pass": true
+          },
+          "mdt": {
+            "grid_value_m": 579.955,
+            "independent_footprint_mean_m": 579.958,
+            "source_cells_in_footprint": 12,
+            "source_min_m": 579.86,
+            "source_max_m": 580.01,
+            "source_std_m": 0.039,
+            "nearest_source_cell_at_centre_m": 579.95,
+            "diff_grid_minus_independent_m": -0.003,
+            "tolerance_m": 0.073,
+            "diff_grid_minus_nearest_m": 0.005,
+            "pass": true
+          }
+        },
+        "ndsm_grid_m": 24.483,
+        "pass": true
+      },
+      {
+        "id": "trees_west",
+        "category": "vegetation",
+        "reading": "tree canopy, wooded slope west of the river",
+        "texture_px": [
+          162,
+          240
+        ],
+        "grid_rc": [
+          240,
+          162
+        ],
+        "centre_epsg3857": [
+          -414581.172,
+          4924183.056
+        ],
+        "centre_epsg25830": [
+          438540.188,
+          4472362.92
+        ],
+        "surfaces": {
+          "mds": {
+            "grid_value_m": 623.685,
+            "independent_footprint_mean_m": 623.685,
+            "source_cells_in_footprint": 12,
+            "source_min_m": 623.106,
+            "source_max_m": 624.155,
+            "source_std_m": 0.318,
+            "nearest_source_cell_at_centre_m": 623.687,
+            "diff_grid_minus_independent_m": 0.0,
+            "tolerance_m": 0.207,
+            "diff_grid_minus_nearest_m": -0.002,
+            "pass": true
+          },
+          "mdt": {
+            "grid_value_m": 603.364,
+            "independent_footprint_mean_m": 603.363,
+            "source_cells_in_footprint": 12,
+            "source_min_m": 603.33,
+            "source_max_m": 603.42,
+            "source_std_m": 0.025,
+            "nearest_source_cell_at_centre_m": 603.36,
+            "diff_grid_minus_independent_m": 0.001,
+            "tolerance_m": 0.063,
+            "diff_grid_minus_nearest_m": 0.004,
+            "pass": true
+          }
+        },
+        "ndsm_grid_m": 20.321,
+        "pass": true
+      },
+      {
+        "id": "river_e",
+        "category": "river",
+        "reading": "Manzanares water surface, eastern reach (interpolated: sparse LiDAR returns on water)",
+        "texture_px": [
+          946,
+          462
+        ],
+        "grid_rc": [
+          462,
+          946
+        ],
+        "centre_epsg3857": [
+          -412708.465,
+          4923652.774
+        ],
+        "centre_epsg25830": [
+          439964.568,
+          4471948.678
+        ],
+        "surfaces": {
+          "mds": {
+            "grid_value_m": 569.448,
+            "independent_footprint_mean_m": 569.448,
+            "source_cells_in_footprint": 12,
+            "source_min_m": 569.441,
+            "source_max_m": 569.457,
+            "source_std_m": 0.005,
+            "nearest_source_cell_at_centre_m": 569.441,
+            "diff_grid_minus_independent_m": 0.001,
+            "tolerance_m": 0.052,
+            "diff_grid_minus_nearest_m": 0.008,
+            "pass": true
+          },
+          "mdt": {
+            "grid_value_m": 569.426,
+            "independent_footprint_mean_m": 569.427,
+            "source_cells_in_footprint": 12,
+            "source_min_m": 569.42,
+            "source_max_m": 569.43,
+            "source_std_m": 0.004,
+            "nearest_source_cell_at_centre_m": 569.43,
+            "diff_grid_minus_independent_m": -0.001,
+            "tolerance_m": 0.052,
+            "diff_grid_minus_nearest_m": -0.004,
+            "pass": true
+          }
+        },
+        "ndsm_grid_m": 0.022,
+        "pass": true
+      },
+      {
+        "id": "river_w",
+        "category": "river",
+        "reading": "Manzanares water surface, western reach (interpolated: sparse LiDAR returns on water)",
+        "texture_px": [
+          468,
+          228
+        ],
+        "grid_rc": [
+          228,
+          468
+        ],
+        "centre_epsg3857": [
+          -413850.243,
+          4924211.72
+        ],
+        "centre_epsg25830": [
+          439097.567,
+          4472380.141
+        ],
+        "surfaces": {
+          "mds": {
+            "grid_value_m": 571.157,
+            "independent_footprint_mean_m": 571.153,
+            "source_cells_in_footprint": 16,
+            "source_min_m": 571.134,
+            "source_max_m": 571.186,
+            "source_std_m": 0.014,
+            "nearest_source_cell_at_centre_m": 571.162,
+            "diff_grid_minus_independent_m": 0.003,
+            "tolerance_m": 0.058,
+            "diff_grid_minus_nearest_m": -0.005,
+            "pass": true
+          },
+          "mdt": {
+            "grid_value_m": 571.077,
+            "independent_footprint_mean_m": 571.078,
+            "source_cells_in_footprint": 16,
+            "source_min_m": 570.97,
+            "source_max_m": 571.12,
+            "source_std_m": 0.036,
+            "nearest_source_cell_at_centre_m": 571.04,
+            "diff_grid_minus_independent_m": -0.001,
+            "tolerance_m": 0.073,
+            "diff_grid_minus_nearest_m": 0.037,
+            "pass": true
+          }
+        },
+        "ndsm_grid_m": 0.08,
+        "pass": true
+      }
+    ],
+    "texture_correspondence": {
+      "method": "NCC of gradient magnitude (texture luminance vs MDS - MDT) over integer shifts; +dx = elevation sampled 1 px east, +dy = 1 px south",
+      "shift_range_px": 6,
+      "best_shift_px": [
+        1,
+        0
+      ],
+      "subpixel_peak_px": [
+        0.66,
+        0.47
+      ],
+      "best_ncc": 0.1757,
+      "ncc_at_zero": 0.1663,
+      "ncc_at_1px": {
+        "east": 0.1757,
+        "west": 0.127,
+        "south": 0.1619,
+        "north": 0.1223
+      },
+      "ncc_at_3px_mean": 0.0574,
+      "mirror_controls": {
+        "ndsm_flipped_east_west": -0.0038,
+        "ndsm_flipped_north_south": -0.0005
+      },
+      "criterion": "best shift within 1 px of (0, 0) and NCC at (0, 0) more than twice every mirrored control",
+      "pass": true
+    }
+  },
+  "temporal_compatibility": {
+    "geometry_date": "mar–may 2024",
+    "texture_date": "2023",
+    "texture_flight": "PNOA 2023 Madrid flight 2023-07-28 to 2023-08-04 (pnoa.ign.es 'Estado del proyecto', read 2026-11-26); the per-pixel acquisition date of the WMS mosaic is not published",
+    "gap": "about 7 to 10 months (2023-08-04 -> 2024-03 at least; 2023-07-28 -> 2024-05 at most); 1 year between published years",
+    "rule": "the renderer refuses this geometry under a texture whose published years are more than max_gap_years from 2024, unless the shot carries an explicit methodological warning"
+  },
+  "limitations": [
+    "Provisional v1 models interpolated from automatically classified NPC01; v2 is not published for Madrid.",
+    "A surface derived from elevation, not an architectural model: no building objects, no facades, no roofs as entities.",
+    "Water surfaces have sparse LiDAR returns; the Manzanares channel is interpolated.",
+    "The 2023 texture is a conventional orthophoto, not a true orthophoto: tall buildings lean in it, so roof texture can fall on walls or streets of the surface.",
+    "Only the part of the Gate 4B extent inside sheet 0559-4-5 has elevation; the southern strip is uncovered (adjacent sheet not downloaded).",
+    "Point checks show fidelity to the source raster, not real-world accuracy; no field measurement exists."
+  ],
+  "resources": {
+    "materialize_seconds": 5.5,
+    "reproject_seconds": 1.4,
+    "grid_bytes_total": 5191680
+  }
+}
