@@ -1,0 +1,66 @@
+{
+  "storyboard_version": "0.1.0",
+  "id": "madrid-rio-dissolve",
+  "note": "Gate 4C.1 second version of the Madrid Río pilot: the historical sequence cross-dissolves between consecutive original orthophotos (0.8 s, opacity only). Every other shot is as in madrid-rio.json, which stays the hard-cut original.",
+  "locale": "es-ES",
+  "copy_from": "madrid-rio.json",
+  "shots": [
+    {
+      "id": "intro",
+      "kind": "intro",
+      "duration_s": 4.0,
+      "coverage": "reference",
+      "camera": {
+        "type": "perspective",
+        "fov_deg": 30,
+        "ease": "easeInOut",
+        "start_s": 0,
+        "end_s": 4.0,
+        "from": { "target": [0.05, -0.12], "distance": 0.6, "tilt_deg": 22, "heading_deg": -6 },
+        "to": { "target": [0, 0], "distance": 1, "tilt_deg": 0, "heading_deg": 0 }
+      }
+    },
+    {
+      "id": "context",
+      "kind": "context",
+      "duration_s": 3.5,
+      "coverage": "reference",
+      "camera": { "type": "orthographic", "zoom": 1 }
+    },
+    {
+      "id": "sequence",
+      "kind": "sequence",
+      "per_frame_s": 1.1,
+      "coverages": "all",
+      "transition": { "type": "dissolve", "duration_s": 0.8 },
+      "camera": { "type": "orthographic", "zoom": 1 }
+    },
+    {
+      "id": "compare",
+      "kind": "compare",
+      "duration_s": 5.0,
+      "a": "olistat",
+      "b": "latest",
+      "wipe": { "from": 1.0, "to": 0.5, "start_s": 0.7, "end_s": 2.6, "ease": "easeInOut" },
+      "camera": { "type": "orthographic", "zoom": 1 }
+    },
+    {
+      "id": "closing",
+      "kind": "closing",
+      "duration_s": 5.8,
+      "coverage": "latest",
+      "camera": { "type": "orthographic", "zoom_from": 1, "zoom_to": 1.05, "ease": "easeInOut", "start_s": 0, "end_s": 5.8 }
+    }
+  ],
+  "copy": {
+    "ruler_caption": "Años publicados de cada cobertura · cada imagen fija {per} s, fundidos de {fade} s",
+    "transition_note": "Fundido de opacidad entre dos ortofotos originales · no es una imagen intermedia",
+    "closing_lines": [
+      "Fuente: {provider} — servicio WMS pnoa-historico. Licencia {licence}.",
+      "{images} ortofotografías 2D sobre una misma extensión EPSG:3857. Los fundidos mezclan dos imágenes originales por opacidad; no hay fechas intermedias.",
+      "Las diferencias visibles son una lectura visual: no son mediciones ni prueban causas.",
+      "Fechas: año del mosaico o intervalo de vuelo publicado. Cobertura no verificada por la herramienta.",
+      "Visualización 2.5D de imágenes planas: sin relieve, edificios ni geometría reconstruida."
+    ]
+  }
+}

@@ -160,6 +160,72 @@ exclusions), the transform (origin, north-up, aspect, contain fit, seamless intr
 direction, ground scale) and the timeline (frame-exact cuts, label sync, purity, fixed camera,
 refused storyboards, time mapping). With `CINEMATIC_PACKAGE` set they also load the real package.
 
+## Cross-dissolve mode (Gate 4C.1)
+
+Hard cut is the default. A sequence shot can instead dissolve between consecutive dates:
+
+```json
+{ "kind": "sequence", "per_frame_s": 1.1, "coverages": "all",
+  "transition": { "type": "dissolve", "duration_s": 0.8 }, "camera": { "type": "orthographic", "zoom": 1 } }
+```
+
+- Each dissolve is its own `transition` shot between two original holds. On its frames the
+  incoming original texture is drawn over the outgoing one on the **same plane, camera and extent**,
+  at opacity α = (j + 1) / (n + 1) for frame j of n: linear, strictly between 0 and 1 (0.04 … 0.96
+  for 0.8 s at 30 fps). Nothing else enters the picture: no generated, morphed or geographically
+  interpolated image, and no date that does not exist.
+- The blend is the usual video cross-fade on displayed (sRGB-encoded) values,
+  `(1 − α)·A + α·B`, done by the GPU when the canvas framebuffer blends the two textures.
+- Every frame is either `original` (one or two source images as they are) or `transition` (an
+  opacity blend). Transition frames name both dates, show the mix ratio and carry both attributions;
+  the year ruler highlights both intervals.
+- `render-manifest.json` → `transitions`: mode, original/transition frame counts, and for each dissolve
+  its frames, seconds, both coverages with their published dates and coverage states, and α per frame.
+
+Checks added for dissolves (the others run unchanged):
+
+| Check | How |
+|---|---|
+| Blend in the page | at α ≈ 0.3 and 0.7: the render must fit the declared blend better than either original alone, the pair at α ± 0.2, and the pair reversed (not probed at 0.5, where reversal is the same picture); zero offset beats 1 px shifts |
+| Opacity in the MP4 | every transition frame is decoded and fitted by least squares as (1 − α̂)·A + α̂·B against the MP4 frames just before and after: \|α̂ − α\| ≤ 0.02, residual ≤ 10 % of the A–B difference (no third image), every α̂ farther than 0.02 from 0 and 1 (each transition frame is measurably a blend), and the holds around it estimate as originals |
+| Cuts | the cut-sync test runs only on real cuts; boundaries next to a dissolve are covered by the opacity check |
+
+`storyboards/madrid-rio-dissolve.json` is the second version of the pilot; `madrid-rio.json` stays
+the hard-cut original. `storyboards/smoke-dissolve.json` is a 4 s preview (three dates, two dissolves).
+
+**Interactive opacity preview (local, optional).** `--interactive` opens a visible window of the same
+page with a slider over the frames of one dissolve, from the last original frame before it to the
+first after it, drawn by the same `renderFrame` as the video: it shows exactly the opacities the film
+uses. Same local server, request blocking and sandbox; it writes nothing.
+
+```powershell
+node render.mjs --package C:\workspace\temporal-packages\madrid-rio-z16-final --storyboard storyboards/madrid-rio-dissolve.json --out C:\renders\interactive --width 1280 --height 720 --interactive
+```
+
+### Pilot results (2026-11-26)
+
+Same Gate 4B package, not downloaded again; the hard-cut original
+(`C:\workspace\temporal-renders\madrid-rio-gate4c\final\video.mp4`, SHA-256 `7049c700…`) is left as is.
+
+- **Hard cut unchanged:** the hard-cut storyboard renders byte-identical with the Gate 4C code
+  and with this code (960 × 540, SHA-256 `7279a93f…`, both runs PASS).
+- **Short preview** (`smoke-dissolve.json`, 960 × 540, 4 s): PASS. Its first run flagged a flaw in the
+  test, not the render: at α ≈ 0.5 the reversed-pair rival is the same picture, so the page probe
+  moved to α ≈ 0.3 and 0.7.
+- **Second film**, `C:\workspace\temporal-renders\madrid-rio-gate4c1\final-dissolve-2\` (`video.mp4`
+  35.0 MB, `render-manifest.json` PASS, commit `00f5f69`, `screenshots\`): 1920 × 1080, 30/1, 1038
+  decoded frames, 34.6 s; 846 original and 192 transition frames, 8 dissolves of 0.8 s.
+  - Opacity in the MP4: 8/8 dissolves, largest \|α̂ − α\| 0.009, largest residual 4.2 % of the
+    A–B difference, every transition frame ≥ 0.031 from either original, holds 0.000.
+  - Page probes 37/37 (16 blend probes: declared blend ≥ 1.8 × better than the closest rival,
+    1 px shifts worse by ≥ 5.3); label ↔ image sync 0 mismatches; 4 real cuts on the exact frame;
+    seek PSNR ≥ 38.1 dB; 16 local requests, 0 to the IGN; package unchanged.
+- A first 1080p render (`final-dissolve`) passed every check but showed the two ruler labels of
+  the 1997–98 → 1997–2003 dissolve overlapping (both start in 1997); they are now stacked, and that
+  render is superseded.
+- Interactive preview: checked with `--interactive-screenshot` (slider at 52 % of the
+  1956–57 → 1997–98 dissolve, frame 270).
+
 ## 3D Animator skill: audit (verdict MODIFY)
 
 The `3d-animator` skill (in `.claude/skills/3d-animator`, untracked) was read in full before any

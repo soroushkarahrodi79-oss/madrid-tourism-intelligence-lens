@@ -114,9 +114,21 @@ function cameraFor(state) {
   return { camera: c, view };
 }
 
+function setOpacity(mesh, alpha) {
+  const transparent = alpha < 1;
+  if (mesh.material.transparent !== transparent) { mesh.material.transparent = transparent; mesh.material.needsUpdate = true; }
+  mesh.material.opacity = alpha;
+}
+
 function drawImageLayer(state) {
-  for (const m of Object.values(S.meshes)) { m.visible = false; m.material.clippingPlanes = null; m.renderOrder = 0; }
+  for (const m of Object.values(S.meshes)) { m.visible = false; m.material.clippingPlanes = null; m.renderOrder = 0; setOpacity(m, 1); }
   state.layers.forEach((id, k) => { S.meshes[id].visible = true; S.meshes[id].renderOrder = k; });
+  if (state.mix) {
+    // Dissolve: the incoming original texture over the outgoing one, same plane, opacity alpha.
+    // The canvas framebuffer stores sRGB-encoded values, so this is the usual video cross-fade
+    // (1 - alpha) * A + alpha * B on the displayed values. Nothing else enters the picture.
+    setOpacity(S.meshes[state.mix.b], state.mix.alpha);
+  }
   if (state.shot.kind === 'compare') {
     // Coverage B is shown east of the divider only; both share the same plane geometry.
     S.clip.constant = -((state.wipe - 0.5) * S.cfg.frame.width);
@@ -294,16 +306,25 @@ function ruler(state) {
     text(String(yr), X(yr), y + px(26), { size: 13, color: MUTED, align: 'center' });
   }
   // A coverage occupies its published years [start, end + 1): an interval stays an interval.
-  const ids = S.cfg.timeline.shots.filter((s) => s.group === state.shot.group).map((s) => s.coverage);
+  const ids = S.cfg.timeline.shots.filter((s) => s.group === state.shot.group && s.kind === 'sequence').map((s) => s.coverage);
+  // During a dissolve both dates are current.
+  const currentSet = state.mix ? [shown, shown + 1] : [shown];
+  const labels = [];
   ids.forEach((id, i) => {
     const d = meta(id).date;
     const xs = X(d.start_year);
     const xe = Math.max(X(d.end_year + 1), xs + px(4));
-    const current = i === shown;
+    const current = currentSet.includes(i);
     const col = current ? ACCENT : i < shown ? 'rgba(217, 164, 65, 0.45)' : 'rgba(243, 239, 230, 0.28)';
     const c = S.ctx; c.save(); c.fillStyle = col; c.fillRect(xs, y - px(current ? 6 : 3), xe - xs, px(current ? 12 : 6)); c.restore();
-    if (current) text(d.label, (xs + xe) / 2, y - px(16), { size: 16, weight: 600, color: ACCENT, align: 'center' });
+    if (current) labels.push({ label: d.label, x: (xs + xe) / 2 });
   });
+  // Two current labels (a dissolve) are stacked when they would overlap, e.g. 1997–98 and 1997–2003.
+  S.ctx.save(); S.ctx.font = font(16, 600);
+  const halfW = labels.map((l) => S.ctx.measureText(l.label).width / 2);
+  S.ctx.restore();
+  const collide = labels.length === 2 && Math.abs(labels[0].x - labels[1].x) < halfW[0] + halfW[1] + px(12);
+  labels.forEach((l, k) => text(l.label, l.x, y - px(collide && k === 0 ? 36 : 16), { size: 16, weight: 600, color: ACCENT, align: 'center' }));
   const ref = meta(S.cfg.meta.reference_id).date;
   const xr = X(ref.start_year + 0.5);
   const c = S.ctx; c.save(); c.strokeStyle = 'rgba(243, 239, 230, 0.6)'; c.lineWidth = px(1.5);
@@ -328,6 +349,39 @@ function overlaySequence(state, cam) {
   ruler(state);
   attribution([id], 1);
   return [id];
+}
+
+// Dissolve frame: both dates stay fully legible, with the blend ratio shown as a bar.
+function overlayTransition(state, cam) {
+  const { a, b, alpha } = state.mix;
+  const rect = extentPixelRect(S.cfg.frame, cam.view, S.W, S.H);
+  scrim(0, px(400), 0.88, 0);
+  scrim(S.H, S.H - px(240), 0.88, 0);
+  neatline(rect, 1);
+  const x = rect.x + px(64);
+  text(copy().eyebrow, x, px(70), { size: 15, weight: 600, color: ACCENT, spacing: 4 });
+  text(`${copy().sequence_heading}  ${state.shot.sequence_index + 1} → ${state.shot.sequence_index + 2} / ${state.shot.sequence_count}`, x, px(96), { size: 14, color: MUTED, spacing: 2 });
+  const wa = text(meta(a).date.label, x, px(184), { size: 84, weight: 300, spacing: -1 });
+  const wArrow = text('  →  ', x + wa, px(184), { size: 60, weight: 300, color: ACCENT });
+  text(meta(b).date.label, x + wa + wArrow, px(184), { size: 84, weight: 300, spacing: -1 });
+  text(copy().transition_note, x, px(218), { size: 20, weight: 500, color: ACCENT });
+  // Mix bar: share of each original in this frame.
+  const bw = px(260);
+  const by = px(246);
+  const c = S.ctx;
+  c.save();
+  c.fillStyle = 'rgba(243, 239, 230, 0.25)'; c.fillRect(x, by, bw, px(6));
+  c.fillStyle = INK; c.fillRect(x + bw * (1 - alpha), by, bw * alpha, px(6));
+  c.restore();
+  const pct = (v) => `${Math.round(v * 100)} %`;
+  text(`${meta(a).date.label} ${pct(1 - alpha)}`, x, by + px(26), { size: 15, color: MUTED });
+  text(`${meta(b).date.label} ${pct(alpha)}`, x + bw, by + px(26), { size: 15, color: INK, align: 'right' });
+  text(`${meta(a).product} · ${meta(b).product}`, x, by + px(52), { size: 15, color: MUTED });
+  northArrow(rect.x + rect.width - px(64), px(84), 1);
+  scaleBar(cam.view, rect.x + rect.width - px(64), px(150), 1);
+  ruler(state);
+  attribution([a, b], 1);
+  return [a, b];
 }
 
 function overlayCompare(state, cam) {
@@ -379,7 +433,7 @@ function overlayClosing(state, cam) {
   return [id];
 }
 
-const OVERLAYS = { intro: overlayIntro, context: overlayContext, sequence: overlaySequence, compare: overlayCompare, closing: overlayClosing };
+const OVERLAYS = { intro: overlayIntro, context: overlayContext, sequence: overlaySequence, transition: overlayTransition, compare: overlayCompare, closing: overlayClosing };
 
 const isMoving = (st) => st.camera.type === 'perspective' || st.shot.camera.zoom_to !== undefined;
 
@@ -419,24 +473,29 @@ function composeFrame(i, n, overlays) {
   return { base, cam, labelled, imagery };
 }
 
-window.renderFrame = (i, { n = 1, overlays = true } = {}) => {
+window.renderFrame = (i, { n = 1, overlays = true, encode = true } = {}) => {
   const { base, labelled, imagery } = composeFrame(i, n, overlays);
-  return { png: S.out.toDataURL('image/png'), shot: base.shot.id, visible: base.visible, labelled, imagery };
+  return { png: encode ? S.out.toDataURL('image/png') : null, shot: base.shot.id, visible: base.visible, labelled, imagery, frame_type: base.frame_type, alpha: base.mix ? base.mix.alpha : null };
 };
 
 // --- validation probes (overlays off) --------------------------------------------------------
 
 function sampleRegion(img, data, rect, transform) {
   // Mean absolute difference between the rendered region and `img` drawn into the same rect.
+  // `transform.over` adds a second image on top at opacity `transform.alpha` (dissolve reference).
   const p = S.probeCtx;
   p.setTransform(1, 0, 0, 1, 0, 0);
   p.imageSmoothingEnabled = true; p.imageSmoothingQuality = 'high';
   p.fillStyle = BG; p.fillRect(0, 0, S.W, S.H);
-  p.save();
-  p.translate(rect.x + rect.width / 2, rect.y + rect.height / 2);
-  p.scale(transform.flipX ? -1 : 1, transform.flipY ? -1 : 1);
-  p.drawImage(img, -rect.width / 2 + (transform.dxPx || 0), -rect.height / 2 - (transform.dyPx || 0), rect.width, rect.height);
-  p.restore();
+  const layers = [[img, 1], ...(transform.over ? [[transform.over, transform.alpha]] : [])];
+  for (const [im, a] of layers) {
+    p.save();
+    p.globalAlpha = a;
+    p.translate(rect.x + rect.width / 2, rect.y + rect.height / 2);
+    p.scale(transform.flipX ? -1 : 1, transform.flipY ? -1 : 1);
+    p.drawImage(im, -rect.width / 2 + (transform.dxPx || 0), -rect.height / 2 - (transform.dyPx || 0), rect.width, rect.height);
+    p.restore();
+  }
   const ref = p.getImageData(0, 0, S.W, S.H).data;
   return (x0, y0, x1, y1) => {
     let sum = 0; let count = 0;
@@ -464,6 +523,27 @@ window.checkFrame = (i) => {
   for (let y = 0; y < S.H; y += 3) for (let x = 0; x < S.W; x += 3) {
     if (x >= rect.x - 1 && x <= rect.x + rect.width + 1 && y >= rect.y - 1 && y <= rect.y + rect.height + 1) continue;
     const o = (y * S.W + x) * 4; outside += Math.abs(data[o] - bg[0]) + Math.abs(data[o + 1] - bg[1]) + Math.abs(data[o + 2] - bg[2]); n += 3;
+  }
+  if (base.mix) {
+    // Dissolve frame: the render must be the declared blend of the two originals, at the declared
+    // opacity, in the computed place. It must fit better than either original alone, than the
+    // same pair at opacity +/-0.2, than the pair in reverse, and than every 1 px shift.
+    const { a, b, alpha } = base.mix;
+    const A = S.images[a]; const B = S.images[b];
+    const fit = (img, t) => sampleRegion(img, data, rect, t)(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height);
+    const expected = fit(A, { over: B, alpha });
+    const rivals = {
+      original_a_only: fit(A, {}),
+      original_b_only: fit(B, {}),
+      alpha_minus_0_2: fit(A, { over: B, alpha: Math.max(0, alpha - 0.2) }),
+      alpha_plus_0_2: fit(A, { over: B, alpha: Math.min(1, alpha + 0.2) }),
+      reversed_pair: fit(B, { over: A, alpha }),
+    };
+    const shifts = {
+      east_1px: fit(A, { over: B, alpha, dxPx: 1 }), west_1px: fit(A, { over: B, alpha, dxPx: -1 }),
+      north_1px: fit(A, { over: B, alpha, dyPx: 1 }), south_1px: fit(A, { over: B, alpha, dyPx: -1 }),
+    };
+    return { frame: i, shot: base.shot.id, rect, outside_mad: outside / n, blend: { a, b, alpha, mad_expected: expected, mad_rivals: rivals, mad_shifts: shifts } };
   }
   const regions = base.shot.kind === 'compare'
     ? [{ id: base.shot.a, x0: rect.x, x1: rect.x + base.wipe * rect.width - 3 }, { id: base.shot.b, x0: rect.x + base.wipe * rect.width + 3, x1: rect.x + rect.width }]

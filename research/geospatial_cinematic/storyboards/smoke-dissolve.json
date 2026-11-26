@@ -1,0 +1,17 @@
+{
+  "storyboard_version": "0.1.0",
+  "id": "smoke-dissolve",
+  "note": "Gate 4C.1 short preview: three dates, two 0.8 s dissolves, about 4 s. Checks opacity, labels and alignment before the full render.",
+  "locale": "es-ES",
+  "copy_from": "madrid-rio-dissolve.json",
+  "shots": [
+    {
+      "id": "sequence",
+      "kind": "sequence",
+      "per_frame_s": 0.8,
+      "coverages": ["olistat", "2009", "2017"],
+      "transition": { "type": "dissolve", "duration_s": 0.8 },
+      "camera": { "type": "orthographic", "zoom": 1 }
+    }
+  ]
+}

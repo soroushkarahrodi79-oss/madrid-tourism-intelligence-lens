@@ -36,6 +36,12 @@ const MAX_OUTSIDE_MAD = 1.5;
 // Share of a central sample grid that must differ from the background on every frame (before
 // typography): catches a frame whose image layer did not draw, e.g. after a lost WebGL context.
 const MIN_IMAGERY_SHARE = 0.75;
+// Dissolve checks on the decoded MP4: 8-bit rounding of a blend is ~0.004 in opacity and the
+// 4 x 4 average suppresses most codec noise, so 0.02 leaves margin without admitting a wrong curve
+// or a shifted frame (consecutive frames of a 0.8 s dissolve differ by 0.04). A residual above 10 % of the
+// A-B difference would mean the frame is not a blend of those two originals.
+const MAX_ALPHA_ERROR = 0.02;
+const MAX_RESIDUAL_RATIO = 0.1;
 const MIN_SEEK_PSNR_DB = 30;
 
 function args(argv) {
@@ -86,13 +92,19 @@ console.log(`package: ${pkg.dir}\n  ${pkg.sequence.length} usable sequence frame
 const storyboardPath = path.resolve(A.storyboard);
 const storyboardBytes = fs.readFileSync(storyboardPath);
 const storyboard = JSON.parse(storyboardBytes.toString('utf8'));
-let copyFrom = null;
-if (storyboard.copy_from) {
-  const p = path.resolve(path.dirname(storyboardPath), storyboard.copy_from);
+// copy_from chains (a storyboard's own copy entries extend or override those it inherits).
+const copyFrom = [];
+const inheritedCopy = (fromDir, ref) => {
+  if (!ref) return {};
+  const p = path.resolve(fromDir, ref);
+  if (copyFrom.some((c) => c.path === p) || copyFrom.length > 8) refuse(`storyboard: copy_from loop at ${ref}`);
   const bytes = fs.readFileSync(p);
-  storyboard.copy = JSON.parse(bytes.toString('utf8')).copy;
-  copyFrom = { file: path.relative(ENGINE, p).split(path.sep).join('/'), sha256: sha256(bytes) };
-}
+  const sb = JSON.parse(bytes.toString('utf8'));
+  copyFrom.push({ path: p, file: path.relative(ENGINE, p).split(path.sep).join('/'), sha256: sha256(bytes) });
+  return { ...inheritedCopy(path.dirname(p), sb.copy_from), ...(sb.copy || {}) };
+};
+storyboard.copy = { ...inheritedCopy(path.dirname(storyboardPath), storyboard.copy_from), ...(storyboard.copy || {}) };
+for (const c of copyFrom) delete c.path;
 let timeline;
 try {
   timeline = resolveTimeline(storyboard, pkg, { fps, width, height });
@@ -135,7 +147,7 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 const angle = process.platform === 'win32' ? ['--use-angle=d3d11'] : process.platform === 'darwin' ? ['--use-angle=metal'] : [];
 // Keep Chromium's sandbox on and drop Playwright's default software-WebGL fallback flag: if no GPU
 // WebGL is available the render fails (exit 3) instead of weakening the browser.
-const launch = { headless: true, chromiumSandbox: true, ignoreDefaultArgs: ['--enable-unsafe-swiftshader'], args: ['--force-color-profile=srgb', '--hide-scrollbars', ...angle] };
+const launch = { headless: !A.interactive, chromiumSandbox: true, ignoreDefaultArgs: ['--enable-unsafe-swiftshader'], args: ['--force-color-profile=srgb', '--hide-scrollbars', ...angle] };
 const browser = await chromium.launch(launch);
 const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1, serviceWorkers: 'block' });
 const network = { allowed_origin: origin, requests: 0, by_origin: {}, blocked: [] };
@@ -167,6 +179,7 @@ const ground = groundScale(latDeg);
 const nf = new Intl.NumberFormat(storyboard.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const nf3 = new Intl.NumberFormat(storyboard.locale, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 const seqShotsSeconds = timeline.shots.find((s) => s.kind === 'sequence');
+const transitionShots = timeline.shots.filter((s) => s.kind === 'transition');
 const usedIds = [...new Set(timeline.shots.flatMap((s) => s.layers))];
 const seqIds = timeline.shots.filter((s) => s.kind === 'sequence').map((s) => s.coverage);
 const firstSeq = pkg.byId[seqIds[0] ?? pkg.sequence[0].coverage_id];
@@ -180,6 +193,7 @@ const tokens = {
   wg: nf.format((pkg.frame.width * ground.eastWest) / 1000),
   hg: nf.format((pkg.frame.height * ground.northSouth) / 1000),
   per: seqShotsSeconds ? new Intl.NumberFormat(storyboard.locale, { maximumFractionDigits: 2 }).format(seqShotsSeconds.frames / fps) : '',
+  fade: transitionShots.length ? new Intl.NumberFormat(storyboard.locale, { maximumFractionDigits: 2 }).format(transitionShots[0].frames / fps) : '',
   provider: pkg.service.provider,
   licence: pkg.service.licence.name,
   images: String(usedIds.length),
@@ -202,6 +216,49 @@ if (/swiftshader|llvmpipe|software/i.test(env.gpu)) console.log('  software rend
 
 const framePng = async (i, opts) => page.evaluate(([f, o]) => window.renderFrame(f, o), [i, opts]);
 
+// --- interactive opacity preview (local, optional) -----------------------------------------
+// Opens a visible window of the same page. A slider steps through the frames of a dissolve,
+// from the last original frame before it to the first one after it, and draws them with the same
+// renderFrame as the video: it shows exactly the opacities the film uses, nothing in between.
+// Same local server, request blocking and sandbox. Writes nothing (except --interactive-screenshot).
+if (A.interactive) {
+  const pairs = transitionShots.map((s) => ({ label: `${pkg.byId[s.a].date.label} → ${pkg.byId[s.b].date.label}`, first: s.start_frame - 1, last: s.end_frame }));
+  if (!pairs.length) refuse('--interactive needs a storyboard with dissolves');
+  await page.evaluate((list) => {
+    document.getElementById('gl').style.display = 'none';
+    const out = document.getElementById('out');
+    // Keep the whole frame, attribution included, above the control bar.
+    out.style.cssText = 'display: block; margin: 0 auto; max-width: 100vw; max-height: calc(100vh - 56px);';
+    const bar = document.createElement('div');
+    bar.style.cssText = 'position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 12px; align-items: center; padding: 10px 16px; background: rgba(8, 9, 10, 0.9); color: #f3efe6; font: 14px "Segoe UI", sans-serif;';
+    const sel = document.createElement('select');
+    list.forEach((p, k) => sel.add(new Option(p.label, String(k))));
+    const range = document.createElement('input');
+    range.type = 'range'; range.style.flex = '1'; range.setAttribute('aria-label', 'Opacidad del fundido');
+    const readout = document.createElement('output');
+    bar.append(sel, range, readout);
+    document.body.append(bar);
+    const show = () => {
+      const p = list[+sel.value];
+      const f = p.first + Number(range.value);
+      const r = window.renderFrame(f, { n: 1, encode: false });
+      readout.textContent = r.alpha === null ? `original · fotograma ${f}` : `${Math.round(r.alpha * 100)} % · fotograma ${f}`;
+    };
+    sel.onchange = () => { const p = list[+sel.value]; range.min = '0'; range.max = String(p.last - p.first); range.value = String(Math.round((p.last - p.first) / 2)); show(); };
+    range.oninput = show;
+    sel.onchange();
+  }, pairs);
+  if (A['interactive-screenshot']) {
+    await page.screenshot({ path: path.resolve(String(A['interactive-screenshot'])) });
+    console.log(`screenshot -> ${path.resolve(String(A['interactive-screenshot']))}`);
+  } else {
+    console.log('interactive preview open: close the window to finish');
+    await page.waitForEvent('close', { timeout: 0 });
+  }
+  if (consoleLog.errors.length) console.log('console errors:', consoleLog.errors);
+  await browser.close(); server.close(); process.exit(0);
+}
+
 // --- stills mode ----------------------------------------------------------------------------
 if (A.stills) {
   for (const s of String(A.stills).split(',')) {
@@ -220,9 +277,22 @@ const checks = [];
 const orthoShots = timeline.shots.filter((s) => s.camera.type === 'orthographic');
 for (const s of orthoShots) {
   const frames = s.kind === 'sequence' ? [s.start_frame, Math.floor((s.start_frame + s.end_frame) / 2)]
-    : s.kind === 'compare' ? [s.end_frame - 1] : [s.start_frame];
+    // Not the midpoint: at alpha 0.5 the reversed pair is the same picture, so probe near 0.3 and 0.7.
+    : s.kind === 'transition' ? [0.3, 0.7].map((a) => s.start_frame + Math.min(s.frames - 1, Math.max(0, Math.round(a * (s.frames + 1)) - 1)))
+      : s.kind === 'compare' ? [s.end_frame - 1] : [s.start_frame];
   for (const i of frames) {
     const r = await page.evaluate((f) => window.checkFrame(f), i);
+    if (r.blend) {
+      const g = r.blend;
+      const criteria = {
+        declared_blend_is_best_fit: g.mad_expected < Math.min(...Object.values(g.mad_rivals)),
+        blend_margin_vs_single_originals: g.mad_expected <= MARGIN * Math.min(g.mad_rivals.original_a_only, g.mad_rivals.original_b_only),
+        zero_offset_is_optimum: g.mad_expected <= Math.min(...Object.values(g.mad_shifts)),
+      };
+      const pass = Object.values(criteria).every(Boolean) && r.outside_mad <= MAX_OUTSIDE_MAD;
+      checks.push({ frame: i, shot: s.id, rect: r.rect, outside_mad: r.outside_mad, blend: { ...g, criteria }, pass });
+      continue;
+    }
     const regions = r.regions.map((g) => {
       const others = Math.min(...Object.entries(g.mad_all).filter(([id]) => id !== g.coverage_id).map(([, v]) => v), Infinity);
       const criteria = {
@@ -318,7 +388,10 @@ const psnr = (a, b) => {
 const seek = keys.map((k) => ({ frame: k, psnr_db: psnr(mp4Key[k], renderedKey(k)) }));
 // Cut sync in the encoded file: around each cut c, MP4 frame c must match rendered frame c better
 // than rendered frame c-1, and MP4 frame c-1 the reverse.
-const cuts = timeline.shots.slice(1).map((s) => {
+// Boundaries next to a dissolve are not cuts (neighbouring frames differ by a few % opacity);
+// they are checked by the opacity estimate below instead.
+const cutShots = timeline.shots.slice(1).filter((s) => s.kind !== 'transition' && timeline.shots.find((x) => x.end_frame === s.start_frame).kind !== 'transition');
+const cuts = cutShots.map((s) => {
   const c = s.start_frame;
   const r = {
     cut_frame: c, from: timeline.shots.find((x) => x.end_frame === c).id, to: s.id,
@@ -328,6 +401,60 @@ const cuts = timeline.shots.slice(1).map((s) => {
   r.pass = r.mp4_c_vs_c > r.mp4_c_vs_prev && r.mp4_prev_vs_prev > r.mp4_prev_vs_c;
   return r;
 });
+
+// Dissolves in the encoded file: every transition frame F must be (1 - a) * A + a * B of the
+// original frames just before (A) and just after (B), with a equal to the declared opacity, and
+// the blend must explain the picture (small residual: no third image, no morph). The hold frames
+// around it must estimate as originals (a = 0 or 1). Measured on a band of the extent free of
+// typography, decoded from the MP4 and averaged 4 x 4.
+let dissolveCheck = { transitions: [], pass: true, note: 'no dissolves in this storyboard' };
+if (transitionShots.length) {
+  const rect = extentPixelRect(pkg.frame, orthoView(pkg.frame, width / height, 1), width, height);
+  const even = (v) => 2 * Math.floor(v / 2);
+  const cx = even(Math.ceil(rect.x) + 8); const cw = even(Math.floor(rect.width) - 16);
+  const cy = even(0.40 * height); const ch = even(0.34 * height);
+  const sw = Math.floor(cw / 4); const sh = Math.floor(ch / 4);
+  const ranges = transitionShots.map((s) => [s.start_frame - 2, s.end_frame + 1]);
+  const select = ranges.map(([a, b]) => `between(n\\,${a}\\,${b})`).join('+');
+  const raw = spawnSync(FFMPEG, ['-v', 'error', '-i', videoFile, '-vf', `select='${select}',crop=${cw}:${ch}:${cx}:${cy},scale=${sw}:${sh}:flags=area`,
+    '-fps_mode', 'passthrough', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { maxBuffer: 1024 * 1024 * 1024 });
+  const size = sw * sh * 3;
+  const order = [...new Set(ranges.flatMap(([a, b]) => Array.from({ length: b - a + 1 }, (_, k) => a + k)))].sort((p, q) => p - q);
+  const at = Object.fromEntries(order.map((f, k) => [f, raw.stdout.subarray(k * size, (k + 1) * size)]));
+  const estimate = (F, A, B) => {
+    let num = 0; let den = 0;
+    for (let k = 0; k < size; k++) { const d = B[k] - A[k]; num += (F[k] - A[k]) * d; den += d * d; }
+    const a = num / den;
+    let res = 0;
+    for (let k = 0; k < size; k++) { const e = F[k] - (A[k] + a * (B[k] - A[k])); res += e * e; }
+    return { alpha: a, residual_rms: Math.sqrt(res / size), signal_rms: Math.sqrt(den / size) };
+  };
+  const complete = raw.status === 0 && raw.stdout.length === order.length * size;
+  dissolveCheck = {
+    method: `least-squares opacity of each MP4 frame against the MP4 frames before and after the dissolve; band ${cw}x${ch} at (${cx},${cy}), area-averaged to ${sw}x${sh}`,
+    thresholds: { max_alpha_error: MAX_ALPHA_ERROR, max_residual_ratio: MAX_RESIDUAL_RATIO, originals_alpha_within: MAX_ALPHA_ERROR },
+    decoded_frames: complete ? order.length : 0,
+    transitions: complete ? transitionShots.map((s) => {
+      const A = at[s.start_frame - 1]; const B = at[s.end_frame];
+      const frames = [];
+      for (let f = s.start_frame; f < s.end_frame; f++) {
+        const e = estimate(at[f], A, B);
+        frames.push({ frame: f, declared_alpha: frameState(timeline, f).mix.alpha, estimated_alpha: e.alpha, residual_ratio: e.residual_rms / e.signal_rms });
+      }
+      const before = estimate(at[s.start_frame - 2], A, B).alpha;
+      const after = estimate(at[s.end_frame + 1], A, B).alpha;
+      const maxErr = Math.max(...frames.map((x) => Math.abs(x.estimated_alpha - x.declared_alpha)));
+      const maxRes = Math.max(...frames.map((x) => x.residual_ratio));
+      // Every transition frame must measure as a blend, i.e. further from 0 and 1 than the error bound.
+      const minBlend = Math.min(...frames.map((x) => Math.min(x.estimated_alpha, 1 - x.estimated_alpha)));
+      const pass = maxErr <= MAX_ALPHA_ERROR && maxRes <= MAX_RESIDUAL_RATIO && minBlend > MAX_ALPHA_ERROR
+        && Math.abs(before) <= MAX_ALPHA_ERROR && Math.abs(after - 1) <= MAX_ALPHA_ERROR;
+      return { shot: s.id, a: s.a, b: s.b, max_alpha_error: maxErr, max_residual_ratio: maxRes, min_distance_from_original: minBlend, hold_before_alpha: before, hold_after_alpha: after, frames, pass };
+    }) : [],
+  };
+  dissolveCheck.pass = complete && dissolveCheck.transitions.length === transitionShots.length && dissolveCheck.transitions.every((t) => t.pass);
+  console.log(`dissolves: ${dissolveCheck.transitions.filter((t) => t.pass).length}/${transitionShots.length} match their declared opacity in the MP4`);
+}
 const videoBytes = fs.readFileSync(videoFile);
 
 // --- 9. render manifest ---------------------------------------------------------------------
@@ -341,7 +468,8 @@ const validation = {
   mp4_duration_s: { expected: timeline.duration_s, actual: mp4Duration, pass: Math.abs(mp4Duration - timeline.duration_s) <= 1 / fps + 1e-6 },
   mp4_full_decode: { errors: decodeErrors, pass: decode.status === 0 && !decodeErrors },
   mp4_seek_psnr: { min_db: MIN_SEEK_PSNR_DB, frames: seek, pass: seek.every((s) => s.psnr_db >= MIN_SEEK_PSNR_DB) },
-  mp4_cut_sync: { cuts, pass: cuts.every((c) => c.pass) },
+  mp4_cut_sync: { cuts, boundaries_next_to_dissolves: transitionShots.length * 2, pass: cuts.every((c) => c.pass) },
+  mp4_dissolve_opacity: dissolveCheck,
   label_texture_sync: { frames_checked: timeline.total_frames, mismatches: syncMismatches, pass: syncMismatches.length === 0 },
   imagery_present_every_frame: { min_share_required: MIN_IMAGERY_SHARE, min_share_observed: minImagery, frames_without_imagery: noImagery, pass: noImagery.length === 0 },
   image_alignment: { criteria: { right_image_mad_at_most: `${MARGIN} x the best other image`, mirrors_worse: true, zero_offset_beats_1px_shifts: true, max_outside_mad: MAX_OUTSIDE_MAD }, probes: checks, pass: checks.length > 0 && checks.every((c) => c.pass) },
@@ -408,7 +536,22 @@ const manifest = {
     lens: storyboard.shots.filter((s) => s.camera.type === 'perspective').map((s) => ({ shot: s.id, fov_deg: s.camera.fov_deg, from: s.camera.from, to: s.camera.to, ease: s.camera.ease || 'easeInOut' })),
     orthographic: 'context, historical sequence and comparison use one fixed orthographic camera (zoom 1, centred, north-up); closing uses a slow orthographic push',
   },
-  scenes: timeline.shots.map((s) => ({ id: s.id, kind: s.kind, frames: [s.start_frame, s.end_frame], seconds: [s.start_s, s.end_s], coverages: s.layers, camera: s.camera, wipe: s.wipe || null })),
+  scenes: timeline.shots.map((s) => ({ id: s.id, kind: s.kind, frames: [s.start_frame, s.end_frame], seconds: [s.start_s, s.end_s], coverages: s.layers, camera: s.camera, wipe: s.wipe || null, transition: s.transition || null })),
+  transitions: {
+    mode: transitionShots.length ? 'dissolve' : 'cut',
+    rule: 'A dissolve shows only the two original textures on the same plane and camera, the incoming one at opacity alpha (linear, strictly between 0 and 1). No intermediate image is generated, morphed or interpolated geographically.',
+    frame_counts: {
+      original: timeline.total_frames - transitionShots.reduce((n2, s) => n2 + s.frames, 0),
+      transition: transitionShots.reduce((n2, s) => n2 + s.frames, 0),
+    },
+    list: transitionShots.map((s) => ({
+      shot: s.id,
+      from: { coverage_id: s.a, date_label: pkg.byId[s.a].date.label, coverage_state: pkg.byId[s.a].coverage.state },
+      to: { coverage_id: s.b, date_label: pkg.byId[s.b].date.label, coverage_state: pkg.byId[s.b].coverage.state },
+      video_frames: [s.start_frame, s.end_frame], video_seconds: [s.start_s, s.end_s], duration_s: s.frames / fps, curve: s.transition.curve,
+      alpha_per_frame: Array.from({ length: s.frames }, (_, j) => Math.round(frameState(timeline, s.start_frame + j).mix.alpha * 1e6) / 1e6),
+    })),
+  },
   time_mapping: {
     note: 'Playback seconds are video time. Historical time is each coverage\'s published date (a mosaic year or a flight interval). Equal playback durations do not mean equal steps in history.',
     shots: timeMapping(timeline, pkg.byId),
@@ -426,7 +569,9 @@ const manifest = {
   validation,
   limitations: [
     'Flat 2.5D presentation of 2D orthophotos: no terrain, no buildings, no reconstructed geometry.',
-    'Each date is shown as published; nothing is interpolated between dates. Camera and text are animated, imagery is not.',
+    transitionShots.length
+      ? 'Each date is shown as published; nothing is interpolated geographically between dates. Dissolve frames blend two original images by opacity: a blended frame is not an image of any intermediate date, and its look depends only on the mix ratio.'
+      : 'Each date is shown as published; nothing is interpolated between dates. Camera and text are animated, imagery is not.',
     'Visible differences between dates are a visual reading, not a measurement of change, and say nothing about causes.',
     'Multi-year flights are labelled with their published interval; no exact acquisition date is implied.',
     'Every frame is COVERAGE_UNVERIFIED unless stated: the Gate 4B heuristic found no blank region, which does not prove complete coverage.',
