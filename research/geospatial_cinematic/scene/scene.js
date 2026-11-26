@@ -309,6 +309,7 @@ function ruler(state) {
   const ids = S.cfg.timeline.shots.filter((s) => s.group === state.shot.group && s.kind === 'sequence').map((s) => s.coverage);
   // During a dissolve both dates are current.
   const currentSet = state.mix ? [shown, shown + 1] : [shown];
+  const labels = [];
   ids.forEach((id, i) => {
     const d = meta(id).date;
     const xs = X(d.start_year);
@@ -316,8 +317,14 @@ function ruler(state) {
     const current = currentSet.includes(i);
     const col = current ? ACCENT : i < shown ? 'rgba(217, 164, 65, 0.45)' : 'rgba(243, 239, 230, 0.28)';
     const c = S.ctx; c.save(); c.fillStyle = col; c.fillRect(xs, y - px(current ? 6 : 3), xe - xs, px(current ? 12 : 6)); c.restore();
-    if (current) text(d.label, (xs + xe) / 2, y - px(16), { size: 16, weight: 600, color: ACCENT, align: 'center' });
+    if (current) labels.push({ label: d.label, x: (xs + xe) / 2 });
   });
+  // Two current labels (a dissolve) are stacked when they would overlap, e.g. 1997–98 and 1997–2003.
+  S.ctx.save(); S.ctx.font = font(16, 600);
+  const halfW = labels.map((l) => S.ctx.measureText(l.label).width / 2);
+  S.ctx.restore();
+  const collide = labels.length === 2 && Math.abs(labels[0].x - labels[1].x) < halfW[0] + halfW[1] + px(12);
+  labels.forEach((l, k) => text(l.label, l.x, y - px(collide && k === 0 ? 36 : 16), { size: 16, weight: 600, color: ACCENT, align: 'center' }));
   const ref = meta(S.cfg.meta.reference_id).date;
   const xr = X(ref.start_year + 0.5);
   const c = S.ctx; c.save(); c.strokeStyle = 'rgba(243, 239, 230, 0.6)'; c.lineWidth = px(1.5);
