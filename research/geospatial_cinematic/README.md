@@ -299,8 +299,9 @@ One final render was interrupted by the session ending and is not used.
 Optional. A geometry package made by [`geometry/materialize_geometry.py`](geometry/materialize_geometry.py)
 from PNOA-LiDAR MDS/MDT 50 cm sheets puts one elevation value on every texture pixel of the window the
 sheet covers. `--geometry <dir>` loads it (refused unless it was materialized for this very package);
-storyboard shots of kind `surface` / `surface_closing` then show the texture on the MDS, the MDT or a
-flat copy, at 1× vertical scale unless stated, with texture date, geometry date, their gap and the
+storyboard shots of kind `surface` / `surface_closing` then show the texture on the MDT terrain with LoD1
+buildings (`lod1`: Catastro footprints × LiDAR heights, neutral facades), the MDT alone, a flat copy, or the
+experimental MDS surface, at 1× vertical scale unless stated, with texture date, geometry date, their gap and the
 vertical scale on screen. A historical texture on recent geometry is refused unless the shot carries a
 visible `temporal_warning`.
 

@@ -51,7 +51,7 @@ const MIN_SEEK_PSNR_DB = 30;
 const MAX_Z_ROUNDTRIP_M = 0.001;
 // Illustrative light: azimuth/elevation are a cartographic convention (north-west, 45 degrees),
 // chosen, not observed; ambient + directional * sin(elevation) = 1 keeps flat ground at photo tone.
-const LIGHT = { azimuth_deg: 315, elevation_deg: 45, directional: 0.45 };
+const LIGHT = { azimuth_deg: 315, elevation_deg: 30, directional: 0.8 };
 LIGHT.ambient = 1 - LIGHT.directional * Math.sin((LIGHT.elevation_deg * Math.PI) / 180);
 
 function args(argv) {
@@ -126,7 +126,7 @@ storyboard.copy = { ...inheritedCopy(path.dirname(storyboardPath), storyboard.co
 for (const c of copyFrom) delete c.path;
 let timeline;
 try {
-  timeline = resolveTimeline(storyboard, pkg, { fps, width, height }, geom ? { acquisition: geom.acquisition, surfaces: SURFACES } : null);
+  timeline = resolveTimeline(storyboard, pkg, { fps, width, height }, geom ? { acquisition: geom.acquisition, surfaces: geom.surfaceIds } : null);
 } catch (e) {
   if (e instanceof StoryboardError) refuse(`storyboard: ${e.message}`);
   throw e;
@@ -147,7 +147,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.
 // right texture beats all the others; only the storyboard's images appear in the film.
 const probeIds = geom ? [...new Set([...timeline.shots.flatMap((s) => s.layers), ...pkg.usable])] : [...new Set(timeline.shots.flatMap((s) => s.layers))];
 const servedFrames = new Set(probeIds.map((id) => pkg.byId[id].file));
-const servedGeometry = new Set(geom ? SURFACES.map((k) => geom.surfaces[k].file) : []);
+const servedGeometry = new Set(geom ? [...SURFACES.map((k) => geom.surfaces[k].file), ...(geom.buildings ? [geom.buildings.file] : [])] : []);
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent((req.url || '').split('?')[0]);
   let file = null;
@@ -236,12 +236,14 @@ const sceneConfig = {
   surface: geom ? {
     frame: sf, base_m: geom.base_m, z_per_m: zPerM, light: LIGHT,
     grids: SURFACES.map((k) => ({ id: k, url: `${origin}/geometry/${geom.surfaces[k].file}`, sha256: geom.surfaces[k].sha256 })),
+    buildings: geom.buildings ? { url: `${origin}/geometry/${geom.buildings.file}`, sha256: geom.buildings.sha256, origin: pkg.frame.origin, frame: { width: pkg.frame.width, height: pkg.frame.height } } : null,
     meta: {
       acquisition: geom.acquisition,
       attribution: geom.manifest.licence.attribution,
       gap_text: storyboard.copy.gap_text || '',
       texture_flights: storyboard.copy.texture_flights || {},
-      surfaces: Object.fromEntries(SURFACES.map((k) => [k, { label: storyboard.copy.surface_label?.[k] || geom.manifest.sources[k].identifier }])),
+      surfaces: Object.fromEntries(geom.surfaceIds.map((k) => [k, { label: storyboard.copy.surface_label?.[k] || geom.manifest.sources[k]?.identifier || k }])),
+      buildings_attribution: geom.manifest.buildings?.attribution || null,
     },
   } : null,
   images: probeIds.map((id) => ({ coverage_id: id, url: `${origin}/package/${pkg.byId[id].file}`, sha256: pkg.byId[id].sha256, width: pkg.byId[id].width, height: pkg.byId[id].height, format: 'image/jpeg' })),
@@ -402,7 +404,20 @@ if (geom) {
         source_independent_mean_m: p.surfaces[k].independent_footprint_mean_m, gpu_minus_file_m: gpuM - fileM, pass });
     });
   }
-  surfaceChecks = { alignment, elevation };
+  // (c) LoD1 roofs: the highest vertex of each probed building on the GPU must be its roof_m.
+  // Probed: the 10 tallest parts and every 500th part, by their order in buildings.json.
+  const roofs = [];
+  if (geom.buildings && timeline.shots.some((s) => s.surface === 'lod1')) {
+    const P = geom.buildings.parts;
+    const order = P.map((p, i) => [p.roof_m - p.ground_median_m, i]).sort((x, y) => y[0] - x[0]).slice(0, 10).map(([, i]) => i);
+    for (let i = 0; i < P.length; i += 500) order.push(i);
+    const zs = await page.evaluate((ix) => window.probeBuildingRoofs(ix), order);
+    order.forEach((i, j) => {
+      const gpuM = zToMetres(zs[j], geom.base_m, zPerM);
+      roofs.push({ part: P[i].id, roof_m: P[i].roof_m, gpu_m: gpuM, diff_m: gpuM - P[i].roof_m, pass: Math.abs(gpuM - P[i].roof_m) <= MAX_Z_ROUNDTRIP_M });
+    });
+  }
+  surfaceChecks = { alignment, elevation, roofs };
   console.log(`surface: ${alignment.filter((a) => a.pass).length}/${alignment.length} texture-on-mesh probes pass; elevation round trip ${elevation.filter((e) => e.pass).length}/${elevation.length}`);
 }
 
@@ -580,7 +595,7 @@ const validation = {
   console: { errors: consoleLog.errors, warnings: consoleLog.warnings, pass: consoleLog.errors.length === 0 && !consoleLog.warnings.some((w) => /webgl|context_lost|shader|three\./i.test(w)) },
   ...(geom ? {
     surface_texture_alignment: { method: 'orthographic nadir render of the mesh vs the texture window crop (pixel centres); same criteria as image_alignment', probes: surfaceChecks.alignment, pass: surfaceChecks.alignment.length > 0 && surfaceChecks.alignment.every((a) => a.pass) },
-    surface_elevation_roundtrip: { max_error_m: MAX_Z_ROUNDTRIP_M, points: surfaceChecks.elevation, pass: surfaceChecks.elevation.every((e) => e.pass) },
+    surface_elevation_roundtrip: { max_error_m: MAX_Z_ROUNDTRIP_M, points: surfaceChecks.elevation, lod1_roofs: surfaceChecks.roofs, pass: surfaceChecks.elevation.every((e) => e.pass) && surfaceChecks.roofs.every((e) => e.pass) },
     geometry_unchanged_after_render: (() => {
       const changed = Object.entries(geom.fileHashes).filter(([rel, h]) => sha256(fs.readFileSync(path.join(geom.dir, rel))) !== h).map(([rel]) => rel);
       return { changed, pass: changed.length === 0 };
@@ -689,10 +704,19 @@ const manifest = {
     vertical_exaggeration_by_shot: Object.fromEntries(timeline.shots.filter((s) => s.surface).map((s) => [s.id, s.exaggeration])),
     lighting: { model: 'Lambert, one directional + one ambient light', ...LIGHT, nature: 'synthetic and illustrative: not an observation, no cast shadows; horizontal surfaces get factor 1', used_in_shots: timeline.shots.filter((s) => s.shading === 'illustrative').map((s) => s.id) },
     temporal_compatibility: geom.manifest.temporal_compatibility,
+    buildings: geom.manifest.buildings ? {
+      file: geom.buildings.file, sha256: geom.buildings.sha256, parts: geom.buildings.parts.length,
+      representation: geom.manifest.buildings.representation, status_of_elements: geom.manifest.buildings.status_of_elements,
+      rules: geom.manifest.buildings.rules, summary: geom.manifest.buildings.summary, source: geom.manifest.buildings.source,
+      attribution: geom.manifest.buildings.attribution, limitations: geom.manifest.buildings.limitations,
+      used_in_shots: timeline.shots.filter((s) => s.surface === 'lod1').map((s) => s.id),
+    } : null,
     limitations: geom.manifest.limitations,
   } : null,
   images: imagesUsed,
-  attributions: [...new Set(imagesUsed.map((i) => i.attribution))],
+  attributions: [...new Set([...imagesUsed.map((i) => i.attribution),
+    ...(geom && timeline.shots.some((s) => s.surface && s.surface !== 'flat') ? [geom.manifest.licence.attribution] : []),
+    ...(geom?.manifest.buildings && timeline.shots.some((s) => s.surface === 'lod1') ? [geom.manifest.buildings.attribution] : [])])],
   licences: [...new Set(imagesUsed.map((i) => `${i.licence.name} (${i.licence.scope})`))],
   environment: {
     node: process.version, platform: `${process.platform} ${os.release()} ${process.arch}`,

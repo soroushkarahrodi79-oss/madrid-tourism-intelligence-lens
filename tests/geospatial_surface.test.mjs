@@ -129,7 +129,7 @@ function buildGeometry(edit = () => {}) {
     grid, files, acquisition: { start_year: 2024, end_year: 2024, label: 'mar–may 2024' }, vertical_base_m: 600,
     licence: { attribution: 'synthetic' }, validation: { points: [] },
   };
-  const ctx = { dir, grid, heights, manifest, extraFile: null, after: null };
+  const ctx = { dir, grid, heights, manifest, extraFile: null, after: null, buildings: null };
   edit(ctx);
   const names = [];
   for (const k of ['mds', 'mdt']) {
@@ -137,6 +137,12 @@ function buildGeometry(edit = () => {}) {
     fs.writeFileSync(path.join(dir, `surface_${k}.f32`), bytes);
     files[k] = { file: `surface_${k}.f32`, sha256: sha(bytes) };
     names.push(`surface_${k}.f32`);
+  }
+  if (ctx.buildings) {
+    const bytes = Buffer.from(JSON.stringify(ctx.buildings));
+    fs.writeFileSync(path.join(dir, 'buildings.json'), bytes);
+    manifest.buildings = { file: 'buildings.json', sha256: sha(bytes), attribution: 'synthetic' };
+    names.push('buildings.json');
   }
   fs.writeFileSync(path.join(dir, 'geometry-manifest.json'), JSON.stringify(manifest));
   names.push('geometry-manifest.json');
@@ -164,6 +170,23 @@ test('a geometry package that does not belong to this texture package or lattice
   expectCode(buildGeometry((c) => { c.after = (d) => { const p = path.join(d, 'surface_mdt.f32'); const b = fs.readFileSync(p); b[0] ^= 1; fs.writeFileSync(p, b); }; }), 'HASH_MISMATCH');
 });
 
+const PART = (dx = 0, roof = 620, base = 598) => {
+  const [w, , , n] = gridRecord({ col0: 0, col1: 8, row0: 0, row1: 4 }).bbox_epsg3857;
+  const x = w + 2 + dx; const y = n - 2;
+  return { id: 'p1', floors_above_ground: 6, outer_epsg3857: [[x, y], [x + 3, y], [x + 3, y - 3], [x, y - 3], [x, y]], holes_epsg3857: [], roof_m: roof, base_m: base, ground_median_m: base };
+};
+
+test('LoD1 buildings load with the geometry and add the lod1 surface; bad parts are refused', () => {
+  const g = loadGeometry(buildGeometry((c) => { c.buildings = [PART()]; }), PKG);
+  assert.equal(g.buildings.parts.length, 1);
+  assert.deepEqual(g.surfaceIds, ['mds', 'mdt', 'lod1']);
+  assert.deepEqual(loadGeometry(buildGeometry(), PKG).surfaceIds, ['mds', 'mdt']);
+  const expectCode = (dir, code) => assert.throws(() => loadGeometry(dir, PKG), (e) => e instanceof GeometryError && e.code === code);
+  expectCode(buildGeometry((c) => { c.buildings = [PART(1000)]; }), 'WINDOW');
+  expectCode(buildGeometry((c) => { c.buildings = [PART(0, 590, 598)]; }), 'BUILDINGS');
+  expectCode(buildGeometry((c) => { c.buildings = [PART(0, NaN)]; }), 'NODATA');
+});
+
 // ---------- timeline: surface shots and the temporal rule ----------
 
 const DATES = {
@@ -177,7 +200,7 @@ const TL_PKG = {
   usable: new Set(['2006', 'ams1956', '2023']),
   byId: Object.fromEntries(Object.entries(DATES).map(([id, date]) => [id, { coverage_id: id, role: id === '2006' ? 'reference' : 'frame', date }])),
 };
-const GEOM = { acquisition: { start_year: 2024, end_year: 2024, label: 'mar–may 2024' }, surfaces: ['mds', 'mdt'] };
+const GEOM = { acquisition: { start_year: 2024, end_year: 2024, label: 'mar–may 2024' }, surfaces: ['mds', 'mdt', 'lod1'] };
 const OPTS = { fps: 30, width: 960, height: 540 };
 const pose = { target: [0, 0], distance: 0.5, tilt_deg: 58, heading_deg: 26 };
 const surfaceShot = (extra = {}) => ({ id: 's', kind: 'surface', duration_s: 1, coverage: '2023', surface: 'mds', camera: { type: 'perspective', fov_deg: 30, from: pose, to: pose }, ...extra });
@@ -227,14 +250,14 @@ test('flat Gate 4C shots keep their 45 degree tilt limit', () => {
   assert.throws(() => resolveTimeline({ shots: [intro] }, TL_PKG, OPTS, GEOM), /tilt above 45/);
 });
 
-test('the 3D pilot storyboard resolves to about 15 s with 2023 texture on 2024 geometry only', () => {
+test('the 3D pilot storyboard uses LoD1 buildings, not the MDS surface, with 2023 texture on 2024 geometry', () => {
   const sb = JSON.parse(fs.readFileSync(new URL('../research/geospatial_cinematic/storyboards/madrid-rio-3d.json', import.meta.url), 'utf8'));
   const tl = resolveTimeline(sb, TL_PKG, OPTS, GEOM);
   assert.ok(tl.duration_s >= 10 && tl.duration_s <= 16, `${tl.duration_s}`);
   const surf = tl.shots.filter((s) => s.surface);
   assert.ok(surf.length >= 4);
   assert.ok(surf.every((s) => s.coverage === '2023' && s.temporal_gap_years <= MAX_TEXTURE_GEOMETRY_GAP_YEARS && s.exaggeration <= 1));
-  assert.deepEqual(new Set(surf.map((s) => s.surface)), new Set(['mds', 'mdt', 'flat']));
+  assert.deepEqual(new Set(surf.map((s) => s.surface)), new Set(['lod1', 'mdt', 'flat']));
   // The three comparison states share one camera: only the surface changes at each cut.
   const cmp = tl.shots.filter((s) => s.id.startsWith('compare_'));
   assert.equal(new Set(cmp.map((s) => JSON.stringify(s.camera))).size, 1);

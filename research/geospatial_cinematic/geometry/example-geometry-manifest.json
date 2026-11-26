@@ -3,10 +3,10 @@
     "id": "urn:madrid-urban-evidence-lens:geometry-package",
     "version": "0.1.0"
   },
-  "id": "madrid-rio-lidar2024-on-2023-v1",
-  "version": "1.0.0",
+  "id": "madrid-rio-lidar2024-on-2023-lod1-v2",
+  "version": "2.0.0",
   "status": "PASS",
-  "generated_at": "2026-11-26T20:22:10+00:00",
+  "generated_at": "2026-11-26T21:13:23+00:00",
   "tool": {
     "name": "madrid-geometry-materializer",
     "version": "0.1.0",
@@ -311,6 +311,18 @@
         "pass": true
       },
       "texture_elevation_correspondence": {
+        "pass": true
+      },
+      "buildings_metres_per_floor_median_plausible": {
+        "range": [
+          2.5,
+          4.5
+        ],
+        "median": 3.64,
+        "pass": true
+      },
+      "buildings_present": {
+        "parts": 7566,
         "pass": true
       }
     },
@@ -819,8 +831,137 @@
     "Point checks show fidelity to the source raster, not real-world accuracy; no field measurement exists."
   ],
   "resources": {
-    "materialize_seconds": 5.5,
-    "reproject_seconds": 1.4,
+    "materialize_seconds": 32.3,
+    "reproject_seconds": 1.0,
     "grid_bytes_total": 5191680
+  },
+  "buildings": {
+    "file": "buildings.json",
+    "sha256": "a377f139345d551018c6e38e7399a53f2136d5ad70d52465c6ded85f7d4fb4fa",
+    "bytes": 4245568,
+    "source": {
+      "service": "http://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx",
+      "type": "BU:BuildingPart",
+      "licence": {
+        "name": "CC BY 4.0",
+        "attribution": "DG Catastro",
+        "evidence": "IDEE CSW GetRecordById ES_SDGC_BU, gmd:otherConstraints 'CC BY 4.0 DG Catastro', dateStamp 2025-01-28"
+      },
+      "fetch_log_sha256": "76020042771ff8c6136c61985599bacce62b8174ea6984fbb2f960d1ffb5ac85",
+      "tiles": [
+        {
+          "file": "tile_00.gml",
+          "retrieved_at": "2026-11-26T21:10:07+00:00",
+          "sha256": "3696871163ed1cfb2fecccbf39cdd586987dea59209d305ee646962d36a35bad",
+          "bytes": 2238019,
+          "building_parts": 905
+        },
+        {
+          "file": "tile_01.gml",
+          "retrieved_at": "2026-11-26T21:10:20+00:00",
+          "sha256": "d4532277af4c81e750cf8381f65b74517fae5f27980905c68548050e952b68a0",
+          "bytes": 5217894,
+          "building_parts": 2063
+        },
+        {
+          "file": "tile_02.gml",
+          "retrieved_at": "2026-11-26T21:10:34+00:00",
+          "sha256": "2086a6024e16eb8defd84f202645b9bf97b540abf4fa0bdc79452c9a871ec44f",
+          "bytes": 3407655,
+          "building_parts": 1357
+        },
+        {
+          "file": "tile_03.gml",
+          "retrieved_at": "2026-11-26T21:10:44+00:00",
+          "sha256": "faf077dcd811c2d61c922ce3d5a27f74e1a56a569a4d03ed77a797d51b7085fb",
+          "bytes": 3068909,
+          "building_parts": 1194
+        },
+        {
+          "file": "tile_04.gml",
+          "retrieved_at": "2026-11-26T21:10:56+00:00",
+          "sha256": "6bf2ca05da1204ef656a37fefe110125ff1dba5c684902b64cdae2c7d15260f7",
+          "bytes": 1005577,
+          "building_parts": 397
+        },
+        {
+          "file": "tile_05.gml",
+          "retrieved_at": "2026-11-26T21:11:01+00:00",
+          "sha256": "be9adee1df72cc84dd7466b302f0849a54f79e784487465aa3af115e81e56bc6",
+          "bytes": 2959391,
+          "building_parts": 1175
+        },
+        {
+          "file": "tile_06.gml",
+          "retrieved_at": "2026-11-26T21:11:06+00:00",
+          "sha256": "7d23012e0f87ae3dee694becc11dd6134a1bd3d7b2fad7459a5e9736b99b9cdc",
+          "bytes": 4587919,
+          "building_parts": 1783
+        },
+        {
+          "file": "tile_07.gml",
+          "retrieved_at": "2026-11-26T21:11:12+00:00",
+          "sha256": "f6195c0492c338353cccc843a7b03665e28422322b6d3d2b3335a52a9366f185",
+          "bytes": 5442176,
+          "building_parts": 2133
+        }
+      ],
+      "retrieved_on": "2026-11-26",
+      "update_frequency": "Catastro INSPIRE data are updated twice a year (catastro.hacienda.gob.es/webinspire)"
+    },
+    "summary": {
+      "parts_used": 7566,
+      "counts": {
+        "returned": 11007,
+        "duplicates": 965,
+        "duplicate_geometry_conflicts": 7,
+        "multi_polygon": 0,
+        "invalid": 7,
+        "not_inside_window": 2326,
+        "no_cells": 30,
+        "below_min_height": 113
+      },
+      "height_above_ground_m": {
+        "p05": 6.22,
+        "p50": 22.93,
+        "p95": 33.24,
+        "max": 58.24
+      },
+      "metres_per_floor": {
+        "median": 3.64,
+        "plausible_range": [
+          2.5,
+          4.5
+        ],
+        "area_share_in_range": 0.8303,
+        "parts_above_6m_per_floor": 1364,
+        "area_share_above_6m_per_floor": 0.1094
+      },
+      "roof_iqr_over_3m": {
+        "parts": 935,
+        "area_share": 0.1981
+      }
+    },
+    "representation": "LoD1: one flat-roofed prism per Catastro building part",
+    "status_of_elements": {
+      "footprint": "observed (official cadastral survey, Catastro INSPIRE BuildingPart)",
+      "height": "derived (PNOA-LiDAR 2024 v1: MDS median inside the footprint shrunk 0.75 m minus MDT median)",
+      "block": "simplified representation (flat roof, vertical neutral walls)"
+    },
+    "rules": {
+      "shrink_m": 0.75,
+      "min_height_above_ground_m": 2.0,
+      "base": "lowest MDT cell inside the footprint",
+      "selection": "single-polygon parts lying wholly inside the elevation window minus 2.0 m",
+      "floors": "numberOfFloorsAboveGround is used only as a plausibility check, never to set a height"
+    },
+    "attribution": "Edificios: © DG del Catastro, CC BY 4.0 (huellas); alturas derivadas de PNOA-LiDAR",
+    "limitations": [
+      "Flat LoD1 roofs: pitched roofs and roof structures are flattened to the median MDS.",
+      "Facades are neutral: no facade is observed or photographed.",
+      "Vegetation, bridges and other structures are not modelled.",
+      "Footprints are current at retrieval; texture (2023) and LiDAR (2024) may predate later changes.",
+      "Small parts registered with one floor sometimes take a taller LiDAR height (neighbour, canopy, roof structures); they are reported, not corrected."
+    ]
   }
 }

@@ -323,6 +323,146 @@ def texture_correspondence(texture_path, win, ndsm):
     }
 
 
+# --- LoD1 buildings (optional, Gate 4D review alternative C) -----------------------------------
+# Footprint = Catastro INSPIRE building part (observed, official cadastral survey). Height = LiDAR
+# (derived): roof = median MDS inside the footprint shrunk by SHRINK_M (keeps roof-edge ramps and
+# leaning walls out), base = lowest MDT cell inside the footprint, height above ground = roof - median
+# MDT. A flat LoD1 block is a simplified representation. Floor counts are only a plausibility check.
+SHRINK_M = 0.75
+MIN_PART_NDSM_M = 2.0
+METRES_PER_FLOOR_PLAUSIBLE = (2.5, 4.5)
+
+
+def parse_building_parts(text):
+    """BuildingPart gml:id, floors above ground and polygons [(kind, [(x, y), ...]), ...] (EPSG:25830)."""
+    import re
+
+    parts = []
+    for blk in re.findall(r"<bu-ext2d:BuildingPart (.*?)</bu-ext2d:BuildingPart>", text, re.S):
+        pid = re.search(r'gml:id="([^"]+)"', blk).group(1)
+        fl = re.search(r"<bu-ext2d:numberOfFloorsAboveGround>(\d+)<", blk)
+        polys = []
+        patches = re.findall(r"<gml:PolygonPatch>(.*?)</gml:PolygonPatch>", blk, re.S) or re.findall(r"<gml:Polygon[ >](.*?)</gml:Polygon>", blk, re.S)
+        for surf in patches:
+            rings = []
+            for kind, pl in re.findall(r"<gml:(exterior|interior)>.*?<gml:posList[^>]*>(.*?)</gml:posList>", surf, re.S):
+                v = [float(x) for x in pl.split()]
+                rings.append((kind, list(zip(v[0::2], v[1::2]))))
+            if rings:
+                polys.append(rings)
+        parts.append({"id": pid, "floors_above_ground": int(fl.group(1)) if fl else None, "polygons": polys})
+    return parts
+
+
+def lod1_buildings(catastro_dir, win_bbox_3857, mds_path, mdt_path, margin_m):
+    import numpy as np
+    import rasterio
+    from pyproj import Transformer
+    from rasterio.features import geometry_mask
+    from rasterio.windows import from_bounds
+    from shapely.geometry import Polygon
+
+    cdir = pathlib.Path(catastro_dir)
+    log_bytes = (cdir / "fetch-log.json").read_bytes()
+    log = json.loads(log_bytes.decode("utf8"))
+    for r in log["requests"]:
+        if sha256_bytes((cdir / r["file"]).read_bytes()) != r["sha256"]:
+            raise SystemExit(f"REFUSED: {r['file']} differs from fetch-log.json")
+    to25830 = Transformer.from_crs(DST_CRS, SRC_CRS, always_xy=True)
+    to3857 = Transformer.from_crs(SRC_CRS, DST_CRS, always_xy=True)
+    w, s, e, n = win_bbox_3857
+    xs, ys = to25830.transform([w, e, e, w], [n, n, s, s])
+    window = Polygon(list(zip(xs, ys))).buffer(-margin_m)
+    seen, counts = {}, {"returned": 0, "duplicates": 0, "duplicate_geometry_conflicts": 0, "multi_polygon": 0, "invalid": 0,
+                         "not_inside_window": 0, "no_cells": 0, "below_min_height": 0}
+    for r in log["requests"]:
+        for p in parse_building_parts((cdir / r["file"]).read_text(encoding="iso-8859-1")):
+            counts["returned"] += 1
+            if p["id"] in seen:
+                counts["duplicates"] += 1
+                if seen[p["id"]]["polygons"] != p["polygons"]:
+                    counts["duplicate_geometry_conflicts"] += 1
+                continue
+            seen[p["id"]] = p
+    srcs = {"mds": rasterio.open(mds_path), "mdt": rasterio.open(mdt_path)}
+    out = []
+    try:
+        for p in sorted(seen.values(), key=lambda q: q["id"]):
+            if len(p["polygons"]) != 1:
+                counts["multi_polygon"] += 1
+                continue
+            rings = p["polygons"][0]
+            ext = [r for k, r in rings if k == "exterior"]
+            poly = Polygon(ext[0], [r for k, r in rings if k == "interior"]) if ext else None
+            if poly is None or not poly.is_valid:
+                counts["invalid"] += 1
+                continue
+            if not window.contains(poly):
+                counts["not_inside_window"] += 1
+                continue
+            inner = poly.buffer(-SHRINK_M)
+            if inner.is_empty or inner.area < 1.0:
+                inner = poly
+            vals = {}
+            for key, src in srcs.items():
+                b = poly.bounds
+                wnd = from_bounds(b[0] - 1, b[1] - 1, b[2] + 1, b[3] + 1, src.transform).round_offsets().round_lengths()
+                arr = src.read(1, window=wnd).astype("float64")
+                wt = src.window_transform(wnd)
+                ok = core.valid_mask(arr, src.nodata)
+                geom = inner if key == "mds" else poly
+                vals[key] = arr[~geometry_mask([geom.__geo_interface__], out_shape=arr.shape, transform=wt) & ok]
+            if vals["mds"].size == 0 or vals["mdt"].size == 0:
+                counts["no_cells"] += 1
+                continue
+            roof = float(np.median(vals["mds"]))
+            ground = float(np.median(vals["mdt"]))
+            if roof - ground < MIN_PART_NDSM_M:
+                counts["below_min_height"] += 1
+                continue
+
+            def ring(rr):
+                X, Y = to3857.transform([q[0] for q in rr], [q[1] for q in rr])
+                return [[round(x, 3), round(y, 3)] for x, y in zip(X, Y)]
+
+            h = roof - ground
+            fl = p["floors_above_ground"]
+            out.append({
+                "id": p["id"], "floors_above_ground": fl,
+                "outer_epsg3857": ring(list(poly.exterior.coords)), "holes_epsg3857": [ring(list(hh.coords)) for hh in poly.interiors],
+                "area_m2": round(poly.area, 2), "roof_m": round(roof, 2), "base_m": round(float(vals["mdt"].min()), 2),
+                "ground_median_m": round(ground, 2), "height_above_ground_m": round(h, 2),
+                "roof_iqr_m": round(float(np.percentile(vals["mds"], 75) - np.percentile(vals["mds"], 25)), 2),
+                "roof_cells": int(vals["mds"].size),
+                "metres_per_floor": round(h / fl, 2) if fl else None,
+            })
+    finally:
+        for s in srcs.values():
+            s.close()
+    area = np.array([b["area_m2"] for b in out])
+    mpf = np.array([b["metres_per_floor"] if b["metres_per_floor"] is not None else np.nan for b in out])
+    lo, hi = METRES_PER_FLOOR_PLAUSIBLE
+    has = np.isfinite(mpf)
+    in_range = has & (mpf >= lo) & (mpf <= hi)
+    heights = np.array([b["height_above_ground_m"] for b in out])
+    summary = {
+        "parts_used": len(out), "counts": counts,
+        "height_above_ground_m": {"p05": round(float(np.percentile(heights, 5)), 2), "p50": round(float(np.median(heights)), 2),
+                                  "p95": round(float(np.percentile(heights, 95)), 2), "max": round(float(heights.max()), 2)},
+        "metres_per_floor": {"median": round(float(np.nanmedian(mpf)), 2), "plausible_range": [lo, hi],
+                             "area_share_in_range": round(float(area[in_range].sum() / area[has].sum()), 4),
+                             "parts_above_6m_per_floor": int((has & (mpf > 6)).sum()),
+                             "area_share_above_6m_per_floor": round(float(area[has & (mpf > 6)].sum() / area[has].sum()), 4)},
+        "roof_iqr_over_3m": {"parts": int(sum(b["roof_iqr_m"] > 3 for b in out)),
+                             "area_share": round(float(area[[b["roof_iqr_m"] > 3 for b in out]].sum() / area.sum()), 4)},
+    }
+    source = {"service": log["service"], "type": log["type"], "licence": log["licence"], "fetch_log_sha256": sha256_bytes(log_bytes),
+              "tiles": [{k: r[k] for k in ("file", "retrieved_at", "sha256", "bytes", "building_parts")} for r in log["requests"]],
+              "retrieved_on": min(r["retrieved_at"] for r in log["requests"])[:10],
+              "update_frequency": "Catastro INSPIRE data are updated twice a year (catastro.hacienda.gob.es/webinspire)"}
+    return out, summary, source
+
+
 def main(argv=None):
     import numpy as np
     import rasterio
@@ -336,6 +476,7 @@ def main(argv=None):
     ap.add_argument("--out", required=True)
     ap.add_argument("--margin-m", type=float, default=2.0)
     ap.add_argument("--retrieved-on", default="2026-11-24", help="date a person downloaded the sheets from CNIG")
+    ap.add_argument("--catastro", help="optional: fetch_catastro.py output; adds LoD1 buildings (buildings.json)")
     a = ap.parse_args(argv)
 
     t_start = time.perf_counter()
@@ -407,11 +548,39 @@ def main(argv=None):
         "point_fidelity_to_source": {"points": len(probes), "pass": len(probes) >= 5 and all(p["pass"] for p in probes)},
         "texture_elevation_correspondence": {"pass": corr["pass"]},
     }
+    buildings = None
+    if a.catastro:
+        parts, bsummary, bsource = lod1_buildings(a.catastro, win_bbox, a.mds, a.mdt, a.margin_m)
+        data = (json.dumps(parts, separators=(",", ":")) + "\n").encode("utf8")
+        (out / "buildings.json").write_bytes(data)
+        mpf = bsummary["metres_per_floor"]["median"]
+        # A unit or datum error (feet, ellipsoidal heights, a wrong sheet) would move this far outside.
+        checks["buildings_metres_per_floor_median_plausible"] = {"range": list(METRES_PER_FLOOR_PLAUSIBLE), "median": mpf,
+                                                                 "pass": METRES_PER_FLOOR_PLAUSIBLE[0] <= mpf <= METRES_PER_FLOOR_PLAUSIBLE[1]}
+        checks["buildings_present"] = {"parts": len(parts), "pass": len(parts) > 0}
+        buildings = {
+            "file": "buildings.json", "sha256": sha256_bytes(data), "bytes": len(data), "source": bsource, "summary": bsummary,
+            "representation": "LoD1: one flat-roofed prism per Catastro building part",
+            "status_of_elements": {"footprint": "observed (official cadastral survey, Catastro INSPIRE BuildingPart)",
+                                   "height": "derived (PNOA-LiDAR 2024 v1: MDS median inside the footprint shrunk 0.75 m minus MDT median)",
+                                   "block": "simplified representation (flat roof, vertical neutral walls)"},
+            "rules": {"shrink_m": SHRINK_M, "min_height_above_ground_m": MIN_PART_NDSM_M, "base": "lowest MDT cell inside the footprint",
+                      "selection": f"single-polygon parts lying wholly inside the elevation window minus {a.margin_m} m",
+                      "floors": "numberOfFloorsAboveGround is used only as a plausibility check, never to set a height"},
+            "attribution": "Edificios: © DG del Catastro, CC BY 4.0 (huellas); alturas derivadas de PNOA-LiDAR",
+            "limitations": [
+                "Flat LoD1 roofs: pitched roofs and roof structures are flattened to the median MDS.",
+                "Facades are neutral: no facade is observed or photographed.",
+                "Vegetation, bridges and other structures are not modelled.",
+                "Footprints are current at retrieval; texture (2023) and LiDAR (2024) may predate later changes.",
+                "Small parts registered with one floor sometimes take a taller LiDAR height (neighbour, canopy, roof structures); they are reported, not corrected.",
+            ],
+        }
     status = "PASS" if all(c["pass"] for c in checks.values()) else "FAIL"
     manifest = {
         "schema": GEOMETRY_SCHEMA,
-        "id": f"madrid-rio-lidar2024-on-{a.texture}-v1",
-        "version": "1.0.0",
+        "id": f"madrid-rio-lidar2024-on-{a.texture}-{'lod1-v2' if buildings else 'v1'}",
+        "version": "2.0.0" if buildings else "1.0.0",
         "status": status,
         "generated_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
         "tool": {**TOOL, "script": "research/geospatial_cinematic/geometry/materialize_geometry.py",
@@ -489,8 +658,10 @@ def main(argv=None):
         "resources": {"materialize_seconds": round(time.perf_counter() - t_start, 1), "reproject_seconds": round(t_reproject, 1),
                       "grid_bytes_total": sum(f["bytes"] for f in files.values())},
     }
+    if buildings:
+        manifest["buildings"] = buildings
     (out / "geometry-manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf8", newline="\n")
-    names = sorted(["geometry-manifest.json", *(f["file"] for f in files.values())])
+    names = sorted(["geometry-manifest.json", *(f["file"] for f in files.values()), *(["buildings.json"] if buildings else [])])
     (out / "checksums.sha256").write_text("".join(f"{sha256_bytes((out / n).read_bytes())}  {n}\n" for n in names), encoding="utf8", newline="\n")
     print(json.dumps({"status": status, "out": str(out), "window": manifest["grid"]["window_texture_pixels"],
                       "checks": {k: v["pass"] for k, v in checks.items()}, "texture_correspondence": corr,

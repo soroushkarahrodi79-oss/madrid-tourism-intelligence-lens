@@ -42,6 +42,27 @@ class PeakRefinement(unittest.TestCase):
         self.assertEqual(dy, 0.0)
 
 
+class CatastroParsing(unittest.TestCase):
+    GML = """<gml:FeatureCollection>
+<bu-ext2d:BuildingPart gml:id="ES.SDGC.BU.0000001_part1"><bu-ext2d:geometry><gml:Surface><gml:patches><gml:PolygonPatch>
+<gml:exterior><gml:LinearRing><gml:posList srsDimension="2">0 0 10 0 10 10 0 10 0 0</gml:posList></gml:LinearRing></gml:exterior>
+<gml:interior><gml:LinearRing><gml:posList srsDimension="2">2 2 4 2 4 4 2 4 2 2</gml:posList></gml:LinearRing></gml:interior>
+</gml:PolygonPatch></gml:patches></gml:Surface></bu-ext2d:geometry>
+<bu-ext2d:numberOfFloorsAboveGround>6</bu-ext2d:numberOfFloorsAboveGround></bu-ext2d:BuildingPart>
+<bu-ext2d:BuildingPart gml:id="ES.SDGC.BU.0000002_part1"><gml:PolygonPatch><gml:exterior><gml:LinearRing>
+<gml:posList>0 0 1 0 1 1 0 0</gml:posList></gml:LinearRing></gml:exterior></gml:PolygonPatch></bu-ext2d:BuildingPart>
+</gml:FeatureCollection>"""
+
+    def test_parts_rings_and_floors_are_read_as_published(self):
+        parts = mg.parse_building_parts(self.GML)
+        self.assertEqual([p["id"] for p in parts], ["ES.SDGC.BU.0000001_part1", "ES.SDGC.BU.0000002_part1"])
+        self.assertEqual(parts[0]["floors_above_ground"], 6)
+        self.assertIsNone(parts[1]["floors_above_ground"])
+        kinds = [k for k, _ in parts[0]["polygons"][0]]
+        self.assertEqual(kinds, ["exterior", "interior"])
+        self.assertEqual(parts[0]["polygons"][0][0][1][1], (10.0, 0.0))
+
+
 @unittest.skipIf(np is None, "numpy not installed")
 class Correspondence(unittest.TestCase):
     def test_correlation_peaks_where_the_two_grids_are_aligned(self):

@@ -75,8 +75,25 @@ export function loadGeometry(dirInput, pkg) {
     for (let i = 0; i < heights.length; i++) if (!Number.isFinite(heights[i])) throw new GeometryError('NODATA', `${key}: non-finite value at ${i}`);
     surfaces[key] = { file: f.file, sha256: f.sha256, bytes: bytes.length, heights };
   }
+  // Optional LoD1 buildings (Catastro footprints x LiDAR heights).
+  let buildings = null;
+  if (m.buildings) {
+    const b = m.buildings;
+    if (fileHashes[b.file] !== b.sha256) throw new GeometryError('HASH_MISMATCH', 'buildings: file record and checksums disagree');
+    const bytes = read(b.file);
+    const parts = JSON.parse(bytes.toString('utf8'));
+    const [w, s, e, n] = g.bbox_epsg3857;
+    for (const p of parts) {
+      const nums = [p.roof_m, p.base_m, ...p.outer_epsg3857.flat(), ...p.holes_epsg3857.flat(2)];
+      if (!nums.every(Number.isFinite)) throw new GeometryError('NODATA', `buildings: non-finite value in ${p.id}`);
+      if (!(p.roof_m > p.base_m)) throw new GeometryError('BUILDINGS', `${p.id}: roof below base`);
+      if (!p.outer_epsg3857.every(([x, y]) => x >= w && x <= e && y >= s && y <= n)) throw new GeometryError('WINDOW', `${p.id}: footprint outside the window`);
+    }
+    buildings = { file: b.file, sha256: b.sha256, bytes: bytes.length, parts };
+  }
   return {
-    dir, manifest: m, manifestSha256: sha256(manifestBytes), fileHashes, surfaces, grid: g,
+    dir, manifest: m, manifestSha256: sha256(manifestBytes), fileHashes, surfaces, grid: g, buildings,
+    surfaceIds: [...SURFACES, ...(buildings ? ['lod1'] : [])],
     acquisition: m.acquisition, base_m: m.vertical_base_m,
   };
 }

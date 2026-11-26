@@ -11,8 +11,16 @@ PNOA-LiDAR MDS/MDT 50 cm (CNIG sheet, downloaded by a person)
   → render.mjs --geometry: verified grid → Three.js mesh (UV = texture pixel centres) → video + render manifest
 ```
 
-**What it is:** one orthophoto draped on a surface derived from elevation, at true vertical scale.
-**What it is not:** an architectural model, a building reconstruction, or a historical 3D scene.
+**What it is:** one orthophoto on the LiDAR terrain (MDT) with **LoD1 buildings** — official Catastro
+footprints (observed) extruded to LiDAR heights (derived), as flat-roofed blocks with neutral facades
+(simplified representation) — at true vertical scale.
+**What it is not:** an architectural model, a facade model, or a historical 3D scene.
+
+> **Visual review (2026-11-26): the first version draped the photo on the MDS surface and was
+> rejected (melted buildings, stretched facades).** Diagnosis, the A/B/C comparison and the decision
+> are in [review/REVIEW_4D.md](review/REVIEW_4D.md). The owner adopted **alternative C (LoD1)**; §8
+> describes it. The MDS surface remains available as an experimental mode (`surface: "mds"`) and is
+> not used in the film. Sections 1–6 below are the original audit and pipeline, still valid.
 
 ## 1. Source audit (Gate 4D.0)
 
@@ -211,3 +219,43 @@ No historical 1080p film was re-rendered.
 - Fidelity is shown to the source raster only; real-world accuracy is not measured.
 - 7–10 months separate texture and geometry; changes in that interval (e.g. construction on the former
   Calderón site) can make texture and surface disagree locally.
+
+## 8. LoD1 buildings (alternative C, adopted after the visual review)
+
+| Element | Source | Status |
+|---|---|---|
+| Terrain | MDT 50 cm v1 (mar–may 2024) on the texture lattice, PNOA 2023 texture | derived surface + observed photo |
+| Building footprints | Catastro INSPIRE `BU:BuildingPart` WFS, retrieved 2026-11-26 in 8 tiles ([fetch_catastro.py](fetch_catastro.py)); **CC BY 4.0 DG Catastro** (IDEE CSW record `ES_SDGC_BU`, `otherConstraints`, dateStamp 2025-01-28) | **observed** (cadastral survey) |
+| Building height | median MDS inside the footprint shrunk 0.75 m minus median MDT inside it; base = lowest MDT cell | **derived** |
+| Block | flat roof at the median MDS, vertical walls, roof cap textured from the orthophoto seen from above, **neutral facades** | **simplified representation** |
+| Vegetation, bridges, furniture | not modelled; they remain the photo on the terrain | — |
+
+Materialization: `materialize_geometry.py ... --catastro <fetch dir>` writes `buildings.json` into the same
+geometry package (v2) and a `buildings` section in its manifest (source tiles with SHA-256, rules,
+counts, summary, attribution, limitations). Without `--catastro` the v1 package is reproduced unchanged
+(verified: same grid bytes, same manifest apart from timestamps).
+
+Measured (window 1280 × 507 texture pixels):
+
+| | |
+|---|---|
+| Parts returned / used | 11 007 returned by 8 tiles; 965 duplicates across tiles (7 with differing geometry: first kept), 7 invalid, 2 326 not wholly inside the window, 30 without cells, 113 below 2 m → **7 566 parts** |
+| Height above ground | p05 6.2 m · p50 22.9 m · p95 33.2 m · max 58.2 m |
+| Plausibility (not validation) | LiDAR height / Catastro floors above ground: median **3.64 m per floor**; **83 % of the built area within 2.5–4.5 m/floor**; 10.9 % of the area (1 364 parts, mostly small, registered with one floor) above 6 m/floor — reported, never corrected; floor counts never set a height |
+| Roof shape | 19.8 % of the area has an MDS interquartile range > 3 m inside the footprint (pitched or mixed roofs): flattened to the median |
+| Reproducibility | second run: `buildings.json` byte-identical (sha256 `a377f139…`) |
+| Mesh | 64 622 roof + 157 984 wall triangles; built in 0.7 s in the page |
+
+Renderer: `surface: "lod1"` shows the MDT terrain plus the blocks (roof caps share the terrain's
+texture mapping; walls neutral, Lambert-lit by the same illustrative light; bottom caps dropped).
+Labels add the Catastro attribution and the fixed note "Bloques simplificados: fachadas neutras, no
+fotografiadas · vegetación y puentes no modelados". Light for surface shots: NW, 30°, directional 0.8,
+ambient 0.6 — horizontal faces still get factor exactly 1, facades get contrast.
+
+Checks added: the LoD1 nadir render must reproduce the texture like the flat plane (smoke 640 × 360:
+MAD 13.79 vs 13.80 flat, all rivals ≥ 28.1, 1 px shifts ≥ 24.8); `lod1_roofs` round trip: GPU roof
+height of the 10 tallest parts and every 500th part = `roof_m` (26/26, max error 2·10⁻⁶ m).
+
+Limitations specific to LoD1: flat roofs; neutral facades are a representation, not an observation;
+footprints are 2026 data on a 2023 photo and 2024 LiDAR (e.g. the former Calderón site); a conventional
+orthophoto puts some facade/ground pixels on roof caps of tall buildings.

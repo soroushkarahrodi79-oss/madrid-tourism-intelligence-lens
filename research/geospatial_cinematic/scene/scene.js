@@ -119,13 +119,66 @@ window.setupScene = async (cfg) => {
     const material = (texId, shading) => {
       const key = `${texId}|${shading}`;
       if (!materials[key]) {
-        materials[key] = shading === 'illustrative'
-          ? new THREE.MeshLambertMaterial({ map: textures[texId] })
+        materials[key] = shading === 'illustrative' || shading === 'illustrative_flat'
+          ? new THREE.MeshLambertMaterial({ map: textures[texId], flatShading: shading === 'illustrative_flat' })
           : new THREE.MeshBasicMaterial({ map: textures[texId], toneMapped: false });
       }
       return materials[key];
     };
     surf = { sf, geos, mesh, material, setup_ms: Math.round(performance.now() - t0) };
+
+    // LoD1 buildings (optional): one flat-roofed prism per Catastro building part, from its lowest
+    // ground (MDT, sunk 1 m so no gap shows on slopes) up to its LiDAR roof. Two merged meshes: roof
+    // caps (texture seen from above, UV = position, exactly as the terrain) and walls (neutral
+    // colour: no facade is observed). Bottom caps are dropped (inside the terrain).
+    if (cfg.surface.buildings) {
+      const tb = performance.now();
+      const B = cfg.surface.buildings;
+      const bytes = await (await fetch(B.url)).arrayBuffer();
+      const digest = await hex(bytes);
+      if (digest !== B.sha256) throw new Error(`buildings: bytes hash ${digest}, geometry package records ${B.sha256}`);
+      const parts = JSON.parse(new TextDecoder().decode(bytes));
+      const [ox, oy] = B.origin;
+      const zOf = (h) => (h - cfg.surface.base_m) * cfg.surface.z_per_m;
+      const roofPos = []; const wallPos = []; const roofTop = new Float32Array(parts.length);
+      for (let k = 0; k < parts.length; k++) {
+        const p = parts[k];
+        const shape = new THREE.Shape(p.outer_epsg3857.map(([x, y]) => new THREE.Vector2(x - ox, y - oy)));
+        for (const h of p.holes_epsg3857) shape.holes.push(new THREE.Path(h.map(([x, y]) => new THREE.Vector2(x - ox, y - oy))));
+        const zb = zOf(p.base_m - 1); const zt = zOf(p.roof_m);
+        const g = new THREE.ExtrudeGeometry(shape, { depth: zt - zb, bevelEnabled: false });
+        const a = g.attributes.position.array;
+        for (const grp of g.groups) {
+          for (let v = grp.start; v < grp.start + grp.count; v += 3) {
+            const tri = [a[v * 3], a[v * 3 + 1], a[v * 3 + 2] + zb, a[v * 3 + 3], a[v * 3 + 4], a[v * 3 + 5] + zb, a[v * 3 + 6], a[v * 3 + 7], a[v * 3 + 8] + zb];
+            if (grp.materialIndex === 0) {
+              if (tri[2] - zb < 1e-6 && tri[5] - zb < 1e-6 && tri[8] - zb < 1e-6) continue; // bottom cap
+              roofPos.push(...tri);
+            } else wallPos.push(...tri);
+          }
+        }
+        roofTop[k] = zt;
+        g.dispose();
+      }
+      const roofG = new THREE.BufferGeometry();
+      roofG.setAttribute('position', new THREE.Float32BufferAttribute(roofPos, 3));
+      const ruv = new Float32Array((roofPos.length / 3) * 2);
+      for (let v = 0; v < roofPos.length / 3; v++) {
+        ruv[v * 2] = (roofPos[v * 3] + B.frame.width / 2) / B.frame.width;
+        ruv[v * 2 + 1] = (roofPos[v * 3 + 1] + B.frame.height / 2) / B.frame.height;
+      }
+      roofG.setAttribute('uv', new THREE.BufferAttribute(ruv, 2));
+      roofG.computeVertexNormals();
+      const wallG = new THREE.BufferGeometry();
+      wallG.setAttribute('position', new THREE.Float32BufferAttribute(wallPos, 3));
+      wallG.computeVertexNormals();
+      const WALL = 0xb9b3a8;
+      const wallMats = { illustrative: new THREE.MeshLambertMaterial({ color: WALL, flatShading: true }), none: new THREE.MeshBasicMaterial({ color: WALL }) };
+      const roofMesh = new THREE.Mesh(roofG, new THREE.MeshBasicMaterial());
+      const wallMesh = new THREE.Mesh(wallG, wallMats.none);
+      const group = new THREE.Group(); group.add(roofMesh, wallMesh); group.visible = false; scene.add(group);
+      surf.lod1 = { group, roofMesh, wallMesh, wallMats, roofTop, parts: parts.length, roof_triangles: roofPos.length / 9, wall_triangles: wallPos.length / 9, setup_ms: Math.round(performance.now() - tb) };
+    }
   }
 
   const ctx = out.getContext('2d', { willReadFrequently: true });
@@ -142,8 +195,9 @@ window.setupScene = async (cfg) => {
     surface: surf ? {
       vertices_per_surface: surf.sf.rows * surf.sf.cols,
       triangles_per_surface: (surf.sf.rows - 1) * (surf.sf.cols - 1) * 2,
-      surfaces_built: Object.keys(surf.geos),
+      surfaces_built: [...Object.keys(surf.geos), ...(surf.lod1 ? ['lod1'] : [])],
       setup_ms: surf.setup_ms,
+      lod1: surf.lod1 ? { parts: surf.lod1.parts, roof_triangles: surf.lod1.roof_triangles, wall_triangles: surf.lod1.wall_triangles, setup_ms: surf.lod1.setup_ms } : null,
       js_heap_mb: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 2 ** 20) : null,
     } : null,
     three: THREE.REVISION,
@@ -186,18 +240,33 @@ function setOpacity(mesh, alpha) {
   mesh.material.opacity = alpha;
 }
 
-// Surface shot: one textured elevation mesh, nothing else in the scene.
-function drawSurface(state) {
+// Shows one surface: a textured elevation mesh, or for "lod1" the MDT terrain plus the LoD1 blocks.
+function showSurface(id, texId, shading, relief) {
   for (const m of Object.values(S.meshes)) m.visible = false;
-  const { mesh, geos, material } = S.surf;
-  const s = state.surface;
-  mesh.geometry = geos[s.id];
-  mesh.material = material(state.layers[0], s.shading);
-  mesh.scale.set(1, 1, s.id === 'flat' ? 1 : s.relief);
+  const { mesh, geos, material, lod1 } = S.surf;
+  mesh.geometry = geos[id === 'lod1' ? 'mdt' : id];
+  mesh.material = material(texId, shading);
+  mesh.scale.set(1, 1, id === 'flat' ? 1 : relief);
   mesh.visible = true;
+  if (lod1) {
+    lod1.group.visible = id === 'lod1';
+    lod1.group.scale.set(1, 1, relief || 1);
+    lod1.roofMesh.material = material(texId, shading === 'illustrative' ? 'illustrative_flat' : 'none');
+    lod1.wallMesh.material = lod1.wallMats[shading] || lod1.wallMats.none;
+  }
+}
+function hideSurface() {
+  S.surf.mesh.visible = false;
+  if (S.surf.lod1) S.surf.lod1.group.visible = false;
+}
+
+// Surface shot: the surface only, nothing else in the scene.
+function drawSurface(state) {
+  const s = state.surface;
+  showSurface(s.id, state.layers[0], s.shading, s.relief);
   const cam = cameraFor(state);
   S.renderer.render(S.scene, cam.camera);
-  mesh.visible = false;
+  hideSurface();
   return cam;
 }
 
@@ -416,7 +485,7 @@ function overlaySurface(state) {
   const id = state.layers[0];
   const s = state.surface;
   const G = S.cfg.surface.meta;
-  scrim(0, px(360), 0.86, 0);
+  scrim(0, px(420), 0.94, 0);
   scrim(S.H, S.H - px(150), 0.8, 0);
   const x = px(64);
   text(copy().eyebrow, x, px(70), { size: 15, weight: 600, color: ACCENT, spacing: 4 });
@@ -428,12 +497,13 @@ function overlaySurface(state) {
     y += px(27);
   }
   if (state.shot.temporal_warning) { text(`⚠ ${state.shot.temporal_warning}`, x, y + px(6), { size: 17, weight: 600, color: ACCENT }); y += px(33); }
-  if (s.shading === 'illustrative') text(copy().shading_note, x, y + px(4), { size: 15, color: MUTED });
+  if (s.shading === 'illustrative') { text(copy().shading_note, x, y + px(4), { size: 15, color: MUTED }); y += px(24); }
+  if (s.id === 'lod1' && copy().lod1_note) text(copy().lod1_note, x, y + px(4), { size: 15, color: MUTED });
   // Heading h turns the view clockwise from north, so north on screen is rotated by -h. Approximate
   // in an oblique view (perspective), as the label says.
   northArrow(S.W - px(84), px(84), 1, -state.camera.pose.heading_deg);
   text(copy().oblique_note, S.W - px(84), px(150), { size: 13, color: MUTED, align: 'right' });
-  const lines = [meta(id).attribution, ...(s.id === 'flat' ? [] : [G.attribution])];
+  const lines = [meta(id).attribution, ...(s.id === 'flat' ? [] : [G.attribution]), ...(s.id === 'lod1' && G.buildings_attribution ? [G.buildings_attribution] : [])];
   lines.forEach((a, k) => text(a, S.W - px(40), S.H - px(22) - px(20) * (lines.length - 1 - k), { size: 13, color: MUTED, align: 'right' }));
   return [id, `surface:${s.id}`];
 }
@@ -466,7 +536,7 @@ function overlaySurfaceClosing(state) {
     }
     y += px(6);
   });
-  const lines = [meta(id).attribution, ...(s.id === 'flat' ? [] : [G.attribution])];
+  const lines = [meta(id).attribution, ...(s.id === 'flat' ? [] : [G.attribution]), ...(s.id === 'lod1' && G.buildings_attribution ? [G.buildings_attribution] : [])];
   lines.forEach((a, k) => text(a, S.W - px(40), S.H - px(22) - px(20) * (lines.length - 1 - k), { size: 13, color: MUTED, align: 'right' }));
   const fade = seg(t, d - 0.6, d);
   if (fade > 0) { S.ctx.fillStyle = `rgba(8, 9, 10, ${fade})`; S.ctx.fillRect(0, 0, S.W, S.H); }
@@ -759,19 +829,14 @@ window.checkFrame = (i) => {
 window.checkSurface = ({ surface, coverage, shading, relief }) => {
   if (S.lost || S.renderer.getContext().isContextLost()) throw new Error('WebGL context lost');
   const sf = S.surf.sf;
-  for (const m of Object.values(S.meshes)) m.visible = false;
-  const { mesh, geos, material } = S.surf;
-  mesh.geometry = geos[surface];
-  mesh.material = material(coverage, shading);
-  mesh.scale.set(1, 1, surface === 'flat' ? 1 : relief);
-  mesh.visible = true;
+  showSurface(surface, coverage, shading, relief);
   const view = orthoView({ width: sf.width, height: sf.height }, S.W / S.H, 1, sf.centre);
   const c = S.ortho;
   c.left = -view.halfWidth; c.right = view.halfWidth; c.top = view.halfHeight; c.bottom = -view.halfHeight;
   c.position.set(view.centre[0], view.centre[1], 1000); c.up.set(0, 1, 0); c.lookAt(view.centre[0], view.centre[1], 0);
   c.updateProjectionMatrix(); c.updateMatrixWorld();
   S.renderer.render(S.scene, c);
-  mesh.visible = false;
+  hideSurface();
   S.ctx.globalAlpha = 1; S.ctx.fillStyle = BG; S.ctx.fillRect(0, 0, S.W, S.H); S.ctx.drawImage(S.gl, 0, 0);
   const [x0, y0] = ndcToPixel(projectOrtho(view, [sf.west, sf.north]), S.W, S.H);
   const [x1, y1] = ndcToPixel(projectOrtho(view, [sf.east, sf.south]), S.W, S.H);
@@ -797,3 +862,6 @@ window.probeSurfaceZ = (surface, indices) => {
   const a = S.surf.geos[surface].attributes.position.array;
   return indices.map((i) => a[i * 3 + 2]);
 };
+
+// LoD1 roof heights as uploaded to the GPU (scene units), for the roof round trip.
+window.probeBuildingRoofs = (indices) => indices.map((i) => S.surf.lod1.roofTop[i]);
