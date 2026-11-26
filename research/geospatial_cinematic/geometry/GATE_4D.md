@@ -259,3 +259,22 @@ height of the 10 tallest parts and every 500th part = `roof_m` (26/26, max error
 Limitations specific to LoD1: flat roofs; neutral facades are a representation, not an observation;
 footprints are 2026 data on a 2023 photo and 2024 LiDAR (e.g. the former Calderón site); a conventional
 orthophoto puts some facade/ground pixels on roof caps of tall buildings.
+
+## 9. Final pilot film (LoD1), 2026-11-26
+
+| | |
+|---|---|
+| Video | `C:\workspace\temporal-renders\madrid-rio-gate4d\final-lod1\video.mp4` — 1920 × 1080, 30 fps, 462 frames, 15.4 s, H.264, 15.2 MB, sha256 `5ce65c2d1757dbeb8de47be85ddd5b557a121e27757d6c59d4ef2aee4004a240` |
+| Manifest | `...\final-lod1\render-manifest.json` — **PASS**, every check; code commit `440d358`, no uncommitted engine changes |
+| Key frames | `...\final-lod1\keyframes\` (rendered) and `...\final-lod1\mp4_frames\` (decoded from the MP4); stills in `...\final-lod1\screenshots\` |
+| Storyboard | `storyboards/madrid-rio-3d.json` v0.2.0: flat orthophoto with the elevation window → rise and orbit over LoD1 → hard cuts flat 0× / MDT terrain / LoD1 under one camera → closing card |
+| Checks | texture on mesh (unlit nadir, lod1 / flat / mdt): MAD 3.11, best rival 29.5, mirrors and 1 px shifts worse; elevation round trip 18/18 points; LoD1 roofs 26/26 (≤ 2·10⁻⁶ m); label/texture/geometry sync on all 462 frames; one continuous boundary (rise → orbit, seek PSNR 39.4 dB); cut sync, seek PSNR, decode, network (0 external requests), package and geometry unchanged |
+| Resources | Intel UHD 620 (ANGLE D3D11); scene setup 1.9 s, LoD1 build 0.5 s, JS heap 159 MB; 4.0 GB free RAM at start; render + encode 156 s, 187 s wall. 1080p was feasible on this machine. |
+
+Earlier outputs, kept for the record: `...\preview-960` and `...\stills-1/2` (rejected MDS draping),
+`...\ABORTED-final-1080p-stopped-by-review` (stopped at frame ~300, not a deliverable), `...\review\`
+(A/B/C comparison sheets), `...\smoke-*`, `...\preview-lod1-960`, `...\regression\` (flat-mode byte checks).
+
+Observed in the film and added to the limitations: bridges, including Puente de Toledo, are part of the
+v1 MDT ground surface (the nDSM over them is ≈ 0), so they appear as raised strips of terrain with
+stretched sides; the Manzanares channel walls likewise. Neither is modelled as a structure.
